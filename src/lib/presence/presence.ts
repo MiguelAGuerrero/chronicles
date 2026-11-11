@@ -38,7 +38,7 @@ const DEFS = {
   museum: { weight: FULL, category: 'culture', kind: 'museums' },
   arts_centre: { weight: FULL, category: 'culture', kind: 'community' },
   theatre: { weight: FULL, category: 'culture', kind: 'theatres' },
-  cinema: { weight: FULL, category: 'culture' },
+  cinema_hall: { weight: FULL, category: 'culture' },
   monument: { weight: FULL, category: 'history', kind: 'monuments' },
   memorial_site: { weight: FULL, category: 'history', kind: 'monuments' },
   // The places archive's odd places and listed buildings (PW4, RP8).
@@ -119,7 +119,7 @@ const OSM: Record<string, Rule[]> = {
   picnic_site: [['*', 'green_amenity']],
   museum: [['*', 'museum']],
   theatre: [['*', 'theatre']],
-  cinema: [['*', 'cinema']],
+  cinema: [['*', 'cinema_hall']],
   attraction: [[['viewpoint'], 'viewpoint'], [['attraction'], 'attraction']],
   aquarium: [['*', 'attraction']],
   // RP15: the National Aviary is OSM's zoo=aviary (the owner, Nov 9).
@@ -234,14 +234,47 @@ export function classesOfArchive(cls: string): PresenceClass[] {
   return c ? [c, 'recorded'] : [];
 }
 
-/** PS4: what an OpenMapTiles landcover feature is, from its properties, where a scenic route reads it as green (SR15): parks and gardens, and woods. */
+/** OpenMapTiles' landcover classes and subclasses that are green to a scenic route (SR15): parks and gardens, and woods. */
+const LANDCOVER: Record<string, Rule[]> = { wood: [['*', 'woodland']], grass: [[['park', 'garden'], 'park']] };
+
+/** PS4: what an OpenMapTiles landcover feature is, from its properties, where a scenic route reads it as green. */
 export function classesOfLandcover(props: Readonly<Record<string, unknown>> | null): PresenceClass[] {
   const cls = String(props?.class ?? '');
   const sub = String(props?.subclass ?? '');
-  if (cls === 'wood') return ['woodland'];
-  if (cls === 'grass' && (sub === 'park' || sub === 'garden')) return ['park'];
+  for (const [subs, c] of LANDCOVER[cls] ?? []) if (subs === '*' || subs.includes(sub)) return [c];
   return [];
 }
+
+/** D4: unnamed pois worth keeping, by subclass, and the words they show (presence-readers audit 1: moved from `tilePois.ts`). */
+const UNNAMED: Record<string, string> = { artwork: 'Public art', viewpoint: 'A viewpoint' };
+
+/** D4: the words an unnamed poi of this subclass shows, or null where an unnamed one is no place. */
+export const unnamedLabel = (sub: string): string | null => UNNAMED[sub] ?? null;
+
+/** L7: transit the landing prefers to start from: railway stations and halts, bus stations, ferry terminals (moved from `tilePois.ts`). */
+const TRANSIT: Record<string, readonly string[]> = {
+  railway: ['station', 'halt', 'subway', 'light_rail'],
+  bus: ['bus_station'],
+  ferry_terminal: ['ferry_terminal'],
+};
+
+/** L7: whether an OpenMapTiles poi is a stop the landing may start from. Transit is not a place to go: no class. */
+export const isTransitStop = (cls: string, sub: string): boolean => !!TRANSIT[cls]?.includes(sub);
+
+/**
+ * PR2, PS7 (presence-readers audit 1): every source tag presence's tables are keyed by or list, so a guard can hold that no
+ * module outside presence spells one.
+ */
+export const SOURCE_TAGS: readonly string[] = [
+  ...new Set([
+    ...Object.entries(OSM).flatMap(([cls, rules]) => [cls, ...rules.flatMap(([subs]) => (subs === '*' ? [] : subs))]),
+    ...Object.keys(OSM_SUBCLASS), ...Object.keys(OSM_DEFAULT),
+    ...Object.keys(OVERTURE_ROOT), ...Object.keys(OVERTURE_DEEPER), ...OVERTURE_NEVER,
+    ...Object.keys(ARCHIVE),
+    ...Object.entries(LANDCOVER).flatMap(([cls, rules]) => [cls, ...rules.flatMap(([subs]) => (subs === '*' ? [] : subs))]),
+    ...Object.keys(UNNAMED), ...Object.entries(TRANSIT).flatMap(([cls, subs]) => [cls, ...subs]),
+  ]),
+];
 
 /**
  * PS2, PS3: what a place's name adds to its classes. A notable name is `historic_name` (marks read it, by curation); a

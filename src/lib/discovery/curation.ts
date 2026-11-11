@@ -11,7 +11,7 @@ import type { Place } from './types';
  */
 
 /** Classes that count for density and bars but are never marks (S19). */
-export const NEVER_MARK: ReadonlySet<PresenceClass> = new Set<PresenceClass>(['cinema', 'green_amenity']);
+export const NEVER_MARK: ReadonlySet<PresenceClass> = new Set<PresenceClass>(['cinema_hall', 'green_amenity']);
 
 /**
  * Classes that are marks only when the name says historic or notable, or the places archive records the place (S20, PS6):
