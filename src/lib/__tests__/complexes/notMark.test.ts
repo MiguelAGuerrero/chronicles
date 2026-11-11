@@ -10,7 +10,7 @@ import { fixture, piecesOf, placesOf, RELEASE, tilesOf } from './fixtures';
 const spot: LngLat = [-76.8821, 40.2604];
 const mark: ChecklistItem = { key: 'm', area_key: null, name: 'A statue', category: 'history', kind: 'monuments', at: [-76.88211, 40.26041], generic: false };
 
-test('CX8: a complex has no mark fields; a capture inside one finds its mark as before and nothing because of the complex', { todo: 'test first' }, () => {
+test('CX8: a complex has no mark fields; a capture inside one finds its mark as before and nothing because of the complex', () => {
   const h = fixture('harrisburg');
   const real = complexesFrom(piecesOf(h), placesOf(h), tilesOf(h), RELEASE);
   assert.ok(real.length > 0);

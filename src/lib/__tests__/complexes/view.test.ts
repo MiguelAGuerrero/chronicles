@@ -9,7 +9,7 @@ import type { LngLat } from '../../types';
 const at: LngLat = [-76.8821, 40.2604];
 const row: Complex = { id: 'a', name: 'Strawberry Square', kind: 'shopping', polygons: [[[[-76.8826, 40.2599], [-76.8816, 40.2599], [-76.8816, 40.2609], [-76.8826, 40.2609], [-76.8826, 40.2599]]]], at, bbox: [-76.8826, 40.2599, -76.8816, 40.2609], release: 'r', code: COMPLEX_CODE };
 
-test('CX12: lineFor reads the store alone: no request with none cached, then the complex once it is, and not back', { todo: 'test first' }, async () => {
+test('CX12: lineFor reads the store alone: no request with none cached, then the complex once it is, and not back', async () => {
   let requests = 0;
   const source: ComplexSource = { read: async () => { requests++; return { ok: false }; } };
   let held: Complex[] = [];

@@ -29,7 +29,7 @@ const memoryStore = () => {
   return { rows, putComplexes: async (r: Complex[]) => void r.forEach((c) => rows.set(c.id, c)), complexesNear: async () => [...rows.values()] };
 };
 
-test('CX16: an area reads at most the budget of tiles, nearest its point first, and says when it fell short', { todo: 'test first' }, () => {
+test('CX16: an area reads at most the budget of tiles, nearest its point first, and says when it fell short', () => {
   const small = tilesFor({ at: square, reachM: 800 });
   assert.ok(small.tiles.length >= 1 && small.tiles.length <= COMPLEX_TILE_BUDGET);
   const t0 = tileAt(square);
@@ -39,7 +39,7 @@ test('CX16: an area reads at most the budget of tiles, nearest its point first, 
   assert.equal(wide.partial, true);
 });
 
-test('CX14: one row per complex with the release and code; a repeat reads no tile twice; purgeDerived clears the store', { todo: 'test first' }, async () => {
+test('CX14: one row per complex with the release and code; a repeat reads no tile twice; purgeDerived clears the store', async () => {
   const log: [number, number][][] = [];
   const store = memoryStore();
   const c = createComplexes({ source: fakeSource(h, log), store, now: () => 0 });
@@ -54,7 +54,7 @@ test('CX14: one row per complex with the release and code; a repeat reads no til
   assert.ok(DERIVED_STORES.includes('complex'), 'complex rows are derived: purgeDerived clears them');
 });
 
-test('CX16: a failed read shows nothing, throws nothing and is tried again later', { todo: 'test first' }, async () => {
+test('CX16: a failed read shows nothing, throws nothing and is tried again later', async () => {
   let n = 0;
   const store = memoryStore();
   const flaky: ComplexSource = { read: async () => (n++ === 0 ? { ok: false } : { ok: true, pieces: piecesOf(h), places: placesOf(h), tiles: h.tiles.map((t) => [t.x, t.y] as [number, number]) }) };

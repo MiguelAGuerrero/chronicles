@@ -13,6 +13,7 @@ import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
+import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
@@ -534,6 +535,25 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         key: r.key, level: r.level, name: r.name, at: [r.lon, r.lat] as [number, number], reachM: r.reach_m, build: r.build, code: r.code,
         listed_at: r.listed_at, read_at: r.read_at, failed_at: r.failed_at, profile: r.profile ? JSON.parse(r.profile) : null,
       }));
+    },
+    putComplexes(rows) {
+      if (!rows.length) return Promise.resolve();
+      return write(async (t) => {
+        for (const c of rows) {
+          await t.runAsync(
+            'INSERT OR REPLACE INTO complex (id, name, kind, release, code, lon, lat, west, south, east, north, polygons) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            c.id, c.name, c.kind, c.release, c.code, c.at[0], c.at[1], c.bbox[0], c.bbox[1], c.bbox[2], c.bbox[3], JSON.stringify(c.polygons),
+          );
+        }
+      });
+    },
+    async complexesNear(at, spanDeg) {
+      type Row = { id: string; name: string; kind: Complex['kind']; release: string; code: string; lon: number; lat: number; west: number; south: number; east: number; north: number; polygons: string };
+      const rows = await (await conn()).getAllAsync<Row>(
+        'SELECT * FROM complex WHERE south <= ? AND north >= ? AND west <= ? AND east >= ? ORDER BY id',
+        at[1] + spanDeg, at[1] - spanDeg, at[0] + spanDeg, at[0] - spanDeg,
+      );
+      return rows.map((r) => ({ id: r.id, name: r.name, kind: r.kind, release: r.release, code: r.code, at: [r.lon, r.lat] as [number, number], bbox: [r.west, r.south, r.east, r.north] as [number, number, number, number], polygons: JSON.parse(r.polygons) }));
     },
     putOutlineTiles(tiles) {
       if (!tiles.length) return Promise.resolve();

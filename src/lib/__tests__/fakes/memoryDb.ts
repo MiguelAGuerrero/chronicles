@@ -1,6 +1,7 @@
 import { staleAreas } from '../../areas/assign';
 import type { Area, WalkArea } from '../../areas/types';
 import type { OutlineTile } from '../../areas/outlines';
+import type { Complex } from '../../complexes/types';
 import type { WalkTile } from '../../walk/types';
 import type { AtlasArea } from '../../atlas/atlas';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from '../../db/segmentBounds';
@@ -20,7 +21,7 @@ export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
-  'placesIn', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles',
+  'placesIn', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
 
@@ -142,6 +143,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const landings = new Table<LandingRow>((r) => r.key);
   const atlas = new Table<AtlasArea>((r) => r.key);
   const outlineTiles = new Table<OutlineTile>((r) => r.key);
+  const complexes = new Table<Complex>((r) => r.id);
   const walkTiles = new Table<WalkTile>((r) => r.key);
   const checklistAreas = new Table<ChecklistArea>((a) => a.key);
   const checklistItems = new Table<ChecklistItem>((i) => i.key);
@@ -449,6 +451,17 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     async listAtlasAreas() {
       return out(atlas.all());
     },
+    async putComplexes(rows) {
+      for (const c of rows) complexes.put(c);
+    },
+    async complexesNear(at, spanDeg) {
+      return out(
+        complexes
+          .all()
+          .filter((c) => c.bbox[1] <= at[1] + spanDeg && c.bbox[3] >= at[1] - spanDeg && c.bbox[0] <= at[0] + spanDeg && c.bbox[2] >= at[0] - spanDeg)
+          .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
+      );
+    },
     async putOutlineTiles(tiles) {
       for (const t of tiles) outlineTiles.put(t);
     },
@@ -494,7 +507,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       meta.put({ key, value });
     },
     async purgeDerived() {
-      const stores: Record<string, { clear(): void }> = { street_segment: segments, place: places, explore_read: exploreReads, atlas_area: atlas, outline_tile: outlineTiles, walk_tile: walkTiles };
+      const stores: Record<string, { clear(): void }> = { street_segment: segments, place: places, explore_read: exploreReads, atlas_area: atlas, outline_tile: outlineTiles, walk_tile: walkTiles, complex: complexes };
       for (const name of DERIVED_STORES) {
         // A new derived store must be added here too, or the fake would keep it.
         if (!stores[name]) throw new Error(`memoryDb: no store for derived store '${name}'`);

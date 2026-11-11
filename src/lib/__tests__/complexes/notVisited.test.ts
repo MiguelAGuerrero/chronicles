@@ -11,7 +11,7 @@ const ROOT = join(__dirname, '..', '..', '..', '..');
 const at = [-76.88, 40.26] as [number, number];
 const c: Complex = { id: 'a', name: 'Strawberry Square', kind: 'shopping', polygons: [], at, bbox: [at[0], at[1], at[0], at[1]], release: 'r', code: COMPLEX_CODE };
 
-test('CX7: a row says its name and kind and nothing about visits or numbers; no walk, area or replay type names a complex', { todo: 'test first' }, () => {
+test('CX7: a row says its name and kind and nothing about visits or numbers; no walk, area or replay type names a complex', () => {
   const s = complexSection([c], { from: at, partial: false, hidden: [], expanded: true })!;
   assert.deepEqual(Object.keys(s.rows[0]).sort(), ['at', 'id', 'label', 'name', 'word']);
   for (const text of [s.title, s.rows[0].word, s.rows[0].label]) assert.equal(/visited|walked|new to you|been to|of \d|complexes? (here|nearby)/i.test(text.replace('Complexes near here', '')), false, text);

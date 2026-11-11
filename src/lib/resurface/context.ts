@@ -39,9 +39,10 @@ export function streetAt(fix: LngLat | null, segments: StreetSegment[], snappedI
 
 /** The place line (MC1): only what is known. */
 export function placeLine(o: { street: string | null; near?: boolean; town: string | null; complex?: { name: string; near: boolean } | null }): string {
-  const street = o.street && o.near ? `Near ${o.street}` : o.street;
-  if (street && o.town) return `${street}, ${o.town}`;
-  return street ?? o.town ?? NO_PLACE;
+  // CX11: a complex leads and the street stays, bare (the complex carries the "Near" when the fix is only close to it).
+  const lead = o.complex ? (o.complex.near ? `Near ${o.complex.name}` : o.complex.name) : null;
+  const street = o.street && o.near && !o.complex ? `Near ${o.street}` : o.street;
+  return [lead, street, o.town].filter((x): x is string => !!x).join(', ') || NO_PLACE;
 }
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -128,5 +129,5 @@ export interface ArrivalInput {
 export function arrivalLine(o: ArrivalInput): string {
   const after = o.walkedMs == null ? null : justAfter(o.prev);
   const into = `${minutesInLine(o.walkedMs)}${after ? `, ${after}` : ''}`;
-  return [placeLine({ street: o.street, near: o.streetNear, town: o.town }), dayPartLine(o.t, o.now), into].join(' · ');
+  return [placeLine({ street: o.street, near: o.streetNear, town: o.town, complex: o.complex }), dayPartLine(o.t, o.now), into].join(' · ');
 }

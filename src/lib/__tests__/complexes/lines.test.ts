@@ -14,7 +14,7 @@ function cx(id: string, name: string, dLon: number, kind: ComplexKind = 'shoppin
 const many = [cx('a', 'Zed Mall', 0.001), cx('b', 'Alpha Square', 0.004), cx('c', 'Mid Market', 0.002, 'markets'), cx('d', 'Station Square 2', 0.003, 'stations'), cx('e', 'Beta Plaza', 0.005), cx('f', 'Civic Centre', 0.006, 'civic')];
 const NUMBER_WORDS = /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|dozen|several|few|many|couple)\b/i;
 
-test('CX4: the section lists the nearest few with name, kind word and Walk to, and See more lists the rest; none shows nothing', { todo: 'test first' }, () => {
+test('CX4: the section lists the nearest few with name, kind word and Walk to, and See more lists the rest; none shows nothing', () => {
   const first = complexSection(many, { from: HERE, partial: false, hidden: [], expanded: false })!;
   assert.equal(first.title, 'Complexes');
   assert.equal(first.rows.length, FIRST_SHOWN);
@@ -28,7 +28,7 @@ test('CX4: the section lists the nearest few with name, kind word and Walk to, a
   for (const r of all.rows) assert.equal(Object.keys(r).includes('holds'), false, 'no line about what it holds');
 });
 
-test('CX5: no label holds a digit or a counting word; a complex\'s own name is exempt', { todo: 'test first' }, () => {
+test('CX5: no label holds a digit or a counting word; a complex\'s own name is exempt', () => {
   const all = complexSection(many, { from: HERE, partial: true, hidden: [], expanded: true })!;
   for (const text of [all.title, SEE_MORE, ...all.rows.flatMap((r) => [r.word, r.label.replace(r.name, '')])]) {
     assert.equal(/\d/.test(text), false, text);
@@ -37,7 +37,7 @@ test('CX5: no label holds a digit or a counting word; a complex\'s own name is e
   assert.ok(all.rows.some((r) => r.name === 'Station Square 2'), 'a name with a digit is kept');
 });
 
-test('CX6: nearest first, ties by name then id, the same order after See more; the label has no number; nothing says biggest', { todo: 'test first' }, () => {
+test('CX6: nearest first, ties by name then id, the same order after See more; the label has no number; nothing says biggest', () => {
   const order = nearestFirst(many, HERE).map((c) => c.id);
   assert.deepEqual(order, ['a', 'c', 'd', 'b', 'e', 'f']);
   const tied = nearestFirst([cx('2', 'Beta', 0.001), cx('1', 'Alpha', 0.001), cx('0', 'alpha', 0.001)], HERE).map((c) => c.id);

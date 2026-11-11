@@ -15,7 +15,7 @@ function box(id: string, name: string, w: number, s: number, size = 0.001): Comp
 const square = box('sq', 'Strawberry Square', -76.8826, 40.2599);
 const inside: LngLat = [-76.8821, 40.2604];
 
-test('CX11: inside, the line leads with the complex and keeps the street and town; near, "Near ..."; farther, as MC1', { todo: 'test first' }, () => {
+test('CX11: inside, the line leads with the complex and keeps the street and town; near, "Near ..."; farther, as MC1', () => {
   assert.equal(placeLine({ street: 'N 2nd St', town: 'Harrisburg', complex: { name: 'Strawberry Square', near: false } }), 'Strawberry Square, N 2nd St, Harrisburg');
   assert.equal(placeLine({ street: 'N 2nd St', town: 'Harrisburg', complex: { name: 'Strawberry Square', near: true } }), 'Near Strawberry Square, N 2nd St, Harrisburg');
   assert.equal(placeLine({ street: 'N 2nd St', town: 'Harrisburg', complex: null }), 'N 2nd St, Harrisburg');
@@ -29,7 +29,7 @@ test('CX11: inside, the line leads with the complex and keeps the street and tow
   assert.ok(line.startsWith('Strawberry Square, N 2nd St, Harrisburg · '), line);
 });
 
-test('CX11: overlapping complexes give one name, the same each time', { todo: 'test first' }, () => {
+test('CX11: overlapping complexes give one name, the same each time', () => {
   const big = box('big', 'Big One', -76.8830, 40.2595, 0.002);
   const a = complexAt(inside, [square, big]);
   const b = complexAt(inside, [big, square]);

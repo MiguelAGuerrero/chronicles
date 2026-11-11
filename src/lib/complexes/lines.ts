@@ -1,4 +1,5 @@
 // @layer core
+import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import type { Complex, ComplexKind } from './types';
 
@@ -22,19 +23,29 @@ export interface ComplexSection {
   more: boolean;
 }
 
-const NOT_YET = () => new Error('complexes: not implemented');
+const WORDS: Record<ComplexKind, string> = { shopping: 'Shopping', markets: 'Market', campuses: 'Campus', stations: 'Station', civic: 'Civic' };
 
 /** The kind as a word: Shopping, Market, Campus, Station, Civic. */
-export function kindWord(_kind: ComplexKind): string {
-  throw NOT_YET();
-}
+export const kindWord = (kind: ComplexKind): string => WORDS[kind];
 
-/** CX6: nearest to a point first, ties by name (locale-free) then id. */
-export function nearestFirst(_complexes: readonly Complex[], _from: LngLat): Complex[] {
-  throw NOT_YET();
+const key = (s: string) => s.toLowerCase();
+
+/** CX6: nearest to a point first, ties by name (locale-free) then id. Never by size, busyness or popularity. */
+export function nearestFirst(complexes: readonly Complex[], from: LngLat): Complex[] {
+  return complexes
+    .map((c) => ({ c, d: distanceM(from, c.at) }))
+    .sort((a, b) => a.d - b.d || (key(a.c.name) < key(b.c.name) ? -1 : key(a.c.name) > key(b.c.name) ? 1 : 0) || (a.c.id < b.c.id ? -1 : a.c.id > b.c.id ? 1 : 0))
+    .map((x) => x.c);
 }
 
 /** CX4-CX6: the card's section: null with none to show; "Complexes near here" when the read was partial; the nearest few until expanded. */
-export function complexSection(_complexes: readonly Complex[], _o: { from: LngLat; partial: boolean; hidden: readonly ComplexKind[]; expanded: boolean }): ComplexSection | null {
-  throw NOT_YET();
+export function complexSection(complexes: readonly Complex[], o: { from: LngLat; partial: boolean; hidden: readonly ComplexKind[]; expanded: boolean }): ComplexSection | null {
+  const all = nearestFirst(complexes.filter((c) => !o.hidden.includes(c.kind)), o.from);
+  if (!all.length) return null;
+  const shownRows = o.expanded ? all : all.slice(0, FIRST_SHOWN);
+  return {
+    title: o.partial ? 'Complexes near here' : 'Complexes',
+    rows: shownRows.map((c) => ({ id: c.id, name: c.name, word: kindWord(c.kind), at: c.at, label: `${c.name}, ${kindWord(c.kind)}` })),
+    more: !o.expanded && all.length > FIRST_SHOWN,
+  };
 }

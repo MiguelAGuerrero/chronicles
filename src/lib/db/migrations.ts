@@ -238,4 +238,15 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX moment_t ON moment (t);
   CREATE INDEX capture_moment ON capture (moment_id, t);
   `,
+  // Complexes (CX14, specs/complexes): derived rows, one per named building that is made of other places; cleared with the
+  // derived stores. The bounding box is four columns so a moment's fix finds its complex without reading them all.
+  `
+  CREATE TABLE complex (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, release TEXT NOT NULL, code TEXT NOT NULL,
+    lon REAL NOT NULL, lat REAL NOT NULL,
+    west REAL NOT NULL, south REAL NOT NULL, east REAL NOT NULL, north REAL NOT NULL,
+    polygons TEXT NOT NULL
+  );
+  CREATE INDEX complex_box ON complex (south, north);
+  `,
 ];

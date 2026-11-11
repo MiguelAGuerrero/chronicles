@@ -15,7 +15,7 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-test('CX13: only the arrival line, the card, the map and the settings reach complexes; nothing stores one on a capture, moment, thread entry or walk', { todo: 'test first' }, () => {
+test('CX13: only the arrival line, the card, the map and the settings reach complexes; nothing stores one on a capture, moment, thread entry or walk', () => {
   const importers = walk(LIB).filter((f) => /from '(\.\.?\/)+(complexes|lib\/complexes)(\/[^']*)?'/.test(readFileSync(f, 'utf8')) && !relative(LIB, f).startsWith('complexes'));
   assert.ok(importers.length > 0, 'something reads them');
   const allowed = /^(resurface|atlas|discovery|db|ports|explore|moments?|gallery)\//;

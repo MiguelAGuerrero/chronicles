@@ -11,7 +11,7 @@ const w = fixture('whitehall');
 const run = (r: typeof h, tiles = tilesOf(r)) => complexesFrom(piecesOf(r), placesOf(r), tiles, RELEASE);
 const named = (cs: Complex[], n: string) => cs.filter((c) => c.name === n);
 
-test('CX1: Strawberry Square and Lehigh Valley Mall are complexes; a bank building, a garage, a church and a cinema are not', { todo: 'test first' }, () => {
+test('CX1: Strawberry Square and Lehigh Valley Mall are complexes; a bank building, a garage, a church and a cinema are not', () => {
   const hc = run(h);
   const wc = run(w);
   assert.equal(named(hc, 'Strawberry Square').length, 1);
@@ -20,7 +20,7 @@ test('CX1: Strawberry Square and Lehigh Valley Mall are complexes; a bank buildi
   assert.ok(MIN_GO >= 6, 'the minimum is a gate for "made of other places"');
 });
 
-test('CX2: no named polygon, no complex; the outline is the source\'s, never altered; the Capitol\'s buildings are not joined', { todo: 'test first' }, () => {
+test('CX2: no named polygon, no complex; the outline is the source\'s, never altered; the Capitol\'s buildings are not joined', () => {
   // Shops with no polygon around them: nothing.
   assert.deepEqual(complexesFrom([], placesOf(w), tilesOf(w), RELEASE), []);
   // The outline of the mall is exactly the union of its pieces' polygons.
@@ -33,7 +33,7 @@ test('CX2: no named polygon, no complex; the outline is the source\'s, never alt
   assert.equal(hc.filter((c) => /capitol complex/i.test(c.name)).length, 0);
 });
 
-test('CX3: every complex has one of the five kinds, told by the one table', { todo: 'test first' }, () => {
+test('CX3: every complex has one of the five kinds, told by the one table', () => {
   const hc = run(h);
   const wc = run(w);
   const kind = (cs: Complex[], n: string) => named(cs, n)[0]?.kind;
@@ -52,7 +52,7 @@ test('CX3: every complex has one of the five kinds, told by the one table', { to
   for (const c of [...hc, ...wc]) assert.ok(COMPLEX_KINDS.includes(c.kind), c.name);
 });
 
-test('CX14: a complex cut by a tile is one complex, judged only once every tile holding a vertex is read', { todo: 'test first' }, () => {
+test('CX14: a complex cut by a tile is one complex, judged only once every tile holding a vertex is read', () => {
   // Lehigh Valley Mall has pieces in two tiles: one complex, one outline.
   const all = run(w);
   assert.equal(named(all, 'Lehigh Valley Mall').length, 1);

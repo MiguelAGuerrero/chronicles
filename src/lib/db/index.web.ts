@@ -7,6 +7,7 @@ import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
+import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -19,7 +20,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 18;
+const VERSION = 19;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -153,6 +154,10 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
       moments.put(toRecord(momentOf(c.value as Flat)));
       c.continue();
     };
+  }
+  if (oldVersion < 19 && upTo >= 19) {
+    // Complexes (CX14, specs/complexes): derived rows, one per named building made of other places; cleared with the derived stores.
+    d.createObjectStore('complex', { keyPath: 'id' });
   }
 }
 
@@ -658,6 +663,19 @@ export const db: Db = {
   },
   async listAtlasAreas() {
     return (await done((await store('atlas_area')).getAll())) as AtlasArea[];
+  },
+  async putComplexes(rows) {
+    if (!rows.length) return;
+    const tx = (await conn()).transaction('complex', 'readwrite');
+    for (const c of rows) tx.objectStore('complex').put(c);
+    await committed(tx);
+  },
+  async complexesNear(at, spanDeg) {
+    // A derived store of a few hundred rows at most: read whole and filtered by box.
+    const all = (await done((await store('complex')).getAll())) as Complex[];
+    return all
+      .filter((c) => c.bbox[1] <= at[1] + spanDeg && c.bbox[3] >= at[1] - spanDeg && c.bbox[0] <= at[0] + spanDeg && c.bbox[2] >= at[0] - spanDeg)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   },
   async putOutlineTiles(tiles) {
     if (!tiles.length) return;

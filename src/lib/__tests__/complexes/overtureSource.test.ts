@@ -10,7 +10,7 @@ import { fixture } from './fixtures';
 const CORE = join(__dirname, '..', '..', 'complexes');
 const h = fixture('harrisburg');
 
-test('CX15: the adapter keeps named buildings with their polygons as given, and reads a place\'s taxonomy hierarchy', { todo: 'test first' }, () => {
+test('CX15: the adapter keeps named buildings with their polygons as given, and reads a place\'s taxonomy hierarchy', () => {
   const t = h.tiles.find((x) => x.x === 4693 && x.y === 6187)!;
   const feats = [
     ...t.buildings.map((b) => ({ geometry: { type: 'MultiPolygon', coordinates: b.polygons }, properties: { id: b.id, '@name': b.name, subtype: b.subtype ?? undefined, class: b.class ?? undefined } })),
@@ -24,7 +24,7 @@ test('CX15: the adapter keeps named buildings with their polygons as given, and 
   assert.deepEqual(p, [{ at: [-76.88, 40.26], hierarchy: ['shopping', 'market', 'farmers_market'] }]);
 });
 
-test('CX15: the core imports no adapter and holds no place name or coordinate', { todo: 'test first' }, () => {
+test('CX15: the core imports no adapter and holds no place name or coordinate', () => {
   for (const f of readdirSync(CORE).filter((x) => x.endsWith('.ts') && x !== 'overtureSource.ts')) {
     const text = readFileSync(join(CORE, f), 'utf8');
     assert.equal(/overtureSource/.test(text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')), false, `${f} imports the adapter`);

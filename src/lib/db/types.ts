@@ -3,10 +3,12 @@ import type { Area, WalkArea } from '../areas/types';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
+import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { ThreadsChange, ThreadsData } from '../threads/types';
+import type { LngLat } from '../types';
 import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
@@ -152,6 +154,11 @@ export interface Db {
   /** Explore atlas (AT12): areas listed near you and their ring reads, a cache; the same key replaces a row. */
   putAtlasAreas(rows: AtlasArea[]): Promise<void>;
   listAtlasAreas(): Promise<AtlasArea[]>;
+
+  /** Complexes (CX14): derived rows, one per building; the same id replaces; cleared with the derived stores. */
+  putComplexes(rows: Complex[]): Promise<void>;
+  /** The complexes whose bounding box meets the box of `spanDeg` degrees around a point. */
+  complexesNear(at: LngLat, spanDeg: number): Promise<Complex[]>;
 
   /** Town outlines (TO12): what each read tile held, a cache keyed `x/y`; the same key replaces a tile. */
   putOutlineTiles(tiles: OutlineTile[]): Promise<void>;

@@ -4,6 +4,7 @@ import type { Area, WalkArea } from '../areas/types';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
+import type { Complex } from '../complexes/types';
 import type { Db } from '../db/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
@@ -723,6 +724,21 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(keys(await db.getWalkTiles(['1/2', '9/9'])), ['1/2']);
       assert.deepEqual((await db.getWalkTiles(['1/2']))[0], walkTile('1/2', 2));
       assert.deepEqual(keys(await db.getWalkTiles(['3/4', '1/2'])), ['1/2', '3/4']);
+    });
+
+    test('FC7 putComplexes, complexesNear (CX14): the same id replaces; only boxes meeting the area come back, in id order; empty is a no-op; purgeDerived clears them', async () => {
+      const db = await fresh();
+      const mk = (id: string, w: number, s: number, name = id): Complex => ({ id, name, kind: 'shopping', polygons: [[[[w, s], [w + 0.001, s], [w + 0.001, s + 0.001], [w, s + 0.001], [w, s]]]], at: [w + 0.0005, s + 0.0005], bbox: [w, s, w + 0.001, s + 0.001], release: 'r', code: 'c1' });
+      assert.deepEqual(await db.complexesNear([-76.88, 40.26], 0.01), []);
+      await db.putComplexes([mk('a', -76.882, 40.26), mk('b', -76.88, 40.262), mk('far', -75.4, 40.6)]);
+      await db.putComplexes([mk('a', -76.882, 40.26, 'A again')]);
+      await db.putComplexes([]);
+      const got = await db.complexesNear([-76.88, 40.26], 0.01);
+      assert.deepEqual(got.map((c) => c.id), ['a', 'b']);
+      assert.deepEqual(got[0], mk('a', -76.882, 40.26, 'A again'));
+      assert.deepEqual((await db.complexesNear([-75.4, 40.6], 0.001)).map((c) => c.id), ['far']);
+      await db.purgeDerived();
+      assert.deepEqual(await db.complexesNear([-76.88, 40.26], 0.01), []);
     });
 
     test('WK19 purgeDerived clears the walk tiles', async () => {
