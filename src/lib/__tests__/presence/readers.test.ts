@@ -5,7 +5,9 @@ import test from 'node:test';
 import type { LngLat } from '../../types';
 
 // Presence readers (specs/presence-readers, PS1-PS11, decision 0140): the archive, the bars, notable names, scenic greens and
-// the planner read presence's classes. readers.golden.json holds what the code answered before the slice (0d03c4b4).
+// the planner read presence's classes. readers.golden.json holds what the code answered before the slice: captured from
+// 0d03c4b4, then again from main (6b099ea6) when the slice was resumed there (T8), with each mark's kind and rings fed
+// landcover outlines (presence-readers audit 8).
 
 type View = { category: string; kind: string | null; markable: boolean; bars: string[] } | null;
 type Golden = {
@@ -14,6 +16,7 @@ type Golden = {
   osm: ({ cls: string; sub: string } & Record<'plain' | 'notable' | 'hood', View>)[];
   landcover: { cls: string; sub: string; green: string | null }[];
   steps: { file: string; name: string; steps: Record<string, number>; marks: string[]; thin: boolean }[];
+  outlined: { file: string; name: string; steps: Record<string, number>; marks: string[]; thin: boolean }[];
 };
 const golden = JSON.parse(readFileSync(join(__dirname, 'readers.golden.json'), 'utf8')) as Golden;
 const lib = join(__dirname, '..', '..');
@@ -171,6 +174,8 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
   const { placesFromTilePois } = await import('../../discovery/tilePois');
   const { barsOf } = await import('../../discovery/bars');
   const { ringOf } = await import('../../atlas/atlas');
+  const { outlined } = await import('./outlinedRings');
+  const marksOf = (r: { marks: { key: string; kind?: string }[] }) => r.marks.map((m) => `${m.key}|${m.kind ?? ''}`).sort();
   const names = golden.names;
   for (const g of golden.archive)
     for (const k of ['plain', 'notable', 'hood'] as const)
@@ -187,9 +192,15 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
       const map = placesFromTilePois(a.pois.map(([name, cls, sub, lon, lat]) => pt({ name, class: cls, subclass: sub }, [lon, lat])), d.tiles);
       const arch = placesFromArchive(a.archive.map(([name, cls, lon, lat]) => pt({ name, class: cls }, [lon, lat])), 'fixture');
       const r = ringOf(map, arch, a.at);
-      const g = golden.steps[i++];
+      const g = golden.steps[i];
       assert.deepEqual([g.file, g.name], [file, a.name], 'the golden rows follow the fixtures');
-      assert.deepEqual({ steps: r.steps, marks: r.marks.map((m) => m.key).sort(), thin: r.thin }, { steps: g.steps, marks: g.marks, thin: g.thin }, `${file} ${a.name}`);
+      assert.deepEqual({ steps: r.steps, marks: marksOf(r), thin: r.thin }, { steps: g.steps, marks: g.marks, thin: g.thin }, `${file} ${a.name}`);
+      // presence-readers audit 8: the same ring fed landcover outlines, so the kind pipeline's refinement runs on outlines.
+      const o = outlined(a);
+      const outlinedMap = placesFromTilePois(o.pois.map(([name, cls, sub, lon, lat]) => pt({ name, class: cls, subclass: sub }, [lon, lat])), d.tiles);
+      const ro = ringOf(outlinedMap, arch, a.at, undefined, [], o.landcover as never);
+      const go = golden.outlined[i++];
+      assert.deepEqual({ steps: ro.steps, marks: marksOf(ro), thin: ro.thin }, { steps: go.steps, marks: go.marks, thin: go.thin }, `${file} ${a.name}, outlined`);
       if (file === 'presenceSample.json') lit.push(r.steps);
     }
   }

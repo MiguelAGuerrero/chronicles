@@ -124,3 +124,12 @@ test('presence-readers audit 5: a poi or Overture place named for an Object.prot
     assert.equal(p.isTransitStop(k, k), false);
   }
 });
+
+test('presence-readers audit 8: the golden rings hold each mark\'s kind, with outlines', () => {
+  const g = JSON.parse(readFileSync(join(__dirname, 'readers.golden.json'), 'utf8')) as { steps: { marks: string[] }[]; outlined?: { marks: string[] }[] };
+  assert.ok(g.steps.every((s) => s.marks.every((m) => m.includes('|'))), 'each golden mark is key|kind');
+  assert.ok(Array.isArray(g.outlined) && g.outlined.length === g.steps.length, 'a ring fed outlines for every fixture area');
+  const kinds = new Set(g.outlined!.flatMap((s) => s.marks.map((m) => m.split('|')[1])));
+  for (const k of ['parks', 'community_parks']) assert.ok(kinds.has(k), `the outlined rings hold ${k}, so a kind flip between them shows`);
+  assert.match(readFileSync(join(__dirname, 'readers.test.ts'), 'utf8'), /golden\.outlined\[/, 'PS8 compares the outlined rings');
+});
