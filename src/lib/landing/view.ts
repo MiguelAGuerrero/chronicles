@@ -1,4 +1,5 @@
 // @layer core
+import { PRESENCE_CODE } from '../presence/presence';
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { LANDING_RULES, type AreaAnalysis } from './analyze';
@@ -10,7 +11,8 @@ import { LANDING_RULES, type AreaAnalysis } from './analyze';
  */
 export const LANDING_CODE = 'l4';
 /** Changes whenever the rules or the code do, so remembered areas show as stale until analyzed again (L11). */
-export const LANDING_VERSION = `${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`;
+/** What a landing row was derived under: its rules and presence's classes (PR6), so a reclassification re-derives it. */
+export const LANDING_VERSION = `${LANDING_CODE}:${PRESENCE_CODE}:${JSON.stringify(LANDING_RULES)}`;
 
 /** A remembered area (L11): a cache, tagged with the tile build and the rules. */
 export interface LandingRow {
