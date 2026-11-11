@@ -60,8 +60,9 @@ The kind:
    a read that could not settle (an incomplete read) judges nothing and changes no kind.
 4. **PC4 One kind a place.** A place has one kind, `parks` or `community_parks`, never both; both are of the parks
    category, so `category`, `markable` and its being a mark or a find are the same for each.
-5. **PC5 Whole-park judgement.** A park drawn as several rings (a MultiPolygon) is judged by its total area and by a
-   signal inside any ring (a signal anywhere in the park keeps it); two park points inside one outline are judged alike.
+5. **PC5 Whole-park judgement.** A park point is judged by the whole polygon that holds it (a MultiPolygon is several, each
+   judged alone): its area, its holes left out, and a signal anywhere inside it; two park points in one outline are
+   judged alike.
 
 What the reader sees:
 

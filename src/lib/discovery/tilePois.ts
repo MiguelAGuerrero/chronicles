@@ -1,7 +1,9 @@
 // @layer core
 import type { TileFeature } from '../areas/tilePlaces';
+import type { RoadFeature } from '../streets';
 import type { LngLat } from '../types';
 import { MARK_CATEGORIES, notableName } from './noise';
+import { judgeParks } from './parkKind';
 import { placeKey } from './places';
 import type { CategoryId, Kind, Place } from './types';
 
@@ -119,7 +121,7 @@ const POI_ZOOM = 14;
  * Places from the tiles' POI points, one per place however many tiles carried
  * it (D5). A read that isn't complete (below z14) yields nothing to cache (D2).
  */
-export function placesFromTilePois(features: (TileFeature & { zoom?: number })[], build: string, opts: { complete?: boolean } = {}): Place[] {
+export function placesFromTilePois(features: (TileFeature & { zoom?: number })[], build: string, opts: { complete?: boolean; landcover?: RoadFeature[] } = {}): Place[] {
   if (opts.complete === false) return [];
   const out = new Map<string, Place>();
   for (const f of features) {
@@ -146,7 +148,8 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     const kind = markable ? kindFor(cls, sub, category) : undefined;
     out.set(key, { key, name, category, at, generic, build, markable, ...(kind ? { kind } : {}) });
   }
-  return [...out.values()];
+  // PC1-PC5: a park whose name says it is a ground for play, with nothing notable in or near it, is a community park.
+  return judgeParks([...out.values()], opts.landcover);
 }
 
 /** Transit the landing prefers to start from (L7): railway stations and halts, bus stations, ferry terminals. */

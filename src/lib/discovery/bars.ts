@@ -27,7 +27,7 @@ export function barsOf(p: Pick<Place, 'category' | 'name'> & Partial<Pick<Place,
 }
 
 /** PK9: the kinds a walk passes and sees from the street; museums, theatres and community spaces are gone into instead. */
-export const PASS_BY: ReadonlySet<Kind> = new Set<Kind>(['monuments', 'structures', 'churches', 'cemeteries', 'public_art', 'viewpoints', 'curiosities', 'parks']);
+export const PASS_BY: ReadonlySet<Kind> = new Set<Kind>(['monuments', 'structures', 'churches', 'cemeteries', 'public_art', 'viewpoints', 'curiosities', 'parks', 'community_parks']);
 
 /** PK9: whether a route passes this place rather than goes into it. A place with no kind is judged by nothing: never passed. */
 export const passesBy = (p: Pick<Place, 'kind'>): boolean => !!p.kind && PASS_BY.has(p.kind);

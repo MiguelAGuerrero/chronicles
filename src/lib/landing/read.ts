@@ -35,7 +35,7 @@ export async function readAround(url: string, build: string, at: LngLat, shouldS
   ]);
   if (shouldStop()) throw new Cancelled();
   const segments = deriveSegments(features.roads, features.names, build);
-  const tilePlaces = placesFromTilePois(features.pois, build);
+  const tilePlaces = placesFromTilePois(features.pois, build, { landcover: features.landcover });
   // Cached like any read, tagged with the build (L2). Overture's places, and the archive's, are never stored.
   await db.putSegments(segments).catch(() => {});
   await db.putPlaces(tilePlaces).catch(() => {});

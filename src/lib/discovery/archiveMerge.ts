@@ -1,6 +1,7 @@
 // @layer core
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
+import { PARK_RULES } from './parkKind';
 import { normalizeName } from './places';
 import type { Place } from './types';
 
@@ -26,7 +27,11 @@ const samePlace = (t: Place, a: Place) =>
 
 /** PW8: the map's places and the archive's, a place in both kept once, with the archive's category and kind. */
 export function mergePlaces(tiles: Place[], archive: Place[]): Place[] {
-  return [...tiles.filter((t) => !archive.some((a) => samePlace(t, a))), ...archive];
+  // PC2: a place of the archive near a community park keeps it a park: the archive only ever promotes.
+  const kept = tiles
+    .filter((t) => !archive.some((a) => samePlace(t, a)))
+    .map((t) => (t.kind === 'community_parks' && archive.some((a) => distanceM(a.at, t.at) <= PARK_RULES.archiveNearM) ? { ...t, kind: 'parks' as const } : t));
+  return [...kept, ...archive];
 }
 
 /**

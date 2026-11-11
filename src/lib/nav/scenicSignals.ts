@@ -49,7 +49,7 @@ function greenKind(props: Record<string, unknown> | null): GreenArea['kind'] | n
   return null;
 }
 
-const inRings = (p: LngLat, rings: LngLat[][]): boolean => {
+export const inRings = (p: LngLat, rings: LngLat[][]): boolean => {
   // Even-odd over every ring, so a hole is outside.
   let inside = false;
   for (const ring of rings)

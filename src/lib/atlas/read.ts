@@ -129,7 +129,7 @@ export interface Extent {
  */
 export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null, extent: Extent | null = null, archive: ArchiveRead = null, finds: { key: string; name: string; at: LngLat }[] = []) {
   const segments = deriveSegments(feats.roads, feats.names, build);
-  const places = placesFromTilePois(feats.pois, build);
+  const places = placesFromTilePois(feats.pois, build, { landcover: feats.landcover });
   const within: Within = extent ? (p) => inExtent(p, extent.outline) : (p) => distanceM(p, at) <= ATLAS_RULES.ringM;
   // PW10: the map's places and the archive's (the owner's edits are already in it); thin from the map's alone.
   const counted = ringOf(places, archive?.places ?? null, at, within, finds);

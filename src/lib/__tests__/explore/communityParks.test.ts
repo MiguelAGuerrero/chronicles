@@ -34,7 +34,7 @@ const read = (features: ReturnType<typeof poi>[], landcover?: RoadFeature[]) => 
 const kindOf = (places: Place[], name: string) => places.find((p) => p.name === name)?.kind;
 
 
-test('PC1: a community word with nothing near is community_parks; any other park is parks', { todo: 'test first' }, () => {
+test('PC1: a community word with nothing near is community_parks; any other park is parks', () => {
   assert.equal(kindOf(read([park('Elm Street Playground')]), 'Elm Street Playground'), CP);
   assert.equal(kindOf(read([park('Cedar Playfield')]), 'Cedar Playfield'), CP);
   assert.equal(kindOf(read([park('Maple Tot Lot')]), 'Maple Tot Lot'), CP);
@@ -42,7 +42,7 @@ test('PC1: a community word with nothing near is community_parks; any other park
   assert.equal(kindOf(read([park('Riverside Gardens')]), 'Riverside Gardens'), 'parks');
 });
 
-test('PC2: each notable signal keeps a park', { todo: 'test first' }, () => {
+test('PC2: each notable signal keeps a park', () => {
   const n = 'Elm Street Playground';
   const keep = (...more: ReturnType<typeof poi>[]) => kindOf(read([park(n), ...more], [grass([ring(at(0), 120)])]), n);
   assert.equal(keep(poi('monument', 'memorial', 'Soldiers Memorial', at(20, 10))), 'parks', 'a monument inside');
@@ -65,13 +65,13 @@ test('PC2: each notable signal keeps a park', { todo: 'test first' }, () => {
   assert.equal(kindOf(read([park(n), poi('monument', 'memorial', 'Soldiers Memorial', at(200))]), n), CP);
 });
 
-test('PC3: no outline is judged by its name and what is near it; an incomplete read judges nothing', { todo: 'test first' }, () => {
+test('PC3: no outline is judged by its name and what is near it; an incomplete read judges nothing', () => {
   assert.equal(kindOf(read([park('Cedar Park')]), 'Cedar Park'), 'parks');
   assert.equal(kindOf(read([park('Liberty State Park')]), 'Liberty State Park'), 'parks');
   assert.deepEqual(placesFromTilePois([park('Elm Street Playground')], 'b', { complete: false, landcover: [] }), []);
 });
 
-test('PC4: both kinds are of the parks category and markable, and a dog park is still no mark', { todo: 'test first' }, () => {
+test('PC4: both kinds are of the parks category and markable, and a dog park is still no mark', () => {
   const places = read([park('Elm Street Playground'), park('Cedar Park', at(500)), poi('dog_park', 'dog_park', 'Bark Run', at(900))]);
   const [a, b, d] = ['Elm Street Playground', 'Cedar Park', 'Bark Run'].map((n) => places.find((p) => p.name === n)!);
   assert.equal(a.category, 'parks');
@@ -83,7 +83,7 @@ test('PC4: both kinds are of the parks category and markable, and a dog park is 
   assert.equal(d.markable, false);
 });
 
-test('PC5: a park drawn as several rings is judged whole, and two points in one outline are judged alike', { todo: 'test first' }, () => {
+test('PC5: a park drawn as several rings is judged whole, and two points in one outline are judged alike', () => {
   const rings: LngLat[][][] = [[ring(at(0), 80)], [ring(at(400), 80)]];
   const lc = [grass(rings, true)];
   const names = ['Elm Street Playground', 'Oak Playfield'];
@@ -95,7 +95,7 @@ test('PC5: a park drawn as several rings is judged whole, and two points in one 
   assert.equal(kindOf(one, names[1]), 'parks');
 });
 
-test('PC6: Community parks is a kind after Parks with an icon of its own, on by default', { todo: 'test first' }, () => {
+test('PC6: Community parks is a kind after Parks with an icon of its own, on by default', () => {
   const i = KINDS.findIndex((k) => k.id === 'parks');
   const k = KINDS[i + 1];
   assert.equal(k?.id, CP);
@@ -107,7 +107,7 @@ test('PC6: Community parks is a kind after Parks with an icon of its own, on by 
   assert.equal(parseHidden(JSON.stringify(['museums']), JSON.stringify(['museums'])).has(CP), false, 'museums off does not take it off');
 });
 
-test('PC7: nothing calls a park plain, notable or counts either kind', { todo: 'test first' }, () => {
+test('PC7: nothing calls a park plain, notable or counts either kind', () => {
   const banned = /mundane|boring|ordinary|plain|notable|hidden gem|just a|only/i;
   const label = KINDS.find((k) => k.id === CP)?.label ?? '';
   assert.ok(label && !banned.test(label) && !/\d/.test(label), `the label "${label}"`);
@@ -118,7 +118,7 @@ test('PC7: nothing calls a park plain, notable or counts either kind', { todo: '
 
 const item = (key: string, kind: Kind, p: LngLat): ChecklistItem => ({ key, area_key: null, name: key, category: 'parks', kind, at: p, generic: false });
 
-test('PC8: with the kind off a community park is no "?"; every other park shows; a found one stays', { todo: 'test first' }, () => {
+test('PC8: with the kind off a community park is no "?"; every other park shows; a found one stays', () => {
   const items = [item('playground', CP, at(10)), item('memorial', 'parks', at(20)), item('foundplay', CP, at(30))];
   const base = { items, here: at(0), rangeM: 300, found: new Set(['foundplay']), revealed: new Set<string>() };
   const off = visibleMarks({ ...base, hidden: new Set<Kind>([CP]) });
@@ -135,13 +135,13 @@ test('PC8: with the kind off a community park is no "?"; every other park shows;
   assert.deepEqual(waitingKinds([mark('a', CP)], new Set(), new Set<Kind>([CP])), []);
 });
 
-test('PC9: a community park is found by a capture within 60 m and shows by name in the replay', { todo: 'test first' }, () => {
+test('PC9: a community park is found by a capture within 60 m and shows by name in the replay', () => {
   const items = [item('Elm Street Playground', CP, at(30))];
   assert.equal(findFor(at(0), items, new Set())?.key, 'Elm Street Playground');
   assert.equal(foundLine({ name: 'Elm Street Playground', category: 'parks', generic: false, kind: CP }), 'Found: Elm Street Playground · Community parks');
 });
 
-test('PC10: a community park lights Green as a park does, in the same category', { todo: 'test first' }, () => {
+test('PC10: a community park lights Green as a park does, in the same category', () => {
   const steps = (name: string) => ringOf(read([park(name), park('Oak Park', at(300)), poi('monument', 'memorial', 'Soldiers Memorial', at(2000))]), null, O).steps.parks;
   assert.equal(steps('Elm Street Playground'), steps('Elm Street Park'));
   const p = read([park('Elm Street Playground')])[0];
@@ -149,14 +149,14 @@ test('PC10: a community park lights Green as a park does, in the same category',
   assert.equal(ATLAS_LABEL.parks, 'Green', 'the atlas names the bar, never the kind');
 });
 
-test('PC11: the judgement is the same for the same input, and no outline read is parks', { todo: 'test first' }, () => {
+test('PC11: the judgement is the same for the same input, and no outline read is parks', () => {
   const f = [park('Cedar Park'), park('Elm Street Playground', at(300))];
   const lc = [grass([ring(at(300), 60)])];
   assert.deepEqual(read(f, lc), read(f, lc));
   assert.equal(kindOf(read(f), 'Cedar Park'), 'parks');
 });
 
-test('PC12: nothing is fetched to sort: the judgement is synchronous and the modules reach no network or store', { todo: 'test first' }, () => {
+test('PC12: nothing is fetched to sort: the judgement is synchronous and the modules reach no network or store', () => {
   assert.ok(Array.isArray(read([park('Elm Street Playground')])));
   for (const f of ['../../discovery/tilePois.ts', '../../discovery/parkKind.ts']) {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
@@ -164,14 +164,14 @@ test('PC12: nothing is fetched to sort: the judgement is synchronous and the mod
   }
 });
 
-test('PC13: ATLAS_CODE is a9 and a stored place carries no kind', { todo: 'test first' }, () => {
+test('PC13: ATLAS_CODE is a9 and a stored place carries no kind', () => {
   assert.equal(ATLAS_CODE, 'a9');
   const p = read([park('Elm Street Playground')])[0];
   assert.equal(p.kind, CP);
   assert.ok(!('kind' in placeToRow(p)));
 });
 
-test('PC14: the named cases', { todo: 'test first' }, () => {
+test('PC14: the named cases', () => {
   const n = (names: string[], lc?: RoadFeature[], ps?: ReturnType<typeof poi>[]) => read(names.map((x, i) => park(x, at(i * 600))).concat(ps ?? []), lc);
   assert.equal(kindOf(n(['Elm Street Playground'], [grass([ring(at(0), 80)])]), 'Elm Street Playground'), CP);
   assert.equal(kindOf(n(['Cedar Park'], [grass([ring(at(0), 60)])]), 'Cedar Park'), 'parks');
@@ -183,19 +183,19 @@ test('PC14: the named cases', { todo: 'test first' }, () => {
   assert.equal(kindOf(n(['Franklin Memorial Park'], [grass([ring(at(0), 40)])]), 'Franklin Memorial Park'), 'parks');
 });
 
-test('PC15: the planner counts both kinds as parks, and a route still passes a community park', { todo: 'test first' }, () => {
+test('PC15: the planner counts both kinds as parks, and a route still passes a community park', () => {
   assert.equal(passesBy({ kind: CP }), true);
   assert.deepEqual(barsOf({ category: 'parks', name: 'Elm Street Playground', kind: CP }), ['parks']);
 });
 
-test('PC16: an unfound place is never named for its kind: the bars and waiting kinds are categories', { todo: 'test first' }, () => {
+test('PC16: an unfound place is never named for its kind: the bars and waiting kinds are categories', () => {
   assert.ok(!Object.values(ATLAS_LABEL).some((l) => /community/i.test(l)));
   const mark = { key: 'a', name: 'Elm Street Playground', category: 'parks' as const, at: at(0), generic: false, build: 'b', kind: CP };
   assert.deepEqual(waitingKinds([mark], new Set()), ['parks']);
   assert.equal(foundLine({ name: mark.name, category: 'parks', generic: false, kind: CP }).includes('Community parks'), true, 'named once found');
 });
 
-test('PC17: size never demotes a park without a community word', { todo: 'test first' }, () => {
+test('PC17: size never demotes a park without a community word', () => {
   for (const side of [20, 60, 90]) assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), side)])]), 'Cedar Park'), 'parks', `${side} m square`);
   // An outline cut at a tile edge (a thin sliver) changes nothing either.
   assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), 6)])]), 'Cedar Park'), 'parks');

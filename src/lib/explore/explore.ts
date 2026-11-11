@@ -63,6 +63,8 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
+  // PC6: a subset of Parks the reader can switch off; the rest stay. Named only here and on a found place (PC16).
+  { id: 'community_parks', label: 'Community parks', icon: 'people-outline' },
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
