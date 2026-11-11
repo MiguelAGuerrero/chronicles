@@ -116,7 +116,7 @@ async function run(h) {
       await pg.waitForTimeout(400);
       const backOn = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-checked').catch(() => null);
       const unlocked = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-disabled').catch(() => null);
-      check(lockedOff === 'false' && locked === 'true' && stillOff === 'false' && backOn === 'true' && unlocked === 'false',
+      check(lockedOff === 'false' && locked === 'true' && stillOff === 'false' && backOn === 'true' && unlocked !== 'true',
         `PC23: with Parks off the Community parks row reads off and cannot be switched on; with Parks on it follows its own (${JSON.stringify({ lockedOff, locked, stillOff, backOn, unlocked })})`);
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);

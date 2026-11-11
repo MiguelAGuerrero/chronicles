@@ -26,7 +26,7 @@ export function SwitchRow(props: {
       accessibilityHint={props.hint ?? props.note}
       accessibilityState={{ checked: props.value, disabled: !!props.disabled }}
       aria-checked={props.value}
-      aria-disabled={!!props.disabled}
+      disabled={props.disabled}
       onPress={() => !props.disabled && props.onChange(!props.value)}
       style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled]}
     >

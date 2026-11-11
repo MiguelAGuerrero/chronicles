@@ -151,4 +151,5 @@ subsets"; the owner chose a registry of pure refinements and kinds that know the
   `refinements.ts`), kinds that know their parent, one reader of the switches (`isKindHidden`); tests in
   `src/lib/__tests__/explore/kindPipeline.test.ts`, PC23 also in the `marks` journey. 1,886 unit tests, typecheck, lint, layers pass.
   A visible change: with Parks off, community parks are off too, and their row is locked.
+- **Journeys after the pipeline:** `marks` (PC6 and PC23), `atlas`, `grading`, `curiosities`, `outlines`, `chronicle` (it covers `SwitchRow`, rerun after the disabled-row fix), `replay` and `nudge` pass. `scenic` fails only "fix preview-clutter audit 1", the check that fails on `origin/main` (3 of 3 runs).
 
