@@ -1,5 +1,5 @@
 import type { Faced } from '../../lib/moment';
-import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
@@ -28,7 +28,7 @@ import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -71,7 +71,7 @@ function addOverlay(map: MapLibreMap) {
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
   for (const id of ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing']) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -125,6 +125,8 @@ function addOverlay(map: MapLibreMap) {
   map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
   // Places already found, on the walk planner's map: a filled disc in the kind's green on a white ring (WP16).
   map.addLayer({ id: 'found-pins', type: 'circle', source: 'found-pins', paint: { 'circle-color': HOTSPOT, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } });
+  // Explore's places still to find where a "?" would crowd (WT12, WT14).
+  map.addLayer({ id: 'waiting-dots', type: 'circle', source: 'waiting-dots', paint: WAITING_DOT_PAINT as unknown as CircleLayerSpecification['paint'] });
   map.addLayer({ id: 'marks', type: 'circle', source: 'marks',
     paint: { 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 } });
   map.addLayer({ id: 'points', type: 'circle', source: 'points',
@@ -613,6 +615,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.landing]);
   useEffect(() => {
     if (!ready) return;
+    setData('waiting-dots', waitingDotsGeoJSON(props.waitingDots));
+    // The e2e reads the dots drawn (WT12-WT14): how many, and where, by id.
+    if (container.current) container.current.dataset.waitingDots = JSON.stringify((props.waitingDots ?? []).map((d) => [d.id, ...d.at]));
+  }, [ready, props.waitingDots]);
+  useEffect(() => {
+    if (!ready) return;
     setData('marks', marksGeoJSON(props.marks));
     // The e2e reads how many rings are marked (only when it is measuring): the way-back point is never one but the route's end (DW11).
     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.marks = String(props.marks?.length ?? 0);
@@ -792,7 +800,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const live = new Set<string>();
     for (const pin of declutterMarks(props.discoveries ?? [], viewZoom)) {
       live.add(pin.id);
-      const key = `${pin.at.join(',')}|${markKey(pin)}|${pin.name}|${pin.icon}`;
+      const key = `${pin.at.join(',')}|${markKey(pin)}|${pin.name}|${pin.icon}|${pin.quiet ? 'q' : ''}`;
       const existing = markMarkers.current.get(pin.id);
       if (existing?.key === key) continue;
       if (existing) drop(existing);
@@ -802,6 +810,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.type = 'button';
       el.dataset.testid = 'mark-pin';
       el.setAttribute('aria-label', markLabel(pin));
+      // WT11: Explore's "?" are one summary for a screen reader, never announced one by one.
+      if (pin.quiet) {
+        el.setAttribute('aria-hidden', 'true');
+        el.tabIndex = -1;
+      }
       // A found place is shown, not pressed: its pin lets taps through to the capture beside it (audit, UI).
       el.style.cssText = pin.found ? 'background:none;border:0;padding:4px 6px 0;pointer-events:none' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
       if (pin.found) el.tabIndex = -1;

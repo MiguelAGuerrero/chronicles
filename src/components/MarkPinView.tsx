@@ -17,6 +17,8 @@ export interface MarkPin {
   faint?: boolean;
   /** Its name would be written over another's (lib/markNames): the pin shows without it. */
   nameHidden?: boolean;
+  /** Hidden from a screen reader: the map speaks for it in one summary (Explore, WT11). */
+  quiet?: boolean;
   icon: IconName;
   name: string;
   /** Spoken with the name: "Food & drink". */

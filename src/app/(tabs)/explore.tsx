@@ -6,7 +6,7 @@ import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
-import { KIND_ICON_OF } from '../../components/atlas/kinds';
+import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
 import { LocateButton } from '../../components/LocateButton';
@@ -19,7 +19,7 @@ import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
 import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
 import type { CategoryId } from '../../lib/discovery/types';
-import type { WalkMapHandle } from '../../components/map/types';
+import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
@@ -31,6 +31,7 @@ import { nearReads } from '../../lib/atlas/read';
 import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
+import { areaMapMarks, dotAt, halfZoom, metresPerPx, roomZoom, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -236,17 +237,24 @@ export default function Explore() {
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
-  // The selected area's places over the map (fix area-marks), what the grid's picture showed: one "?" per kind still to
-  // find, never named (AT7), and the finds, named. Only the selected area's, never every place in view.
+  // The selected area's places over the map (WT7, WT10, WT12, decision 0127): every place still to find, a "?" where it
+  // has room at the settled zoom and a dot in its kind's colour where it would crowd; never named (AT7), and no find:
+  // presence, not completion. Only the selected area's, never every place in view.
+  const zoomHalf = halfZoom(view?.zoom ?? 13);
+  const split = useMemo(() => {
+    const p = sel?.area.profile;
+    if (!sel || !p) return { pins: [], dots: [] };
+    const centre = p.sketchAt ?? sel.area.at;
+    return areaMapMarks(p.marks, found, fresh.hidden, centre, zoomHalf, centre[1]);
+  }, [sel, found, fresh.hidden, zoomHalf]);
   const areaMarks = useMemo<MarkPin[]>(() => {
-    const r = sel ? ringOf.get(sel.area.key) : null;
-    if (!r) return NONE;
+    if (!split.pins.length) return NONE;
     const label = (c: CategoryId) => CATEGORIES.find((x) => x.id === c)?.label ?? '';
-    return [
-      ...r.waiting.map((m) => ({ id: `waiting:${m.key}`, at: m.at, revealed: false, icon: KIND_ICON_OF[m.category], name: '', category: label(m.category) })),
-      ...r.finds.map((f) => ({ id: `found:${f.key}`, at: f.at, revealed: true, found: true, icon: KIND_ICON_OF[f.category], name: f.name, category: label(f.category) })),
-    ];
-  }, [sel, ringOf]);
+    return split.pins.map((m) => ({ id: `waiting:${m.key}`, at: m.at, revealed: false, quiet: true, icon: KIND_ICON_OF[m.category], name: '', category: label(m.category) }));
+  }, [split]);
+  const waitingDots = useMemo<WaitingDot[]>(() => split.dots.map((m) => ({ id: m.key, at: m.at, color: KIND_COLOR[m.category] })), [split]);
+  // WT11: the "?" and dots are one thing to a screen reader: the area and the kinds, never how many.
+  const waitingSaid = sel ? waitingLabel(sel.area.name, [...split.pins, ...split.dots]) : '';
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open or selected town); yours tinted, the rest lined.
   // A town selected in the row is the one tinted (EC5).
   const litKey = town ? town.key : sel?.area.level === 'town' ? sel.area.key : null;
@@ -354,6 +362,16 @@ export default function Explore() {
   const topInset = mapTopInset(insets.top, Platform.OS === 'web');
   // The fit's padding, so selecting an area centres it where a tap's frame would (EC5).
   const mapPad = useMemo(() => ({ top: topInset + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }), [topInset, spot]);
+  // WT13: a tap on a dot eases the map in around it until it has room to be a "?".
+  const zoomToDot = useCallback((at: LngLat, radiusM: number): boolean => {
+    const d = dotAt(at, radiusM, split.dots);
+    if (!d) return false;
+    const z = Math.max(roomZoom(d, [...split.pins, ...split.dots], d.at[1]), zoomHalf + 1);
+    const size = mapRef.current?.size() ?? { width: 360, height: 360 };
+    const px = Math.max(120, Math.min(size.width - mapPad.left - mapPad.right, size.height - mapPad.top - mapPad.bottom));
+    frame([d.at], (px / 2) * metresPerPx(Math.min(z, 17), d.at[1]));
+    return true;
+  }, [split, zoomHalf, frame, mapPad]);
   const reduced = useReducedMotion();
   const say = useCallback((name: string) => {
     setSaid((s) => ({ text: name, n: s.n + 1 }));
@@ -458,6 +476,7 @@ export default function Explore() {
           marks={spot ? [spot.at] : NONE}
           areaPoints={areaPoints}
           discoveries={areaMarks}
+          waitingDots={waitingDots}
           // A "?" opens the selected area's card, where its kinds are named (AT7: the map never names them).
           onDiscoveryPress={() => {
             if (!sel) return;
@@ -482,10 +501,11 @@ export default function Explore() {
               db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
             }
           }}
-          onPress={() => {
+          onPress={(at, radiusM) => {
             layers.closePanel();
             // A tap closes the long press's choices; the selection stays: something is always selected (EC1).
             if (spot) setSpot(null);
+            else zoomToDot(at, radiusM);
           }}
           onSwipe={onSwipe}
           onViewChange={setView}
@@ -498,6 +518,10 @@ export default function Explore() {
           onCameraChange={onCameraChange}
           scaleInset={{ bottom: 6, left: 8 }}
         />
+      )}
+      {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
+      {focused && !plan && !!waitingSaid && (
+        <Text style={styles.srOnly} testID="atlas-waiting-said">{waitingSaid}</Text>
       )}
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
@@ -677,6 +701,8 @@ export default function Explore() {
 }
 
 const styles = StyleSheet.create({
+  // Read by a screen reader, never seen (WT11).
+  srOnly: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, left: 0, top: 0 },
   screen: { flex: 1, backgroundColor: theme.bg },
   said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   // The map takes what the row leaves. Overflow visible, above the row: the Layers panel opens over the cards like a popover (ML4).

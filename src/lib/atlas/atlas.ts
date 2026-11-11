@@ -604,7 +604,9 @@ export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => strin
 }
 
 /** AT6, AT7: one "?" per kind waiting in the ring, at its place nearest the area's point; never named. */
-export function waitingMarks(marks: AtlasMark[], found: Set<string>, centre: LngLat, hidden: Set<Kind> = new Set()): AtlasMark[] {
+export function waitingMarks(marks: AtlasMark[], found: Set<string>, centre: LngLat, hidden: Set<Kind> = new Set(), o: { all?: boolean } = {}): AtlasMark[] {
+  // WT7: every one still to find (the map, split into "?" and dots), else the nearest of each kind (the card).
+  if (o.all) return marks.filter((m) => !found.has(m.key) && !(m.kind && hidden.has(m.kind)));
   const best = new Map<CategoryId, { m: AtlasMark; d: number }>();
   for (const m of marks) {
     if (found.has(m.key) || (m.kind && hidden.has(m.kind))) continue;
