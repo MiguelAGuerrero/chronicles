@@ -213,7 +213,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           label="Hold to stop the walk"
           busyLabel="Stopping…"
           onHold={stop}
-          onTap={() => setSaid({ text: 'Hold to stop the walk' })}
+          onTap={() => setSaid({ text: 'Hold to stop' })}
           busy={stopping}
           disabled={stopping}
           style={styles.stop}

@@ -246,6 +246,15 @@ async function run(h) {
       });
       check(row.mids.every((y) => y != null && Math.abs(y - row.mids[0]) <= 2) && row.wide <= 320,
         `tend tabs 2: at 320 px the recording bar's way back, camera and Stop share one line, and nothing scrolls sideways (${JSON.stringify(row)})`);
+      // tend tabs 8: a tap on the bar's Stop says to hold in one line at 320 px, as the walk screen's Stop is labelled.
+      {
+        const word = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=recording-said]');
+          const r = e?.getBoundingClientRect();
+          return e && { text: e.textContent, h: Math.round(r.height), lh: parseFloat(getComputedStyle(e).fontSize) * 1.5 };
+        });
+        check(word && word.text === 'Hold to stop' && word.h <= word.lh, `tend tabs 8: at 320 px a tap on the bar's Stop says "Hold to stop" on one line (${JSON.stringify(word)})`);
+      }
       await pg.setViewportSize({ width: 390, height: 844 });
       await pg.waitForTimeout(600);
       // tend tabs 1: keyboard focus on the bar shows a ring that stands out from the bar's dark ground, 3:1 or more.

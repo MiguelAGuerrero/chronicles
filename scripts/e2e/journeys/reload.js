@@ -120,7 +120,7 @@ async function run(h) {
       await pg.click('[data-testid=bar-stop]');
       await pg.waitForTimeout(400);
       const said = await pg.locator('[data-testid=recording-said]').innerText().catch(() => '');
-      check(said === 'Hold to stop the walk' && !/\/walk$/.test(new URL(pg.url()).pathname), `bar stop: a tap only says to hold ("${said}")`);
+      check(said === 'Hold to stop' && !/\/walk$/.test(new URL(pg.url()).pathname), `bar stop: a tap only says to hold ("${said}")`);
       const b = await pg.locator('[data-testid=bar-stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
