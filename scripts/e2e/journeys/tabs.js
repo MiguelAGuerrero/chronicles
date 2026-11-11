@@ -126,6 +126,21 @@ async function run(h) {
       check(said && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
         `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${said}, ${nav && Math.round(nav.y)})`);
       await h.shot(pg, `tabs-2-chronicle-peek-${when.replace(/\W+/g, '-')}`);
+      // tend tabs 7: the peek's line is shown whole, never cut short by the buttons beside it, at 390 and at 320 px.
+      for (const width of [390, 320]) {
+        await pg.setViewportSize({ width, height: 844 });
+        await pg.waitForTimeout(600);
+        const line = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=sheet-empty]');
+          const s = document.querySelector('[data-testid=home-sheet]')?.getBoundingClientRect();
+          const r = e?.getBoundingClientRect();
+          const pills = [...document.querySelectorAll('[data-testid=sheet-navigate], [data-testid=sheet-days]')].map((p) => p.getBoundingClientRect());
+          return e && s && { cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1, inside: r.y >= s.y && r.bottom <= s.bottom + 1, pillsIn: pills.every((p) => p.y >= s.y && p.bottom <= s.bottom + 1), days: pills.length };
+        });
+        check(line && !line.cut && line.inside && line.pillsIn, `tend tabs 7: ${when}, at ${width} px the peek's line is whole and inside the sheet, its buttons too (${JSON.stringify(line)})`);
+      }
+      await pg.setViewportSize({ width: 390, height: 844 });
+      await pg.waitForTimeout(600);
       if (await pg.locator('[data-testid=sheet-navigate]').count()) await pg.click('[data-testid=sheet-navigate]');
       else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);

@@ -29,6 +29,8 @@ export type SheetMode =
 
 /** The sheet's height when it peeks over the map, above the safe area. */
 export const SHEET_PEEK = 76;
+/** The empty peek's line on its own row: two lines of it and the gap above the buttons (tend tabs 7). */
+const STACKED_EXTRA = 48;
 
 /**
  * The home map's bottom sheet, as in AllTrails and Google Maps: it peeks with
@@ -249,6 +251,8 @@ export function HomeSheet(props: {
     return days.find((d) => d.key === key) ?? null;
   })() : null;
   const noWalks = index.walkCount === 0;
+  // With nothing walked, the peek's line sits on its own row above its buttons, so they never cut it short (tend tabs 7).
+  const stacked = noWalks && !expanded;
   const listTitle = props.mode.kind === 'days' ? 'Your days' : 'Walks';
   const nowT = props.now;
 
@@ -263,8 +267,9 @@ export function HomeSheet(props: {
       height={props.height}
       bottomInset={props.bottomInset}
       areaHeight={props.areaHeight}
+      peek={stacked ? SHEET_PEEK + STACKED_EXTRA : undefined}
       header={
-        <View style={styles.header}>
+        <View style={[styles.header, stacked && styles.headerStacked]}>
           {day ? (
             <View style={styles.headerText}>
               <Text testID="day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{dayLabel(day.key, nowT)}</Text>
@@ -279,7 +284,7 @@ export function HomeSheet(props: {
             </View>
           ) : noWalks && !expanded ? (
             // Nothing walked yet, a walk minimized or not (tabs audit U7): how walks get here, and the way there.
-            <Text testID="sheet-empty" style={[styles.empty, styles.headerText]} numberOfLines={2}>
+            <Text testID="sheet-empty" style={styles.empty} numberOfLines={2}>
               Walk somewhere and it is starred here
             </Text>
           ) : noWalks ? (
@@ -563,6 +568,7 @@ const styles = StyleSheet.create({
   handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: theme.edge },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 48, maxWidth: 640, width: '100%', alignSelf: 'center' },
   headerText: { flex: 1 },
+  headerStacked: { flexDirection: 'column', alignItems: 'flex-start', gap: 8, paddingBottom: 4 },
   title: { fontSize: 17, fontWeight: '700', color: theme.ink },
   empty: { fontSize: 15, color: theme.ink, lineHeight: 20 },
   meta: { fontSize: 14, color: theme.muted, marginTop: 2 },
