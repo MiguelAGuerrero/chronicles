@@ -267,6 +267,36 @@ Main street: 22 to 86, 17 to 175, 303 to 1389, 0 to 0.19. Village: 4 to 27, 5 to
 rate of words given to no-word places are the floors, with recall reported: proposed at least 0.90 right of at least 12 spoken words, and none of the owner's no-word places given a word beyond 5%); PF7 (zero tolerance, as now); PF22 and PF24 (the stability gate is the
 mechanism; a moved or thinned place may go silent, never gain a word); a third held-out set of at least 30 places with at least 10 no-word places (to measure false positives) cut blind after the territories are pinned.
 
+### The concern: many obvious places stay silent (the owner, 2026-11-11), diagnosed
+
+I asked why each deserving place went silent in leave-one-out (58 measured places, development data). Thirteen of the eighteen fell just outside a territory built as a box around the known
+positives (Lancaster is a bigger grid than any other grid held; Emmaus and Manheim more built up than the other main-street towns); four missed the stability gate by one centre (Hamburg, Strausstown, Lebanon, Lewisburg); one was
+claimed by two territories (Bloomsburg). So part of it was my procedure, and part is how little evidence each word has.
+
+**Fix 1, open-ended territories.** A side stays open where more or less does not change the word (a grid is "at least" so many junctions, places and buildings; a village has "at most"), and only a
+confirmed counter-example closes it. A village still needs some buildings (without that floor a warehouse park and an empty interchange read as villages). Leave-one-out, margin 0.3, all five rings agreeing:
+
+| Territories | Spoken | Right | Wrong | Recall |
+|---|---|---|---|---|
+| Closed boxes | 22 | 22 | 0 | 0.51 |
+| **Open-ended** | **23** | **23** | **0** | **0.54** |
+| Open-ended, four of five rings agreeing | 28 | 26 | 2 (Park City read village, Upper Macungie read main street) | 0.62 |
+
+So looser stability buys 8 points of recall for two false positives on edge places, which is the trade the owner's policy refuses; it stays at all five.
+
+**The rest is data, and it is measured.** Strictly confirmed places per word: grid 11, main street 9, village 7, exit **3** (14 no-word places). Each leave-one-out takes a word's evidence down by one. Learning from random subsets of the 58 and
+judging the rest (40 splits each):
+
+| Learns from | Precision | Wrong words per run | Recall |
+|---|---|---|---|
+| 15 places | 0.85 | 1.3 | 0.25 |
+| 25 places | 0.97 | 0.3 | 0.36 |
+| 35 places | 0.99 | 0.1 | 0.44 |
+| 45 places | 1.00 | 0.0 | 0.57 |
+
+Recall climbs steeply with the number of confirmed places while precision stays at 0.97 and above. The lever for naming more obvious places without more false positives is more confirmed places, above all exits and villages;
+the procedure then widens each territory only as far as the evidence reaches. (The curve is extrapolation beyond 45 places and the owner's 58 are one region; treat 100 places as a hope, not a promise.)
+
 ## Answered (the owner, 2026-11-11)
 
 Question 1: **four words now**, no new read (answered on a wrong premise, see above; reopened). Question 3: **United States only**. Question 5: **80% and within 10 points**. Question 6: **"Around its middle: …"**.
