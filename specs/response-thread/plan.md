@@ -48,7 +48,7 @@ Feature folder: `src/lib/__tests__/threads/`; journey: `responses`.
 | RT10 | journey | `RT10: no badge, unread or avatar mark, and every entry has the same ink and the same alignment` |
 | RT11 | journey | `RT11: with the sheet closed nothing interactive sits over the photo; the toolbar fits on 320 px` |
 | RT12 | journey | `RT12: opening, reading and closing the sheet writes nothing to IndexedDB` |
-| RT13 | unit (`useMomentPool`'s reader, as a pure step) and journey | `RT13: a response on a walk still open is listed, with no replay link` |
+| RT13 | unit (`poolWithOpenWalks`, the pool's pure step); the journey seeds no open walk (it would bring the walk screen up at launch), deferred | `RT13: a response on a walk still open is listed, with no replay link` |
 | RT14 | unit (`threads/arch.test.ts` already holds lib/threads to no resurface import) | `RT14: responses reads only moment_link` |
 
 Every test is written first as a todo and committed alone (`Response thread: tests first (RT1-RT14, failing)`).

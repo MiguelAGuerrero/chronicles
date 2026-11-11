@@ -44,3 +44,14 @@ Open: none (answered Nov 11, see Decisions).
 12. **RT12** Opening, reading and closing the sheet write nothing.
 13. **RT13** A response made on a walk still open is listed with its time, its content, the walk's line from its start as any walk's is ("From Wednesday morning walk"), never a made-up name, and no replay link (fix thread-in-walk; steward S3).
 14. **RT14** The sheet reads only the owner's replies (`moment_link`), never the Chronicle's derived threads or words (OT19).
+
+## Record (Nov 11)
+
+Built on `claude/elegant-cannon-gs9yrk`: tests first in `ca11e7d`, the build in `7a01416`.
+- **Unit** (`src/lib/__tests__/threads/responses.test.ts`): RT1, RT4, RT8, RT9, RT13, RT14.
+- **Journey** `responses` (`E2E_ONLY=responses`): RT1, RT2 (with a swipe across a stack), RT3, RT5, RT6, RT7, RT8, RT10, RT11 (at 390 and 320 px), RT12; shots 90-94.
+- **Found on the way:** the viewer's touch handlers read `nativeEvent.pageX`, which the web's TouchEvent does not have, so the swipe across a stack's pieces (MS10) never worked on the web; both swipes now read `touchPoint`. A `SheetFrame` inside a Modal read Escape twice and closed the viewer too (`ownKeys`).
+- **Amended:** RT11's info line keeps to two lines at 320 px, not one (one line cannot hold the kind, the date and both phrases).
+- **Deferred:** `docs/DEFERRED.md` (response thread). **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` (RT2, RT3, RT7).
+- Not audited (decision 0074).
+

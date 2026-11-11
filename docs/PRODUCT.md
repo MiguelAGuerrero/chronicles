@@ -307,6 +307,13 @@ recording, and a recording bar brings a minimized walk back.
   another moment; the viewer draws it as a card of that moment (its picture or kind, date, place and walk) that
   opens it, with Back to the note; elsewhere it reads as words. The moment mentioned says "Mentioned in a note",
   and its More opens the note. A mention touches no thread.
+- **A moment's responses** (decision 0128): a moment that has been answered says so at the end of its viewer's
+  info line, in words ("a couple of responses"), and More has **Responses**; either, or a swipe up as in iOS
+  Photos, opens a sheet over the viewer. It reads like a conversation: the moment first, then every response
+  oldest first, each with its date and time, its place (or "No place kept"), its walk ("not on a walk") and its
+  content, a response to a response saying which it answers. A tap opens a response alone, with Back to the
+  sheet; Respond, under the sheet, answers the sheet's moment, and the new response arrives at the end. No count,
+  no unread mark, no bubble.
 - **Threads the owner makes** (decisions 0104, 0105): moments the owner connected, beside the
   Chronicle's threads above it; both are "threads", told apart by an icon (a link for
   the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
@@ -426,6 +433,7 @@ recording, and a recording bar brings a minimized walk back.
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
+| Response thread (a moment's responses in a sheet over the viewer; RT1-RT14) | Built 2026-11-11 (web verified by the e2e `responses`; native unverified) |
 | Moment references (a note mentions moments with @) | Built on `claude/ui-conformance` (web verified by the e2e `threads`; native unverified) |
 | Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |

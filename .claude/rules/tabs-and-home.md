@@ -160,6 +160,8 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
     `onResponderTerminationRequest: false` and a settle on terminate, so a
     mouse drag never leaves it stuck halfway.
   - Back (Android) and Escape (web) lower it.
+  - A `SheetFrame` inside a Modal (the viewer's responses sheet) passes `ownKeys={false}`: the Modal's
+    `onRequestClose` lowers it, and a key read twice would close the Modal too.
   - A screen may refuse a height (`onSize`). A drag let go then settles back where the screen holds it;
     it was once left tall and empty where the finger let go (Nov 2).
 

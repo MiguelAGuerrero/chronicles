@@ -88,11 +88,12 @@ Owner threads (decision 0104)
   threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
   threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
   threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
+  threads/responses.ts       responsesOf (every moment that answers a moment or its responses, from moment_link only), responseRows (the sheet's entries, RT4)
   threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
   threads/useKeyboardHeight(.web).ts  how far the keyboard reaches up: Keyboard events on phones, visualViewport on web (the note editor rises above it)
   threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
   threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook
-  threads/                   (components/) ReplyDock (the viewer's toolbar: Respond, Edit, the Respond menu), AddToThread, MyThreads, OwnThreadScreen (a note as a NoteBubble, read in place), ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
+  threads/                   (components/) ReplyDock (the viewer's toolbar: Respond, Edit, the Respond menu), AddToThread, MyThreads, OwnThreadScreen (a note as a NoteBubble, read in place), ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105), ResponsesSheet and ResponseEntry (a moment's responses in a SheetFrame inside the viewer, decision 0128), useMomentPool (every kept moment; `every` adds a walk still open)
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
