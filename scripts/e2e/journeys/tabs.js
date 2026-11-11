@@ -257,6 +257,11 @@ async function run(h) {
       }
       await pg.setViewportSize({ width: 390, height: 844 });
       await pg.waitForTimeout(600);
+      // tend tabs 3: the bar's camera is named as Memories' band names its camera with a walk open: the same job, the same name.
+      {
+        const name = await pg.locator('[data-testid=bar-photo]').getAttribute('aria-label');
+        check(name === 'Add to your walk: take a photo or video', `tend tabs 3: the bar's camera is spoken as the band's camera with a walk open ("${name}")`);
+      }
       // tend tabs 1: keyboard focus on the bar shows a ring that stands out from the bar's dark ground, 3:1 or more.
       {
         let id = null;
