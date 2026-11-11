@@ -10,41 +10,37 @@ Idea: "Presence, its second slice: the archive, bars, notable names, greens and 
 Verb: earn (what a street holds is said once, so the map, the card's bars, a scenic route and the planner agree on it)
 Touches: decisions 0127 ("a place may light two bars": from its classes), 0103 and 0108 (the archive's classes are chronicles-data's contract; the app maps them into presence and the contract is unchanged), 0109 (Overture never makes a mark), 0140 (one presence system; curation is not classification).
 Verdict: aligned
-Shape: as filed in G4: the second of presence's slices; nothing a person sees changes beyond the list in "What changes".
-Criteria: PS6, PS8.
+Shape: as filed in G4: the second of presence's slices; nothing a person sees changes.
+Criteria: PS6, PS8, PS10, PS11 (the last two from the steward, Nov 11).
 Open: none (G4 answered yes; decision 0140).
 
 ## What it is
 
 Presence (`src/lib/presence/`, PR1-PR8) said what a map poi or an Overture place is. Four readers still decided it themselves: the places archive kept its own table of categories and kinds (`archivePois.ts`) and a second bar for its museum (`ARCHIVE_ALSO`, carried on places as `alsoBars`); the bars read a name for History (`historicName`) while marks read it another way (`notableName`); scenic routes read raw landcover tags (`greenKind`); the planner kept its own list of findable categories (`MARK_KINDS`). Now each source's adapter asks presence, a place carries its classes (never stored), and the bars, marks, greens and the planner read them.
 
-Two facts about a place become classes, because both marks and bars read them: **notable** (its name says historic or notable, or the places archive records it: the archive admits only Wikidata items of fixed types and heritage listings) and **historic** (a museum that is notable is a place of history too, PK1-PK3). Curation still decides what makes a mark (`BY_NAME` asks for `notable`; chains and `NEVER_MARK` as before): presence says what a place is, never whether it is worth finding (0140).
+Three facts about a place become classes, named for what they record, because both marks and bars read them: **recorded** (the places archive holds it: the archive admits only Wikidata items of fixed types and heritage listings), **historic_name** (its name holds a word of the one list, `notable.json`) and **historic** (a museum that is recorded, or whose name says historic once a neighbourhood's "Old Town" is read past: a place of history too, PK1-PK3). Curation keeps the judgement: a class that is a mark only by its name (`BY_NAME`) needs `recorded` or `historic_name`; chains and `NEVER_MARK` as before. Presence says what a place is, never whether it is worth finding (0140).
 
 ## Decisions
 
-- **The G4 entry** (the owner's yes, Nov 11): its eight criteria, below as PS1-PS8; nothing else a person sees changes.
-- **One notable rule** (PS3): the bars' rule wins, a listed word as whole words reading past a neighbourhood's "Old Town" and "old and new" (presence-and-kinds audit 5), because it is the one of the two that changes nothing in the recorded fixtures and the US archive (23,104 names: the marks' rule would light History for Philadelphia's Old City Hall, which PK6 holds unchanged). What it changes is listed below.
-- **The archive's places are notable** (PS6): the archive admits only recorded places, so a plain-named church, cemetery or memorial from it stays a mark, as it is today (516 of the US archive's 522 memorials and 972 of its 1,110 churches have plain names). From the map, the same classes answer by the name, as they did.
+- **The G4 entry** (the owner's yes, Nov 11): its eight criteria, below as PS1-PS8; nothing else a person sees changes, and none does (PS8 lists no change).
+- **One word list, one name rule** (PS3; the steward's S1, Nov 11): `notable.json` and `notableName` live in presence. The marks' reading (any listed word, as whole words) is the rule; reading past "Old Town/City/Quarter/Village" and "old and new" stays only in the step that makes a museum `historic`, where presence-and-kinds audit 5 put it. So a map town hall named "Old Town Hall" stays a mark and Philadelphia's Old City Hall museum stays out of History (PK6), as before.
+- **F3 is settled by keeping the difference** (PS6; the steward's S2): a plain-named memorial is a mark where the archive records it, and from the map only by a notable name; where both hold it, the walker sees one place, the archive's (PW8). The archive's record is its gate (decision 0109: "a listing is the gate"), and judging the archive's memorials by name would drop most of them (516 of the US archive's 522 memorials have plain names).
+- **Classes that record, curation that judges** (PS10; the steward's S3): 0140's "notable names" under curation is read as the judgement curation makes over what presence records. `recorded`, `historic_name` and `historic` carry no density weight and are never a measure (decision 0103: "significance is a gate, never a measure").
+- **A second bar only from `historic`** (PS11; the steward's S4): a class's category lights no bar beside the place's own unless it is `historic`, so a later class (G2's storefronts) cannot light a second bar unasked (0127, "never making two redundant").
 
 ## Acceptance criteria
 
 1. **PS1** The places archive's classes map into presence classes: presence holds the archive's table, `archivePois.ts` holds no category or kind of its own, and each class keeps the category and kind PW5 pins.
-2. **PS2** A place carries its classes, possibly several, and the bars it lights are read from them: a museum the data calls historic (the archive's museum, or a notable name) is museum and history and lights Culture and History; no second bar comes from `alsoBars` or from a name read by the bars.
-3. **PS3** Whether a name is notable is decided once, by one rule, for marks and bars alike.
+2. **PS2** A place carries its classes, possibly several, and the bars it lights are read from them: a museum the data calls historic (the archive's museum, or a historic name) is museum and historic and lights Culture and History; no second bar comes from `alsoBars` or from a name read by the bars.
+3. **PS3** Whether a name is notable is decided once, by one word list and one rule, for marks and bars alike; only the step that makes a museum historic reads past a neighbourhood's "Old Town" and "old and new".
 4. **PS4** Scenic routes' greens read presence classes from the tiles' landcover features, not raw tags: a park or garden is green as a park, a wood as a wood, anything else is not green.
 5. **PS5** The walk planner reads classes: a place lights a bar by its classes and counts by curation's one rule, the atlas's; the planner holds no list of categories of its own.
-6. **PS6** Whether a place is a mark is one rule over its classes, whatever source gave them: the same classes and name answer alike from the map and the archive. A plain-named memorial is a mark where the archive records it and, from the map, only by a notable name, as a church is (presence review F3).
+6. **PS6** A plain-named memorial is a mark where the places archive records it, and from the map only by a notable name; where both hold it, the walker sees one place, the archive's (presence review F3).
 7. **PS7** PR2's guard holds with no exception: no module outside presence spells a poi class, an Overture root, an archive class or a landcover class.
-8. **PS8** Nothing else a person sees changes: golden tables captured before the slice hold the archive's classes (category, kind, mark, bars), the bars and marks of every golden poi pair under a plain, a notable and a neighbourhood name, the landcover classes' green, and the atlas's steps over presenceSample's areas.
-9. **PS9** The presence code moves on, so atlas rows are derived again; a landing row from the last code stands, since no density weight changed.
-
-## What changes (PS3)
-
-| What | Before | After |
-|---|---|---|
-| A place of worship, town hall or courthouse, cemetery, community centre or library, memorial or nature reserve from the map whose only notable word is the "Old" of "Old Town", "Old City", "Old Quarter", "Old Village" or "old and new" (e.g. "Old Town Baptist Church", a town hall named "Old Town Hall") | a mark by its name | not a mark, as such a museum already lights no History |
-
-None of the 23,104 names in the fixtures (presenceSample, presenceTowns) and the US archive (version 20261111.6) is such a place, so no picture differs.
+8. **PS8** Nothing else a person sees changes, with no listed change: golden tables captured before the slice hold the archive's classes (category, kind, mark, bars), the bars and marks of every golden poi pair under a plain, a notable and a neighbourhood name, the landcover classes' green, and the atlas's steps and marks over presenceSample's and presenceTowns' areas (PK5's sample check among them); a map town hall, courthouse or cemetery named "Old Town Hall", "Old City Hall" or "Old City Cemetery" is a mark, before and after.
+9. **PS9** The presence code moves on; atlas rows and landing rows from the last code stand, since nothing they derive changed.
+10. **PS10** `recorded`, `historic_name` and `historic` carry no density weight, and no consumer sorts or ranks places by them.
+11. **PS11** A place lights a second bar only from `historic`.
 
 ## Record
 
