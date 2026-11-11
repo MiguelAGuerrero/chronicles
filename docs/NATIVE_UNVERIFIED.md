@@ -450,3 +450,11 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open a moment with responses, swipe up on its photo, then swipe left and right on a stacked moment. **Expect:** the swipe up opens Responses at half the screen; the swipe across steps the pieces and opens nothing (RT2).
 - [ ] **Do:** with the responses sheet open on an iPhone, drag it to full, then down; on Android press Back with it open. **Expect:** it springs to full and closes on the drag; Back lowers the sheet and leaves the viewer open, a second Back closes the viewer (RT3).
 - [ ] **Do:** with the sheet open, Respond → Voice memo, record, Stop. **Expect:** the memo arrives at the end of the sheet, nothing pops up, and the sheet stays where it was (RT7).
+
+## Media gallery (MG1-MG22, decision 0134)
+
+- [ ] **Do:** open Chronicle → Media on an iPhone with a few hundred photos and fling the grid to the bottom and back. **Expect:** it keeps up, tiles fill in with their small copies, and the day header at the top stays pinned under the bar (MG11, MG12, MG16).
+- [ ] **Do:** pinch out, then in, on the grid with two fingers. **Expect:** three across becomes five then seven, or back; the day at the top stays at the top; the page itself never zooms (MG20).
+- [ ] **Do:** with TalkBack (Android) and VoiceOver (iPhone), swipe through the grid. **Expect:** each tile is read as its kind, its time and its walk or street; no list size or item count is spoken (MG7, MG15).
+- [ ] **Do:** choose Months, tap a month of last year. **Expect:** Days opens at that month's first day (MG19).
+- [ ] **Do:** open an older photo (taken before small copies existed) in the grid. **Expect:** its tile shows a glyph, then its small copy; the full photo is never decoded for the tile (MG11).

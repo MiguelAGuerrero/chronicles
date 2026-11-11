@@ -137,4 +137,5 @@ same argument is not had twice.
 | 0115 | Places out of town: kinds filter what you see, never what exists; one-of-a-kind businesses only by a structural signal, never ratings or popularity; "?" within 50 km in countless stars, named only on a tap, never listed or counted (reshaped at the gate, Nov 9) |
 | 0121 | Drive there, walk back: a far Walk to asks "Walk now" or "When I get there"; the walk starts only on Start, never on arrival; Walk me back leads to where the last ride ended, or a spot chosen by hand; no waypoints (reshaped at the gate, Nov 10) |
 | 0127 | Presence by bars: a place may light two bars, never making two redundant; a route from a bar leans on places you pass, by kind, never named; a plain community centre is no place to find (reshaped at the gate, Nov 10) |
+| 0134 | Media: bare tiles; the day header says where |
 | 0131 | A moment's responses in a sheet over the viewer: the info line's words, More and a swipe up; plain entries in words, no count, no unread (reshaped at the gate, Nov 11) |

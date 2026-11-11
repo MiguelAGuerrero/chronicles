@@ -281,7 +281,7 @@ recording, and a recording bar brings a minimized walk back.
 ### Chronicle (after)
 
 - **Chronicle opens on Memories** (decision 0098): a control at the top chooses
-  **Memories | Walks | Days | Map**, and leaving for another tab puts it back on
+  **Memories | Walks | Days | Map | Media**, and leaving for another tab puts it back on
   Memories. The app opens here (decision 0112). Memories is the feed:
   - **The band** at its foot: camera, mic and note, one tap each, in plain ink,
     fixed while the feed scrolls and first for a screen reader. A moment kept there
@@ -309,6 +309,16 @@ recording, and a recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
+- **Media** (decision 0134), Chronicle's fifth section: every photo, video and voice memo piece kept, in an
+  edge-to-edge grid of square tiles with hairline gaps, newest on top, as a photo gallery. A tile is bare (a photo's
+  small copy; a video's or memo's glyph and its length) and the context is the header of its day, pinned while its
+  tiles scroll: the day ("Yesterday", "Tue, Nov 3", the year when not this one) and where ("A morning walk in Alfama",
+  a walk's own title, "Not on a walk, on Hope Street"). Years, Months and Days on the gallery's bar; a month or year
+  is its first photo large and its places in words, and a tap goes one level in. The View menu holds Sort (Newest or
+  Oldest First), Show (All Items, Photos, Videos, Memos; "Videos only" on the bar), Zoom In and Out (three, five or
+  seven across; a pinch does the same) and Square or Aspect Ratio Grid; sort, size and shape are kept. A tile opens
+  its moment whole in the viewer at that piece, with its place and walk, and the viewer steps through the gallery's
+  moments in its order, with no "i of n". Nothing counts; notes have no tile. With nothing kept, one line.
 - **A note mentions moments** (decision 0125): typing @ in a note (Respond → Note, Edit on a note) picks
   another moment; the viewer draws it as a card of that moment (its picture or kind, date, place and walk) that
   opens it, with Back to the note; elsewhere it reads as words. The moment mentioned says "Mentioned in a note",
@@ -444,6 +454,7 @@ recording, and a recording bar brings a minimized walk back.
 | Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
+| Media gallery (Chronicle's fifth section: every photo, video and memo in a grid under day headers; Years, Months, Days; Sort, Show, Zoom, Square or Aspect; MG1-MG22) | Built (web verified by the e2e `gallery`; native unverified) |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings) | Shipped on web (native unverified) |

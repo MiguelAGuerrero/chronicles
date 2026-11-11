@@ -83,7 +83,14 @@ Chronicle's Memories (decision 0098)
   resurface/section.ts       which Chronicle section after a route; sectionStore.ts holds it
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
-  chronicle/                 SectionBar, MemoriesScreen, MemoriesBand (the capture band, HC6-HC15), Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+  chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen, MemoriesBand (the capture band, HC6-HC15), Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+Media gallery (specs/media-gallery, MG1-MG22, decision 0134)
+  gallery/types.ts           Show, Order, Zoom, Size, Shape, GalleryView (what is kept)
+  gallery/layout.ts          galleryTiles (one per photo, video and memo piece, in the Sort's order), galleryDays and dayLine (a header per day, where in words), galleryBlocks (months and years: the cover, the place line), dayRows and blockRows (every row's offset known, MG12), tileLabel, withPiecePatch
+  gallery/copy.ts            every sentence: the empty lines, the View menu's words, the place line's phrases; numbers as words
+  gallery/view.ts            DEFAULT_VIEW and readView (meta `gallery_view`), zoomed, pinchStep, anchorAfter (the day kept at the top after a size change), fitFor
+  gallery/shell.ts           createGallery(ports, { makeThumb }): load (newest read wins), the saved view, opened (a new open resets the filter and zoom), streetsFor (loose moments), thumbFor (small copies), patch; index.ts is the app instance
+  gallery/                   (components/) MediaScreen (the FlatList with pinned day headers and getItemLayout; the viewer at a tile), GalleryBar (Years, Months, Days; View options; "Videos only"), GalleryTile, PeriodBlock, ViewMenu, usePinch (two fingers, the RN responder; `touch-action: pan-y` on the web)
 Owner threads (decision 0104)
   threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
   threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)

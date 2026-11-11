@@ -494,3 +494,11 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The drawer's handle sits over the first visible switch** (presence-and-kinds audit 12): this predates the slice and is the drawer's layout, not the kinds'.
 - **Deferred (response thread, decision 0131):** a tree of responses (a response to a response is listed in time order and says what it answers, one level); the sheet from Lately's card or a thread's row (the viewer is the only way in); a response's own responses inside the sheet (its viewer opens its own sheet); a response made mid-walk is listed but names no place until its walk stops and is placed (its time, walk line and content are there); no e2e step for a response on a walk still open (RT13 is a unit test of the pool).
 - **Locate's reselect is not announced** (fix locate-selection audit 3, DN12): a Locate tap returns the row to your own area without a screen-reader announcement, since `say` runs only in `selectKey`. A fix that lands after the reader picked something else also resets that pick (audit 2, accepted: they asked to return to you).
+- **Deferred (media gallery, decision 0134):** a video's small copy, so a video tile shows its first frame (the next
+  slice, the owner's call, Nov 11: `expo-video`'s thumbnail on phones and a web exception for a `<video>` frame); a
+  cover the owner chooses for a month or year (a fixed rule now: the first photo in the Sort's order); a date
+  scrubber, selecting many, sharing from the grid and Recently Added (none asked; Recently Added would sort as Newest
+  First, since a piece's time is when it was kept); a year's line names its latest places, never the most walked; on
+  the web, sticky day headers stack at the top as the list scrolls, the last drawn one seen; a short library cannot
+  bring its oldest day to the top after a month's tap (the list ends there); the gallery reads every moment row on
+  each show, as the days list does.

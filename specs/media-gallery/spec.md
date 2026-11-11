@@ -19,7 +19,7 @@ Shape: A fifth section, Media. Bare square tiles, one per photo, video or memo p
 Criteria: MG6, MG7, MG8, MG10 below come from the gate; MG6, MG7, MG8, MG15-MG17 were sharpened by the steward (plan, "Steward").
 Open: none (answered Nov 11, see Decisions).
 
-## Decisions (the owner's calls, Nov 11)
+## Decisions (the owner's calls, Nov 11, decision 0134)
 
 - **A fifth section, Media**: Memories | Walks | Days | Map | Media, as Day One's views; one tap from anywhere in Chronicle. The pills tighten to fit a phone.
 - **Context lives in day headers**, never on the tiles: a tile is bare (no caption, no words); the header names the day and where; opening a tile shows the moment whole.
@@ -71,4 +71,9 @@ Open: none (answered Nov 11, see Decisions).
 
 ## Record
 
-- Not started.
+- Built Nov 11, 2026, test-first (22 of 22 by history). Unit tests in `src/lib/__tests__/gallery/` (layout, view,
+  copy, shell); the `gallery` journey checks MG1, MG2, MG4, MG6-MG11, MG13, MG15-MG17, MG19-MG21 on the web build.
+- Found while building: a pinch on the web was the browser's page zoom (the grid now takes it, `touch-action:
+  pan-y`); a month's tap lost its landing when the list remounted (now its initial row); a month with moments outside
+  a walk read as if every picture were a walk's (", and outside a walk", MG19).
+- Deferred: `docs/DEFERRED.md`, "media gallery". Native: `docs/NATIVE_UNVERIFIED.md`, "Media gallery". Not audited.
