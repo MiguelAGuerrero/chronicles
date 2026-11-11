@@ -541,6 +541,24 @@ async function run(h) {
         `qol QL22, QL23: Rename is first in the walk's More, prefilled, and the row shows the new name at once (first ${firstIsRename}, prefilled ${JSON.stringify(prefilled)}, rows ${JSON.stringify(rows)})`);
       await shot(pg, 'qol-04-chronicle-renamed');
     });
+
+    // tend chronicle 6: the walk's More and its Rename editor are pictured for the review (ui-patterns, "How it
+    // is checked": a shot for each state, a menu or sheet open included).
+    await qstep('tend chronicle 6', async () => {
+      await pg.locator('[data-testid=walk-more]').first().click();
+      await pg.waitForSelector('[data-testid=action-rename]', { timeout: 10000 });
+      await pg.waitForTimeout(800);
+      await shot(pg, 'qol-04a-walk-actions');
+      await pg.click('[data-testid=action-rename]');
+      await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+      await pg.waitForTimeout(800);
+      await shot(pg, 'qol-04b-rename-editor');
+      await pg.click('[data-testid=rename-cancel]');
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 5000 });
+      await pg.click('[data-testid=actions-cancel]');
+      await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
+      check(true, 'tend chronicle 6: the walk\'s More and its Rename editor are pictured');
+    });
     await c.close();
 
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
