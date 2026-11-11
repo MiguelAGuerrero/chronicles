@@ -133,17 +133,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   that mounts on Walks zooms out once, by 0054's rule, when a place walked is out of the kept view. Gate: aligned
   (Return), read against 0141; `/vision` not run on its own. Otherwise: leave it (the kept view, NV3, wins).
 
-### From /fix
-
-- **[owner] Process: a slice that changes a screen is not done until its pictures are reviewed, with long text** (2026-11-11)
-  From: fix gallery-header (the media gallery's day header cut its title on the owner's iPhone, a day after it shipped).
-  Missed because: the slice's fixtures had only short place lines, so no header wrapped; its screenshots were taken
-  but the `ux-reviewer` only runs inside `/audit`, which runs only when the owner asks (decision 0074), and the media
-  gallery was shipped unaudited; no check tied a fixed row height to the text it holds. Recommended: (1) `/slice`
-  step 9 runs the `ux-reviewer` on the slice's own shots (report-only, a few minutes) whenever it changes a screen,
-  audit or not; (2) a journey that draws text in a fixed box seeds the longest text it can meet and checks nothing is
-  cut (as the gallery journey now does). Otherwise: keep 0074 as it is and ask for `/audit` on each screen slice.
-
 ### Next evolutions
 
 The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.

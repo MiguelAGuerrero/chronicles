@@ -179,7 +179,8 @@ paths right.
 
 ## 8. Audit, when the owner asks
 
-`/audit <slug>` runs only when the owner asks (decision 0074). Then fix the
+`/audit <slug>` runs only when the owner asks (decision 0074); the UI review in step 9 runs on every slice that
+changes a screen, audit or not (decision 0142). Then fix the
 accepted findings, each behind a regression test named `<slug> audit N`.
 
 ## 9. Before done
@@ -208,6 +209,12 @@ of browser, so the named ones run once, at the end, and the rest is mechanical:
   quarantined. A journey that never failed on `main` leaves the failure the slice's own.
 - The slice's report says which journeys ran, how many runs there were, and why any ran
   more than once.
+
+**The UI review** (decision 0142), when the slice changes a screen: run its journeys with
+`E2E_SHOTS=<scratchpad>/shots` (390 x 844), each seeding the longest text its screen can meet, and spawn the
+`ux-reviewer` subagent with the pictures, the spec and the plan's goal-to-control lines. Triage each finding in the
+spec's record (accept, defer, reject); an accepted one gets a regression test named `<slug> ui N` before its fix. A
+slice with an open accepted UI finding is not done.
 
 All green. A "Covered by nothing" line from `check:affected` for a file the
 slice wrote is a gap: give it a test (a shell over `fakePorts()`, a core unit
