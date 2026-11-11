@@ -126,12 +126,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T7 [owner] Chronicle: the bar's Walks from Memories or Media opens over the map's kept view, with no zoom-out** (2026-11-11)
-  Area: chronicle. Seen: `src/app/(tabs)/index.tsx`, `Chronicle`'s `choose` (no map is up to ask) and `ChronicleMap`'s
-  first mode; the T6 review's F2. Chronicle opens on Memories (RM1), so Memories then Walks is likely the bar's usual way
-  to the walks list. Rests on: NN/g H4; decision 0141, "the same word moves the map the same way". Recommended: a map
-  that mounts on Walks zooms out once, by 0054's rule, when a place walked is out of the kept view. Gate: aligned
-  (Return), read against 0141; `/vision` not run on its own. Otherwise: leave it (the kept view, NV3, wins).
+Nothing open.
 
 ### From /fix
 
@@ -186,22 +181,21 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox G3 yes`** (from `bc41449`). G3 built as one slice, `specs/presence` (PR1-PR8, decision 0140): tests first
-`e82634f`; the code `8d48662` (`src/lib/presence`: one table from poi classes and Overture's taxonomy to classes, read by density and
-marks; curation apart in `discovery/curation.ts`; `PRESENCE_CODE` in the atlas and landing codes); the docs `1f60f6e`. Every tag outside
-PR5's list answers as before (a golden table; 5,913 real places compared). The review: `presence audit 1` (remembered areas keep their
-busy streets: rows from just before presence are carried), `presence audit 2` (PR2's guard widened); F3 deferred; four rule lines put
-right. Filed: G4 (presence's second slice); G3 leaves "Next evolutions"; G2 can now build on presence. Not pictured: none of PR5's tags
-occur in the fixtures, so no screen differs. Nothing here is native.
-First pushed to `main` as `f5fbdc8` and reverted (`17ddaa7`): Pages run 203 failed at the loop's limits, since the record's commits,
-named `tend explore: …`, carried the slice's own spec and rule lines. This branch splits them: the slice's documents in its own commit,
-the record holding only this file, `docs/DEFERRED.md`, the ledger and the run log.
+**Nov 11, `/tend inbox T7 yes`** (from `4e138f2`). T7 built, decision 0142: a map that mounts on Walks (the bar's Walks
+from Memories or Media) zooms out once, by 0054's rule, when a place walked is out of the kept view; a read that frames
+the places itself needs none, and Days and Map mount as before. Commits: `tend chronicle T7` (the mount's zoom-out, in
+`ChronicleMap`; the chronicle journey checks one fit from Memories with the star dragged away, none from Media with it
+in view, pictured before and after) and `tend chronicle audit 1` (the review: the zoom-out frames only the walks shown,
+never one deleted while its Undo waits; `shownPlaces`). T7 leaves the inbox; nothing filed. The balance: unchanged by an
+inbox run (outgrowing its base: four areas rough). Not run: the journeys `capturehome`, `qol` and `tabs`, reached but
+holding no check on the change. Nothing here has run on a phone.
 
 ### Open before the loop
 
 - **SB3's wording after T6** (Nov 11): `specs/section-bar/spec.md` SB3 says "the bar's Walks still does not, as
   before"; since T6 (decision 0141) it zooms out as the sheet's does. Amend SB3 to "the walks list's zoom-out (0054),
-  by either Walks, from the sheet at rest" and point it to `tend chronicle T6`; the loop may not edit a spec.
+  by either Walks, from the sheet at rest, and once as the map mounts on Walks" and point it to `tend chronicle T6`
+  and `tend chronicle T7` (decision 0142); the loop may not edit a spec.
 - **QL23's wording after T1** (Nov 11): the quality-of-life doc (mirrored in `specs/quality-of-life/spec.md`) says "an
   empty title becomes the suggested one"; the build now stores no title for an empty one or the suggestion kept as it
   was, shown as the suggestion. Amend the doc to "an empty title, or the suggestion unchanged, is no title, shown as
