@@ -1,5 +1,6 @@
 // @tree-wide: the tending loop's script, its ledger and the skills it routes through
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -203,4 +204,33 @@ test('tend: the ledger is JSON the script can read, and the skills name the shar
   assert.match(read('.claude/skills/slice/SKILL.md'), /--from=G<n>/);
   assert.doesNotMatch(read('.claude/skills/tend/SKILL.md'), /--from=T/, 'only a proposal with criteria skips the plan review (decision 0130)');
   assert.match(read('package.json'), /"check:tend"/);
+});
+
+test('tend 0131: a reviewer\'s shell runs tests and reads, and nothing that writes', () => {
+  const hook = join(ROOT, '.claude', 'hooks', 'readonly-bash.sh');
+  const run = (command: string) => spawnSync('bash', [hook], { input: JSON.stringify({ tool_input: { command } }), encoding: 'utf8' }).status;
+  for (const ok of [
+    'npm test 2>&1 | tail -5', 'npx tsx --test src/lib/__tests__/arch/tend.test.ts', 'npm run check:vision -- --list',
+    'git log --oneline -5 && grep -rn foo src | head', 'git diff origin/main..HEAD --stat', "sed -n '10,40p' src/lib/geo.ts", 'find src -name "*.tsx" | wc -l', 'git diff > /dev/null',
+  ]) assert.equal(run(ok), 0, ok);
+  for (const no of [
+    'git commit -am x', 'git push origin main', 'git checkout -- .', 'git stash', 'echo hi > file', 'cat x >> y', 'cat $(rm -rf x)', 'cat `id`', 'node -e "1"',
+    'find . -name x -delete', 'find . -exec rm {} +', 'npm test; rm -rf src', 'npm test && git reset --hard', "sed -i s/a/b/ f", "sed -n 'w out' f", 'npm install x', 'npx expo install x',
+    'ls & rm x', 'git diff --output=patch.txt', 'sort -o out in', 'tee out', 'npm run export:web', 'curl https://example.com',
+  ]) assert.equal(run(no), 2, no);
+  assert.equal(spawnSync('bash', [hook], { input: '{}', encoding: 'utf8' }).status, 0, 'no command, nothing to judge');
+});
+
+test('tend 0131: the reviewers are read-only by their definitions, and CI holds the loop\'s commits', () => {
+  for (const agent of ['auditor', 'steward']) {
+    const text = read(`.claude/agents/${agent}.md`);
+    assert.match(text, /^hooks:\n  PreToolUse:\n    - matcher: "Bash"/m, `${agent} guards its shell`);
+    assert.match(text, /readonly-bash\.sh/);
+  }
+  const ux = read('.claude/agents/ux-reviewer.md');
+  assert.match(ux, /^tools: Read, Grep, Glob$/m, 'the ux-reviewer has no shell');
+  for (const agent of ['auditor', 'steward', 'ux-reviewer']) assert.doesNotMatch(read(`.claude/agents/${agent}.md`).split('---')[1], /\b(Edit|Write)\b/);
+  const ci = read('.github/workflows/pages.yml');
+  assert.match(ci, /scripts\/tend\.js commits --loop-only/);
+  assert.ok(ci.indexOf('tend.js commits') < ci.indexOf('expo export'), 'before the build');
 });

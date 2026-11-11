@@ -1,7 +1,7 @@
 ---
 name: ux-reviewer
 description: Report-only UX review of a built slice's screens, from phone-size screenshots, against cited industry patterns (Apple HIG, Material 3, NN/g heuristics, WCAG 2.2), the goal-to-control matrix and how adjacent apps solve the same job. Use in /audit beside the auditor and the steward; every finding cites its source or is marked opinion. It edits nothing.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob
 model: inherit
 ---
 

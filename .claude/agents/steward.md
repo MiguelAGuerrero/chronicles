@@ -2,6 +2,12 @@
 name: steward
 description: Adversarial, report-only review of a spec, a plan or a built screen against docs/VISION.md - where it betrays the product's identity (scores, ratings, tallies, nagging, celebration, editorial guidance, data leaving the device, a capture behind a tap, a moment without its context). Use in /slice before the owner reviews the plan, and in /audit beside the auditor. It edits nothing.
 tools: Read, Grep, Glob, Bash
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/readonly-bash.sh"
 model: inherit
 ---
 

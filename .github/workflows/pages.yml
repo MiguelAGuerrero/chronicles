@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Enough history to read the pushed range for the loop's commit check below.
+          fetch-depth: 50
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -28,6 +31,18 @@ jobs:
       - run: npm run check:docs
       # The vision's mechanical half: score words, tallies, hosts, dependencies, spec verdicts (decision 0094).
       - run: npm run check:vision
+      # The tending loop's limits, held outside the loop (decision 0131): every `tend …` commit in this push
+      # carries its own named test and a Source line and touches nothing the loop may not.
+      - name: Loop commits keep to the loop's limits
+        if: github.event_name == 'push'
+        run: |
+          if git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            node scripts/tend.js commits --loop-only "${BEFORE}..${GITHUB_SHA}"
+          else
+            echo "::notice::the push's base is outside the fetched history; loop commits not checked"
+          fi
+        env:
+          BEFORE: ${{ github.event.before }}
       - run: npm run typecheck
       - run: npm test
       # Lint holds the import boundaries and the functional core's layers (FC3, FC5).

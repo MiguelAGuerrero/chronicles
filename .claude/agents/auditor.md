@@ -2,6 +2,12 @@
 name: auditor
 description: Adversarial, report-only review of a built slice against its spec and the repo's invariants. Use after a slice is implemented and its own tests pass, before its audit fixes; it edits nothing and proposes a regression test name per finding.
 tools: Read, Grep, Glob, Bash
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/readonly-bash.sh"
 model: inherit
 ---
 
@@ -27,7 +33,7 @@ harnesses before reading the code.
 
 ## Tools
 
-Bash is for `npm test` and single test files only
+Bash is for `npm test` and single test files only (`.claude/hooks/readonly-bash.sh` blocks anything that writes)
 (`npx tsx --test src/lib/__tests__/<feature>/<file>.test.ts`, or `npm run test:feature <feature>`), to confirm a scenario
 or that a test is vacuous. Never run the e2e, install, export, git write
 commands, or anything that changes the tree.

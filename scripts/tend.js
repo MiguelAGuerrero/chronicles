@@ -9,7 +9,8 @@
 //   node scripts/tend.js next                           the area to sweep when the owner names none
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
 //                                                       real test and its source, and none touches what
-//                                                       the loop may not (exit 1 otherwise)
+//                                                       the loop may not (exit 1 otherwise); CI runs
+//                                                       it with --loop-only on every push to main
 //
 // The decisions are pure and exported for arch/tend.test.ts; git and the files are read in main().
 // None of this is shown in the app: nothing is a score there (decision 0020).
@@ -292,12 +293,16 @@ function next() {
   console.log(area ?? 'none: every area is at rest; run /tend evolve');
 }
 
-function commits(range) {
+function commits(argv) {
+  const range = argv.find((a) => !a.startsWith('--'));
+  // CI reads a push that may hold anyone's commits: with --loop-only the others are left alone.
+  const loopOnly = argv.includes('--loop-only');
   if (!range) {
-    console.error('usage: node scripts/tend.js commits <range>, e.g. origin/main..HEAD');
+    console.error('usage: node scripts/tend.js commits [--loop-only] <range>, e.g. origin/main..HEAD');
     process.exit(2);
   }
-  const shas = git('rev-list', '--no-merges', range).split('\n').filter(Boolean);
+  const all = git('rev-list', '--no-merges', range).split('\n').filter(Boolean);
+  const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
   let bad = 0;
   for (const sha of shas) {
     const [subject, ...rest] = git('show', '-s', '--format=%s%n%b', sha).split('\n');
@@ -322,9 +327,9 @@ if (require.main === module) {
   const [cmd, ...argv] = process.argv.slice(2);
   if (cmd === 'balance') balance(argv);
   else if (cmd === 'next') next();
-  else if (cmd === 'commits') commits(argv[0]);
+  else if (cmd === 'commits') commits(argv);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | commits <range>');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | commits [--loop-only] <range>');
     process.exit(2);
   }
 }
