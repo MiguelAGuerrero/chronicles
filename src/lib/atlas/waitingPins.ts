@@ -108,10 +108,11 @@ export function roomZoom(target: { key: string; at: LngLat }, marks: readonly { 
 
 /**
  * WT13: the zoom a tap on a dot eases to: where it has room to be a "?", a half level in at least, at most `maxZoom`. A town
- * is all dots under `townPinZoom`, so a town's dot goes at least that far (tend explore 7).
+ * is all dots under `townPinZoom`, so a town's dot goes at least that far (tend explore 7); a find never becomes a "?" and is
+ * not drawn from there (WT10), so it eases to its room only (audit 3).
  */
-export function tapZoom(level: 'neighborhood' | 'town', room: number, zoom: number): number {
-  const floor = level === 'town' ? PIN_ROOM.townPinZoom : -Infinity;
+export function tapZoom(level: 'neighborhood' | 'town', room: number, zoom: number, waiting: boolean = true): number {
+  const floor = level === 'town' && waiting ? PIN_ROOM.townPinZoom : -Infinity;
   return Math.min(PIN_ROOM.maxZoom, Math.max(room, zoom + 1, floor));
 }
 

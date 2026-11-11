@@ -395,11 +395,11 @@ export default function Explore() {
   // WT13, audits 2 and 4: a tap on a dot, or on a "?" with places under it, eases the map in around it until it has
   // room; a "?" with nothing under it, or at the closest zoom, opens the selected area's card.
   const zoomTo = useCallback((at: LngLat, key: string) => {
-    const z = tapZoom(sel?.area.level ?? 'neighborhood', roomZoom({ key, at }, [...split.pins, ...split.dots], at[1]), zoomHalf);
+    const z = tapZoom(sel?.area.level ?? 'neighborhood', roomZoom({ key, at }, [...split.pins, ...split.dots], at[1]), zoomHalf, !found.has(key));
     const size = mapSize ?? { width: 360, height: 360 };
     const px = Math.max(120, Math.min(size.width - mapPad.left - mapPad.right, size.height - mapPad.top - mapPad.bottom));
     frame([at], (px / 2) * metresPerPx(Math.min(z, PIN_ROOM.maxZoom), at[1]));
-  }, [split, zoomHalf, frame, mapPad, mapSize, sel?.area.level]);
+  }, [split, zoomHalf, frame, mapPad, mapSize, sel?.area.level, found]);
   const openSelected = useCallback(() => {
     if (!sel) return;
     setSpot(null);
