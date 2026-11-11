@@ -225,8 +225,10 @@ Discovery and Explore (v1)
   explore/useExplore.ts      Explore on the walk screen
   atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
+  atlas/hoods.ts             a town's page: every neighborhood inside its border, hamlets in, wards out (WT1-WT6, 0127)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
   atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
+  atlas/waitingPins.ts       the selected area's places on the map: a "?" where it has room, a dot where not (WT7, WT12-WT14)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
   atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Busy names kept near the selection

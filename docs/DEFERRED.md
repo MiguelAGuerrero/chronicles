@@ -431,7 +431,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Explore's map shows the selected area's places (fix area-marks, Nov 10)
 
 - **A town's finds past 800 m of its busiest pocket** (audit 1): finds are kept by `findsIn` within the ring around `sketchAt`, while a graded town's "?" come from its whole outline, so a find inside the border but far from the pocket shows on neither the map nor the card (the card had it before).
-- **The "?" pins sit together** (audit 2): `waitingMarks` places each kind's "?" at its place nearest the area's point (a rule made for the sketch, AT6), so on a town at whole-town zoom, or beside a neighborhood's name, they stack. Spreading them is a placement call for the owner.
+- ~~**The "?" pins sit together** (audit 2)~~ **Done by Whole towns (WT12, decision 0127):** every place is drawn, a "?" only where it has room at the settled zoom and a dot where it would crowd, so no two "?" overlap.
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
 
