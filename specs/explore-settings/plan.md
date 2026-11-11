@@ -1,4 +1,4 @@
-# Plan: Explore settings (ES1-ES6)
+# Plan: Explore settings (ES1-ES9)
 
 Run by the owner, so the plan waits for their go-ahead before any code.
 
@@ -18,8 +18,8 @@ None new. The setting stays in meta `explore_hidden` (and `explore_kinds_known`)
 
 ## Tests per criterion
 
-- `src/lib/__tests__/explore/settings.test.ts` (core and shell over `fakePorts()`): `ES1` (a toggle from one subscriber is heard by another and read back after a reload; range and pocket alert unchanged), `ES2` (one kind only; a kind added since stays as it was; a failing save keeps the heard value and does not throw).
-- `scripts/e2e/journeys/atlas.js`: `ES3` (the button, its size, below Layers, no digits), `ES4` (a switch off hides that kind's "?"; on shows it; Layers and this panel never open together), `ES5` (button, Escape, a map tap), `ES6` (no hidden-count line anywhere on Explore). The journey also checks that the walk's drawer shows the same switch state (ES1).
+- `src/lib/__tests__/explore/settings.test.ts` (core and shell over `fakePorts()`): `ES1` (a toggle from one subscriber is heard by another and read back after a reload; range and pocket alert unchanged), `ES2` (one kind only; a kind added since stays as it was; two toggles in one tick both saved; a failing save restores the switch and does not throw), `ES8`.
+- `scripts/e2e/journeys/atlas.js`: `ES3` (the button, its size, below Layers, no digits), `ES4` (a switch off hides that kind's "?"; on shows it; Layers and this panel never open together), `ES5` (button, Escape, a map tap), `ES6` (no hidden-count line anywhere on Explore), `ES7` (320x568 and landscape: no overlap, list scrolls), `ES9` (the all-off line). `ES8` is a unit test over the replay and Chronicle readers, which never read `explore_hidden`. The journey also checks that the walk's drawer shows the same switch state (ES1).
 
 ## Per-action matrix (docs/research/ui-references.md, section 2)
 
@@ -33,3 +33,12 @@ The "?" range and the pocket alert from Explore (the owner chose kinds only). A 
 ## Native paths that will not run on a device
 
 The button and panel are views over the same React Native primitives as Layers; native has never run on a device. One item goes into `docs/NATIVE_UNVERIFIED.md`: open the panel from Explore on a phone, switch a kind off and see its "?" go, then open the walk's settings and see it off there.
+
+## The steward (Nov 11): triage
+
+- S1 (Vision cited the wrong ids): accepted; the section now names ES3 and ES7.
+- S2 (panel may cover what Explore draws): accepted into ES7, the same `clearBottom` as Layers. Explore draws no capture stack (`captures={NONE}`), so the clause names the real controls.
+- S3 (the button must not count by another name): accepted into ES3 (identical whether none or all are off).
+- S4: accepted: render-bound for the atlas, restore on a failed save, two toggles in one tick (`toggleKind` serialises through one queue), switches disabled until loaded, labels and focus return, "at once" means the next open of the other door, and one panel closes the other (ES1, ES2, ES4, ES5). All-off empty state becomes ES9, awaiting the owner's call.
+- S5 (view filter only): accepted as ES8.
+- Silent: the button's and drawer's label match ("What I'm into").

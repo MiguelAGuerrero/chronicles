@@ -11,12 +11,12 @@ Verb: earn (Explore: the walker chooses what is worth noticing, so the map shows
 Touches:
 - Always, "**Restraint** in motion, colour and copy: the content is the novelty, not the chrome." One more round button in the edge column, off the map's content; no badge, no number (ES2).
 - Always, "**Counts are words**" and Never, "Tallies"; NV14, no counts on Explore. Neither the button nor its panel shows how many kinds are on or off (ES3).
-- Never, "A capture behind a menu": the panel never covers the capture stack (ES2).
+- Never, "A capture behind a menu": Explore draws no capture stack, so the panel keeps clear of what it does draw: the Layers button, the tab bar and the bottom strip (ES7).
 - Never, "Editing out the lows" is not touched: a kind switched off hides places to find, never a walk's trace or a moment.
 - E16 ("What I'm into"), NV21, NV22: the switches already exist in the walk's settings and save as they change; this is the same setting, reached from Explore.
 Verdict: aligned
 Shape: as asked, with the store the walk already uses (`explore/settings.ts`, meta `explore_hidden`), not a second one: the owner chose reuse (Nov 11). Only the kind switches, not the "?" range or the pocket alert (the owner, Nov 11).
-Criteria: ES3 (no count anywhere in the control) and ES2 (never covers the capture stack or the other edge buttons) carry what the vision needs.
+Criteria: ES3 (no number or count; the button looks the same however many kinds are off) and ES7 (the panel keeps clear of the Layers button, the tabs and the bottom strip) carry what the vision needs.
 Precedent: ML4 (the Layers button's panel); E16, NV21 (the switches); NV22 (saved as they change).
 Open: none.
 
@@ -34,12 +34,15 @@ What a person is into is chosen in the walk's settings drawer, one screen away f
 
 ### The store
 
-1. **ES1 · One setting, two doors.** A kind switched off from the Explore tab is off in the walk's settings, and one switched off in the walk's settings is off on Explore, at once and after a reload. A change from either door keeps the "?" range and the pocket alert as they were.
-2. **ES2 · Changing one kind changes only it.** Switching a kind off or on adds or removes that kind alone; the others, and a kind added since the choice was saved (PK18), keep their state. A save that fails leaves what was shown unchanged in words, never a crash.
+1. **ES1 · One setting, two doors.** A kind switched off from the Explore tab is off in the walk's settings, and one switched off in the walk's settings is off on Explore the next time it is seen and after a reload. A change from either door keeps the "?" range and the pocket alert as they were.
+2. **ES2 · Changing one kind changes only it.** Switching a kind off or on adds or removes that kind alone; the others, and a kind added since the choice was saved (PK18), keep their state. Two switches pressed in one tick both end up saved. A save that fails puts the switch back to the saved state and never throws.
 
 ### The control
 
-3. **ES3 · The button.** On the Explore tab, one round button of at least 44 px in the map's edge column, below the Layers button, labelled "What I'm into". Its panel is closed on arrival. It shows no number, count or percentage, on the button or in the panel. It never covers the capture stack, the Layers button or the bottom strip.
-4. **ES4 · The panel.** Pressing the button opens a panel of one switch per kind, in the walk's order and with the walk's labels, each on unless switched off. A switch saves as it changes (NV22) and the atlas redraws at once: a kind switched off no longer shows its "?" or its kind in what is waiting; switched back on, it does. The Layers panel and this one are never open together.
-5. **ES5 · Closing.** The button, Escape, Back and a tap on the map close the panel; the panel never follows the person to another screen.
+3. **ES3 · The button.** On the Explore tab, one round button of at least 44 px in the map's edge column, below the Layers button, labelled "What I'm into". Its panel is closed on arrival. It shows no number, count or percentage, on the button or in the panel, and looks the same whether none or all kinds are off (no dot, no fill, same label); only its open state differs, as Layers does.
+4. **ES4 · The panel.** Pressing the button opens a panel of one switch per kind, in the walk's order and with the walk's labels, each on unless switched off, named by its label with its on or off state for a screen reader. Before the saved choice has loaded the switches are disabled, never shown on and then flipped. A switch saves as it changes (NV22) and the atlas redraws in the same render, with no reload: a kind switched off no longer shows its "?" or its kind in what is waiting; switched back on, it does. The Layers panel and this one are never open together.
+5. **ES5 · Closing.** The button, Escape, Back and a tap on the map close the panel, and focus returns to the button; the panel never follows the person to another screen. Opening either panel closes the other.
 6. **ES6 · Quiet.** A kind that is off shows only in its switch. No line says how many places or kinds are hidden, and nothing is added to the Explore tab's own content.
+7. **ES7 · Kept clear.** On a 320 x 568 phone and in landscape, the open panel overlaps neither the Layers button, the tab bar nor the bottom strip, and its list scrolls to the last kind (the same `clearBottom` as Layers).
+8. **ES8 · A view filter only.** A kind that is off changes what Explore shows, never what exists: a moment at a place of that kind, the Chronicle, a replay and a walk's "passed ... without stopping" line are unchanged.
+9. **ES9 · Every kind off.** With every kind off the atlas says so in one quiet line of words that points back to the button, with no number (owner's call 1, below).
