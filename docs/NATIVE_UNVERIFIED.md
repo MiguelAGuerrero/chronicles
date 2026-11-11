@@ -48,6 +48,12 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on Chronicle, open a place with one short walk so the map fits it. **Expect:** the fit stops around z15, never at street-sign zoom: `capFitBounds` widens MapLibre RN's fitBounds, which has no maxZoom (Navigation & tabs, tabs audit U15).
 - [ ] **Do:** walk outdoors with the app open, turn on the spot, then stand still. **Expect:** the cone points where you head through `coneHeading` and turns with the native glide (`useGlidingWalker`'s frames, ~15 fps) without stutter; it hides while the dot holds still (decision 0075).
 
+## Whole towns (WT1-WT14, decision 0127)
+
+- [ ] **Do:** open a large city's page on Explore (Allentown) from its edge, then from its middle. **Expect:** the same whole list of neighborhoods both times (36 for Allentown, no "Ward"), nearest you first; the list arrives without a crash or a long stall while the border's tiles are read. (WT1, WT4, WT6)
+- [ ] **Do:** select the city zoomed out, then a dense neighborhood; pinch in; tap a dot clear of every "?". **Expect:** the places show as "?" where they have room and small coloured dots (the `waiting-dots` circle layer) where not; more become "?" as you zoom; the tapped dot's spot eases in until it is a "?". (WT7, WT12, WT13, WT14)
+- [ ] **Do:** with VoiceOver on, select a neighborhood and swipe through the map's elements. **Expect:** one "Places to find in …" line, and no "?" pin announced on its own (`accessibilityElementsHidden`). (WT11)
+
 ## Activity density (AD1-AD16)
 
 - [ ] **Do:** with a proxy (Proxyman, Charles) or Xcode's network report, open Explore in a town twice, the second time after a force-quit. **Expect:** every request to Overture's host carries a `Range` header and gets a 206, the bytes read through `arrayBuffer()` and `Headers`, and the stop passes an `AbortSignal` through (`activity/overture.ts`); record whether iOS's URL cache answers a range request with a cached 200 (the busy streets would then be wrong or missing).

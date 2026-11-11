@@ -72,6 +72,11 @@ recording, and a recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
+- **Whole towns** (decision 0127): a town's page lists every neighborhood inside its border, wherever you stand, nearest
+  you first: the hamlets inside it too (Hanover Acres in Allentown), never a ward ("1st Ward"). A town with no border
+  keeps its 5 km reach and 24 nearest. On the map, the selected area's places still to find all show: a "?" where it
+  has room and a small dot in its kind's colour where it would crowd; a tap on a dot zooms in until it is a "?". Found
+  places leave the map (presence, not completion); the card still names them.
 - **A walk planner for a kind** (decision 0102, walk planner WP1-WP27): on an area's card, a kind that has something under "What's here"
   (Green, History, ...) has a "Suggest a walk" button, which opens a page of its own over Explore. It plans up to three routes from where
   you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. The first is selected when the page opens, as in Apple or Google Maps. Each says

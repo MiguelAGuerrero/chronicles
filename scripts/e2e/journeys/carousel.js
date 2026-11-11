@@ -307,16 +307,88 @@ async function townFramedOnce(h) {
 // Whole towns (WT1-WT14, decision 0127): Allentown's page lists every neighborhood inside its border, a hamlet in it,
 // no ward; the selected area's places are "?" where they have room and dots where not; a tapped dot zooms in.
 async function wholeTowns(h) {
-  const { check } = h;
-  check.todo(false, 'WT5: a hamlet inside the town\'s border has a card on its page');
-  check.todo(false, 'WT6: a ward inside the border has no card');
-  check.todo(false, 'WT7: the selected area\'s map holds every place still to find, as "?" and dots');
-  check.todo(false, 'WT8: no text on the page, the row or the card counts places or neighborhoods, in digits or words');
-  check.todo(false, 'WT10: a found place is not drawn on Explore\'s map');
-  check.todo(false, 'WT11: the "?" are one accessible element naming the area and the kinds');
-  check.todo(false, 'WT12: zoomed out a cluster is dots, zoomed in more of it is "?"');
-  check.todo(false, 'WT13: a tapped dot zooms in until it is a "?"');
-  check.todo(false, 'WT14: dots are drawn for the selected area only, with no name');
+  const { exploreUrl, check, freshPage, snapWorld, wholeWorld, divisions, areaTile } = h;
+  snapWorld.serve = true;
+  divisions.serve = true;
+  wholeWorld.serve = true;
+  const { c, pg } = await freshPage('carousel-whole');
+  await c.addInitScript(() => { window.__perf = {}; });
+  try {
+    await pg.goto(exploreUrl);
+    await pg.waitForFunction(() => !!document.querySelector('[data-testid=atlas-tile][data-name="Allentown"][data-selected="1"]'), null, { timeout: 60000 }).catch(() => {});
+    // WT5, WT6: on Allentown's page, the hamlet inside its border has a card; the ward has none.
+    const hamlet = await areaTile(pg, 'Quarry Hill');
+    const cards = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.name));
+    check((await hamlet.count()) === 1, `WT5: a hamlet inside the town's border has a card on its page (${JSON.stringify(cards)})`);
+    check(!cards.includes('3rd Ward') && cards.includes('Wickenden'), `WT6: a ward inside the border has no card (${JSON.stringify(cards)})`);
+    // WT8: no text on the page or the row counts places or neighborhoods, in digits or words.
+    const COUNT = /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozens?|several|many)\s+(neighbou?rhoods?|places?)\b/i;
+    const pageText = await pg.locator('body').innerText().catch(() => '');
+    check(!COUNT.test(pageText), `WT8: no count of places or neighborhoods on the town's page (${(pageText.match(COUNT) ?? [''])[0]})`);
+
+    // Select Wickenden: its ring is read, its places drawn.
+    await (await areaTile(pg, 'Wickenden')).click().catch(() => {});
+    const drawn = () => pg.evaluate(() => {
+      const map = document.querySelector('.maplibregl-map');
+      const dots = JSON.parse(map?.closest('[data-waiting-dots]')?.getAttribute('data-waiting-dots') ?? document.querySelector('[data-waiting-dots]')?.getAttribute('data-waiting-dots') ?? '[]');
+      const pins = [...document.querySelectorAll('[data-testid=mark-pin]')].map((e) => ({ label: e.getAttribute('aria-label'), hidden: e.getAttribute('aria-hidden'), text: e.innerText }));
+      return { dots, pins, zoom: Number(document.querySelector('[data-zoom]')?.getAttribute('data-zoom') ?? 0) };
+    });
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=mark-pin]').length > 0, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    const out = await drawn();
+    // The murals (6) and Fox Point's art and memorial in Wickenden's 800 m ring: more than one per kind.
+    check(out.pins.length + out.dots.length >= 6, `WT7: the selected neighborhood's map holds every place still to find, as "?" and dots (${out.pins.length} "?", ${out.dots.length} dots at zoom ${out.zoom})`);
+    check(out.dots.length >= 1, `WT12: zoomed out, the murals 30 m apart are dots where a "?" would crowd (${out.dots.length} dots at zoom ${out.zoom})`);
+    check(out.pins.every((p) => p.text.trim() === '?' || p.text.trim() === ''), `WT10, WT14: no pin on Explore's map is named or found (${JSON.stringify(out.pins.map((p) => p.text))})`);
+    check(out.pins.every((p) => p.label === 'A place to find. Open'), 'WT10: no found place is drawn');
+    const said = await pg.locator('[data-testid=atlas-waiting-said]').textContent().catch(() => '');
+    check(out.pins.every((p) => p.hidden === 'true') && /^Places to find in Wickenden: /.test(said ?? '') && !/\d/.test(said ?? ''),
+      `WT11: the "?" are one accessible element naming the area and the kinds ("${said}"; pins hidden: ${out.pins.every((p) => p.hidden === 'true')})`);
+
+    // WT13: a tap on a dot eases the map in around it until it is a "?". Zoomed out the murals lie under their "?" (a tap
+    // there opens the card, as a "?" does), so zoom in two steps first, where they are dots apart, and tap one no pin covers.
+    await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
+    await pg.keyboard.press('+');
+    await pg.waitForTimeout(900);
+    await pg.keyboard.press('+');
+    await pg.waitForTimeout(2000);
+    const before = await drawn();
+    const free = await pg.evaluate((dots) => {
+      const rects = [...document.querySelectorAll('[data-testid=mark-pin], [data-testid=area-point]')].map((e) => e.getBoundingClientRect());
+      return dots.find((d) => {
+        const [x, y] = window.__project(d);
+        return !rects.some((r) => x > r.left - 6 && x < r.right + 6 && y > r.top - 6 && y < r.bottom + 6);
+      }) ?? null;
+    }, before.dots);
+    if (free) {
+      const [x, y] = await pg.evaluate((q) => window.__project(q), free);
+      await pg.mouse.click(x, y);
+      await pg.waitForTimeout(3000);
+      const after = await drawn();
+      const isPin = await pg.evaluate((q) => [...document.querySelectorAll('[data-testid=mark-pin]')].some((e) => {
+        const r = e.getBoundingClientRect();
+        const [px, py] = window.__project(q);
+        return Math.abs(r.left + r.width / 2 - px) < 8 && Math.abs(r.bottom - py) < 20;
+      }), free);
+      check(after.zoom > before.zoom && isPin, `WT13: a tapped dot zooms in until it is a "?" (zoom ${before.zoom} → ${after.zoom}; a "?" there: ${isPin})`);
+      check(after.pins.length > out.pins.length, `WT12: zoomed in, more of the cluster is "?" (${out.pins.length} → ${after.pins.length})`);
+    } else {
+      check(false, `WT13: a dot no pin covers, to tap (${before.dots.length} dots at zoom ${before.zoom})`);
+    }
+
+    // WT14: only the selected area's: select another neighborhood, and none of Wickenden's dots stays.
+    await (await areaTile(pg, 'Hope Village')).click().catch(() => {});
+    await pg.waitForTimeout(2500);
+    const other = await drawn();
+    const near = (a, b) => Math.abs(a[0] - b[0]) < 1e-7 && Math.abs(a[1] - b[1]) < 1e-7;
+    check(!other.dots.some((d) => out.dots.some((w) => near(d, w))), `WT14: dots are drawn for the selected area only (${other.dots.length} dots for Hope Village)`);
+  } finally {
+    snapWorld.serve = false;
+    divisions.serve = false;
+    wholeWorld.serve = false;
+    await c.close();
+  }
 }
 
 module.exports = {
@@ -330,6 +402,8 @@ module.exports = {
     'src/components/map/WalkMap.web.tsx',
     'src/components/map/types.ts',
     'src/components/AreaPoint.tsx',
+    'src/lib/atlas/hoods.ts',
+    'src/lib/atlas/waitingPins.ts',
   ],
   run: async (h) => {
     await run(h);

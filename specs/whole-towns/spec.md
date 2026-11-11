@@ -45,7 +45,7 @@ What was already whole: a town's card counts places across its whole border (TP1
 11. **WT11** With an area selected, its "?" pins are one accessible element naming the area and the kinds waiting ("Places to find in Downtown: art, parks"); no "?" is announced on its own, and how many there are never changes what is announced.
 
 12. **WT12** Each place on the map is a "?" pin where the pin has room on screen and a dot where a pin would overlap another pin: no two "?" overlap. Which places get a pin is decided once the camera settles, at the zoom rounded to half levels (as capture pins are, `useZoomPins`), nearest the area's middle first, so the same view always shows the same pins and a pan or a pinch in progress changes nothing.
-13. **WT13** A tap on a dot eases the map in around it to the zoom at which it has room to be a "?" (at most zoom 18); nothing is named. With reduced motion the map jumps. A tap on a "?" does what it did (the area's card).
+13. **WT13** A tap on a dot eases the map in around it to the zoom at which it has room to be a "?" (at most zoom 17, the map's closest fit); nothing is named. With reduced motion the map jumps. A tap on a "?" does what it did (the area's card).
 14. **WT14** A dot is smaller than a "?" pin, in its kind's colour with a white edge, and carries no name, number or icon; its tap reach is the map's press reach (44 px). Dots and "?" are drawn only for the selected area, never for every area in view.
 
 ## Amends
@@ -58,3 +58,10 @@ What was already whole: a town's card counts places across its whole border (TP1
 
 - No new routes, dependencies or storage. Neighborhood rows (`atlas_area`) are cache, as before; a hamlet's row is a neighborhood row. The near read's record in meta `atlas_near:neighborhood` gains the town it covered.
 - Walk placement (`AREA_RULES`, the home's stars) is untouched.
+
+## Record (Nov 11)
+
+- **Built** on `claude/cool-shannon-p9gph3`: WT1-WT14, test first (`6f6a8fd`). Unit tests in `src/lib/__tests__/explore/wholeTowns.test.ts` (WT1-WT11, Allentown's real border and place points in `allentownHoods.json`) and `waitingPins.test.ts` (WT12-WT14); the `carousel` journey's `wholeTowns` checks WT5-WT8, WT10-WT14 on the web build.
+- **Allentown:** 24 neighborhoods listed before, 36 after (35 neighbourhood points less 3 wards, Trexler Park 5.5 km out among them, and the hamlet Hanover Acres).
+- **Changed from the plan:** WT13's cap is zoom 17, the map's closest fit, not 18; WT10's journey check is in `carousel`, not `marks`.
+- **Deferred:** in `docs/DEFERRED.md`, "Whole towns". **Native:** never run on a device (`docs/NATIVE_UNVERIFIED.md`, "Whole towns").

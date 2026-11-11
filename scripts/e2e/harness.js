@@ -177,6 +177,14 @@ const snapFeatures = [
   { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
 ];
 const snapWorld = { serve: false };
+// Whole towns (WT5-WT14, decision 0127), with snapWorld and its Allentown border: a hamlet and a ward inside the border,
+// and six murals 30 m apart beside Wickenden, so its map has more places than room. Only in the carousel's wholeTowns.
+const wholeFeatures = [
+  { type: 'Feature', properties: { class: 'hamlet', name: 'Quarry Hill' }, geometry: { type: 'Point', coordinates: at(-20, 15) } },
+  { type: 'Feature', properties: { class: 'neighbourhood', name: '3rd Ward' }, geometry: { type: 'Point', coordinates: at(-15, 8) } },
+  ...['A', 'B', 'C', 'D', 'E', 'F'].map((n, i) => ({ type: 'Feature', properties: { class: 'art_gallery', subclass: 'artwork', name: `Mural ${n}` }, geometry: { type: 'Point', coordinates: at(9.4 + i * 0.3, 0.6) } })),
+];
+const wholeWorld = { serve: false };
 // Quiet Hollow's town (fix explore-town-scope): near you Explore lists towns, and a neighborhood is on its town's page, so the
 // grading journey serves a town point beside it; only there, so other journeys' rows don't change.
 const hollowFeatures = [{ type: 'Feature', properties: { class: 'town', name: 'Hollow' }, geometry: { type: 'Point', coordinates: at(-61, 0.5) } }];
@@ -428,7 +436,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : [])], z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : [])], z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -638,7 +646,7 @@ async function createHarness() {
   });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, bareMapPoint,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, bareMapPoint,
   };
 }
 

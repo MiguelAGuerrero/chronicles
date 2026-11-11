@@ -616,8 +616,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (!ready) return;
     setData('waiting-dots', waitingDotsGeoJSON(props.waitingDots));
-    // The e2e reads the dots drawn (WT12-WT14): how many, and where, by id.
-    if (container.current) container.current.dataset.waitingDots = JSON.stringify((props.waitingDots ?? []).map((d) => [d.id, ...d.at]));
+    // The e2e reads the dots drawn (WT12-WT14): where they are, nothing else.
+    if (container.current) container.current.dataset.waitingDots = JSON.stringify((props.waitingDots ?? []).map((d) => d.at));
   }, [ready, props.waitingDots]);
   useEffect(() => {
     if (!ready) return;

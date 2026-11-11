@@ -36,7 +36,7 @@ test('WT12: a "?" where it has room, a dot where it would overlap; no two "?" ov
   const fromEnd = waitingPins(BLOCK, east(140, north(300)), 13, O[1]);
   assert.ok(fromEnd.pins.some((p) => p.key === 'b7'));
 });
-test('WT13: a tap on a dot zooms to where it has room, at most 18', () => {
+test('WT13: a tap on a dot zooms to where it has room, at most the map\'s closest fit', () => {
   const z = roomZoom(BLOCK[3], BLOCK, O[1]);
   assert.ok(z > 13 && z <= PIN_ROOM.maxZoom, `zooms in, at most ${PIN_ROOM.maxZoom} (${z})`);
   const wide = [m('a', O), m('b', east(400)), m('c', east(900))];

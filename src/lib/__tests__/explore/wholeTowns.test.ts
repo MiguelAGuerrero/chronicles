@@ -1,14 +1,13 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { outlineTileFrom } from '../../areas/divisionTiles';
 import { outlineSet, type OutlineSet } from '../../areas/outlines';
 import { hamletsFromTiles, placesFromTiles, type TileFeature } from '../../areas/tilePlaces';
 import type { TownOutline } from '../../areas/types';
-import { ATLAS_CODE, ATLAS_RULES, atlasStep, nearList, needsNear, townNeighborhoods, type AtlasArea, type NearRead } from '../../atlas/atlas';
+import { ATLAS_CODE, ATLAS_RULES, atlasStep, nearList, needsNear, townNeighborhoods, waitingMarks, type AtlasArea, type AtlasMark, type NearRead } from '../../atlas/atlas';
 import { isWard, listingBy, townBorder, townHoods } from '../../atlas/hoods';
-import { waitingMarks, type AtlasMark } from '../../atlas/atlas';
 import { areaMapMarks, waitingLabel } from '../../atlas/waitingPins';
 import { distanceM } from '../../geo';
 import type { LngLat } from '../../types';
@@ -17,9 +16,8 @@ import type { LngLat } from '../../types';
 // the selected area's map shows every place still to find. Real cases run on Allentown
 // (allentownHoods.json, cut by scripts/fixture-town-hoods.mjs: Overture 2026-10-21.0, OpenFreeMap 20261101).
 
-const require = createRequire(import.meta.url);
 type Fixture = { release: string; tile: { x: number; y: number; division_area: TileFeature[]; division: TileFeature[] }; places: TileFeature[] };
-const fx = require('./allentownHoods.json') as Fixture;
+const fx = JSON.parse(readFileSync(new URL('./allentownHoods.json', import.meta.url), 'utf8')) as Fixture;
 const allentownSet = outlineSet([outlineTileFrom(fx.tile.x, fx.tile.y, fx.release, 1, fx.tile, 10)]);
 const ALLENTOWN: LngLat = [-75.4716, 40.6023];
 

@@ -435,13 +435,26 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
 
+## Whole towns (WT1-WT14, decision 0127)
+
+- **Hamlets and wards in walk placement:** a hamlet inside a town is a neighborhood on Explore only; the home's stars
+  and `AREA_RULES` are unchanged (a ward point can still be a walk's neighborhood there). Changing it re-places every walk.
+- **A neighborhood's places are its 800 m ring**, not its share of the town (the tiles carry no neighbourhood outlines;
+  "Whole areas" above).
+- **History reads thin in a city** (Allentown: 2 of 122 history places count): AG1's rule (worship and memorials need a
+  notable word in their name), not a read. Its own question for the owner.
+- **A cluster's dots under its "?"**: zoomed out, a pin stands over the dots at its foot, so a tap there opens the card;
+  pinch or tap a dot clear of it to zoom in. A tap on such a "?" that zoomed in instead would change AT8's card (owner's call).
+- **A town past `TILE_BUDGET`** (60 z14 tiles): the nearest 60 are read for its list, as for its card.
+
 ## Explore: a neighborhood with no listed town (fix explore-town-scope, decision 0126)
 
 - **Deferred, the owner's call (Nov 10):** near you the row is the towns; a neighborhood is only on its town's page, which
   looks within `townReachM` (capped at 5 km) of the town's point. A neighborhood past every town's reach is shown nowhere,
   even the one you stand in, deep inside a large city's outline far from its point (audit 3). The neighborhoods stand in
   only when no town is named around you. Next, if wanted: a town's page takes the neighborhoods inside its outline,
-  whatever their distance from its point.
+  whatever their distance from its point. **Done by Whole towns (WT1, decision 0127)** for a town with a border; a town
+  with none keeps the reach.
 - **Deferred (audit 5):** outside every town, the nearest town leads and is framed whole on arrival, so the page titled
   "Near you" may open on a town some kilometres off; and when an outline arrives that marks another town as yours, the
   selection and the frame move to it. Framing the selected town is the row's rule (EC5).
