@@ -233,7 +233,7 @@ async function townPage(h) {
       await pg.waitForTimeout(500);
       const panelGone = (await pg.locator('[data-testid=layers-panel]').count()) === 0;
       const page2 = (await pg.locator('[data-testid=atlas-back-pill]').count()) === 1;
-      check(spotGone && page1 && panelShown && panelGone && page2, `tend explore 6: on a town's page, Escape closes the choices, then Layers, and keeps the page (choices closed ${spotGone}, page ${page1}; panel ${panelShown} → closed ${panelGone}, page ${page2})`);
+      check(spotGone && page1 && panelShown && panelGone && page2, `tend explore 6, tend explore audit 4: on a town's page, Escape closes the choices, then Layers, and keeps the page (choices closed ${spotGone}, page ${page1}; panel ${panelShown} → closed ${panelGone}, page ${page2})`);
       if (!page2) await pg.locator('[data-testid=atlas-tile][data-level="town"]').first().click().catch(() => {});
       await pg.waitForTimeout(500);
     }

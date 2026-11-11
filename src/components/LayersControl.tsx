@@ -116,7 +116,13 @@ export function LayersControl(props: {
   useEffect(() => closePanel, [closePanel]);
   useEffect(() => {
     if (!layers.open || Platform.OS !== 'web') return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closePanel();
+    // tend explore audit 4: the Escape that closes the panel stops here. React re-renders as it closes, so a screen's own
+    // Escape handler on the window (a town's page) can be added again mid-event and would also act on it.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      closePanel();
+    };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [layers.open, closePanel]);
