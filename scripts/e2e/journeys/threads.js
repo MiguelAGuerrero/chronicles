@@ -407,6 +407,13 @@ async function run(h) {
   await pg.click('[data-testid=viewer-close]');
   await pg.waitForTimeout(400);
   check((await pg.locator('[data-testid=capture-card]').last().innerText()).includes('Like the'), 'RF4: Back returns to the note');
+  check.todo(false, 'RK1: @ in a note opens one palette of keywords and moments; dismissing leaves the @');
+  check.todo(false, 'RK2: a chosen keyword is in the note, and the other words are as typed');
+  check.todo(false, 'RK8: a recalled moment is drawn with its place and date');
+  check.todo(false, 'RK9: the viewer shows the word with its value in parentheses, and the setting turns them off');
+  check.todo(false, 'RK10: a tap on a reference opens the resolution picker, and a pick replaces the value');
+  check.todo(false, 'RK18: over there lists places by distance and offers Choose on the map');
+  check.todo(false, 'RK14: the editor types and saves with no keyword resolved yet');
   await closeViewer();
   await c.close();
 }
