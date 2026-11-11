@@ -16,6 +16,8 @@ import type { Measures } from './placeSignals';
 
 /** The widening, in the scaled space: about a factor of 1.35 on a count, 0.1 on a share. */
 export const MARGIN = 0.3;
+/** The distance a territory keeps from a counter-example, in the scaled space: a place just beyond a confirmed no-word place is not obvious either. */
+export const CUT_MARGIN = 0.15;
 
 /** A labelled place: the owner's word (null: no word), a second word accepted (null: silence accepted too), and its measures. */
 export interface Labelled {
@@ -48,18 +50,18 @@ const accepts = (p: Labelled, w: FormWord | null) => p.word === w || (p.accept !
 type Box = { lo: number[]; hi: number[] };
 
 /** The territory of every word that has at least two confirmed places and can be made free of counter-examples; the others are null. */
-export function learnTerritories(rows: readonly Labelled[], margin = MARGIN): Record<FormWord, Territory | null> {
+export function learnTerritories(rows: readonly Labelled[], margin = MARGIN, cutMargin = CUT_MARGIN): Record<FormWord, Territory | null> {
   const point = (m: Measures) => FEATURES.map((f) => SCALE[f].to(m[f]));
   const out = {} as Record<FormWord, Territory | null>;
   for (const w of WORD_IDS) {
     const pos = rows.filter((r) => r.word === w && r.accept === undefined).map((r) => point(r.m));
     const neg = rows.filter((r) => !accepts(r, w)).map((r) => point(r.m));
-    out[w] = pos.length >= 2 ? learnOne(w, pos, neg, margin) : null;
+    out[w] = pos.length >= 2 ? learnOne(w, pos, neg, margin, cutMargin) : null;
   }
   return out;
 }
 
-function learnOne(w: FormWord, positives: number[][], negatives: number[][], margin: number): Territory | null {
+function learnOne(w: FormWord, positives: number[][], negatives: number[][], margin: number, cutMargin: number): Territory | null {
   let P = positives;
   const n = FEATURES.length;
   const box: Box = { lo: Array(n).fill(-Infinity), hi: Array(n).fill(Infinity) };
@@ -75,8 +77,8 @@ function learnOne(w: FormWord, positives: number[][], negatives: number[][], mar
     if (!bad) break;
     let best: { k: number; side: 'lo' | 'hi'; val: number; lost: number } | null = null;
     for (let k = 0; k < n; k++) {
-      const raise = bad[k] + 1e-6;
-      const lower = bad[k] - 1e-6;
+      const raise = bad[k] + cutMargin + 1e-6;
+      const lower = bad[k] - cutMargin - 1e-6;
       const lostLo = P.filter((p) => p[k] < raise).length;
       const lostHi = P.filter((p) => p[k] > lower).length;
       if (raise <= box.hi[k] && (!best || lostLo < best.lost)) best = { k, side: 'lo', val: raise, lost: lostLo };

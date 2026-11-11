@@ -323,6 +323,14 @@ and interchange rings lowest); the app's atlas reads OpenStreetMap's names, so t
 
 **A fifth word it suggests:** "Places set back from the street" (a mall, an outlet centre, an attractions park) from low frontage with a few dozen places. Three places in the data: too few to certify, and it needs its own `/vision` look; listed, not built.
 
+### The rule as built, pinned before the third held-out look (2026-11-11)
+
+Territories learned from **88 confirmed places** (the 59 of before and 29 blind-labelled additions, mostly villages and exits), the six measures, margin 0.3, a cut buffer of 0.15 from every counter-example,
+open sides as above, and the four-of-five ring gate. Leave-one-out (each place judged by territories learned without it; development data): **50 spoken, 49 right, one false positive (Humboldt, an industrial park read as a village), recall 0.73**
+(0.59 at 59 places: the learning curve held). The cut buffers tried: 0 gave recall 0.69, 0.15 gave 0.73, 0.30 gave 0.61, 0.45 gave 0.52 with a second false positive; none removed the Humboldt false positive.
+
+Known limitation, measured on four seeds of halving the places and buildings: about a fifth of the words go silent, four move to a neighbouring word, and Limerick Outlets (an outlet centre at an interchange) reads as an exit. Overture under-records malls and outlets.
+
 ## Answered (the owner, 2026-11-11)
 
 Question 1: **four words now**, no new read (answered on a wrong premise, see above; reopened). Question 3: **United States only**. Question 5: **80% and within 10 points**. Question 6: **"Around its middle: …"**.

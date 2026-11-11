@@ -6,7 +6,11 @@
 import { writeFileSync } from 'node:fs';
 import { acceptable, loadSet, readOf } from '../src/lib/__tests__/walkability/placeFormFixtures';
 import { STABILITY_NEED } from '../src/lib/walk/placeForm';
-import { learnTerritories, MARGIN, WORD_IDS } from '../src/lib/walk/placeFormLearn';
+import { CUT_MARGIN, learnTerritories, MARGIN, WORD_IDS } from '../src/lib/walk/placeFormLearn';
+
+// --cut=<n> tries another buffer from the counter-examples (prints only; the committed value is CUT_MARGIN in placeFormLearn.ts).
+const cutArg = process.argv.find((a) => a.startsWith('--cut='));
+const cut = cutArg ? Number(cutArg.slice(6)) : CUT_MARGIN;
 import { FEATURES, inTerritory } from '../src/lib/walk/placeFormTerritory';
 import { measureRings } from '../src/lib/walk/placeSignals';
 
@@ -27,7 +31,7 @@ const wordOf = (t, rings) => {
 let spoke = 0, right = 0, falsePos = 0, wrong = 0, asked = 0, got = 0;
 const bad = [];
 for (let i = 0; i < rows.length; i++) {
-  const t = learnTerritories(labelled(rows.filter((_, j) => j !== i)));
+  const t = learnTerritories(labelled(rows.filter((_, j) => j !== i)), MARGIN, cut);
   const g = wordOf(t, rows[i].rings);
   const ok = acceptable(rows[i].p).includes(g);
   if (g) {
@@ -44,10 +48,10 @@ for (let i = 0; i < rows.length; i++) {
     if (g && ok) got++;
   }
 }
-console.log(`leave-one-out over ${rows.length} places: spoke ${spoke}, right ${right}, false positives ${falsePos}, wrong word ${wrong}; recall ${got}/${asked} = ${(got / asked).toFixed(2)}`);
+console.log(`cut buffer ${cut}: leave-one-out over ${rows.length} places: spoke ${spoke}, right ${right}, false positives ${falsePos}, wrong word ${wrong}; recall ${got}/${asked} = ${(got / asked).toFixed(2)}`);
 if (bad.length) console.log('  wrong:', bad.join(' '));
 
-const territories = learnTerritories(labelled(rows));
+const territories = learnTerritories(labelled(rows), MARGIN, cut);
 const fmt = (v) => (v === null ? 'null' : String(v));
 const lines = WORD_IDS.map((w) => {
   const t = territories[w];
@@ -67,7 +71,7 @@ export const TERRITORIES: Record<FormWord, Territory | null> = {
 ${lines.join('\n')}
 };
 `;
-if (!process.argv.includes('--check')) {
+if (!process.argv.includes('--check') && !cutArg) {
   writeFileSync(new URL('../src/lib/walk/placeFormTerritories.ts', import.meta.url), src);
   console.log('wrote src/lib/walk/placeFormTerritories.ts');
 }
