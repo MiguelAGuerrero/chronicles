@@ -134,6 +134,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Navigation and tabs
 
+- [ ] **Do:** on an iPhone with a notch and a home indicator, open Chronicle, Navigate, a replay and a day. **Expect:** the tab bar still sits above the home indicator (its height includes the bottom inset) and no screen draws under the notch: the root layout now nests `SafeInsets`, a passthrough on phones, inside `SafeAreaProvider` (fix memories-weird-state).
 - [ ] **Do:** on an iPhone, set a destination, then tap Open in Maps in the navigation bar. **Expect:** Apple Maps opens from the app (`nav/openInMaps.ts`) with walking directions to the destination; back in Chronicles the route and the walk are as they were (Open in Maps). (NH1, NH2, NH7)
 - [ ] **Do:** on Android, set a destination, then tap Open in Maps. **Expect:** the `geo:` chooser opens and the chosen maps app shows the destination; back in Chronicles nothing changed (Open in Maps). (NH1, NH2)
 - [ ] **Do:** add the web build to an iPhone's Home Screen, start a walk with a destination, and tap Open in Maps; then try it where Maps can't take the scheme (Maps removed). **Expect:** the Home Screen app opens the `maps://` scheme via `location.href` (it was `window.open`, which left a blank window to back out of): Maps opens with the walking route, no blank window, the page is intact on return, recording resumes; record what shows if Maps can't take the scheme (Open in Maps, fix pwa-maps).

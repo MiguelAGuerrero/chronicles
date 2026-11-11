@@ -53,7 +53,9 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   pinch-zoomed made the bottom and right insets half the screen, so the tab bar ballooned
   (`paddingHorizontal: max(left, right)` squeezed its three tabs into one point) and Memories' list shrank
   to nothing until a reload. Never read `useSafeAreaInsets` from above `SafeInsets` in the root layout.
-  The tabs journey replays it by halving `innerWidth/innerHeight` and firing a resize.
+  The tabs journey replays it by halving `innerWidth/innerHeight` and firing a resize. `env()` is 0 today (no
+  `viewport-fit=cover`); adding it means `SafeInsets` must also hear an `env()` change that comes with no resize
+  (the library's `transitionend` probe), and a test with a non-zero inset (fix memories-weird-state audit 6).
 - **e2e:** `url` opens Chronicle's Memories; `exploreUrl` (`${url}explore`) opens the
   scenarios that begin on Explore, and `navUrl` (`${url}navigate`) those on Navigate.
 

@@ -422,6 +422,8 @@ async function run(h) {
       await pg.evaluate(() => {
         const w = window.innerWidth;
         const h = window.innerHeight;
+        // Kept, so the zoom's end puts the real viewport back (audit 2: a bare delete left them undefined).
+        window.__realViewport = { w: Object.getOwnPropertyDescriptor(window, 'innerWidth'), h: Object.getOwnPropertyDescriptor(window, 'innerHeight') };
         Object.defineProperty(window, 'innerWidth', { configurable: true, get: () => Math.round(w / 2) });
         Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => Math.round(h / 2) });
         window.dispatchEvent(new Event('resize'));
@@ -429,15 +431,17 @@ async function run(h) {
       });
       await pg.waitForTimeout(600);
       const zoomed = await bar();
-      // The zoom ends as iOS ends it: the viewport is whole again, and no event says so.
+      // The zoom ends as iOS ends it: the viewport is whole again, and only the visual viewport says so.
       await pg.evaluate(() => {
-        delete window.innerWidth;
-        delete window.innerHeight;
+        Object.defineProperty(window, 'innerWidth', window.__realViewport.w);
+        Object.defineProperty(window, 'innerHeight', window.__realViewport.h);
+        window.visualViewport?.dispatchEvent(new Event('resize'));
       });
       await pg.waitForTimeout(300);
       const after = await bar();
-      check(before.h > 0 && before.h < 120 && [zoomed, after].every((s) => s.h === before.h && s.tabs.every((t) => t >= 100)),
-        `fix memories-weird-state: a pinch-zoom's resize leaves the tab bar's height and its three tabs' widths as they were (${JSON.stringify({ before, zoomed, after })})`);
+      const whole = await pg.evaluate(() => window.innerWidth > 300 && window.innerHeight > 500);
+      check(whole && before.h > 0 && before.h < 120 && [zoomed, after].every((s) => s.h === before.h && s.tabs.every((t) => t >= 100)),
+        `fix memories-weird-state: a pinch-zoom's resize leaves the tab bar's height and its three tabs' widths as they were (${JSON.stringify({ whole, before, zoomed, after })})`);
       // The same insets set Navigate's ready bar at rest (BAR_H + the bottom inset): the owner found it stuck
       // half open after tapping the stacked icons (Nov 11). Measured after the zoom, where the old insets stayed.
       await tabTo(pg, 'navigate');
@@ -458,7 +462,7 @@ module.exports = {
     'src/app/walk.tsx',
     'src/app/replay/**',
     'src/components/{RecordingBar,OpenWalk,HomeSheet,MomentBar,StartSettings,SafeInsets,SafeInsets.web}.tsx',
-    'src/lib/{walkNav,walkGate,memoGate,recordingBar,startPlan,useStartWalk,launchRoute}.ts',
+    'src/lib/{walkNav,walkGate,memoGate,recordingBar,startPlan,useStartWalk,launchRoute,safeInsets}.ts',
   ],
   run,
 };
