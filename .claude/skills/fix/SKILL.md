@@ -70,7 +70,7 @@ Follow `.claude/skills/ship.md`, "Open the worktree", with the branch
 ## 2. Size check - hard stops
 
 Stop before editing, report, and ask with AskUserQuestion (recommended option
-first) on any of the "Hard stops" in `.claude/skills/ship.md` (architecture, a
+first) on any of `.claude/skills/ship.md`, "Hard stops" (architecture, a
 derivation rule, data off the device, more than about 8 files or a new
 feature's worth of behaviour: that is `/slice`), and on:
 
@@ -109,8 +109,11 @@ do not keep trying variations.
   files. Regression tests are named `fix <name> audit N`; the round limit is
   `--loops`.
 
-If the limit is reached with accepted findings still open, do not deploy: push
-the branch so the owner can look, and list the open findings in the report.
+Whatever the mode, each round is: review, fix what was accepted, re-run the
+level's verify. Stop at `--loops` rounds or at the first round with no new
+accepted finding. If the limit is reached with accepted findings still open,
+do not deploy: push the branch so the owner can look, and list the open
+findings in the report.
 
 ## 6. Docs
 

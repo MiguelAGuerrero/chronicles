@@ -12,7 +12,8 @@ loosened test, or a second piece of work found on the way.
 
 1. `git worktree prune`, then `git worktree list`. Report any other worktree of the same family
    (`fix/*`, `tend/*`, `slice/*`) you find (a dead run's leftover); do not remove it.
-2. Create the worktree and `<branch>` from `origin/main` with `EnterWorktree`, or
+2. If `<branch>` already exists, here or on the remote, it is a dead run's leftover: report it, leave it,
+   and add `-2` to this run's name. Create the worktree and `<branch>` from `origin/main` with `EnterWorktree`, or
    `git worktree add .claude/worktrees/<branch with - for /> -b <branch> origin/main`. Never work in
    the primary checkout and never on `main`.
 3. Note the worktree path and branch: they are the only things this run may remove at the end.
@@ -33,18 +34,22 @@ loosened test, or a second piece of work found on the way.
 
 ## Hard stops
 
-Stop before editing and put it to the owner (AskUserQuestion, the recommended option first, when the
-owner is in the session; an inbox entry in `docs/STATUS.md` when the caller is `/tend`) when the work
-needs any of:
+Before editing, or as soon as it shows, the work stops when it needs any of:
 
 - a new dependency, a data-model or migration change, a navigation-flow change, a platform-strategy
   change (the AGENTS.md "ask before architectural decisions");
 - a change to derivation rules (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`);
 - anything that sends data off the device, or a new host;
-- more than the caller's size: about 8 files for a fix or a loop finding; for a slice, more than its
-  approved criteria.
+- more than the caller's size: about 8 files for a fix or a loop finding; for a slice built from a
+  proposal, anything its approved criteria do not name.
 
-While a question is open the worktree stays; if the answer is no, the work is scrapped ("Clean up").
+Who hears of it depends on who was typed:
+
+- **`/fix` or `/slice`, typed by the owner:** ask with AskUserQuestion, the recommended option first. The
+  worktree stays while the question is open; if the answer is no, the work is scrapped ("Clean up").
+- **`/tend`, and anything it runs:** never ask mid-run. A loop finding is reclassified and filed, and
+  the run goes on. A slice built from a proposal returns "Stopped on" in its result block; `/tend` files
+  the question in the inbox, pushes the branch for review and cleans up.
 
 ## Review
 
@@ -76,8 +81,8 @@ at the caller's test level.
    visible effect. If the page cannot be reached from the session, say the live check was not done.
 
 **A red run.** One fix-forward attempt following `/deploy` section 4, only when the log names a cause
-this run plainly owns. Otherwise, or if that run is also red, or the live site is broken: `git revert`
-the commit that owns the failure (this run's commits only, never past the commit before them), push it
+this run plainly owns. Otherwise, or if that run is also red, or the live site is broken: in the
+worktree, `git revert` the commit that owns the failure (this run's commits only, never past the commit before them), push it
 the same way (the revert is covered by the grant), and confirm its Pages run is green. Never leave
 `main` red.
 
@@ -95,7 +100,8 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
    before removing, and name the patch in the report. Never remove a worktree holding work that is
    neither pushed nor saved.
 3. Leave the worktree directory first (`ExitWorktree`, or `cd` to the primary checkout), then
-   `git worktree remove <path>`. Use `--force` only after step 2 saved what mattered.
+   `git worktree remove <path>`. Use `--force` only after step 2 saved what mattered (removing a
+   hard-linked or `npm ci` copy of `node_modules` does not touch the primary's).
 4. By outcome:
 
 | Outcome | Local branch | Remote branch |
@@ -115,7 +121,7 @@ Every skill's report ends with this block, so a caller (the owner, or `/tend`) r
 without reading the report:
 
 ```
-Result: shipped | pushed for review | stopped | scrapped
+Result: shipped | reverted | pushed for review | committed locally | stopped | scrapped
 Commits: <hashes on main, or the branch>
 Changed: <areas (scripts/features.js names) whose screens or modules changed>
 Filed: <inbox entries, docs/DEFERRED.md items, docs/NATIVE_UNVERIFIED.md items, or none>

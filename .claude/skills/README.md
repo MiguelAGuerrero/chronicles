@@ -9,8 +9,8 @@ stops for the owner, and what it may push. This page is the map; a skill's own f
 
 ```
 /tend sweep ─┬─ loop finding ─────────────► ship.md (one commit each) ──► main
-             ├─ addition / opinion ─► /vision ─► inbox T<n> ─► owner ─┬─ small ► ship.md ► main
-             ├─ phone-only ─────────────────► inbox T<n> [phone]       └─ larger ► /slice --from
+             ├─ addition / opinion ─► /vision ─► inbox T<n> ─► owner ─► one commit ► main
+             ├─ phone-only ─────────────────► inbox T<n> [phone]   (larger additions are filed as G)
              └─ area polished ─► evolve ─► /vision ─► inbox G<n> ─► owner ─► /slice --from=G<n> ► main
 a slice lands ─► its area is rough ─► the next /tend sweeps it
 ```
@@ -20,10 +20,10 @@ a slice lands ─► its area is rough ─► the next /tend sweeps it
 | Skill | Run by | Takes | Leaves behind | Stops for the owner | Pushes |
 |---|---|---|---|---|---|
 | `/vision` | the owner; `/slice` 1b; `/fix`; `/tend` | an idea in one sentence | the Vision block (verdict, shape, criteria); a decision record only when the owner overrules | only when the owner is the caller and the verdict is out, not now or silent; called by a skill it returns the block and the caller decides | nothing; it reads and judges |
-| `/slice` | the owner; `/tend inbox G<n> yes` | a slug; with `--from=G<n>` the approved entry (criteria, verdict) | spec, plan, tests-first commit, code, docs, the STATUS row | the plan, unless `--from` (decision 0130); architecture always | nothing by itself; under `--from`, `ship.md` "Publish to main" |
+| `/slice` | the owner; `/tend inbox G<n> yes` | a slug; with `--from=G<n>` the approved entry (criteria, verdict) | spec, plan, tests-first commit, code, docs, the STATUS row | the plan, unless `--from` (decision 0130); architecture always | nothing, ever; under `--from` the `/tend` run that called it publishes |
 | `/fix` | the owner only | one issue and its flags | one commit with its regression test; DEFERRED for anything else found | hard stops (`ship.md`) | `main` by default (0081) |
 | `/audit` | the owner only (0074) | a built slice's slug | the spec's audit record, regression tests named `<slug> audit N`, fixes | architectural findings | nothing; `/deploy` follows |
-| `/tend` | the owner only | an area, `triage`, `evolve` or `inbox <answers>` | loop commits, inbox entries, DEFERRED tags, the ledger | never mid-run; it files and goes on, and asks about its entries at the end | `main`, loop findings only (0128); an approved slice (0130) |
+| `/tend` | the owner only | an area, `triage`, `evolve` or `inbox <answers>` | loop commits, inbox entries, DEFERRED tags, the ledger | never mid-run; it files and goes on, and asks about its entries after it has published | `main`: loop findings and its record (0128); an approved entry (0130) |
 | `/deploy` | the owner only | a green branch | `main` moved, the Pages run checked | a failed precondition; a merge that is not a fast-forward | `main` |
 | `/e2e` | anyone | a journey name | a pass or failure; pictures with `E2E_SHOTS` | never | nothing |
 | `/docs-gc` | anyone, at the end of a slice | the tree | docs brought back in line | never | nothing |
@@ -40,7 +40,8 @@ lists; each expects pictures for any screen it judges, and says so first when it
 - **State lives in files, not in a session:** `docs/STATUS.md` (slices, in flight, the inbox, next
   evolutions), `docs/DEFERRED.md` (tagged), `docs/NATIVE_UNVERIFIED.md`, `specs/<slug>/`,
   `.claude/skills/tend/ledger.json` (area states, numbering, the balance, what was declined).
-  A new session reads these and `git log` first.
+  A new session reads these and `git log` first. The copies on `main` are the only ones that count:
+  a run reads them from a worktree of `origin/main` and publishes its changes to them with its work.
 - **Gates are scripts where they can be:** `check:docs` (a criterion without a test), `check:vision`,
   `check:test-first`, the layer check, `check:tend` (a loop commit without a test or a source), the Stop
   hook and CI. A procedure step that keeps being missed becomes a check, not a louder sentence.

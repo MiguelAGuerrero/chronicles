@@ -14,25 +14,25 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
 
 - **`/slice <name>`**, typed by the owner: as written below, with the plan
   reviewed before any code, and nothing pushed to `main`.
-- **`/slice <name> --from=G<n>`**, run by `/tend inbox G<n> yes` (decision
-  0130): the owner's yes to that entry in `docs/STATUS.md`, "Next evolutions",
-  is the go-ahead for its criteria and no more. Then:
-  - work in a worktree, branch `slice/<slug>` (`.claude/skills/ship.md`,
-    "Open the worktree");
+- **`/slice <name> --from=G<n>`**, run only by `/tend inbox G<n> yes`
+  (decision 0130), in the worktree `/tend` opened: the owner's yes to that
+  entry in `docs/STATUS.md`, "Next evolutions", is the go-ahead for its
+  numbered criteria and no more. Typed by anyone else, or with an entry that
+  is not there or has no numbered criteria, it is plain `/slice`. Then:
   - step 1b: the entry's verdict and shape are the gate's answer; write them
     as the spec's "## Vision" section and do not gate again;
-  - step 2: the entry's slice lines are the first criteria, numbered with the
-    slice's prefix. Criteria you add must follow from them (an empty state,
-    an error, Undo); a criterion that adds something the entry did not name
-    is a new proposal, filed, not built;
+  - step 2: the entry's criteria are the spec's, numbered with the slice's
+    prefix. Add only the states those criteria imply (empty, failed, undone);
+    anything else a person could see or do is a new proposal: note it for
+    `/tend` to file, and do not build it;
   - step 3: write the plan and run the steward, then **go on without
-    stopping**, unless a "Hard stop" (`.claude/skills/ship.md`) is met or an
+    stopping**, unless `.claude/skills/ship.md`, "Hard stops", is met or an
     accepted steward finding changes what a person sees beyond the approved
-    shape. Then stop with the question, as that file says;
-  - step 9: after everything is green, one `auditor` pass
-    (`.claude/skills/ship.md`, "Review", one round), then "Publish to main"
-    and "Clean up". The entry leaves "Next evolutions"; the slice's areas are
-    `rough` in `.claude/skills/tend/ledger.json`, and the next `/tend` sweeps them.
+    shape. Then stop building and return "Stopped on" with the question and
+    your recommended answer; ask nothing yourself;
+  - step 9: when everything is green, commit and return the result block.
+    Do not push and do not clean up: `/tend` runs the review, publishes and
+    removes the entry (its section 10).
 
 Either way the report ends with the result block (`.claude/skills/ship.md`).
 The map of the skills is `.claude/skills/README.md`.
@@ -222,7 +222,7 @@ screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 3. Run `/docs-gc`.
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is
-   `/deploy` (or, under `--from=G<n>`, `.claude/skills/ship.md`).
+   `/deploy` (or, under `--from=G<n>`, the `/tend` run that called this).
 
 ## Report
 
