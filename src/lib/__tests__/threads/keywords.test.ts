@@ -189,3 +189,6 @@ test('RK20: a pointer to a deleted moment goes alone: the word and value stay; t
   await run({ type: 'moment', captureId: 'n' });
   assert.deepEqual(await p.db.getMomentsByIds(['n']), []);
 });
+
+test('RK21: the menu filters as the owner keeps typing, and a pick replaces the @ and the letters typed after it', { todo: 'test first' }, () => {});
+test('RK22: the keyboard moves a highlight, Enter picks it, and the highlight never leaves the list', { todo: 'test first' }, () => {});

@@ -485,6 +485,9 @@ async function run(h) {
   db = await stored(pg);
   const fixed = db.captures.find((m) => /@\{there\|over there\|the old mill\|/.test(m.pieces[0].body ?? '') && /@\{time\|tomorrow\|/.test(m.pieces[0].body ?? ''));
   check(fixing && mapUp && kw2 === 'over there (the old mill)' && !!fixed, `RK10: a tap on a place reference opens the resolution picker, and a pick replaces its value and keeps its word and the rest of the note ("${kw2}")`);
+  check.todo(false, 'RK21: the menu opens beside the field and filters as the owner types');
+  check.todo(false, 'RK22: on the web the arrows, Enter and Escape drive the menu');
+  check.todo(false, 'RK23: the viewer draws a keyword as a pill: the word, then its value quieter');
   await closeViewer();
   await c.close();
 }

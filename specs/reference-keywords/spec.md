@@ -23,13 +23,14 @@ Open: see "Open" below.
 - **The reference lives in the note's text and carries its resolved value**; no new table, no migration (0125).
 - **The fix** a keyword resolves from is the last known position the capture stamp already holds, and for a saved note the moment's own coordinates; no fix, no place entry (Nov 11).
 - **Over there is a resolution picker** (Nov 11): every notable place near the moment, or a point picked on the map. It is the same picker that corrects a reference.
+- **A Notion-style `@` experience first, extensible later** (Nov 11): a quick, easy note comes first; the menu beside the field with filtering, pills where a note is read, tinted words in the field where the platform allows. Markdown shortcuts and a block editor come later, the entries and the token being open to new kinds.
 - **Time words are basic anchors common in prose** (Nov 11): now, soon, today, tonight, this morning, yesterday, tomorrow and the like, each resolved against the moment's own time and stored as an absolute value, so it never moves with when the note is read.
 - **A reference is a displayed word and its actual value, like markdown** (Nov 11): the note shows "here", and its value in parentheses, "here (the science center)", by default; a setting turns the parentheses off. A person who picks a reference means it resolved by the time they recall the moment.
 - **Deletion** (Nov 11): references and stored coordinates belong to their moment. Removing a moment from a walk leaves them; deleting the moment itself removes them. When the reference points at another moment and that moment is deleted, only the pointer goes: the word and its value stay.
 
 ## Criteria
 
-1. **RK1** Typing `@` in a note opens one palette listing moments (0125's picker, now one entry) and the reserved keywords; the capture flow itself gains no step. Dismissing it leaves the `@` as typed.
+1. **RK1** Typing `@` in a note opens one menu listing the reserved keywords and the moments (0125's picker, now one section of it); the capture flow itself gains no step. Dismissing it leaves the `@` as typed.
 2. **RK2** Choosing a keyword embeds a reference in the note's text; every other character of the note is untouched.
 3. **RK3** The reference stores the value it resolved to inside its token (the keyword, its label, and the coordinates or time): no table, no migration, no row touched, and a note with no keywords is stored byte for byte as before.
 4. **RK4** A keyword resolves from the moment's own fix and time, not where the owner is while editing: a reference chosen when a note is edited later reads the note's moment, never the owner's present position.
@@ -50,6 +51,9 @@ Open: see "Open" below.
 18. **RK18** "Over there", and the correction of a place, open one resolution picker: the notable places near the moment's fix in distance order (RK7), and "Choose on the map", where one tap picks a point; the point is stored with a label only when the owner names or accepts one. No fix: the map alone.
 19. **RK19** A setting, on by default, shows each reference's value in parentheses beside its word; off, the viewer and the screens that draw a note (the card, the day list, the replay's bubbles and steps, the responses) show the word alone. It is saved with the other settings (one shell test over `fakePorts()`) and changes no stored token. The strings the core modules build (the resurfaced feed's words, Memories rows, a notification) always show the value; wiring the setting through them is deferred (`docs/DEFERRED.md`).
 20. **RK20** A reference's coordinates and values live in its note's own text, so nothing but deleting that moment removes them: clearing or rebuilding a walk's derived data (places, streets, summaries) leaves the token as written. (The app has no operation that detaches a moment from its walk; deleting a walk deletes its moments, as it already does.) Deleting a moment that another note references leaves that note's text as written: only the pointer is gone, so the reference reads as its word and value and opens nothing (this replaces RF5's "a moment no longer kept" for a reference that carries its words; Undo brings the pointer back).
+21. **RK21** (the owner, Nov 11: a Notion-style experience, quick and easy first) The menu opens beside the field, never over it, and filters as the owner keeps typing after the `@` ("@to" keeps tomorrow and tonight; "@harbor" keeps the moments about it); no letters shows everything; a space, or a query nothing matches, closes it and leaves what was typed. A pick replaces the `@` and the letters typed after it, and nothing else.
+22. **RK22** On the web the menu is also driven from the keyboard: arrows move a highlight, Enter picks it, Escape dismisses it; a phone's keyboard needs nothing but a tap.
+23. **RK23** The viewer draws a keyword as a pill inline in the note's words: the word, then its value in a quieter tone (the value only while the setting is on); plain-text surfaces say the same words (RK9); a place pill can be corrected by a tap (RK10).
 
 ## Open
 
