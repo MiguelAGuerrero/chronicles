@@ -307,7 +307,7 @@ recording, and a recording bar brings a minimized walk back.
   another moment; the viewer draws it as a card of that moment (its picture or kind, date, place and walk) that
   opens it, with Back to the note; elsewhere it reads as words. The moment mentioned says "Mentioned in a note",
   and its More opens the note. A mention touches no thread.
-- **A moment's responses** (decision 0128): a moment that has been answered says so at the end of its viewer's
+- **A moment's responses** (decision 0131): a moment that has been answered says so at the end of its viewer's
   info line, in words ("a couple of responses"), and More has **Responses**; either, or a swipe up as in iOS
   Photos, opens a sheet over the viewer. It reads like a conversation: the moment first, then every response
   oldest first, each with its date and time, its place (or "No place kept"), its walk ("not on a walk") and its

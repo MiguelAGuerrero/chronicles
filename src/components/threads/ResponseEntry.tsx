@@ -20,7 +20,7 @@ export function ResponseEntry(props: {
   /** The response it answers, when that is not the sheet's own moment (RT4). */
   answering: MomentView | null;
   walks: ReadonlyMap<string, Walk>;
-  /** The sheet's own moment: its line and a few words (decision 0128). */
+  /** The sheet's own moment: its line and a few words (decision 0131). */
   first?: boolean;
   now: number;
   onPress: () => void;

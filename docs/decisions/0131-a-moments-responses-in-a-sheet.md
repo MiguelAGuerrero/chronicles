@@ -1,4 +1,4 @@
-# 0128. A moment's responses open in a sheet over the viewer, as iMessage's reply view
+# 0131. A moment's responses open in a sheet over the viewer, as iMessage's reply view
 
 Date: 2026-11-11 · Status: accepted · Area: chronicle, viewer, ui
 

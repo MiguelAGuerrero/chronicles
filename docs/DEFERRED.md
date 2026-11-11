@@ -3,6 +3,8 @@
 Everything AGENTS.md marks deferred, open or not yet done, in one ledger, grouped by area; the source section is in parentheses.
 An item leaves only when it ships, or when it is rejected with a decision record in `docs/decisions/`.
 
+Tags at the start of an item say who may take it (decision 0128; `/tend triage` adds them): `[loop]` the tending loop may ship it; `[owner]` an addition or a product question; `[arch]` an architectural decision; `[phone]` needs a device; `[kept]` a limit recorded on purpose. An untagged item has not been triaged.
+
 ## Product (open in the concept doc)
 
 - Two things are named Explore: the tab and the walk's mode (Positioning, open in the doc)
@@ -469,4 +471,4 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **`saveSettings` writing `explore_kinds_known` has no test** (presence-and-kinds audit 6): `explore/settings.ts` imports the db singleton, which a Node test cannot load. It moves to a shell factory with SH5's pattern. The reading rule (`parseHidden`) and the scenic read are tested.
 - **"What I'm into" has eleven switches with no visible groups** (presence-and-kinds audit 11, an opinion): headings matching the card's groups would make the order readable.
 - **The drawer's handle sits over the first visible switch** (presence-and-kinds audit 12): this predates the slice and is the drawer's layout, not the kinds'.
-- **Deferred (response thread, decision 0128):** a tree of responses (a response to a response is listed in time order and says what it answers, one level); the sheet from Lately's card or a thread's row (the viewer is the only way in); a response's own responses inside the sheet (its viewer opens its own sheet); a response made mid-walk is listed but names no place until its walk stops and is placed (its time, walk line and content are there); no e2e step for a response on a walk still open (RT13 is a unit test of the pool).
+- **Deferred (response thread, decision 0131):** a tree of responses (a response to a response is listed in time order and says what it answers, one level); the sheet from Lately's card or a thread's row (the viewer is the only way in); a response's own responses inside the sheet (its viewer opens its own sheet); a response made mid-walk is listed but names no place until its walk stops and is placed (its time, walk line and content are there); no e2e step for a response on a walk still open (RT13 is a unit test of the pool).

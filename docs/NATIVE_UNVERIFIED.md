@@ -434,7 +434,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** after the update, open Explore with several areas listed. **Expect:** every area's marks are read again without stalling the tab (`ATLAS_CODE` a8, PK7).
 - [ ] **Do:** open "Suggest a walk" on History in a town whose History is lit by a museum in the places archive. **Expect:** a route through it, the archive read beside the map's (presence-and-kinds audit 1).
 
-## Response thread (RT1-RT14, decision 0128)
+## Response thread (RT1-RT14, decision 0131)
 
 - [ ] **Do:** open a moment with responses, swipe up on its photo, then swipe left and right on a stacked moment. **Expect:** the swipe up opens Responses at half the screen; the swipe across steps the pieces and opens nothing (RT2).
 - [ ] **Do:** with the responses sheet open on an iPhone, drag it to full, then down; on Android press Back with it open. **Expect:** it springs to full and closes on the drag; Back lowers the sheet and leaves the viewer open, a second Back closes the viewer (RT3).

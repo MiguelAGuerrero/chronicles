@@ -385,7 +385,7 @@ export function CaptureViewer(props: {
   const [adding, setAdding] = useState<Faced | null>(null);
   // Respond's sheet or its note, open: Back closes it before the viewer (owner-threads audit 9).
   const [replyStage, setReplyStage] = useState<ReplyStage>(null);
-  // A moment's responses sheet (response thread, decision 0128): the moment it was opened for, at which depth of the
+  // A moment's responses sheet (response thread, decision 0131): the moment it was opened for, at which depth of the
   // viewer's stack, and its height. A response opened from it goes on the stack, and Back returns to the sheet (RT6).
   const [sheet, setSheet] = useState<{ root: string; depth: number; size: 'half' | 'full' } | null>(null);
   const [sheetNow] = useState(() => Date.now());
@@ -572,7 +572,7 @@ export function CaptureViewer(props: {
         testID="capture-viewer"
         onTouchStart={(e) => {
           // The sheet's own drags are its own (RT3); under it, a swipe across steps a stack's pieces (MS10) and a swipe up
-          // opens the responses, as in iOS Photos (RT2, decision 0128).
+          // opens the responses, as in iOS Photos (RT2, decision 0131).
           swipeFrom.current = sheetUp ? null : touchPoint(e.nativeEvent);
         }}
         onTouchEnd={(e) => {

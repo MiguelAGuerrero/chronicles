@@ -117,6 +117,24 @@ first.
 
 ## Needs the owner
 
+This section is the owner's inbox (decision 0128). `/tend` files here what it may not ship: additions, phone-only
+findings, opinions and architectural calls, each numbered `T<n>` with a recommended shape, and its proposals for the next iteration (`G<n>`, decision 0129).
+Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
+
+### From /tend
+
+Nothing filed yet. The first runs to make: `/tend triage` (tags `docs/DEFERRED.md`), then `/tend <area>`.
+
+### Next evolutions
+
+The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). None yet; `/tend evolve` makes the first.
+
+### Last tend
+
+No run yet.
+
+### Open before the loop
+
 - **Explore, a neighborhood past its town's reach** (fix explore-town-scope audit 3, decision 0126): near you the row is the towns, and a town's page lists only neighborhoods within 5 km of its point, so in a large city the neighborhood you stand in can be listed nowhere. Recorded in `docs/DEFERRED.md`; the next step, if wanted, is a town's page that takes every neighborhood inside its outline.
 
 - **VISION.md and the Explore carousel:** decision 0124 (the row of cards; it supersedes 0066's grid and 0092's swipe and amends 0034's names on the map only) is not yet in the page's Precedents, and 0034's row does not mention the amendment. The page is yours to edit.
@@ -178,7 +196,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Response thread (a moment's responses in a sheet over the viewer; RT1-RT14, decision 0128) | `claude/elegant-cannon-gs9yrk` | built 2026-11-11: RT1-RT14 tested first (unit and the `responses` journey), typecheck, lint, 1741 unit tests; the journeys `check:affected` names run at the end; not audited; not deployed; native unverified; spec `specs/response-thread/spec.md` |
+| Response thread (a moment's responses in a sheet over the viewer; RT1-RT14, decision 0131) | `claude/elegant-cannon-gs9yrk` | built 2026-11-11: RT1-RT14 tested first (unit and the `responses` journey), typecheck, lint, 1741 unit tests; the journeys `check:affected` names run at the end; not audited; not deployed; native unverified; spec `specs/response-thread/spec.md` |
 | Presence and kinds (a museum the data calls historic lights History too, the bars kept apart; routes from a bar lean on places you pass; a Community spaces kind; the needsOpen gate measured; PK1-PK19, after the Coplay Kilns diagnosis) | `claude/dazzling-fermat-ws5c6a` | built 2026-11-10, test-first by history (19 of 19): PK1-PK19 pass (1715 unit tests with main's, merged at `0f3f216`); typecheck, lint, docs and vision checks clean; journeys atlas, curiosities, grading, marks, nudge, outlines, planner, replay pass, and scenic on the merged tree (its one failure before the merge was the old base's, passing 3 of 3 on main); audited 2026-11-11 at the owner's request (14 findings: 8 fixed, one in part, two at the owner's call (the icons); 3 deferred; 3 rejected, one at the owner's call (the label kept); tests `presence-and-kinds audit 1-3, 5, 6, 8, 10, 13`); nothing native new; not merged or deployed. For the owner: the live places archive is still v1, so the Kilns show only once a v2 archive publishes; decision 0127. Spec `specs/presence-and-kinds/spec.md` |
 | Explore carousel: a row of area cards under a full-height map; the selected area highlighted and the only one named; a map swipe steps the row (EC1-EC20, decision 0124) | `claude/keen-maxwell-5rxhkx` | built 2026-11-10, test-first by intent (the first commit's todos were in a form the history check does not read: 9 of 20 criteria report "real before todo"); EC1-EC20 tested (1503 unit tests; journeys carousel, snap, atlas, grading, marks, outlines, layers, walkability, qol, tabs, launch, planner pass; `chronicle` and `atlas` pass but the walk journey's video-pin check, a timing check, fails now and then); audited 2026-11-10 (16 findings: 9 fixed, 2 deferred, 3 rejected, 1 for the owner, 1 in part); not deployed; native unverified. Spec `specs/explore-carousel/spec.md` |
 | Places worth the stop (curiosities and the places archive, PW1-PW19, decision 0103) | `claude/places-archive`, merged to main 2026-11-09 (`339caf7`) | shipped 2026-11-09, live from 2026-11-10 (PW16 recorded, the address set); built 2026-11-06: PW1-PW19 tested (1399 unit tests with main's; journeys curiosities, marks, atlas); audited (10 findings: 7 fixed, the rest deferred). Its tests came with the code; on Nov 9 the owner had the branch rebuilt from `claude/places-archive-decision` with the todos committed first, so the history's test-first order was made after the code was written. Live since PW16 (Nov 10). |

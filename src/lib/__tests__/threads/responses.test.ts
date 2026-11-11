@@ -10,7 +10,7 @@ import { visibleThreads } from '../../threads/rules';
 import type { Link } from '../../threads/types';
 import type { Walk } from '../../types';
 
-// Response thread (specs/response-thread, decision 0128): a moment's responses in a sheet over the viewer.
+// Response thread (specs/response-thread, decision 0131): a moment's responses in a sheet over the viewer.
 
 const link = (from_id: string, to_id: string, created_at = 1): Link => ({ from_id, to_id, created_at });
 const m = (id: string, t: number) => ({ id, t });

@@ -9,7 +9,7 @@ import { theme } from '../ui';
 import { ResponseEntry } from './ResponseEntry';
 
 /**
- * A moment's responses (response thread, decision 0128): a sheet drawn inside the viewer, never a Modal of its own,
+ * A moment's responses (response thread, decision 0131): a sheet drawn inside the viewer, never a Modal of its own,
  * over everything but the docked toolbar, whose Respond is the sheet's bottom bar (RT7). It opens at half and drags to
  * full; a drag down, Close, Back or Escape lowers it (RT3). The moment first, then its responses oldest first (RT4).
  */

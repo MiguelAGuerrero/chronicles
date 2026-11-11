@@ -19,12 +19,12 @@ Shape: A bottom sheet drawn inside the viewer's own Modal, opened from a visible
 Criteria: RT1-RT14 below.
 Open: none (answered Nov 11, see Decisions).
 
-## Decisions (the owner's calls, Nov 11, decision 0128)
+## Decisions (the owner's calls, Nov 11, decision 0131)
 
 - **A sheet of its own, not more viewer.** The viewer is for one moment only; the responses are linked data with their own context. The sheet is pulled up over the viewer, like a phone's conversation thread, top to bottom, each response timed.
 - **The way in is the info line's words and More's Responses**, with the swipe up as the shortcut (gate, Nov 11; a gesture alone is never the only route, `ui-patterns.md`).
 - **Respond lives in the sheet too**, so a response can be made while reading; it answers the moment the sheet was opened for.
-- **Two departures from the matrix, on this call** (steward S10; accepted Nov 11, decision 0128): a sheet whose entries lead to a moment (matrix 11 avoids "sheets used to navigate"), and long content in a full-height sheet (matrix 24); both as iMessage's focused reply view (`docs/research/ui-teardown.md` (c)).
+- **Two departures from the matrix, on this call** (steward S10; accepted Nov 11, decision 0131): a sheet whose entries lead to a moment (matrix 11 avoids "sheets used to navigate"), and long content in a full-height sheet (matrix 24); both as iMessage's focused reply view (`docs/research/ui-teardown.md` (c)).
 - **The swipe up as in iOS Photos**, where a phone user expects it; **the moment shows twice** at half height, its first entry short (context line and a few words); the thread screen's note bubbles stay as they are.
 - **Entries, not bubbles:** plain ink timeline entries, each with its time, place, walk line and content; no bubble or colour says who wrote it.
 

@@ -1,4 +1,4 @@
-// Response thread (RT1-RT12, decision 0128): a moment's responses in a sheet over the viewer. Seeded straight into
+// Response thread (RT1-RT12, decision 0131): a moment's responses in a sheet over the viewer. Seeded straight into
 // IndexedDB. E2E_ONLY=responses runs it alone. RT4, RT9, RT13 and RT14 are unit tests (threads/responses.test.ts).
 
 const SEED = () => {

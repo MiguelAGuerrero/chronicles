@@ -2,7 +2,7 @@
 import type { Link } from './types';
 
 /**
- * A moment's responses (response thread, decision 0128): every moment that answers it, or answers one of its
+ * A moment's responses (response thread, decision 0131): every moment that answers it, or answers one of its
  * responses, read from the owner's replies (`moment_link`) alone (RT14). Pass links with what waits in Undo already
  * gone (`visibleThreads`): a response gone takes with it those that answered only it (RT8).
  */
