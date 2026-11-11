@@ -5,6 +5,9 @@ import type { LngLat } from '../types';
 import { inPolygons } from './geom';
 import type { Complex } from './types';
 
+/** How far around a moment's fix the store is asked, in degrees (a degree is about 111 km): a complex is a few hundred metres across. */
+export const COMPLEX_NEAR_DEG = 0.01;
+
 const area = (c: Complex) => (c.bbox[2] - c.bbox[0]) * (c.bbox[3] - c.bbox[1]);
 
 /** CX11: the complex whose outline holds a fix, or lies within the street reach (40 m) of it, else null. Overlaps: inside beats near, then the smaller outline, then the id. */

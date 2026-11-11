@@ -3,7 +3,7 @@ import { tileAt } from '../tileMath';
 import type { LngLat } from '../types';
 import { tilesFor } from './extent';
 import { inArea } from './mapLayer';
-import { complexAt } from './place';
+import { complexAt, COMPLEX_NEAR_DEG } from './place';
 import { complexesFrom } from './rule';
 import type { BuildingPiece, Complex, ComplexSource, ComplexStore, PlaceIn } from './types';
 
@@ -16,9 +16,6 @@ export interface Complexes {
   near(at: LngLat, spanDeg?: number): Promise<Complex[]>;
   lineFor(fix: LngLat): Promise<{ complex: Complex; near: boolean } | null>;
 }
-
-/** How far around a moment's fix the store is asked: a complex is at most a few hundred metres across (a degree is 111 km). */
-const NEAR_DEG = 0.01;
 
 export function createComplexes(p: { source: ComplexSource; store: ComplexStore; now: () => number }): Complexes {
   // What this session has read, by release and tile: a tile is asked for once per release (CX16). Pieces are kept with their tile so a
@@ -52,9 +49,9 @@ export function createComplexes(p: { source: ComplexSource; store: ComplexStore;
       if (complexes.length) await p.store.putComplexes(complexes).catch(() => undefined);
       return { complexes: inArea(complexes, area), partial };
     },
-    near: (at, spanDeg = NEAR_DEG) => p.store.complexesNear(at, spanDeg),
+    near: (at, spanDeg = COMPLEX_NEAR_DEG) => p.store.complexesNear(at, spanDeg),
     async lineFor(fix) {
-      return complexAt(fix, await p.store.complexesNear(fix, NEAR_DEG));
+      return complexAt(fix, await p.store.complexesNear(fix, COMPLEX_NEAR_DEG));
     },
   };
 }

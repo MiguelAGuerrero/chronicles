@@ -4,6 +4,7 @@ import type { WalkTint } from '../../lib/walk/tint';
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
+import type { ComplexMap } from '../../lib/complexes/mapLayer';
 import type { LandingView } from '../../lib/landing/view';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
@@ -126,6 +127,8 @@ export interface WalkMapProps {
   marks?: LngLat[];
   /** Explore's areas: quiet dots, the selected one named (atlas round 3, fix pins-selected-only). */
   areaPoints?: AreaPointPin[];
+  /** The selected area's complexes (CX9): quiet outlines with no fill, and their names at close zoom; null or absent draws none. */
+  complexes?: ComplexMap | null;
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;
   /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */

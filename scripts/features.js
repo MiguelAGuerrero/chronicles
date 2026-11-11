@@ -137,8 +137,8 @@ const FEATURES = [
     name: 'complexes',
     about: 'complexes: named, bounded places made of other places (a mall, a market, a campus, a station), on Explore and in a moment\'s place line',
     rule: 'explore-and-discovery',
-    source: ['src/lib/complexes/**'],
-    journeys: [],
+    source: ['src/lib/complexes/**', 'src/components/ComplexLabel.tsx'],
+    journeys: ['complexes'],
     specs: ['complexes'],
   },
   {

@@ -10,6 +10,8 @@ import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
+import { ComplexLabelView } from '../ComplexLabel';
+import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
@@ -71,7 +73,7 @@ function addOverlay(map: MapLibreMap) {
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
   for (const id of ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing']) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots', 'complexes']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -122,6 +124,8 @@ function addOverlay(map: MapLibreMap) {
   // The range preview (E21): a soft disc with a firm edge, under the walker.
   map.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': RING_COLOR, 'fill-opacity': 0.12 } });
   map.addLayer({ id: 'ring', type: 'line', source: 'ring', paint: { 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] } });
+  // The selected area's complexes (CX9): an outline with no fill, in a hue of its own, no heavier than an area's border.
+  map.addLayer({ id: 'complexes', type: 'line', source: 'complexes', layout: lineLayout, paint: { 'line-color': COMPLEX_STYLE.color, 'line-width': COMPLEX_STYLE.width, 'line-opacity': COMPLEX_STYLE.opacity } });
   map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
   // Places already found, on the walk planner's map: a filled disc in the kind's green on a white ring (WP16).
   map.addLayer({ id: 'found-pins', type: 'circle', source: 'found-pins', paint: { 'circle-color': HOTSPOT, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } });
@@ -639,6 +643,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, endsKey]);
   useEffect(() => { if (ready) setData('ring', ringGeoJSON(props.ring)); }, [ready, props.ring]);
+  useEffect(() => { if (ready) setData('complexes', (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection); }, [ready, props.complexes]);
   // Town borders (TB1-TB5): sent again only when the towns or their roles change (TB9).
   const borderKey = props.borders?.key ?? '';
   const bordersRef = useRef(props.borders);
@@ -877,6 +882,41 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => r.unmount());
     }
     landingMarkers.current = [];
+  }, []);
+  // The complexes' names (CX9), DOM markers like the strip names, rebuilt only when they change; the map adds no summary of its own.
+  const complexMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
+  const complexKey = (props.complexes?.labels ?? []).map((l) => `${l.id}:${l.text}`).join('|');
+  const complexLabelsRef = useRef(props.complexes?.labels);
+  useEffect(() => {
+    complexLabelsRef.current = props.complexes?.labels;
+  }, [props.complexes]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    for (const m of complexMarkers.current) {
+      m.marker.remove();
+      const r = m.root;
+      queueMicrotask(() => r.unmount());
+    }
+    complexMarkers.current = [];
+    for (const l of complexLabelsRef.current ?? []) {
+      const el = document.createElement('div');
+      el.style.pointerEvents = 'none';
+      el.setAttribute('aria-hidden', 'true');
+      el.dataset.testid = 'complex-label';
+      el.dataset.name = l.text;
+      const root = createRoot(el);
+      root.render(<ComplexLabelView text={l.text} />);
+      complexMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
+    }
+  }, [ready, complexKey]);
+  useEffect(() => () => {
+    for (const m of complexMarkers.current) {
+      m.marker.remove();
+      const r = m.root;
+      queueMicrotask(() => r.unmount());
+    }
+    complexMarkers.current = [];
   }, []);
   // Explore's area points (atlas round 3), as DOM markers like the strip names, rebuilt only when they change.
   const areaMarkers = useRef<{ marker: Marker; root: Root }[]>([]);

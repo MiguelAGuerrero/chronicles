@@ -15,6 +15,7 @@ import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES } from '../../lib/atlas/atlas';
+import { SEE_MORE } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
 import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
@@ -66,6 +67,8 @@ export function AtlasCard(props: {
   walkTo: { at: LngLat; label: string; via: string | null } | null;
   /** TP7: a graded town's busy areas, busiest first; `walkable` is whether navigation will route from where you are. */
   busyAreas: { label: string; at: LngLat; walkable: boolean }[];
+  /** CX4: this area's complexes (the nearest few, then "See more" for the rest), or null; `walkable` is whether navigation will route from where you are. */
+  complexSection?: (expanded: boolean) => { title: string; rows: { id: string; name: string; word: string; at: LngLat; label: string; walkable: boolean }[]; more: boolean } | null;
   starting: boolean;
   /** DW14: past what can be walked (N5), the footer offers When I get there alone. */
   farOff?: boolean;
@@ -92,6 +95,8 @@ export function AtlasCard(props: {
   const onFoot = useAreaWords(area.at, ATLAS_RULES.ringM, true);
   const p = area.profile;
   const [how, setHow] = useState(false);
+  // CX4: "See more" lists the rest of the area's complexes; the card is keyed by its area, so this starts closed on each.
+  const [moreComplexes, setMoreComplexes] = useState(false);
   const reduced = useReducedMotion();
   // DW2: Walk to a far place asks first, in the footer; Back and Escape close the question before the card.
   const [asking, setAsking] = useState<{ at: LngLat; label: string; now: () => void } | null>(null);
@@ -258,6 +263,37 @@ export function AtlasCard(props: {
               </View>
             </View>
           )}
+
+          {/* CX4-CX6: the area's complexes, nearest first, the kind as a word, never a number; "See more" lists the rest. */}
+          {(() => {
+            const cx = props.complexSection?.(moreComplexes) ?? null;
+            if (!cx) return null;
+            return (
+              <View style={styles.sec}>
+                <Text style={styles.secTitle} accessibilityRole="header">{cx.title}</Text>
+                <View testID="atlas-complexes">
+                  {cx.rows.map((r) => (
+                    <View key={r.id} style={styles.pocket} testID="atlas-complex" accessibilityLabel={r.label}>
+                      <View style={styles.complexText}>
+                        <Text style={styles.pocketName}>{r.name}</Text>
+                        <Text style={styles.muted}>{r.word}</Text>
+                      </View>
+                      {r.walkable ? (
+                        <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.pocketWalk}>
+                          <Text style={styles.howText}>Walk to</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))}
+                  {cx.more ? (
+                    <Pressable testID="atlas-complexes-more" accessibilityRole="button" accessibilityState={{ expanded: false }} onPress={() => setMoreComplexes(true)} style={styles.pocketWalk}>
+                      <Text style={styles.howText}>{SEE_MORE}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })()}
 
           {p && p.strips.length > 0 && (
             <View style={styles.sec}>
@@ -467,6 +503,7 @@ const styles = StyleSheet.create({
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pocket: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
+  complexText: { flexShrink: 1, flex: 1 },
   pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
   pocketWalk: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },
   busy: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(214,38,140,0.12)', borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 },

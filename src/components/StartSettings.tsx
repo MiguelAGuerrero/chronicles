@@ -7,7 +7,7 @@ import { destLine, type StartMode } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
-import { KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
+import { ComplexKindSwitches, KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
 import { Icon } from './icons';
 import { LayersKey } from './LayersControl';
 import type { useLayers } from '../lib/layers/useLayers';
@@ -92,6 +92,7 @@ export function StartSettings(props: {
           <RangeSlider value={settings.rangeM} onChange={(m) => props.onSettings({ ...settings, rangeM: clampRange(m) })} />
           <Text style={styles.section} accessibilityRole="header">What I’m into</Text>
           <KindSwitches hidden={settings.hidden} onToggle={props.onToggleKind} />
+          <ComplexKindSwitches sectionStyle={styles.section} />
         </>
       )}
 

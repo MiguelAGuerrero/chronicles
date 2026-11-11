@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type TextStyle } from 'react-native';
+import { switchLabel } from '../lib/complexes/kinds';
+import { useHiddenKinds } from '../lib/complexes/useComplexes';
+import { COMPLEX_KINDS } from '../lib/complexes/types';
 import { EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
 import { Icon, type IconName } from './icons';
 import { SwitchRow } from './SwitchRow';
@@ -17,6 +20,19 @@ export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle
     <>
       {KINDS.map((k) => (
         <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={!hidden.has(k.id)} onChange={(v) => onToggle(k.id, v)} />
+      ))}
+    </>
+  );
+}
+
+/** Complexes (CX10): a switch per kind beside What I'm into, on unless hidden, saved as it changes. A kind off leaves the card and the map, never the data. */
+export function ComplexKindSwitches({ sectionStyle }: { sectionStyle: StyleProp<TextStyle> }) {
+  const { hidden, set } = useHiddenKinds();
+  return (
+    <>
+      <Text style={sectionStyle} accessibilityRole="header">Complexes</Text>
+      {COMPLEX_KINDS.map((k) => (
+        <SwitchRow key={k} testID={`complex-kind-${k}`} icon="business-outline" label={switchLabel(k)} value={!hidden.includes(k)} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
       ))}
     </>
   );

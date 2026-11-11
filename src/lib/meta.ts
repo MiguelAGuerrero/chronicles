@@ -120,6 +120,8 @@ export const META = {
   explore_hidden: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_kinds_known: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_range: { owner: 'explore', codec: number },
+  // Complexes (specs/complexes, CX10): the kinds switched off on the card and the map, as a comma list; the data is untouched.
+  complex_hidden: { owner: 'explore', codec: text },
   explore_haptic: { owner: 'explore', codec: onOff },
   // Explore tab: the long-press hint was seen once (AT, atlas round 2)
   atlas_press_seen: { owner: 'explore', codec: flag },

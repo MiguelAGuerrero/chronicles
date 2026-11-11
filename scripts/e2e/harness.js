@@ -131,6 +131,20 @@ const ovPlace = (id, name, xy, extra = {}) => overtureFeatures.push({
 for (let i = 0; i < 9; i++) ovPlace(`brook-${i}`, `Brook ${i}`, [13 + (i % 2 ? 0.06 : -0.06), -0.92 + i * 0.25]);
 ovPlace('brook-unsure', 'Brook Unsure', [13.06, 1.33], { confidence: '0.5' });
 ovPlace('brook-closed', 'Brook Closed', [12.94, 1.58], { operating_status: 'permanently_closed' });
+// Complexes (CX1, CX4, CX9): Wickenden Arcade, a named building 80 m across a block west of Fox Point's point, holding nine
+// restaurants (Overture's places) and drawn in Overture's `buildings`; served only while the complexes journey asks for it, so
+// no other journey's busy streets or areas change.
+const complexWorld = { serve: false };
+const complexPlaces = [];
+for (let i = 0; i < 9; i++) {
+  complexPlaces.push({
+    type: 'Feature', geometry: { type: 'Point', coordinates: at(-1.1 + 0.2 * (i % 4), -0.9 + 0.2 * Math.floor(i / 4)) },
+    properties: { id: `arcade-${i}`, '@name': `Arcade ${i}`, confidence: '0.95', operating_status: 'open', taxonomy: '{"primary":"restaurant","hierarchy":["food_and_drink","restaurant"]}' },
+  });
+}
+const complexBuildings = [
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-1.2, -1.0), at(-0.4, -1.0), at(-0.4, -0.2), at(-1.2, -0.2), at(-1.2, -1.0)]] }, properties: { id: 'arcade-building', '@name': 'Wickenden Arcade' } },
+];
 // Town outlines (TO10): Overture's divisions, with a town only in the outlines journey (elsewhere none is in them).
 // Pawtucket is known only by its outline, a 2 km square around the start; Providence's city point is 2.9 km east.
 const divisionFeatures = [
@@ -464,6 +478,24 @@ async function createHarness() {
       return { z, x, y, data: encodeTile(overtureFeatures, z, x, y, () => ['place']) };
     }));
   })();
+  // Complexes (CX16): the places with the arcade's nine in them, and the release's buildings.pmtiles, every z14 tile its features touch.
+  const archiveAt14 = (feats, layer) => {
+    const z = 14;
+    const keys = new Set();
+    for (const f of feats) for (const [lon, lat] of (f.geometry.type === 'Point' ? [f.geometry.coordinates] : f.geometry.coordinates[0])) {
+      const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+      const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+      keys.add(`${x},${y}`);
+    }
+    return encodeArchive([...keys].map((k) => {
+      const [x, y] = k.split(',').map(Number);
+      return { z, x, y, data: encodeTile(feats, z, x, y, () => [layer]) };
+    }));
+  };
+  const complexPlacesArchive = archiveAt14([...overtureFeatures, ...complexPlaces], 'place');
+  const buildingsArchive = archiveAt14(complexBuildings, 'building');
+  // Every other journey: a buildings archive with nothing in it (a 404 would be a console error).
+  const noBuildings = encodeArchive([{ z: 14, x: 0, y: 0, data: encodeTile([], 14, 0, 0) }]);
   // z12 to decide (TO10), z10 to draw (TB6): the same towns in both.
   const divisionsArchive = encodeArchive([10, 12].map((z) => {
     const [lon, lat] = O;
@@ -520,7 +552,8 @@ async function createHarness() {
         body: `<ListBucketResult><Prefix>tiles/</Prefix><CommonPrefixes><Prefix>tiles/2026-09-23.0/</Prefix></CommonPrefixes><CommonPrefixes><Prefix>tiles/${OVERTURE_RELEASE}/</Prefix></CommonPrefixes></ListBucketResult>` });
     }
     const archive = url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`
-      ? overtureArchive
+      ? (complexWorld.serve ? complexPlacesArchive : overtureArchive)
+      : url.pathname === `/tiles/${OVERTURE_RELEASE}/buildings.pmtiles` ? (complexWorld.serve ? buildingsArchive : noBuildings)
       : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? (snapWorld.serve ? snapDivisionsArchive : divisionsArchive) : noDivisions)
         : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : walkability.mode === 'arterial' ? gridSlowArchive : Buffer.alloc(200, 7)) : null;
     if (archive) {
@@ -648,7 +681,7 @@ async function createHarness() {
   });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, bareMapPoint,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint,
   };
 }
 

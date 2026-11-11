@@ -6,6 +6,7 @@ import type { Ports } from '../ports/types';
 import type { Pause, Walk } from '../types';
 import { DEFAULT_EXTRACTORS, signalsOf } from './extractors';
 import { pausedMs } from '../geo';
+import { complexAt, COMPLEX_NEAR_DEG } from '../complexes/place';
 import { arrivalLine, previousCapture, streetAt } from './context';
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
@@ -188,7 +189,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
             if (before) prev = { kind: before.kind, walkedGapMs: Math.max(0, c.t - before.t - pausedMs(pauses, before.t, c.t)) };
           }
           const street = streetAt(fix, segments, c.segment_id);
-          const line = arrivalLine({ street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, t: c.t, now: p.clock.now(), walkedMs, prev });
+          // CX11, CX12: a complex already on the phone leads the line; nothing is fetched to show it.
+          const hit = fix ? complexAt(fix, await p.db.complexesNear(fix, COMPLEX_NEAR_DEG)) : null;
+          const line = arrivalLine({ street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, complex: hit ? { name: hit.complex.name, near: hit.near } : null, t: c.t, now: p.clock.now(), walkedMs, prev });
           put({ [id]: { state: 'done', line } });
         } catch {
           put({ [id]: { state: 'failed' } });

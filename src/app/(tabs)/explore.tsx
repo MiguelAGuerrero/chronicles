@@ -50,6 +50,11 @@ import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { walkToChoice } from '../../lib/startPlan';
+import { inPolygons } from '../../lib/complexes/geom';
+import { shown as shownComplexes } from '../../lib/complexes/kinds';
+import { complexSection } from '../../lib/complexes/lines';
+import { complexMap } from '../../lib/complexes/mapLayer';
+import { useComplexes, useHiddenKinds } from '../../lib/complexes/useComplexes';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
@@ -250,11 +255,16 @@ export default function Explore() {
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // CX9, CX16: the selected area's complexes, read silently once it is selected, drawn as quiet outlines named at close zoom.
+  const { complexes: areaComplexes, partial: complexPartial } = useComplexes(focused, sel ? { key: sel.area.key, at: sel.area.at, reachM: sel.area.reachM } : null);
+  const { hidden: hiddenKinds } = useHiddenKinds();
+  const complexesShown = useMemo(() => shownComplexes(areaComplexes, hiddenKinds), [areaComplexes, hiddenKinds]);
   // The selected area's places over the map (WT7, WT10, WT12, decision 0132; whole-towns audits 3, 6, 14): a
   // neighborhood's places still to find (a town's once zoomed in), a "?" where it has room and a dot where it would
   // crowd, only places in view as "?"; a town at its own scale, every findable place as the same dot, found or not.
   // Never named (AT7). Decided at the settled camera (its exact zoom on both platforms), never per frame.
   const camZoom = cam?.zoom ?? view?.zoom ?? 13;
+  const complexLayer = useMemo(() => (complexesShown.length ? complexMap(complexesShown, camZoom) : null), [complexesShown, camZoom]);
   const zoomHalf = halfZoom(camZoom);
   const inViewBox = useMemo(() => (cam && mapSize ? viewOf(cam.center, halfZoom(cam.zoom), mapSize) : null), [cam, mapSize]);
   const split = useMemo(() => {
@@ -515,6 +525,7 @@ export default function Explore() {
           walker={from}
           marks={spot ? [spot.at] : NONE}
           areaPoints={areaPoints}
+          complexes={complexLayer}
           discoveries={areaMarks}
           waitingDots={waitingDots}
           // A "?" opens the selected area's card, where its kinds are named (AT7: the map never names them); one with
@@ -543,6 +554,9 @@ export default function Explore() {
             // to a dot; the selection stays: something is always selected (EC1).
             const dot = dotAt(at, camZoom, split.dots);
             const does = tapDoes({ panelOpen: layers.open, spot: !!spot, dot: !!dot });
+            // CX9: a tap inside a complex's outline eases the map to it (only when nothing else a tap does is pending).
+            const hit = does === 'zoom' || does === 'close-panel' || does === 'clear-spot' ? null : complexesShown.find((c) => inPolygons(at, c.polygons));
+            if (hit) return setFit((f) => ({ bounds: boundsOf(hit.polygons.flat(2), 20), key: f.key + 1 }));
             if (does === 'close-panel') layers.closePanel();
             else if (does === 'clear-spot') setSpot(null);
             else if (does === 'zoom' && dot) zoomTo(dot.at, dot.key);
@@ -703,6 +717,12 @@ export default function Explore() {
           // DW14: too far to walk (N5) offers When I get there alone.
           farOff={!canWalkTo(card.distanceM)}
           busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!from && canWalkTo(metresBetween(from, b.at)) }))}
+          // CX4: the complexes of the selected area, nearest its point first, "See more" for the rest.
+          complexSection={(expanded) => {
+            if (!sel || sel.area.key !== card.area.key) return null;
+            const s = complexSection(areaComplexes, { from: card.area.at, partial: complexPartial, hidden: hiddenKinds, expanded });
+            return s && { ...s, rows: s.rows.map((r) => ({ ...r, walkable: !!from && canWalkTo(metresBetween(from, r.at)) })) };
+          }}
           // DW1, DW2, DW5 (decision 0121): near with a fresh fix starts at once; far, or with no fresh fix, asks.
           // With a walk open, Walk to routes that walk, as before (NV10).
           askFirst={(to) => !openInfo.walk && walkToChoice(from ? metresBetween(from, to) : null, stale ? null : fixSeen.current || null, Date.now()) !== 'start'}

@@ -22,7 +22,7 @@ import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
 import type { DrawnLine } from '../lib/gaps/draw';
 import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
-import { KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { ComplexKindSwitches, KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
@@ -1576,6 +1576,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
                 <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
                 <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
+                <ComplexKindSwitches sectionStyle={styles.optionSection} />
               </>
             )}
             {Object.values(layers.on).some(Boolean) && (

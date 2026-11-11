@@ -13,6 +13,8 @@ export const OVERTURE_BUCKET = 'https://overturemaps-extras-us-west-2.s3.amazona
 export const overtureUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/places.pmtiles`;
 
 /** Walkability (WK1): the same release's transportation, read by byte range like its places. */
+/** Complexes (CX16): Overture's building footprints, in the same release and on the same host as its places. */
+export const buildingsUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/buildings.pmtiles`;
 export const transportationUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/transportation.pmtiles`;
 
 /** Town outlines (TO1): the same release's divisions, read by byte range like its places. */

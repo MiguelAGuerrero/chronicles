@@ -25,7 +25,9 @@ test('CX15: the adapter keeps named buildings with their polygons as given, and 
 });
 
 test('CX15: the core imports no adapter and holds no place name or coordinate', () => {
-  for (const f of readdirSync(CORE).filter((x) => x.endsWith('.ts') && x !== 'overtureSource.ts')) {
+  const core = readdirSync(CORE).filter((x) => x.endsWith('.ts') && readFileSync(join(CORE, x), 'utf8').startsWith('// @layer core'));
+  assert.ok(core.length >= 8, 'the core files are found');
+  for (const f of core) {
     const text = readFileSync(join(CORE, f), 'utf8');
     assert.equal(/overtureSource/.test(text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')), false, `${f} imports the adapter`);
     assert.equal(/strawberry|lehigh|harrisburg|whitehall/i.test(text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')), false, `${f} holds a name`);

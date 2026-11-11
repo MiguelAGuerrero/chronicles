@@ -8,6 +8,8 @@ import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
+import { ComplexLabelView } from '../ComplexLabel';
+import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
@@ -157,6 +159,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
+  const complexLines = useMemo(() => (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, [props.complexes]);
   // Town borders (TB1-TB5): rebuilt only when the towns or their roles change (TB9).
   const borderKey = props.borders?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -469,6 +472,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           <Layer id="ring-fill" type="fill" paint={{ 'fill-color': RING_COLOR, 'fill-opacity': 0.12 }} />
           <Layer id="ring" type="line" paint={{ 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] }} />
         </GeoJSONSource>
+        {/* The selected area's complexes (CX9): an outline with no fill, in a hue of its own. */}
+        <GeoJSONSource id="complexes" data={complexLines}>
+          <Layer id="complexes" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COMPLEX_STYLE.color, 'line-width': COMPLEX_STYLE.width, 'line-opacity': COMPLEX_STYLE.opacity }} />
+        </GeoJSONSource>
         <GeoJSONSource id="found-pins" data={foundPins}>
           <Layer id="found-pins" type="circle" paint={{ 'circle-color': HOTSPOT, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 }} />
         </GeoJSONSource>
@@ -548,6 +555,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             >
               <MarkPinView pin={pin} enter={seenMarks.size ? markEnter(markFrom(seenMarks.get(pin.id)), pin) : null} />
             </View>
+          </Marker>
+        ))}
+        {(props.complexes?.labels ?? []).map((l) => (
+          <Marker key={`complex:${l.id}:${l.text}`} id={`complex:${l.id}`} lngLat={l.at} anchor="center">
+            <ComplexLabelView text={l.text} />
           </Marker>
         ))}
         {(props.areaPoints ?? []).map((p) => (
