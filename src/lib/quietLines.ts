@@ -17,3 +17,12 @@ export function newStreetsLine(names: string[]): string | null {
 export function walkRowMeta(date: string, s: { distance_m: number; duration_ms: number; photos: number; videos?: number; voices: number; notes: number }): string {
   return [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), formatCaptures(s)].filter(Boolean).join(' · ');
 }
+
+/**
+ * A walks list row as a screen reader says it (tend chronicle 2): the title, what the row shows under it,
+ * and the walk's one line. The web drops a hint, so all of it is the name.
+ */
+export function walkRowSpoken(title: string, meta: string, epilogue: string | null): string {
+  const line = epilogue?.trim();
+  return [`Replay ${title}`, meta.split(' · ').join(', '), line ? `“${line}”` : null].filter(Boolean).join('. ');
+}

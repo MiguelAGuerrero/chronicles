@@ -10,7 +10,7 @@ import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
-import { walkRowMeta } from '../lib/quietLines';
+import { walkRowMeta, walkRowSpoken } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
@@ -522,8 +522,8 @@ function WalkRow({ walk, summary: s, disabled, onMore }: { walk: Walk; summary: 
       <Pressable
         testID="walk-row"
         accessibilityRole="button"
-        accessibilityLabel={`Replay ${title}`}
-        accessibilityHint={meta}
+        // All the row shows, its one line too: the web drops a hint (tend chronicle 2).
+        accessibilityLabel={walkRowSpoken(title, meta, walk.epilogue)}
         accessibilityState={{ disabled: !!disabled }}
         disabled={disabled}
         onPress={() => router.push(`/replay/${walk.id}?ceremony=0`)}
