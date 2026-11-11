@@ -6,6 +6,7 @@ import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
+import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
@@ -482,6 +483,8 @@ export default function Explore() {
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
 
+  // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.
+  const slots = exploreSlots({ spot: !!spot, town: !!town });
   const mapPane = (
     <View style={styles.map} onLayout={(e) => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
@@ -540,7 +543,7 @@ export default function Explore() {
             onCameraChange(c);
             setCam(c);
           }}
-          scaleInset={{ bottom: 6, left: 8 }}
+          scaleInset={{ bottom: slots.scaleBottom, left: SCALE_LEFT }}
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
@@ -608,7 +611,7 @@ export default function Explore() {
       {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
       {/* One of an error, a notice, "Looking around…", a town's note or the hint at a time, over the map above the row, clear of
           the back pill and the map's buttons (EC12, EC14). */}
-      {overlay ? <View style={[styles.overlay, { bottom: (spot ? 10 + SPOT_H + 8 : 12) + (town ? 44 + 8 : 0) }]} pointerEvents="box-none">{overlay}</View> : null}
+      {overlay ? <View style={[styles.overlay, { bottom: slots.overlayBottom }]} pointerEvents="box-none">{overlay}</View> : null}
       {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
       {town ? (
         <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel="Back to the towns" onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + 8 } : null]}>
