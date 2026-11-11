@@ -444,6 +444,7 @@ recording, and a recording bar brings a minimized walk back.
 | v1: discovery (Explore mode, "?" marks, finds, Remind me here, notifications) | Shipped, audited |
 | Reminder bell (a pin with a reminder wears a bell) | Shipped, audited (web verified by the e2e; native unverified) |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
+| Presence (what a place is, classified once and read by the map's density and the marks alike; memorials and nature reserves join the notable classes) | Shipped (first of two slices) |
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map never pans by one finger, DN1, DN10-DN13; the directional step retired by the carousel) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |

@@ -39,6 +39,7 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
   `fitMaxZoom` goes to fitBounds on web; MapLibre RN's fitBounds has none, so
   the native map widens the bounds to fit no closer (`capFitBounds`, U15). `perfCount('fit')`
   lets the e2e count fits.
+- The walks list's zoom-out runs for the sheet's Walks, a drag up and the section bar's Walks, all from the sheet at rest (`openSheet`, decision 0141); from Days, or with Walks already shown, none does.
 - **Testing motion on the web:** `emulateMedia({ reducedMotion: 'reduce' })`.
   A mouse drag on a moving element is cancelled by the browser and reads as a
   tap, so drag a moving sheet with CDP touch events, as on a phone.

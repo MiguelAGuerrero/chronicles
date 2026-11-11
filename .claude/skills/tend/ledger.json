@@ -1,6 +1,6 @@
 {
-  "lastT": 6,
-  "lastG": 3,
+  "lastT": 7,
+  "lastG": 4,
   "balance": {
     "date": "2026-11-11",
     "days": 14,
@@ -39,6 +39,7 @@
       "PA",
       "PK",
       "PP",
+      "PR",
       "PW",
       "QL",
       "R",
@@ -49,6 +50,7 @@
       "RR",
       "RT",
       "SA",
+      "SB",
       "SH",
       "SR",
       "TB",
@@ -63,15 +65,16 @@
       "WT"
     ],
     "commits": {
-      "growth": 118,
-      "refinement": 199,
-      "other": 419
+      "growth": 122,
+      "refinement": 214,
+      "other": 423
     },
     "areas": {
       "rough": [
         "chronicle",
         "explore",
-        "navigation"
+        "navigation",
+        "walk-screen"
       ],
       "settling": [],
       "polished": [],
@@ -91,6 +94,7 @@
       "motion",
       "notify",
       "places",
+      "presence",
       "recording",
       "replay",
       "resurface",
@@ -100,18 +104,17 @@
       "tabs",
       "threads",
       "walk-planner",
-      "walk-screen",
       "walkability",
       "web"
     ],
     "open": {
-      "openT": 0,
+      "openT": 1,
       "phoneT": 0,
       "openG": 2
     },
-    "reading": "in step",
+    "reading": "outgrowing its base",
     "propose": false,
-    "why": "slices are growing and the base holds"
+    "why": "four areas are rough"
   },
   "areas": {
     "chronicle": {
@@ -131,6 +134,12 @@
       "swept": "2026-11-11",
       "main": "8bad3baa39209ae442a61aabfd94761d96956639",
       "note": "First sweep, not whole: the nav bar, Open in Maps and the leanings drawer have no picture, and the scenic and drive journeys fail in this container from an unknown cause (DEFERRED). One low loop finding shipped (the preview's Go names); two medium hook races filed [loop] for want of a hook test harness."
+    },
+    "walk-screen": {
+      "state": "rough",
+      "swept": "2026-11-11",
+      "main": "bc41449fde47f1c5e3853364a51c46560392cd41",
+      "note": "First sweep, not whole: the auditor read half the area's modules (not useReady, CaptureStack, ReadyBar, StartSettings, MomentBar, useLiveTrace); 320 px, 200% text and offline were not pictured. One medium finding shipped (Stop's second held-photo warning); two medium hook findings filed [loop] for want of a hook harness."
     }
   },
   "declined": []

@@ -65,6 +65,10 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
+- [owner] Presence's second slice (decision 0140): the places archive's classes (`archivePois.ts`), `barsOf`'s second bar, notable names (decided twice: `markableFor` and `historicName`), scenic routes' greens (`greenKind` reads landcover tags) and the planner onto presence classes; then G2 (Storefronts as a presence class). Filed as a G entry (specs/presence, Nov 11)
+- [loop] A plain-named memorial is a mark from the places archive (`archivePois.ts`, `historic_site`) but not from the tiles (presence's `memorial` is a mark only by a notable name); `mergePlaces` hides it only where the archive holds the place. Settled when the archive moves onto presence (the second slice; presence review F3, Nov 11, low)
+- [kept] A checklist takes a reclassified place's new category at the next tile build, not at once: items are kept and rebuilt only by E4 and PW12; `PRESENCE_CODE` re-derives the atlas and the landing only (specs/presence PR6, Nov 11)
+- [loop] Cached places (`place` store) keep the category of their read and are never read back (`placesIn` has no caller): the store could go, or be read; either is a data-model call (specs/presence PR6, Nov 11, low)
 - `specs/pocket-alert-nudge/spec.md` PA6 and line 15 still say iPhone Safari gets the switch haptic; the code follows decision 0138. The mirror follows the owner's doc, which needs the same edit (pocket-alert-hide audit 2)
 - The e2e leaves the in-walk drawer's hidden switch (no vibrate) unchecked; only the ready bar is (pocket-alert-hide audit 4)
 
@@ -241,6 +245,15 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Navigate, ready
 
+- [loop] A voice memo whose recorder stop timed out (`STOP_TIMEOUT_MS`, 3 s) can hold a null `uri`: `saveMemo` throws, `setUnsaved` keeps it and Retry is offered but can never succeed (`useCaptures.ts` ~l.487-506). Fix: no Retry for a memo with no file; its line says it was not kept. A hook test harness is missing, and the trigger on a device is unconfirmed (`/tend walk-screen`, Nov 11; auditor, medium; captures-and-media.md, "A memo that fails to save offers Retry")
+- [loop] A memo that fails to save as the screen unmounts (the ready chevron, a browser Back) is lost silently: the catch's `setUnsaved` and `setError` run on an unmounted hook (`useCaptures.ts` ~l.529, ~l.604-609, and `undoDiscard` ~l.591). The fix routes the failure to a notice that outlives the screen, which may be more than a bus message (an owner call if so). No hook harness (`/tend walk-screen`, Nov 11; auditor, medium; walk-screen.md, "Leaving the screen mid-memo saves it")
+- [loop] `dropTemp` runs inside `setDiscarded` updaters (`useCaptures.ts` ~l.565-574); idempotent today, but an updater should be pure (`/tend walk-screen`, Nov 11; auditor, low)
+- [owner] Dwell times hard-coded in the walk screen (`walk.tsx` toasts 1500 and 4000, the nudge 20_000, `focusOn` 300; `MomentBar.tsx` 4000 where `MOTION.tip` is 4000; `REMINDER_MS` twice): whether dwell times count as "durations" for the motion-tokens rule is the owner's call (AGENTS.md "Timings come from `lib/motionTokens`"; `/tend walk-screen`, Nov 11; auditor, low)
+- [owner] Map pins that group show a bare count ("2") on the walk screen; VISION.md has "never appears as a bare thumbnail, filename or count" and the rule file records the grouping as designed (`useZoomPins`). Whether a cluster count is chrome or a count is the owner's (pictures `03-walking`, `03e-go-here`; steward drift, `/tend walk-screen`, Nov 11)
+- [owner] While a voice memo records, the note and camera buttons leave the stack, so a photo or note waits until it ends; VISION.md's Always says capture is one tap away on every screen you walk or capture from (picture `02-voice-recording`; steward drift, probably intended, `/tend walk-screen`, Nov 11)
+- [owner] The green place pin carries a tick; confirm it only means a moment kept there, not "visited" (steward question, pictures `03-walking`; `/tend walk-screen`, Nov 11)
+- [owner] The strip mixes an icon-only Pause with a labelled "Hold" for Stop; ui-patterns says never to mix labelled and icon-only items in one bar (T5). Pause is spoken by name; a visible label is new copy (picture `03-walking`; UX review, low, `/tend walk-screen`, Nov 11)
+- [loop] `E2E_ONLY=space` step setup: a refusal armed with `__failMedia = 1` can be eaten by a kept photo's own small-copy write, so the next photo is not held; the new `tend walk-screen 1` steps wait 2.5 s first. A harness hook that arms the refusal for the next photo's own put would end the wait (`/tend walk-screen`, Nov 11)
 - **A walk stopped from a second browser tab** while this tab's walk screen is up: the screen turns
   ready in place, and a walk started there keeps the stopped walk's per-screen reads (credited streets,
   the dead-zone nudge, the first-walk hint), so streets just credited show as fog (audit 13). Two tabs

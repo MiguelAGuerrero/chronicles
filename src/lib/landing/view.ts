@@ -1,4 +1,5 @@
 // @layer core
+import { PRESENCE_CODE } from '../presence/presence';
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { LANDING_RULES, type AreaAnalysis } from './analyze';
@@ -10,7 +11,15 @@ import { LANDING_RULES, type AreaAnalysis } from './analyze';
  */
 export const LANDING_CODE = 'l4';
 /** Changes whenever the rules or the code do, so remembered areas show as stale until analyzed again (L11). */
-export const LANDING_VERSION = `${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`;
+/** What a landing row was derived under: its rules and presence's classes (PR6), so a reclassification re-derives it. */
+export const LANDING_VERSION = `${LANDING_CODE}:${PRESENCE_CODE}:${JSON.stringify(LANDING_RULES)}`;
+/**
+ * Versions whose rows stand under the current one (presence audit 1): presence p1 moved density's table and changed no
+ * weight, so a row from just before it reads the same. Empty it when a weight or a landing rule changes.
+ */
+const LANDING_CARRIED: readonly string[] = [`${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`];
+/** Whether a row's rules are the current ones, or carried by them. */
+export const rulesCurrent = (rules: string): boolean => rules === LANDING_VERSION || LANDING_CARRIED.includes(rules);
 
 /** A remembered area (L11): a cache, tagged with the tile build and the rules. */
 export interface LandingRow {
@@ -50,7 +59,7 @@ export function keyFor(rows: LandingRow[], centre: LngLat): string {
  * With an Overture release known, a row measured with another release, or without Overture, is stale too (AD6, AD7).
  */
 export const isStale = (r: LandingRow, build: string, release: string | null = null) =>
-  r.build !== build || r.rules !== LANDING_VERSION || (release != null && (r.overture ?? null) !== release);
+  r.build !== build || !rulesCurrent(r.rules) || (release != null && (r.overture ?? null) !== release);
 export const staleNote = (r: LandingRow, build: string, release: string | null = null) =>
   isStale(r, build, release) ? 'Analyzed before an update: press and hold to look again.' : null;
 

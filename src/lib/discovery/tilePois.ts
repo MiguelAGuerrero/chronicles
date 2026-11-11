@@ -2,77 +2,22 @@
 import type { TileFeature } from '../areas/tilePlaces';
 import type { RoadFeature } from '../streets';
 import type { LngLat } from '../types';
-import { MARK_CATEGORIES, notableName } from './noise';
+import { classDef, classesOfOsm, markClassOf, OSM_RULES } from '../presence/presence';
+import { BY_NAME, isMarkFor, markableClass } from './curation';
 import { judgeParks } from './parkKind';
 import { placeKey } from './places';
-import type { CategoryId, Kind, Place } from './types';
+import type { CategoryId, Place } from './types';
 
 /*
- * The OpenMapTiles `poi` layer, and what each class is to the app: the v1 tab's
- * table. This is the only file that knows the tile schema; another source
- * brings its own adapter. `class` is the coarse group, `subclass` the OSM tag
- * value, and one class can mix categories (art_gallery holds artworks,
- * galleries and art shops), so both are read. Anything not listed is left out.
+ * The OpenMapTiles `poi` layer's adapter: it reads a point's class, subclass and name, and asks presence what the place is
+ * (decision 0140, `presence/presence.ts`, the only table from poi classes to what a place is). Marks and bars read the
+ * class's category and kind; what makes a mark is curation over classes (`curation.ts`).
  */
-type Rule = [subclasses: readonly string[] | '*', category: CategoryId];
 
-const POI: Record<string, Rule[]> = {
-  art_gallery: [[['artwork'], 'art'], [['art'], 'shops'], [['gallery', 'art_gallery', 'arts_centre'], 'culture']],
-  restaurant: [['*', 'food']],
-  cafe: [['*', 'food']],
-  // Food courts are a mall's, not a find (the owner's call, Nov 2).
-  fast_food: [[['fast_food'], 'food']],
-  ice_cream: [['*', 'food']],
-  bakery: [['*', 'food']],
-  grocery: [[['deli', 'delicatessen', 'marketplace'], 'food']],
-  shop: [
-    [['coffee', 'chocolate', 'confectionery'], 'food'],
-    [['antiques', 'second_hand', 'charity', 'gift', 'florist', 'boutique', 'jewelry', 'toys', 'outdoor', 'photo', 'stationery'], 'shops'],
-    // TP11: a shopping centre or department store is a destination, one place of Shops. Supermarkets and errand shops stay out (v1 spec).
-    [['mall', 'department_store'], 'shops'],
-  ],
-  department_store: [['*', 'shops']],
-  clothing_store: [[['clothes', 'bag'], 'shops']],
-  library: [[['books'], 'shops'], [['library'], 'culture']],
-  music: [[['music', 'musical_instrument'], 'shops']],
-  monument: [['*', 'history']],
-  castle: [[['castle', 'ruins'], 'history']],
-  // PK11, PK12: a community centre is a place of Culture, a place to find only by a notable name (MARK_BY_NAME, as a town hall).
-  town_hall: [[['townhall', 'courthouse'], 'history'], [['community_centre'], 'culture']],
-  cemetery: [[['cemetery', 'grave_yard'], 'history']],
-  // Places of worship count as historic buildings (the owner's call).
-  place_of_worship: [['*', 'history']],
-  park: [[['park'], 'parks']],
-  garden: [['*', 'parks']],
-  dog_park: [['*', 'parks']],
-  picnic_site: [['*', 'parks']],
-  museum: [['*', 'culture']],
-  theatre: [['*', 'culture']],
-  cinema: [['*', 'culture']],
-  attraction: [[['viewpoint', 'attraction'], 'viewpoints']],
-  aquarium: [['*', 'viewpoints']],
-  // RP15: the National Aviary is OSM's zoo=aviary (the owner, Nov 9).
-  zoo: [[['zoo', 'aviary'], 'viewpoints']],
-  theme_park: [['*', 'viewpoints']],
-  bar: [[['bar', 'nightclub'], 'nightlife']],
-  beer: [[['pub', 'biergarten'], 'nightlife']],
-};
-
+/** PR3: a poi's category for marks and bars, from its presence class, or null where it is none of the tab's. */
 export function categoryOfPoi(cls: string, sub: string): CategoryId | null {
-  for (const [subs, category] of POI[cls] ?? []) {
-    if (subs === '*' || subs.includes(sub)) return category;
-  }
-  return null;
-}
-
-/** Places that count toward busy streets but are never marks (S19). */
-const NEVER_MARKS = new Set(['cinema', 'dog_park', 'picnic_site']);
-/** Marks only when the name says historic or notable (S20); the many plain ones are not attractions. */
-const MARK_BY_NAME = new Set(['place_of_worship', 'town_hall', 'cemetery', 'library']);
-
-function markableFor(cls: string, category: CategoryId, name: string): boolean {
-  if (!MARK_CATEGORIES.includes(category) || NEVER_MARKS.has(cls)) return false;
-  return !MARK_BY_NAME.has(cls) || notableName(name);
+  const c = markClassOf(classesOfOsm(cls, sub));
+  return c ? classDef(c).category ?? null : null;
 }
 
 /**
@@ -80,36 +25,10 @@ function markableFor(cls: string, category: CategoryId, name: string): boolean {
  * only a notable name makes it one. The definition of a mark is in specs/atlas-grading;
  * a test pins this list, so a new markable class is a deliberate change.
  */
-export const MARKABLE_CLASSES: readonly { cls: string; sub: string; category: CategoryId; byName: boolean }[] = Object.entries(POI).flatMap(
-  ([cls, rules]) => rules.flatMap(([subs, category]) =>
-    !MARK_CATEGORIES.includes(category) || NEVER_MARKS.has(cls)
-      ? []
-      : (subs === '*' ? ['*'] : subs).map((sub) => ({ cls, sub, category, byName: MARK_BY_NAME.has(cls) }))),
-);
-
-/** Culture's places for gathering, not for showing (PK13): community centres, arts centres, libraries. */
-const COMMUNITY = new Set(['community_centre', 'arts_centre', 'library']);
-
-/** An attraction's kind for the filter (E16): the history and culture categories split finer. */
-function kindFor(cls: string, sub: string, category: CategoryId): Kind | undefined {
-  switch (category) {
-    case 'art':
-      return 'public_art';
-    case 'parks':
-      return 'parks';
-    case 'viewpoints':
-      return 'viewpoints';
-    case 'history':
-      if (cls === 'place_of_worship') return 'churches';
-      if (cls === 'cemetery') return 'cemeteries';
-      return 'monuments';
-    case 'culture':
-      if (cls === 'theatre') return 'theatres';
-      return COMMUNITY.has(sub) ? 'community' : 'museums';
-    default:
-      return undefined;
-  }
-}
+export const MARKABLE_CLASSES: readonly { cls: string; sub: string; category: CategoryId; byName: boolean }[] = OSM_RULES.flatMap((r) =>
+  !markableClass(r.class)
+    ? []
+    : (r.subs === '*' ? ['*'] : r.subs).map((sub) => ({ cls: r.cls, sub, category: classDef(r.class).category!, byName: BY_NAME.has(r.class) })));
 
 /** Unnamed places worth keeping, by subclass, and the label they show (D4). */
 const GENERIC: Record<string, string> = { artwork: 'Public art', viewpoint: 'A viewpoint' };
@@ -132,8 +51,9 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     const props = f.properties ?? {};
     const sub = String(props.subclass ?? '');
     const cls = String(props.class ?? '');
-    const category = categoryOfPoi(cls, sub);
-    if (!category) continue;
+    const pc = markClassOf(classesOfOsm(cls, sub));
+    const category = pc ? classDef(pc).category : undefined;
+    if (!pc || !category) continue;
     const raw = typeof props.name === 'string' ? props.name.trim() : '';
     const generic = !raw;
     if (generic && !GENERIC[sub]) continue;
@@ -144,8 +64,8 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     const key = placeKey(category, generic ? null : raw, at);
     const name = generic ? GENERIC[sub] : raw;
     if (out.has(key)) continue;
-    const markable = markableFor(cls, category, name);
-    const kind = markable ? kindFor(cls, sub, category) : undefined;
+    const markable = isMarkFor(pc, name);
+    const kind = markable ? classDef(pc).kind : undefined;
     out.set(key, { key, name, category, at, generic, build, markable, ...(kind ? { kind } : {}) });
   }
   // PC1-PC5: a park whose name says it is a ground for play, with nothing notable in or near it, is a community park.

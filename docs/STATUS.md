@@ -70,6 +70,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Drive there, walk back (a far Walk to on Explore's card asks Walk now or When I get there, past 10 km When I get there alone; the walk starts only on Start, never on arrival; Walk me back leads to where the last ride ended, or a spot chosen with Walk back here; DW1-DW14, decision 0121) | shipped 2026-11-10 (web verified by the e2e `drive` and the nineteen journeys it touches on the /chronicles build; 1545 unit tests; native unverified); test-first by history but for DW13, whose todo check sat on two lines (recorded in the spec, shipped at the owner's call) | branch `claude/gracious-hopper-34sdrs`, merged 2026-11-10 | `specs/drive-then-walk/spec.md` (repo first) | no (decision 0074) |
 | Whole towns (a town's page lists every neighborhood inside its border, hamlets in, wards out, nearest you first; the selected area's places still to find as "?" where they have room and kind-coloured dots where not, a tap on a dot zooms in; found places off the map; WT1-WT14, decision 0132) | shipped 2026-11-11 (web verified by the e2e `carousel`, `atlas`, `marks`, `snap`, `outlines`, `grading`, `chronicle` on the /chronicles build; native unverified); Allentown lists 36 neighborhoods where it listed 24 | branch `claude/cool-shannon-p9gph3`, merged and deployed 2026-11-11 (`83a3f25`, Pages run 180) | `specs/whole-towns/spec.md` (repo first) | yes, at the owner's request (23 findings: 16 fixed, 2 of them in part; 2 deferred; 5 rejected; the owner's calls in 0132) |
 | The section bar names what Chronicle shows (the sheet's Walks, Days, Map, a drag and a long press move the bar; the bar's press, even on the selected section, moves the sheet; one map across Walks, Days and Map; SB1-SB5, decision 0136, from G1) | shipped 2026-11-11 by `/tend inbox G1 yes` (web verified by `resurface/section.test.ts` and the e2e `chronicle`, `capturehome`, `qol`, `resurface`, `tabs`) | `eb40c5c` | `specs/section-bar/spec.md` | the run's review (see Last tend) |
+| Presence: one system says what a place is (one table from poi classes and Overture's taxonomy to classes; density and marks read them; curation apart; PRESENCE_CODE in the atlas and landing codes; PR1-PR8, decision 0140; the first of two slices) | shipped | from G3 (`/tend inbox G3 yes`), Nov 11 | `specs/presence/spec.md` | review in the `/tend` run |
 
 Not a tab, but tracked: **suggested routes** shipped as scenic routes (decision 0095);
 Explore's route preview and "Walk this way" stay deferred.
@@ -125,13 +126,12 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T6 [owner] Chronicle: the bar's Walks and the sheet's Walks move the map differently** (2026-11-11)
-  Area: chronicle. Seen: `src/app/(tabs)/index.tsx`, the sheet's `onMode` (the walks list's zoom-out, decision 0054)
-  runs for the sheet's Walks and a drag up, never for the bar's Walks; the steward's S3 on `section-bar`. Rests on:
-  NN/g H4, "Users should not have to wonder whether different words, situations, or actions mean the same thing";
-  decision 0136, the bar and the sheet name the same thing. Recommended: the bar's Walks zooms out as the sheet's does,
-  when some places walked are out of view (0054's rule, one fit). Gate: aligned (Return), read against G1's Touches;
-  `/vision` not run on its own. Otherwise: neither zooms out (0054 retired), or leave it.
+- **T7 [owner] Chronicle: the bar's Walks from Memories or Media opens over the map's kept view, with no zoom-out** (2026-11-11)
+  Area: chronicle. Seen: `src/app/(tabs)/index.tsx`, `Chronicle`'s `choose` (no map is up to ask) and `ChronicleMap`'s
+  first mode; the T6 review's F2. Chronicle opens on Memories (RM1), so Memories then Walks is likely the bar's usual way
+  to the walks list. Rests on: NN/g H4; decision 0141, "the same word moves the map the same way". Recommended: a map
+  that mounts on Walks zooms out once, by 0054's rule, when a place walked is out of the kept view. Gate: aligned
+  (Return), read against 0141; `/vision` not run on its own. Otherwise: leave it (the kept view, NV3, wins).
 
 ### Next evolutions
 
@@ -150,47 +150,47 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   of storefronts. 6. The walk's help line and the route leaning ("Along the busy streets") say storefronts. 7. No line or
   label for this concept says busy, busiest or most, and none counts storefronts. 8. Walkability's "Streets far apart and
   busy" (traffic) is unchanged. 9. Decisions 0080 and 0127 and the specs that pin the old words are amended in the slice.
-  Waits for G3 (decision 0140): Storefronts is a presence class and its density, not a renamed busy table.
+  Builds on presence (decision 0140; its first slice shipped Nov 11, PR1-PR8): Storefronts is a presence class and its density, not a
+  renamed busy table. G4 (presence's second slice) first is better, not required.
   Payoff: every visit to Explore, and every route that leans; the word stops promising people the data cannot see.
   Cost: M, copy across about eight screens and modules plus the specs and tests that pin it, no native code, no data
   change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
   say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
 
-- **G3 [L, first slice M] Presence: one system says what a place is** (2026-11-11) · Earn · aligned · decision 0140
-  Area: explore, places, layers, landing. From: the owner's call, Nov 11 (0140), after reshaping T4 into G2.
-  Touches: VISION.md Never, "Popularity, trending, foot traffic" (busy stays out of presence) and "rankings of places";
-  decisions 0080 (amended: density weights come from classes), 0127 (bars are a grouping over classes), 0109 (Overture
-  never makes a mark).
-  The slice (the first of two): 1. One pure presence module turns normalised features into classes from one vocabulary,
-  several classes per place, under one version code. 2. The tile and Overture adapters feed it; no consumer outside it
-  reads poi or Overture category tags. 3. Marks and checklists read their categories and kinds from presence classes.
-  4. Density weights come from presence classes, so the map layer, What's good here and route leaning read the same
-  answer for a tag as marks do. 5. Each tag the two old tables disagreed on (memorials, libraries, worship, viewpoints,
-  cinemas, shops) has one answer, listed in the spec with a before and after picture of every screen it changes.
-  6. The presence version code is folded into the atlas, landing and place caches, so a reclassification re-derives
-  them with no hand bump. 7. Marks' curation (chains, notable names, what is worth the stop) reads classes and stays a
-  separate rule set. 8. Nothing a person sees changes beyond item 5's list.
-  Payoff: one place to refine what a street holds, and the base Storefronts (G2) and later kinds stand on. Cost: L in
-  all; this first slice M, about a dozen modules and their tests, no native code, no stored field. Reopens: explore,
-  places, landing, layers. After it: the second slice moves the archive's classes, the bars, notable names, scenic
-  routes' greens and the planner onto presence; then G2.
-  Instead: unify only the two OpenStreetMap tables, leaving each consumer its own overlays.
+- **G4 [M] Presence, its second slice: the archive, bars, notable names, greens and the planner read classes** (2026-11-11) · Earn · aligned · decision 0140
+  Area: explore, places, scenic routes, walk planner. From: G3, whose first slice shipped Nov 11 (specs/presence, PR1-PR8); decision 0140's
+  "consumers read its classes, never source tags".
+  Touches: decisions 0127 (a place may light two bars: from its classes), 0103 and 0108 (the archive's classes are chronicles-data's
+  contract; the app maps them into presence, the contract is unchanged), 0109 (Overture never makes a mark).
+  The slice: 1. The places archive's classes map into presence classes; `archivePois.ts` holds no category or kind of its own.
+  2. A place may carry several classes (a museum the data calls historic: museum and history), and `barsOf` reads them, so a second bar
+  comes from classes, not from `alsoBars` and a name. 3. Whether a name is notable is decided once, for marks and bars alike. 4. Scenic
+  routes' greens read presence classes from landcover features, not raw tags. 5. The planner reads classes. 6. The same place is a mark
+  or not alike from the tiles and the archive (a plain-named memorial, presence review F3). 7. PR2's guard holds with no exception left.
+  8. Nothing else a person sees changes, held by golden tables of the archive's classes and the bars, captured first.
+  Payoff: one place to refine what a street holds, and Storefronts (G2) then reads one answer everywhere. Cost: M, about eight modules and
+  their tests, no native code, no stored field. Reopens: explore, places, scenic routes, walk planner. After it: G2, then new kinds of
+  presence (institutions, rural activity) as classes.
+  Instead: build G2 now on what shipped (density already reads presence's classes) and leave the rest.
 
 ### Last tend
 
-**Nov 11, `/tend inbox G1 yes`** (from `911bc42`; rebased twice as `main` moved, the second time over the media gallery's
-fifth section). G1 built as the slice `section-bar` (decision 0130): `d684ec7` tests first (SB1-SB5); `dcbccd1` the bar
-names what the sheet shows and one map stays up; a commit counting Media among the sections; `03d6374` the record; the
-review's `c720f34`, `section-bar audit 1, 2, 3, 5`. The steward (before the code): S1, S2, S4 accepted into SB1 and
-SB2, S3 kept as before and filed as T6. The auditor (one round): five findings, four fixed (audit 1, the sheet's
-Escape and Back on a replay or viewer moved the bar, seen failing first; 2, SB3 could not see a remount; 3, the drags;
-5, the pictures), one deferred (F4, the day labels' clock), and the rest of audit 3 deferred (the long press and a
-star cleared by the bar). Journeys `chronicle`, `capturehome`, `qol`, `resurface`, `tabs`. `chronicle`'s M9 failed on
-`main` 3 of 3 (`e2e:baseline`): not a flake; filed. Filed: T6. No sweep, so no lens ran and the balance was not read.
-Nothing here has run on a phone.
+**Nov 11, `/tend inbox G3 yes`** (from `bc41449`). G3 built as one slice, `specs/presence` (PR1-PR8, decision 0140): tests first
+`e82634f`; the code `8d48662` (`src/lib/presence`: one table from poi classes and Overture's taxonomy to classes, read by density and
+marks; curation apart in `discovery/curation.ts`; `PRESENCE_CODE` in the atlas and landing codes); the docs `1f60f6e`. Every tag outside
+PR5's list answers as before (a golden table; 5,913 real places compared). The review: `presence audit 1` (remembered areas keep their
+busy streets: rows from just before presence are carried), `presence audit 2` (PR2's guard widened); F3 deferred; four rule lines put
+right. Filed: G4 (presence's second slice); G3 leaves "Next evolutions"; G2 can now build on presence. Not pictured: none of PR5's tags
+occur in the fixtures, so no screen differs. Nothing here is native.
+First pushed to `main` as `f5fbdc8` and reverted (`17ddaa7`): Pages run 203 failed at the loop's limits, since the record's commits,
+named `tend explore: …`, carried the slice's own spec and rule lines. This branch splits them: the slice's documents in its own commit,
+the record holding only this file, `docs/DEFERRED.md`, the ledger and the run log.
 
 ### Open before the loop
 
+- **SB3's wording after T6** (Nov 11): `specs/section-bar/spec.md` SB3 says "the bar's Walks still does not, as
+  before"; since T6 (decision 0141) it zooms out as the sheet's does. Amend SB3 to "the walks list's zoom-out (0054),
+  by either Walks, from the sheet at rest" and point it to `tend chronicle T6`; the loop may not edit a spec.
 - **QL23's wording after T1** (Nov 11): the quality-of-life doc (mirrored in `specs/quality-of-life/spec.md`) says "an
   empty title becomes the suggested one"; the build now stores no title for an empty one or the suggestion kept as it
   was, shown as the suggestion. Amend the doc to "an empty title, or the suggestion unchanged, is no title, shown as
