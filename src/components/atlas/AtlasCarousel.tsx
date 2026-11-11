@@ -35,8 +35,9 @@ export function AtlasCarousel(props: {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The card the row scrolled to by itself; the settle that ends that scroll is not the reader's.
   const intended = useRef<number | null>(null);
-  // The card the reader's own scroll last selected: the selection that follows it is already in the middle, never scrolled to.
-  const lastReported = useRef<number | null>(null);
+  // The card (by key, so a changed list never misleads it) the reader's own scroll is on: while it is set, the selection follows
+  // the scroll and the effect never scrolls the row (fix carousel-live-select audits 1, 3). The settle clears it.
+  const lastKey = useRef<string | null>(null);
   const index = useMemo(() => items.findIndex((l) => l.area.key === selected), [items, selected]);
 
   // What the settle needs, as the screen last drew it: a timer's callback must never read an older row.
@@ -54,14 +55,14 @@ export function AtlasCarousel(props: {
   // A selection made elsewhere brings its card to the middle; one the reader just scrolled to is already there.
   useEffect(() => {
     if (index < 0 || step <= 0) return;
-    // The reader's scroll selected this card while passing it: leave the scroll alone (fix carousel-live-select).
-    if (lastReported.current === index) return;
-    lastReported.current = null;
+    // The reader's scroll is selecting as it passes cards: leave the scroll alone (fix carousel-live-select audit 1).
+    if (lastKey.current != null) return;
     if (Math.abs(offset.current - offsetOf(index, step)) < 2) return;
     scrollTo(index);
   }, [index, step, scrollTo]);
 
   const settle = useCallback(() => {
+    lastKey.current = null;
     const { items: list, selected: now, step: s, onSettle } = latest.current;
     const i = settledIndex(offset.current, s, list.length);
     const at = list.findIndex((l) => l.area.key === now);
@@ -84,8 +85,9 @@ export function AtlasCarousel(props: {
     const { items: list, selected: now, step: s, onSettle } = latest.current;
     const i = settledIndex(offset.current, s, list.length);
     const at = list.findIndex((l) => l.area.key === now);
-    const report = liveReport({ index: i, intended: intended.current, selected: at, last: lastReported.current });
-    if (intended.current == null) lastReported.current = i;
+    const last = lastKey.current == null ? -1 : list.findIndex((l) => l.area.key === lastKey.current);
+    const report = liveReport({ index: i, intended: intended.current, selected: at, last: last < 0 ? null : last });
+    if (intended.current == null) lastKey.current = list[i]?.area.key ?? null;
     const key = report != null ? list[report]?.area.key : null;
     if (key) onSettle(key);
     if (timer.current) clearTimeout(timer.current);

@@ -103,7 +103,8 @@ export function settleStep(p: { index: number; intended: number | null; selected
  */
 export function liveReport(p: { index: number; intended: number | null; selected: number; last: number | null }): number | null {
   if (p.intended != null) return null;
-  return p.index === p.selected || p.index === p.last ? null : p.index;
+  // Once the scroll has reported a card, that one is the selection (the screen's may not have committed it yet).
+  return p.index === (p.last ?? p.selected) ? null : p.index;
 }
 
 /** The footer a card shows (explore-carousel audit 4, EC15): only the selected card, so a tap on it does what it says. */
