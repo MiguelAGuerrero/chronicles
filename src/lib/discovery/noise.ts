@@ -1,6 +1,6 @@
 // @layer core
+import { normalizeWords } from '../presence/notable';
 import raw from './chains.json';
-import notable from './notable.json';
 import type { CategoryId, Place } from './types';
 
 /**
@@ -10,17 +10,8 @@ import type { CategoryId, Place } from './types';
  * out but "Subway Art Supply" isn't.
  */
 
-/** Lowercase, accents and apostrophes gone, & as "and", anything else a single space. */
-export function normalizeBrand(name: string): string {
-  return name
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/['’‘`]/g, '')
-    .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-}
+/** Lowercase, accents and apostrophes gone, & as "and", anything else a single space: presence's reading of a name. */
+export const normalizeBrand = normalizeWords;
 
 const CATEGORY_IDS: CategoryId[] = ['art', 'food', 'shops', 'history', 'parks', 'culture', 'viewpoints', 'nightlife'];
 const table = raw as unknown as Record<string, string[]>;
@@ -43,13 +34,6 @@ export function isChain(name: string, category: CategoryId): boolean {
  * area's ordinary activity; they show as its busy streets instead.
  */
 export const MARK_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'parks', 'culture', 'viewpoints'];
-
-const NOTABLE = notable.words.map(normalizeBrand);
-/** The name marks it as historic or notable (S20): a listed word or phrase, as whole words. */
-export function notableName(name: string): boolean {
-  const n = ` ${normalizeBrand(name)} `;
-  return NOTABLE.some((w) => n.includes(` ${w} `));
-}
 
 /**
  * Whether a place can become a mark (S18-S20). The adapter sets `markable`;

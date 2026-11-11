@@ -24,17 +24,13 @@ test('presence audit 1: an older landing code is still stale', () => {
 });
 
 // presence audit 2: PR2 looked for three words only, so a second table keyed by other poi classes would have passed.
-// These are the names only a tag table spells (OpenMapTiles poi classes and Overture roots presence maps). A module may
-// spell one only as a presence class (curation) or as the places archive's own contract class (archivePois, which moves
-// onto presence in the second slice: docs/DEFERRED.md).
+// These are the names only a tag table spells (OpenMapTiles poi classes and Overture roots presence maps). Since presence's
+// second slice no module outside presence spells one at all (specs/presence-readers PS7): `ALLOWED` is empty.
 const TAG_WORDS = ['restaurant', 'fast_food', 'art_gallery', 'theme_park', 'dog_park', 'picnic_site', 'town_hall', 'community_centre', 'nature_reserve',
   'place_of_worship', 'ice_cream', 'alcohol_shop', 'clothing_store', 'department_store', 'arts_and_entertainment', 'cultural_and_historic',
   'lifestyle_services', 'services_and_business', 'food_and_drink', 'memorial', 'cemetery', 'museum'];
 const spells = (text: string, w: string) => new RegExp(`(['"]${w}['"]|\\b${w}:)`).test(text);
-const ALLOWED: Record<string, (w: string) => boolean> = {
-  'discovery/curation.ts': (w) => ['nature_reserve', 'memorial', 'cemetery'].includes(w),
-  'discovery/archivePois.ts': (w) => ['memorial', 'cemetery', 'museum'].includes(w),
-};
+const ALLOWED: Record<string, (w: string) => boolean> = {};
 
 test('presence audit 2: the matcher finds a table keyed by poi classes', () => {
   assert.ok(spells('const T = { restaurant: 1, cafe: 1 };', 'restaurant'));

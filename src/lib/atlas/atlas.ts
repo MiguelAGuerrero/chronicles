@@ -1,12 +1,13 @@
 // @layer core
-import { PRESENCE_CODE } from '../presence/presence';
+import { PRESENCE_CARRIED, PRESENCE_CODE, type PresenceClass } from '../presence/presence';
+import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import type { RoadFeature } from '../streets';
 import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
 import { isKindHidden, refineRead } from '../discovery/refinements';
-import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
+import { isMarkable } from '../discovery/noise';
 import { barsOf } from '../discovery/bars';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
@@ -31,11 +32,19 @@ import type { Pocket } from './pockets';
 /** a7: the places archive's curiosities and landmarks count among the findable kinds (PW10); rows stand until an archive is known, then read again (profileStale). */
 /** a8: presence by bars (PK1-PK7): a museum the data calls historic lights History too; community spaces join Culture. */
 /** a9: a park whose name says a playground or the like, with nothing notable in it, is a community park (PC13); curation over presence's classes, so presence's own code is unchanged. */
+/** The atlas's own part of a row's code (a9). */
+const ATLAS_OWN = 'a9';
 /** A row's code: the atlas's own (a9) and presence's (PR6), so a reclassification re-reads every row. */
-export const ATLAS_CODE = `a9.${PRESENCE_CODE}`;
+export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
-/** TP10: the older rules a level's rows still stand under, because the change did not touch that level. None since a8 (PK7): the bars changed at every level. */
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = {};
+/**
+ * TP10: the older rules a level's rows still stand under, because the change did not touch that level. None of a8's
+ * (PK7: the bars changed at every level; PC13: community parks, at every level); the presence codes presence carries
+ * stand at every level under the atlas's own part (`PRESENCE_CARRIED`, specs/presence-readers PS9: a9.p1 under a9.p2), so a
+ * bump of the atlas's own part carries none.
+ */
+const CARRIED_PRESENCE = PRESENCE_CARRIED.map((c) => `${ATLAS_OWN}.${c}`);
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: CARRIED_PRESENCE };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -97,10 +106,10 @@ export interface AtlasPlace {
   at: LngLat;
   /** Whether it could be a "?" mark (`isMarkable`); a findable kind counts only these (AG1). */
   markable?: boolean;
-  /** What `barsOf` reads to light a second bar (PK1, PK2); absent, a place lights its category alone. */
   name?: string;
   kind?: Kind;
-  alsoBars?: CategoryId[];
+  /** What `barsOf` reads to light a second bar (PK1, PS2): presence's classes; absent, a place lights its category alone. */
+  classes?: PresenceClass[];
 }
 
 /** A place that could be found (a mark's place): never named on the tab (AT7). */
@@ -162,9 +171,19 @@ export interface AtlasArea {
 export const atlasKey = (a: { level: string; name: string; at: LngLat }) =>
   JSON.stringify([a.level, a.name.normalize('NFC').trim().toLowerCase(), a.at[0].toFixed(3), a.at[1].toFixed(3)]);
 
-/** Whether a row was made under this build and these rules (AT12). */
+/** Whether a row was made under this build and these rules (AT12); a row with no level stands only under the current code (presence-readers audit 11). */
 export const rowCurrent = (r: { build: string; code: string; level?: AtlasLevel }, build: string | null) =>
-  !!build && r.build === build && (r.code === ATLAS_CODE || (r.level != null && !!CARRIED[r.level]?.includes(r.code)));
+  !!build && r.build === build && (r.level != null ? codeCurrent(r.code, r.level) : r.code === ATLAS_CODE);
+
+/**
+ * Whether rows or reads made under this code stand (presence-readers audit 4): the current code, or one carried for the
+ * level; a near read, which names no level, stands when every level carries its code. Rows and near reads judge alike.
+ */
+export function codeCurrent(code: string, level?: AtlasLevel | null): boolean {
+  if (code === ATLAS_CODE) return true;
+  if (level != null) return !!CARRIED[level]?.includes(code);
+  return (['neighborhood', 'town'] as const).every((l) => !!CARRIED[l]?.includes(code));
+}
 
 const SAME_M = { neighborhood: 1000, town: 3000 } as const;
 const sameArea = (a: { level: AtlasLevel; name: string; at: LngLat }, b: { level: AtlasLevel; name: string; at: LngLat }) =>
@@ -189,11 +208,11 @@ export function presenceSteps(places: AtlasPlace[], centre: LngLat, within: With
   const seen = new Set<string>();
   const counts = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Record<CategoryId, number>;
   for (const p of places) {
-    if (p.markable === false && MARK_CATEGORIES.includes(p.category)) continue;
+    if (!countsToward(p)) continue;
     if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
     // PK1-PK4: a place lights each of its bars once (a museum the data calls historic, History and Culture).
-    for (const bar of barsOf({ category: p.category, name: p.name ?? '', kind: p.kind, alsoBars: p.alsoBars })) counts[bar] += 1;
+    for (const bar of barsOf(p)) counts[bar] += 1;
   }
   return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => counts[c] >= s).length as Step])) as Steps;
 }
@@ -311,9 +330,9 @@ export const NEAR_KEPT = 12;
 export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build: string, radiusM?: number, town?: string | null): boolean {
   const list = !reads ? [] : Array.isArray(reads) ? reads : [reads];
   // WT9: a town's page asks for a read of that town (across its border, or by its reach where it has none).
-  if (town) return !list.some((r) => r.build === build && r.code === ATLAS_CODE && r.town === town);
+  if (town) return !list.some((r) => r.build === build && codeCurrent(r.code) && r.town === town);
   // Whole-towns audit 8: a town's read wrote only what is inside its border; it never stands for the read around you.
-  return !list.some((r) => !r.town && r.build === build && r.code === ATLAS_CODE && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
+  return !list.some((r) => !r.town && r.build === build && codeCurrent(r.code) && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
 /** The kept near reads after a new one: newest first, at most NEAR_KEPT. */

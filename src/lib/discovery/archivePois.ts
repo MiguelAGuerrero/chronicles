@@ -1,57 +1,37 @@
 // @layer core
 import type { TileFeature } from '../areas/tilePlaces';
+import { ARCHIVE_CLASS_NAMES, classDef, classesOfArchive, markClassOf, named } from '../presence/presence';
 import type { LngLat } from '../types';
+import { isMarkFor } from './curation';
 import { placeKey } from './places';
 import type { CategoryId, Kind, Place } from './types';
 
 /*
  * The places archive's schema (decision 0103): the only file that knows it, as `tilePois.ts` knows the map
  * tiles'. Each feature is a point with `name`, `class` (the build script's own vocabulary, PW6), `src` and an
- * `id` for deduping (PW7); the app maps the class to a category and kind here.
+ * `id` for deduping (PW7). What each class is lives in presence (`classesOfArchive`, specs/presence-readers PS1).
  */
-
-/** PW5: the archive's classes, each to one category and kind. A test pins it: a new class is a deliberate change. */
-export const ARCHIVE_CLASSES: Record<string, readonly [CategoryId, Kind]> = {
-  folly: ['viewpoints', 'curiosities'],
-  novelty_building: ['viewpoints', 'curiosities'],
-  roadside_giant: ['viewpoints', 'curiosities'],
-  natural_oddity: ['viewpoints', 'curiosities'],
-  odd_engineering: ['viewpoints', 'curiosities'],
-  marks_a_fact: ['viewpoints', 'curiosities'],
-  art_environment: ['viewpoints', 'curiosities'],
-  ruin: ['viewpoints', 'curiosities'],
-  monument: ['history', 'monuments'],
-  memorial: ['history', 'monuments'],
-  statue: ['history', 'monuments'],
-  marker: ['history', 'monuments'],
-  mural: ['art', 'public_art'],
-  sculpture: ['art', 'public_art'],
-  overlook: ['viewpoints', 'viewpoints'],
-  tower: ['viewpoints', 'viewpoints'],
-  // RP8 (decisions 0109, 0111; contract v2, chronicles-data's RD13): listed places by type; any other listed building
-  // or structure is Buildings and structures (`heritage_building` until v2).
-  church: ['history', 'churches'],
-  cemetery: ['history', 'cemeteries'],
-  theatre: ['culture', 'theatres'],
-  museum: ['culture', 'museums'],
-  historic_site: ['history', 'monuments'],
-  building_structure: ['history', 'structures'],
-};
 
 /**
- * PK1, PK19: bars an archive class lights beside its own category. The archive's `museum` is a museum that entered by its
- * listing (contract v2, chronicles-data's RD8), so it lights History too; a new contract version (PP17) revisits this.
+ * PW5: the archive's classes, each to one category and kind, as presence reads them. A test pins it: a new class is a
+ * deliberate change (in presence's archive table).
  */
-export const ARCHIVE_ALSO: Partial<Record<string, readonly CategoryId[]>> = { museum: ['history'] };
+export const ARCHIVE_CLASSES: Record<string, readonly [CategoryId, Kind]> = Object.fromEntries(
+  ARCHIVE_CLASS_NAMES.map((cls) => {
+    const def = classDef(markClassOf(classesOfArchive(cls))!);
+    return [cls, [def.category!, def.kind!] as const];
+  }),
+);
 
-/** One archive place as the app's `Place`: a mark of its class's kind, tagged with the archive's version. */
+/** One archive place as the app's `Place`: its classes from presence, its mark from curation, tagged with the archive's version. */
 export function archivePlace(name: string, cls: string, at: LngLat, version: string): Place | null {
-  const mapped = ARCHIVE_CLASSES[cls];
   const n = name.trim();
-  if (!mapped || !n || !Number.isFinite(at[0]) || !Number.isFinite(at[1])) return null;
-  const [category, kind] = mapped;
-  const also = ARCHIVE_ALSO[cls];
-  return { key: placeKey(category, n, at), name: n, category, at: [at[0], at[1]], generic: false, build: version, markable: true, kind, ...(also ? { alsoBars: [...also] } : {}) };
+  const mark = markClassOf(classesOfArchive(cls));
+  const category = mark ? classDef(mark).category : undefined;
+  if (!mark || !category || !n || !Number.isFinite(at[0]) || !Number.isFinite(at[1])) return null;
+  const classes = named(classesOfArchive(cls), n);
+  const kind = classDef(mark).kind;
+  return { key: placeKey(category, n, at), name: n, category, at: [at[0], at[1]], generic: false, build: version, markable: isMarkFor(classes), classes, ...(kind ? { kind } : {}) };
 }
 
 /** PW5, PW9: an archive tile's points as places; an unnamed place or an unknown class is left out. */

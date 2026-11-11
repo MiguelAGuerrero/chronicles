@@ -125,6 +125,25 @@ async function run(h) {
       const said = (await pg.locator('[data-testid=home-sheet]').innerText()).includes('Walk somewhere and it is starred here');
       check(said && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
         `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${said}, ${nav && Math.round(nav.y)})`);
+      await h.shot(pg, `tabs-2-chronicle-peek-${when.replace(/\W+/g, '-')}`);
+      // tend tabs 7: the peek's line is shown whole, never cut short by the buttons beside it, at 390 and at 320 px.
+      try {
+        for (const width of [390, 320]) {
+          await pg.setViewportSize({ width, height: 844 });
+          await pg.waitForTimeout(600);
+          const line = await pg.evaluate(() => {
+            const e = document.querySelector('[data-testid=sheet-empty]');
+            const s = document.querySelector('[data-testid=home-sheet]')?.getBoundingClientRect();
+            const r = e?.getBoundingClientRect();
+            const pills = [...document.querySelectorAll('[data-testid=sheet-navigate], [data-testid=sheet-days]')].map((p) => p.getBoundingClientRect());
+            return e && s && { cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1, inside: r.y >= s.y && r.bottom <= s.bottom + 1, pillsIn: pills.every((p) => p.y >= s.y && p.bottom <= s.bottom + 1), days: pills.length };
+          });
+          check(line && !line.cut && line.inside && line.pillsIn, `tend tabs 7: ${when}, at ${width} px the peek's line is whole and inside the sheet, its buttons too (${JSON.stringify(line)})`);
+        }
+      } finally {
+        await pg.setViewportSize({ width: 390, height: 844 });
+        await pg.waitForTimeout(600);
+      }
       if (await pg.locator('[data-testid=sheet-navigate]').count()) await pg.click('[data-testid=sheet-navigate]');
       else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);
@@ -213,6 +232,84 @@ async function run(h) {
       await pg.waitForTimeout(800);
       check(canvases === 1 && !/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)),
         `tabs audit 1: a double tap on the recording bar opens one walk screen, and one Minimize goes back to the tabs (${canvases} maps)`);
+      // tend tabs 2: the recording bar and the tab bar are pictured, and at 320 px the bar's row (its way back, the
+      // camera, Stop) stays on one line with its word from a tap on Stop, the page never scrolling sideways.
+      await h.shot(pg, 'tabs-2-recording-bar');
+      // tend tabs audit 14: the 390 px viewport comes back however the 320 px checks end (E2E_SOFT runs on).
+      try {
+        await pg.setViewportSize({ width: 320, height: 700 });
+        await pg.waitForTimeout(600);
+        await pg.click('[data-testid=bar-stop]');
+        await pg.waitForSelector('[data-testid=recording-said]', { timeout: 5000 });
+        await h.shot(pg, 'tabs-2-recording-bar-320');
+        const row = await pg.evaluate(() => {
+          const mid = (id) => {
+            const r = document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`)?.getBoundingClientRect();
+            return r ? Math.round(r.y + r.height / 2) : null;
+          };
+          return { mids: ['recording-return', 'bar-photo', 'bar-stop'].map(mid), wide: document.documentElement.scrollWidth };
+        });
+        check(row.mids.every((y) => y != null && Math.abs(y - row.mids[0]) <= 2) && row.wide <= 320,
+          `tend tabs 2: at 320 px the recording bar's way back, camera and Stop share one line, and nothing scrolls sideways (${JSON.stringify(row)})`);
+        // tend tabs 8: a tap on the bar's Stop says to hold in one line at 320 px, as the walk screen's Stop is labelled.
+        {
+          const word = await pg.evaluate(() => {
+            const e = document.querySelector('[data-testid=recording-said]');
+            const r = e?.getBoundingClientRect();
+            return e && { text: e.textContent, h: Math.round(r.height), lh: parseFloat(getComputedStyle(e).fontSize) * 1.5 };
+          });
+          check(word && word.text === 'Hold to stop' && word.h <= word.lh, `tend tabs 8: at 320 px a tap on the bar's Stop says "Hold to stop" on one line (${JSON.stringify(word)})`);
+        }
+      } finally {
+        await pg.setViewportSize({ width: 390, height: 844 });
+        await pg.waitForTimeout(600);
+      }
+      // tend tabs 3: the bar's camera is named as Memories' band names its camera with a walk open: the same job, the same name.
+      {
+        const name = await pg.locator('[data-testid=bar-photo]').getAttribute('aria-label');
+        check(name === 'Add to your walk: take a photo or video', `tend tabs 3: the bar's camera is spoken as the band's camera with a walk open ("${name}")`);
+      }
+      // tend tabs 1: keyboard focus on the bar shows a ring that stands out from the bar's dark ground, 3:1 or more.
+      // tend tabs audit 13: and on the bar's white buttons, and on a light ground (a tab): white on ink, ink on ink, ink on white.
+      {
+        const rgb = (s) => (s.match(/\d+(\.\d+)?/g) || []).slice(0, 3).map(Number);
+        const alpha = (s) => { const m = /rgba\([^)]*,\s*([\d.]+)\)/.exec(s); return m ? Number(m[1]) : 1; };
+        const lum = (c) => {
+          const [r, g, b] = c.map((v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (a, b) => { const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+        // The ring is seen when its outer edge (the outline) stands 3:1 from the ground around it, or its inner band
+        // (the shadow) stands 3:1 from both the ground and the control's own fill.
+        const ringOn = async (target) => {
+          let id = null;
+          for (let k = 0; k < 60 && id !== target; k++) {
+            await pg.keyboard.press('Tab');
+            id = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
+          }
+          const r = await pg.evaluate(() => {
+            const e = document.activeElement;
+            const cs = getComputedStyle(e);
+            const fill = (el) => { const c = getComputedStyle(el).backgroundColor; return /rgba\([^)]*,\s*0\)/.test(c) || c === 'transparent' ? null : c; };
+            let p = e.parentElement;
+            while (p && !fill(p)) p = p.parentElement;
+            const ground = p ? fill(p) : 'rgb(255, 255, 255)';
+            return { outline: cs.outlineStyle !== 'none' ? cs.outlineColor : null, shadow: (cs.boxShadow.match(/rgba?\([^)]*\)/) || [null])[0], own: fill(e) || ground, ground };
+          });
+          const outer = r.outline && alpha(r.outline) > 0 ? ratio(r.outline, r.ground) : 0;
+          const inner = r.shadow && alpha(r.shadow) > 0 ? Math.min(ratio(r.shadow, r.ground), ratio(r.shadow, r.own)) : 0;
+          return { id, seen: Math.max(outer, inner), r };
+        };
+        const way = await ringOn('recording-return');
+        await h.shot(pg, 'tabs-1-bar-focus');
+        check(way.id === 'recording-return' && way.seen >= 3, `tend tabs 1: keyboard focus on the bar's way back shows a ring at 3:1 or more against the bar (${way.seen.toFixed(1)}:1, ${JSON.stringify(way.r)})`);
+        for (const target of ['bar-photo', 'bar-stop', 'tab-chronicle']) {
+          const f = await ringOn(target);
+          await h.shot(pg, `tabs-audit-13-focus-${target}`);
+          check(f.id === target && f.seen >= 3, `tend tabs audit 13: keyboard focus on ${target} shows a ring at 3:1 or more against what is around it (${f.seen.toFixed(1)}:1, ${JSON.stringify(f.r)})`);
+        }
+        await pg.evaluate(() => document.activeElement?.blur());
+      }
 
     });
     await step('tabs audit 2: a reminder tapped minimized', async () => {
@@ -292,6 +389,7 @@ async function run(h) {
       const pausedGlyph = await pg.locator('[data-testid=recording-bar] [data-testid=recording-paused]').innerText().catch(() => '');
       const go = await pg.locator('[data-testid=recording-bar] [data-testid=recording-go]').innerText().catch(() => '');
       const all = await pg.locator('[data-testid=recording-return]').innerText();
+      await h.shot(pg, 'tabs-2-recording-paused');
       check(pausedGlyph === glyph('pause'), `tabs audit U10: paused, the recording bar shows a pause glyph, not only a grey dot (${iconOf(pausedGlyph)})`);
       check(go && go !== glyph('chevron-up') && !all.includes(glyph('chevron-up')) && (await pg.locator('[data-testid=recording-return]').count()) === 1,
         `tabs audit U10: the bar's way back to the walk isn't an expand chevron (${iconOf(go)})`);
@@ -462,6 +560,7 @@ module.exports = {
     'src/app/walk.tsx',
     'src/app/replay/**',
     'src/components/{RecordingBar,OpenWalk,HomeSheet,MomentBar,StartSettings,SafeInsets,SafeInsets.web}.tsx',
+    'src/components/webStyles.web.ts',
     'src/lib/{walkNav,walkGate,memoGate,recordingBar,startPlan,useStartWalk,launchRoute,safeInsets}.ts',
   ],
   run,

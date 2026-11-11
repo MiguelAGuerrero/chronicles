@@ -20,6 +20,23 @@ export function formatDistance(m: number, units: Units = getUnits()): string {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
+/**
+ * A straight-line distance to somewhere (the destination, NV20): as `formatDistance`, but metres under a kilometre
+ * to the nearest ten. Miles are converted from the distance itself, so the rounding never crosses the step from feet
+ * to miles (tend tabs audit 7).
+ */
+export function formatDistanceNear(m: number, units: Units = getUnits()): string {
+  return formatDistance(units === 'km' && m < 1000 ? Math.round(m / 10) * 10 : m, units);
+}
+
+/**
+ * The "?" range (60-300 m in 20 m steps), as its slider and its line say it: metres, or in miles whole feet at every
+ * step, so each step reads a value of its own (tend tabs audit 6). `formatDistance` would say 0.1 mi for four of them.
+ */
+export function formatRange(m: number, units: Units = getUnits()): string {
+  return units === 'mi' ? `${Math.round(m / FT_M)} ft` : `${Math.round(m)} m`;
+}
+
 /** m:ss under ten minutes, so a just-started walk visibly counts; minutes after. */
 export function formatElapsed(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));

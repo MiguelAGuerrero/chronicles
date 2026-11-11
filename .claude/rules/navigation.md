@@ -145,8 +145,8 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - Green and busy: a search where an appealing metre costs `1 - s × appeal`, tried at `SCENIC.strengths`;
     the one gaining most within the detour wins, if it gains 100 m. Sights: stops on the way, chosen by
     one bounded search from each end (`StreetSource.reach`), never a full search per candidate.
-  - `nav/scenicSignals.ts` (core): green from the tiles' `landcover` (grass/park, grass/garden, wood/*;
-    `tileDecode` reads the layer), sights (marks of the kinds on in "What I'm into", never parks), the
+  - `nav/scenicSignals.ts` (core): green from the tiles' `landcover`, as presence reads it (`classesOfLandcover`:
+    grass/park and grass/garden a park, wood/* a woodland, PS4; `tileDecode` reads the layer), sights (marks of the kinds on in "What I'm into", never parks), the
     corridor (the detour's ellipse), and `probeOf`, the per-routing indexes.
   - `nav/scenicRead` (shell): the corridor's tiles and Overture's places, cancellable, null on any
     failure; its streets and places join today's caches.

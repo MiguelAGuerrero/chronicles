@@ -150,7 +150,7 @@ recording, and a recording bar brings a minimized walk back.
   place is public (its type, a sign it is open, or a Landmark) is built and
   moves to chronicles-data's pipeline. `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
-- **Complexes** (CX1-CX16, decision 0146). A named place made of other places (Strawberry Square,
+- **Complexes** (CX1-CX16, decision 0147). A named place made of other places (Strawberry Square,
   the Lehigh Valley Mall; a market, a campus, a station, a civic centre) is a subdivision of the area
   you are in. The area's card lists the nearest few by name with their kind as a word ("Shopping",
   "Market", "Campus", "Station", "Civic") and Walk to, and a "See more" lists the rest, with no number,
@@ -459,7 +459,7 @@ recording, and a recording bar brings a minimized walk back.
 | Complexes (a named place made of other places on Explore's card and map and in a moment's line, CX1-CX16) | Built; web verified by the e2e `complexes`; native unverified |
 | Reminder bell (a pin with a reminder wears a bell) | Shipped, audited (web verified by the e2e; native unverified) |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
-| Presence (what a place is, classified once and read by the map's density and the marks alike; memorials and nature reserves join the notable classes) | Shipped (first of two slices) |
+| Presence (what a place is, classified once and read by the map's density, the marks, the bars, scenic greens and the planner alike, the places archive included; memorials and nature reserves join the notable classes) | Shipped (both slices: PR1-PR8, PS1-PS11) |
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map never pans by one finger, DN1, DN10-DN13; the directional step retired by the carousel) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |

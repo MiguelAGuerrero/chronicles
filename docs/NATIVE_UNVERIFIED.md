@@ -148,6 +148,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on a fresh install, open the app and touch nothing, then tap Explore. **Expect:** no location prompt while the app sits on Chronicle; Explore's first focus raises it, then frames where you are once (decision 0112). (NV16, HC14)
 - [ ] **Do:** add the web build to an iPhone's Home Screen, open a walk's replay, close the app from the app switcher, delete that walk in another session or wait for the link to go stale, and reopen it. **Expect:** an iPhone Home Screen app reopening on its last page lands on Chronicle (the `/chronicle` redirect, a stale replay link) (decision 0112). (NV2, HC5)
 - [ ] **Do:** start a walk, force-quit, and open the app again. **Expect:** the launch cover hides the native stack while the open walk is read, and the walk screen comes up under it before the recorder resumes: no flash of Chronicle (NV2 launch 1-5, HC2). (NV2, HC2)
+- [ ] **Do:** on a phone with nothing walked, open Chronicle's Map, then start a walk, keep a memo and minimize it. **Expect:** the peek's line, "Walk somewhere and it is starred here", sits whole on its own row above Navigate (and Days, once a day exists), and the peek opens at its own height (`tend tabs 7`).
+- [ ] **Do:** set Distances to miles, set a destination and pull up the ready bar; step the "?" range from 60 to 300 m. **Expect:** the destination and the range read in feet or miles, each range step a different number of feet, on the ready bar and the walk's options alike (`tend tabs 6`, audits 5-7).
 
 ## Capture from Chronicle (HC1-HC15, decision 0112)
 
@@ -450,6 +452,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a phone that had "Museums and galleries" switched off before this update, open "What I'm into", switch Community spaces on, force-quit and reopen. **Expect:** Community spaces was off at first and stays on after the relaunch (meta `explore_kinds_known` through SQLite's `meta`, PK18).
 - [ ] **Do:** after the update, open Explore with several areas listed. **Expect:** every area's marks are read again without stalling the tab (`ATLAS_CODE` a8, PK7).
 - [ ] **Do:** open "Suggest a walk" on History in a town whose History is lit by a museum in the places archive. **Expect:** a route through it, the archive read beside the map's (presence-and-kinds audit 1).
+- [ ] **Do:** after the presence readers update, make an exploring walk in a new area, then open Explore there. **Expect:** places are cached and read back without presence's `classes` (SQLite's named columns, `placesIn`), the area's bars are what they were, and no remembered area is read again or called "Analyzed before an update" (a9.p1 and the p1 landing rows carried; specs/presence-readers PS2, PS9).
 
 ## Response thread (RT1-RT14, decision 0131)
 

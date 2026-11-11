@@ -713,7 +713,8 @@ export const db: Db = {
     const tx = (await conn()).transaction('place', 'readwrite');
     const st = tx.objectStore('place');
     // `lat` is stored beside `at` for the index (a key path can't reach into an array).
-    for (const p of places) st.put({ ...p, lat: p.at[1] });
+    // A place's presence classes are read fresh, never stored (specs/presence-readers): left out of the stored object.
+    for (const { classes: _classes, ...p } of places) st.put({ ...p, lat: p.at[1] });
     await committed(tx);
   },
   async placesIn([w, s, e, n]) {

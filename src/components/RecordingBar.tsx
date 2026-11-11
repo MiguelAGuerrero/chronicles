@@ -2,7 +2,7 @@ import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { barCamera } from '../lib/captureBand';
+import { bandLabels, barCamera } from '../lib/captureBand';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { useStore } from '../lib/useStore';
 import { useUnits } from '../lib/useUnits';
@@ -197,7 +197,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         {(showCamera || cap.busy === 'photo') && <Pressable
           testID="bar-photo"
           accessibilityRole="button"
-          accessibilityLabel="Take a photo or video for this walk"
+          // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3).
+          accessibilityLabel={bandLabels(true).photo}
           accessibilityState={{ busy: cap.busy === 'photo', disabled: cap.busy != null }}
           disabled={cap.busy != null}
           onPress={photo}
@@ -213,7 +214,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           label="Hold to stop the walk"
           busyLabel="Stopping…"
           onHold={stop}
-          onTap={() => setSaid({ text: 'Hold to stop the walk' })}
+          onTap={() => setSaid({ text: 'Hold to stop' })}
           busy={stopping}
           disabled={stopping}
           style={styles.stop}

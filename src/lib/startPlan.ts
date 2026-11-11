@@ -1,5 +1,6 @@
 // @layer core
 import { EXPLORE_KEY, exploredKey } from './explore/explore';
+import { formatDistanceNear } from './format';
 import { distanceM } from './geo';
 import { NAV } from './nav/rules';
 import type { Waypoint } from './nav/types';
@@ -37,11 +38,14 @@ export function pendingDest(raw: string | null | undefined): Waypoint | null {
   }
 }
 
-/** The destination as the drawer shows it (NV20): its name, and how far it is in a straight line. */
+/**
+ * The destination as the drawer shows it (NV20): its name, and how far it is in a straight line, in the units
+ * setting's terms as every distance is (QL14). In metres, under a kilometre, to the nearest ten; in miles, from the
+ * distance itself, so a rounding never crosses the feet-to-miles step (tend tabs audit 7).
+ */
 export function destLine(dest: Waypoint, from: LngLat | null): string {
   if (!from) return dest.label;
-  const m = distanceM(from, dest.at);
-  return `${dest.label} · ${m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`} away`;
+  return `${dest.label} · ${formatDistanceNear(distanceM(from, dest.at))} away`;
 }
 
 /** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0121). */

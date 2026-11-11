@@ -184,7 +184,10 @@ test('PC14: the named cases', () => {
 
 test('PC15: the planner counts both kinds as parks, and a route still passes a community park', () => {
   assert.equal(passesBy({ kind: CP }), true);
-  assert.deepEqual(barsOf({ category: 'parks', name: 'Elm Street Playground', kind: CP }), ['parks']);
+  // specs/presence-readers PS2: the bars read a place's classes; a refinement changes its kind, never its classes.
+  const refined = read([park('Elm Street Playground')]).find((p) => p.name === 'Elm Street Playground')!;
+  assert.equal(refined.kind, CP);
+  assert.deepEqual(barsOf(refined), ['parks']);
 });
 
 test('PC16: an unfound place is never named for its kind: the bars and waiting kinds are categories', () => {

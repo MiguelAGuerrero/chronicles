@@ -3,7 +3,7 @@ import { distanceM, projector } from '../geo';
 import { inRings } from './green';
 import type { LngLat } from '../types';
 import community from './communityWords.json';
-import { normalizeBrand, notableName } from './noise';
+import { normalizeWords, notableName } from '../presence/notable';
 import parkNotable from './parkNotable.json';
 import type { Refinement } from './refine';
 import type { Place } from './types';
@@ -26,17 +26,20 @@ export const PARK_RULES = {
   archiveNearM: 150,
 } as const;
 
-const words = (list: readonly string[]) => list.map(normalizeBrand);
+const words = (list: readonly string[]) => list.map(normalizeWords);
 const COMMUNITY = words(community.words);
 const NOTABLE = words(parkNotable.words);
 const hasWord = (name: string, list: readonly string[]): boolean => {
-  const n = ` ${normalizeBrand(name)} `;
+  const n = ` ${normalizeWords(name)} `;
   return list.some((w) => n.includes(` ${w} `));
 };
 
 /** PC1: the name says it is a ground for play. */
 const communityName = (name: string): boolean => hasWord(name, COMMUNITY);
-/** PC2: the name says it is more (a state park, a memorial, an arboretum, or a word of notable.json). */
+/**
+ * PC2: the name says it is more: a park word of the refinement's own curation (`parkNotable.json`: a state park, a memorial,
+ * an arboretum), or a name presence calls notable (`notableName`, the one rule; specs/presence-readers PS3, T8).
+ */
 const notablePark = (name: string): boolean => hasWord(name, NOTABLE) || notableName(name);
 
 /** A place a park is not plain for (PC2): something to find that is not a park itself. */

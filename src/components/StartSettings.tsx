@@ -3,6 +3,7 @@ import { canBuzz } from '../lib/canBuzz';
 import { clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
+import { formatRange } from '../lib/format';
 import { destLine, type StartMode } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
@@ -86,7 +87,7 @@ export function StartSettings(props: {
         <>
           <Text style={styles.section} accessibilityRole="header">“?” range</Text>
           <Text style={styles.sub}>
-            A “?” shows for places within {settings.rangeM} m of you, {walkNote(settings.rangeM)}.
+            A “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
             {fix ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
           </Text>
           <RangeSlider value={settings.rangeM} onChange={(m) => props.onSettings({ ...settings, rangeM: clampRange(m) })} />

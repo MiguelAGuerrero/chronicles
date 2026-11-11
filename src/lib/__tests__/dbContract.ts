@@ -675,6 +675,12 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.placesIn([LON + 0.99, LAT - 0.01, LON + 1.01, LAT + 0.01]), [place('p2', [LON + 1, LAT])]);
     });
 
+    test('FC7 putPlaces: a place\'s presence classes are read fresh and never stored (specs/presence-readers)', async () => {
+      const db = await fresh();
+      await db.putPlaces([{ ...place('p1'), classes: ['museum', 'historic_name', 'historic'] }]);
+      assert.deepEqual(await db.placesIn(box), [place('p1')]);
+    });
+
     test('FC7 listMarks: a walk\'s marks by walk, the home\'s are those with no walk, each in creation order', async () => {
       const db = await fresh({ marks: [mark('m1', null, 2), mark('m2', null, 1), mark('m3', 'w', 3, { state: 'found' }), mark('m4', 'w', 4)] });
       assert.deepEqual(ids(await db.listMarks(null)), ['m2', 'm1']);

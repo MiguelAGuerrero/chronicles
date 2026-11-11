@@ -1,7 +1,7 @@
 // @layer core
 import type { TileFeature } from '../areas/tilePlaces';
 import type { LngLat } from '../types';
-import { classDef, classesOfOsm, markClassOf, OSM_RULES } from '../presence/presence';
+import { classDef, classesOfOsm, isTransitStop, markClassOf, named, OSM_RULES, unnamedLabel } from '../presence/presence';
 import { BY_NAME, isMarkFor, markableClass } from './curation';
 import { placeKey } from './places';
 import type { CategoryId, Place } from './types';
@@ -28,9 +28,6 @@ export const MARKABLE_CLASSES: readonly { cls: string; sub: string; category: Ca
     ? []
     : (r.subs === '*' ? ['*'] : r.subs).map((sub) => ({ cls: r.cls, sub, category: classDef(r.class).category!, byName: BY_NAME.has(r.class) })));
 
-/** Unnamed places worth keeping, by subclass, and the label they show (D4). */
-const GENERIC: Record<string, string> = { artwork: 'Public art', viewpoint: 'A viewpoint' };
-
 /** The tiles' top zoom: every POI is in it, and parent tiles snap points to a coarser grid. */
 const POI_ZOOM = 14;
 
@@ -54,34 +51,31 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     if (!pc || !category) continue;
     const raw = typeof props.name === 'string' ? props.name.trim() : '';
     const generic = !raw;
-    if (generic && !GENERIC[sub]) continue;
+    const label = generic ? unnamedLabel(sub) : null;
+    if (generic && !label) continue;
     // The poi layer is points; a feature with several is kept at its first.
     const c = (type === 'MultiPoint' ? (f.geometry.coordinates as LngLat[])[0] : f.geometry.coordinates) as LngLat;
     if (!Array.isArray(c) || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
     const at: LngLat = [c[0], c[1]];
     const key = placeKey(category, generic ? null : raw, at);
-    const name = generic ? GENERIC[sub] : raw;
+    const name = label ?? raw;
     if (out.has(key)) continue;
-    const markable = isMarkFor(pc, name);
+    // PS2, PS3: the name's classes beside the tags' (a historic name; a historic museum).
+    const classes = named(classesOfOsm(cls, sub), name);
+    const markable = isMarkFor(classes);
     const kind = markable ? classDef(pc).kind : undefined;
-    out.set(key, { key, name, category, at, generic, build, markable, ...(kind ? { kind } : {}) });
+    out.set(key, { key, name, category, at, generic, build, markable, classes, ...(kind ? { kind } : {}) });
   }
   return [...out.values()];
 }
 
-/** Transit the landing prefers to start from (L7): railway stations and halts, bus stations, ferry terminals. */
-const TRANSIT: Record<string, readonly string[]> = {
-  railway: ['station', 'halt', 'subway', 'light_rail'],
-  bus: ['bus_station'],
-  ferry_terminal: ['ferry_terminal'],
-};
-
+/** Transit the landing prefers to start from (L7): what is a stop is presence's (`isTransitStop`). */
 export function transitFromTilePois(features: (TileFeature & { zoom?: number })[]): LngLat[] {
   const out = new Map<string, LngLat>();
   for (const f of features) {
     if (f.geometry?.type !== 'Point') continue;
     const props = f.properties ?? {};
-    if (!TRANSIT[String(props.class ?? '')]?.includes(String(props.subclass ?? ''))) continue;
+    if (!isTransitStop(String(props.class ?? ''), String(props.subclass ?? ''))) continue;
     const [lon, lat] = f.geometry.coordinates as LngLat;
     out.set(`${lon.toFixed(5)},${lat.toFixed(5)}`, [lon, lat]);
   }

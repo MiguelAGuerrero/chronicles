@@ -131,7 +131,7 @@ const FEATURES = [
     source: ['src/lib/presence/**'],
     // Its consumers own the journeys that show it: explore's marks, atlas and grading.
     journeys: [],
-    specs: ['presence'],
+    specs: ['presence', 'presence-readers'],
   },
   {
     name: 'complexes',

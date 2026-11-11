@@ -1,9 +1,11 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { EXPLORE_KEY, exploredKey } from '../../explore/explore';
+import { EXPLORE_KEY, EXPLORE_RULES, exploredKey } from '../../explore/explore';
 import { destLine, NAV_KEY, navValue, parseStartMode, pendingDest, START_MODE_KEY, startPlan, tabFor } from '../../startPlan';
 import type { Waypoint } from '../../nav/types';
+import { setUnits } from '../../units';
+import { formatRange } from '../../format';
 
 const spot: Waypoint = { at: [-71.4, 41.812], label: 'Your spot', kind: 'point' };
 
@@ -58,4 +60,44 @@ test('NV1, NV2, NV5: three tabs in order, each with its own web path, Chronicle 
   assert.deepEqual(['chronicle', 'explore', 'navigate'].map((t) => tabFor(t as 'explore').path), ['/', '/explore', '/navigate']);
   assert.deepEqual(['chronicle', 'explore', 'navigate'].map((t) => tabFor(t as 'explore').route), ['index', 'explore', 'navigate']);
   assert.deepEqual(['chronicle', 'explore', 'navigate'].map((t) => tabFor(t as 'explore').label), ['Chronicle', 'Explore', 'Navigate']);
+});
+
+test('tend tabs 6: the destination’s distance follows the units setting, as every other distance does (QL14)', () => {
+  const near: [number, number] = [-71.4, 41.812 + 320 / 111320];
+  const far: [number, number] = [-71.4, 41.812 + 2400 / 111320];
+  try {
+    setUnits('mi');
+    assert.equal(destLine(spot, near), 'Your spot · 0.2 mi away');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 100 / 111320]), 'Your spot · 328 ft away');
+    assert.equal(destLine(spot, far), 'Your spot · 1.5 mi away');
+    setUnits('km');
+    assert.equal(destLine(spot, near), 'Your spot · 320 m away', 'metres still round to ten');
+    assert.equal(destLine(spot, far), 'Your spot · 2.4 km away');
+  } finally {
+    setUnits('km');
+  }
+});
+
+test('tend tabs audit 7: in miles the destination is converted from its own distance, never from metres rounded to ten', () => {
+  try {
+    setUnits('mi');
+    // 162 m is 531 ft, past the 528 ft where miles take over; rounded to 160 m first it read "525 ft".
+    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 0.1 mi away');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 101 / 111320]), 'Your spot · 331 ft away');
+    setUnits('km');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 160 m away', 'metres still round to ten');
+  } finally {
+    setUnits('km');
+  }
+});
+
+test('tend tabs audit 6: every step of the "?" range reads a distinct value, in miles as in metres', () => {
+  const steps: number[] = [];
+  for (let m = EXPLORE_RULES.rangeMin; m <= EXPLORE_RULES.rangeMax; m += EXPLORE_RULES.rangeStep) steps.push(m);
+  const mi = steps.map((m) => formatRange(m, 'mi'));
+  assert.equal(new Set(mi).size, steps.length, `each step its own value: ${mi.join(', ')}`);
+  assert.ok(mi.every((t) => / ft$/.test(t)), 'a range this short is said in feet');
+  assert.equal(formatRange(100, 'mi'), '328 ft');
+  assert.equal(formatRange(100, 'km'), '100 m');
+  assert.equal(new Set(steps.map((m) => formatRange(m, 'km'))).size, steps.length);
 });

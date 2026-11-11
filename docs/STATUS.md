@@ -71,6 +71,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Whole towns (a town's page lists every neighborhood inside its border, hamlets in, wards out, nearest you first; the selected area's places still to find as "?" where they have room and kind-coloured dots where not, a tap on a dot zooms in; found places off the map; WT1-WT14, decision 0132) | shipped 2026-11-11 (web verified by the e2e `carousel`, `atlas`, `marks`, `snap`, `outlines`, `grading`, `chronicle` on the /chronicles build; native unverified); Allentown lists 36 neighborhoods where it listed 24 | branch `claude/cool-shannon-p9gph3`, merged and deployed 2026-11-11 (`83a3f25`, Pages run 180) | `specs/whole-towns/spec.md` (repo first) | yes, at the owner's request (23 findings: 16 fixed, 2 of them in part; 2 deferred; 5 rejected; the owner's calls in 0132) |
 | The section bar names what Chronicle shows (the sheet's Walks, Days, Map, a drag and a long press move the bar; the bar's press, even on the selected section, moves the sheet; one map across Walks, Days and Map; SB1-SB5, decision 0136, from G1) | shipped 2026-11-11 by `/tend inbox G1 yes` (web verified by `resurface/section.test.ts` and the e2e `chronicle`, `capturehome`, `qol`, `resurface`, `tabs`) | `eb40c5c` | `specs/section-bar/spec.md` | the run's review (see Last tend) |
 | Presence: one system says what a place is (one table from poi classes and Overture's taxonomy to classes; density and marks read them; curation apart; PRESENCE_CODE in the atlas and landing codes; PR1-PR8, decision 0140; the first of two slices) | shipped | from G3 (`/tend inbox G3 yes`), Nov 11 | `specs/presence/spec.md` | review in the `/tend` run |
+| Presence readers: the archive, bars, notable names, greens and the planner read presence's classes (a place carries its classes, never stored; `recorded` and `historic_name` judged by curation; History beside a category only from `historic`; nothing a person sees changes, held by golden tables; PS1-PS11, decision 0140; the second of two slices) | shipped 2026-11-11 by `/tend inbox G4 yes`, parked beside community parks, resumed on main by `/tend inbox T8 yes` (decision 0146: greens and community parks read presence, the carry a9.p1 under a9.p2; golden tables captured again on main; 1918 unit tests, typecheck, lint; e2e `marks`, `atlas`, `grading`, `curiosities`, `outlines`, `planner`, `upgrade`; native untouched) | from G4; parked as `slice/presence-readers-parked`, landed from `tend/inbox-t8-20261111-2103` | `specs/presence-readers/spec.md` (repo first) | review in the `/tend` runs (`presence-readers audit 1-6`, then one round over the resolution, `audit 7-12`, one filed as T9) |
 
 Not a tab, but tracked: **suggested routes** shipped as scenic routes (decision 0095);
 Explore's route preview and "Walk this way" stay deferred.
@@ -126,21 +127,61 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T8 [arch] Presence readers (G4) is parked: main's kind pipeline and community parks landed beside it** (2026-11-11)
-  Area: explore. Seen: `slice/presence-readers-parked` (G4 built as `specs/presence-readers`, PS1-PS11; the steward and one
-  auditor round done, every check green on its base `0d03c4b`) conflicts with main in `atlas/atlas.ts`,
-  `nav/scenicSignals.ts` and two test pins. Main's community parks (PC1-PC23) added, meanwhile, a kind pipeline that decides
-  a kind over places (`discovery/refine.ts`, `refinements.ts`), a second name-word list (`parkNotable.json`, with
-  `communityWords.json`, in `discovery/parkKind.ts`, beside `notable.json`), greens read from raw landcover tags
-  (`discovery/green.ts`), and `ATLAS_CODE` a9. Rests on: decision 0140, "consumers read its classes, never source tags";
-  G4's criterion 3, "Whether a name is notable is decided once, for marks and bars alike".
-  Recommended: resume the parked branch on main as it stands. `green.ts` reads presence's `classesOfLandcover` (PS4); the
-  carry becomes `a9.p1` under `a9.p2`; `parkKind.ts` reads `notableName` from presence and keeps its park words as the
-  community-parks judgement (curation of a refinement, named so in PS3), not a second notable rule; the guard (PS7,
-  `presence-readers audit 1`) reads main's new modules; the golden tables are captured again on main before any code. /vision:
-  no surface (nothing a person sees changes).
-  Otherwise: fold `parkNotable.json` into `notable.json`, so one list (a church or town hall named "national" or "arboretum"
-  would then be a mark by its name), or drop G4 and delete the parked branch.
+- **T9 [owner] Community parks reads the whole name where presence reads past a neighbourhood** (2026-11-11)
+  Area: explore. Seen: `src/lib/discovery/parkKind.ts:43` (`notablePark`: a word of `parkNotable.json`, or `notableName`
+  over the whole name); the presence-readers review of Nov 11 (F5): "Old Town Playground", "Old City Tot Lot", "Old and New
+  Ball Field" and "Heritage Hills Playground", with nothing notable in or near them, stay Parks, so with Community parks off
+  they still show as "?". Rests on: presence-and-kinds audit 5 ("Old" in a neighbourhood's name says nothing of the place;
+  presence's `notableBeyondNeighbourhood`); `notable.json`'s note, "Generic words that also name neighbourhoods (mission,
+  heritage, landmark, colonial, capitol) are left out"; decisions 0143 (a demotion needs a community word and nothing
+  notable) and 0146 (one notable rule, presence's). Inherited from main; PS8 kept it unchanged.
+  Recommended: community parks judges a name by presence's reading with audit 5's read-past of a neighbourhood ("Old
+  Town", "Old City", "old and new"), not by re-reading the whole name, and "heritage" leaves `parkNotable.json`. Those four
+  become community parks and hide when Community parks is off; nothing else changes; `ATLAS_CODE`'s own part moves on.
+  One commit, its test `tend explore T9: parkNotable.json holds no word notable.json leaves out as a neighbourhood's`.
+  /vision: aligned (earn; "Guidance is structural: where there is a lot, and what makes a place itself"; the same name
+  reads the same for a museum and a park).
+  Otherwise: leave the two readings apart (a neighbourhood's "Old" or "Heritage" keeps a playground a park), or leave it.
+- **T10 [owner] Chronicle's Map peek: one way to act, and a line that is true while you walk** (2026-11-11)
+  Area: tabs. Seen: `tabs-2-chronicle-peek-with-a-walk-minimized-and-none-finished` (the `tabs` journey's picture; `HomeSheet.tsx`
+  ~l.282-370): with a walk minimized and none finished the peek says "Walk somewhere and it is starred here" and offers Days and
+  Navigate. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; NN/g H8 (the peek's Days repeats the section bar's
+  Days, its Navigate the Navigate tab just below, and the recording bar's › is a third way; UX review U8); the line asks you to walk
+  while you are walking (steward S1). `tend tabs 7` already keeps the line whole; this is what it says and what sits beside it.
+  Recommended: with nothing open, the line and Navigate only (Days goes: the section bar holds it); with a walk open and none
+  finished, "This walk is starred here when it ends" and no button (the bar's › is the way back). It amends tabs audit U7 (your
+  call, Nov 2). /vision: aligned (return; restraint).
+  Otherwise: drop the peek's Days alone and keep the line, or leave it.
+- **T11 [owner] Voice and note are two taps away while a walk is minimized, off Memories** (2026-11-11)
+  Area: tabs. Seen: `tabs-2-recording-bar`, `probe-explore-minimized` (pictures): on Explore and Chronicle's other sections the
+  recording bar offers the camera only. Rests on: VISION.md Always, "Capture is one tap away on every screen you walk or capture
+  from", and Never, "A capture behind a menu, a drawer or an extra tap" (steward S2). NV9 (your call, Nov 1) settled the camera on
+  the bar; the voice memo and the note were never ruled.
+  Recommended: a mic beside the bar's camera, the same 44 pt ink-on-white button, hidden on Memories as the camera is (the band
+  has one there); a memo records in place with Stop & save, Discard and its timer, as on the walk screen, and leaving the tab saves
+  it (`memoGate`); the bar's line shortened to fit at 320 px (the time alone, the distance still spoken). It extends NV9 and
+  decision 0048 and reverses neither. More than one commit: on a yes it is built as a slice. /vision: aligned (honour), with no
+  accent and no count on the bar.
+  Otherwise: the mic and the pencil both; or record the camera as the bar's whole stack in VISION.md's Shapes; or leave it.
+- **T12 [owner] The recording bar's Edit offer goes after six seconds** (2026-11-11)
+  Area: tabs. Seen: `tabs-9-bar-edit-offer`, `tabs-9-bar-edit-offer-320` (the `launch` journey's pictures): after a photo from the
+  bar, "Photo saved to your walk" and an Edit button replace the time and distance for ME23's six seconds. Rests on:
+  `.claude/rules/ui-patterns.md`, "Undo stays until it is used or dismissed" (F3; M3, "Snackbars with actions shouldn't
+  auto-dismiss"; decision 0113), and decision 0114 (an action on a moment lives in its toolbar or menu; the viewer has Edit)
+  (UX review U7).
+  Recommended: on the bar only, the offer becomes a pill above it, "Photo saved to your walk · Edit · ✕", that stays until Edit,
+  Close or the next capture, announced politely; the bar's line keeps its time and distance throughout. ME23's other places are
+  unchanged. /vision: aligned (honour).
+  Otherwise: no Edit offer on the bar at all (the photo's viewer has Edit), or leave it.
+  At 320 px the offer's words are cut today, "Photo save…" on two lines beside Edit (`tabs-9-bar-edit-offer-320`; the run's
+  review F9): the pill's layout settles that too.
+- **T13 [phone] The tabs at the largest text size** (2026-11-11)
+  Area: tabs. Seen: `probe-minimized-200pct` (the web at zoom 2, a rough stand-in: react-native-web sizes text in px): the section
+  bar read "M… / W. / D.", the band lost Note off the screen, the bar's line read "0:07 …" (UX review U6; WCAG 1.4.4).
+  Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open Chronicles on Memories
+  with a walk minimized, then Explore.
+  Expect: the section names, the band's Photo, Voice and Note, the recording bar's time and distance and the tab labels are all
+  there, wrapping where they must, none cut to a letter or pushed off the screen.
 
 ### Next evolutions
 
@@ -166,32 +207,24 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
   say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
 
-- **G4 [M] Presence, its second slice: the archive, bars, notable names, greens and the planner read classes** (2026-11-11) · Earn · aligned · decision 0140
-  Area: explore, places, scenic routes, walk planner. From: G3, whose first slice shipped Nov 11 (specs/presence, PR1-PR8); decision 0140's
-  "consumers read its classes, never source tags".
-  Touches: decisions 0127 (a place may light two bars: from its classes), 0103 and 0108 (the archive's classes are chronicles-data's
-  contract; the app maps them into presence, the contract is unchanged), 0109 (Overture never makes a mark).
-  The slice: 1. The places archive's classes map into presence classes; `archivePois.ts` holds no category or kind of its own.
-  2. A place may carry several classes (a museum the data calls historic: museum and history), and `barsOf` reads them, so a second bar
-  comes from classes, not from `alsoBars` and a name. 3. Whether a name is notable is decided once, for marks and bars alike. 4. Scenic
-  routes' greens read presence classes from landcover features, not raw tags. 5. The planner reads classes. 6. The same place is a mark
-  or not alike from the tiles and the archive (a plain-named memorial, presence review F3). 7. PR2's guard holds with no exception left.
-  8. Nothing else a person sees changes, held by golden tables of the archive's classes and the bars, captured first.
-  Payoff: one place to refine what a street holds, and Storefronts (G2) then reads one answer everywhere. Cost: M, about eight modules and
-  their tests, no native code, no stored field. Reopens: explore, places, scenic routes, walk planner. After it: G2, then new kinds of
-  presence (institutions, rural activity) as classes.
-  Instead: build G2 now on what shipped (density already reads presence's classes) and leave the rest.
-
 ### Last tend
 
-**Nov 11, `/tend inbox G4 yes`** (from `0d03c4b`). G4 built as the slice `specs/presence-readers` (PS1-PS11, decision
-0140): the places archive, the bars, notable names, scenic greens and the planner read presence's classes, nothing a person
-sees changing (golden tables captured first). The steward read the plan (S1-S4 accepted); one auditor round (an old/new
-differential over 18,129 archive places, 2,482,980 poi pairs and 907 rings, matched) found six, all fixed as
-`presence-readers audit 1-6`. Not published: while it ran, main gained community parks and the kind pipeline (PC1-PC23), and
-the rebase conflicts in source (`atlas.ts`, `scenicSignals.ts`, two test pins) over a question for the owner, filed as T8.
-The slice is on `slice/presence-readers-parked` (`7a4c28e`); G4 stays in "Next evolutions". The balance: unchanged by an
-inbox run (outgrowing its base: four areas rough). Nothing here touched native code or has run on a phone.
+**Nov 11, `/tend tabs`** (a sweep from `6b099ea`, its first; rebased on `ed7cd8e` with the presence-readers slice). Seven loop commits and five from the review:
+- `tend tabs 1`: keyboard focus shows a two-tone ring (`webStyles.web.ts`), visible on ink grounds (it was 1:1 on the recording bar); `tend tabs audit 13`: on the bar the tones swap, so the ring shows around its white buttons too.
+- `tend tabs 2`: the tabs journey pictures the recording bar, paused, at 320 px, and Chronicle's empty peek.
+- `tend tabs 3`: the bar's camera is spoken as the band's with a walk open.
+- `tend tabs 6`: the destination's distance and the "?" range follow km or miles (QL14); `audit 5`: the walk screen's range line too; `audit 6`: every range step reads its own value in feet; `audit 7`: the destination converts to miles from its own distance.
+- `tend tabs 7`: the empty peek's line sits on its own row, never cut by Days and Navigate.
+- `tend tabs 8`: a tap on the bar's Stop says "Hold to stop", on one line at 320 px.
+- `tend tabs 9`: the bar's Edit offer is pictured; `audit 14`: the tabs journey puts its viewport back after its 320 px checks.
+Not shipped, dropped after the review: the bar listening for reminders only while unfolded (it lost a reminder fired with the
+page in front) and the bar's Stop warning about a held photo (a stale read, a stuck fill, untrue words, cut at 320 px); both
+are [loop] medium in `docs/DEFERRED.md`. Filed: T10-T12 [owner] (the Map peek's buttons and line; a mic on the recording bar;
+the bar's Edit offer as a pill that stays), T13 [phone] (the largest text size); [loop] items under "Tabs and the recording
+bar" in `docs/DEFERRED.md`, one [owner] item for the next explore sweep; NV9's wording in "Open before the loop". The review:
+one auditor round, 6 accepted, 6 deferred, none rejected. The balance: outgrowing its base (five areas rough: chronicle,
+explore, navigation, tabs, walk-screen), so no G entry. Lenses not whole: real 200% text (phone), offline and an interrupted
+launch were not pictured. Nothing here has run on a phone.
 
 ### Open before the loop
 
@@ -199,6 +232,9 @@ inbox run (outgrowing its base: four areas rough). Nothing here touched native c
   before"; since T6 (decision 0141) it zooms out as the sheet's does. Amend SB3 to "the walks list's zoom-out (0054),
   by either Walks, from the sheet at rest, and once as the map mounts on Walks" and point it to `tend chronicle T6`
   and `tend chronicle T7` (decision 0142); the loop may not edit a spec.
+- **NV9's wording after 0048** (Nov 11): `specs/navigation-and-tabs/spec.md` NV9 says the recording bar "has no Stop";
+  decision 0048 gave it a held Stop (`bar-stop`). Amend NV9 to "It has a held Stop (decision 0048)", in the doc and the mirror;
+  the loop may not edit a spec.
 - **QL23's wording after T1** (Nov 11): the quality-of-life doc (mirrored in `specs/quality-of-life/spec.md`) says "an
   empty title becomes the suggested one"; the build now stores no title for an empty one or the suggestion kept as it
   was, shown as the suggestion. Amend the doc to "an empty title, or the suggestion unchanged, is no title, shown as
@@ -266,7 +302,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Community parks and the kind pipeline (Parks gets a subset, "Community parks", the reader can switch off: a park whose name says playground or the like with nothing notable in or near it; size never demotes; never described; built as the first entry of a registry of pure refinements, kinds know their parent so a parent switch hides its children; PC1-PC23, decisions 0143, 0144) | `claude/confident-mendel-gf0ck0` | built 2026-11-11, test-first by history (23 of 23): unit tests, typecheck, lint, layers; merged with main (presence); the journeys `check:affected` names pass on the web build (marks, with its new PC6 check, atlas, grading, curiosities, outlines, replay, nudge) except `scenic`, whose check "fix preview-clutter audit 1" (the trace drawn again as the preview closes) fails the same way on `origin/main` (3 of 3 runs of `e2e:baseline`), so it is main's, not this slice's; steward read once (10 findings, triaged in the plan); the sub-path build passes marks, atlas, grading, curiosities, outlines, chronicle, replay, scenic and nudge, where nudge's PA2 counted the double-tap's taps at the instant the first "?" showed and read 1 when its 1 s poll fell between the two (about 150 ms apart): it now counts after the pair, 8 of 8 runs; native unverified; not audited (decision 0074); spec `specs/community-parks/spec.md` |
-| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0146) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; not audited (decision 0074); not merged or deployed; native unverified; spec `specs/complexes/spec.md` |
+| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0147) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; not audited (decision 0074); not merged or deployed; native unverified; spec `specs/complexes/spec.md` |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in an edge-to-edge grid under pinned day headers; Years, Months, Days; Sort, Show, Zoom and pinch, Square or Aspect; MG1-MG22, decision 0139) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-11, test-first by history (22 of 22): unit tests (1814), typecheck, lint, docs and vision checks; the eleven journeys `check:affected` names (gallery, capturehome, chronicle, edit, qol, responses, resurface, stacks, tabs, threads, walk) pass on the /chronicles build, `resurface` run twice (its RM1 check counted four sections; now five); steward read twice (S1-S14 accepted); merged with main and deployed 2026-11-11 (`498e412`, Pages run 43050937634, the live page shows Media); not audited (decision 0074); native unverified. Video thumbnails are the next slice (the owner, Nov 11); spec `specs/media-gallery/spec.md` |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14, decision 0131) | `claude/elegant-cannon-gs9yrk` | built 2026-11-11: RT1-RT14 tested first (unit and the `responses` journey), typecheck, lint, 1741 unit tests; the nine journeys `check:affected` names pass on the /chronicles build; deployed 2026-11-11 (`9ed9a15`, Pages run 42957716629); not audited; native unverified; spec `specs/response-thread/spec.md` |
 | Presence and kinds (a museum the data calls historic lights History too, the bars kept apart; routes from a bar lean on places you pass; a Community spaces kind; the needsOpen gate measured; PK1-PK19, after the Coplay Kilns diagnosis) | `claude/dazzling-fermat-ws5c6a` | built 2026-11-10, test-first by history (19 of 19): PK1-PK19 pass (1715 unit tests with main's, merged at `0f3f216`); typecheck, lint, docs and vision checks clean; journeys atlas, curiosities, grading, marks, nudge, outlines, planner, replay pass, and scenic on the merged tree (its one failure before the merge was the old base's, passing 3 of 3 on main); audited 2026-11-11 at the owner's request (14 findings: 8 fixed, one in part, two at the owner's call (the icons); 3 deferred; 3 rejected, one at the owner's call (the label kept); tests `presence-and-kinds audit 1-3, 5, 6, 8, 10, 13`); nothing native new; not merged or deployed. For the owner: the live places archive is still v1, so the Kilns show only once a v2 archive publishes; decision 0127. Spec `specs/presence-and-kinds/spec.md` |
