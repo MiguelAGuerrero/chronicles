@@ -451,3 +451,17 @@ An item leaves only when it ships, or when it is rejected with a decision record
   phone-size screenshot.
 - **Deferred (fix carousel-live-select audits 2, 4-7):** a programmatic `scrollTo` sets `intended`, and on web a wheel or trackpad scroll may not fire `onScrollBeginDrag`, so that scroll is read as the row's own until it settles (2); each card passed runs the whole `selectKey` (announcement, layer re-read, map easing), where a screen reader may want one announcement for the card the scroll ends on (4); the selected card's footer can change the row's height while the finger is down (5); the settle's ease onto a card also runs on a phone when a finger is held between cards for 120 ms, as before the fix (6); no e2e step yet asserts a card is selected before the scroll settles (7).
 - **Deferred (fix thread-in-walk audit 4, 5):** `resurface.contextFor`, `keepContext` and `dropContextOfWalks` read `moments` only, so an owner thread's card for a moment of a walk still open would read "failed" if the thread screen ever shows arrival lines (it takes no `context` today); and a walk never stopped (a killed app) keeps its moments in `inOpenWalk`, shown in a thread but never in Lately, as `toMomentViews` already treats it. No e2e step yet replies mid-walk and opens the thread.
+
+
+## Presence and kinds (PK1-PK19, decision 0127, Nov 10)
+
+- **Plazas and art walkways** (the owner's picture of Culture): no data the app reads holds them; a source that adds places is 0115's question, not a sorting one (0117).
+- **Food and Parks are lit in most areas**, and Food wherever nearly any other bar is: they say little when lit. For the owner.
+- **The planner ignores "What I'm into"** (before this slice too): a History route may pass a museum the walker switched off. Whether 0115's "kinds shape Explore, Navigate and the kind walk" covers the planner's cells is the owner's question.
+- **The live places archive is still v1** (its manifest unchanged since Nov 10, 05:35): the Kilns show on a phone only after a v2 archive publishes; PK1 and PK6 hold the rule with recorded fixtures.
+- **An arts centre or library already on a kept checklist** keeps its old kind (Museums and galleries) until its area is rebuilt: kept data is never patched.
+- **The gate itself** (chronicles-data's RD8, 343 of 425 listed buildings in the sample held back): measured by `npm run places:coverage -- --gate <checkout>` (PK15) once a v2 archive publishes; changing it is the owner's call on 0109.
+- **A museum that lights History is still a Culture "?" on the map** (presence-and-kinds audit 4): `waitingMarks` and `waitingKinds` work by category and kind. A found archive museum is also no found pin on a History route, because `found(kind)` reads the find's category. A find keeps only its category; storing the second bar is a data-model call for the owner (RP11 keeps listings off stored rows).
+- **`saveSettings` writing `explore_kinds_known` has no test** (presence-and-kinds audit 6): `explore/settings.ts` imports the db singleton, which a Node test cannot load. It moves to a shell factory with SH5's pattern. The reading rule (`parseHidden`) and the scenic read are tested.
+- **"What I'm into" has eleven switches with no visible groups** (presence-and-kinds audit 11, an opinion): headings matching the card's groups would make the order readable.
+- **The drawer's handle sits over the first visible switch** (presence-and-kinds audit 12): this predates the slice and is the drawer's layout, not the kinds'.

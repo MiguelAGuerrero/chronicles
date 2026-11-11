@@ -34,6 +34,8 @@ export interface PlannedRoute {
 
 export interface PlanInput {
   cells: readonly Cell[];
+  /** PK9: the cells the route is graded by when they differ from those it chooses stops from (every place of the bar). */
+  graded?: readonly Cell[];
   from: LngLat | null;
   mode: Mode;
   ceilingM: number;
@@ -237,7 +239,7 @@ export function planRoutes(input: PlanInput, route: Leg): Planned {
       continue;
     }
     const best = found;
-    const runs = gradeRuns(best.path, dense);
+    const runs = gradeRuns(best.path, input.graded ?? dense);
     if (kindShare(runs) < DENSITY_SHARE[input.density]) {
       reasons.add('little');
       continue;

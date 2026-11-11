@@ -66,3 +66,22 @@ export function outcome(item, seen) {
   if (near(seen.raw).length) return 'dropped by the adapter';
   return 'not in the tiles';
 }
+
+const SMALL = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+/** A count as the report says it: a word up to twelve, the number past it (counts are words, 0052). */
+const say = (n) => SMALL[n] ?? String(n);
+const areas = (n) => `${say(n)} ${n === 1 ? 'area' : 'areas'}`;
+
+/**
+ * PK15: the needsOpen gate's measurement, the owner's report: per named area, the listed places the archive holds back
+ * for want of a sign they are open, by name; then how often History and Culture are lit apart, in words. Never a
+ * percentage or an "n of m".
+ * @param {{ name: string, held: string[], apart: { historyAlone: number, cultureAlone: number, both: number } }[]} list
+ */
+export function gateReport(list) {
+  const lines = ['## Held back until a source says they are open'];
+  for (const a of list) lines.push(`${a.name}: ${a.held.length ? a.held.join('; ') : 'none'}`);
+  const sum = (k) => list.reduce((t, a) => t + (a.apart[k] ?? 0), 0);
+  lines.push('', '## History and Culture', `History lit without Culture in ${areas(sum('historyAlone'))}; Culture without History in ${areas(sum('cultureAlone'))}; both in ${areas(sum('both'))}.`);
+  return lines.join('\n');
+}

@@ -2,6 +2,7 @@
 // @instance: the walk planner on the device's tiles, the walkability reader, the finds and the open walk
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
+import { placesArchive } from '../discovery/archive';
 import { placesFromTilePois } from '../discovery/tilePois';
 import { boundsOf } from '../geo';
 import { carStretches } from '../walk/ahead';
@@ -20,8 +21,10 @@ export const planner = createPlanner({
     const [url, build] = await Promise.all([db.getMeta('tile_url'), db.getMeta('tile_build')]);
     if (!url) return null;
     // A little past the radius, so a street beside a cell at its edge is read too.
-    const f = await fetchTiles(url, tilesIn(boundsOf([at], radiusM + 300)!));
-    return { places: placesFromTilePois(f.pois, build ?? ''), segments: deriveSegments(f.roads, f.names, build ?? '') };
+    const tiles = tilesIn(boundsOf([at], radiusM + 300)!);
+    // presence-and-kinds audit 1: the places archive's places too, as the atlas ring reads them; any failure is none (PW3).
+    const [f, archive] = await Promise.all([fetchTiles(url, tiles), placesArchive.read(tiles, at, () => false).catch(() => null)]);
+    return { places: placesFromTilePois(f.pois, build ?? ''), archive: archive?.places ?? null, segments: deriveSegments(f.roads, f.names, build ?? '') };
   },
   async reach(path) {
     const build = await walkBuild().catch(() => null);

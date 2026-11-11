@@ -425,3 +425,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a native map, stand where two revealed marks sit within a few metres of each other, then pinch in and out. **Expect:** only one mark shows its name while their names would overlap; both names show once you zoom in enough to part them; no flicker of the pins at the 0.25 zoom steps. (fix mark-names)
 - [ ] **Do:** on a phone, start an exploring walk and take a photo within 60 m of two unfound places (a park and a statue in it). **Expect:** nothing is tagged yet; "Which place is this moment about?" offers both by name and Neither; tapping the park shows "Found: <park>" once and the replay names it; Neither dismisses it and tags nothing; its buttons are reachable by VoiceOver and TalkBack. (fix which-place)
 - [ ] **Do:** on Explore, drag the area cards slowly and then flick across several. **Expect:** each card becomes the selected one, and the map eases to it, as it passes the middle, without waiting for the scroll to stop; the row never jumps back to a card you scrolled past; it comes to rest on one card. (fix carousel-live-select)
+
+
+## Presence and kinds (PK1-PK19, decision 0127)
+
+- [ ] **Do:** on a phone that had "Museums and galleries" switched off before this update, open "What I'm into", switch Community spaces on, force-quit and reopen. **Expect:** Community spaces was off at first and stays on after the relaunch (meta `explore_kinds_known` through SQLite's `meta`, PK18).
+- [ ] **Do:** after the update, open Explore with several areas listed. **Expect:** every area's marks are read again without stalling the tab (`ATLAS_CODE` a8, PK7).
+- [ ] **Do:** open "Suggest a walk" on History in a town whose History is lit by a museum in the places archive. **Expect:** a route through it, the archive read beside the map's (presence-and-kinds audit 1).

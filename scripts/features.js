@@ -139,7 +139,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds'],
   },
   {
     name: 'kind-walk',
@@ -155,7 +155,7 @@ const FEATURES = [
     rule: 'walk-planner',
     source: ['src/lib/walkPlanner/**', 'src/components/planner/**'],
     journeys: ['planner'],
-    specs: ['walk-planner'],
+    specs: ['walk-planner', 'presence-and-kinds'],
   },
   {
     name: 'layers',
