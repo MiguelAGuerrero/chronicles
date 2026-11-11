@@ -11,6 +11,7 @@ import { routeTo } from '../nav/navigator';
 import { streetRouteSource } from '../nav/streetRoute';
 import type { LngLat, StreetSegment } from '../types';
 import { countsToward } from '../discovery/curation';
+import { isMarkable } from '../discovery/noise';
 import { alsoPasses, type Also } from './exposure';
 import { planRoutes, type Leg, type PlannedRoute, type Reason } from './planner';
 import { CONSIDERED } from './presets';
@@ -102,7 +103,10 @@ export function createPlanner(deps: PlannerDeps) {
       // own rule (`countsToward`, PS5), so a cell of churches that cannot be found is not dense (walk planner audit 5).
       // presence-and-kinds audit 1: the archive's places with the map's, one place each, as the atlas ring merges them (PW8).
       const places0 = read.archive ? mergePlaces(read.places, read.archive) : read.places;
-      const counted = places0.filter((p) => distanceM(p.at, i.area.at) <= radiusM && countsToward(p));
+      // presence-readers audit 3: a place read before `markable` existed is judged as the atlas's ring judges it (`ringOf`).
+      const counted = places0
+        .map((p) => (p.markable === undefined ? { ...p, markable: isMarkable(p) } : p))
+        .filter((p) => distanceM(p.at, i.area.at) <= radiusM && countsToward(p));
       // PK8, PS5: the places that light the bar by their classes, a museum the data calls historic among History's.
       const places = counted.filter((p) => barsOf(p).includes(i.kind));
       if (!places.length) return { routes: [], reasons: ['few'], found: [] };

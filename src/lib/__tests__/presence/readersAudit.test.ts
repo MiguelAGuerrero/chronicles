@@ -72,3 +72,14 @@ test('presence-readers audit 2: a carried code is only ever the previous presenc
     assert.equal(rulesCurrent(`${LANDING_CODE}:p${k}:${JSON.stringify(LANDING_RULES)}`), carried, `landing p${k}`);
   }
 });
+
+test('presence-readers audit 3: a mark-category place with unknown markable counts toward no bar in the planner', async () => {
+  const { createPlanner } = await import('../../walkPlanner/service');
+  const { at, segs } = await import('../walk-planner/grid');
+  // Five churches with no `markable` (a row read before it existed): before the slice the planner counted none of them.
+  const places = [at(200, 200), at(220, 210), at(900, 300), at(910, 320), at(1000, 900)].map((p, i) => ({ key: `c${i}`, name: `St Paul Church ${i}`, category: 'history' as const, at: p, generic: false, build: 'b' }));
+  const planner = createPlanner({ read: async () => ({ places, segments: segs }), reach: async () => ({ cars: [], unknown: false }), found: async () => [] } as never);
+  const r = await planner.plan({ kind: 'history', area: { at: at(650, 650), reachM: 1200 }, from: at(130, 130), prefs: { budgetM: 3000, pref: 'warn', mode: 'oneway', density: 'anywhere' } } as never);
+  assert.deepEqual(r.routes, []);
+  assert.ok(r.reasons.includes('few'), r.reasons.join(', '));
+});
