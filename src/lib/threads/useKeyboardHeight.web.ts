@@ -1,5 +1,6 @@
 // @layer view
 import { useEffect, useState } from 'react';
+import { keyboardInset } from './keyboardInset';
 
 /**
  * How far the on-screen keyboard reaches up from the page's foot; 0 while it is down. react-native-web's `Keyboard`
@@ -11,7 +12,17 @@ export function useKeyboardHeight(): number {
   useEffect(() => {
     const vv = typeof window !== 'undefined' ? window.visualViewport : null;
     if (!vv) return;
-    const read = () => setHeight(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    // Zoomed, iOS's innerHeight is the visual viewport: keyboardInset reads the layout's own height then (fix note-keyboard-zoom).
+    const read = () =>
+      setHeight(
+        keyboardInset({
+          innerHeight: window.innerHeight,
+          layoutHeight: document.documentElement.clientHeight,
+          vvHeight: vv.height,
+          vvOffsetTop: vv.offsetTop,
+          scale: vv.scale,
+        }),
+      );
     vv.addEventListener('resize', read);
     vv.addEventListener('scroll', read);
     return () => {

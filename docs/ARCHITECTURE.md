@@ -475,7 +475,9 @@ own code only where no Expo module covers the feature on web:
   itself goes through React Native's `Linking`, as on a phone.
 - **The keyboard's height** (Respond's note, fix respond-bottom): `threads/useKeyboardHeight.web.ts` reads
   `visualViewport`. react-native-web's `Keyboard` reports nothing and its `KeyboardAvoidingView` does nothing, and
-  `#root` is pinned, so a field near the foot was left under the keyboard.
+  `#root` is pinned, so a field near the foot was left under the keyboard. Under a pinch, iOS reports `innerHeight`
+  as the visual viewport, so a zoomed page reads the layout's `clientHeight` instead, and the page below a zoomed
+  view is not a keyboard (`threads/keyboardInset`, fix note-keyboard-zoom).
 - **Can it buzz** (the pocket alert's switch): `canBuzz.web.ts` asks
   whether the pointer is coarse and `navigator.vibrate` exists. iPhone Safari has no
   vibrate and its switch haptic needs a tap, not a location update, so it is not offered (decision 0138);

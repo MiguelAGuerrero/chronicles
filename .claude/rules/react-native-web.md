@@ -67,3 +67,9 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   caption is sized from the photo's width, so a narrow photo or video types
   below 16 px. Every `TextInput` a web user can focus must be at least 16 px
   while focused; `typingFontSize` (`lib/captionInput`) does it for the caption.
+
+- **`window.innerWidth/innerHeight` are the visual viewport on iOS Safari under a pinch-zoom**: they halve at 2x.
+  Never measure the page against them. The safe-area insets read `env()` alone (`components/SafeInsets.web.tsx`,
+  fix memories-weird-state); the note editor's keyboard height reads `clientHeight` and `visualViewport.scale` when
+  zoomed (`threads/keyboardInset`, fix note-keyboard-zoom). The e2e fakes a pinch by redefining them on `window`
+  and `visualViewport` and puts the saved descriptors back after.

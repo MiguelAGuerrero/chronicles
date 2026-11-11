@@ -252,6 +252,43 @@ async function run(h) {
     delete window.visualViewport.height;
     window.visualViewport.dispatchEvent(new Event('resize'));
   });
+  // fix note-keyboard-zoom: pinch-zoomed, iOS Safari reports innerHeight as the visual viewport, which read the keyboard as 0.
+  {
+    await pg.waitForTimeout(300);
+    const rest = await pg.locator('[data-testid=note-edit-save]').boundingBox();
+    // A 2x pinch, the view panned 100 px down the page, with a 300 px keyboard up (in screen pixels), and then none.
+    const zoom = (keyboard) => pg.evaluate((kb) => {
+      const vv = window.visualViewport;
+      const H = document.documentElement.clientHeight;
+      const h = (H - kb) / 2;
+      window.__realInner = window.__realInner ?? Object.getOwnPropertyDescriptor(window, 'innerHeight');
+      Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => h });
+      Object.defineProperty(vv, 'height', { configurable: true, get: () => h });
+      Object.defineProperty(vv, 'scale', { configurable: true, get: () => 2 });
+      Object.defineProperty(vv, 'offsetTop', { configurable: true, get: () => 100 });
+      vv.dispatchEvent(new Event('resize'));
+      return { top: 100, bottom: 100 + h };
+    }, keyboard);
+    const shown = await zoom(300);
+    await pg.waitForTimeout(300);
+    const up = await pg.locator('[data-testid=note-edit-save]').boundingBox();
+    check(!!up && up.y >= shown.top && up.y + up.height <= shown.bottom,
+      `fix note-keyboard-zoom: pinch-zoomed with the keyboard up, Save stays in what is on screen above it (${up && Math.round(up.y)}-${up && Math.round(up.y + up.height)} within ${shown.top}-${Math.round(shown.bottom)})`);
+    await zoom(0);
+    await pg.waitForTimeout(300);
+    const none = await pg.locator('[data-testid=note-edit-save]').boundingBox();
+    check(!!rest && !!none && Math.abs(none.y - rest.y) <= 2,
+      `fix note-keyboard-zoom: pinch-zoomed with no keyboard, the note editor stays where it rests (${none && Math.round(none.y)} vs ${rest && Math.round(rest.y)})`);
+    await pg.evaluate(() => {
+      const vv = window.visualViewport;
+      Object.defineProperty(window, 'innerHeight', window.__realInner);
+      delete vv.height;
+      delete vv.scale;
+      delete vv.offsetTop;
+      vv.dispatchEvent(new Event('resize'));
+    });
+    await pg.waitForTimeout(300);
+  }
   // The web's viewer takes no Escape; native's Back goes through the same composeFor first (NATIVE_UNVERIFIED).
   await pg.locator('[data-testid=note-editor] >> text=Cancel').click();
   await pg.waitForTimeout(300);
