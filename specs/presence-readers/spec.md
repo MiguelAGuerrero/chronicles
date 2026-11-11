@@ -24,7 +24,7 @@ Three facts about a place become classes, named for what they record, because bo
 
 - **The G4 entry** (the owner's yes, Nov 11): its eight criteria, below as PS1-PS8; nothing else a person sees changes, and none does (PS8 lists no change).
 - **One word list, one name rule** (PS3; the steward's S1, Nov 11): `notable.json` and `notableName` live in presence. The marks' reading (any listed word, as whole words) is the rule; reading past "Old Town/City/Quarter/Village" and "old and new" stays only in the step that makes a museum `historic`, where presence-and-kinds audit 5 put it. So a map town hall named "Old Town Hall" stays a mark and Philadelphia's Old City Hall museum stays out of History (PK6), as before.
-- **F3 is settled by keeping the difference** (PS6; the steward's S2): a plain-named memorial is a mark where the archive records it, and from the map only by a notable name; where both hold it, the walker sees one place, the archive's (PW8). The archive's record is its gate (decision 0109: "a listing is the gate"), and judging the archive's memorials by name would drop most of them (516 of the US archive's 522 memorials have plain names).
+- **Presence review F3, settled by keeping the difference** (PS6; the steward's S2): a plain-named memorial is a mark where the archive records it, and from the map only by a notable name; where both hold it, the walker sees one place, the archive's (PW8). The archive's record is its gate (decision 0109: "a listing is the gate"), and judging the archive's memorials by name would drop most of them (516 of the US archive's 522 memorials have plain names).
 - **Classes that record, curation that judges** (PS10; the steward's S3): 0140's "notable names" under curation is read as the judgement curation makes over what presence records. `recorded`, `historic_name` and `historic` carry no density weight and are never a measure (decision 0103: "significance is a gate, never a measure").
 - **A second bar only from `historic`** (PS11; the steward's S4): a class's category lights no bar beside the place's own unless it is `historic`, so a later class (G2's storefronts) cannot light a second bar unasked (0127, "never making two redundant").
 
@@ -44,4 +44,10 @@ Three facts about a place become classes, named for what they record, because bo
 
 ## Record
 
-In progress.
+Shipped Nov 11 (from G4, `/tend inbox G4 yes`), on the web build; nothing here is native.
+
+- **PS1-PS11 pass** (`src/lib/__tests__/presence/readers.test.ts`): tests first `3ca418c`, the code `77be914`; the db contract holds that no store keeps a place's classes (`a67f799`, fake, IndexedDB and SQLite).
+- **The golden tables** (`readers.golden.json`, captured from `0d03c4b` before any code by a script kept outside the repo): the archive's 22 classes and the 156 golden poi pairs, each under a plain, a notable and an "Old Town" name; 50 landcover pairs; the atlas's steps, marks and thinness over presenceSample's 152 areas and presenceTowns' 4. All hold, with no listed change, so no picture differs and none is owed (decision 0140's call 3 asks for pictures of a change).
+- **Presence review F3, settled by keeping the difference** (PS6): a plain-named memorial is a mark where the archive records it, and from the map only by a notable name; where both hold it the walker sees the archive's. Measured on the US archive (version 20261111.6, 18,129 places): 516 of 522 memorials and 972 of 1,110 churches have plain names.
+- **Re-pinned on purpose:** TP10 and PW10 (`ATLAS_CODE` `a8.p2`, with `a8.p1` carried), presence audit 2's `ALLOWED` emptied, PW11 and RP11 (an archive place's fields gain `classes`, its type and `recorded`, alike for every archive place, never stored or shown), `scanAudit` reads `notableName` from presence.
+- **The steward** (plan): S1-S4 accepted (the plan's last section); its two silent points filed `[owner]` in `docs/DEFERRED.md`.

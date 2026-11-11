@@ -219,15 +219,16 @@ Filling gaps
   tileCollector/             reads the tiles near a walk in code, no camera moves (re-snap after a decision); shell.ts takes the tile reader
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
-  presence/presence.ts       what a place is: the one table from poi classes and Overture's taxonomy to classes, each class's weight, category and kind; PRESENCE_CODE (decision 0140, PR1-PR8)
+  presence/presence.ts       what a place is: the one table from poi classes, Overture's taxonomy, the places archive's classes and landcover to classes, each class's weight, category and kind; named (historic_name, historic); PRESENCE_CODE (decision 0140, PR1-PR8, PS1-PS11)
+  presence/notable.ts        the one name rule (notableName, notable.json) and the museum's read-past of a neighbourhood (PS3)
   discovery/tilePois.ts      the poi layer's adapter: places from points, their category and kind from presence
-  discovery/curation.ts      what makes a mark, over presence classes: NEVER_MARK, BY_NAME (PR7)
-  discovery/archivePois.ts   the places archive's schema: ARCHIVE_CLASSES (pinned, PW5), placesFromArchive (the only file that knows it; decision 0103)
+  discovery/curation.ts      what makes a mark, over presence classes: NEVER_MARK, BY_NAME (with recorded or historic_name), countsToward (the atlas's and the planner's rule) (PR7, PS5, PS6)
+  discovery/archivePois.ts   the places archive's schema: placesFromArchive (the only file that knows it; decision 0103); its classes are presence's, ARCHIVE_CLASSES lists them (pinned, PW5)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), ARCHIVE_EDITS and applyEdits (archiveEdits.json, PW13)
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
   discovery/archive/shell.ts createPlacesArchive: the manifest daily, the region, the read's tiles through net/tileReader; index.ts is the app's instance
   discovery/places.ts placeKey, normalization, same-place rules
-  discovery/noise.ts         MARK_CATEGORIES, chains.json and notable.json rules
+  discovery/noise.ts         MARK_CATEGORIES, chains.json, isMarkable
   discovery/categories.ts the eight categories: labels, icons
   discovery/tileDecode.ts         one vector tile decoded in code (pbf + vector-tile)
   discovery/tileFetch.ts     fetches and caches decoded tiles per build
