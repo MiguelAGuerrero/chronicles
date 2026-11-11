@@ -32,7 +32,7 @@ import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
-import { LANDING_VERSION, type LandingRow } from '../lib/landing/view';
+import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
 import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
@@ -696,7 +696,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [exploring, setExploring] = useState(false);
   const quiet = !exploring;
   const reloadLandings = useCallback(() => {
-    db.listLandings().then((r) => setLandings(r.filter((x) => x.rules === LANDING_VERSION)), () => {});
+    db.listLandings().then((r) => setLandings(r.filter((x) => rulesCurrent(x.rules))), () => {});
   }, []);
   // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
   const preview = options && exploring && loaded ? loaded.rangeM : null;
