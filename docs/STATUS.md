@@ -118,12 +118,16 @@ first.
 ## Needs the owner
 
 This section is the owner's inbox (decision 0128). `/tend` files here what it may not ship: additions, phone-only
-findings, opinions and architectural calls, each numbered `T<n>` with a recommended shape. Answer with
-`/tend inbox T3 yes, T4 no: <reason>`.
+findings, opinions and architectural calls, each numbered `T<n>` with a recommended shape, and its proposals for the next iteration (`G<n>`, decision 0129).
+Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
 Nothing filed yet. The first runs to make: `/tend triage` (tags `docs/DEFERRED.md`), then `/tend <area>`.
+
+### Next evolutions
+
+The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). None yet; `/tend evolve` makes the first.
 
 ### Last tend
 

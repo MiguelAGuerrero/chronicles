@@ -1,8 +1,8 @@
 ---
 name: tend
-description: The owner's product loop (decision 0128) - sweep one area for gaps nobody asked about (missing states, broken UI patterns, sibling screens that disagree, slow paths, drift), ship to main what only makes an existing thing conform, one commit per finding, and file every addition, phone-only finding and judgment call in the owner's inbox with a recommended shape. Also triages docs/DEFERRED.md into loop, owner and phone items, and builds what the owner approved from the inbox.
+description: The owner's product loop (decision 0128) - sweep one area for gaps nobody asked about (missing states, broken UI patterns, sibling screens that disagree, slow paths, drift), ship to main what only makes an existing thing conform, one commit per finding, and file every addition, phone-only finding and judgment call in the owner's inbox with a recommended shape. When an area comes up polished it proposes that area's next evolution, sized and ranked by payoff, and each run checks that the app is growing and not only settling (decision 0129). Also triages docs/DEFERRED.md into loop, owner and phone items, and builds what the owner approved from the inbox.
 when_to_use: The owner types /tend, optionally with an area, a feature, "triage" or "inbox". Not for one named bug (/fix) or a feature the owner already described (/slice).
-argument-hint: "[<area or feature> | triage | inbox <answers>] [--cap=N] [--deploy=main|branch|none]"
+argument-hint: "[<area or feature> | triage | evolve [<area>] | inbox <answers>] [--cap=N] [--deploy=main|branch|none]"
 disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent, Skill, AskUserQuestion, EnterWorktree, ExitWorktree, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
 ---
@@ -22,7 +22,8 @@ Echo the resolved mode, scope and flags in your first line.
 | none | the area whose files changed most on `main` since it was last tended (`ledger.md` beside this file) |
 | an area or feature (`scripts/features.js`, `.claude/rules/`) | that scope only |
 | `triage` | section 6 only: tag `docs/DEFERRED.md` |
-| `inbox <answers>` | section 7 only: act on the owner's answers ("T3 yes, T4 no: too busy a screen") |
+| `evolve [<area>]` | sections 8 and 9 only: the balance, then proposals for that area, or for the app if none is named |
+| `inbox <answers>` | section 7 only: act on the owner's answers ("T3 yes, G2 yes, T4 no: too busy a screen") |
 | `--cap=N` | stop shipping after N commits; the rest are filed as `[loop]` in `docs/DEFERRED.md` |
 | `--deploy` | `main` (default), `branch` (push `tend/<scope>` and stop), `none` |
 
@@ -160,7 +161,7 @@ place. Commit as docs only; nothing else ships in a triage run.
 
 - **Yes** to a small addition (inside `/fix`'s size limits): build it as
   section 4, one commit, its entry removed from the inbox.
-- **Yes** to more than that: it is a slice. Write its line under "Queued" in
+- **Yes** to more than that, or to a `G` entry: it is a slice. Write its line under "Queued" in
   `docs/STATUS.md` with the approved shape and stop; `/slice` builds it.
 - **Reshape:** rewrite the entry as told and build that.
 - **No:** remove the entry and add one line to `ledger.md`, "Declined", with
@@ -169,13 +170,105 @@ place. Commit as docs only; nothing else ships in a triage run.
 - An answer that changes `docs/VISION.md` is the owner's edit; propose the
   wording and leave the page.
 
-## 8. Close the run
+## 8. The balance: is the app growing or only settling?
 
-1. `ledger.md`: the scope's row (date, `main`'s head after the push), the last
-   `T` number, any declined lines.
+Every run that ships or sweeps ends with this check, before the close. It is
+for the owner and the ledger; none of it ever appears in the app.
+
+**Each area has a state**, kept in `ledger.md` and moved only by a sweep:
+
+| State | It means | What the loop does there |
+|---|---|---|
+| `rough` | The last sweep found loop findings of high or medium severity, or a slice landed since the last sweep | Tend it. No evolution is proposed on a rough base. |
+| `settling` | Only low findings were left, or its inbox entries are unanswered | Tend once more, or wait for the owner's answers |
+| `polished` | A whole sweep (every lens run) shipped nothing above low, its screens all have journeys, and its inbox is empty | **Owes an evolution:** section 9, in the same run |
+| `resting` | Polished, and the owner said no to its evolutions for now (the ledger says until when or what) | Left alone; a slice landing there makes it rough again |
+
+**Then read the last 14 days of `main`** (`git log --since='14 days ago' --format='%h %s' origin/main`)
+and sort each commit by its subject: **growth** (a slice's criteria, a new
+spec), **refinement** (`fix`, `tend`, an audit, a revert), **other** (docs,
+tooling). Write the three shares and the areas by state in the ledger's
+"Balance" line, and judge:
+
+| Sign | Reading | The run ends by |
+|---|---|---|
+| No growth commit in 14 days, or nothing under "Queued" in `docs/STATUS.md` and no open `G` entry | **Settling.** Polish is outrunning the product. | Running section 9 for the app (not only this area) and saying so first in the report |
+| More than three `rough` areas, or more than ten unanswered inbox entries, or a red `main` in the window | **Outgrowing its base.** | Filing no new `G` entry; the report names the areas to tend and the entries to answer first |
+| A slice shipped and its area has not been swept since | **Unpaid polish.** | Naming that area as the next `/tend` |
+| Otherwise | **In step.** | Section 9 only if this area is polished |
+
+The cycle this keeps turning: a slice lands (rough), the loop tends it
+(settling, polished), a polished area owes its next evolution, the owner
+picks, a slice lands. An area that is polished with nothing proposed, or
+rough with something new stacked on it, is the loop failing.
+
+## 9. Evolve: propose the next iteration
+
+For a polished area, or for the whole app when it is settling. At most
+**three** open `G` entries exist at once; a better proposal replaces the
+weakest, with a line saying why.
+
+**Where an evolution comes from.** Each proposal names its source; one that
+has none is not made.
+
+1. `docs/VISION.md`: the question of the verb the area serves, asked of the
+   area as built; a Shapes row that is aligned and unbuilt; what the page says
+   comes "later" (recall, search, likeness). Chronicle first.
+2. What was left out on purpose: the area's `[owner]` items and "left out"
+   lists in `docs/DEFERRED.md`, a spec's later rounds, a decision's "waits for".
+3. **The next thing a person would try.** From each screen of the area, the job
+   they would reach for next and cannot do, or can do only by leaving the app.
+4. What the area now makes possible elsewhere: a corpus big enough to search,
+   a kind that could drive a route, a context line another screen could carry.
+5. Repeated loop findings with one cause: three patches to the same screen
+   say the screen wants a redesign, which is an evolution, not a fix.
+
+Never from: what other apps have (`docs/research/ui-teardown.md` informs how,
+never what), a Never row, or the wish to have something to propose. "This
+area is whole; nothing to add" is an answer, and makes it `resting`.
+
+**Shape each one as the thinnest slice a person would notice.** Run `/vision`
+on it; **out** is dropped, a reshaping is proposed reshaped. Then size it:
+
+- **S**: inside `/fix`'s limits; the loop builds it on a yes.
+- **M**: one slice, about ten criteria or fewer, no architectural decision.
+- **L**: anything more. Never proposed whole: propose its first S or M slice
+  and say what the rest would be.
+
+**Rank by payoff against cost and risk**, in words, not points:
+
+- *Payoff:* which verb (Return, then Honour, then Earn, since Chronicle comes
+  first); how often a person meets it (every walk, every time the app opens,
+  now and then); whether it deepens the replay or the corpus of moments;
+  whether later evolutions need it first.
+- *Cost:* S, M, the screens and modules touched, new native code (unverified).
+- *Risk to what is stable:* which polished areas it reopens, whether it
+  touches truth (walks, traces, captures) or only cache and views, whether a
+  wrong guess can be reverted in one commit.
+
+Prefer a noticed S over a deep M, and an M on a polished base over anything on
+a rough one. Across the three entries keep a spread: not three in one area,
+and one small enough to ship this week.
+
+**File** under "Next evolutions" in `docs/STATUS.md`, numbered `G<n>`:
+
+```
+- **G4 [M] Chronicle: search over moments, by word** (2026-11-11) · Return · aligned
+  From: VISION.md Shapes, "Search over moments"; Memories is polished since <sha>.
+  The slice: <three to six criteria, in the spec's own style>.
+  Payoff: <words>. Cost: <words>. Reopens: <areas>. After it: <what it unlocks>.
+  Instead: <the smaller shape>.
+```
+
+The owner picks; the loop never starts a `G` entry unasked.
+
+## 10. Close the run
+
+1. `ledger.md`: the scope's row (date, `main`'s head after the push, its
+   state), the Balance line, the last `T` and `G` numbers, any declined lines.
 2. `docs/STATUS.md`, "Last tend": replace it with this run's digest (scope,
-   commits with one line each, entries filed, what was not looked at). Git
-   holds the earlier ones.
+   commits with one line each, entries filed, the balance in a sentence, what
+   was not looked at). Git holds the earlier ones.
 3. `npm run check:docs`; `/docs-gc` only if a rule, a behaviour or a file
    location changed.
 
@@ -184,5 +277,6 @@ place. Commit as docs only; nothing else ships in a triage run.
 Scope and flags; each lens and what it found or "nothing found"; every
 finding's triage line; per shipped commit its hash, source, test and pictures;
 the Pages run and the live check; the inbox entries filed, with their
-numbers; what was dropped as **out**; what was not run or not looked at, and
+numbers; the balance (the shares, the areas by state, the reading) and any `G`
+entries with their ranking; what was dropped as **out**; what was not run or not looked at, and
 that nothing here has run on a phone.
