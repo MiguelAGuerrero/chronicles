@@ -248,7 +248,7 @@ const FEATURES = [
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
     source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
-    journeys: ['threads'],
+    journeys: ['threads', 'responses'],
     specs: ['owner-threads', 'moment-references', 'response-thread'],
   },
   {
