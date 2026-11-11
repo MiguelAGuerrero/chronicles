@@ -66,6 +66,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 ## Explore and discovery
 
 - [owner] Presence's second slice (decision 0140): the places archive's classes (`archivePois.ts`), `barsOf`'s second bar, notable names (decided twice: `markableFor` and `historicName`), scenic routes' greens (`greenKind` reads landcover tags) and the planner onto presence classes; then G2 (Storefronts as a presence class). Filed as a G entry (specs/presence, Nov 11)
+- [loop] A plain-named memorial is a mark from the places archive (`archivePois.ts`, `historic_site`) but not from the tiles (presence's `memorial` is a mark only by a notable name); `mergePlaces` hides it only where the archive holds the place. Settled when the archive moves onto presence (the second slice; presence review F3, Nov 11, low)
 - [kept] A checklist takes a reclassified place's new category at the next tile build, not at once: items are kept and rebuilt only by E4 and PW12; `PRESENCE_CODE` re-derives the atlas and the landing only (specs/presence PR6, Nov 11)
 - [loop] Cached places (`place` store) keep the category of their read and are never read back (`placesIn` has no caller): the store could go, or be read; either is a data-model call (specs/presence PR6, Nov 11, low)
 - `specs/pocket-alert-nudge/spec.md` PA6 and line 15 still say iPhone Safari gets the switch haptic; the code follows decision 0138. The mirror follows the owner's doc, which needs the same edit (pocket-alert-hide audit 2)

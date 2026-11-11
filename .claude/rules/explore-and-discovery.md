@@ -27,9 +27,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 
 - **Places of interest** come from the tiles' `poi` layer, read in the same z14
   reads as streets (`collectView`, `collect`, so `snapWalk` and the walk screen),
-  into a `place` cache tagged with the build. `discovery/tilePois.ts` is the only
-  file that knows the poi classes; its table is the tab's. Sources sit behind
-  `PlaceSource`.
+  into a `place` cache tagged with the build. `discovery/tilePois.ts` is the poi
+  layer's adapter; what each poi class is lives in `presence/presence.ts` (decision 0140).
+  Sources sit behind `PlaceSource`.
 - **Keys:** category + name (NFC, trimmed, `toLowerCase`, never the locale's) +
   position to 4 decimals. One POI can straddle a rounding line and get two keys,
   so a checklist build runs its pool through `isOffered` against itself.
@@ -40,12 +40,12 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   streets instead.
   - `MARK_CATEGORIES` (`discovery/noise.ts`): art, history, parks, culture,
     viewpoints. Food, shops and nightlife stay in the place cache for the
-    atlas's bars. Busy-street density has its own table and sources
-    (`activity/`, AD1-AD2): every kind of place, OSM and Overture, never marks.
-  - `tilePois` sets `markable` per place. Cinemas, dog parks and picnic sites are
-    never marks. Places of worship, town halls, courthouses, cemeteries and
-    libraries are marks only when the name holds a word from `notable.json`
-    (whole words after `normalizeBrand`).
+    atlas's bars. Busy-street density reads presence's class weights for both sources
+    (`activity/`, AD1-AD2, PR4): every kind of place, OSM and Overture, never marks.
+  - `tilePois` sets `markable` per place, from `curation.ts` over presence classes. Cinemas, dog parks and picnic sites are
+    never marks. Places of worship, town halls, courthouses, cemeteries,
+    libraries, community centres, memorials and nature reserves are marks only when the name holds a word from `notable.json`
+    (whole words after `normalizeBrand`; memorials and reserves since presence, PR5).
   - Chains (`chains.json`, per category, whole leading words) are never marks.
   - `isMarkable` gates what goes on a checklist. A row without
     `markable` (cached before it) is not a mark until read again. SQLite
@@ -97,7 +97,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - **Storage:** `checklist_area`, `checklist_item`, `find` (kept), `explore_read`
     (derived: a build change clears it, so areas are read again and rebuilt,
     E4). SQLite migration 9, IndexedDB v8. Items snapshot the place; `kind` is
-    set only on fresh reads (`tilePois` `kindFor`), never cached in `place`.
+    set only on fresh reads (presence's class kind), never cached in `place`.
   - **What shows** (`visibleMarks`): found places at any distance; unfound ones of
     shown kinds within the range (60-300 m, 100 by default), nearest 8, named
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
@@ -178,7 +178,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - Change what a read keeps, or how it is judged, and bump `ATLAS_CODE`.
 - **Atlas grading (AG1-AG6, decision 0084):** the five findable kinds (`MARK_CATEGORIES`) count only places with `markable` true (`read.ts` sets it from `isMarkable`, chains included), so the dots and the "?" agree. Food, shops and nightlife count all. `profile.thin` (fewer than `ATLAS_RULES.thinPlaces` places in the ring): the tile shows no kinds or character line, the card no kind rows. `MARKABLE_CLASSES` (`tilePois.ts`) is pinned by AG5's test: a new markable class is a change to the spec's definition of a mark. Next: whole areas (DEFERRED).
 - **A place may light two bars** (PK1-PK19, decision 0127): `barsOf` (`discovery/bars.ts`, core) is the one rule for both the bars and the planner: a place's category, plus History for a museum or gallery the data calls historic (`alsoBars` from `ARCHIVE_ALSO`, the archive's `museum`, never stored; or `historicName`: `notableName` reading past a neighbourhood's “Old Town” and “old and new”, audit 5). A plain museum stays in Culture alone, so History and Culture stay apart (PK5, held by `presenceSample.json`, recorded by `scripts/fixture-presence.mjs`). Never add a second bar to a kind wholesale without re-running PK5. `ATLAS_CODE` a8 carries no older code. History for the archive's `museum` rests on contract v2 (a museum enters only by its listing): the pinned contract's README says so (PK19).
-- **Community spaces** (`community`, in Culture): `town_hall/community_centre` by a notable name only (its class is in `MARK_BY_NAME`), `art_gallery/arts_centre` and `library/library` by subclass in `kindFor`. `parseHidden(raw, known)`: a choice saved before the kind existed (meta `explore_kinds_known` lacks it, written by `saveSettings`) keeps it off when Museums and galleries is off (PK18); every reader of `explore_hidden` goes through `parseHidden` (the scenic read too).
+- **Community spaces** (`community`, in Culture): `town_hall/community_centre`, `library/library` and `community_centre` by a notable name only (presence class `community`, in curation's `BY_NAME`), `art_gallery/arts_centre` and `arts_centre` as any name (class `arts_centre`). `parseHidden(raw, known)`: a choice saved before the kind existed (meta `explore_kinds_known` lacks it, written by `saveSettings`) keeps it off when Museums and galleries is off (PK18); every reader of `explore_hidden` goes through `parseHidden` (the scenic read too).
 - **Presence, not quality.** Bars come only from places inside the ring, against fixed steps. They are never relative to the neighbors, and every level uses the same ring (a town's is around its point). Green counts park places, not park area (deferred).
 - **Reads** (`atlas/read.ts`) decode tiles in code, like every read:
   - the near read: z14 place points for neighborhoods, z11 for towns, recorded in meta `atlas_near:<level>`;

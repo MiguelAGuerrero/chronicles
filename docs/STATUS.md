@@ -150,40 +150,38 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   of storefronts. 6. The walk's help line and the route leaning ("Along the busy streets") say storefronts. 7. No line or
   label for this concept says busy, busiest or most, and none counts storefronts. 8. Walkability's "Streets far apart and
   busy" (traffic) is unchanged. 9. Decisions 0080 and 0127 and the specs that pin the old words are amended in the slice.
-  Waits for G3 (decision 0140): Storefronts is a presence class and its density, not a renamed busy table.
+  Builds on presence (decision 0140; its first slice shipped Nov 11, PR1-PR8): Storefronts is a presence class and its density, not a
+  renamed busy table. G4 (presence's second slice) first is better, not required.
   Payoff: every visit to Explore, and every route that leans; the word stops promising people the data cannot see.
   Cost: M, copy across about eight screens and modules plus the specs and tests that pin it, no native code, no data
   change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
   say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
 
-- **G3 [L, first slice M] Presence: one system says what a place is** (2026-11-11) · Earn · aligned · decision 0140
-  Area: explore, places, layers, landing. From: the owner's call, Nov 11 (0140), after reshaping T4 into G2.
-  Touches: VISION.md Never, "Popularity, trending, foot traffic" (busy stays out of presence) and "rankings of places";
-  decisions 0080 (amended: density weights come from classes), 0127 (bars are a grouping over classes), 0109 (Overture
-  never makes a mark).
-  The slice (the first of two): 1. One pure presence module turns normalised features into classes from one vocabulary,
-  several classes per place, under one version code. 2. The tile and Overture adapters feed it; no consumer outside it
-  reads poi or Overture category tags. 3. Marks and checklists read their categories and kinds from presence classes.
-  4. Density weights come from presence classes, so the map layer, What's good here and route leaning read the same
-  answer for a tag as marks do. 5. Each tag the two old tables disagreed on (memorials, libraries, worship, viewpoints,
-  cinemas, shops) has one answer, listed in the spec with a before and after picture of every screen it changes.
-  6. The presence version code is folded into the atlas, landing and place caches, so a reclassification re-derives
-  them with no hand bump. 7. Marks' curation (chains, notable names, what is worth the stop) reads classes and stays a
-  separate rule set. 8. Nothing a person sees changes beyond item 5's list.
-  Payoff: one place to refine what a street holds, and the base Storefronts (G2) and later kinds stand on. Cost: L in
-  all; this first slice M, about a dozen modules and their tests, no native code, no stored field. Reopens: explore,
-  places, landing, layers. After it: the second slice moves the archive's classes, the bars, notable names, scenic
-  routes' greens and the planner onto presence; then G2.
-  Instead: unify only the two OpenStreetMap tables, leaving each consumer its own overlays.
+- **G4 [M] Presence, its second slice: the archive, bars, notable names, greens and the planner read classes** (2026-11-11) · Earn · aligned · decision 0140
+  Area: explore, places, scenic routes, walk planner. From: G3, whose first slice shipped Nov 11 (specs/presence, PR1-PR8); decision 0140's
+  "consumers read its classes, never source tags".
+  Touches: decisions 0127 (a place may light two bars: from its classes), 0103 and 0108 (the archive's classes are chronicles-data's
+  contract; the app maps them into presence, the contract is unchanged), 0109 (Overture never makes a mark).
+  The slice: 1. The places archive's classes map into presence classes; `archivePois.ts` holds no category or kind of its own.
+  2. A place may carry several classes (a museum the data calls historic: museum and history), and `barsOf` reads them, so a second bar
+  comes from classes, not from `alsoBars` and a name. 3. Whether a name is notable is decided once, for marks and bars alike. 4. Scenic
+  routes' greens read presence classes from landcover features, not raw tags. 5. The planner reads classes. 6. The same place is a mark
+  or not alike from the tiles and the archive (a plain-named memorial, presence review F3). 7. PR2's guard holds with no exception left.
+  8. Nothing else a person sees changes, held by golden tables of the archive's classes and the bars, captured first.
+  Payoff: one place to refine what a street holds, and Storefronts (G2) then reads one answer everywhere. Cost: M, about eight modules and
+  their tests, no native code, no stored field. Reopens: explore, places, scenic routes, walk planner. After it: G2, then new kinds of
+  presence (institutions, rural activity) as classes.
+  Instead: build G2 now on what shipped (density already reads presence's classes) and leave the rest.
 
 ### Last tend
 
-**Nov 11, `/tend inbox T6 yes`** (from `bc41449`). One build: `tend chronicle T6`, the bar's Walks zooms out to every
-place walked as the sheet's does (one path, `openSheet`; the bar reaches the map through a handle, which replaces the
-counted press of the section-bar slice); pictured `chronicle-t6-bar-walks-framed`. The review (one round): F1 the
-docs (decision 0141, rule lines added, SB3's wording left for the owner), F3 and F4 fixed as `audit 3` (from Days no
-fit) and `audit 4` (the picture), F2 filed as T7. Journeys: `chronicle` (every check, M9 included), `capturehome`,
-`qol`, `resurface`, `tabs`. No sweep, so no lens ran and the balance was not read. Nothing here has run on a phone.
+**Nov 11, `/tend inbox G3 yes`** (from `bc41449`). G3 built as one slice, `specs/presence` (PR1-PR8, decision 0140): tests first
+`0e10bf2`; the code `bf5d3c4` (`src/lib/presence`: one table from poi classes and Overture's taxonomy to classes, read by density and
+marks; curation apart in `discovery/curation.ts`; `PRESENCE_CODE` in the atlas and landing codes); the docs `90c3c4e`. Every tag outside
+PR5's list answers as before (a golden table; 5,913 real places compared). The review: `presence audit 1` (remembered areas keep their
+busy streets: rows from just before presence are carried), `presence audit 2` (PR2's guard widened); F3 deferred; four rule lines put
+right. Filed: G4 (presence's second slice); G3 leaves "Next evolutions"; G2 can now build on presence. Not pictured: none of PR5's tags
+occur in the fixtures, so no screen differs. Nothing here is native.
 
 ### Open before the loop
 
