@@ -44,7 +44,7 @@ Shape: A complex is information, like a busy street: its name and its kind as a 
 inside the selected area; never counted, ranked, found or marked visited, and never a place a walk is assigned to
 (no Area level, no star, no replay line). A moment inside one names it in its arrival line, ahead of the street and
 never in place of it, from the complexes already on the phone: showing a moment makes no request. The steward's
-pass (Nov 11) shaped this: no "what it holds" line, a cap on the list, the street kept.
+pass (Nov 11) shaped this: no "what it holds" line, the nearest first with a "See more", the street kept.
 Criteria: CX1, CX2, CX5, CX6, CX7, CX8, CX9, CX11, CX12, CX15 (made of other places, no outline no complex, no
 numbers, never ranked, nothing visited, not a mark, quiet outlines, the street kept, no request on viewing, an adapter).
 Open: whether a station is a place a walker notices (the vision is silent on transport).
@@ -62,8 +62,10 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
   Pennsylvania Capitol Complex and municipal complexes). A kind enters only with a real fixture that its rule finds; one
   with none is deferred, never guessed (plan). Overture's tiles name the Capitol's buildings one by one and carry no
   "Capitol Complex" outline in the tile read, so Civic may wait on a chronicles-data pack.
+- **No cap; the nearest first and a "See more"** (2026-11-11, replacing the plan's cap of 6): every complex of an area
+  can be listed; the card leads with the nearest to the area's point and "See more" shows the rest, with no number.
 - **The steward's pass was accepted** (2026-11-11, plan "Steward's findings"): the street stays in a moment's line; viewing
-  a moment never fetches; no "what it holds" sentence; the list is capped.
+  a moment never fetches; no "what it holds" sentence; the list opens on the nearest and a "See more" holds the rest.
 
 ## Acceptance criteria
 
@@ -80,14 +82,16 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
    a kind is one place in core, as presence's table is. A kind with no real fixture is not built (plan).
 4. **CX4 · The area card lists its complexes.** A neighborhood's or a town's card shows a "Complexes" section: each
    complex by its name and its kind as a word, and a Walk to as the Busy areas have (TP7, DW). There is no line about
-   what a complex holds. An area with none shows no section and no "none". A read that covered only part of a town
-   titles the section "Complexes near here".
+   what a complex holds. The section shows the nearest few first and a "See more" lists the rest; every complex of the
+   area is reachable, and none is dropped for how many there are. An area with none shows no section and no "none". A
+   read that covered only part of a town titles the section "Complexes near here".
 5. **CX5 · No numbers.** No line, label or screen-reader text about a complex holds a digit or a counting word (the
    numbers one to twenty, "dozen", "several", "few", "many", "couple"); a complex's own name is exempt ("Station
    Square 2"), as a street keeps its own name.
-6. **CX6 · Never ranked.** The section lists at most a fixed number of complexes (a core constant), chosen by nearness
-   to the area's point, then listed by name A to Z with a locale-free comparison (`toLowerCase`), ties by id. Nothing
-   sorts or labels them by size, busyness, number of places or popularity, and no line says "biggest" or "busiest".
+6. **CX6 · Nearest first, never ranked.** Complexes are ordered by their distance from the area's point, nearest first,
+   ties by name (locale-free, `toLowerCase`) then id; the same order holds after "See more". The first few shown is a
+   fixed number (a core constant), and "See more" carries no number ("See more", never "See 9 more"). Nothing sorts or
+   labels them by size, busyness, number of places or popularity, and no line says "biggest" or "busiest".
 7. **CX7 · Nothing is visited.** No complex is marked visited, walked or new; no line counts how many complexes an
    area has or how many you have been to. A walk is never assigned to a complex: no `Area` or `WalkArea` row, no star
    on the home map, no line in a replay, and Walk to writes nothing about a complex to the walk.

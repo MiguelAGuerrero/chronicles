@@ -24,7 +24,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
 |---|---|
 | `src/lib/complexes/rule.ts` (core, new) | `COMPLEX_KINDS` (five), the one table from what a polygon holds to a kind (reads presence classes: `classesOfOverture`); `complexesIn(polygons, places, ...)`: the named polygons that hold enough places of a kind (CX1-CX3). Minimums are constants, never shown. |
 | `src/lib/complexes/types.ts` (core, new) | `Complex { key, name, kind, outline, at }`; `ComplexSource` (CX13); `COMPLEX_CODE`. |
-| `src/lib/complexes/lines.ts` (core, new) | The card's words and a11y labels: the kind word only, the cap and the order (nearest chosen, then name A to Z, locale-free) (CX4-CX6). |
+| `src/lib/complexes/lines.ts` (core, new) | The card's words and a11y labels: the kind word only, the order (nearest to the area's point, ties by name then id) and the few shown before "See more" (CX4-CX6). |
 | `src/lib/complexes/place.ts` (core, new) | `complexAt(fix, complexes)`: the complex whose outline holds a point or lies within `STREET_REACH_M` of it, with `near`, and one tie rule for overlaps (CX11). |
 | `src/lib/complexes/overtureSource.ts` (adapter, new) | The only file that knows Overture's `buildings` and `base` schema; decodes a tile into polygons and keeps the named ones; reads through the existing `TileReader` (`net/tileReader.ts`) and the existing host, so no new host and no `check:vision` allow entry. |
 | `src/lib/complexes/read.ts` (shell, new) | `complexApp`: for an area, picks candidate tiles from the places already read, reads each tile once per release, stores a row per tile, returns the complexes; a failure is silent and retried after `retryMs` (CX12, CX14). |
@@ -33,7 +33,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
 | `src/lib/discovery/curation.ts` (core) | A guard test only: a complex is never a mark (CX8); no code change expected. |
 | `src/lib/resurface/context.ts`, its shell (core, shell) | `placeLine` takes an optional `{ complex, near }` and leads with it, keeping street and town; the shell reads only complexes already cached under the fix and never fetches (CX11-CX13). |
 | `src/lib/discovery/settings.ts`, `components/ExploreSettings.tsx` (shell, view) | Five switches "Shopping, Markets, Campuses, Stations, Civic", meta `complex_hidden`, parsed as `explore_hidden` is, `parseHidden`-style (CX10). |
-| `src/components/atlas/AtlasCard.tsx` | A "Complexes" section after "Busy areas": name, kind word, Walk to (CX4). |
+| `src/components/atlas/AtlasCard.tsx` | A "Complexes" section after "Busy areas": the nearest few (name, kind word, Walk to), then a "See more" button (expanded state announced, no number) that lists the rest (CX4). |
 | `src/components/map/*` (view, both platforms) | A `complexes` prop: one fill-less line layer and name labels at close zoom for the selected area only, drawn the way the area's border is (`lit`), a tap eases to it (CX9). |
 | `src/lib/net/policy.ts` (adapter) | The Overture host's description names `buildings` and `base` as well (the host is already allowed; `check:vision` unchanged, CX16). |
 | `scripts/fixture-complexes.mjs` (new) | Saves real tile fixtures for Strawberry Square, Lehigh Valley Mall, a capture beside a mark inside one, and one example per other kind that has one into `__tests__/complexes/` (run by hand, never in CI). |
@@ -55,9 +55,9 @@ Files in `src/lib/__tests__/complexes/`; every name starts with its id and `:`.
 | CX1 | `rule.test.ts` | the Strawberry Square and Lehigh Valley Mall fixtures are complexes; a named church and a named office tower are not; the minimums are not shown |
 | CX2 | `rule.test.ts` | a mall-like point, a cluster with no polygon and the Capitol's separate buildings are not complexes; the outline is the source's, unchanged |
 | CX3 | `rule.test.ts` | every complex has one of the five kinds; a polygon that fits none is dropped |
-| CX4 | `lines.test.ts` + journey | the card lists name, kind word and Walk to; no holds-line; none shows no section and no "none"; a partial read says "Complexes near here" |
+| CX4 | `lines.test.ts` + journey | the card lists the nearest few with name, kind word and Walk to, and "See more" lists the rest, none dropped; no holds-line; none shows no section and no "none"; a partial read says "Complexes near here" |
 | CX5 | `lines.test.ts` | no line or label holds a digit or a counting word from the named list; a name with a digit passes |
-| CX6 | `lines.test.ts` | the cap; nearest chosen, then A to Z locale-free, ties by id; no "biggest" or "busiest" |
+| CX6 | `lines.test.ts` | nearest first, ties by name then id, the same order after "See more"; the label has no number; no "biggest" or "busiest" |
 | CX7 | `notVisited.test.ts` | nothing marks a complex visited, counts complexes or assigns a walk; Walk to writes nothing about a complex |
 | CX8 | `notMark.test.ts` | a complex is no mark, checklist item, find or bar; the capture-in-a-complex fixture finds its mark as before |
 | CX9 | `mapLayer.test.ts` + journey | only the selected area's, no fill, own hue, width and opacity within the border, named at close zoom; labels are name and kind word; no layer summary |
@@ -90,6 +90,7 @@ The map layer's outline and labels, the new switches and the SQLite migration ar
 | Action | Goal and situation | Control | Matrix row |
 |---|---|---|---|
 | Read what complexes are here | See where there is a lot of life; each time an area is opened | A section of the area card, rows of name and kind word | 11 (a row that opens a related item) |
+| Read the rest | Every complex of the area, not only the nearest; occasional | "See more" button at the end of the section, expanded state announced, no number | 11 (a control that reveals related items in place) |
 | Go to one | Walk to a complex; occasional | Walk to on the row, as Busy areas have it | 11 and DW |
 | See it on the map | Know its extent; each time | Outlines for the selected area; a tap eases to one | no row (map layer; precedent: the town's tinted border, TB1-TB9) |
 | Hide a kind | Filter what the card shows; rare | A switch in the settings list beside "What I'm into" | 14 (a switch in a list row, effective immediately) |
@@ -105,7 +106,7 @@ Two breaches of a Never or Always line and nine drifts or gaps; I accept all but
 | 1 | Viewing a moment could fetch a tile: data leaving the device without a tap; contradicts MC2 | **Accepted.** CX12; the plan's "read the one tile" is withdrawn. The cache fills only from reads the walker already makes. |
 | 2 | A complex replacing the street breaks "a moment arrives whole"; a footprint stated as where it was | **Accepted.** CX11: the complex leads and the street stays; "Near ..." within 40 m; one tie rule. My earlier recommendation to replace the street is withdrawn. |
 | 3 | "what it holds, by kind" is a size proxy and a tally by another name | **Accepted.** The line is gone (CX4). |
-| 4 | An uncapped A-Z list is a to-do list; the gate favours big ones; a partial read looks complete; Walk to vs CX7 | **Accepted.** CX6 caps the list (nearest chosen, then A-Z); CX1 says the minimum is a gate, never a measure; CX4 titles a partial read "near here"; CX7 says Walk to stores nothing. The cap's number is for you (below). |
+| 4 | An uncapped A-Z list is a to-do list; the gate favours big ones; a partial read looks complete; Walk to vs CX7 | **Accepted, reshaped by the owner** (no cap): the card opens on the nearest few and "See more" lists the rest with no number (CX4, CX6); CX1 says the minimum is a gate, never a measure; CX4 titles a partial read "near here"; CX7 says Walk to stores nothing. |
 | 5 | CX5 untestable: names with digits, no word list, the layer's screen-reader summary | **Accepted.** CX5 exempts names and names the words; CX9 forbids a summary. |
 | 6 | A second taxonomy beside "What I'm into"; silent on the read, the line and all-off | **Accepted in part.** CX10 pins the read, the line and all-off. I keep a separate group of switches rather than adding to "What I'm into", since those govern marks. |
 | 7 | Quiet outlines untestable; a footprint overstates the place | **Accepted.** CX9 and CX2 say how, and that the outline is never inflated. |
@@ -123,6 +124,6 @@ decision record at the end of the slice.
 
 1. **The migration.** `complex_tile` (derived, one row per tile and release) is new storage. Alternative: memory only, a
    read on every launch. Recommended: the cache.
-2. **The cap.** At most how many complexes in a card's section? Recommended: 6, nearest the area's point, listed A-Z.
+2. **How many show before "See more".** The owner chose nearest first and a "See more" (no cap). I use 4 as the constant unless you say another number.
 3. **Stations.** The steward notes the vision is silent on transport. Recommended: keep Stations as a kind, since a station
    with shops and services inside is a place made of places.
