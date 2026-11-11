@@ -127,20 +127,23 @@ async function run(h) {
         `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${said}, ${nav && Math.round(nav.y)})`);
       await h.shot(pg, `tabs-2-chronicle-peek-${when.replace(/\W+/g, '-')}`);
       // tend tabs 7: the peek's line is shown whole, never cut short by the buttons beside it, at 390 and at 320 px.
-      for (const width of [390, 320]) {
-        await pg.setViewportSize({ width, height: 844 });
+      try {
+        for (const width of [390, 320]) {
+          await pg.setViewportSize({ width, height: 844 });
+          await pg.waitForTimeout(600);
+          const line = await pg.evaluate(() => {
+            const e = document.querySelector('[data-testid=sheet-empty]');
+            const s = document.querySelector('[data-testid=home-sheet]')?.getBoundingClientRect();
+            const r = e?.getBoundingClientRect();
+            const pills = [...document.querySelectorAll('[data-testid=sheet-navigate], [data-testid=sheet-days]')].map((p) => p.getBoundingClientRect());
+            return e && s && { cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1, inside: r.y >= s.y && r.bottom <= s.bottom + 1, pillsIn: pills.every((p) => p.y >= s.y && p.bottom <= s.bottom + 1), days: pills.length };
+          });
+          check(line && !line.cut && line.inside && line.pillsIn, `tend tabs 7: ${when}, at ${width} px the peek's line is whole and inside the sheet, its buttons too (${JSON.stringify(line)})`);
+        }
+      } finally {
+        await pg.setViewportSize({ width: 390, height: 844 });
         await pg.waitForTimeout(600);
-        const line = await pg.evaluate(() => {
-          const e = document.querySelector('[data-testid=sheet-empty]');
-          const s = document.querySelector('[data-testid=home-sheet]')?.getBoundingClientRect();
-          const r = e?.getBoundingClientRect();
-          const pills = [...document.querySelectorAll('[data-testid=sheet-navigate], [data-testid=sheet-days]')].map((p) => p.getBoundingClientRect());
-          return e && s && { cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1, inside: r.y >= s.y && r.bottom <= s.bottom + 1, pillsIn: pills.every((p) => p.y >= s.y && p.bottom <= s.bottom + 1), days: pills.length };
-        });
-        check(line && !line.cut && line.inside && line.pillsIn, `tend tabs 7: ${when}, at ${width} px the peek's line is whole and inside the sheet, its buttons too (${JSON.stringify(line)})`);
       }
-      await pg.setViewportSize({ width: 390, height: 844 });
-      await pg.waitForTimeout(600);
       if (await pg.locator('[data-testid=sheet-navigate]').count()) await pg.click('[data-testid=sheet-navigate]');
       else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);
@@ -232,31 +235,35 @@ async function run(h) {
       // tend tabs 2: the recording bar and the tab bar are pictured, and at 320 px the bar's row (its way back, the
       // camera, Stop) stays on one line with its word from a tap on Stop, the page never scrolling sideways.
       await h.shot(pg, 'tabs-2-recording-bar');
-      await pg.setViewportSize({ width: 320, height: 700 });
-      await pg.waitForTimeout(600);
-      await pg.click('[data-testid=bar-stop]');
-      await pg.waitForSelector('[data-testid=recording-said]', { timeout: 5000 });
-      await h.shot(pg, 'tabs-2-recording-bar-320');
-      const row = await pg.evaluate(() => {
-        const mid = (id) => {
-          const r = document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`)?.getBoundingClientRect();
-          return r ? Math.round(r.y + r.height / 2) : null;
-        };
-        return { mids: ['recording-return', 'bar-photo', 'bar-stop'].map(mid), wide: document.documentElement.scrollWidth };
-      });
-      check(row.mids.every((y) => y != null && Math.abs(y - row.mids[0]) <= 2) && row.wide <= 320,
-        `tend tabs 2: at 320 px the recording bar's way back, camera and Stop share one line, and nothing scrolls sideways (${JSON.stringify(row)})`);
-      // tend tabs 8: a tap on the bar's Stop says to hold in one line at 320 px, as the walk screen's Stop is labelled.
-      {
-        const word = await pg.evaluate(() => {
-          const e = document.querySelector('[data-testid=recording-said]');
-          const r = e?.getBoundingClientRect();
-          return e && { text: e.textContent, h: Math.round(r.height), lh: parseFloat(getComputedStyle(e).fontSize) * 1.5 };
+      // tend tabs audit 14: the 390 px viewport comes back however the 320 px checks end (E2E_SOFT runs on).
+      try {
+        await pg.setViewportSize({ width: 320, height: 700 });
+        await pg.waitForTimeout(600);
+        await pg.click('[data-testid=bar-stop]');
+        await pg.waitForSelector('[data-testid=recording-said]', { timeout: 5000 });
+        await h.shot(pg, 'tabs-2-recording-bar-320');
+        const row = await pg.evaluate(() => {
+          const mid = (id) => {
+            const r = document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`)?.getBoundingClientRect();
+            return r ? Math.round(r.y + r.height / 2) : null;
+          };
+          return { mids: ['recording-return', 'bar-photo', 'bar-stop'].map(mid), wide: document.documentElement.scrollWidth };
         });
-        check(word && word.text === 'Hold to stop' && word.h <= word.lh, `tend tabs 8: at 320 px a tap on the bar's Stop says "Hold to stop" on one line (${JSON.stringify(word)})`);
+        check(row.mids.every((y) => y != null && Math.abs(y - row.mids[0]) <= 2) && row.wide <= 320,
+          `tend tabs 2: at 320 px the recording bar's way back, camera and Stop share one line, and nothing scrolls sideways (${JSON.stringify(row)})`);
+        // tend tabs 8: a tap on the bar's Stop says to hold in one line at 320 px, as the walk screen's Stop is labelled.
+        {
+          const word = await pg.evaluate(() => {
+            const e = document.querySelector('[data-testid=recording-said]');
+            const r = e?.getBoundingClientRect();
+            return e && { text: e.textContent, h: Math.round(r.height), lh: parseFloat(getComputedStyle(e).fontSize) * 1.5 };
+          });
+          check(word && word.text === 'Hold to stop' && word.h <= word.lh, `tend tabs 8: at 320 px a tap on the bar's Stop says "Hold to stop" on one line (${JSON.stringify(word)})`);
+        }
+      } finally {
+        await pg.setViewportSize({ width: 390, height: 844 });
+        await pg.waitForTimeout(600);
       }
-      await pg.setViewportSize({ width: 390, height: 844 });
-      await pg.waitForTimeout(600);
       // tend tabs 3: the bar's camera is named as Memories' band names its camera with a walk open: the same job, the same name.
       {
         const name = await pg.locator('[data-testid=bar-photo]').getAttribute('aria-label');
