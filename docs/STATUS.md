@@ -156,17 +156,38 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   of storefronts. 6. The walk's help line and the route leaning ("Along the busy streets") say storefronts. 7. No line or
   label for this concept says busy, busiest or most, and none counts storefronts. 8. Walkability's "Streets far apart and
   busy" (traffic) is unchanged. 9. Decisions 0080 and 0127 and the specs that pin the old words are amended in the slice.
+  Waits for G3 (decision 0140): Storefronts is a presence class and its density, not a renamed busy table.
   Payoff: every visit to Explore, and every route that leans; the word stops promising people the data cannot see.
   Cost: M, copy across about eight screens and modules plus the specs and tests that pin it, no native code, no data
   change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
   say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
 
+- **G3 [L, first slice M] Presence: one system says what a place is** (2026-11-11) · Earn · aligned · decision 0140
+  Area: explore, places, layers, landing. From: the owner's call, Nov 11 (0140), after reshaping T4 into G2.
+  Touches: VISION.md Never, "Popularity, trending, foot traffic" (busy stays out of presence) and "rankings of places";
+  decisions 0080 (amended: density weights come from classes), 0127 (bars are a grouping over classes), 0109 (Overture
+  never makes a mark).
+  The slice (the first of two): 1. One pure presence module turns normalised features into classes from one vocabulary,
+  several classes per place, under one version code. 2. The tile and Overture adapters feed it; no consumer outside it
+  reads poi or Overture category tags. 3. Marks and checklists read their categories and kinds from presence classes.
+  4. Density weights come from presence classes, so the map layer, What's good here and route leaning read the same
+  answer for a tag as marks do. 5. Each tag the two old tables disagreed on (memorials, libraries, worship, viewpoints,
+  cinemas, shops) has one answer, listed in the spec with a before and after picture of every screen it changes.
+  6. The presence version code is folded into the atlas, landing and place caches, so a reclassification re-derives
+  them with no hand bump. 7. Marks' curation (chains, notable names, what is worth the stop) reads classes and stays a
+  separate rule set. 8. Nothing a person sees changes beyond item 5's list.
+  Payoff: one place to refine what a street holds, and the base Storefronts (G2) and later kinds stand on. Cost: L in
+  all; this first slice M, about a dozen modules and their tests, no native code, no stored field. Reopens: explore,
+  places, landing, layers. After it: the second slice moves the archive's classes, the bars, notable names, scenic
+  routes' greens and the planner onto presence; then G2.
+  Instead: unify only the two OpenStreetMap tables, leaving each consumer its own overlays.
+
 ### Last tend
 
-**Nov 11, `/tend inbox T4 reshape`** (from `8e227dd`). No build. The owner reshaped T4 (busy streets listed busiest first)
-in conversation: "busy" implies traffic that depends on the hour, while the concept is the density of non-residential
-places you can walk into, a downtown strip or a corner pocket. Chosen: the word "storefronts", nearest first, everywhere
-the concept shows. Too large for one commit, it is filed as G2 [M] (the gate: aligned, Earn) and T4 leaves the inbox.
+**Nov 11, `/tend inbox`, presence** (from `8bad3ba`). No build. The owner asked that what a street holds be classified by
+one system of its own, isolated from what reads it, so "busy" could later be built from real traffic data and storefronts
+read from the same places. Their four calls (one system; several classes per place; unify the two OpenStreetMap tables
+and show each difference; presence before G2) are decision 0140, and the work is G3, its first slice M; G2 now waits for it.
 
 ### Open before the loop
 
