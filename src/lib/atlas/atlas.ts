@@ -173,7 +173,17 @@ export const atlasKey = (a: { level: string; name: string; at: LngLat }) =>
 
 /** Whether a row was made under this build and these rules (AT12). */
 export const rowCurrent = (r: { build: string; code: string; level?: AtlasLevel }, build: string | null) =>
-  !!build && r.build === build && (r.code === ATLAS_CODE || (r.level != null && !!CARRIED[r.level]?.includes(r.code)));
+  !!build && r.build === build && codeCurrent(r.code, r.level);
+
+/**
+ * Whether rows or reads made under this code stand (presence-readers audit 4): the current code, or one carried for the
+ * level; a near read, which names no level, stands when every level carries its code. Rows and near reads judge alike.
+ */
+export function codeCurrent(code: string, level?: AtlasLevel | null): boolean {
+  if (code === ATLAS_CODE) return true;
+  if (level != null) return !!CARRIED[level]?.includes(code);
+  return (['neighborhood', 'town'] as const).every((l) => !!CARRIED[l]?.includes(code));
+}
 
 const SAME_M = { neighborhood: 1000, town: 3000 } as const;
 const sameArea = (a: { level: AtlasLevel; name: string; at: LngLat }, b: { level: AtlasLevel; name: string; at: LngLat }) =>
@@ -320,9 +330,9 @@ export const NEAR_KEPT = 12;
 export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build: string, radiusM?: number, town?: string | null): boolean {
   const list = !reads ? [] : Array.isArray(reads) ? reads : [reads];
   // WT9: a town's page asks for a read of that town (across its border, or by its reach where it has none).
-  if (town) return !list.some((r) => r.build === build && r.code === ATLAS_CODE && r.town === town);
+  if (town) return !list.some((r) => r.build === build && codeCurrent(r.code) && r.town === town);
   // Whole-towns audit 8: a town's read wrote only what is inside its border; it never stands for the read around you.
-  return !list.some((r) => !r.town && r.build === build && r.code === ATLAS_CODE && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
+  return !list.some((r) => !r.town && r.build === build && codeCurrent(r.code) && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
 /** The kept near reads after a new one: newest first, at most NEAR_KEPT. */

@@ -83,3 +83,15 @@ test('presence-readers audit 3: a mark-category place with unknown markable coun
   assert.deepEqual(r.routes, []);
   assert.ok(r.reasons.includes('few'), r.reasons.join(', '));
 });
+
+test('presence-readers audit 4: a near read under a carried code needs no re-list, around you or for a town', async () => {
+  const { needsNear } = await import('../../atlas/atlas');
+  const p = await presence();
+  const at: [number, number] = [-75.38, 40.62];
+  for (const c of p.PRESENCE_CARRIED as string[]) {
+    const code = `a8.${c}`;
+    assert.equal(needsNear([{ at, build: 'b', code, radiusM: 2500 }], at, 'b', 2500), false, `${code} around you`);
+    assert.equal(needsNear([{ at, build: 'b', code, town: 'T' }], at, 'b', undefined, 'T'), false, `${code} for a town`);
+  }
+  assert.equal(needsNear([{ at, build: 'b', code: 'a7', radiusM: 2500 }], at, 'b', 2500), true, 'an older code is listed again');
+});
