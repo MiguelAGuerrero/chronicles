@@ -244,6 +244,14 @@ const FEATURES = [
     specs: ['resurfaced-moments', 'memories-context'],
   },
   {
+    name: 'gallery',
+    about: "Chronicle's Media: every photo, video and memo in an edge-to-edge grid under day headers; Years, Months, Days; Sort, a kind filter, pinch, square or aspect",
+    rule: 'gallery',
+    source: ['src/lib/gallery/**'],
+    journeys: ['gallery'],
+    specs: ['media-gallery'],
+  },
+  {
     name: 'threads',
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
