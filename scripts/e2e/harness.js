@@ -131,7 +131,7 @@ const ovPlace = (id, name, xy, extra = {}) => overtureFeatures.push({
 for (let i = 0; i < 9; i++) ovPlace(`brook-${i}`, `Brook ${i}`, [13 + (i % 2 ? 0.06 : -0.06), -0.92 + i * 0.25]);
 ovPlace('brook-unsure', 'Brook Unsure', [13.06, 1.33], { confidence: '0.5' });
 ovPlace('brook-closed', 'Brook Closed', [12.94, 1.58], { operating_status: 'permanently_closed' });
-// Complexes (CX1, CX4, CX9): Wickenden Arcade, a named building 80 m across a block west of Fox Point's point, holding nine
+// Complexes (CX1, CX4, CX9): the Wickenden Street Arcade, a named building with a long name (the UI review's longest case, decision 0145), 80 m across a block west of Fox Point's point, holding nine
 // restaurants (Overture's places) and drawn in Overture's `buildings`; served only while the complexes journey asks for it, so
 // no other journey's busy streets or areas change.
 const complexWorld = { serve: false };
@@ -143,7 +143,7 @@ for (let i = 0; i < 9; i++) {
   });
 }
 const complexBuildings = [
-  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-1.2, -1.0), at(-0.4, -1.0), at(-0.4, -0.2), at(-1.2, -0.2), at(-1.2, -1.0)]] }, properties: { id: 'arcade-building', '@name': 'Wickenden Arcade' } },
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-1.2, -1.0), at(-0.4, -1.0), at(-0.4, -0.2), at(-1.2, -0.2), at(-1.2, -1.0)]] }, properties: { id: 'arcade-building', '@name': 'The Wickenden Street Arcade and Public Market Hall at Transit Street' } },
 ];
 // Town outlines (TO10): Overture's divisions, with a town only in the outlines journey (elsewhere none is in them).
 // Pawtucket is known only by its outline, a 2 km square around the start; Providence's city point is 2.9 km east.

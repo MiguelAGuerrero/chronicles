@@ -1,4 +1,4 @@
-// Complexes (CX4, CX5, CX9, CX10, CX16): Wickenden Arcade, a named building holding nine restaurants in the fake Overture's
+// Complexes (CX4, CX5, CX9, CX10, CX16): the Wickenden Street Arcade and Public Market Hall at Transit Street (a long name on purpose: the UI review's longest case), a named building holding nine restaurants in the fake Overture's
 // `buildings` and `places` tiles, is a complex of Fox Point: its card lists it by name and kind as a word, with no number and
 // no line about what it holds; the map names it only at close zoom; Overture is asked for its tiles by byte range alone; and
 // switching Shopping off in the settings takes it off the card. E2E_ONLY=complexes runs it alone.
@@ -30,8 +30,10 @@ async function run(h) {
     await openFoxPoint();
     const found = await pg.waitForSelector('[data-testid=atlas-complexes]', { timeout: 60000 }).then(() => true, () => false);
     const text = found ? await pg.locator('[data-testid=atlas-complexes]').innerText() : '';
+    await pg.locator('[data-testid=atlas-complexes]').scrollIntoViewIfNeeded().catch(() => {});
+    await pg.waitForTimeout(500);
     await shot(pg, 'complexes-card');
-    check(found && (await pg.locator('[data-testid=atlas-complex]').count()) === 1 && /Wickenden Arcade/.test(text) && /Shopping/.test(text),
+    check(found && (await pg.locator('[data-testid=atlas-complex]').count()) === 1 && /The Wickenden Street Arcade and Public Market Hall at Transit Street/.test(text) && /Shopping/.test(text),
       `CX4: the area card lists the complex by name and its kind as a word (${JSON.stringify(text)})`);
     check(found && !/\d/.test(text) && !/\b(restaurants?|shops|food|places)\b/i.test(text) && (await pg.locator('[data-testid=atlas-complexes-more]').count()) === 0,
       `CX4, CX5: no digit and no line about what it holds; with one complex there is no "See more" (${JSON.stringify(text)})`);
