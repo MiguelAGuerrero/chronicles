@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buzzOffered, durationFor, HAPTIC_PATTERNS, MOTION, nudgeAllowed, PRESS_SCALE, type FeedbackKind } from '../../motionTokens';
+import { buzzOffered, webFeedbackPlays, durationFor, HAPTIC_PATTERNS, MOTION, nudgeAllowed, PRESS_SCALE, type FeedbackKind } from '../../motionTokens';
 import { zoomOutFor } from '../../zoomOut';
 
 test('motion M1: one set of timings', () => {
@@ -80,4 +80,11 @@ test('pocket-alert-nudge audit 6: a nudge within the last one is dropped, so two
   assert.equal(nudgeAllowed(1000, 1000 + MOTION.nudgeGap), false, 'inside the double-tap');
   assert.equal(nudgeAllowed(1000, 1000 + MOTION.nudgeGap * 2), false, 'right after it: would read as one long buzz');
   assert.equal(nudgeAllowed(1000, 1000 + MOTION.nudgeGap * 3), true);
+});
+
+test('fix pocket-alert-hide audit 1: a saved pocket alert plays nothing on a browser that is not offered it; a button press never plays on the web', () => {
+  assert.equal(webFeedbackPlays('nudge', false), false);
+  assert.equal(webFeedbackPlays('nudge', true), true);
+  assert.equal(webFeedbackPlays('tap', true), false);
+  assert.equal(webFeedbackPlays('success', true), false);
 });

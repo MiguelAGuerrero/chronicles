@@ -66,6 +66,9 @@ export const nudgeAllowed = (lastAt: number | null, now: number): boolean => las
  */
 export const buzzOffered = (env: { vibrate: boolean; coarse: boolean }): boolean => env.vibrate && env.coarse;
 
+/** On the web only the pocket alert plays, and only where the browser is offered it (decision 0138, fix pocket-alert-hide audit 1: a saved switch stays silent where it is hidden). */
+export const webFeedbackPlays = (kind: FeedbackKind, offered: boolean): boolean => kind === 'nudge' && offered;
+
 /** Large buttons shrink to this while pressed (M4). */
 export const PRESS_SCALE = 0.97;
 

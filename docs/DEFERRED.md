@@ -58,6 +58,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
+- `specs/pocket-alert-nudge/spec.md` PA6 and line 15 still say iPhone Safari gets the switch haptic; the code follows decision 0138. The mirror follows the owner's doc, which needs the same edit (pocket-alert-hide audit 2)
+- The e2e leaves the in-walk drawer's hidden switch (no vibrate) unchecked; only the ready bar is (pocket-alert-hide audit 4)
+
 - An index for Offered; it's read whole, fine for thousands (v1 discovery)
 - An unstamped capture can't find a place: it has no position until stop, `findFor` (v1 Explore)
 - A place moved by a new build can be found twice (v1 Explore)

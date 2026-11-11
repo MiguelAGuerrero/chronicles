@@ -1578,7 +1578,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <LayersKey layers={layers} />
               </>
             )}
-            {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser (E19, PA6). */}
+            {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser that can vibrate (E19, PA6). */}
             {canBuzz() && loaded && (
               <SwitchRow
                 testID="pocket-alert"
