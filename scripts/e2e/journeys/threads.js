@@ -511,6 +511,22 @@ async function run(h) {
   db = await stored(pg);
   const fixed = db.captures.find((m) => /@\{there\|over there\|the old mill\|/.test(m.pieces[0].body ?? '') && /@\{time\|tomorrow\|/.test(m.pieces[0].body ?? ''));
   check(fixing && mapUp && kw2 === 'over there (the old mill)' && !!fixed, `RK10: a tap on a place reference opens the resolution picker, and a pick replaces its value and keeps its word and the rest of the note ("${kw2}")`);
+  // The setting (RK19): saved with the other settings, it turns the values off wherever a note is drawn.
+  await closeViewer();
+  await pg.evaluate(() => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['meta'], 'readwrite');
+      tx.objectStore('meta').put({ key: 'ref_values', value: 'off' });
+      tx.oncomplete = () => resolve(true);
+    };
+  }));
+  await pg.reload();
+  await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
+  await tabTo(pg, 'chronicle', 'memories');
+  await openCard('is when');
+  const bare = await pg.locator('[data-testid=ref-keyword]').allInnerTexts();
+  check(bare.join('|') === 'tomorrow|over there', `RK19: with the setting off the viewer shows each word alone (${bare.join(' | ')})`);
   await closeViewer();
   await c.close();
 }
@@ -522,6 +538,9 @@ module.exports = {
     'src/components/chronicle/{MemoriesScreen,ThreadScreen}.tsx',
     'src/components/CaptureView.tsx',
     'src/lib/threads/**',
+    'src/lib/{refs,refKeywords}.ts',
+    'src/lib/refPlaces/**',
+    'src/lib/refValues/**',
     'src/lib/useCaptures.ts',
   ],
   run,
