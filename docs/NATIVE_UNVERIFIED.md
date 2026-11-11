@@ -463,6 +463,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** pinch out, then in, on the grid with two fingers. **Expect:** three across becomes five then seven, or back; the day at the top stays at the top; the page itself never zooms (MG20).
 - [ ] **Do:** with TalkBack (Android) and VoiceOver (iPhone), swipe through the grid. **Expect:** each tile is read as its kind, its time and its walk or street; no list size or item count is spoken (MG7, MG15).
 - [ ] **Do:** choose Months, tap a month of last year. **Expect:** Days opens at that month's first day (MG19).
+- [ ] **Do:** set the phone's text size to the largest standard size (iOS Text Size's last step without Larger Accessibility Sizes; Android Font size's largest) and open Media, then Months; then change the text size from Control Center with Media open. **Expect:** every day's and month's title shows its glyphs whole (an ellipsis at the end is allowed), never cut top or bottom or overlapping the line below; rows taller to suit; after the change, the same day stays at the top (fix gallery-header, audit 2). Check "g" and "y" in a place line draw whole on Android.
 - [ ] **Do:** open an older photo (taken before small copies existed) in the grid. **Expect:** its tile shows a glyph, then its small copy; the full photo is never decoded for the tile (MG11).
 - [ ] **Do:** with VoiceOver (iPhone) and TalkBack (Android), go here to a spot with a scenic route and swipe across the route preview. **Expect:** each row is read, then its Go as "Go: Direct", "Go: Through green", with no second hint spoken (`tend navigation 1`).
 
@@ -472,7 +473,8 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on Android, open Days, a day, then its walk's replay, and press Back once. **Expect:** the replay closes and Chronicle shows Days and the day as they were; the sheet beneath never took the Back (section-bar audit 1).
 - [ ] **Do:** on an iPhone, press the bar's selected Map with a place's walks open. **Expect:** the sheet lowers to rest at once, with no flicker or second jump (the press handled while rendering, SB2).
 - [ ] **Do:** on Chronicle's Map, pan until your places are off screen, then press the section bar's Walks. **Expect:** the map zooms out once, framing every place walked above the half-height sheet, below the section bar (`capFitBounds` on MapLibre RN; T6, decision 0141).
+- [ ] **Do:** on Chronicle's Map, pan until your places are off screen, press Memories, then the section bar's Walks. **Expect:** the map comes up and zooms out once, framing every place walked above the half-height sheet; with them already in view, it does not move (T7, decision 0142).
 
-## Community parks (PC1-PC17, decision 0142)
+## Community parks (PC1-PC17, decision 0143)
 
 - [ ] **Do:** on a phone, switch Community parks off in "What I'm into", then walk (Explore on) past a playground and a park with a monument or sculpture. **Expect:** the playground is no "?" and no alert; the park with the monument is; switching the kind back on shows the playground at once (PC8; the explore read decodes the tiles' `landcover` in code on every platform, so the outline is known; whether the native map view's own read carries it is unknown, in which case a park is judged by its name and what lies within 60 m of its point).

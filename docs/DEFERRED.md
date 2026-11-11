@@ -565,8 +565,20 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   real geometry (layout about 660, keyboard and accessory bar about 320) the visible strip is about 170 px, so
   centring the card between the page's top and the visible foot still leaves Save under the keyboard, and the card
   slides at half the speed of a pan. A real fix places the card inside the visible band and is checked on an iPhone.
+- **Fix gallery-header's audit, deferred:** at the accessibility text sizes (iOS AX1-AX5, about 1.6 to 3.6 times) a
+  day's or month's one-line title can end in an ellipsis ("Tue, Nov 3, 2…"), and a two-line place line holds fewer
+  words: wrapping the title would make its row's height depend on its text, which getItemLayout cannot know without
+  measuring (audit 3). A month's line is one line, so its ", and outside a walk" (MG19) is often past the ellipsis on a
+  phone, and the block's spoken label leaves it out too (audit 7, an older issue than the fix).
 
-## Community parks (PC1-PC17, decision 0142)
+## Web build across deploys (fix stale-chunk, Nov 11)
+
+- [loop] The map worker's address has no version (`WalkMap.web.tsx` ~l.41 sets `/maplibre-gl-worker.mjs`; maplibre's own default adds `?v=<version>`): after a deploy that upgrades maplibre-gl, a page left open that closes its last map and opens another starts the new worker against the old main-thread code. Fix: add the version, with a unit test that reads it from the installed maplibre-gl package (auditor, low)
+- [loop] A change to `app.json` or `app.config.js` alone selects no test in `check:affected` (`scripts/affected.js` `HARNESS`), so `tabs/oneBundle.test.ts` runs only in the full `npm test`, which CI runs before every deploy (auditor, low)
+- [kept] A page opened before this fix still runs the split build: its next first visit to a screen after the deploy shows "Loading module … failed" once, and Try again can't mend it; reopen the app (in the Home Screen app, close it from the app switcher). `ScreenError` offers no page reload for it: the owner chose one bundle over reloading (auditor, low)
+- [owner] Pages serves `index.html` with `cache-control: max-age=600`, so for ten minutes after a deploy a reload may get the old page, which names the old bundle. That is harmless while the browser also holds the old bundle in its cache, and a blank page if it doesn't. Not reproduced (auditor's opinion; header checked live, Nov 11)
+
+## Community parks (PC1-PC17, decision 0143)
 
 - **The real Allentown park's tiles** are not recorded as a fixture: `tiles.openfreemap.org` is blocked from cloud sessions. The cases are synthetic (PC14); a script (like `scripts/fixture-town-hoods.mjs`) that records one park's tiles (never a walk) from a machine that reaches them would hold "Franklin Memorial Park" and a plain playground.
 - **The planner and scenic routes do not read "What I'm into"**, for any kind; a community park counts as a park there. Making them honour the switches is a change of its own.

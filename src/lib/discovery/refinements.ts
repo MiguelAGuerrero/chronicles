@@ -6,7 +6,7 @@ import { refine, type Refinement } from './refine';
 import type { Kind, Place } from './types';
 
 /*
- * The kind pipeline's registry and what reads it (community-parks PC18-PC23, decision 0142). To split a kind into finer
+ * The kind pipeline's registry and what reads it (community-parks PC18-PC23, decision 0144). To split a kind into finer
  * subsets, add an entry here and its child to the kinds of "What I'm into" (`explore/explore.ts`); the kind tree, the
  * switches and every consumer follow from it.
  */

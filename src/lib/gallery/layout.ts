@@ -200,8 +200,15 @@ export type Row =
   | { kind: 'tiles'; key: string; tiles: Tile[]; day: string; offset: number; height: number }
   | { kind: 'block'; key: string; block: Block; offset: number; height: number };
 
-/** A day's header: its title and up to two lines of place (MG6). */
-export const HEADER_H = 64;
+/**
+ * A day's header type (MG6): its title and up to two lines of place. The view draws with these numbers and the row's
+ * height is made from them, so the row always holds what it draws (fix gallery-header: a hand-picked 64 held one line
+ * of place, and a second line crushed the title on the web).
+ */
+export const HEADER_TYPE = { padTop: 10, padBottom: 8, titleSize: 17, titleLine: 22, lineSize: 13, lineLine: 17, lines: 2 } as const;
+/** A day header's height at the device's text size (1 on the web; larger with a phone's larger text). */
+export const headerHeight = (fontScale = 1): number =>
+  Math.ceil(HEADER_TYPE.padTop + HEADER_TYPE.padBottom + (HEADER_TYPE.titleLine + HEADER_TYPE.lines * HEADER_TYPE.lineLine) * Math.max(1, fontScale));
 /** The hairline between tiles (MG5). */
 export const GAP = 1;
 /** Tiles across on a 390 pt phone, by size (MG20). */
@@ -222,14 +229,15 @@ export function columnsFor(width: number, size: Size): number {
 export const cellSize = (width: number, cols: number): number => (width - GAP * (cols - 1)) / cols;
 
 /** Days as rows: a header, then rows of tiles (MG5, MG12, MG16). */
-export function dayRows(days: DaySection[], width: number, size: Size): { rows: Row[]; cols: number; cell: number } {
+export function dayRows(days: DaySection[], width: number, size: Size, fontScale = 1): { rows: Row[]; cols: number; cell: number } {
   const cols = columnsFor(width, size);
   const cell = cellSize(width, cols);
   const rows: Row[] = [];
   let offset = 0;
+  const headerH = headerHeight(fontScale);
   for (const d of days) {
-    rows.push({ kind: 'header', key: `h:${d.key}`, day: d, offset, height: HEADER_H });
-    offset += HEADER_H;
+    rows.push({ kind: 'header', key: `h:${d.key}`, day: d, offset, height: headerH });
+    offset += headerH;
     for (let i = 0; i < d.tiles.length; i += cols) {
       const height = cell + GAP;
       rows.push({ kind: 'tiles', key: `r:${d.key}:${i}`, tiles: d.tiles.slice(i, i + cols), day: d.key, offset, height });
@@ -239,14 +247,16 @@ export function dayRows(days: DaySection[], width: number, size: Size): { rows: 
   return { rows, cols, cell };
 }
 
-/** A month's or a year's title and line above its cover. */
-export const BLOCK_TEXT_H = 64;
+/** A month's or a year's title and one line above its cover, made from the type the view draws with (as the header). */
+export const BLOCK_TYPE = { padTop: 10, padBottom: 8, titleSize: 22, titleLine: 28, lineSize: 14, lineLine: 18 } as const;
+export const blockTextHeight = (fontScale = 1): number =>
+  Math.ceil(BLOCK_TYPE.padTop + BLOCK_TYPE.padBottom + (BLOCK_TYPE.titleLine + BLOCK_TYPE.lineLine) * Math.max(1, fontScale));
 /** A cover's height: two thirds of the width, at most 420. */
 export const coverHeight = (width: number): number => Math.round(Math.min(420, (width * 2) / 3));
 
 /** Months or years as rows, one per block (MG12, MG19). */
-export function blockRows(blocks: Block[], width: number): Row[] {
-  const height = BLOCK_TEXT_H + coverHeight(width) + 12;
+export function blockRows(blocks: Block[], width: number, fontScale = 1): Row[] {
+  const height = blockTextHeight(fontScale) + coverHeight(width) + 12;
   return blocks.map((block, i) => ({ kind: 'block', key: `b:${block.key}`, block, offset: i * height, height }));
 }
 

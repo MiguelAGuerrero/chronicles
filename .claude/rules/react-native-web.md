@@ -67,3 +67,11 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   caption is sized from the photo's width, so a narrow photo or video types
   below 16 px. Every `TextInput` a web user can focus must be at least 16 px
   while focused; `typingFontSize` (`lib/captionInput`) does it for the caption.
+
+- **The web build is one bundle: route splitting is off** (`app.json`, expo-router's `asyncRoutes: { web: false }`;
+  fix stale-chunk, the owner's iPhone, Nov 11). SDK 58 turned it on for web by default, giving each route its own
+  `<route>-<hash>.js` loaded on first visit. Every Pages deploy replaces `dist/` whole, so a page left open across a
+  deploy asked for the old hash on its next screen: a 404, "Loading module … failed" in `ScreenError`, and Try again
+  asked for the same missing file. The route files were about 350 KB of about 4 MB. Don't turn it back on, or add an
+  `import()` that the export splits into its own file, unless the deploy keeps the previous build's files. An open
+  page then runs its old code until it is reloaded. `tabs/oneBundle.test.ts` reads the resolved config.

@@ -189,3 +189,51 @@ test('MG19: exactly one more place than three is "another place"', () => {
   const tiles = galleryTiles(['A', 'B', 'C', 'D'].map((a, i) => mo(a, [['photo', at(2026, 11, 2 + i, 9)]], a)), [...walks.values()], 'all', 'newest');
   assert.equal(galleryBlocks(tiles, walks, {}, 'month', NOW)[0].line, 'D, C, B and another place');
 });
+
+test('fix gallery-header: a day header holds its title and two lines of place, at any text size', async () => {
+  const { HEADER_TYPE, headerHeight, BLOCK_TYPE, blockTextHeight } = await import('../../gallery/layout');
+  const need = (s: number) => HEADER_TYPE.padTop + HEADER_TYPE.padBottom + (HEADER_TYPE.titleLine + HEADER_TYPE.lines * HEADER_TYPE.lineLine) * s;
+  for (const s of [1, 1.3, 2]) assert.ok(headerHeight(s) >= need(s), `${s}: ${headerHeight(s)} holds ${need(s)}`);
+  assert.ok(HEADER_TYPE.titleLine >= HEADER_TYPE.titleSize * 1.2 && HEADER_TYPE.lineLine >= HEADER_TYPE.lineSize * 1.2, 'line heights hold their glyphs');
+  for (const s of [1, 2]) assert.ok(blockTextHeight(s) >= BLOCK_TYPE.padTop + BLOCK_TYPE.padBottom + (BLOCK_TYPE.titleLine + BLOCK_TYPE.lineLine) * s);
+  const days = galleryDays(galleryTiles([mo('a', [['photo', at(2026, 11, 10, 9)]])], [], 'all', 'newest'), new Map(), {}, NOW);
+  assert.equal(dayRows(days, 390, 0, 1.5).rows[0].height, headerHeight(1.5), "the row is the header's own height");
+  assert.equal(blockRows(galleryBlocks(galleryTiles([mo('a', [['photo', at(2026, 11, 10, 9)]])], [], 'all', 'newest'), new Map(), {}, 'month', NOW), 390, 2)[0].height, blockTextHeight(2) + 260 + 12);
+});
+
+test('fix gallery-header audit 2: a text-size change keeps the day at the top', async () => {
+  const { anchorAfter } = await import('../../gallery/view');
+  const days = galleryDays(galleryTiles(Array.from({ length: 90 }, (_, i) => mo(`m${i}`, [['photo', at(2026, 9, 1 + Math.floor(i / 3), 9, i)]])), [], 'all', 'newest'), new Map(), {}, NOW);
+  const small = dayRows(days, 390, 0, 1).rows;
+  const large = dayRows(days, 390, 0, 1.353).rows;
+  const day = small.filter((r) => r.kind === 'header')[20];
+  const to = anchorAfter(small, day.offset + 30, large);
+  assert.equal(to, large.find((r) => r.kind === 'header' && r.day.key === (day.kind === 'header' ? day.day.key : ''))!.offset);
+  assert.notEqual(to, day.offset, 'the offset moves with the taller rows above');
+});
+
+test('fix gallery-header audit 5: BLOCK_TYPE line heights hold their glyphs', async () => {
+  const { BLOCK_TYPE } = await import('../../gallery/layout');
+  assert.ok(BLOCK_TYPE.titleLine >= BLOCK_TYPE.titleSize * 1.2 && BLOCK_TYPE.lineLine >= BLOCK_TYPE.lineSize * 1.2);
+});
+
+test('fix gallery-header audit 8: a text-size change in Months keeps the block at the top', async () => {
+  const { anchorAfter } = await import('../../gallery/view');
+  const blocks = galleryBlocks(galleryTiles(Array.from({ length: 12 }, (_, i) => mo(`m${i}`, [['photo', at(2026, 1 + i, 3)]])), [], 'all', 'newest'), new Map(), {}, 'month', NOW);
+  const before = blockRows(blocks, 390, 1);
+  const after = blockRows(blocks, 390, 1.353);
+  assert.equal(anchorAfter(before, before[4].offset + 10, after), after[4].offset);
+  assert.notEqual(after[4].offset, before[4].offset);
+});
+
+test('fix gallery-header audit 9: a fontScale change asks for the anchored offset', async () => {
+  const { rescaleScroll } = await import('../../gallery/view');
+  const days = galleryDays(galleryTiles(Array.from({ length: 60 }, (_, i) => mo(`m${i}`, [['photo', at(2026, 9, 1 + Math.floor(i / 3), 9, i)]])), [], 'all', 'newest'), new Map(), {}, NOW);
+  const small = dayRows(days, 390, 0, 1).rows;
+  const large = dayRows(days, 390, 0, 2).rows;
+  const top = small.filter((r) => r.kind === 'header')[10];
+  assert.equal(rescaleScroll(null, 0, small, 1), null, 'first mount: nothing to keep');
+  assert.equal(rescaleScroll({ rows: small, scale: 1 }, top.offset, large, 1), null, 'same scale: the size and sort changes do their own');
+  const to = rescaleScroll({ rows: small, scale: 1 }, top.offset, large, 2);
+  assert.equal(to, large.find((r) => r.kind === 'header' && top.kind === 'header' && r.day.key === top.day.key)!.offset);
+});

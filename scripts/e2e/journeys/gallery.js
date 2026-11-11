@@ -9,6 +9,8 @@ const SEED = () => {
   const piece = (id, mid, t, kind, o = {}) => ({ id, moment_id: mid, t, kind, file_path: kind === 'photo' ? 'g-photo' : kind === 'text' ? null : 'g-media', body: kind === 'text' ? 'A note never in the grid' : kind === 'photo' ? null : '42000', caption: null, caption_y: null, thumb_path: null, edit: null, ...o });
   const moment = (id, walk_id, pieces) => ({ id, walk_id, t: pieces[0].t, lat: null, lon: null, segment_id: null, piece_ids: pieces.map((p) => p.id), pieces });
   const walk = { id: 'w-alfama', started_at: at(1, 8), ended_at: at(1, 10), title: null, epilogue: null, open: false, area: 'Alfama', snapped_build: null };
+  // A walk whose name wraps the day's place line to two lines (fix gallery-header).
+  const longWalk = { id: 'w-long', started_at: at(2, 19), ended_at: at(2, 20), title: 'An evening along the river past the North Hall Street market and the old docks', epilogue: null, open: false, area: null, snapped_build: null };
   const moments = [
     moment('stack', 'w-alfama', [
       piece('stack', 'stack', at(1, 9), 'photo', { caption: 'A caption never on the tile', thumb_path: 'g-thumb' }),
@@ -18,6 +20,7 @@ const SEED = () => {
     moment('memo', null, [piece('memo', 'memo', at(0, 8), 'voice')]),
     moment('note', null, [piece('note', 'note', at(0, 7), 'text')]),
     moment('vid', null, [piece('vid', 'vid', at(2, 15), 'video', { body: '12000' })]),
+    moment('river', 'w-long', [piece('river', 'river', at(2, 19, 30), 'photo')]),
     ...Array.from({ length: 30 }, (_, i) => moment(`many${i}`, null, [piece(`many${i}`, `many${i}`, at(3, 9, i), 'photo')])),
     moment('old', null, [piece('old', 'old', lastYear, 'photo')]),
   ];
@@ -36,6 +39,7 @@ const SEED = () => {
     req.onsuccess = () => {
       const tx = req.result.transaction(['walk', 'moment', 'media'], 'readwrite');
       tx.objectStore('walk').put(walk);
+      tx.objectStore('walk').put(longWalk);
       for (const m of moments) tx.objectStore('moment').put(m);
       tx.objectStore('media').put({ key: 'g-photo', blob: photo });
       tx.objectStore('media').put({ key: 'g-thumb', blob: thumb });
@@ -138,6 +142,20 @@ async function run(h) {
   const roles = await pg.evaluate(() => ({ headers: document.querySelectorAll('[data-testid=gallery-day-title][role=heading]').length, tabs: document.querySelectorAll('[data-testid=gallery-zoom] [role=tab][aria-selected=true]').length }));
   check(roles.headers > 0 && roles.tabs === 1, `MG15: day titles are headings and Years, Months, Days are tabs (${JSON.stringify(roles)})`);
   const dayLines = await pg.locator('[data-testid=gallery-day-line]').allInnerTexts();
+  // fix gallery-header (audit 1, 4): no header's or block's title or line is cut: a title holds its text, a line is a
+  // whole number of its line heights (a squeezed one is not), and both stay inside their row.
+  const cutIn = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=gallery-day], [data-testid=gallery-block]')].filter((h) => !h.closest('[aria-hidden=true]')).flatMap((h) => {
+    const box = h.getBoundingClientRect();
+    return [...h.querySelectorAll('[data-testid$=-title], [data-testid$=-line]')].filter((t) => {
+      const r = t.getBoundingClientRect();
+      const lh = parseFloat(getComputedStyle(t).lineHeight);
+      const squeezed = t.getAttribute('data-testid').endsWith('title') ? t.scrollHeight > t.clientHeight + 1 : !(lh > 0) || t.clientHeight < lh - 0.5 || Math.abs(t.clientHeight / lh - Math.round(t.clientHeight / lh)) > 0.05;
+      return squeezed || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5;
+    }).map((t) => `${t.getAttribute('data-testid')}: ${t.innerText} (${t.clientHeight}/${t.scrollHeight})`);
+  }));
+  const cut = await cutIn();
+  const twoLines = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=gallery-day-line]')].some((l) => l.getBoundingClientRect().height > 30));
+  check(cut.length === 0 && twoLines, `fix gallery-header: no header text is cut, a two-line place line included (${cut.join('; ') || 'none cut'}; two lines: ${twoLines})`);
   check(dayLines.includes('A morning walk in Alfama') && dayLines.includes('Not on a walk'), `MG6: each day says where (${dayLines.join(' / ')})`);
 
   // MG8: a tile opens its moment at its piece, with its context; steps follow the gallery; Close keeps the scroll.
@@ -166,7 +184,7 @@ async function run(h) {
   await pg.locator('[aria-label="Next moment"]').first().click();
   await pg.waitForTimeout(700);
   const next = await pg.locator('[data-testid=piece-shown]').first().getAttribute('data-piece').catch(() => null);
-  check(next === 'vid', `MG8: Next goes to the gallery's next moment in its order (${next})`);
+  check(next === 'river', `MG8: Next goes to the gallery's next moment in its order (${next})`);
   await pg.click('[data-testid=viewer-close]');
   await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 5000 }).catch(() => {});
   await pg.waitForTimeout(600);
@@ -268,6 +286,7 @@ async function run(h) {
   await pg.waitForTimeout(600);
   await shot(pg, '99-gallery-months');
   const blocks = await pg.locator('[data-testid=gallery-block-title]').allInnerTexts();
+  const cutMonths = await cutIn();
   const monthsWords = await words();
   const lastYear = String(new Date().getFullYear() - 1);
   const oldBlock = pg.locator(`[data-testid=gallery-block]:has-text("${lastYear}")`).first();
@@ -291,6 +310,8 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=gallery-block]', { timeout: 5000 });
   await pg.waitForTimeout(500);
   await shot(pg, '99-gallery-years');
+  const cutYears = await cutIn();
+  check(cutMonths.length === 0 && cutYears.length === 0 && blocks.length > 0, `fix gallery-header audit 1: no month or year block text is cut (${[...cutMonths, ...cutYears].join('; ') || 'none'})`);
   check(!tally(monthsWords) && !tally(await words()), 'MG7: no count in Months or Years');
 
   // MG1: leaving Chronicle and coming back is Memories again; Media is All Items and Days again (MG9, MG19).

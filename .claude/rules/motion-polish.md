@@ -40,6 +40,7 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
   the native map widens the bounds to fit no closer (`capFitBounds`, U15). `perfCount('fit')`
   lets the e2e count fits.
 - The walks list's zoom-out runs for the sheet's Walks, a drag up and the section bar's Walks, all from the sheet at rest (`openSheet`, decision 0141); from Days, or with Walks already shown, none does.
+- A map that mounts on Walks (the bar's Walks from Memories or Media) runs the same zoom-out once, after its first read (decision 0142); one that mounts on Days or Map does not.
 - **Testing motion on the web:** `emulateMedia({ reducedMotion: 'reduce' })`.
   A mouse drag on a moving element is cancelled by the browser and reads as a
   tap, so drag a moving sheet with CDP touch events, as on a phone.

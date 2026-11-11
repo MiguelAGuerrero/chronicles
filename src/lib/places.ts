@@ -184,6 +184,14 @@ export function placeWalks(index: PlacesIndex, key: string): { title: string; su
 }
 
 /**
+ * The places walked a zoom-out frames (T7): those of the walks shown, so a walk being deleted, its Undo still
+ * offered (D5), is no reason to move the map. `hidden` is the deletions' hidden ids.
+ */
+export function shownPlaces(areas: Area[], rows: WalkArea[], walks: Walk[], hidden: ReadonlySet<string>): Bounds | null {
+  return placesIndex(areas, rows, hidden.size ? walks.filter((w) => !hidden.has(w.id)) : walks).bounds;
+}
+
+/**
  * Whether a read of the places walked moves Chronicle's map (H5, decision 0137). `framed` and `next` are the
  * bounds' keys ('' for nothing); `quiet` is a read that follows only walks placed in the background, on screen or
  * while it was away: those never move a framed map, so the view the owner left stays (fix background-placing

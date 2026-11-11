@@ -147,7 +147,7 @@ subsets"; the owner chose a registry of pure refinements and kinds that know the
 - **Defaults taken** (Nov 11): name only, size never demotes; the kind "Community parks" with `people-outline`; an unfound place never named for its kind; old checklists keep `parks` until read again. PC15 was narrowed from the steward's finding 6: the planner and scenic routes read no "What I'm into" for any kind, so they count both kinds as parks.
 - **Not built:** a fixture from the real Allentown park's tiles (blocked host; "Franklin Memorial Park" is a name case, the owner's recollection); colouring green spaces; subsets for other categories (`docs/DEFERRED.md`).
 - **Native has never run on a device;** the one device item is in `docs/NATIVE_UNVERIFIED.md`.
-- **The pipeline (PC18-PC23, decision 0143, the owner's calls, Nov 11):** a registry of pure refinements (`discovery/refine.ts`,
+- **The pipeline (PC18-PC23, decision 0144, the owner's calls, Nov 11):** a registry of pure refinements (`discovery/refine.ts`,
   `refinements.ts`), kinds that know their parent, one reader of the switches (`isKindHidden`); tests in
   `src/lib/__tests__/explore/kindPipeline.test.ts`, PC23 also in the `marks` journey. 1,886 unit tests, typecheck, lint, layers pass.
   A visible change: with Parks off, community parks are off too, and their row is locked.

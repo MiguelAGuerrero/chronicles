@@ -3,7 +3,7 @@ import type { GreenArea } from './green';
 import type { Kind, Place } from './types';
 
 /*
- * The kind pipeline's engine (community-parks PC18-PC21, decision 0142): a stage that splits a kind into finer ones.
+ * The kind pipeline's engine (community-parks PC18-PC21, decision 0144): a stage that splits a kind into finer ones.
  *
  *   source adapters -> presence classes -> curation (marks) -> merge of sources -> refinement (here) -> the reader's switches
  *

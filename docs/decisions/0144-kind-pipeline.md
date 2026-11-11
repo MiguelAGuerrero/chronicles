@@ -1,9 +1,9 @@
-# 0143. The kind pipeline: a registry of pure refinements; kinds know their parent
+# 0144. The kind pipeline: a registry of pure refinements; kinds know their parent
 
 Date: 2026-11-11 · Status: accepted · Area: explore, discovery, presence
 
 ## Context
-Community parks (0142) was built as one function called by name from the poi adapter, with a special case in the archive
+Community parks (0143) was built as one function called by name from the poi adapter, with a special case in the archive
 merge. The owner: classifications and derived data must be separate from the shell, pure functions in a flexible pipeline
 that produces, filters and separates large categories into finer subsets, so finer-grained control can be added later.
 
@@ -25,4 +25,4 @@ The owner's calls, Nov 11, each the recommended option:
   scenic routes' signals, which re-export it); `parkKind.ts` holds the one refinement.
 - With Parks off, community parks are off too (they were left on by the first build); the Community parks row is dimmed and locked.
 - The registry is where finer subsets of any category go; the kinds table (`explore/explore.ts`) still lists each child after its parent.
-- Amends 0142's mechanism, not its calls. Specs: `specs/community-parks/spec.md` (PC18-PC23).
+- Amends 0143's mechanism, not its calls. Specs: `specs/community-parks/spec.md` (PC18-PC23).

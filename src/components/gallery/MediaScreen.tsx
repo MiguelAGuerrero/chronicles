@@ -5,9 +5,9 @@ import { captureEdits } from '../../lib/captureEdits';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { gallery } from '../../lib/gallery';
 import { capFirst, emptyLine } from '../../lib/gallery/copy';
-import { blockRows, coverHeight, dayRows, galleryBlocks, galleryDays, galleryTiles, tileLabel, tilePlace, type Block, type Row, type Tile } from '../../lib/gallery/layout';
+import { blockRows, blockTextHeight, coverHeight, dayRows, HEADER_TYPE, galleryBlocks, galleryDays, galleryTiles, tileLabel, tilePlace, type Block, type Row, type Tile } from '../../lib/gallery/layout';
 import type { Zoom } from '../../lib/gallery/types';
-import { anchorAfter, fitFor, zoomed } from '../../lib/gallery/view';
+import { anchorAfter, fitFor, rescaleScroll, zoomed } from '../../lib/gallery/view';
 import { pieceKey, type Faced } from '../../lib/moment';
 import { resurface } from '../../lib/resurface';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
@@ -34,7 +34,7 @@ const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 
 export function MediaScreen() {
   const st = useStore(gallery.store, (s) => s);
   const hidden = useHidden();
-  const { width: windowW } = useWindowDimensions();
+  const { width: windowW, fontScale } = useWindowDimensions();
   const [width, setWidth] = useState(windowW);
   const [now, setNow] = useState(() => Date.now());
   const [menu, setMenu] = useState(false);
@@ -74,9 +74,9 @@ export function MediaScreen() {
   const walks = useMemo(() => new Map(st.walks.map((w) => [w.id, w])), [st.walks]);
   const tiles = useMemo(() => galleryTiles(moments, st.walks, st.show, st.view.order), [moments, st.walks, st.show, st.view.order]);
   const rows = useMemo<Row[]>(() => {
-    if (st.zoom === 'days') return dayRows(galleryDays(tiles, walks, st.streets, now), width, st.view.size).rows;
-    return blockRows(galleryBlocks(tiles, walks, st.streets, st.zoom === 'months' ? 'month' : 'year', now), width);
-  }, [tiles, walks, st.streets, now, width, st.view.size, st.zoom]);
+    if (st.zoom === 'days') return dayRows(galleryDays(tiles, walks, st.streets, now), width, st.view.size, fontScale).rows;
+    return blockRows(galleryBlocks(tiles, walks, st.streets, st.zoom === 'months' ? 'month' : 'year', now), width, fontScale);
+  }, [tiles, walks, st.streets, now, width, st.view.size, st.zoom, fontScale]);
   const cell = useMemo(() => {
     const r = rows.find((x) => x.kind === 'tiles');
     return r ? r.height - 1 : 0;
@@ -87,6 +87,16 @@ export function MediaScreen() {
     if (!landing) return -1;
     return rows.findIndex((r) => (landing.kind === 'day' ? r.kind === 'header' && r.day.key === landing.key : r.kind === 'block' && r.block.key === landing.key));
   }, [rows, landing]);
+
+  // The text size changed while Media was up (fix gallery-header audit 2): every header grew or shrank, so the day that
+  // was at the top is found again in the new rows, as a size change does.
+  const lastRows = useRef<{ rows: Row[]; scale: number } | null>(null);
+  useEffect(() => {
+    const to = rescaleScroll(lastRows.current, offset.current, rows, fontScale);
+    lastRows.current = { rows, scale: fontScale };
+    if (to == null) return;
+    requestAnimationFrame(() => list.current?.scrollToOffset({ offset: to, animated: false }));
+  }, [rows, fontScale]);
 
   // A scroll asked for in a handler (a month opened, the size changed) lands once its rows are drawn (MG19, MG20).
   useEffect(() => {
@@ -104,7 +114,7 @@ export function MediaScreen() {
   const resize = (dir: 'in' | 'out') => {
     const next = zoomed(st.view.size, dir);
     if (next == null || st.zoom !== 'days') return;
-    const after = dayRows(galleryDays(tiles, walks, st.streets, now), width, next).rows;
+    const after = dayRows(galleryDays(tiles, walks, st.streets, now), width, next, fontScale).rows;
     pending.current = anchorAfter(rows, offset.current, after);
     void gallery.setView({ size: next });
   };
@@ -178,7 +188,7 @@ export function MediaScreen() {
         return (
           <View style={[styles.header, { height: item.height }]} testID="gallery-day" {...({ dataSet: { day: item.day.key } } as object)}>
             <Text testID="gallery-day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{item.day.title}</Text>
-            <Text testID="gallery-day-line" style={styles.line} numberOfLines={2}>{item.day.line}</Text>
+            <Text testID="gallery-day-line" style={styles.line} numberOfLines={HEADER_TYPE.lines}>{item.day.line}</Text>
           </View>
         );
       if (item.kind === 'tiles')
@@ -189,9 +199,9 @@ export function MediaScreen() {
             ))}
           </View>
         );
-      return <PeriodBlock block={item.block} width={width} coverH={coverHeight(width)} fit={fit} onPress={openBlock} />;
+      return <PeriodBlock block={item.block} width={width} textH={blockTextHeight(fontScale)} coverH={coverHeight(width)} fit={fit} onPress={openBlock} />;
     },
-    [cell, fit, walks, st.streets, openTile, wantsThumb, width, openBlock],
+    [cell, fit, walks, st.streets, openTile, wantsThumb, width, openBlock, fontScale],
   );
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -276,9 +286,10 @@ export function MediaScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
-  header: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6, justifyContent: 'flex-end' },
-  title: { color: theme.ink, fontSize: 17, fontWeight: '700' },
-  line: { color: theme.muted, fontSize: 13, lineHeight: 17 },
+  // The row's height is made from these numbers (HEADER_TYPE); neither text may shrink to fit, or the title is cut.
+  header: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: HEADER_TYPE.padTop, paddingBottom: HEADER_TYPE.padBottom, justifyContent: 'flex-end' },
+  title: { color: theme.ink, fontSize: HEADER_TYPE.titleSize, lineHeight: HEADER_TYPE.titleLine, fontWeight: '700', flexShrink: 0 },
+  line: { color: theme.muted, fontSize: HEADER_TYPE.lineSize, lineHeight: HEADER_TYPE.lineLine, flexShrink: 0 },
   row: { flexDirection: 'row', gap: 1 },
   quiet: { padding: 24 },
   quietText: { color: theme.ink, fontSize: 16, lineHeight: 23 },

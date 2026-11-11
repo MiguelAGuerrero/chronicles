@@ -1,4 +1,4 @@
-# 0142. Community parks: a subset of Parks the reader can switch off
+# 0143. Community parks: a subset of Parks the reader can switch off
 
 Date: 2026-11-11 · Status: accepted · Area: explore, discovery
 
@@ -30,7 +30,7 @@ The owner's calls, Nov 11:
 - `Kind` gains `community_parks`; `ATLAS_CODE` is `a9.<presence code>`; no migration (a place's kind is not cached; a
   checklist keeps `parks` until its area is read again: a park is shown, never hidden, meanwhile).
 - The walk planner and scenic routes do not read "What I'm into" and count both kinds as parks (`PASS_BY`); left as it is.
-- Proposed for VISION.md's Precedents (the owner's to add): "0142 Community parks: a subset of Parks the reader can switch
+- Proposed for VISION.md's Precedents (the owner's to add): "0143 Community parks: a subset of Parks the reader can switch
   off; a demotion needs a name that says so and nothing notable near; size never demotes; never described (reshaped at the
   gate, Nov 11)".
 - Specs: `specs/community-parks/spec.md` (PC1-PC17).

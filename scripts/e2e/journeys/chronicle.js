@@ -229,6 +229,38 @@ async function checks(h) {
         `tend chronicle T6: the bar's Walks zooms out to every place walked when one is out of view (off screen ${offScreen}, ${fits1 - fits0} fit, star at ${framed && Math.round(framed.x)},${framed && Math.round(framed.y)}, sheet at ${Math.round(top)})`);
       await page.click('[data-testid=section-map]');
       await settle();
+      // inbox T7: the bar's Walks from Memories mounts the map on its kept view; with the star dragged off the screen,
+      // it zooms out once (decision 0054's rule) and frames it above the sheet. From Media with the star in view, none.
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x + 320, from.y + 40, { steps: 10 });
+      await page.mouse.up();
+      await page.waitForTimeout(700);
+      const away7 = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      const offScreen7 = !away7 || away7.x > box.x + box.width || away7.x + away7.width < box.x;
+      await page.click('[data-testid=section-memories]');
+      await page.waitForTimeout(800);
+      const fits7 = await page.evaluate(() => window.__perf.fit ?? 0);
+      await page.click('[data-testid=section-walks]');
+      await page.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
+      await page.waitForTimeout(2000);
+      const framed7 = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      const box7 = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
+      const top7 = (await page.locator('[data-testid=home-sheet]').boundingBox()).y;
+      const fitsMount = (await page.evaluate(() => window.__perf.fit ?? 0)) - fits7;
+      await shot(page, 'chronicle-t7-walks-from-memories');
+      check(offScreen7 && fitsMount === 1 && framed7 && framed7.x >= box7.x && framed7.x + framed7.width <= box7.x + box7.width && framed7.y + framed7.height < top7,
+        `tend chronicle T7: the bar's Walks from Memories zooms out once to every place walked when one is out of the kept view (off screen ${offScreen7}, ${fitsMount} fit, star at ${framed7 && Math.round(framed7.x)},${framed7 && Math.round(framed7.y)}, sheet at ${Math.round(top7)})`);
+      await page.click('[data-testid=section-media]');
+      await page.waitForTimeout(800);
+      const fitsIn = await page.evaluate(() => window.__perf.fit ?? 0);
+      await page.click('[data-testid=section-walks]');
+      await page.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
+      await page.waitForTimeout(1500);
+      const fitsKept = (await page.evaluate(() => window.__perf.fit ?? 0)) - fitsIn;
+      check(fitsKept === 0, `tend chronicle T7: from Media, with every place walked in the kept view, the map mounts on Walks with no fit (${fitsKept} fits)`);
+      await page.click('[data-testid=section-map]');
+      await settle();
     }
     // The map view survives a replay (H5): pan, note the star, replay, come back.
     const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
