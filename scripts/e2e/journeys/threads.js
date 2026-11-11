@@ -204,8 +204,10 @@ async function run(h) {
     const xs = await pg.locator('[data-testid=own-thread] [data-testid=note-bubble] [data-testid=moment-more]').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
     const ownX = (await pg.locator('[data-testid=own-thread]').boundingBox()) ?? { x: 0, width: 0 };
     check(xs.length === 3 && xs.every((x) => x === xs[0]) && Math.abs(xs[0] - (ownX.x + ownX.width)) <= 2, `fix thread-log audit 4: every note's More is at the row's end, in one column (${xs.join(', ')})`);
-    const spoken = await pg.locator(`${bubble('looked strong at the pier')} [aria-label^="Note, "]`).count();
-    check(spoken === 1, 'fix thread-log audit 2: a plain note in the thread is one item to a screen reader, naming a note');
+    // Read from the accessibility tree, not an attribute (audit 7): the note's words and its time are inside one named group.
+    const tree = await pg.locator(bubble('looked strong at the pier')).ariaSnapshot();
+    check(/group "Note, Someone said I looked strong at the pier\., In September"/.test(tree) && !/- text: In September/.test(tree.split('group')[0]),
+      `fix thread-log audit 2, 7, 9: a plain note is one named group with its words and time, said once (${tree.split('\n')[0]})`);
   }
   await shot(pg, '79-thread-log');
   const line = await pg.locator('[data-testid=own-thread-line]').innerText();

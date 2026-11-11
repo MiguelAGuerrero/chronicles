@@ -27,16 +27,17 @@ export function NoteBubble(props: {
   // Only a note that mentions a moment reads the moment pool (audit 1): a thread of plain notes reads nothing more.
   const mentions = refIds(body).length > 0;
   return (
-    <View style={styles.wrap} testID="note-bubble">
-      {/* A plain note is one item to a screen reader, said as a card says itself (audit 2); a mention's card stays its own button. */}
-      <View accessible={!mentions} accessibilityLabel={mentions ? undefined : momentSpoken(m, props.now)}>
-        <View style={styles.bubble}>
-          {mentions ? <NoteText body={body} style={styles.text} onOpen={props.onOpenRef} /> : <Text style={styles.text}>{body}</Text>}
-        </View>
-      </View>
+    <View testID="note-bubble">
       <View style={styles.foot}>
         <View style={styles.lines}>
-          <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(undefined, m, props.now)}</Text>
+          {/* A plain note and its time are one named group, said as a card says itself, the time once (audit 2, 7, 9);
+              a note with a mention leaves each mention its own button. */}
+          <View role={mentions ? undefined : 'group'} accessible={!mentions} accessibilityLabel={mentions ? undefined : momentSpoken(m, props.now)} style={styles.said}>
+            <View style={styles.bubble}>
+              {mentions ? <NoteText body={body} style={styles.text} onOpen={props.onOpenRef} /> : <Text style={styles.text}>{body}</Text>}
+            </View>
+            <Text style={[styles.meta, styles.when]} numberOfLines={2} testID="moment-context">{contextText(undefined, m, props.now)}</Text>
+          </View>
           {from && walk ? (
             <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} hitSlop={8} style={styles.from}>
               <Text style={styles.meta} numberOfLines={1}>{from}</Text>
@@ -52,16 +53,17 @@ export function NoteBubble(props: {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 2 },
   // The plain surface with no border, unlike the buttons above it, and never an accent fill (restraint); the squarer
   // corner points back up the thread.
   bubble: { maxWidth: '92%', alignSelf: 'flex-start', backgroundColor: theme.surface, borderRadius: 18, borderTopLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 10 },
   text: { color: theme.ink, fontSize: 17, lineHeight: 24 },
   // More at the row's end on every note, clear of the time (audit 4).
-  foot: { flexDirection: 'row', alignItems: 'center', paddingLeft: 14, minHeight: 44 },
+  foot: { flexDirection: 'row', alignItems: 'flex-end' },
   lines: { flex: 1, gap: 2 },
+  said: { gap: 6 },
+  when: { paddingLeft: 14 },
   // The walk line is as tall a target as a card's (audit 3).
-  from: { minHeight: 32, justifyContent: 'center' },
+  from: { minHeight: 32, justifyContent: 'center', paddingLeft: 14 },
   meta: { color: theme.muted, fontSize: 13 },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });
