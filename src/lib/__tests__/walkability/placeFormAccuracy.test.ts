@@ -45,7 +45,7 @@ for (const p of calibration?.places ?? []) {
   });
 }
 
-test('PF6: the held-out places are right at the floor: 0.80 with a 95% lower bound of 0.70, recall of 0.80, and a "?" counts only for its two words', { todo: 'waits on the fresh held-out set (the first scored 0.71 and 0.62 and was folded in)' }, () => {
+test('PF6: the held-out places are right at the floor: 0.80 with a 95% lower bound of 0.70, recall of 0.80, and a "?" counts only for its two words', { todo: 'not met on the second held-out look (2026-11-11, 24 places): accuracy 0.79, lower bound 0.60, recall 0.72; the owner decides' }, () => {
   assert.ok(heldOut, 'the held-out fixture is cut, after the thresholds are pinned');
   const rows = heldOut!.places.map((p) => ({ p, got: wordOf(p) }));
   assert.ok(rows.length >= 20, 'at least 20 places');
@@ -61,12 +61,13 @@ test('PF6: the held-out places are right at the floor: 0.80 with a 95% lower bou
   assert.ok(recall >= 0.8, `only ${recall.toFixed(2)} of the places with a word get any word (silence cannot pass)`);
 });
 
-test('PF7: no plainly wrong word in either set, and a mall or a suburb has no word at all', { todo: 'waits on the fresh held-out set' }, () => {
+test('PF7: no plainly wrong word in either set, and a place the owner gave no word gets none', { todo: 'second held-out look 2026-11-11: limerickOutlets (an outlet mall at an interchange) reads exit' }, () => {
   for (const set of [calibration, heldOut]) {
     assert.ok(set, 'both sets are cut');
     for (const p of set!.places) {
       const got = wordOf(p);
       assert.ok(!plainlyWrong(p.word, got) && !(p.accept !== undefined && plainlyWrong(p.accept, got)), `${p.name}: confirmed ${p.word}, got ${got}`);
+      if (p.word === null && (p.accept === undefined || p.accept === null)) assert.equal(got, null, `${p.name}: the owner gave it no word, the rule says ${got}`);
     }
   }
   for (const id of MALLS_AND_SUBURBS) assert.equal(wordOf(calibration!.places.find((p) => p.id === id)!), null, id);
@@ -153,7 +154,7 @@ test('PF22: moved 300 m in eight directions, never a plainly wrong word, a no-wo
   assert.ok(changed / total <= 0.25, `${changed} of ${total} readings changed`);
 });
 
-test('PF23: every held-out point is 5 km or more from every calibration point, and no two share a place name', { todo: 'waits on the fresh held-out set' }, () => {
+test('PF23: every held-out point is 5 km or more from every calibration point', () => {
   assert.ok(heldOut, 'the fresh held-out fixture is cut');
   const km = (a: [number, number], b: [number, number]) => {
     const [la1, la2] = [(a[1] * Math.PI) / 180, (b[1] * Math.PI) / 180];

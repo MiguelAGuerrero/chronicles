@@ -171,4 +171,15 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
 
 ## Record
 
-(Filled as it is built.)
+### The held-out looks (PF6, PF23: each is logged; a held-out set is used once per rule)
+
+1. **2026-11-11, the first set (17 places, a first rule fitted to 18).** Accuracy 0.71, recall 0.62 against 0.80 and 0.80. Missed: Bethlehem, Steelton, Shartlesville, Morgantown, Penn State.
+   Folded into the calibration set at the owner's call, and the rule retuned.
+2. **2026-11-11, the second set (24 places, blind labels from an independent agent; a street-first rule pinned in `77cfe36` before the data was cut).** Accuracy 19 of 24 = 0.79
+   (95% interval 0.60 to 0.91), recall 13 of 18 = 0.72 against 0.80, a lower bound of 0.70 and recall of 0.80: **not met**. No plainly wrong pair. Of the 19 places the rule spoke
+   about, 18 were right and one was wrong (an outlet mall at an interchange read "services at a highway exit"); it stayed silent on 4 of the 18 places that deserved a word. The five misses:
+   - **Scranton, Orwigsburg, Manheim (grid or main street, got no word):** a hole in the rule, not a fitting miss. A main street needs under 48 junctions and a grid needs 48 with 100 places
+     or 70 alone, so a ring with 48 to 69 junctions and fewer than 100 places falls through (Scranton 48 junctions and 322 places at the edge; Orwigsburg 48 and 42; Manheim 63 and 88).
+   - **Churchtown (village, no word):** 5 junctions, under the village floor of 8; a sparse Amish village.
+   - **Limerick outlets (no word, got exit):** an outlet mall at an interchange: 0.39 motorway share, 10 junctions and 71 places; the exit rule has no cap on places.
+   The set is not retuned on; the rule changes only with a fresh set (PF23).
