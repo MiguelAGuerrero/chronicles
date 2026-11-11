@@ -137,6 +137,7 @@ const FEATURES = [
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
+      'src/lib/markNames.ts',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town'],
@@ -242,6 +243,14 @@ const FEATURES = [
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
     specs: ['resurfaced-moments', 'memories-context'],
+  },
+  {
+    name: 'transcripts',
+    about: 'a voice memo\'s words read on the phone: the offline model fetched on a tap and loaded only for a run, the decode module, the transcript cache',
+    rule: 'resurface',
+    source: [], // src/lib/transcribe/** and modules/chronicles-audio-decode/** join when the code exists (a glob that matches nothing fails TG1)
+    journeys: [],
+    specs: ['memo-transcripts'],
   },
   {
     name: 'threads',
@@ -394,7 +403,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'memo-transcripts': { branch: 'claude/pensive-darwin-epu6at', since: '2026-11-11' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
