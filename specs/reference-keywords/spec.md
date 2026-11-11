@@ -115,4 +115,8 @@ Triage:
 29. Terminology of the switch: accept ("Show the place or time beside a pick").
 30. Rows under 48 dp: accept (48).
 
-Tests: `reference-keywords audit N` for 1, 3, 4, 5, 6, 8, 9, 11, 13, 14, 15, 17, 18, 21, 22, 24, 25, 30. Copy changes 16, 28, 29 and the deferred ones are covered by the typecheck and the journey.
+Result (Nov 11): 30 findings, 23 fixed (9 of them in part: 9, 11, 16, 17, 21, 23, 24, 25, 28), 4 deferred (2, 12, 20, 27), 3 rejected (7, 10, 26; 7's timezone part deferred). The steward's S1 went to the owner (only a fresh fix).
+
+Tests: `reference-keywords audit N` in `threads/keywordsAudit.test.ts` for 1, 3, 4, 5, 6, 8, 9, 13, 15, 17 (unit) and in the `threads` journey for 11, 14, 18, 21, 22, 24, 25, 30 (written as todos in `reference-keywords audit: the triage and the regression tests first`). Findings 16, 19, 23, 28 and 29 are copy and layout, covered by the typecheck and the journey's pictures. Journeys run after the fixes: `threads` (forced, with pictures), then `chronicle`, `edit`, `nudge`, `qol`, `ready`, `responses`, `resurface`, `stacks`, `tabs`, `walk` once each.
+
+Changes the audit made: a note with any reference is drawn through `NoteText` everywhere (`hasRefs`); "over there" is always the menu's first row; the pick replaces the whole typed word; Enter picks only after a letter or an arrow; a keyword's value is not a thread term; a save during the setting's load wins; a new reply offers place keywords only from a fix as fresh as its own stamp (15 s, `FRESH_FIX_MS`); an unnamed map pick stores no label ("over there" alone); times read in the viewer's clock style; the menu's rows are 48 high with a bar on the highlighted one; the note card is pinned near the top while the menu is open; the pill's word is in the note's weight and its value quieter, with a spoken hint.
