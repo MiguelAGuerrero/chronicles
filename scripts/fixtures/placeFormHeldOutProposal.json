@@ -1,0 +1,274 @@
+{
+ "places": [
+  {
+   "id": "lebanon",
+   "name": "Lebanon, PA",
+   "at": [
+    -76.42339,
+    40.34295
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "Compact county-seat grid (8th/Cumberland), dense places; 29 km of street in the ring (measured). Confidence high."
+  },
+  {
+   "id": "pottsville",
+   "name": "Pottsville, PA",
+   "at": [
+    -76.19534,
+    40.68513
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "Anthracite-era hillside city, tight grid along Centre/Market; confidence high-medium (topography bends the grid)."
+  },
+  {
+   "id": "scranton",
+   "name": "Scranton, PA (downtown)",
+   "at": [
+    -75.66216,
+    41.40868
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "Downtown Lackawanna Ave grid; 1,400 raw place hits (measured, includes tile-edge duplicates). Confidence high."
+  },
+  {
+   "id": "york",
+   "name": "York, PA",
+   "at": [
+    -76.72766,
+    39.96252
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "William Penn Hwy/Market St centre; Penn-style rectilinear grid. Confidence high."
+  },
+  {
+   "id": "harrisburg",
+   "name": "Harrisburg, PA (centre)",
+   "at": [
+    -76.8861,
+    40.2663
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point, sits a few hundred metres south of the Capitol",
+   "why": "Grid with the Capitol complex and river; the point may fall on Market St or just south; confidence medium-high."
+  },
+  {
+   "id": "lewisburg",
+   "name": "Lewisburg, PA",
+   "at": [
+    -76.88473,
+    40.96454
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Market Street with a run of shops, houses on a small grid around; borough with a university edge. Confidence medium-high."
+  },
+  {
+   "id": "manheim",
+   "name": "Manheim, PA",
+   "at": [
+    -76.39524,
+    40.16372
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Market Square, Main/Market streets with shops, residential blocks around; confidence medium-high."
+  },
+  {
+   "id": "mountJoy",
+   "name": "Mount Joy, PA",
+   "at": [
+    -76.50338,
+    40.10985
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Main Street (PA 230) with a run of shops, houses behind; confidence high."
+  },
+  {
+   "id": "orwigsburg",
+   "name": "Orwigsburg, PA",
+   "at": [
+    -76.10075,
+    40.65486
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Small borough, Independence St with shops; only 132 raw place hits (measured) so the ring may read thin; confidence medium."
+  },
+  {
+   "id": "bloomsburg",
+   "name": "Bloomsburg, PA",
+   "at": [
+    -76.45377,
+    41.00452
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point (not the other Bloomsburg near Reading)",
+   "why": "Main St with a university and a grid of blocks; either word is defensible. 519 raw place hits (measured).",
+   "accept": "grid"
+  },
+  {
+   "id": "bowmansville",
+   "name": "Bowmansville, PA",
+   "at": [
+    -76.01741,
+    40.19677
+   ],
+   "word": "village",
+   "pointNote": "Overture locality point",
+   "why": "Strung along PA 625 (Reading Rd) with few shops; sits beside the Turnpike but is not an exit town. Confidence medium-high."
+  },
+  {
+   "id": "blueBall",
+   "name": "Blue Ball, PA",
+   "at": [
+    -76.04762,
+    40.11838
+   ],
+   "word": "village",
+   "pointNote": "Overture locality point",
+   "why": "Crossroads village on PA 23 in Lancaster County; few shops. Confidence medium (crossroads rather than one road)."
+  },
+  {
+   "id": "churchtown",
+   "name": "Churchtown, PA",
+   "at": [
+    -75.96462,
+    40.13315
+   ],
+   "word": "village",
+   "pointNote": "Overture locality point",
+   "why": "Small village along PA 23 with a historic cluster; 27 raw place hits (measured). Confidence medium."
+  },
+  {
+   "id": "intercourse",
+   "name": "Intercourse, PA",
+   "at": [
+    -76.10762,
+    40.03859
+   ],
+   "word": "village",
+   "pointNote": "Overture locality point",
+   "why": "Amish/tourist village along PA 340 with a run of shops (157 raw place hits, measured); a hard case on purpose.",
+   "accept": "mainStreet"
+  },
+  {
+   "id": "lickdale",
+   "name": "Lickdale, PA (I-81 exit 90)",
+   "at": [
+    -76.51583,
+    40.45301
+   ],
+   "word": "exit",
+   "pointNote": "hand-chosen: midpoint of an I-81 interchange link, 466 m from the Lickdale locality; hwShare .45 within 800 m, 11.6 km of street (measured)",
+   "why": "Pilot/Sheetz-type services at the I-81/PA 72 interchange; confidence high."
+  },
+  {
+   "id": "pineGrove",
+   "name": "I-81 at PA 443 (Pine Grove exit)",
+   "at": [
+    -76.42825,
+    40.53344
+   ],
+   "word": "exit",
+   "pointNote": "hand-chosen: interchange link midpoint, 898 m from Irving; hwShare .52 (measured)",
+   "why": "A few services at the exit, the town is 4 km off; confidence medium.",
+   "accept": null
+  },
+  {
+   "id": "bedford",
+   "name": "Bedford interchange, PA Turnpike exit 146",
+   "at": [
+    -78.48807,
+    40.02849
+   ],
+   "word": "exit",
+   "pointNote": "hand-chosen: interchange link midpoint; hwShare .38, 33 raw place hits (measured)",
+   "why": "Hotels/fuel at the exit, Bedford borough 4 km north; the I-99 junction nearby may add retail; confidence medium.",
+   "accept": null
+  },
+  {
+   "id": "newville",
+   "name": "I-81 near Newville (Plainfield Twp exit)",
+   "at": [
+    -77.28366,
+    40.20571
+   ],
+   "word": "exit",
+   "pointNote": "hand-chosen: interchange link midpoint, 611 m from Plainfield; hwShare .35 (measured)",
+   "why": "Services at the exit, Newville is a separate town; confidence medium.",
+   "accept": null
+  },
+  {
+   "id": "limerickOutlets",
+   "name": "Philadelphia Premium Outlets, Limerick",
+   "at": [
+    -75.5707,
+    40.2366
+   ],
+   "word": null,
+   "pointNote": "hand-chosen: the mall centre from Overture place names; 245 raw place hits, hwShare .41 (measured)",
+   "why": "Outlet mall beside US 422/ Route 422 retail; no word. Confidence high."
+  },
+  {
+   "id": "humboldt",
+   "name": "Humboldt Industrial Park, Hazle Twp",
+   "at": [
+    -76.04,
+    40.935
+   ],
+   "word": null,
+   "pointNote": "hand-chosen from place names (warehouses/logistics); 5.3 km of street (measured)",
+   "why": "Warehouse park; a word here would be wrong. Confidence high."
+  },
+  {
+   "id": "swarthmore",
+   "name": "Swarthmore College campus",
+   "at": [
+    -75.3547,
+    39.9066
+   ],
+   "word": null,
+   "pointNote": "hand-chosen campus centre",
+   "why": "Campus on looping drives, borough beside it; 233 raw place hits (measured) from the adjoining village, so the ring may read as a town: a hard case. Confidence medium (accept mainStreet if the owner sees the village in the ring)."
+  },
+  {
+   "id": "knoebels",
+   "name": "Knoebels Amusement Resort, Elysburg",
+   "at": [
+    -76.5028,
+    40.8788
+   ],
+   "word": null,
+   "pointNote": "hand-chosen from place names; 7.5 km of street, 81 raw place hits (measured)",
+   "why": "Amusement park and campground; village accept because Elysburg lies along the road. Confidence medium.",
+   "accept": "village"
+  },
+  {
+   "id": "hampden",
+   "name": "Hampden Township, Cumberland Co.",
+   "at": [
+    -76.97974,
+    40.26178
+   ],
+   "word": null,
+   "pointNote": "Overture locality point",
+   "why": "Cul-de-sac suburb; only 10 raw place hits (measured). Confidence high."
+  },
+  {
+   "id": "amishFarm",
+   "name": "Amish farmland, Lancaster Co. (between Gordonville and Intercourse)",
+   "at": [
+    -76.07,
+    40.06
+   ],
+   "word": null,
+   "pointNote": "hand-chosen, 5.2 km of street, 9 raw place hits (measured)",
+   "why": "Farmland with scattered farmsteads; no word. Confidence high."
+  }
+ ]
+}

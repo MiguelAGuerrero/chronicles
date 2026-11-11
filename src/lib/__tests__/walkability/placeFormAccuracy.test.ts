@@ -86,6 +86,7 @@ test('PF10: the same word whichever other tiles are read, and in whatever order'
     assert.equal(placeForm(measureRing(reversed)), word, `${p.id}: reversed`);
     const far = { ...r, junctions: [...r.junctions, moved(p.at, 6000, 0)], tilesRead: [...r.tilesRead, '1/1', '2/2'] };
     assert.equal(placeForm(measureRing(far)), word, `${p.id}: with a far tile in`);
+    assert.deepEqual(measureRing({ ...r, ways: [...r.ways, ...r.ways] }), measureRing(r), `${p.id}: every way on two tiles, counted once`);
   }
 });
 
@@ -100,13 +101,15 @@ test('PF17: no places read, or no buildings read, is no word for every place; em
 });
 
 test('PF21: the village word separates the villages from the main-street towns on the calibration set', () => {
-  const got = (id: string) => wordOf(calibration!.places.find((p) => p.id === id)!);
   assert.ok(FORM_WORDS.some((w) => w.id === 'village'), 'the word is in the table, or leaves the set with its reason in the Record');
-  for (const id of ['friedensburg', 'fredericksburg']) assert.equal(got(id), 'village', id);
-  for (const id of ['hamburg', 'jonestown', 'kutztown']) assert.notEqual(got(id), 'village', id);
+  const villages = calibration!.places.filter((p) => p.word === 'village' && p.accept === undefined);
+  const towns = calibration!.places.filter((p) => p.word === 'mainStreet');
+  assert.ok(villages.length >= 4 && towns.length >= 5, 'enough of each to say anything');
+  for (const p of villages) assert.equal(wordOf(p), 'village', p.id);
+  for (const p of towns) assert.notEqual(wordOf(p), 'village', p.id);
 });
 
-test('PF22: moving the centre 300 m never makes a plainly wrong word', () => {
+test('PF22: moving the centre 300 m north, east, south or west never makes a plainly wrong word', () => {
   for (const p of calibration!.places) {
     if (p.word === null) continue;
     for (const [dx, dy] of [[300, 0], [-300, 0], [0, 300], [0, -300]] as const) {
@@ -114,4 +117,51 @@ test('PF22: moving the centre 300 m never makes a plainly wrong word', () => {
       assert.ok(!plainlyWrong(p.word, got), `${p.id} moved ${dx},${dy}: confirmed ${p.word}, got ${got}`);
     }
   }
+});
+
+const EIGHT = [[300, 0], [-300, 0], [0, 300], [0, -300], [212, 212], [-212, 212], [212, -212], [-212, -212]] as const;
+
+test('PF22: moved 300 m in eight directions, a no-word place gains no word and at most a quarter of the readings change', { todo: 'measured 2026-11-11: 15% change, but a no-word place gained a word 8 times of 280' }, () => {
+  let changed = 0;
+  let total = 0;
+  const gained: string[] = [];
+  for (const p of calibration!.places) {
+    const base = wordOf(p);
+    for (const [dx, dy] of EIGHT) {
+      const got = wordOf(p, { at: moved(p.at, dx, dy) });
+      total++;
+      if (got !== base) changed++;
+      if (p.word === null && p.accept === undefined && got !== null) gained.push(`${p.id} (${dx},${dy}) became ${got}`);
+      assert.ok(!plainlyWrong(p.word, got), `${p.id} moved ${dx},${dy}: confirmed ${p.word}, got ${got}`);
+    }
+  }
+  assert.deepEqual(gained, [], 'a place the owner gave no word gained one');
+  assert.ok(changed / total <= 0.25, `${changed} of ${total} readings changed`);
+});
+
+test('PF23: every held-out point is 5 km or more from every calibration point, and no two share a place name', { todo: 'waits on the fresh held-out set' }, () => {
+  assert.ok(heldOut, 'the fresh held-out fixture is cut');
+  const km = (a: [number, number], b: [number, number]) => {
+    const [la1, la2] = [(a[1] * Math.PI) / 180, (b[1] * Math.PI) / 180];
+    const h = Math.sin((la2 - la1) / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin((((b[0] - a[0]) * Math.PI) / 180) / 2) ** 2;
+    return 2 * 6371 * Math.asin(Math.sqrt(h));
+  };
+  for (const h of heldOut!.places) for (const c of calibration!.places) assert.ok(km(h.at, c.at) >= 5, `${h.id} is ${km(h.at, c.at).toFixed(1)} km from ${c.id}`);
+});
+
+test('PF24: with half the buildings and places, no wrong word, no word for a no-word place, and at most a fifth of the words change', { todo: 'measured 2026-11-11: 14 of 35 change and a mall becomes an exit' }, () => {
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  let changed = 0;
+  const gained: string[] = [];
+  for (const p of calibration!.places) {
+    const base = wordOf(p);
+    const r = readOf(p);
+    const got = placeForm(measureRing({ ...r, places: r.places!.filter(() => rnd() < 0.5), buildings: r.buildings!.filter(() => rnd() < 0.5) }));
+    if (got !== base) changed++;
+    if (p.word === null && p.accept === undefined && got !== null) gained.push(`${p.id} became ${got}`);
+    assert.ok(!plainlyWrong(p.word, got), `${p.id}: confirmed ${p.word}, got ${got}`);
+  }
+  assert.deepEqual(gained, []);
+  assert.ok(changed / calibration!.places.length <= 0.2, `${changed} of ${calibration!.places.length} words changed`);
 });

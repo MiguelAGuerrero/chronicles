@@ -69,7 +69,7 @@ The table is kept and printed in id order (alphabetical by id), never from dense
 | Word | What it is (what the measures show) | Real cases |
 |---|---|---|
 | A street grid | Streets close together in both directions, many places along them | Allentown downtown, Reading, Lancaster |
-| A town along a main street | A few connected streets with a run of places, some stretch | Hamburg, Jonestown, Kutztown |
+| A town along a main street | A few connected streets with a run of places, built up | Hamburg, Jonestown, Kutztown |
 | A village along one road | Stretched along one road, few places | Friedensburg, Fredericksburg |
 | Services at a highway exit | Mostly highway, a few places, few streets | Bethel (the interchange) |
 | *(no word)* | Too little to say, none fits, or the places were not read | Fields, a park, a mall, a cul-de-sac suburb, an unread ring |
@@ -93,7 +93,7 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
    sent but the tile request. No row is stored (the building count is measured and dropped, as the places are), and no `WALK_CODE` bump is needed. Two reads of the same tiles give the same word.
 4. **PF4 · The measures.** (The starting list: counted places per km²; street junctions per km²; motorway and trunk share of street length; the largest chain of
    counted places, each within 80 m of the next, as a share of the places and as a length; buildings per km²; whether places and buildings were read. A measure joins or
-   leaves the list by what the calibration set shows.) Each measure is defined once and tested before any rule uses it: stretch is length-weighted with its street classes named, and a test shows it keeps its answer when service ways are dropped (a measure that does not survive that is not a measure, and a word that needs it leaves the set). Each measure (places per km², street junctions per km², highway share of street length, stretch, and whether places
+   leaves the list by what the calibration set shows.) Each measure is defined once and tested before any rule uses it, on a small made-up ground whose answer is known: (places per km², street junctions per km², highway share of street length, stretch, and whether places
    were read) is computed by a function with a test on a small made-up ground whose answer is known, before the rule uses it.
 
 ### The accuracy, on real places
@@ -104,7 +104,7 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
 6. **PF6 · Measured on places it was not tuned on.** The held-out set is cut and its words confirmed by the owner **before** the thresholds are
    pinned, and its fixture is added in a commit after theirs. The test reports its accuracy and its recall per word and as a whole, and holds it to the floor
    the owner set: at least 80% of the held-out places, no worse than the calibration set by more than 10 points, and at least 80% of the places the owner gave a
-   word (not silence) get some word, so staying silent cannot pass it. A place the owner marked "?" counts correct for the two words named and no other. A held-out
+   word (not silence) get some word, so staying silent cannot pass it. A place the owner marked "?" counts correct for the two words named and no other. The report also gives the lenient accuracy (a "?" counted for both its words), per-word recall on the primary word, and a voiced-wrong rate (a word given to a place the owner gave no word, or the wrong word); the 95% Wilson interval of the accuracy is printed, and the sample is at least 20 places with at least 4 of each word. (Effect of the owner's two clauses, noted by the second review: with a calibration set fitted to 1.00 the 10-point clause makes the effective floor 0.90, not 0.80; the owner decides whether it is that, or a Wilson lower bound.) A held-out
    miss is reported and never tuned away: a rule change after that needs a fresh held-out set.
 7. **PF7 · No plainly wrong word.** Across both sets, these pairs are never confused, in either direction: a street grid and a village along one
    road; a street grid and services at a highway exit; a town along a main street and services at a highway exit. A mall and a cul-de-sac suburb
@@ -117,7 +117,7 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
     (the UF1 rule); and a word never depends on the order the tiles were read in.
 11. **PF11 · The words are the whole of what is shown.** No measure, count, share, rank or comparison between places is shown or stored for
     display. The only text derived from a measure is the table's clause; `npm run check:vision` runs over the copy (PF1's test carries the words it
-    does not). The accuracy figures exist only in the report and the tests, never in `src`.
+    does not). The accuracy figures exist only in the report module (dev tooling, `placeFormReport.ts`) and the tests; no app code imports it (a layer test).
 
 ### Where it shows
 
@@ -130,8 +130,9 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
 14. **PF14 · No badge, tint, icon or filter.** The word is text on the card. It adds no map layer, no pin, no icon, no colour and no setting
     (the Layers panel is as before). It never changes a route, the heads-up or a walk.
 
-22. **PF22 · The centre can move.** Moving a place's centre 300 m north, east, south or west never turns its word into a plainly wrong one (PF7's pairs); it may
-    become no word. The fixtures hold 300 m of data beyond the ring for this, and the centre is the point the atlas passes the card (an Overture locality point).
+22. **PF22 · The centre can move.** Moving a place's centre 300 m in any of eight directions never turns its word into a plainly wrong one (PF7's pairs), and
+    never gives a word to a place the owner labelled no word; the share of readings whose word changes is at most 25%. (Measured 2026-11-11 on the retuned rule: 15%,
+    and a no-word place gained a word 8 times of 280: Park City, Upper Macungie, Penn State.) The compass-four wrong-pair check stays as the first part. The fixtures hold 300 m of data beyond the ring for this, and the centre is the point the atlas passes the card (an Overture locality point).
 
 ### Where the data is thin, and what the words say
 
@@ -149,6 +150,13 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
 21. **PF21 · The village word has to earn its place.** "A village along one road" stays in the set only if a defined measure separates the calibration set's villages
     from its main-street towns, found on the calibration set and held to the floor on the held-out set (PF6). If none does, the word is removed from the table, its places
     get no word, and the Record says why.
+
+23. **PF23 · The held-out places are far from the calibration places and used once.** Every held-out point is at least 5 km from every calibration point, and no
+    two held-out places share a municipality. The held-out set is evaluated once per rule: a rule change after a look needs a fresh set, and the Record logs each
+    look (so far: one, 17 places, 2026-11-11, folded into calibration).
+24. **PF24 · Uneven mapping does not make a wrong word.** Thinning a place's buildings and places to half, seeded, never gives a plainly wrong word, never gives a word
+    to a place the owner labelled no word, and changes at most 20% of the words (to silence or to an adjacent word, never to another kind). (Measured 2026-11-11 on
+    the retuned rule: 14 of 35 change and a mall becomes an exit.) Overture's building and place coverage is uneven (Reading maps about 430 buildings per km², Allentown 1,600).
 
 ### The evidence
 

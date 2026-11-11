@@ -29,3 +29,7 @@ test('PF14: the word adds no layer, pin, icon, colour or setting', { todo: 'test
   const line = read(join(root, 'components/atlas/PlaceFormLine.tsx'));
   assert.doesNotMatch(line, /Icon|color|backgroundColor|Pressable|onPress/, 'text only: no icon, colour or control');
 });
+
+test('PF11: no app code imports the report module that holds the accuracy figures', () => {
+  for (const dir of ['app', 'components', 'lib']) for (const f of walk(join(root, dir)).filter((f) => /\.tsx?$/.test(f) && !f.includes('__tests__') && !f.endsWith('placeFormReport.ts'))) assert.doesNotMatch(read(f), /placeFormReport/, f);
+});

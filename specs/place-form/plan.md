@@ -196,6 +196,35 @@ A fresh agent re-measured the proposal on real places the plan does not hold and
 | The card already says "Streets far apart and busy" for all four small places; a word does not reach Explore's list; `thinPlaces: 3` is unrealistically low | **Fair, and the owner's call**: the owner chose "say it, show everything". Thinning Explore's kinds where places do not run together is the option they declined; it stays declined unless they reopen it. |
 | The survey's classes (campus, industrial, pedestrian centre, compact old town, waterfront) | **Candidates for later words**, each its own gate. The survey read only search summaries for three sources and the rest is from memory; I trust none of it as a source until opened. |
 
+## The third review (2026-11-11, after folding and retuning): the criteria, attacked
+
+A fresh reviewer, told not to read the rule, attacked PF1-PF22 and proposed 24 held-out places blind (`scripts/fixtures/placeFormHeldOutProposal.json`, committed before the
+rule ever sees them; the owner still confirms the words). My experiments on the 35-place calibration set, run in this session, are beside each finding.
+
+| Finding | Triage |
+|---|---|
+| PF6's two floors contradict: with calibration fitted to 1.00 the "within 10 points" clause makes the floor 0.90 | **Verified in the test code. The owner's floor, so the owner's call**: keep it (0.90 effective) or a Wilson lower bound of 0.70 with a point estimate of 0.80 (24 places: 22 right). Spec PF6 now says so and prints the interval. |
+| Recall counts "any word", silence is rewarded on no-word places and penalised on "?" ones, "?" is unbounded (8 of 35 places carry an accept) | **Accepted as reporting**: the report prints strict and lenient accuracy, per-word recall and a voiced-wrong rate. Gates on them and a cap on "?" are the owner's call. |
+| Leakage and the tuning loophole: the held-out may share a municipality or tiles with calibration; a rerun after a retune is forking paths | **Accepted**: PF23 (5 km from every calibration point, one look per rule, the Record logs each). The 24 proposed places are all 5.4 km or more from calibration. |
+| Overfitting: about 17 thresholds for 35 places | **Verified, and worse than I thought**: a decision tree fitted on 34 and tested on the 35th (leave-one-out) scores 0.49-0.69; the retuned hand rule is 35 of 35 in sample. I will not spend the fresh set on a rule I expect to fail. |
+| Uneven coverage is untested | **Accepted as PF24; the rule fails it**: with half the buildings and places, 14 of 35 words change and a mall becomes an exit. |
+| PF7 and PF22 do not cover the embarrassing cases (a no-word place gaining a word) | **Accepted as PF22's second test; the rule fails it**: moving the centre 300 m in eight directions changes 15% of readings, but a no-word place gains a word 8 times of 280 (Park City, Upper Macungie, Penn State). |
+| PF21 tested 2 villages against 3 towns | **Fixed**: all 4 unambiguous villages against all 7 main-street towns. |
+| PF10's far tile proves only the radius; a way on a tile edge is untested | **Fixed**: every way on two tiles gives the same measures. |
+| PF11: the report holds "accuracy" and "recall" while the spec says never in `src` | **Fixed in the spec and a layer test**: the report is dev tooling and no app code imports it. |
+| PF4's text still said "stretch" | **Fixed**. |
+| The e2e check `count() >= 0` is vacuous | **Mine, fixed**: removed; PF13's comparison is the card render test (PF20). |
+| PF9 cannot fail (footways are not streets by construction) | **True, kept as a guard against a later change**, with the reason in the test. |
+| PF18's "United States only" has no test and the evidence is Pennsylvania only | **The owner's call, and a question**: US-only has no mechanism yet (does the app know the country?); "the northeastern US" is what the fixtures can support. |
+| Vision is asserted, not enforced: two lines may read as a verdict; PF26 render with each walkability band | **Accepted for the card step**: render the word with each band and review one screenshot per word. |
+| Labels are anchored to my probe; use blind words and two raters | **Accepted for the new set**: blind labels from an agent that did not see the rule; the owner confirms or corrects them before the look. |
+| Missing: release drift, a time budget for the buildings read, a place-type list | **Noted**: the release-drift check and a read budget join the card step (the read times out to no word); the place-type list is in the proposal (a campus, an outlet mall, an industrial park, an attractions resort). |
+
+### What this means for the next step
+
+The rule as retuned is fitted, not shown. The next step is **not** the held-out look. It is a rule that passes PF22 and PF24 on the calibration set (few thresholds, anchored on
+the best-mapped signals), measured by leave-one-out before the look is spent. If no simple rule passes them, the honest answer is a smaller set of words (the owner's third option).
+
 ## Answered (the owner, 2026-11-11)
 
 Question 1: **four words now**, no new read (answered on a wrong premise, see above; reopened). Question 3: **United States only**. Question 5: **80% and within 10 points**. Question 6: **"Around its middle: …"**.

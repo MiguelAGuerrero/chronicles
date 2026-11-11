@@ -105,7 +105,8 @@ async function run(h) {
   const form = await pg.locator('[data-testid=atlas-place-form]').innerText().catch(() => '');
   check.todo(/^Around its middle: [a-z]/.test(form) && !/\d|%/.test(form), `PF12, PF18: the card says one line about how the ground around its middle is laid out, worded as the ring's (${JSON.stringify(form)})`);
   check.todo((await pg.locator('[data-testid=atlas-place-form]').count()) <= 1 && (await pg.locator('[data-testid=atlas-onfoot-words]').count()) === 1, 'PF12: one description line at most, and the walkability line is as before');
-  check.todo((await pg.locator('[data-testid=atlas-waiting], [data-testid=atlas-walk-to]').count()) >= 0 && !/advice|avoid|should/i.test(form), 'PF13, PF19: the card\'s places and Walk to are the same with the line, and it says nothing about what to do');
+  // PF13's with-and-without comparison is the card render test (placeFormLayers, PF20); here only the words themselves.
+  check.todo(!/avoid|should|expect|try|best|worth/i.test(form), 'PF19: the card\'s line says nothing about what to do');
   await shot(pg, 'walk-card');
   await c.close();
 
