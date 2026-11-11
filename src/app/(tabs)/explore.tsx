@@ -187,6 +187,13 @@ export default function Explore() {
       setFrom(at);
       setStale(false);
       fixSeen.current = Date.now();
+      // Locate is a way back to you: leave a town's page, drop the reader's pick (so the row's first, your own
+      // town, is selected again) and close anything open over the map.
+      framed.current = null;
+      setTownSeen(null);
+      setSelected(null);
+      setOpen(null);
+      setSpot(null);
       frame([at], ATLAS_RULES.ringM);
     },
     onError: setLocError,
