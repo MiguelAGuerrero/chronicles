@@ -85,15 +85,18 @@ test('presence-readers audit 3: a mark-category place with unknown markable coun
 });
 
 test('presence-readers audit 4: a near read under a carried code needs no re-list, around you or for a town', async () => {
-  const { needsNear } = await import('../../atlas/atlas');
+  const { ATLAS_CODE, needsNear } = await import('../../atlas/atlas');
   const p = await presence();
   const at: [number, number] = [-75.38, 40.62];
+  const own = ATLAS_CODE.split('.')[0];
   for (const c of p.PRESENCE_CARRIED as string[]) {
-    const code = `a8.${c}`;
+    const code = `${own}.${c}`;
     assert.equal(needsNear([{ at, build: 'b', code, radiusM: 2500 }], at, 'b', 2500), false, `${code} around you`);
     assert.equal(needsNear([{ at, build: 'b', code, town: 'T' }], at, 'b', undefined, 'T'), false, `${code} for a town`);
   }
   assert.equal(needsNear([{ at, build: 'b', code: 'a7', radiusM: 2500 }], at, 'b', 2500), true, 'an older code is listed again');
+  // T8: a carried presence code stands only under the atlas's own part; a8's reads, from before community parks (PC13), are listed again.
+  assert.equal(needsNear([{ at, build: 'b', code: 'a8.p1', radiusM: 2500 }], at, 'b', 2500), true, 'a8.p1 is listed again');
 });
 
 test('presence-readers audit 5: a poi or Overture place named for an Object.prototype key is no place, and nothing throws', async () => {

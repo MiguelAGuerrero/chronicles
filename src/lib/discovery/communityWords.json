@@ -1,5 +1,5 @@
 {
-  "_note": "Words in a park's name that say it is a place for play or a ground, never a place to find (community-parks, PC1). Matched as whole words or phrases after normalizeBrand. Data, not code: edit freely. Only words that name a facility belong here; a word that also names a large area (recreation, regional) is left out.",
+  "_note": "Words in a park's name that say it is a place for play or a ground, never a place to find (community-parks, PC1). Matched as whole words or phrases after presence's normalizeWords. Data, not code: edit freely. Only words that name a facility belong here; a word that also names a large area (recreation, regional) is left out.",
   "words": [
     "playground",
     "playgrounds",

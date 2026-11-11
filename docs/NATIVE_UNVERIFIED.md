@@ -450,7 +450,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a phone that had "Museums and galleries" switched off before this update, open "What I'm into", switch Community spaces on, force-quit and reopen. **Expect:** Community spaces was off at first and stays on after the relaunch (meta `explore_kinds_known` through SQLite's `meta`, PK18).
 - [ ] **Do:** after the update, open Explore with several areas listed. **Expect:** every area's marks are read again without stalling the tab (`ATLAS_CODE` a8, PK7).
 - [ ] **Do:** open "Suggest a walk" on History in a town whose History is lit by a museum in the places archive. **Expect:** a route through it, the archive read beside the map's (presence-and-kinds audit 1).
-- [ ] **Do:** after the presence readers update, make an exploring walk in a new area, then open Explore there. **Expect:** places are cached and read back without presence's `classes` (SQLite's named columns, `placesIn`), the area's bars are what they were, and no remembered area is read again or called "Analyzed before an update" (a8.p1 and the p1 landing rows carried; specs/presence-readers PS2, PS9).
+- [ ] **Do:** after the presence readers update, make an exploring walk in a new area, then open Explore there. **Expect:** places are cached and read back without presence's `classes` (SQLite's named columns, `placesIn`), the area's bars are what they were, and no remembered area is read again or called "Analyzed before an update" (a9.p1 and the p1 landing rows carried; specs/presence-readers PS2, PS9).
 
 ## Response thread (RT1-RT14, decision 0131)
 

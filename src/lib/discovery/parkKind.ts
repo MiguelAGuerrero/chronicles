@@ -36,7 +36,10 @@ const hasWord = (name: string, list: readonly string[]): boolean => {
 
 /** PC1: the name says it is a ground for play. */
 const communityName = (name: string): boolean => hasWord(name, COMMUNITY);
-/** PC2: the name says it is more (a state park, a memorial, an arboretum, or a word of notable.json). */
+/**
+ * PC2: the name says it is more: a park word of the refinement's own curation (`parkNotable.json`: a state park, a memorial,
+ * an arboretum), or a name presence calls notable (`notableName`, the one rule; specs/presence-readers PS3, T8).
+ */
 const notablePark = (name: string): boolean => hasWord(name, NOTABLE) || notableName(name);
 
 /** A place a park is not plain for (PC2): something to find that is not a park itself. */

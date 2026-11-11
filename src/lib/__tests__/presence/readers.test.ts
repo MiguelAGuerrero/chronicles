@@ -78,6 +78,12 @@ test('PS3: one word list and one name rule, for marks and bars alike; only the m
   assert.equal(notableName('Holy Family Church'), false);
   for (const f of ['discovery/bars.ts', 'discovery/curation.ts', 'discovery/noise.ts', 'discovery/tilePois.ts', 'discovery/archivePois.ts'])
     assert.ok(!/notable\.json|notableName|historicName/.test(src(f)), `${f} holds a name rule`);
+  // T8: community parks (main's first refinement) asks presence whether a name is notable; its park words (`parkNotable.json`,
+  // `communityWords.json`) are the refinement's own curation, never a second notable rule.
+  const park = src('discovery/parkKind.ts');
+  assert.ok(/import \{[^}]*\bnotableName\b[^}]*\} from '\.\.\/presence\/notable'/.test(park), 'parkKind reads notableName from presence');
+  assert.ok(!/function notableName|const notableName/.test(park), 'parkKind defines no notable rule of its own');
+  for (const f of libFiles()) assert.ok(!/['/]notable\.json/.test(readFileSync(f, 'utf8')), `${relative(lib, f)} reads notable.json`);
   assert.ok(p.named(['civic_hall'], 'Old Town Hall').includes('historic_name'), 'a historic name, for marks');
   assert.ok(!p.named(['museum'], 'Old Town Museum').includes('historic'), 'a museum in Old Town is not historic (presence-and-kinds audit 5)');
   assert.ok(p.named(['museum'], 'Old Mill Museum').includes('historic'));
@@ -87,13 +93,19 @@ test('PS3: one word list and one name rule, for marks and bars alike; only the m
 test('PS4: scenic greens read presence classes from landcover, not raw tags', async () => {
   const p = await presence();
   assert.equal(typeof p.classesOfLandcover, 'function');
-  const text = src('nav/scenicSignals.ts');
-  assert.ok(text.includes('classesOfLandcover') && !quoted(text, 'grass') && !/subclass/.test(text), 'scenicSignals reads no landcover tag');
+  // On main, greens moved to `discovery/green.ts` (community-parks PC11), which the kind pipeline's outlines read too (T8).
+  assert.ok(src('discovery/green.ts').includes('classesOfLandcover'), 'green.ts reads presence');
+  for (const f of ['discovery/green.ts', 'nav/scenicSignals.ts']) {
+    const text = src(f);
+    assert.ok(!quoted(text, 'grass') && !quoted(text, 'garden') && !/subclass|\.class\b/.test(text), `${f} reads no landcover tag`);
+  }
   const { greenFromTiles } = await import('../../nav/scenicSignals');
+  const { outlinesOf } = await import('../../discovery/green');
   const box = [[[0, 0], [0.001, 0], [0.001, 0.001], [0, 0.001], [0, 0]]];
   for (const g of golden.landcover) {
-    const got = greenFromTiles([{ geometry: { type: 'Polygon', coordinates: box }, properties: { class: g.cls, subclass: g.sub } } as never], []);
-    assert.equal(got[0]?.kind ?? null, g.green, `${g.cls}/${g.sub}`);
+    const f = [{ geometry: { type: 'Polygon', coordinates: box }, properties: { class: g.cls, subclass: g.sub } } as never];
+    assert.equal(greenFromTiles(f, [])[0]?.kind ?? null, g.green, `${g.cls}/${g.sub}`);
+    assert.equal(outlinesOf(f).length, g.green === 'park' ? 1 : 0, `${g.cls}/${g.sub}: the kind pipeline's outlines are the parks among the greens`);
   }
 });
 
@@ -144,6 +156,13 @@ test('PS7: PR2\'s guard holds with no exception: no module outside presence spel
     for (const w of words) if (spells(text, w)) bad.push(`${relative(lib, f)}: ${w}`);
   }
   assert.deepEqual(bad, []);
+  // T8: the guard reads main's kind pipeline (community-parks PC1-PC23) like any module, and its modules read no feature's tags.
+  const files = libFiles().map((f) => relative(lib, f));
+  const pipeline = ['discovery/refine.ts', 'discovery/refinements.ts', 'discovery/parkKind.ts', 'discovery/green.ts'];
+  for (const f of pipeline) {
+    assert.ok(files.includes(f), `the guard reads ${f}`);
+    assert.ok(!/subclass|\.class\b|properties\??\.|\['class'\]/.test(src(f)), `${f} reads a feature's tags`);
+  }
   assert.ok(!/ALLOWED: Record<string, \(w: string\) => boolean> = \{\s*'/.test(readFileSync(join(__dirname, 'presenceAudit.test.ts'), 'utf8')), 'presence audit 2 allows nothing');
 });
 

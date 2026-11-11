@@ -1,5 +1,7 @@
 # Presence readers: plan
 
+Resumed on main (T8, decision 0146): the plan was written on `0d03c4b`, before community parks moved `ATLAS_CODE` to a9; read its `a8.p1` and `a8.p2` as `a9.p1` and `a9.p2`, and `greenKind` as `discovery/green.ts`.
+
 From G4, answered yes Nov 11 (`/tend inbox G4 yes`); decision 0140. Read by the steward, not held for the owner (decision 0130); the steward's findings are triaged at the end, with the owner's proxy's rulings.
 
 ## Files
