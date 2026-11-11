@@ -28,7 +28,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
 | `src/lib/complexes/place.ts` (core, new) | `complexAt(fix, complexes)`: the complex whose outline holds a point or lies within `STREET_REACH_M` of it, with `near`, and one tie rule for overlaps (CX11). |
 | `src/lib/complexes/overtureSource.ts` (adapter, new) | The only file that knows Overture's `buildings` and `base` schema; decodes a tile into polygons and keeps the named ones; reads through the existing `TileReader` (`net/tileReader.ts`) and the existing host, so no new host and no `check:vision` allow entry. |
 | `src/lib/complexes/read.ts` (shell, new) | `complexApp`: for an area, picks candidate tiles from the places already read, reads each tile once per release, stores a row per tile, returns the complexes; a failure is silent and retried after `retryMs` (CX12, CX14). |
-| `src/lib/db/types.ts`, `db/stores.ts`, `db/migrations.ts`, `db/index.web.ts`, `db/sqliteStore.ts` | A derived store `complex_tile` (key `z/x/y`, the release, the decoder code, the complexes of that tile) in `DERIVED_STORES`: the next SQLite migration, IndexedDB `VERSION` 18 to 19 with an `oldVersion < 19` step. A migration, so it is your call (below). |
+| `src/lib/db/types.ts`, `db/stores.ts`, `db/migrations.ts`, `db/index.web.ts`, `db/sqliteStore.ts` | A derived store `complex` (key building id, the release, `COMPLEX_CODE`, the kind, the outline, a bounding box with a `lat` index) in `DERIVED_STORES`: the next SQLite migration, IndexedDB `VERSION` 18 to 19 with an `oldVersion < 19` step. A migration, so it is your call (below). |
 | `src/lib/atlas/atlas.ts`, `atlas/useAtlas.ts` (core, view) | The selected area's complexes next to `busyAreas`; `ATLAS_CODE` is not bumped (nothing it stores changes). |
 | `src/lib/discovery/curation.ts` (core) | A guard test only: a complex is never a mark (CX8); no code change expected. |
 | `src/lib/resurface/context.ts`, its shell (core, shell) | `placeLine` takes an optional `{ complex, near }` and leads with it, keeping street and town; the shell reads only complexes already cached under the fix and never fetches (CX11-CX13). |
@@ -44,7 +44,11 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
 - **New cache, no new truth.** `complex_tile` is derived (cleared by `purgeDerived`, tagged `COMPLEX_CODE` and the release),
   like `outline_tile`. SQLite migration: the next entry in `MIGRATIONS`; IndexedDB `VERSION` 18 to 19.
 - **Never on a capture, a moment, a walk or an `Area`** (CX7, CX11, CX12).
-- **A complex split by a tile edge** comes in two pieces with one Overture building id; the adapter joins them by that id.
+- **A complex split by a tile edge** (Strawberry Square: a sliver in one tile, the rest in the next) comes in pieces with one
+  Overture building id; they are joined by that id, and the complex is judged only once every tile its pieces touch is read.
+- **The store changed shape (Nov 11, after the second probe):** `complex` rather than `complex_tile`: one derived row per
+  complex (building id, name, kind, outline, bounding box with an index on `lat`), because a tile alone cannot judge one and
+  places are never stored. The moment's line asks it by position. Still a cache, still one migration and one IndexedDB bump.
 
 ## Tests (one per criterion, written first as todos)
 

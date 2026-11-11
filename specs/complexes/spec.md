@@ -25,6 +25,20 @@ So a complex's name and outline are in the `buildings` theme, the land use carri
 the shops but not the mall, and only about 5% of buildings are named. A complex is therefore a **named polygon that
 holds other places**, and that is the rule, with no name list.
 
+### The second probe (Nov 11, before any test was written)
+
+- **A complex straddles tiles.** Strawberry Square is a 3-point sliver at the edge of tile 4692/6187 and the rest of it is in
+  4693/6187; the places inside are split the same way. A rule run on one tile finds nothing, so pieces are joined by their
+  building id across tiles before a complex is judged, and a polygon cut at a tile edge is judged only once the
+  neighbouring tile is read.
+- **"Named and holds places" is too loose.** In downtown Harrisburg's tile 18 named buildings hold two or more places:
+  a bank building (24 places, mostly services), a parking garage (10), a courthouse, a music hall, a city government
+  center (9). Shopping therefore counts only places to go (presence class weight 1: shop, boutique, eatery, food_counter,
+  drink), a minimum of them and of two classes, and never offices or services.
+- **Other kinds have named polygons but no proof.** Overture names a medical center (`medical/hospital`), a transportation
+  center (`transportation/transportation`), a city government center (`civic`) and a farmers' market building (no
+  subtype); none is shown to be a complex rather than one building, and the Capitol's buildings are separate polygons.
+
 ## Vision
 
 Idea: Add a "complex": a named, bounded place made of other places (Strawberry Square, Lehigh Valley Mall; malls,
@@ -71,7 +85,7 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
 
 1. **CX1 · A complex is made of other places.** A named polygon (Overture `buildings` with a name) that holds places
    of a presence class that fits one of the kinds (CX3), at least a fixed minimum of them and of at least two
-   classes, is a complex. The minimums are constants in core, tuned on the fixtures and never shown. They gate "made of
+   classes, is a complex. For Shopping only places to go count (presence class weight 1), never offices or services. The minimums are constants in core, tuned on the fixtures and never shown. They gate "made of
    other places"; they are never a measure of size or significance (0103). On the real fixtures Strawberry Square and
    Lehigh Valley Mall are complexes; a named building holding one place, or only offices, is not.
 2. **CX2 · No outline, no complex.** A point named like a mall, a cluster of shops with no named polygon, or several
@@ -117,10 +131,11 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
 13. **CX13 · Only the arrival line.** A complex is named in the arrival line of Memories and the gallery viewer, and
     nowhere else: not in a replay beat or card, a search result, the share reel or a title suggestion; it is never
     stored on a capture, a moment, a thread entry or a walk.
-14. **CX14 · Derived, never truth.** Complexes are cache: one row per z14 tile and Overture release in a derived store
-    (cleared by `purgeDerived`), tagged with a `COMPLEX_CODE` that a rule change bumps; they are recomputed from the
-    source, never patched, and a deleted walk or moment leaves them untouched. A complex cut by a tile edge is one
-    complex: one outline, one row of the list, joined by its building id.
+14. **CX14 · Derived, never truth.** Complexes are cache: one row per complex (its building id, name, kind, outline and
+    bounding box) and Overture release in a derived store (cleared by `purgeDerived`), tagged with a `COMPLEX_CODE` that a
+    rule change bumps; they are recomputed from the source, never patched, and a deleted walk or moment leaves them
+    untouched. A complex cut by a tile edge is one complex, one outline and one row of the list, joined by its building id
+    and judged only once every tile its pieces touch is read; one not fully read is missing, never a partial outline.
 15. **CX15 · An adapter, no list.** The data reaches the app through `ComplexSource`; no name, place or coordinate is
     hard-coded; unit tests run on in-memory sources, only the adapter's own test reads real tile fixtures, and the
     layer check forbids core importing the adapter.
