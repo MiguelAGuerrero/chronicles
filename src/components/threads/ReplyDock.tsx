@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { forwardRef, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCaptures } from '../../lib/useCaptures';
 import { Icon, type IconName } from '../icons';
-import { NoteEditor } from '../NoteEditor';
+import { NoteEditor, type NoteEditorHandle } from '../NoteEditor';
 import { Ticking } from '../Ticking';
 import { theme } from '../ui';
 import { formatElapsed } from '../../lib/format';
@@ -16,9 +16,10 @@ export type ReplyStage = 'sheet' | 'note' | null;
  * The viewer's toolbar, docked under the moment (OT1, decision 0112): Respond, and Edit where the moment can be
  * edited. Respond opens a pull-down menu of kinds; the reply is kept by the capture's own path and linked to the moment
  * it answers (`useCaptures` `replyTo`). One per open viewer, so swiping builds no new recorder (audit 10). The sheet and
- * the note are the viewer's to close with Back (`stage`, audit 9). Drawn inside the viewer's Modal, never a second one.
+ * the note are the viewer's to close with Back (`stage`, audit 9); the note through its own `requestClose`, so an @ picker
+ * closes first (tend chronicle 1). Drawn inside the viewer's Modal, never a second one.
  */
-export function ReplyDock(props: {
+export const ReplyDock = forwardRef<NoteEditorHandle, {
   answeredId: string;
   threadId?: string | null;
   walkId?: string | null;
@@ -34,7 +35,7 @@ export function ReplyDock(props: {
   edit?: { label: string; testID: string; onPress: () => void } | null;
   /** The viewer's bars are hidden (UC7): nothing shows, and a memo being recorded goes on. */
   hidden?: boolean;
-}) {
+}>(function ReplyDock(props, noteRef) {
   const sayRef = useRef(props.say);
   const keptRef = useRef(props.kept);
   useEffect(() => {
@@ -112,6 +113,7 @@ export function ReplyDock(props: {
       )}
       {props.stage === 'note' && (
         <NoteEditor
+          ref={noteRef}
           key={props.answeredId}
           title="Reply"
           body=""
@@ -125,7 +127,7 @@ export function ReplyDock(props: {
       )}
     </>
   );
-}
+});
 
 const styles = StyleSheet.create({
   dock: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#14181f', borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', paddingHorizontal: 12 },

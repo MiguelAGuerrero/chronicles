@@ -1,4 +1,4 @@
-import { useRef, useState, type ComponentRef } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NOTE_MAX, noteText } from '../lib/noteEdit';
@@ -15,14 +15,17 @@ import { Button, theme } from './ui';
  * Delete). Drawn inside the viewer's Modal, never as a second one (iOS can't
  * present a Modal over a Modal).
  */
-export function NoteEditor(props: {
+/** Back and Escape reach the editor through its host's Modal: the @ picker closes first, then the editor (tend chronicle 1). */
+export type NoteEditorHandle = { requestClose(): void };
+
+export const NoteEditor = forwardRef<NoteEditorHandle, {
   body: string;
   onSave: (body: string) => void;
   onClose: () => void;
   title?: string;
   /** The note being written or edited, so @ can mention other moments but never itself (moment references RF1). */
   mention?: { self: string | null };
-}) {
+}>(function NoteEditor(props, ref) {
   const insets = useSafeAreaInsets();
   // The web's keyboard is not avoided by KeyboardAvoidingView: rise above it by its height (fix respond-bottom audit 3).
   const keyboard = useKeyboardHeight();
@@ -37,6 +40,8 @@ export function NoteEditor(props: {
   const [picking, setPicking] = useState<number | null>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
   const input = useRef<ComponentRef<typeof TextInput>>(null);
+  // Dismissed, the @ stays as typed (RF1), and the words with it.
+  useImperativeHandle(ref, () => ({ requestClose: () => (picking != null ? setPicking(null) : props.onClose()) }));
   const onChange = (next: string) => {
     const edited = editRefs(state.text, next, state.refs);
     setState(edited);
@@ -89,7 +94,7 @@ export function NoteEditor(props: {
       )}
     </KeyboardAvoidingView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   back: { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 },

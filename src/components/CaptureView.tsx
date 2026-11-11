@@ -25,7 +25,7 @@ import type { CapturePatch } from '../lib/captureBus';
 import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
 import { RemindEditor } from './RemindEditor';
-import { NoteEditor } from './NoteEditor';
+import { NoteEditor, type NoteEditorHandle } from './NoteEditor';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
@@ -345,6 +345,9 @@ export function CaptureViewer(props: {
   const openForAdd = useStore(momentPill.store, (s) => s.id);
   const [editing, setEditing] = useState<Faced | null>(null);
   const editor = useRef<MediaEditorHandle>(null);
+  // A note being written or edited closes its @ picker first, then itself (tend chronicle 1).
+  const noteEditor = useRef<NoteEditorHandle>(null);
+  const replyNote = useRef<NoteEditorHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Faced | null>(null);
@@ -565,7 +568,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : openedStack.length ? back : close}
+      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => setReminding(null) : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
@@ -701,6 +704,7 @@ export function CaptureViewer(props: {
         {current && openForAdd !== current.id && !editing && !noting && !reminding && !adding && (
           // Kept mounted while the bars are hidden, so a voice reply being recorded goes on (UC7).
           <ReplyDock
+            ref={replyNote}
             hidden={!bars}
             answeredId={current.id}
             threadId={props.thread?.id ?? null}
@@ -757,6 +761,7 @@ export function CaptureViewer(props: {
         {noting && (
           // Inside this Modal too (QL24).
           <NoteEditor
+            ref={noteEditor}
             key={noting.id}
             body={noting.body ?? ''}
             mention={{ self: noting.id }}

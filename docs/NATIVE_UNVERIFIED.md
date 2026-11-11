@@ -375,6 +375,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 
 - [ ] **Do:** on a phone, Respond → Note on a moment, type a few words and @, pick a moment, keep typing, then delete the reference with one backspace. **Expect:** the picker opens over the editor inside the viewer (no second Modal), the cursor lands after the reference, and one backspace takes the whole reference. (RF1, RF3)
 - [ ] **Do:** open a note that mentions a photo, tap its card, then Back. **Expect:** the photo opens in the same viewer with "Back to the note", and Back (the button or Android's back) returns to the note. (RF4)
+- [ ] **Do:** on Android, Edit note on a note (and, separately, Respond → Note), type a few words and @, then press Back with the picker open; press Back again. **Expect:** the first Back closes only the picker, the words and the @ stay; the second closes the editor (`NoteEditor`'s `requestClose`, tend chronicle 1).
 
 ## Network rules (`lib/net`, decision 0100)
 
