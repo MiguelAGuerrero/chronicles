@@ -105,18 +105,13 @@ export function WalkActions(props: {
     props.onRenamed?.(walkId, patch);
     props.onClose();
   };
-  // Escape on the web: react-native-web's Modal doesn't send it to onRequestClose (e2e, Nov 1).
-  const closeRef = useRef(close);
-  useEffect(() => {
-    closeRef.current = close;
-  });
+  // Escape on the web reaches `close` once, through the Modal's onRequestClose (react-native-web's ModalContent
+  // listens on keyup). Closing on keydown as well stepped out of the editor and then, on the keyup, out of the
+  // sheet too (tend chronicle 4). The keydown is only kept from the sheet beneath, which lowers on it.
   useEffect(() => {
     if (!walkId || Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      // The sheet beneath keeps its own Escape for itself.
-      e.stopImmediatePropagation();
-      closeRef.current();
+      if (e.key === 'Escape') e.stopImmediatePropagation();
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);

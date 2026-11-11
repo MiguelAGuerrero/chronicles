@@ -559,6 +559,24 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
       check(true, 'tend chronicle 6: the walk\'s More and its Rename editor are pictured');
     });
+
+    // tend chronicle 4: Escape steps out of the Rename editor to the walk's menu, and a second Escape closes the
+    // menu, never one Escape for both (QL22: "Escape, Back and the backdrop step out of the editor before the sheet").
+    await qstep('tend chronicle 4', async () => {
+      await pg.locator('[data-testid=walk-more]').first().click();
+      await pg.click('[data-testid=action-rename]');
+      await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+      await pg.waitForTimeout(800);
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(600);
+      const once = { editor: await pg.locator('[data-testid=rename-editor]').count(), menu: await pg.locator('[data-testid=walk-actions]').count() };
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(600);
+      const twice = { menu: await pg.locator('[data-testid=walk-actions]').count(), sheet: await pg.locator('[data-testid=walk-row]').count() };
+      check(once.editor === 0 && once.menu === 1 && twice.menu === 0 && twice.sheet > 0,
+        `tend chronicle 4: Escape steps out of the Rename editor to the walk's menu, then closes the menu (${JSON.stringify({ once, twice })})`);
+      if (twice.menu) await pg.click('[data-testid=actions-cancel]');
+    });
     await c.close();
 
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
