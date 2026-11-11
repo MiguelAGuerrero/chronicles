@@ -1,4 +1,4 @@
-# Plan: reference keywords (RK1-RK12)
+# Plan: reference keywords (RK1-RK17)
 
 For the owner's review before any code. Built on moment references (`specs/moment-references`, decision 0125): the token, `lib/refs.ts`, `NoteEditor`, `NoteText`, `plainNote`.
 
@@ -57,6 +57,14 @@ Weather and temperature (needs a network call: a decision on what the network is
 
 Never run on a device: the phone keyboard's `@`, the map pick, tile reads from a note's editor. Items go to `docs/NATIVE_UNVERIFIED.md`.
 
-## 7. Steward
+## 7. Steward (Nov 11): no breach, six drifts, two tone findings; all accepted
 
-To run after your calls above, on this spec and plan; its findings are triaged here.
+- **S1** (a nearest-place guess stored as fact) into RK13: a place is named only when exactly one lies in range, else the street or nothing; the value is the pick the owner saw; the moment's saved fix wins over the editor's. Test: the stamp and the saved fix compared.
+- **S2** (a wait on a fix in the editor) into RK14. The plan's `fix` prop is read, never awaited.
+- **S3** (a read at editor open) into RK15, and the plan's wording corrected: "taken when the editor opens" means reading `pos.current.here`, the last known position the stamp already holds, never a new location call. A shell test spies on `lib/locate`.
+- **S4** (a ranking look) into RK7: no numbers or "closest"; distance in words; the adapters' gate only.
+- **S5** (time words) into RK16: an allow-list, "now" as the moment's clock time, "N minutes in" only on a walk.
+- **S6** (the app speaking in the owner's sentence) into RK9: plain text is the stored label and nothing more. The label's form is defined once in `refs.ts` (Open 4 stays the owner's).
+- **S7** (a token that is more than words) into RK17: shares render words; the token and coordinates stay in the stored note.
+- **S8** (a bare moment row) into RK8: every moment row carries place and date.
+- The steward's silent questions are Open 6 and 7 in the spec, and "over there" being a stored coordinate is Open 1's map pick, which I read as the owner's own choice, not tracking.

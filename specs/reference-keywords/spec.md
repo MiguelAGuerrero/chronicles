@@ -13,7 +13,7 @@ Verb: honour (the moment arrives whole, its place and time held) and return (a m
 Touches: Always "A moment carries its context"; Never "Writing the owner's words for them" (each keyword is the owner's pick, the note's other characters are untouched); Never "Data leaving the device without a tap" (every entry resolves locally; no weather); Never "All-day tracking" (0036: the moment's one fix, never a new read); Never "A capture behind a menu or an extra tap" (the palette opens only on a typed `@`); Never "Popularity" and "Ratings" (entries ordered by distance or time only); decisions 0125 (the reference lives in the note's text, nothing else stored), 0016 (no dataset hard-coded, adapters), 0036, 0005; open question 5 (calculated for you), a mild case.
 Verdict: aligned
 Shape: as the owner gave it (Nov 11): explicit keywords from a palette, not matching of free text; space, time and other moments for now; no temperature (needs a network call, a decision on what the cloud is for).
-Criteria: RK1-RK12, in the list below.
+Criteria: RK1-RK17, in the list below (RK13-RK17 from the steward, Nov 11).
 Open: see "Open" below.
 
 ## Decisions (the owner's calls)
@@ -30,12 +30,17 @@ Open: see "Open" below.
 4. **RK4** A keyword resolves from the moment's own fix and time, not where the owner is while editing: a reference chosen when a note is edited later reads the note's moment, never the owner's present position.
 5. **RK5** After a tile or map rebuild, an existing reference shows the value it was saved with.
 6. **RK6** An entry that cannot resolve (no fix yet, no place within range, a time it cannot say) is absent from the palette, never invented.
-7. **RK7** Places and moments in the palette are ordered by distance or by time only: no rating, popularity or "best" wording, and no count in digits.
-8. **RK8** A recalled moment appears as a moment with its place and time, never a snippet or a count; recalling by keyword makes no link and touches no row (0125).
-9. **RK9** Every plain-text surface (rows, Lately, a day, the resurfaced card, a notification, the replay) reads a keyword reference as words through the one core function (0125's), as "here (the science center)", never a raw token. The viewer draws it with its value in place of a card.
+7. **RK7** Places and moments in the palette and the correction list are ordered by distance or by time only: no rating, popularity or "best" wording, no number, no "top" or "closest" label, and no count in digits; a place's distance is said in words. Places come only from the places adapters' own gate (worth the stop, 0109, 0127), never a business list.
+8. **RK8** A recalled moment appears in the palette and the note as a moment with its place and date (a moment with no place says so in words, 0139), never a bare thumbnail, snippet or count; recalling by keyword makes no link and touches no row (0125).
+9. **RK9** Every plain-text surface (rows, Lately, a day, the resurfaced card, a notification, the replay) reads a keyword reference as its stored label through the one core function (0125's), never a raw token, and adds no words beyond that label. The viewer draws it with its value and its moment's place and time.
 10. **RK10** The owner can change which place a reference meant, from the places near the moment's fix in plain distance order, and the choice replaces the stored value.
 11. **RK11** No network request is made when inserting, showing or correcting a reference: resolution reads only the local adapters (0016) and the clock.
 12. **RK12** No temperature or weather entry exists in the palette.
+13. **RK13** (steward S1) "Here" and "next to me" name a place only when exactly one lies within a stated range (`REF_RULES`); otherwise the entry names the street, or is absent. The palette shows the label before it is chosen, so what is stored is the owner's confirmed pick; RK10 corrects it. When the editor's fix and the moment's saved fix differ, the stored value follows the moment's.
+14. **RK14** (steward S2) The editor opens, takes typing and saves with no wait on a fix or a place read; entries that need a fix appear when it exists, and the palette never blocks typing. `@` stays out of the capture stack's quick note (deferred in 0125).
+15. **RK15** (steward S3) No location call is made by the editor, the palette, the correction list or "over there": `fix` is only the existing stamp (`pos.current.here`) or the moment's saved coordinates, and the map pick does not centre on a fresh read.
+16. **RK16** (steward S5) "Now" resolves to the moment's own time and reads as a clock time ("at 14:20"), whenever the note is edited. Time words are a fixed allow-list, none saying anything of quality or mood; "N minutes in" is offered only for a moment on a walk.
+17. **RK17** (steward S7) Any share of a note's text through the share sheet reads a keyword as its label and carries no raw token or coordinate; the stored token stays in the note (and the backup bundle) as truth.
 
 ## Open (recommended answers; the owner decides at the plan)
 
@@ -44,3 +49,5 @@ Open: see "Open" below.
 3. **0125's `@`:** this amends it (the palette is in front of the picker). The slice's decision record says so and keeps its "the reference lives in the text" call.
 4. **Plain-text form:** both the keyword and its value, "here (the science center)".
 5. **The fix:** the editor often has no fix yet (a loose moment is placed when its fix arrives; a walk's moments are placed by the trace at stop). See the plan: which fix a keyword resolves from while writing.
+6. **Is a nearest-place label "calculated for you"** (vision open question 5)? It is chosen from a list by the owner, so I treat it as the owner's pick; the line is yours to draw before a label is stored.
+7. **A stored coordinate** (a map pick, a place's position) lives in the note's text and survives its walk's deletion, as RF8 already says a deleted moment never edits a note. Confirm.
