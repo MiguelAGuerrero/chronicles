@@ -125,6 +125,14 @@ const FEATURES = [
     specs: ['navigation-and-tabs', 'capture-from-chronicle'],
   },
   {
+    name: 'presence',
+    about: 'what a place is: one vocabulary of classes from every source\'s tags, read by density, marks and bars (decision 0140)',
+    rule: 'explore-and-discovery',
+    source: ['src/lib/presence/**'],
+    journeys: ['marks', 'atlas', 'grading'],
+    specs: ['presence'],
+  },
+  {
     name: 'explore',
     about: 'the Explore tab (the atlas), discovery, marks, reminders',
     rule: 'explore-and-discovery',
@@ -402,7 +410,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  presence: { branch: 'tend/inbox-20261111-1655', since: '2026-11-11' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
