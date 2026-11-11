@@ -1,6 +1,6 @@
 // Real fixtures for the place-form rule (specs/place-form PF15): for each place in scripts/fixtures/placeFormPlaces.json, the streets, street junctions,
 // counted places (with their taxonomy) and building centroids within the card's 800 m ring, cut from Overture's tiles (the pinned release) and rounded to
-// about a metre, with the owner's confirmed word beside them. Service ways, paths and steps are left out except sidewalks and crosswalks, kept so PF9 can remove them.
+// about a metre, with the owner's confirmed word beside them. A way keeps its street name: the busy-street features need it (PF25). Service ways, paths and steps are left out except sidewalks and crosswalks, kept so PF9 can remove them.
 //
 //   npx tsx scripts/fixture-place-form.mjs calibration|heldOut      (needs the network; writes src/lib/__tests__/walkability/placeForm<Set>.json)
 
@@ -48,7 +48,7 @@ for (const place of list.places.filter((p) => p.set === set)) {
       for (const w of waysFromOvertureTile(ab, x, y)) {
         const keep = KEEP.has(w.cls) || (w.cls === 'footway' && (w.sub === 'sidewalk' || w.sub === 'crosswalk'));
         if (!keep || distanceM(midOf(w.line), place.at) > DATA_M) continue;
-        rec.ways.push({ id: `${x}/${y}:${rec.ways.length}`, cls: w.cls, ...(w.sub ? { sub: w.sub } : {}), ...(w.speedKmh ? { speedKmh: w.speedKmh } : {}), level: w.level, line: w.line.map(pt) });
+        rec.ways.push({ id: `${x}/${y}:${rec.ways.length}`, cls: w.cls, ...(w.sub ? { sub: w.sub } : {}), ...(w.name ? { name: w.name } : {}), ...(w.speedKmh ? { speedKmh: w.speedKmh } : {}), level: w.level, line: w.line.map(pt) });
       }
       for (const j of junctionsFromOvertureTile(ab, x, y)) if (distanceM(j, place.at) <= DATA_M) rec.junctions.push(off(j));
     }

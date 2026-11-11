@@ -5,15 +5,15 @@
 import { loadSet, readOf } from '../src/lib/__tests__/walkability/placeFormFixtures';
 import { placeForm } from '../src/lib/walk/placeForm';
 import { formatReport } from '../src/lib/walk/placeFormReport';
-import { measureRing } from '../src/lib/walk/placeSignals';
+import { measureRings } from '../src/lib/walk/placeSignals';
 
 const rows = [];
 for (const [name, set] of [['Calibration', 'calibration'], ['HeldOut', 'heldOut']]) {
   const s = loadSet(name);
   if (!s) continue;
   for (const p of s.places) {
-    const measures = measureRing(readOf(p));
-    rows.push({ id: p.id, set, expected: p.word, accept: p.accept, got: placeForm(measures), measures });
+    const rings = measureRings(readOf(p));
+    rows.push({ id: p.id, set, expected: p.word, accept: p.accept, got: placeForm(rings), measures: rings[0] });
   }
 }
 console.log(formatReport(rows));

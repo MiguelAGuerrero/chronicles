@@ -76,7 +76,8 @@
     "e2e:baseline": "node scripts/e2e-baseline.js",
     "check:e2e": "node scripts/affected.js e2e",
     "places:coverage": "tsx scripts/places-coverage.ts",
-    "report:place-form": "tsx scripts/place-form-report.mjs"
+    "report:place-form": "tsx scripts/place-form-report.mjs",
+    "learn:place-form": "tsx scripts/learn-place-form.mjs"
   },
   "private": true
 }

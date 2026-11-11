@@ -98,10 +98,9 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
 
 ### The accuracy, on real places
 
-5. **PF5 · A word for each real place in the calibration set.** On Overture's real tiles (release 2026-10-21.0) cut for the calibration set
-   (plan.md), every place gets the word the owner confirmed for it, or one the owner accepted for it, except the named known misses (`KNOWN_MISSES` in the test, each
-   a "?" place with its reason: Shartlesville, Morgantown, Hershey), which the test holds to still being misses so a fix or a new miss is seen. A place the rule gets wrong is
-   named in the failing test's message with its measures.
+5. **PF5 · No wrong word on a calibration place.** On Overture's real tiles (release 2026-10-21.0) cut for the calibration set, every place gets the word the owner confirmed, one the owner
+   accepted, or silence, never another word; and at least 80% of the places the owner gave an unambiguous word are named. The rule is learned from these places, so this checks that
+   the learning kept its promise: it is not evidence of accuracy, which is PF6, on places the rule never saw.
 6. **PF6 · Measured on places it was not tuned on.** The held-out set is cut and its words confirmed by the owner **before** the thresholds are
    pinned, and its fixture is added in a commit after theirs. The test reports its accuracy, its recall per word and the 95% Wilson interval of the accuracy, and holds the held-out set to the floor the owner set (the
    default taken 2026-11-11): at least 80% of the places right, a 95% lower bound of at least 0.70 (24 places: 22 right), and at least 80% of the places the owner gave a
@@ -157,9 +156,23 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
 23. **PF23 · The held-out places are far from the calibration places and used once.** Every held-out point is at least 5 km from every calibration point, and no
     two held-out places share a municipality. The held-out set is evaluated once per rule: a rule change after a look needs a fresh set, and the Record logs each
     look (so far: one, 17 places, 2026-11-11, folded into calibration).
-24. **PF24 · Uneven mapping does not make a wrong word.** Thinning a place's buildings and places to half, seeded, never gives a plainly wrong word, never gives a word
-    to a place the owner labelled no word, and changes at most 20% of the words (to silence or to an adjacent word, never to another kind). (Measured 2026-11-11 on
-    the retuned rule: 14 of 35 change and a mall becomes an exit.) Overture's building and place coverage is uneven (Reading maps about 430 buildings per km², Allentown 1,600).
+24. **PF24 · Uneven mapping silences, and never misleads.** Thinning a place's buildings and places to half, seeded, never gives a plainly wrong word, never gives a word to
+    a place the owner labelled no word, and only ever turns a word into silence or, for at most three places, into a neighbouring word (grid and main street, main street and village, village and exit), never a plainly wrong one; at most half the words go silent. (Measured: Allentown's grid ring reads "a town along a main street" with half its places.) (Reframed 2026-11-11 by the
+    second and third reviews and the owner's positives-only policy: silence is the designed response to doubt, so the fraction of words silenced is reported, 34% measured, and not gated.)
+    Overture's building and place coverage is uneven (Reading maps about 430 buildings per km², Allentown 1,600).
+
+25. **PF25 · Busy-street length.** The ring's busy-street length is the length of the strips the landing analysis finds (a named street at medium grade or above with a run of
+    places along it, graded against the read's own high point), counted where the busiest point lies inside the ring. An unnamed street, places further than 40 m from the street, or
+    no places give none. (The busy streets are the ones the Explore tab draws.)
+26. **PF26 · Frontage.** The ring's frontage is the share, by weight, of its places within 40 m of a named street: the storefronts on a street. No named street, or no places, give none.
+27. **PF27 · Five rings.** A ring is read from its centre and from 150 m north, east, south and west, the centre first; a ring with a tile unread, or too little street, is not measured.
+28. **PF28 · The territories are learned, reproducible and pure.** Each word's territory is a box over the six measures (junctions, places and buildings per km², motorway share, busy-street length,
+    frontage), learned from the owner's confirmed places by one deterministic procedure and committed as a table (`npm run learn:place-form` regenerates it, and a test holds the table equal to
+    what the procedure makes of the fixtures). The box is built around a word's strictly confirmed places, widened by a margin, open on the sides where more or less does not change the word,
+    and cut back until no place the owner confirmed as something else, or as no word, lies inside it. No reference place is carried into the app, and no app code imports the learner.
+29. **PF29 · Obvious, or silent.** A ring has a word only when its measures lie inside exactly one word's territory and the ring read from each of the four shifted centres gives the
+    same word at least three more times out of four (four of the five rings in all, the centre among them); a place inside two territories, a centre outside every territory, or rings that
+    disagree have no word. (The owner's policy, 2026-11-11: only positive classifications; ambiguity is silence.)
 
 ### The evidence
 

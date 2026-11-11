@@ -23,11 +23,12 @@ test('PF2: the table is sorted by id, carries no rank or default, and nothing fi
   const ids = FORM_WORDS.map((w) => w.id);
   assert.deepEqual(ids, [...ids].sort());
   for (const w of FORM_WORDS) assert.deepEqual(Object.keys(w).sort(), ['clause', 'id', 'inputs']);
-  assert.equal(placeForm(null), null);
+  assert.equal(placeForm([null]), null);
+  assert.equal(placeForm([]), null);
 });
 
 test('PF3: the rule and the measures are core: no clock, request, db or React Native, and only core imports', () => {
-  for (const f of ['placeForm.ts', 'placeSignals.ts', 'placeFormReport.ts']) {
+  for (const f of ['placeForm.ts', 'placeSignals.ts', 'placeFormReport.ts', 'placeFormTerritory.ts', 'placeFormTerritories.ts', 'placeFormLearn.ts']) {
     const s = src(f);
     assert.match(s.split('\n')[0], /^\/\/ @layer core$/, f);
     assert.doesNotMatch(s, /Date\.now|Math\.random|fetch\(|react-native|from '\.\.\/(db|net|ports)/, f);

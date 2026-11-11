@@ -1,0 +1,632 @@
+{
+ "places": [
+  {
+   "id": "providenceRI",
+   "name": "Providence",
+   "state": "RI",
+   "at": [
+    -71.41285,
+    41.82397
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "City core, dense street grid and many places.",
+   "measured": {
+    "streetM": 63060,
+    "mtShare": 0.17,
+    "places": 1811
+   }
+  },
+  {
+   "id": "albanyNY",
+   "name": "Albany",
+   "state": "NY",
+   "at": [
+    -73.755,
+    42.65119
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "City core, dense street grid and many places.",
+   "measured": {
+    "streetM": 55465,
+    "mtShare": 0.06,
+    "places": 1171
+   }
+  },
+  {
+   "id": "baltimoreMtVernon",
+   "name": "Baltimore (Mount Vernon)",
+   "state": "MD",
+   "at": [
+    -76.61076,
+    39.29087
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "City core, dense street grid and many places.",
+   "measured": {
+    "streetM": 57934,
+    "mtShare": 0.05,
+    "places": 2333
+   }
+  },
+  {
+   "id": "newHavenCT",
+   "name": "New Haven",
+   "state": "CT",
+   "at": [
+    -72.92501,
+    41.30824
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "City core, dense street grid and many places.",
+   "measured": {
+    "streetM": 47623,
+    "mtShare": 0.05,
+    "places": 1777
+   }
+  },
+  {
+   "id": "hobokenNJ",
+   "name": "Hoboken",
+   "state": "NJ",
+   "at": [
+    -74.0324,
+    40.74329
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "City core, dense street grid and many places.",
+   "measured": {
+    "streetM": 39861,
+    "mtShare": 0,
+    "places": 2015
+   }
+  },
+  {
+   "id": "pittsburghDowntown",
+   "name": "Pittsburgh",
+   "state": "PA",
+   "at": [
+    -80.00253,
+    40.44068
+   ],
+   "word": "grid",
+   "pointNote": "Overture locality point",
+   "why": "City core, dense street grid and many places.",
+   "measured": {
+    "streetM": 46237,
+    "mtShare": 0.28,
+    "places": 2324
+   }
+  },
+  {
+   "id": "wilmingtonDE",
+   "name": "Wilmington",
+   "state": "DE",
+   "at": [
+    -75.55272,
+    39.73835
+   ],
+   "word": "grid",
+   "accept": "mainStreet",
+   "acceptWhy": "Downtown is thin for a city; shops along Market Street.",
+   "pointNote": "Overture locality point",
+   "why": "City core, dense street grid and many places.",
+   "measured": {
+    "streetM": 50485,
+    "mtShare": 0.01,
+    "places": 805
+   }
+  },
+  {
+   "id": "brattleboroVT",
+   "name": "Brattleboro",
+   "state": "VT",
+   "at": [
+    -72.55732,
+    42.85074
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Small town with one main shopping street and houses around.",
+   "measured": {
+    "streetM": 29228,
+    "mtShare": 0,
+    "places": 437
+   }
+  },
+  {
+   "id": "skaneatelesNY",
+   "name": "Skaneateles",
+   "state": "NY",
+   "at": [
+    -76.42914,
+    42.947
+   ],
+   "word": "mainStreet",
+   "accept": "village",
+   "acceptWhy": "Lake village, labelled a village in Overture but with a full main street.",
+   "pointNote": "Overture locality point",
+   "why": "Small town with one main shopping street and houses around.",
+   "measured": {
+    "streetM": 17379,
+    "mtShare": 0.08,
+    "places": 252
+   }
+  },
+  {
+   "id": "camdenME",
+   "name": "Camden",
+   "state": "ME",
+   "at": [
+    -69.06555,
+    44.21026
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Small town with one main shopping street and houses around.",
+   "measured": {
+    "streetM": 19678,
+    "mtShare": 0.08,
+    "places": 373
+   }
+  },
+  {
+   "id": "gettysburgPA",
+   "name": "Gettysburg",
+   "state": "PA",
+   "at": [
+    -77.23105,
+    39.83088
+   ],
+   "word": "mainStreet",
+   "accept": "grid",
+   "acceptWhy": "Compact town core with square and several parallel streets; larger than a typical small town.",
+   "pointNote": "Overture locality point",
+   "why": "Small town with one main shopping street and houses around.",
+   "measured": {
+    "streetM": 40299,
+    "mtShare": 0.04,
+    "places": 698
+   }
+  },
+  {
+   "id": "honesdalePA",
+   "name": "Honesdale",
+   "state": "PA",
+   "at": [
+    -75.25798,
+    41.57712
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Small town with one main shopping street and houses around.",
+   "measured": {
+    "streetM": 25670,
+    "mtShare": 0,
+    "places": 341
+   }
+  },
+  {
+   "id": "chestertownMD",
+   "name": "Chestertown",
+   "state": "MD",
+   "at": [
+    -76.06659,
+    39.20898
+   ],
+   "word": "mainStreet",
+   "pointNote": "Overture locality point",
+   "why": "Small town with one main shopping street and houses around.",
+   "measured": {
+    "streetM": 15936,
+    "mtShare": 0,
+    "places": 302
+   }
+  },
+  {
+   "id": "woodstockVT",
+   "name": "Woodstock",
+   "state": "VT",
+   "at": [
+    -72.51895,
+    43.62477
+   ],
+   "word": "mainStreet",
+   "accept": "village",
+   "acceptWhy": "Pretty village green with a short row of shops; could read as small town or village.",
+   "pointNote": "Overture locality point",
+   "why": "Small town with one main shopping street and houses around.",
+   "measured": {
+    "streetM": 18310,
+    "mtShare": 0.11,
+    "places": 191
+   }
+  },
+  {
+   "id": "graftonVT",
+   "name": "Grafton",
+   "state": "VT",
+   "at": [
+    -72.60658,
+    43.17151
+   ],
+   "word": "village",
+   "pointNote": "Overture locality point",
+   "why": "Small settlement along a road with few places.",
+   "measured": {
+    "streetM": 8653,
+    "mtShare": 0,
+    "places": 41
+   }
+  },
+  {
+   "id": "peachamVT",
+   "name": "Peacham",
+   "state": "VT",
+   "at": [
+    -72.17039,
+    44.32845
+   ],
+   "word": "village",
+   "pointNote": "Overture locality point",
+   "why": "Small settlement along a road with few places.",
+   "measured": {
+    "streetM": 5047,
+    "mtShare": 0,
+    "places": 12
+   }
+  },
+  {
+   "id": "waterfordVA",
+   "name": "Waterford",
+   "state": "VA",
+   "at": [
+    -77.61163,
+    39.18829
+   ],
+   "word": "village",
+   "pointNote": "Overture locality point",
+   "why": "Small settlement along a road with few places.",
+   "measured": {
+    "streetM": 9267,
+    "mtShare": 0,
+    "places": 18
+   }
+  },
+  {
+   "id": "eaglesMerePA",
+   "name": "Eagles Mere",
+   "state": "PA",
+   "at": [
+    -76.58423,
+    41.411
+   ],
+   "word": "village",
+   "accept": "mainStreet",
+   "acceptWhy": "Resort village with a short shop strip.",
+   "pointNote": "Overture locality point",
+   "why": "Small settlement along a road with few places.",
+   "measured": {
+    "streetM": 13589,
+    "mtShare": 0,
+    "places": 29
+   }
+  },
+  {
+   "id": "cornwallBridgeCT",
+   "name": "Cornwall Bridge",
+   "state": "CT",
+   "at": [
+    -73.37073,
+    41.81866
+   ],
+   "word": "village",
+   "accept": null,
+   "acceptWhy": "Very small crossroads; may have too little to name.",
+   "pointNote": "Overture locality point",
+   "why": "Small settlement along a road with few places.",
+   "measured": {
+    "streetM": 6224,
+    "mtShare": 0,
+    "places": 25
+   }
+  },
+  {
+   "id": "harpersFerryWV",
+   "name": "Harpers Ferry",
+   "state": "WV",
+   "at": [
+    -77.73196,
+    39.32341
+   ],
+   "word": "village",
+   "accept": "mainStreet",
+   "acceptWhy": "Small historic village with a block of tourist shops along one street.",
+   "pointNote": "Overture locality point",
+   "why": "Small settlement along a road with few places.",
+   "measured": {
+    "streetM": 8023,
+    "mtShare": 0.08,
+    "places": 90
+   }
+  },
+  {
+   "id": "ashburnSubdivisionVA",
+   "name": "Ashburn subdivisions",
+   "state": "VA",
+   "at": [
+    -77.49,
+    39.03
+   ],
+   "word": null,
+   "pointNote": "Hand-chosen point",
+   "why": "Cul-de-sac subdivisions.",
+   "measured": {
+    "streetM": 22651,
+    "mtShare": 0,
+    "places": 65
+   }
+  },
+  {
+   "id": "cornellNY",
+   "name": "Cornell University (Ho Plaza)",
+   "state": "NY",
+   "at": [
+    -76.48,
+    42.447
+   ],
+   "word": null,
+   "pointNote": "Hand-chosen point",
+   "why": "University campus, many places.",
+   "measured": {
+    "streetM": 27306,
+    "mtShare": 0,
+    "places": 488
+   }
+  },
+  {
+   "id": "westPointNY",
+   "name": "West Point",
+   "state": "NY",
+   "at": [
+    -73.96,
+    41.39
+   ],
+   "word": null,
+   "pointNote": "Hand-chosen point",
+   "why": "Military academy campus.",
+   "measured": {
+    "streetM": 22413,
+    "mtShare": 0,
+    "places": 114
+   }
+  },
+  {
+   "id": "elizabethPortNJ",
+   "name": "Elizabeth port and warehouses",
+   "state": "NJ",
+   "at": [
+    -74.18,
+    40.65
+   ],
+   "word": null,
+   "pointNote": "Hand-chosen point",
+   "why": "Port, warehouses and rail yards.",
+   "measured": {
+    "streetM": 23215,
+    "mtShare": 0,
+    "places": 194
+   }
+  },
+  {
+   "id": "greatAdventureNJ",
+   "name": "Six Flags Great Adventure",
+   "state": "NJ",
+   "at": [
+    -74.44,
+    40.137
+   ],
+   "word": null,
+   "pointNote": "Hand-chosen point",
+   "why": "Theme park and safari.",
+   "measured": {
+    "streetM": 28179,
+    "mtShare": 0,
+    "places": 61
+   }
+  },
+  {
+   "id": "quabbinMA",
+   "name": "Quabbin Reservoir",
+   "state": "MA",
+   "at": [
+    -72.3,
+    42.38
+   ],
+   "word": null,
+   "pointNote": "Hand-chosen point",
+   "why": "Reservoir and forest.",
+   "measured": {
+    "streetM": 0,
+    "mtShare": 0,
+    "places": 0
+   }
+  },
+  {
+   "id": "voorheesNJ",
+   "name": "Voorhees subdivisions",
+   "state": "NJ",
+   "at": [
+    -74.95,
+    39.85
+   ],
+   "word": null,
+   "pointNote": "Hand-chosen point",
+   "why": "Cul-de-sac suburb.",
+   "measured": {
+    "streetM": 19265,
+    "mtShare": 0,
+    "places": 36
+   }
+  },
+  {
+   "id": "wellsExitME",
+   "name": "Wells I-95 exit 19",
+   "state": "ME",
+   "at": [
+    -70.6105,
+    43.3252
+   ],
+   "word": "exit",
+   "pointNote": "I-95 exit 19 ramp area",
+   "why": "Interstate interchange with roadside services, no real town.",
+   "measured": {
+    "streetM": 11551,
+    "mtShare": 0.41,
+    "places": 26
+   }
+  },
+  {
+   "id": "somersetExitPA",
+   "name": "Somerset I-76 US-219 exit",
+   "state": "PA",
+   "at": [
+    -79.0319,
+    39.9962
+   ],
+   "word": "exit",
+   "pointNote": "I-76/US-219 interchange",
+   "why": "Interstate interchange with roadside services, no real town.",
+   "measured": {
+    "streetM": 7351,
+    "mtShare": 0.45,
+    "places": 18
+   }
+  },
+  {
+   "id": "hancockExitMD",
+   "name": "Hancock I-70 US-522 exit",
+   "state": "MD",
+   "at": [
+    -78.1823,
+    39.7126
+   ],
+   "word": "exit",
+   "accept": null,
+   "acceptWhy": "Interchange sits about 1.4 km from Hancock town; services plus town fringe.",
+   "pointNote": "I-70/US-522 interchange",
+   "why": "Interstate interchange with roadside services, no real town.",
+   "measured": {
+    "streetM": 16385,
+    "mtShare": 0.52,
+    "places": 30
+   }
+  },
+  {
+   "id": "perryvilleExitMD",
+   "name": "Perryville I-95 exit 93",
+   "state": "MD",
+   "at": [
+    -76.057,
+    39.5948
+   ],
+   "word": "exit",
+   "pointNote": "I-95 exit 93 ramps",
+   "why": "Interstate interchange with roadside services, no real town.",
+   "measured": {
+    "streetM": 12444,
+    "mtShare": 0.47,
+    "places": 8
+   }
+  },
+  {
+   "id": "palmerExitMA",
+   "name": "Palmer Mass Pike exit 8",
+   "state": "MA",
+   "at": [
+    -72.3864,
+    42.1538
+   ],
+   "word": "exit",
+   "pointNote": "Mass Pike exit 8 ramps",
+   "why": "Interstate interchange with roadside services, no real town.",
+   "measured": {
+    "streetM": 8041,
+    "mtShare": 0.45,
+    "places": 8
+   }
+  },
+  {
+   "id": "clarionExitPA",
+   "name": "Clarion I-80 exit 62",
+   "state": "PA",
+   "at": [
+    -79.4072,
+    41.191
+   ],
+   "word": "exit",
+   "pointNote": "I-80 exit 62 ramp midpoint",
+   "why": "Interstate interchange with roadside services, no real town.",
+   "measured": {
+    "streetM": 3210,
+    "mtShare": 0.52,
+    "places": 6
+   }
+  },
+  {
+   "id": "kingOfPrussiaMall",
+   "name": "King of Prussia Mall",
+   "state": "PA",
+   "at": [
+    -75.3917,
+    40.0888
+   ],
+   "word": null,
+   "pointNote": "Mall centre",
+   "why": "Large regional mall surrounded by highways and office parks; hard negative (many places).",
+   "measured": {
+    "streetM": 72473,
+    "mtShare": 0.19,
+    "places": 744
+   }
+  },
+  {
+   "id": "gardenStatePlazaNJ",
+   "name": "Garden State Plaza Paramus",
+   "state": "NJ",
+   "at": [
+    -74.0754,
+    40.9178
+   ],
+   "word": null,
+   "pointNote": "Mall centre",
+   "why": "Regional mall between Routes 4 and 17; hard negative.",
+   "measured": {
+    "streetM": 62927,
+    "mtShare": 0.26,
+    "places": 630
+   }
+  },
+  {
+   "id": "cayugaFarmNY",
+   "name": "Cayuga County farmland",
+   "state": "NY",
+   "at": [
+    -76.7,
+    42.95
+   ],
+   "word": null,
+   "pointNote": "Open farmland between lakes",
+   "why": "Farmland.",
+   "measured": {
+    "streetM": 2693,
+    "mtShare": 0,
+    "places": 0
+   }
+  }
+ ]
+}

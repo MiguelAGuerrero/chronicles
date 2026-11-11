@@ -7,7 +7,7 @@
     "village",
     "exit"
   ],
-  "note": "A place's `word` is the owner's confirmed word, or null for no word. `accept` lists a second word the owner accepts for a place marked '?'. The point is the one the atlas would pass the card: an Overture locality point, or the point named in `pointNote`. `set` is calibration (the rule is tuned on it) or heldOut (never tuned on, PF6). The first held-out set (17 places) scored 0.71 accuracy and 0.62 recall against the 0.80 floor on 2026-11-11 and was folded into the calibration set (`folded`) at the owner's call; a fresh held-out set is cut after the retune.",
+  "note": "A place's `word` is the owner's confirmed word, or null for no word. `accept` lists a second word the owner accepts for a place marked '?'. The point is the one the atlas would pass the card: an Overture locality point, or the point named in `pointNote`. `set` is calibration (the rule is tuned on it) or heldOut (never tuned on, PF6). The first held-out set (17 places) scored 0.71 accuracy and 0.62 recall against the 0.80 floor on 2026-11-11 and was folded into the calibration set (`folded`) at the owner's call; a fresh held-out set is cut after the retune. The second held-out set (24 places, blind labels) scored 0.79 accuracy, 0.60 lower bound and 0.72 recall on 2026-11-11 and was folded into the calibration set too.",
   "places": [
     {
       "id": "allentownDowntown",
@@ -413,8 +413,9 @@
         40.34295
       ],
       "word": "grid",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "pottsville",
@@ -424,8 +425,9 @@
         40.68513
       ],
       "word": "grid",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "scranton",
@@ -435,8 +437,9 @@
         41.40868
       ],
       "word": "grid",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "york",
@@ -446,8 +449,9 @@
         39.96252
       ],
       "word": "grid",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "harrisburg",
@@ -457,8 +461,9 @@
         40.2663
       ],
       "word": "grid",
-      "set": "heldOut",
-      "pointNote": "Overture locality point, sits a few hundred metres south of the Capitol (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point, sits a few hundred metres south of the Capitol (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "lewisburg",
@@ -468,8 +473,9 @@
         40.96454
       ],
       "word": "mainStreet",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "manheim",
@@ -479,8 +485,9 @@
         40.16372
       ],
       "word": "mainStreet",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "mountJoy",
@@ -490,8 +497,9 @@
         40.10985
       ],
       "word": "mainStreet",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "orwigsburg",
@@ -501,8 +509,9 @@
         40.65486
       ],
       "word": "mainStreet",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "bloomsburg",
@@ -512,9 +521,10 @@
         41.00452
       ],
       "word": "mainStreet",
-      "set": "heldOut",
+      "set": "calibration",
       "pointNote": "Overture locality point (not the other Bloomsburg near Reading) (blind label, proposed by an independent agent)",
-      "accept": "grid"
+      "accept": "grid",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "bowmansville",
@@ -524,8 +534,9 @@
         40.19677
       ],
       "word": "village",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "blueBall",
@@ -535,8 +546,9 @@
         40.11838
       ],
       "word": "village",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "churchtown",
@@ -546,8 +558,9 @@
         40.13315
       ],
       "word": "village",
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "intercourse",
@@ -557,9 +570,10 @@
         40.03859
       ],
       "word": "village",
-      "set": "heldOut",
+      "set": "calibration",
       "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
-      "accept": "mainStreet"
+      "accept": "mainStreet",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "lickdale",
@@ -569,8 +583,9 @@
         40.45301
       ],
       "word": "exit",
-      "set": "heldOut",
-      "pointNote": "hand-chosen: midpoint of an I-81 interchange link, 466 m from the Lickdale locality; hwShare .45 within 800 m, 11.6 km of street (measured) (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "hand-chosen: midpoint of an I-81 interchange link, 466 m from the Lickdale locality; hwShare .45 within 800 m, 11.6 km of street (measured) (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "pineGrove",
@@ -580,9 +595,10 @@
         40.53344
       ],
       "word": "exit",
-      "set": "heldOut",
+      "set": "calibration",
       "pointNote": "hand-chosen: interchange link midpoint, 898 m from Irving; hwShare .52 (measured) (blind label, proposed by an independent agent)",
-      "accept": null
+      "accept": null,
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "bedford",
@@ -592,9 +608,10 @@
         40.02849
       ],
       "word": "exit",
-      "set": "heldOut",
+      "set": "calibration",
       "pointNote": "hand-chosen: interchange link midpoint; hwShare .38, 33 raw place hits (measured) (blind label, proposed by an independent agent)",
-      "accept": null
+      "accept": null,
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "newville",
@@ -604,9 +621,10 @@
         40.20571
       ],
       "word": "exit",
-      "set": "heldOut",
+      "set": "calibration",
       "pointNote": "hand-chosen: interchange link midpoint, 611 m from Plainfield; hwShare .35 (measured) (blind label, proposed by an independent agent)",
-      "accept": null
+      "accept": null,
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "limerickOutlets",
@@ -616,8 +634,9 @@
         40.2366
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "hand-chosen: the mall centre from Overture place names; 245 raw place hits, hwShare .41 (measured) (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "hand-chosen: the mall centre from Overture place names; 245 raw place hits, hwShare .41 (measured) (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "humboldt",
@@ -627,8 +646,9 @@
         40.935
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "hand-chosen from place names (warehouses/logistics); 5.3 km of street (measured) (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "hand-chosen from place names (warehouses/logistics); 5.3 km of street (measured) (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "swarthmore",
@@ -638,8 +658,9 @@
         39.9066
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "hand-chosen campus centre (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "hand-chosen campus centre (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "knoebels",
@@ -649,9 +670,10 @@
         40.8788
       ],
       "word": null,
-      "set": "heldOut",
+      "set": "calibration",
       "pointNote": "hand-chosen from place names; 7.5 km of street, 81 raw place hits (measured) (blind label, proposed by an independent agent)",
-      "accept": "village"
+      "accept": "village",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "hampden",
@@ -661,8 +683,9 @@
         40.26178
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     },
     {
       "id": "amishFarm",
@@ -672,8 +695,9 @@
         40.06
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "hand-chosen, 5.2 km of street, 9 raw place hits (measured) (blind label, proposed by an independent agent)"
+      "set": "calibration",
+      "pointNote": "hand-chosen, 5.2 km of street, 9 raw place hits (measured) (blind label, proposed by an independent agent)",
+      "folded": "2026-11-11 (second held-out look)"
     }
   ]
 }

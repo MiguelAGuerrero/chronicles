@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { LngLat } from '../../types';
-import { measureRing, type RingRead } from '../../walk/placeSignals';
+import { measureRing, measureRings, type RingRead } from '../../walk/placeSignals';
 import type { WayFacts } from '../../walk/types';
 import { moved, ringTiles } from './placeFormFixtures';
 
@@ -79,4 +79,34 @@ test('PF17: places not read (null) or buildings not read (null) is null, whateve
   assert.equal(measureRing({ ...READ, places: null }), null);
   assert.equal(measureRing({ ...READ, buildings: null }), null);
   assert.ok(measureRing({ ...READ, places: [], buildings: [] }), 'a read that found none is a read');
+});
+
+// A named street of 800 m with a run of places along it: what the Explore tab draws as a busy street (PF25, PF26).
+const MAIN: WayFacts = { id: 'main', cls: 'residential', name: 'Main Street', level: 0, line: [at(-400, 0), at(400, 0)] };
+const run = (n: number, dy: number, weight = 1) => Array.from({ length: n }, (_, i) => ({ at: at(-345 + i * 30, dy), weight }));
+
+test('PF25: busy-street length is the length of the strips the landing analysis finds, and only on a named street with places along it', () => {
+  const busy = measureRing({ ...READ, ways: [MAIN], places: run(24, 15) })!.busyStreetM;
+  assert.ok(busy >= 300 && busy <= 800, `a run of places along Main Street: ${busy} m`);
+  assert.equal(measureRing({ ...READ, ways: [{ ...MAIN, name: undefined }], places: run(24, 15) })!.busyStreetM, 0, 'an unnamed street carries no run');
+  assert.equal(measureRing({ ...READ, ways: [MAIN], places: run(24, 300) })!.busyStreetM, 0, 'places 300 m off the street are not on it');
+  assert.equal(measureRing({ ...READ, ways: [MAIN], places: [] })!.busyStreetM, 0, 'no places, no busy street');
+});
+
+test('PF26: frontage is the share, by weight, of the ring\'s places within 40 m of a named street', () => {
+  const half = measureRing({ ...READ, ways: [MAIN], places: [...run(10, 15), ...run(10, 250)] })!.frontageShare;
+  near(half, 0.5);
+  near(measureRing({ ...READ, ways: [MAIN], places: run(10, 15) })!.frontageShare, 1);
+  near(measureRing({ ...READ, ways: [MAIN], places: [...run(5, 15, 2), ...run(5, 250, 1)] })!.frontageShare, 10 / 15);
+  assert.equal(measureRing({ ...READ, ways: [{ ...MAIN, name: undefined }], places: run(10, 15) })!.frontageShare, 0, 'an unnamed street is no frontage');
+  assert.equal(measureRing({ ...READ, ways: [MAIN], places: [] })!.frontageShare, 0, 'no places, no frontage');
+  assert.equal(measureRing({ ...READ, ways: [MAIN], places: [{ at: at(-300, 41), weight: 1 }] })!.frontageShare, 0, '41 m is not within 40');
+});
+
+test('PF27: a ring is read from its centre and from 150 m north, east, south and west, the centre first', () => {
+  const rings = measureRings({ ...READ, junctions: [at(0, 780)] });
+  assert.equal(rings.length, 5);
+  assert.deepEqual(rings[0], measureRing({ ...READ, junctions: [at(0, 780)] }));
+  assert.ok(rings[3]!.junctionsPerKm2 < rings[0]!.junctionsPerKm2, 'the south ring no longer reaches a junction 780 m north');
+  assert.ok(rings[1]!.junctionsPerKm2 >= rings[0]!.junctionsPerKm2, 'the north ring is nearer it');
 });
