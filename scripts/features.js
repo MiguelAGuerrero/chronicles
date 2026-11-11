@@ -387,6 +387,8 @@ const UNTESTED = {
     RP12: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
   },
   // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
+  // The third held-out look (2026-11-11): one no-word place read as a main street; the owner decides (decision 0139).
+  'place-form': { PF30: 'deferred: unmet on the third held-out set (a port and warehouse district read as a main street, 1 of 10 no-word places); the owner decides whether a rate is accepted or the rule changes with a fresh held-out set (decision 0139)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
 };
 
@@ -394,9 +396,7 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {
-  'place-form': { branch: 'claude/festive-cray-twthtr', since: '2026-11-11' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

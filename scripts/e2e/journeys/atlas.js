@@ -285,9 +285,9 @@ async function checks(h) {
         const odd = overtureAsked.filter((q) => {
           const u = new URL(q.url);
           if (u.searchParams.get('list-type') === '2') return [...u.searchParams.keys()].some((k) => !['list-type', 'prefix', 'delimiter'].includes(k));
-          return ![`/tiles/${OVERTURE_RELEASE}/places.pmtiles`, `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles`, `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles`].includes(u.pathname) || u.search !== '' || !/^bytes=\d+-\d+$/.test(q.range ?? '');
+          return ![`/tiles/${OVERTURE_RELEASE}/places.pmtiles`, `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles`, `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles`, `/tiles/${OVERTURE_RELEASE}/buildings.pmtiles`].includes(u.pathname) || u.search !== '' || !/^bytes=\d+-\d+$/.test(q.range ?? '');
         });
-        check(overtureAsked.length > 0 && odd.length === 0, `AD3, TO12: Overture is asked for its listing, its places, its divisions and its transportation by byte range only (${overtureAsked.length} requests; odd: ${JSON.stringify(odd.slice(0, 2))})`);
+        check(overtureAsked.length > 0 && odd.length === 0, `AD3, TO12: Overture is asked for its listing, its places, its divisions, its transportation and its buildings (place form, PF3) by byte range only (${overtureAsked.length} requests; odd: ${JSON.stringify(odd.slice(0, 2))})`);
         // AD12: the area's grades are kept for drawing; AD15: no numbers in what is said.
         check(area && area.analysis.graded.some((g) => g.grade >= 2), 'AD12: the remembered area keeps its graded stretches');
         check(!/\d/.test(said.replace(/A best guess from the map\.?/, '')), `AD15: what's good here says no number (${said})`);

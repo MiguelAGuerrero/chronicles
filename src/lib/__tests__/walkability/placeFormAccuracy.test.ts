@@ -63,16 +63,23 @@ test('PF6: the held-out places are right at the floor: 0.80 with a 95% lower bou
   assert.ok(recall >= 0.8, `only ${recall.toFixed(2)} of the places with a word get any word (silence cannot pass)`);
 });
 
-test('PF7: no plainly wrong word in either set, and a place the owner gave no word gets none', { todo: 'third held-out look 2026-11-11: elizabethPortNJ (a port and warehouse district) reads a town along a main street' }, () => {
+test('PF7: no plainly wrong word in either set, and a mall or a suburb has no word', () => {
   for (const set of [calibration, heldOut]) {
     assert.ok(set, 'both sets are cut');
     for (const p of set!.places) {
       const got = wordOf(p);
       assert.ok(!plainlyWrong(p.word, got) && !(p.accept !== undefined && plainlyWrong(p.accept, got)), `${p.name}: confirmed ${p.word}, got ${got}`);
-      if (p.word === null && (p.accept === undefined || p.accept === null)) assert.equal(got, null, `${p.name}: the owner gave it no word, the rule says ${got}`);
     }
   }
   for (const id of MALLS_AND_SUBURBS) assert.equal(wordOf(calibration!.places.find((p) => p.id === id)!), null, id);
+  for (const id of ['kingOfPrussiaMall', 'gardenStatePlazaNJ', 'ashburnSubdivisionVA', 'voorheesNJ']) assert.equal(wordOf(heldOut!.places.find((p) => p.id === id)!), null, id);
+});
+
+test('PF30: a place the owner gave no word gets none, in either set', { todo: 'unmet on the third held-out set: elizabethPortNJ (a port and warehouse district) reads a town along a main street; the owner decides' }, () => {
+  for (const set of [calibration, heldOut]) {
+    assert.ok(set, 'both sets are cut');
+    for (const p of set!.places) if (p.word === null && (p.accept === undefined || p.accept === null)) assert.equal(wordOf(p), null, `${p.name}: the owner gave it no word, the rule says ${wordOf(p)}`);
+  }
 });
 
 test('PF8: farmland, water and woods have no word, and a ring with no tile read is no word', () => {

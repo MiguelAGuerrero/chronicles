@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = process.env.TEST_FIRST_ROOT ? path.resolve(process.env.TEST_FIRST_ROOT) : path.join(__dirname, '..');
-const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+// A large buffer, and only source files are searched (a real-tile fixture is megabytes on one line and would overflow it).
+const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] });
 
 const ID = /\b([A-Z]{1,3})(\d+)\b/g;
 const TODO = /\{\s*todo\s*:|\bcheck\.todo\(/;
@@ -84,7 +85,7 @@ function callLines(raw) {
 function testLines(sha) {
   let out = '';
   try {
-    out = git('grep', '-hnE', '-B1', '[A-Z][0-9]', sha, '--', 'src/lib/__tests__', 'scripts/e2e');
+    out = git('grep', '-hnE', '-B1', '[A-Z][0-9]', sha, '--', ':(glob)src/lib/__tests__/**/*.ts', ':(glob)scripts/e2e/**/*.js');
   } catch {
     return [];
   }
