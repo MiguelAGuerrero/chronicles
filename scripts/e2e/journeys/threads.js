@@ -530,6 +530,14 @@ async function run(h) {
   await openCard('is when');
   const bare = await pg.locator('[data-testid=ref-keyword]').allInnerTexts();
   check(bare.join('|') === 'tomorrow|over there', `RK19: with the setting off the viewer shows each word alone (${bare.join(' | ')})`);
+  check.todo(false, 'reference-keywords audit 11: a place pill has a spoken hint');
+  check.todo(false, 'reference-keywords audit 14: a menu moment row says its walk, or that it has none');
+  check.todo(false, 'reference-keywords audit 18: the resolver\'s empty line and the correction read quietly');
+  check.todo(false, 'reference-keywords audit 21: the highlighted row has a bar, not a tint alone');
+  check.todo(false, 'reference-keywords audit 22: the note card does not move while the menu narrows');
+  check.todo(false, 'reference-keywords audit 24: the map pick says to tap the map');
+  check.todo(false, 'reference-keywords audit 25: a pill\'s word is not bold and its value is quieter');
+  check.todo(false, 'reference-keywords audit 30: menu rows are 48 high');
   await closeViewer();
   await c.close();
 }

@@ -79,3 +79,40 @@ Built on `claude/clever-darwin-ptb8ig`, tests first (`Reference keywords: tests 
 - **The Notion-style round (the owner, Nov 11):** RK21-RK23 added after the first build, tests first (`tests first for the inline menu and pills`). The full-screen palette became a menu beside the field that filters as the owner types; `MomentList`'s search became `useMomentMatches`; the editor tracks the cursor (`menuQuery`) and handles the arrows and Enter on the web. Not built: tinted words inside the field (a native text field cannot style spans and stay controlled, and the web's is a plain box), so the pill is drawn where a note is read (`docs/DEFERRED.md`).
 - **Decision:** 0141 (amends 0125).
 - **Native unverified:** `docs/NATIVE_UNVERIFIED.md`, "Reference keywords".
+
+## Audit (Nov 11, at the owner's request; the auditor 1-12, the steward 13-20, the UX review 21-30)
+
+Triage:
+
+1. A keyword-only note shows its raw token in the owner's thread: accept (`NoteBubble` read only moment tokens).
+2. Typed text that looks like a token is parsed; a place name with `|`, `}` or `]` is stored with spaces: defer (an escape grammar is a data-model change; both are rare; `docs/DEFERRED.md`).
+3. Rows shift when "here" and "next to me" arrive: accept ("over there" is always the first row).
+4. A selection event while resolving drops the pick: accept.
+5. A pick with the cursor inside the typed word leaves the rest behind: accept.
+6. Enter with nothing highlighted, or during composition, picks: accept (Enter picks only after a letter or an arrow).
+7. A time keyword has no year; the clock uses the device's timezone: reject the year (the moment's own date, with its year, sits beside the note); defer the timezone (the app keeps no timezone anywhere).
+8. A keyword's value words become the Chronicle's thread terms: accept.
+9. A save during the setting's load is overwritten: accept; the first-frame flash with the setting off: defer.
+10. The 500-character limit counts shown words including values: reject (not wrong in practice).
+11. A pill has no spoken hint, and its target is under 44 pt: accept the hint; defer the target (a nested Text on a phone).
+12. A stale controlled `selection` on native: defer (native only, unverified).
+13. A new reply's "here" resolves from a last fix with no age limit (the owner's call: only a fresh fix, the reply's own stamp limit): accept.
+14. A menu moment row has a date and no place: accept (it says "not on a walk" in words, and may wrap).
+15. An unnamed map pick stores "a spot on the map", words the owner did not write (RK18 says a label only when named or accepted): accept.
+16. The setting does not reach core-built strings and a map-picked coordinate is a second place: accept saying so beside the switch; reject the second place (the owner's call, Nov 11: stored coordinates belong to their moment).
+17. Two clock styles; the app decides what "evening" is: accept the clock style (the viewer's); reject the rest ("evening" is the owner's own word).
+18. Copy: "No place close by." and "What did you mean?": accept ("No named place near this spot.", "Which place?").
+19. The pill's bold chrome: accept with 25.
+20. The setting sits in the walk's start settings: defer (no reading-settings surface exists yet).
+21. The highlighted row is nearly invisible: accept (a bar and a stronger tint); defer `aria-activedescendant`.
+22. The card jumps as the menu changes size: accept (the card is pinned near the top).
+23. Keyboard avoidance with the menu open: accept in part (pinned top, a height for the menu); defer a scroll cue and a device picture (native).
+24. The map pick says nothing about tapping: accept the line; defer a filled pin and the Back/X pair.
+25. A pill does not look tappable: accept no bold, a quieter value, vertical padding and a spoken hint; defer an icon and a 44 pt target.
+26. Moments and keywords share a list: reject (opinion; a moment's matching is the picker's own rule, OT5; group labels add chrome).
+27. "soon" and "later" read alike: defer (the allow-list is the owner's call, RK16; a question).
+28. The resolver is bare: accept the empty line's size; defer icons.
+29. Terminology of the switch: accept ("Show the place or time beside a pick").
+30. Rows under 48 dp: accept (48).
+
+Tests: `reference-keywords audit N` for 1, 3, 4, 5, 6, 8, 9, 11, 13, 14, 15, 17, 18, 21, 22, 24, 25, 30. Copy changes 16, 28, 29 and the deferred ones are covered by the typecheck and the journey.
