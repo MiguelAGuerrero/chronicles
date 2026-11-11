@@ -182,6 +182,23 @@ async function fresh(h) {
       const kept = await photosOf();
       check(saidPhoto === 'Photo saved to your walk' && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
         `a photo from the bar's camera lands in the open walk, paused too, without opening the walk screen (NV9: "${saidPhoto}", ${kept.length})`);
+      // tend tabs 9: the bar's Edit offer after a photo is pictured, at 390 and 320 px, inside the bar beside its controls.
+      {
+        const inBar = async () => pg.evaluate(() => {
+          const bar = document.querySelector('[data-testid=recording-bar]')?.getBoundingClientRect();
+          const e = document.querySelector('[data-testid=recording-bar] [data-testid=capture-edit]')?.getBoundingClientRect();
+          return !!(bar && e && e.width && e.y >= bar.y && e.bottom <= bar.bottom + 1 && e.right <= window.innerWidth);
+        });
+        const at390 = await inBar();
+        await h.shot(pg, 'tabs-9-bar-edit-offer');
+        await pg.setViewportSize({ width: 320, height: 700 });
+        await pg.waitForTimeout(400);
+        const at320 = await inBar();
+        await h.shot(pg, 'tabs-9-bar-edit-offer-320');
+        await pg.setViewportSize({ width: 390, height: 844 });
+        await pg.waitForTimeout(400);
+        check(at390 && at320, `tend tabs 9: after a photo, the bar's Edit offer shows inside the bar at 390 and 320 px (${at390}, ${at320})`);
+      }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
       await pg.click('[data-testid=recording-return]');
       await pg.waitForSelector('[data-testid=stop]');
