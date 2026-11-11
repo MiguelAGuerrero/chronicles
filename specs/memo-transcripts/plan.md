@@ -48,7 +48,7 @@ phone: memo (AAC .m4a) ─► decode module ─► 16 kHz PCM (temp) ─► whis
 | `app.json` | nothing expected (no config plugin; `whisper.rn` autolinks). Verify when the module is first built. |
 | `docs/ARCHITECTURE.md` | a web exception, with its reason: no Expo module transcribes on web, `whisper.rn` has no web build, and whisper.cpp's WebAssembly needs cross-origin isolation GitHub Pages can't send (as for SQLite) |
 | `scripts/features.js` | the feature row, `IN_PROGRESS`, then the journey |
-| `scripts/vision.allow.json` | the one new host with its reason (MX23) |
+| `scripts/check-vision.js` | `ALLOWED_HOSTS['miguelaguerrero.github.io']`'s reason extended to name the models; no new host (MX23) |
 | `docs/` | decision 0127 (library, host, tag, cache dir); `.claude/rules/transcripts.md`; `DEFERRED.md`, `NATIVE_UNVERIFIED.md`, `PRODUCT.md`, `STATUS.md`, `ARCHITECTURE.md` (the codemap, the web exception list: none, web is off) |
 
 ## Data
@@ -84,7 +84,7 @@ Folder `src/lib/__tests__/transcripts/` (a new feature in `scripts/features.js`)
 | MX20 | `decoder.test.ts` over a fake decoder: the temp PCM is deleted; the memo file is untouched; `isAvailable()` is false off-device. Real decoding is native, on the device list. |
 | MX21 | `deleteTranscripts.test.ts` (db contract + `deletion` shell): rows go with the moment, piece and walk in one transaction; a pending delete hides them |
 | MX22 | `bundle.test.ts`: no model-extension file over 1 MB in `assets/`, `app.json`, or the web export; the web export's entry chunk does not contain the engine (it is a separate async chunk), and the engine's `.wasm` files are in the export, not a CDN reference |
-| MX23 | `vision.test.ts` entry: exactly one new host in `vision.allow.json` with its reason, and the dependency list adds only `whisper.rn` and `@huggingface/transformers` (their own request defaults switched off). Journey `transcripts`: the harness's request log shows no host but the app's and the model's during a web run. |
+| MX23 | `vision.test.ts` entry: no new host (the Pages host's reason names the models), and the dependency list adds only `whisper.rn` and `@huggingface/transformers` (their own request defaults switched off). Journey `transcripts`: the harness's request log shows no host but the app's and the model's during a web run. |
 
 Native-only criteria with no phone check here (MX16's real load and release, MX20's real decoding, MX12's real download) get an item in `docs/NATIVE_UNVERIFIED.md` naming the id, and `device:` reasons in `UNTESTED` only for what no fake can reach.
 
@@ -134,11 +134,12 @@ Two risks to settle in the first build, not assumed: Metro's web export must spl
 6. The views: the settings row, the viewer line, the resurface wiring; the journey.
 7. Docs, decision 0127, `/docs-gc`.
 
-## Three questions for you
+## The owner's answers (Nov 11)
 
-1. **The model's host path.** You chose the chronicles-data repo. A GitHub **release asset** redirects to a second host (a `githubusercontent.com` object host), so `check:vision` would list two hosts; the **Pages site** (where the places archive lives, 0103) is one host already allowed. A 60 MB file fits Pages. I recommend Pages, and I need nothing from you but the file there under a versioned name.
-2. **Where the row lives.** I put it in the walk settings, the only home for switches (there is no Settings screen). It is a switch for something that also affects a memo made outside a walk. Fine?
-3. **The copy.** Draft: row "Transcribe memos on this phone"; the sub-line "Reads what you say in a memo so it can join a thread. Nothing leaves your phone."; the dialog "Get a small model to read memos on this phone? It is about 60 megabytes, once." (the figure is a placeholder until the file is measured: it is a size in words, not a count); the label, on the card, the thread row and the viewer alike, "Read by your phone" (or the plainer "Heard by this phone"; the steward asks which register). Edit freely.
+1. **Host:** the chronicles-data Pages site, `miguelaguerrero.github.io`, already allowed: no new host.
+2. **The row:** the walk settings.
+3. **The copy:** the label is "Heard by this phone"; the row, its sub-line and the dialog are as drafted, with the size in words ("about sixty megabytes", a placeholder until the file is measured). The label is one string on both platforms, so the web says "phone" too.
+4. **Go:** approved, tests first and then the build.
 
 ## Steward findings (Nov 11: no breaches, six should-fix, three notes)
 

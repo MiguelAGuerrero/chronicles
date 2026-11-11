@@ -247,9 +247,9 @@ const FEATURES = [
   {
     name: 'transcripts',
     about: 'a voice memo\'s words read on the phone: the offline model fetched on a tap and loaded only for a run, the decode module, the transcript cache',
-    rule: 'resurface',
+    rule: 'transcripts',
     source: [], // src/lib/transcribe/** and modules/chronicles-audio-decode/** join when the code exists (a glob that matches nothing fails TG1)
-    journeys: [],
+    journeys: ['transcripts'],
     specs: ['memo-transcripts'],
   },
   {

@@ -16,7 +16,7 @@ Touches: Open question 2 ("Searchable voice memos need on-device transcription, 
 Verdict: aligned if reshaped
 Shape: A switch in the walk settings, off, "Transcribe memos on this phone". On, it says in words what comes down and how big, and asks. The model is one pinned file on the chronicles-data host. Transcripts are a cache with the model's tag, shown under their memo in its moment, and joined to threads and resurfacing through the existing seam. Phones and web. No count, no progress bar, no search screen of its own. The web app does the same with its own engine (the owner, Nov 11).
 Criteria: MX1-MX32 below carry the Never and Always lines above.
-Open: none left from the gate; the plan's three open questions (the model's host path, the walk-settings row, the copy) are the owner's to settle with the plan.
+Open: none left from the gate; the plan's three open questions were settled by the owner, Nov 11 (Pages, the walk settings, "Heard by this phone").
 
 ## Decisions (the owner's calls, Nov 10-11)
 
@@ -24,7 +24,9 @@ Open: none left from the gate; the plan's three open questions (the model's host
 - **Not in the bundle, loaded on demand, not held in memory**: downloaded after a tap, kept as a cache file, loaded for a run and released after it (Nov 11).
 - **English only**, so the `.en` models (Nov 11).
 - **Quantized `base.en`** for the first slice; about 60 MB, from memory, to be measured against the real file (Nov 11).
-- **Hosted in the chronicles-data repo**, pinned by URL and checksum, so the app never depends on a third party's layout (Nov 11).
+- **Hosted in the chronicles-data repo**, pinned by URL and checksum, so the app never depends on a third party's layout (Nov 11). **On its Pages site** (`miguelaguerrero.github.io`, already an allowed host for the places archive, 0103), not a release asset, so the slice adds no host (the owner, Nov 11).
+- **The label is "Heard by this phone"**, on the card, the thread row and the viewer alike; the walk settings hold the switch (the owner, Nov 11).
+- **Go-ahead:** the owner approved the plan, tests first and then the build, on Nov 11.
 - **Quietly after saving**, with no progress screen, while the app is open, and never while a walk is recording (Nov 11).
 - **Memo audio stays AAC.** A small local native module decodes a memo to 16 kHz mono PCM for a run, like `modules/chronicles-video-edit`; recording and stored files do not change, so memos already kept are read too (Nov 11).
 - **Transcripts are a `transcript` table keyed by the piece's id**, with the engine, the model's tag and the time, so a model change reads as stale and deleting a moment takes its words with it (Nov 11).
@@ -37,7 +39,7 @@ Open: none left from the gate; the plan's three open questions (the model's host
 
 ### The words
 
-1. **MX1** A memo with a transcript shows its words under the memo in the moment's viewer, as the model heard them (whitespace trimmed, nothing rewritten), with the moment's place, time and walk as for any moment. The words are labelled as read by the phone, in words, so they are never mistaken for the owner's own note. The same label sits wherever the words appear (MX8).
+1. **MX1** A memo with a transcript shows its words under the memo in the moment's viewer, as the model heard them (whitespace trimmed, nothing rewritten), with the moment's place, time and walk as for any moment. The words are labelled as read by the phone, in words, so they are never mistaken for the owner's own note. The label reads "Heard by this phone" and sits wherever the words appear (MX8).
 2. **MX2** A memo without a transcript shows and plays exactly as before. A missing transcript is not an error, not a count and not a state: no icon, no "pending".
 3. **MX3** The app never writes anything from a transcript: no title, no summary, no caption, and never over a note or the memo's own fields. A transcript is read, never edited in the app.
 4. **MX4** A transcript is stored in the `transcript` table by piece id with the engine, the model's tag and the time it was made; the memo's audio and its row are never altered by it.
@@ -71,7 +73,7 @@ Open: none left from the gate; the plan's three open questions (the model's host
 
 21. **MX21** Deleting a moment, a piece, a walk or a walk's media deletes its transcripts in the same transaction, and a delete waiting in Undo hides them as it hides the memo; Undo brings them back with it (0113, 0104).
 22. **MX22** Neither the app bundle nor the app binary holds a model: no model file in `assets/` or the bundle, and no `isBundleAsset` use. A check names any file over 1 MB with a model's extension in the shipped assets. On the web the engine's code is loaded by dynamic import only when a run is due, never in the entry bundle, and its WebAssembly is served from the app's own origin, not a CDN.
-23. **MX23** No count, percentage, progress bar, score or duration of a transcript is shown anywhere in this slice, and nothing of the owner's (audio, words, the fact of a run) leaves the device. `check:vision` lists exactly one new host, the model's (both platforms' model files), with its reason (a request to it exposes the device's address, on a tap, and nothing else). `whisper.rn`, the decode module and the web engine make no requests of their own: the web engine's defaults (`huggingface.co` and `cdn.jsdelivr.net`) are switched off, and a web run makes no request to any host but the app's own and the model's. A run never shows or says its progress.
+23. **MX23** No count, percentage, progress bar, score or duration of a transcript is shown anywhere in this slice, and nothing of the owner's (audio, words, the fact of a run) leaves the device. `check:vision` lists no new host: both platforms' model files come from `miguelaguerrero.github.io`, already allowed, and its reason in `ALLOWED_HOSTS` is extended to name the models (a request to it exposes the device's address, on a tap, and nothing else). `whisper.rn`, the decode module and the web engine make no requests of their own: the web engine's defaults (`huggingface.co` and `cdn.jsdelivr.net`) are switched off, and a web run makes no request to any host but the app's own and the model's. A run never shows or says its progress.
 
 24. **MX24** A transcript's words appear only in the moment's viewer, the resurfaced card and a thread's rows. They never appear in a notification, the share sheet, a reel, a title, a day's lines or a replay's quiet lines.
 

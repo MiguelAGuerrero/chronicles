@@ -943,5 +943,54 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(got.members.map((m) => m.moment_id).sort(), ['b1', 'b2']);
       assert.deepEqual(got.links, [{ from_id: 'b2', to_id: 'b1', created_at: 1 }]);
     });
+
+    // Memo transcripts (specs/memo-transcripts, MX4, MX21): a cache by piece id, deleted with its moment. Written before the methods.
+    const trow = (piece_id: string, moment_id: string, text: string | null = 'words', more: Record<string, unknown> = {}) => ({
+      piece_id, moment_id, text, engine: 'fake', tag: 't1', made_at: 1, tries: 0, ...more,
+    });
+    const tdb = (d: Db) => d as unknown as { putTranscript(r: unknown): Promise<void>; listTranscripts(): Promise<ReturnType<typeof trow>[]> };
+    const tids = async (d: Db) => (await tdb(d).listTranscripts()).map((r) => r.piece_id).sort();
+
+    test('FC7 putTranscript, listTranscripts: a row is kept by piece id, a second put replaces it, no words (null) and silence (empty) are kept apart (MX4, MX18, MX19)', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      assert.deepEqual(await tdb(db).listTranscripts(), []);
+      await tdb(db).putTranscript(trow('p1', 'm1', 'hello'));
+      await tdb(db).putTranscript(trow('p2', 'm1', null, { tries: 1 }));
+      await tdb(db).putTranscript(trow('p3', 'm2', ''));
+      await tdb(db).putTranscript(trow('p1', 'm1', 'hello again', { tag: 't2' }));
+      const got = (await tdb(db).listTranscripts()).sort((a, b) => a.piece_id.localeCompare(b.piece_id));
+      assert.deepEqual(got.map((r) => [r.piece_id, r.text, r.tag, r.tries]), [['p1', 'hello again', 't2', 0], ['p2', null, 't1', 1], ['p3', '', 't1', 0]]);
+    });
+
+    test('FC7 deletePieces: takes the pieces\' transcripts and keeps the moment\'s others (MX21)', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('m1', null, 10, { kind: 'voice', file_path: 'a.m4a', body: '1' })));
+      await db.addPiece('m1', { id: 'm1b', moment_id: 'm1', t: 11, kind: 'voice', file_path: 'b.m4a', body: '1' });
+      await tdb(db).putTranscript(trow('m1', 'm1'));
+      await tdb(db).putTranscript(trow('m1b', 'm1'));
+      await db.deletePieces(['m1b']);
+      assert.deepEqual(await tids(db), ['m1']);
+    });
+
+    test('FC7 deleteMoments: takes the transcripts of every piece of the moments and leaves the others (MX21)', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      for (const id of ['m1', 'm2']) await db.addMoment(momentOf(capture(id, null, 10, { kind: 'voice', file_path: `${id}.m4a`, body: '1' })));
+      await db.addPiece('m1', { id: 'm1b', moment_id: 'm1', t: 11, kind: 'voice', file_path: 'b.m4a', body: '1' });
+      for (const [p, m] of [['m1', 'm1'], ['m1b', 'm1'], ['m2', 'm2']]) await tdb(db).putTranscript(trow(p, m));
+      await db.deleteMoments(['m1']);
+      assert.deepEqual(await tids(db), ['m2']);
+    });
+
+    test('FC7 deleteWalk: takes the transcripts of its moments, never another walk\'s (MX21)', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      await db.createWalk(walk('a', 1));
+      await db.createWalk(walk('b', 2));
+      await db.addMoment(momentOf(capture('ma', 'a', 10, { kind: 'voice', file_path: 'a.m4a', body: '1' })));
+      await db.addMoment(momentOf(capture('mb', 'b', 20, { kind: 'voice', file_path: 'b.m4a', body: '1' })));
+      await tdb(db).putTranscript(trow('ma', 'ma'));
+      await tdb(db).putTranscript(trow('mb', 'mb'));
+      await db.deleteWalk('a');
+      assert.deepEqual(await tids(db), ['mb']);
+    });
   });
 }
