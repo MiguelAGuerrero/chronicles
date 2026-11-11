@@ -6,18 +6,24 @@ Friedensburg).
 
 ## What the probe found (800 m around each place's point)
 
-| Place | Cells (foot / neither / car) | Junctions per km² | Highway share | Counted places | Stretch (streets) |
+| Place | Cells (foot / neither / car) | Junctions per km² | Arterial share (motorway, trunk, primary, secondary) | Counted places | Stretch (streets, unweighted: see the correction below) |
 |---|---|---|---|---|---|
-| Allentown downtown | all foot | 58 | 0 | 756 | 1.15 |
-| Hamburg | 4 / 17 / 11 | 46 | 0.12 | 175 | 1.55 |
-| Jonestown | 0 / 11 / 22 | 39 | 0 | 47 | 1.13 |
-| Fredericksburg | 0 / 0 / 31 | 17 | 0 | 44 | 1.65 |
-| Bethel (interchange) | 0 / 0 / 32 | 13 | 0.76 (motorway and trunk) | 30 | 1.93 |
-| Friedensburg | 0 / 0 / 33 | 17 | 0 | 18 | 2.10 |
+| Allentown downtown | all foot | 58 | 0.39 | 756 | 1.15 |
+| Hamburg | 4 / 17 / 11 | 46 | 0.32 (motorway and trunk 0.14) | 175 | 1.56 |
+| Jonestown | 0 / 11 / 22 | 39 | 0.28 | 47 | 1.13 |
+| Fredericksburg | 0 / 0 / 31 | 17 | 0.47 | 44 | 1.65 |
+| Bethel (interchange) | 0 / 0 / 32 | 13 | 0.77 (motorway and trunk alone 0.66) | 30 | 1.43 |
+| Friedensburg | 0 / 0 / 33 | 17 | 0.23 | 18 | 2.10 |
 
 The cell rule (`walk/form.ts`) calls all four small places "car": it cannot tell a village with a main street from a highway exit. Places per
 km² separates the six by an order of magnitude; the stretch finds Friedensburg and Fredericksburg; the highway share finds Bethel. These are
 starting signals, not rules: six places cannot set a threshold, which is why the calibration set below exists.
+
+**Correction (2026-11-11, after the adversarial review, rechecked on the same tiles).** The first table's "highway share" was the whole arterial share, and
+its stretch left the motorway out of its classes. Recomputed with local streets and arterials, and weighting each street by its length, the stretch is Bethel 1.27,
+Friedensburg **1.19**, Fredericksburg **1.05**, Hamburg 1.45 and Allentown 1.08 (unweighted: 1.43, 2.10, 1.65, 1.56, 1.15). So "stretched along one road" is
+**not** shown by the streets: it came from counting short segments. The village word needs a different measure, or a pinned definition that survives
+weighting (PF4), or it leaves the first set.
 
 ## Ground truth: who says what a place is
 
@@ -165,9 +171,30 @@ The steward (`.claude/agents/steward.md`) ran on this spec and plan. Three breac
 Steward's silent items: the card holds one description line at most while the family is one word (a cap, Questions 4); a place that is both "services at a highway exit" and
 a listed site says both, since Explore is unchanged; "no word" reads as nothing, which is the point of PF8.
 
+## The second review (2026-11-11): an adversarial reviewer and a literature survey
+
+A fresh agent re-measured the proposal on real places the plan does not hold and surveyed established taxonomies. What I verified myself, and what stands:
+
+| Finding | Triage |
+|---|---|
+| The places carry no category (the steward's S2 premise, my answer to the owner's Question 1) is **false** | **Verified and mine to correct.** `OverturePlace` carries `hierarchy` (the taxonomy) and `confidence`; only `PlacePoint` (`{at, weight}`) drops them. Category counts need no new request, only carrying `hierarchy` through `walkPlaces`. A buildings or footprint read would still be new. The owner's answer to Question 1 rested on my wrong premise, so it goes back to them. |
+| "Highway share" 0.76 was the arterial share; motorway and trunk is 0.66 | **Verified, corrected above.** |
+| Stretch is not robust | **Verified.** Weighted by length it is 1.05-1.45 for every town; the village word loses its measure (above). |
+| The mall and the suburb can be told from a main-street town without categories (places run together, places per km², junctions) | **Reviewer measured, not yet verified by me.** Largest chain of places within 80 m, as a share of places: Allentown .86, Hamburg .67, Jonestown .30, Lower Paxton .28, Upper Macungie .24, Bethel .40, Friedensburg .17 (separates suburbs from towns; fails on malls, which cluster). To be reproduced in the fixtures before a rule uses it. |
+| Lower Paxton would be called a main-street town; Park City (Lancaster) a village; Fogelsville and Morgantown fall between exit and town | **Reviewer measured.** Add them to the fixtures. PF7 forbids every word for a mall or a suburb, not two of the four. |
+| Building count per km² separates "a settlement" from "a stop on a road" (Bethel 167, Fredericksburg 275, Jonestown 497, Hamburg 582, Allentown 1,696) | **Reviewer measured.** The strongest single signal for the Bethel case, and a new read (Overture's buildings archive, same host): the owner's decision. |
+| Overture's `motorway_junction` exit nodes (Fogelsville 10 within 800 m, Bethel 2, Hamburg 1, Allentown 0) and industrial `land_use` (Fogelsville 16 of 17 polygons) | **Reviewer measured.** Both are in Overture's `base` layer: a new read and the owner's decision. |
+| Posted speed on the main road (the walkability read already holds it) | **Plausible, thin coverage** (7-11 segments in a town). Said only where read. |
+| Dead-end share gives no signal on this data | **Reviewer measured; the survey says the opposite from memory.** The measured result stands; no cul-de-sac measure is built on connector counts. |
+| The accuracy gate can be passed by silence; 13 places allow 2 misses; "?" counts either way | **Accepted**: report recall per word, floor the share of real towns that get any word, count a "?" place correct only for its stated pair, more held-out places (the owner sets the size). |
+| Fixtures use hand-picked centres; the card gets Overture's locality point (a township centroid in places) | **Accepted**: fixtures use the exact point the atlas passes the card; add a ±300 m jitter test that must not flip a word between kinds (the kinds PF7 names). |
+| Release drift; no mechanism for "United States only" | **Accepted**: a test that a newer release of the same tiles keeps each word; the country is on the Overture division's `country` property (verified on the tile). |
+| The card already says "Streets far apart and busy" for all four small places; a word does not reach Explore's list; `thinPlaces: 3` is unrealistically low | **Fair, and the owner's call**: the owner chose "say it, show everything". Thinning Explore's kinds where places do not run together is the option they declined; it stays declined unless they reopen it. |
+| The survey's classes (campus, industrial, pedestrian centre, compact old town, waterfront) | **Candidates for later words**, each its own gate. The survey read only search summaries for three sources and the rest is from memory; I trust none of it as a source until opened. |
+
 ## Answered (the owner, 2026-11-11)
 
-Question 1: **four words now**, no new read. Question 3: **United States only**. Question 5: **80% and within 10 points**. Question 6: **"Around its middle: …"**.
+Question 1: **four words now**, no new read (answered on a wrong premise, see above; reopened). Question 3: **United States only**. Question 5: **80% and within 10 points**. Question 6: **"Around its middle: …"**.
 Still open: 2 (the labels), 4 (one line at most) and 7 (the decision record, which I write with the slice).
 
 ## Questions for the owner

@@ -40,8 +40,10 @@ Open: answered 2026-11-11 by the owner: Explore **says it and shows everything**
 - **United States only for now** (the owner, 2026-11-11): the line shows nowhere else until fixtures from elsewhere exist (PF18).
 - **The copy is "Around its middle: …"** (the owner, 2026-11-11), so the line is read as the ring's, never the whole area's (PF18).
 - **The floor** (the owner, 2026-11-11): at least 80% of the held-out places get the confirmed word, and no more than 10 points below the calibration set (PF6).
-- **The first set is what the streets and places can show** (the steward, accepted 2026-11-11): the app's places carry a position and a weight only,
-  no category, footprint or parking, so a word about shops on a car park or about houses cannot be derived and is not in the first set (the plan).
+- **The first set is what the data in hand can show** (the steward, accepted 2026-11-11): the walkability read's `PlacePoint` is a position and a weight, so a word
+  about shops on a car park or about houses cannot be derived from it. Correction after the second review: the underlying `OverturePlace` does carry a category
+  and a confidence, which can be carried through with no new request; a footprint or a building count would be a new read. The words, the measures and the reads
+  are reopened with the owner (plan: the second review).
 
 ## The model
 
@@ -81,7 +83,7 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
    and a test checks that), and no word is what an area gets when nothing else fits: that is **no word**.
 3. **PF3 · Derived on read from what is already read.** A word is computed from the tiles' streets, street junctions and places the walkability
    reads already hold. It adds no request, no host, no stored row and no `WALK_CODE` bump; two reads of the same tiles give the same word.
-4. **PF4 · The measures.** Each measure (places per km², street junctions per km², highway share of street length, stretch, and whether places
+4. **PF4 · The measures.** Each measure is defined once and tested before any rule uses it: stretch is length-weighted with its street classes named, and a test shows it keeps its answer when service ways are dropped (a measure that does not survive that is not a measure, and a word that needs it leaves the set). Each measure (places per km², street junctions per km², highway share of street length, stretch, and whether places
    were read) is computed by a function with a test on a small made-up ground whose answer is known, before the rule uses it.
 
 ### The accuracy, on real places
