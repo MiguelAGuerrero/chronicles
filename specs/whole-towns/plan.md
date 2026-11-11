@@ -49,7 +49,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/whole-tow
 | WT13 | `WT13: a tap on a dot zooms to where it has room, at most 18` (core) and a `carousel` check (a tapped dot becomes a "?") | `waitingPins.test.ts`, `carousel` |
 | WT14 | `WT14: a dot carries no name, number or icon; only the selected area's are drawn` | `waitingPins.test.ts`, `carousel` |
 | WT8 | `WT8: the card's waiting is one per kind and no "?" carries a name` | `wholeTowns.test.ts`, and a `carousel` check that no text on the page, row or card holds a number in digits or words beside "neighborhood(s)" or "place(s)" (the steward's S3) |
-| WT10 | `WT10: Explore's map draws no found place` (core: the pins from `areaPins`'s marks helper) and a check in the `marks` journey (a find leaves the map) | `wholeTowns.test.ts`, `marks` |
+| WT10 | `WT10: Explore's map draws no found place` (core: the pins from `areaPins`'s marks helper) and a check in the `carousel` journey (a found place is not drawn) | `wholeTowns.test.ts`, `carousel` |
 | WT11 | `WT11: the "?" are one label naming the area and the kinds, the same for one or many` (core) and a check in `carousel` (one element, the pins `aria-hidden`) | `wholeTowns.test.ts`, `carousel` |
 | WT9 | `WT9: a town's page is listed once per build; a read by reach alone is listed again` | `wholeTowns.test.ts` |
 

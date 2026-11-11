@@ -304,6 +304,21 @@ async function townFramedOnce(h) {
   }
 }
 
+// Whole towns (WT1-WT14, decision 0127): Allentown's page lists every neighborhood inside its border, a hamlet in it,
+// no ward; the selected area's places are "?" where they have room and dots where not; a tapped dot zooms in.
+async function wholeTowns(h) {
+  const { check } = h;
+  check.todo(false, 'WT5: a hamlet inside the town\'s border has a card on its page');
+  check.todo(false, 'WT6: a ward inside the border has no card');
+  check.todo(false, 'WT7: the selected area\'s map holds every place still to find, as "?" and dots');
+  check.todo(false, 'WT8: no text on the page, the row or the card counts places or neighborhoods, in digits or words');
+  check.todo(false, 'WT10: a found place is not drawn on Explore\'s map');
+  check.todo(false, 'WT11: the "?" are one accessible element naming the area and the kinds');
+  check.todo(false, 'WT12: zoomed out a cluster is dots, zoomed in more of it is "?"');
+  check.todo(false, 'WT13: a tapped dot zooms in until it is a "?"');
+  check.todo(false, 'WT14: dots are drawn for the selected area only, with no name');
+}
+
 module.exports = {
   name: 'carousel',
   // Explore carousel (EC1-EC20): the map and a row of area cards.
@@ -322,5 +337,6 @@ module.exports = {
     await wide(h);
     await hintOnce(h);
     await townFramedOnce(h);
+    await wholeTowns(h);
   },
 };
