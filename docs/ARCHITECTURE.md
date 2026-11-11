@@ -219,9 +219,7 @@ Filling gaps
   tileCollector/             reads the tiles near a walk in code, no camera moves (re-snap after a decision); shell.ts takes the tile reader
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
-  presence/presence.ts       what a place is: the one table from poi classes and Overture's taxonomy to classes, each class's weight, category and kind; PRESENCE_CODE (decision 0140, PR1-PR8)
-  discovery/tilePois.ts      the poi layer's adapter: places from points, their category and kind from presence
-  discovery/curation.ts      what makes a mark, over presence classes: NEVER_MARK, BY_NAME (PR7)
+  discovery/tilePois.ts the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
   discovery/archivePois.ts   the places archive's schema: ARCHIVE_CLASSES (pinned, PW5), placesFromArchive (the only file that knows it; decision 0103)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), ARCHIVE_EDITS and applyEdits (archiveEdits.json, PW13)
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
@@ -248,7 +246,7 @@ Discovery and Explore (v1)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
   explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)
-  activity/weights.ts        how much a poi or an Overture place counts toward density: presence's class weight (PR4)
+  activity/weights.ts        what counts toward density and how much, for OSM and Overture
   activity/points.ts         places as weighted points from both sources; one place once across them
   activity/release.ts        Overture's bucket, its listing, the newest release
   activity/reader.ts         OvertureReader: the generic net/tileReader with Overture's rules (z14, places that count, a missing release)
@@ -439,7 +437,7 @@ Layers (functional core, imperative shell)
   - Always `setAudioMode` from `lib/audioMode`, never `setAudioModeAsync`.
   - Going to the walk screen is `showWalk()` (`walkNav.ts`), never
     `router.push('/walk')`.
-  - Only `tilePlaces.ts`, `tilePois.ts` and `streets.ts` know the tile schema (`presence/presence.ts` holds what each poi class is);
+  - Only `tilePlaces.ts`, `tilePois.ts` and `streets.ts` know the tile schema;
     no dataset is hard-coded in `areas/assign.ts`.
   - Reminder and pause code call `notifier`, never a platform API.
   - Every write to a reminder goes through `saveRecall` / `stopRecall`.

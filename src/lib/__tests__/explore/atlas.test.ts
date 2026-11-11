@@ -455,8 +455,7 @@ test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
 });
 
 test('TP10: a town row from the older rules is stale; since a8 a neighborhood row from them is too (PK7)', () => {
-  assert.equal(ATLAS_CODE, 'a8.p1', 'a8: presence by bars (PK1-PK7), at every level, so no older code is carried; .p1: presence\'s classes (specs/presence PR6)');
-  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a8' }), 'b1'), false, 'PR6: a8 rows, from before presence, are read again');
+  assert.equal(ATLAS_CODE, 'a8', 'a8: presence by bars (PK1-PK7), at every level, so no older code is carried');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), false, 'PK7: a5 neighborhoods are read again');
   assert.equal(rowCurrent(row('Whitehall', O, { level: 'town', code: 'a4' }), 'b1'), false, 'towns are read again');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a3' }), 'b1'), false);

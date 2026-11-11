@@ -1,7 +1,7 @@
 // @layer shell
 import { db } from '../db';
 import { readArea, rememberArea } from '../landing/read';
-import { rulesCurrent, type LandingRow } from '../landing/view';
+import { LANDING_VERSION, type LandingRow } from '../landing/view';
 import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
 
@@ -13,7 +13,7 @@ import type { LngLat } from '../types';
 /** The remembered areas read under the current rules. */
 export async function rememberedAreas(): Promise<LandingRow[]> {
   const rows = await db.listLandings().catch(() => [] as LandingRow[]);
-  return rows.filter((r) => rulesCurrent(r.rules));
+  return rows.filter((r) => r.rules === LANDING_VERSION);
 }
 
 /** ML9: reads the area around `at` as What's good here does and remembers it; false when it could not be read. */

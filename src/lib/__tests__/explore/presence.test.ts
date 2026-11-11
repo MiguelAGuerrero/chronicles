@@ -122,12 +122,10 @@ test('PK14: MARKABLE_CLASSES re-pinned with the community centre by name', () =>
   assert.deepEqual(
     [...new Set(MARKABLE_CLASSES.map((m) => `${m.cls}:${m.category}${m.byName ? ' (by name)' : ''}`))].sort(),
     [
-      // specs/presence PR5 (decision 0140): arts and community centres, memorials, nature reserves and viewpoints by their own class.
-      'aquarium:viewpoints', 'art_gallery:art', 'art_gallery:culture', 'arts_centre:culture', 'attraction:viewpoints', 'castle:history',
-      'cemetery:history (by name)', 'community_centre:culture (by name)', 'garden:parks', 'library:culture (by name)',
-      'memorial:history (by name)', 'monument:history', 'museum:culture', 'nature_reserve:parks (by name)',
-      'park:parks', 'park:parks (by name)', 'place_of_worship:history (by name)', 'theatre:culture', 'theme_park:viewpoints', 'town_hall:culture (by name)',
-      'town_hall:history (by name)', 'viewpoint:viewpoints', 'zoo:viewpoints',
+      'aquarium:viewpoints', 'art_gallery:art', 'art_gallery:culture', 'attraction:viewpoints', 'castle:history',
+      'cemetery:history (by name)', 'garden:parks', 'library:culture (by name)', 'monument:history', 'museum:culture',
+      'park:parks', 'place_of_worship:history (by name)', 'theatre:culture', 'theme_park:viewpoints', 'town_hall:culture (by name)',
+      'town_hall:history (by name)', 'zoo:viewpoints',
     ],
   );
 });

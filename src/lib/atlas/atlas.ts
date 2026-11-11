@@ -1,5 +1,4 @@
 // @layer core
-import { PRESENCE_CODE } from '../presence/presence';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
@@ -28,8 +27,7 @@ import type { Pocket } from './pockets';
 /** a6: wards inside a city are not towns (fix ward-subdivision); neighborhood rows stand as under a5. */
 /** a7: the places archive's curiosities and landmarks count among the findable kinds (PW10); rows stand until an archive is known, then read again (profileStale). */
 /** a8: presence by bars (PK1-PK7): a museum the data calls historic lights History too; community spaces join Culture. */
-/** A row's code: the atlas's own (a8) and presence's (PR6), so a reclassification re-reads every row. */
-export const ATLAS_CODE = `a8.${PRESENCE_CODE}`;
+export const ATLAS_CODE = 'a8';
 
 /** TP10: the older rules a level's rows still stand under, because the change did not touch that level. None since a8 (PK7): the bars changed at every level. */
 const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = {};
