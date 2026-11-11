@@ -15,8 +15,7 @@ archive's places), so nothing new is fetched.
 New:
 - `src/lib/discovery/parkKind.ts` (core): `parkKindOf(park, ctx)` and `outlineOf` (the area in m² of a ring set,
   the first ring outside, the rest holes, reusing `inRings` from `nav/scenicSignals` by moving it to a shared core file
-  if the layer check wants it, else importing it); `PARK_RULES` (`smallM2: 10_000`, `largeM2: 50_000`, `signalNearM: 60`,
-  `archiveNearM: 150`); `nameHas(words)`.
+  if the layer check wants it, else importing it); `PARK_RULES` (`largeM2: 50_000`, `signalNearM: 60`, `archiveNearM: 150`); `nameHas(words)`.
 - `src/lib/discovery/communityWords.json`, `parkNotable.json`: data, like `notable.json`, whole words after `normalizeBrand`.
 - `src/lib/__tests__/explore/communityParks.test.ts`: every criterion below. A new feature folder is not needed: it is
   the `explore` feature's folder.
@@ -57,9 +56,8 @@ read's other places, and, in `mergePlaces`, the archive's places. Output: `parks
 1. `parks` (keep) if any notable signal (PC2): a History, Art, Viewpoints or museum/theatre place inside the outline (within
    60 m of the point when no outline); a notable word in the name; an outline of 5 ha or more. (`mergePlaces` adds the archive
    place within 150 m.)
-2. else `community_parks` if the name holds a community word (PC1a).
-3. else `community_parks` if the outline is under 1 ha (PC1b), and `parks` with no outline (PC3).
-4. else `parks`.
+2. else `community_parks` if the name holds a community word (PC1).
+3. else `parks`. Size never demotes (PC17); the outline serves only containment and the large rule.
 
 The point is in an outline when it is inside any ring of the `GreenArea` of its tile read (even-odd, a hole is outside);
 two park points in one outline get one answer (PC5). A read that is not complete judges nothing (PC3, as `placesFromTilePois`).
@@ -143,7 +141,13 @@ Silent, for the owner: with the switch off, a Green bar lit only by community pa
 (the bars are presence, so unchanged, PC10; say if you would rather it dimmed); whether the switch is global (the only one
 that exists) or per walk (the plan's "this walk or for good" is the existing drawer switch, which is global).
 
-## Open questions for the owner
+## The owner's defaults (Nov 11, "proceed reasonably")
+
+Q1 name only, no size rule; Q2 "Community parks" kept; Q3 an unfound place is never named for its kind (PC16: the area
+card's "Waiting to be found", "?", alerts and routes say "Parks and gardens" for both); the icon `people-outline`; old
+checklists keep `parks` until read again. The Allentown park is "like Franklin Memorial Park": a name case in PC14.
+
+## Open questions for the owner (answered above)
 
 1. The size threshold: under 1 ha with no signal is a community park. A small park with an unmapped plaque would be
    demoted by this alone, against "false positives for historic". A tighter 0.5 ha cuts that and keeps fewer demotions.

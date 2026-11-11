@@ -16,9 +16,9 @@ Idea: Split Explore's parks so clearly plain neighbourhood parks are a subset, "
 Verb: earn (what makes a place itself, structurally: a park with something in it is not offered like a playground, and the reader chooses which to be offered)
 Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals"); Always, "Guidance is structural: where there is a lot, and what makes a place itself, never whether it is good"; Never, "Tallies … No counts on Explore"; 0044 (a mark is for an attraction); 0066 and 0084 (Green counts park places until the decoder reads park outlines); 0095, SR4 and SR15 (an unfound place is never named; green is the tiles' `landcover`); 0117 (no data fetched only to sort a place; a kind from what is already read); 0127 and PK5 (a place may light two bars; no two bars redundant; "Community spaces" is Culture's kind).
 Verdict: aligned if reshaped
-Shape: A park is a community park only on evidence: a name that says playground, playfield or the like, or a small outline, and nothing notable inside or near it (an archive place, a monument, art, history or viewpoint place, a notable word in the name, a large outline). Everything unsure stays a park. The kind keeps the parks category, so the Green bar, the colours and the planner's bar are unchanged. Nothing says why a park is one kind or the other. The reader can switch the kind off; the other parks stay. Colouring green spaces on the map is a later slice with its own gate.
+Shape: A park is a community park only on evidence: a name that says playground, playfield or the like, and nothing notable inside or near it (an archive place, a monument, art, history or viewpoint place, a notable word in the name, a large outline). Everything unsure stays a park. The kind keeps the parks category, so the Green bar, the colours and the planner's bar are unchanged. Nothing says why a park is one kind or the other. The reader can switch the kind off; the other parks stay. Colouring green spaces on the map is a later slice with its own gate.
 Criteria: PC1 (evidence, never a guess), PC2 (a notable signal keeps a park), PC3 (unknown stays a park), PC7 (no description, no judgement words, no count), PC8 (the switch hides only the subset), PC10 (Green and the colours unchanged), PC12 (no fetch to sort).
-Open: the size threshold (propose about 1 ha, from the fixtures, no measuring study, 0117); the name of the Allentown park the owner visited, for its fixture.
+Open: none (the owner took the defaults, Nov 11: name only, size never demotes; the Allentown park's name from the owner's recollection, "Franklin Memorial Park").
 
 ## Decisions
 
@@ -34,6 +34,10 @@ Open: the size threshold (propose about 1 ha, from the fixtures, no measuring st
   of the parks, which includes all the notable parks by definition … without that being an explicit label": no
   "notable" kind or label; a community park is a subset of Parks the switch hides. "Parks only now": other categories
   get no subsets in this slice (the owner chose the narrow scope; the model grows to them later). A place keeps one kind.
+- **Nov 11 (the defaults, "proceed reasonably"):** a demotion rests on the name alone, size never demotes (the steward's
+  findings 1 and 2: the tiles cannot see plaques and sculptures, and a park cut by tile edges looks small); the kind is
+  "Community parks" with `people-outline`; an unfound place is never named for its kind (PC16); a checklist built before
+  keeps `parks` until its area is read again. The Allentown park is "like Franklin Memorial Park" (the owner).
 - **Nov 11:** park outlines are read, because the owner means to colour green spaces on the map later without more data.
   This slice reads them only to judge a park, from the `landcover` layer already decoded (SR15); the colouring is its own
   slice.
@@ -42,21 +46,22 @@ Open: the size threshold (propose about 1 ha, from the fixtures, no measuring st
 
 The kind:
 
-1. **PC1 A demotion needs evidence.** A named park point is a community park only when (a) its name holds a word of the
-   community list (playground, playfield, tot lot, recreation, courts, ball field, and the like, matched as whole words,
-   data in `communityWords.json`), or (b) its outline is under the size threshold and its name holds no notable word;
-   and in both cases nothing notable (PC2) is inside or near it. Any other park keeps the kind `parks`.
+1. **PC1 A demotion needs a name that says so.** A named park point is a community park only when its name holds a word of
+   the community list (playground, playfield, tot lot, ball field, courts, matched as whole words, data in
+   `communityWords.json`) and nothing notable (PC2) is inside or near it. Any other park keeps the kind `parks`. Size alone
+   never demotes (the owner's default, Nov 11: false positives for notable, and the tiles cannot see most of what makes
+   a park worth the walk).
 2. **PC2 A notable signal keeps a park.** A park stays `parks` when any of these holds: a place of History, Art,
    Viewpoints or a museum or theatre of Culture inside its outline (within 60 m of its point when it has none); a place
    of the places archive within 150 m; a word from `notable.json` or `parkNotable.json` ("State Park", "Memorial",
    "Arboretum", "Botanical", "Preserve", "Reservation", "Historic", "Heritage", "Battlefield") in its name; an outline of
    5 ha or more.
-3. **PC3 Unknown stays a park.** A park with no outline found is never demoted by size, only by a community word with no
-   notable signal; an area the read could not settle (an incomplete read) judges nothing and changes no kind.
+3. **PC3 Unknown stays a park.** A park with no outline found is judged by its name and the places near its point alone;
+   a read that could not settle (an incomplete read) judges nothing and changes no kind.
 4. **PC4 One kind a place.** A place has one kind, `parks` or `community_parks`, never both; both are of the parks
    category, so `category`, `markable` and its being a mark or a find are the same for each.
 5. **PC5 Whole-park judgement.** A park drawn as several rings (a MultiPolygon) is judged by its total area and by a
-   signal inside any ring; two park points inside one outline are judged alike.
+   signal inside any ring (a signal anywhere in the park keeps it); two park points inside one outline are judged alike.
 
 What the reader sees:
 
@@ -66,9 +71,9 @@ What the reader sees:
 7. **PC7 Never described.** Nothing in the app says what a park holds, why it is one kind or the other, or that it is
    plain: no copy with "mundane", "boring", "ordinary", "plain" or "notable" for a park, no count of either kind, no
    word on a "?" or a card but the kind's label.
-8. **PC8 The switch hides only the subset.** With Community parks off, a community park is not a "?" on a walk, not a
-   waiting dot or "?" on the Explore tab, not offered in a walk's pocket alert and not a stop a scenic or planned route
-   leans on; every place of `parks` shows as before. A park already found stays found and named whatever the switch says.
+8. **PC8 The switch hides only the subset.** With Community parks off, a community park is not a "?" on a walk or along a
+   route's marks, not a waiting dot or "?" on the Explore tab and not in the pocket alert; every place of `parks` shows as
+   before. A park already found stays found and named whatever the switch says.
 9. **PC9 Both stay a find.** With the switch on, a community park is found by a capture within 60 m like any park, and its
    find shows in the replay and the place's sheet by name, as a park's does.
 10. **PC10 Green and the colours are unchanged.** A community park lights the Green bar and counts as a park place for the
@@ -85,21 +90,23 @@ How it is derived:
 13. **PC13 The cache is recomputed.** The kind is set on a fresh read, never patched onto a cached row; `ATLAS_CODE`
     moves so every area is read again; a checklist built before keeps its kind `parks` until its area is read again
     (a park is shown, never hidden, in the meantime).
-14. **PC14 The cases.** A park point in a ring of under a hectare named "Elm Street Playground", with nothing near, is a
-    community park; a 0.4 ha "Cedar Park" ring holding one monument is a park; a 0.4 ha ring holding an unnamed
-    artwork is a park; a 12 ha "Riverside Park" is a park; "Liberty State Park" with no outline is a park; the Allentown
-    park the owner visited (recorded, if reachable) is a park.
+14. **PC14 The cases.** "Elm Street Playground" in a ring of under a hectare, with nothing near, is a community park; a 0.4 ha
+    "Cedar Park" ring with nothing inside is a park (size never demotes); a 0.4 ha "Cedar Playground" ring holding one
+    monument, or an unnamed artwork, is a park; a 12 ha "Riverside Playground" is a park; "Liberty State Park" with no
+    outline is a park; "Franklin Memorial Park" (the owner's recollection of the Allentown park, Nov 11; its name to be
+    confirmed against the tiles) is a park by its name word whatever its size; one recorded from the real tiles when they
+    can be reached.
 
 From the steward's review (Nov 11, triaged in the plan):
 
-15. **PC15 The planner honours the switch.** With Community parks off, the walk planner's cells, its pass-by lean and its
-    grading ignore community parks; with it on they count as parks do.
+15. **PC15 The planner and scenic routes count both kinds as parks.** The walk planner's Parks bar counts a community park as it
+    counts a park, and a route still passes it (`PASS_BY`); neither reads "What I'm into" today, and this slice leaves
+    that as it is (a change of its own, noted in `docs/DEFERRED.md`).
 16. **PC16 A park is never named for its kind before it is found.** The area card's "Waiting to be found", a "?", the pocket
     alert and a route's words say "Parks and gardens" for both kinds; "Community parks" is named only in "What I'm into"
-    and on a found place. (Pending the owner's call, plan Q3.)
-17. **PC17 Size never demotes a park cut by a tile.** A park whose outline touches a tile edge, or that adjoins another
-    park or garden outline, is judged by the joined area; one that cannot be judged whole is never demoted by size. (Only
-    if size stays a rule, plan Q1.)
+    and on a found place (the owner's default, Nov 11).
+17. **PC17 Size never demotes.** A park whose name holds no community word is `parks` whatever its outline's area, and an
+    outline cut by a tile edge or adjoining another park outline never changes a kind. (Steward findings 1 and 2.)
 
 ## Not in this slice
 
