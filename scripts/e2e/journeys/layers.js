@@ -231,58 +231,58 @@ async function run(h) {
     };
     const kBtn = await box(p5, '[data-testid=kinds]');
     const lBtn = await box(p5, '[data-testid=layers]');
-    check.todo(!!kBtn && kBtn.width >= 44 && kBtn.height >= 44 && kBtn.y >= lBtn.y + lBtn.height && (await p5.locator('[data-testid=kinds-panel]').count()) === 0
+    check(!!kBtn && kBtn.width >= 44 && kBtn.height >= 44 && kBtn.y >= lBtn.y + lBtn.height && (await p5.locator('[data-testid=kinds-panel]').count()) === 0
       && (await p5.locator('[data-testid=kinds]').getAttribute('aria-label')) === 'What I’m into' && !/\d|%/.test((await p5.locator('[data-testid=kinds]').getAttribute('aria-label')) ?? ''),
       'ES3: one round button of at least 44 px below Layers, named What I’m into, its panel closed, no number');
     const before = await p5.locator('[data-testid=kinds]').evaluate((el) => el.innerHTML);
     await openKinds();
     const KINDS = ['public_art', 'museums', 'theatres', 'community', 'monuments', 'structures', 'churches', 'cemeteries', 'parks', 'viewpoints', 'curiosities'];
-    check.todo((await p5.locator('[data-testid^=kind-]').count()) === KINDS.length && (await Promise.all(KINDS.map(kindsOn))).every(Boolean),
+    check((await p5.locator('[data-testid^=kind-]').count()) === KINDS.length && (await Promise.all(KINDS.map(kindsOn))).every(Boolean),
       'ES4: one switch per kind, all on on a fresh install');
-    check.todo(!/\d|%/.test(await p5.locator('[data-testid=kinds-panel]').innerText()), 'ES3, ES6: no number, count or percentage in the panel');
+    check(!/\d|%/.test(await p5.locator('[data-testid=kinds-panel]').innerText()), 'ES3, ES6: no number, count or percentage in the panel');
     await p5.click('[data-testid=kind-parks]');
     await p5.waitForTimeout(300);
-    check.todo(!(await kindsOn('parks')) && (await kindsOn('museums')), 'ES4: a switch saves as it changes and moves no other');
+    check(!(await kindsOn('parks')) && (await kindsOn('museums')), 'ES4: a switch saves as it changes and moves no other');
     await shot(p5, 'kinds-panel');
     // ES5: the button, Escape and a tap on the map close it; Layers and this panel are never open together.
     await p5.keyboard.press('Escape');
-    check.todo((await p5.locator('[data-testid=kinds-panel]').count()) === 0, 'ES5: Escape closes the panel');
+    check((await p5.locator('[data-testid=kinds-panel]').count()) === 0, 'ES5: Escape closes the panel');
     await openKinds();
     await p5.click('[data-testid=layers]');
-    check.todo((await p5.locator('[data-testid=kinds-panel]').count()) === 0 && (await p5.locator('[data-testid=layers-panel]').count()) === 1, 'ES4: opening Layers closes this panel');
+    check((await p5.locator('[data-testid=kinds-panel]').count()) === 0 && (await p5.locator('[data-testid=layers-panel]').count()) === 1, 'ES4: opening Layers closes this panel');
     await p5.click('[data-testid=kinds]');
-    check.todo((await p5.locator('[data-testid=layers-panel]').count()) === 0 && (await p5.locator('[data-testid=kinds-panel]').count()) === 1, 'ES4: opening this panel closes Layers');
+    check((await p5.locator('[data-testid=layers-panel]').count()) === 0 && (await p5.locator('[data-testid=kinds-panel]').count()) === 1, 'ES4: opening this panel closes Layers');
     await p5.click('[data-testid=kinds]');
-    check.todo((await p5.locator('[data-testid=kinds-panel]').count()) === 0, 'ES5: the button closes it');
+    check((await p5.locator('[data-testid=kinds-panel]').count()) === 0, 'ES5: the button closes it');
     await openKinds();
     const mb = await p5.locator('canvas.maplibregl-canvas').last().boundingBox();
     await p5.mouse.click(mb.x + 8, mb.y + 6);
     await p5.waitForTimeout(400);
-    check.todo((await p5.locator('[data-testid=kinds-panel]').count()) === 0, 'ES5: a tap on the map closes it');
+    check((await p5.locator('[data-testid=kinds-panel]').count()) === 0, 'ES5: a tap on the map closes it');
     // ES1: after a reload it is as it was left; the walk's settings show the same switch, and Explore hears the drawer's.
     await p5.reload();
     await p5.waitForSelector('[data-testid=kinds]', { timeout: 30000 });
     await openKinds();
-    check.todo(!(await kindsOn('parks')) && (await kindsOn('museums')), 'ES1: after a reload the kinds are as they were left');
+    check(!(await kindsOn('parks')) && (await kindsOn('museums')), 'ES1: after a reload the kinds are as they were left');
     await p5.goto(navUrl);
     await p5.waitForSelector('[data-testid=start]', { timeout: 30000 });
     await h.drawerTo(p5, 'up');
     await p5.click('[data-testid=mode-explore]');
     await p5.waitForSelector('[data-testid=kind-parks]', { timeout: 5000 });
-    check.todo((await p5.locator('[data-testid=kind-parks]').getAttribute('aria-checked')) === 'false', 'ES1: the walk’s settings show Parks off, as set on Explore');
+    check((await p5.locator('[data-testid=kind-parks]').getAttribute('aria-checked')) === 'false', 'ES1: the walk’s settings show Parks off, as set on Explore');
     await p5.click('[data-testid=kind-parks]');
     await p5.goto(exploreUrl);
     await p5.waitForSelector('[data-testid=kinds]', { timeout: 30000 });
     await openKinds();
-    check.todo(await kindsOn('parks'), 'ES1: and one switched on in the walk’s settings is on in Explore');
+    check(await kindsOn('parks'), 'ES1: and one switched on in the walk’s settings is on in Explore');
     // ES6, ES9: every kind off is an ordinary state; nothing says so, and the button looks as it did.
     for (const k of KINDS) if (await kindsOn(k)) await p5.click(`[data-testid=kind-${k}]`);
     await p5.keyboard.press('Escape');
     await p5.waitForTimeout(400);
     const text = await p5.locator('body').innerText();
-    check.todo(!/hidden|switched off|filters? (is|are)|nothing (is )?(switched|shown)/i.test(text) && before === (await p5.locator('[data-testid=kinds]').evaluate((el) => el.innerHTML)),
+    check(!/hidden|switched off|filters? (is|are)|nothing (is )?(switched|shown)/i.test(text) && before === (await p5.locator('[data-testid=kinds]').evaluate((el) => el.innerHTML)),
       'ES6, ES9: with every kind off Explore says nothing of it and the button is unchanged');
-    check.todo((await p5.locator('[data-testid=layers]').count()) === 1, 'ES9: Explore works as ever with every kind off');
+    check((await p5.locator('[data-testid=layers]').count()) === 1, 'ES9: Explore works as ever with every kind off');
     await c5.close();
     // ES7: on a 320 x 568 phone the open panel overlaps neither Layers, the tab bar nor the bottom strip, and its list scrolls to the last kind.
     const { c: c6, pg: p6 } = await freshPage('kinds-small');
@@ -297,7 +297,7 @@ async function run(h) {
     const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
     await p6.locator('[data-testid=kind-curiosities]').scrollIntoViewIfNeeded();
     const last = await box(p6, '[data-testid=kind-curiosities]');
-    check.todo(!hit(pb, lb) && !hit(pb, tb) && pb.y + pb.height <= tb.y && last.y >= pb.y && last.y + last.height <= pb.y + pb.height + 1,
+    check(!hit(pb, lb) && !hit(pb, tb) && pb.y + pb.height <= tb.y && last.y >= pb.y && last.y + last.height <= pb.y + pb.height + 1,
       `ES7: at 320 x 568 the panel clears Layers and the tab bar, and its last kind scrolls into view (${JSON.stringify({ pb, lb, tb })})`);
     await shot(p6, 'kinds-small');
     await c6.close();
