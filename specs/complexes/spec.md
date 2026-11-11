@@ -40,13 +40,14 @@ Touches:
   shops and nightlife are never marks; decisions 0083, 0089, 0132 (areas have outlines); 0108-0110 (a dataset reaches
   the app through an adapter); 0115 (kinds filter what you see, never what exists).
 Verdict: **aligned if reshaped**.
-Shape: A complex is information, like a busy street: named with its kind in words and outlined on the map inside the
-selected area, never counted, ranked, found or marked visited, and never a place a walk is assigned to (no Area
-level, no star, no replay line). A moment inside one says so in its place line, computed from the outline when
-shown.
-Criteria: CX5, CX6, CX7, CX8, CX9 (never a count, never ranked, nothing visited, not a mark, no walk assigned) and
-CX1, CX2, CX13 (made of other places, no outline no complex, an adapter).
-Open: none after the owner's calls below.
+Shape: A complex is information, like a busy street: its name and its kind as a word, and its outline on the map,
+inside the selected area; never counted, ranked, found or marked visited, and never a place a walk is assigned to
+(no Area level, no star, no replay line). A moment inside one names it in its arrival line, ahead of the street and
+never in place of it, from the complexes already on the phone: showing a moment makes no request. The steward's
+pass (Nov 11) shaped this: no "what it holds" line, a cap on the list, the street kept.
+Criteria: CX1, CX2, CX5, CX6, CX7, CX8, CX9, CX11, CX12, CX15 (made of other places, no outline no complex, no
+numbers, never ranked, nothing visited, not a mark, quiet outlines, the street kept, no request on viewing, an adapter).
+Open: whether a station is a place a walker notices (the vision is silent on transport).
 
 ## Decisions (the owner's)
 
@@ -57,48 +58,70 @@ Open: none after the owner's calls below.
 - **Information only** (2026-11-11, at the vision gate): a complex is never a mark, never a "?", never a find.
 - **Outlines come from an in-app Overture adapter** (2026-11-11): named building polygons that hold other places,
   behind a `ComplexSource` interface so a chronicles-data pack can replace it later without a screen change.
-- **The first kinds are Shopping, Markets, Campuses and Stations** (2026-11-11). A kind enters only with a real
-  fixture that its rule finds; one with none is deferred, never guessed (plan).
+- **The first kinds are Shopping, Markets, Campuses, Stations and Civic** (2026-11-11; Civic added the same day for the
+  Pennsylvania Capitol Complex and municipal complexes). A kind enters only with a real fixture that its rule finds; one
+  with none is deferred, never guessed (plan). Overture's tiles name the Capitol's buildings one by one and carry no
+  "Capitol Complex" outline in the tile read, so Civic may wait on a chronicles-data pack.
+- **The steward's pass was accepted** (2026-11-11, plan "Steward's findings"): the street stays in a moment's line; viewing
+  a moment never fetches; no "what it holds" sentence; the list is capped.
 
 ## Acceptance criteria
 
 1. **CX1 · A complex is made of other places.** A named polygon (Overture `buildings` with a name) that holds places
    of a presence class that fits one of the kinds (CX3), at least a fixed minimum of them and of at least two
-   classes, is a complex. The minimums are constants in core, tuned on the fixtures and never shown. On the real
-   fixtures Strawberry Square and Lehigh Valley Mall are complexes; a named building holding one place, or only
-   offices, is not.
-2. **CX2 · No outline, no complex.** A point named like a mall, or a cluster of shops with no named polygon around
-   it, is not a complex. Nothing draws a circle or a box for one.
-3. **CX3 · The kind is a word.** A complex is one of Shopping, Markets, Campuses or Stations, said as that word; a
-   polygon that fits none is not a complex (it may be missed, it is never guessed). The table from what is inside to
-   a kind is one place in core, as presence's table is.
+   classes, is a complex. The minimums are constants in core, tuned on the fixtures and never shown. They gate "made of
+   other places"; they are never a measure of size or significance (0103). On the real fixtures Strawberry Square and
+   Lehigh Valley Mall are complexes; a named building holding one place, or only offices, is not.
+2. **CX2 · No outline, no complex.** A point named like a mall, a cluster of shops with no named polygon, or several
+   named buildings that sit together (the Capitol's) are not a complex. The outline is the named polygon as the
+   source gives it, never inflated, smoothed, joined or boxed.
+3. **CX3 · The kind is a word.** A complex is one of Shopping, Markets, Campuses, Stations or Civic, said as that word;
+   a polygon that fits none is not a complex (it may be missed, it is never guessed). The table from what is inside to
+   a kind is one place in core, as presence's table is. A kind with no real fixture is not built (plan).
 4. **CX4 · The area card lists its complexes.** A neighborhood's or a town's card shows a "Complexes" section: each
-   complex by name with its kind as a word, and a Walk to as the Busy areas have (TP7, DW). An area with none shows
-   no section and no "none".
-5. **CX5 · No numbers.** No line, label or screen-reader text about a complex holds a digit or a count in words
-   ("a dozen shops", "three malls"); what a complex holds is said by kind of place only ("shops, food and a hotel").
-6. **CX6 · Never ranked.** Complexes are listed by name, A to Z. Nothing sorts or labels them by size, busyness, number
-   of places or popularity, and no line says "biggest" or "busiest".
+   complex by its name and its kind as a word, and a Walk to as the Busy areas have (TP7, DW). There is no line about
+   what a complex holds. An area with none shows no section and no "none". A read that covered only part of a town
+   titles the section "Complexes near here".
+5. **CX5 · No numbers.** No line, label or screen-reader text about a complex holds a digit or a counting word (the
+   numbers one to twenty, "dozen", "several", "few", "many", "couple"); a complex's own name is exempt ("Station
+   Square 2"), as a street keeps its own name.
+6. **CX6 · Never ranked.** The section lists at most a fixed number of complexes (a core constant), chosen by nearness
+   to the area's point, then listed by name A to Z with a locale-free comparison (`toLowerCase`), ties by id. Nothing
+   sorts or labels them by size, busyness, number of places or popularity, and no line says "biggest" or "busiest".
 7. **CX7 · Nothing is visited.** No complex is marked visited, walked or new; no line counts how many complexes an
    area has or how many you have been to. A walk is never assigned to a complex: no `Area` or `WalkArea` row, no star
-   on the home map, no line in a replay.
+   on the home map, no line in a replay, and Walk to writes nothing about a complex to the walk.
 8. **CX8 · Not a mark.** A complex has no "?", no checklist item and no find; it is in no kind's bar and in
-   `waitingMarks` never; a capture inside one finds nothing because of it.
-9. **CX9 · The map outlines the selected area's complexes.** The selected neighborhood's or town's complexes are
-   drawn as quiet outlines (not the Busy hue) and named at close zoom; only the selected area's are drawn, never every
-   area in view; a tap on one eases the map to it. A screen reader hears one button, as for the waiting places (WT11).
-10. **CX10 · Kinds filter the view, never what exists.** A "Complexes" group of four switches (Shopping, Markets,
-    Campuses, Stations), saved as they change, beside "What I'm into". A kind switched off leaves the card and the map
-    and nothing else; switching it on brings it back with no read.
-11. **CX11 · A moment says where it was.** A moment's place line names the complex whose outline holds its fix, in
-    place of the street, then the town ("Strawberry Square, Harrisburg"); outside every complex it is as MC1 says. It is
-    worked out when the line is shown, from the cached complexes, and is never stored on the capture or the moment.
-12. **CX12 · Derived, never truth.** Complexes are cache: one row per z14 tile and Overture release in a derived store
+   `waitingMarks` never. A fixture of a capture inside a complex with a mark within 60 m finds that mark as it did
+   before, and finds nothing because of the complex.
+9. **CX9 · The map outlines the selected area's complexes.** The selected neighborhood's or town's complexes are drawn
+   as outlines with no fill, in a hue no other layer uses (not the Busy hue), no wider and no more opaque than the
+   selected area's border, named only at close zoom; only the selected area's are drawn, never every area in view; a
+   tap on one eases the map to it. Each outline's label is its name and its kind word; the layer adds no summary of
+   its own for a screen reader, and none says "no complexes".
+10. **CX10 · Kinds filter the view, never what exists.** A "Complexes" group of five switches (Shopping, Markets,
+    Campuses, Stations, Civic), saved as they change, beside "What I'm into". A kind switched off leaves the card and
+    the map and nothing else: the read and a moment's line ignore the switches (0115), and switching one on needs no
+    read. With all five off there is no section, no outline and no notice.
+11. **CX11 · A moment keeps its street.** When a moment's fix is inside a complex's outline, its arrival line leads with
+    the complex and keeps the street and the town: "Strawberry Square, N 2nd St, Harrisburg". Outside the outline but
+    within `STREET_REACH_M` (40 m) it reads "Near Strawberry Square, ...", as a street found by nearness does (MC2);
+    farther, the line is MC1's. Overlapping complexes give one name by one tie rule in core, the same each time.
+12. **CX12 · Viewing a moment makes no request.** Working out a moment's line uses only complexes already on the phone,
+    on every surface that shows it (Memories, the gallery viewer, threads) and fetches nothing; with none cached the
+    line is MC1's street line. A line that gains a complex changes once and never back (MC17).
+13. **CX13 · Only the arrival line.** A complex is named in the arrival line of Memories and the gallery viewer, and
+    nowhere else: not in a replay beat or card, a search result, the share reel or a title suggestion; it is never
+    stored on a capture, a moment, a thread entry or a walk.
+14. **CX14 · Derived, never truth.** Complexes are cache: one row per z14 tile and Overture release in a derived store
     (cleared by `purgeDerived`), tagged with a `COMPLEX_CODE` that a rule change bumps; they are recomputed from the
-    source, never patched, and a deleted walk or moment leaves them untouched.
-13. **CX13 · An adapter, no list.** The data reaches the app through `ComplexSource`; no name, place or coordinate is
-    hard-coded; unit tests run on in-memory sources and only the adapter's own test reads real tile fixtures.
-14. **CX14 · A bounded, silent read.** One read per selected area reads only the z14 tiles whose places suggest a
-    complex (a cluster of a kind's places, a market, a campus or a station), at most a fixed number of tiles, nearest the
-    area's point first, never a tile twice per release. A failed read shows nothing and is tried again later (no
-    pill, no error); a read that covers only part of a wide town says nothing about it.
+    source, never patched, and a deleted walk or moment leaves them untouched. A complex cut by a tile edge is one
+    complex: one outline, one row of the list, joined by its building id.
+15. **CX15 · An adapter, no list.** The data reaches the app through `ComplexSource`; no name, place or coordinate is
+    hard-coded; unit tests run on in-memory sources, only the adapter's own test reads real tile fixtures, and the
+    layer check forbids core importing the adapter.
+16. **CX16 · A bounded, silent read.** One read per selected area reads only the z14 tiles whose places suggest a
+    complex (a cluster of a kind's places, a market, a campus, a station, a civic place), at most a fixed number of tiles
+    and a fixed number of bytes (core constants), nearest the area's point first, never a tile twice per release. A failed
+    read shows nothing and is tried again later (no pill, no error). It reads Overture's `buildings` and `base` tiles
+    from the host the app already uses: `npm run check:vision` passes with its host table unchanged.
