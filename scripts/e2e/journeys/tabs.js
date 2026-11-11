@@ -233,6 +233,29 @@ async function run(h) {
         `tend tabs 2: at 320 px the recording bar's way back, camera and Stop share one line, and nothing scrolls sideways (${JSON.stringify(row)})`);
       await pg.setViewportSize({ width: 390, height: 844 });
       await pg.waitForTimeout(600);
+      // tend tabs 1: keyboard focus on the bar shows a ring that stands out from the bar's dark ground, 3:1 or more.
+      {
+        let id = null;
+        for (let k = 0; k < 60 && id !== 'recording-return'; k++) {
+          await pg.keyboard.press('Tab');
+          id = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
+        }
+        const ring = await pg.evaluate(() => {
+          const cs = getComputedStyle(document.activeElement);
+          return { outline: cs.outlineColor, style: cs.outlineStyle, shadow: cs.boxShadow, ground: getComputedStyle(document.querySelector('[data-testid=recording-bar]')).backgroundColor };
+        });
+        await h.shot(pg, 'tabs-1-bar-focus');
+        const rgb = (s) => (s.match(/\d+(\.\d+)?/g) || []).slice(0, 3).map(Number);
+        const lum = (c) => {
+          const [r, g, b] = c.map((v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+        const colours = [...(ring.style !== 'none' ? [ring.outline] : []), ...(ring.shadow.match(/rgba?\([^)]*\)/g) || [])];
+        const best = Math.max(0, ...colours.map((c) => ratio(rgb(c), rgb(ring.ground))));
+        check(id === 'recording-return' && best >= 3, `tend tabs 1: keyboard focus on the bar's way back shows a ring at 3:1 or more against the bar (${best.toFixed(1)}:1, ${JSON.stringify(ring)})`);
+        await pg.evaluate(() => document.activeElement?.blur());
+      }
 
     });
     await step('tabs audit 2: a reminder tapped minimized', async () => {
@@ -483,6 +506,7 @@ module.exports = {
     'src/app/walk.tsx',
     'src/app/replay/**',
     'src/components/{RecordingBar,OpenWalk,HomeSheet,MomentBar,StartSettings,SafeInsets,SafeInsets.web}.tsx',
+    'src/components/webStyles.web.ts',
     'src/lib/{walkNav,walkGate,memoGate,recordingBar,startPlan,useStartWalk,launchRoute,safeInsets}.ts',
   ],
   run,
