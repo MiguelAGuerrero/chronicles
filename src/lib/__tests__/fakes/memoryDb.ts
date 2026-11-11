@@ -417,7 +417,8 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
 
     async putPlaces(ps) {
-      for (const p of ps) places.put(p);
+      // As the stores: presence's classes are never stored (specs/presence-readers).
+      for (const { classes: _classes, ...p } of ps) places.put(p);
     },
     async placesIn([w, s, e, n]) {
       return out(places.index((p) => p.at[1], band(s, n)).filter((p) => p.at[0] >= w && p.at[0] <= e));
