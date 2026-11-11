@@ -126,7 +126,21 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-Nothing open.
+- **T8 [arch] Presence readers (G4) is parked: main's kind pipeline and community parks landed beside it** (2026-11-11)
+  Area: explore. Seen: `slice/presence-readers-parked` (G4 built as `specs/presence-readers`, PS1-PS11; the steward and one
+  auditor round done, every check green on its base `0d03c4b`) conflicts with main in `atlas/atlas.ts`,
+  `nav/scenicSignals.ts` and two test pins. Main's community parks (PC1-PC23) added, meanwhile, a kind pipeline that decides
+  a kind over places (`discovery/refine.ts`, `refinements.ts`), a second name-word list (`parkNotable.json`, with
+  `communityWords.json`, in `discovery/parkKind.ts`, beside `notable.json`), greens read from raw landcover tags
+  (`discovery/green.ts`), and `ATLAS_CODE` a9. Rests on: decision 0140, "consumers read its classes, never source tags";
+  G4's criterion 3, "Whether a name is notable is decided once, for marks and bars alike".
+  Recommended: resume the parked branch on main as it stands. `green.ts` reads presence's `classesOfLandcover` (PS4); the
+  carry becomes `a9.p1` under `a9.p2`; `parkKind.ts` reads `notableName` from presence and keeps its park words as the
+  community-parks judgement (curation of a refinement, named so in PS3), not a second notable rule; the guard (PS7,
+  `presence-readers audit 1`) reads main's new modules; the golden tables are captured again on main before any code. /vision:
+  no surface (nothing a person sees changes).
+  Otherwise: fold `parkNotable.json` into `notable.json`, so one list (a church or town hall named "national" or "arboretum"
+  would then be a mark by its name), or drop G4 and delete the parked branch.
 
 ### Next evolutions
 
@@ -170,14 +184,14 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox T7 yes`** (from `4e138f2`). T7 built, decision 0142: a map that mounts on Walks (the bar's Walks
-from Memories or Media) zooms out once, by 0054's rule, when a place walked is out of the kept view; a read that frames
-the places itself needs none, and Days and Map mount as before. Commits: `tend chronicle T7` (the mount's zoom-out, in
-`ChronicleMap`; the chronicle journey checks one fit from Memories with the star dragged away, none from Media with it
-in view, pictured before and after) and `tend chronicle audit 1` (the review: the zoom-out frames only the walks shown,
-never one deleted while its Undo waits; `shownPlaces`). T7 leaves the inbox; nothing filed. The balance: unchanged by an
-inbox run (outgrowing its base: four areas rough). Not run: the journeys `capturehome`, `qol` and `tabs`, reached but
-holding no check on the change. Nothing here has run on a phone.
+**Nov 11, `/tend inbox G4 yes`** (from `0d03c4b`). G4 built as the slice `specs/presence-readers` (PS1-PS11, decision
+0140): the places archive, the bars, notable names, scenic greens and the planner read presence's classes, nothing a person
+sees changing (golden tables captured first). The steward read the plan (S1-S4 accepted); one auditor round (an old/new
+differential over 18,129 archive places, 2,482,980 poi pairs and 907 rings, matched) found six, all fixed as
+`presence-readers audit 1-6`. Not published: while it ran, main gained community parks and the kind pipeline (PC1-PC23), and
+the rebase conflicts in source (`atlas.ts`, `scenicSignals.ts`, two test pins) over a question for the owner, filed as T8.
+The slice is on `slice/presence-readers-parked` (`7a4c28e`); G4 stays in "Next evolutions". The balance: unchanged by an
+inbox run (outgrowing its base: four areas rough). Nothing here touched native code or has run on a phone.
 
 ### Open before the loop
 
