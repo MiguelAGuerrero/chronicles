@@ -560,7 +560,7 @@ export function areaPins(listed: Listed[], selected: string | null, inTown: bool
  */
 export const MARKS_EXPLAINED: readonly string[] = [
   'Marks say how much of each kind is around an area, never how good it is.',
-  'History, art, culture, green and views count only places worth finding, the ones that can turn up as a “?”. Food, shops and nightlife count every place.',
+  'History, art, culture, green and views count only places worth finding, the ones that can turn up as a “?”; one place can count toward two, as some museums count toward history and culture. Food, shops and nightlife count every place.',
   'One mark: a place or two of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];

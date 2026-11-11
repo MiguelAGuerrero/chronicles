@@ -422,3 +422,9 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with Explore open, pick a town more than 2 km away, tap its Walk to, then When I get there; drive there with the app in the background, park a street away and wait a few minutes before opening it. **Expect:** no walk started and nothing told you that you'd arrived; Navigate, ready says "To <town> · <distance> away"; the walk starts only when you tap Start, from where you parked. (DW2, DW3, DW4)
 - [ ] **Do:** start a walk, drive 3 km inside it, get out and walk 200 m. **Expect:** "On a ride" while driving; afterwards VoiceOver or TalkBack reads Walk me back as "Walk me back to where the ride ended", and it leads to where you got out, not to where the drive began. (DW6, DW8, DW9)
 - [ ] **Do:** press and hold the walk map, tap Walk back here, then force-quit and reopen the app. **Expect:** "Walk me back now leads here." once; after the relaunch Walk me back still leads to that spot; Stop clears it. (DW7)
+
+## Presence and kinds (PK1-PK19, decision 0126)
+
+- [ ] **Do:** on a phone that had "Museums and galleries" switched off before this update, open "What I'm into", switch Community spaces on, force-quit and reopen. **Expect:** Community spaces was off at first and stays on after the relaunch (meta `explore_kinds_known` through SQLite's `meta`, PK18).
+- [ ] **Do:** after the update, open Explore with several areas listed. **Expect:** every area's marks are read again without stalling the tab (`ATLAS_CODE` a8, PK7).
+- [ ] **Do:** open "Suggest a walk" on History in a town whose History is lit by a museum in the places archive. **Expect:** a route through it, the archive read beside the map's (presence-and-kinds audit 1).

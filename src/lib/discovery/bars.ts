@@ -8,13 +8,20 @@ import type { CategoryId, Kind, Place } from './types';
  */
 
 /**
+ * presence-and-kinds audit 5: a name word that says the place itself is historic. "Old" in a neighbourhood's name (Old
+ * Town, Old City) or in "old and new" says nothing of the place, so those phrases are read past.
+ */
+const historicName = (name: string): boolean =>
+  notableName(name.replace(/\bold\s+(town|city|quarter|village)\b/gi, ' ').replace(/\bold\s+(and|&)\s+new\b/gi, ' '));
+
+/**
  * PK1-PK3: the bars a place lights: its own category, plus History for a museum or gallery the data already calls
  * historic: an archive class that says so (`alsoBars`, the archive's museum) or a word from `notable.json` in its name.
  * A plain museum stays in Culture alone, so History and Culture are not one bar twice (PK5).
  */
 export function barsOf(p: Pick<Place, 'category' | 'name'> & Partial<Pick<Place, 'kind' | 'alsoBars'>>): CategoryId[] {
   const out: CategoryId[] = [p.category];
-  const historic = p.kind === 'museums' && (p.alsoBars?.includes('history') || notableName(p.name));
+  const historic = p.kind === 'museums' && (p.alsoBars?.includes('history') || historicName(p.name));
   for (const b of [...(p.alsoBars ?? []), ...(historic ? (['history'] as const) : [])]) if (!out.includes(b)) out.push(b);
   return out;
 }

@@ -7,6 +7,9 @@ import type { Place } from '../../discovery/types';
 import type { Reach } from '../../kindWalk/words';
 import { distanceM } from '../../geo';
 import type { LngLat } from '../../types';
+import { densestCells, onStreets } from '../../kindWalk/density';
+import { gradeRuns } from '../../walkPlanner/exposure';
+import { CONSIDERED } from '../../walkPlanner/presets';
 import { createPlanner, type PlannerDeps } from '../../walkPlanner/service';
 import { at, segs } from './grid';
 
@@ -62,4 +65,36 @@ test('PK17: the planner\'s words name no place, say no count and never the lean'
     const strings = src.match(/(['"`])(?:(?!\1)[^\\]|\\.)*\1/g) ?? [];
     for (const s of strings) assert.ok(!lean.test(s), `${f}: ${s}`);
   }
+});
+
+// The audit (Nov 11): regression tests before their fixes.
+
+test('presence-and-kinds audit 1: the planner reads the places archive beside the map, as the atlas ring does', async () => {
+  // The Kilns light History only from the archive; the map holds nothing of them.
+  const archive = [museum('Old Mill Museum', at(250, 250)), museum('Kiln Museum', at(1000, 900))];
+  const p = createPlanner({
+    read: async () => ({ places: [], archive, segments: segs }),
+    reach: async () => ({ cars: [], unknown: false }) as Reach,
+    found: async () => [],
+  } satisfies PlannerDeps);
+  const r = await p.plan({ kind: 'history', area, from: at(130, 130), prefs });
+  assert.ok(r.routes.length > 0, `reasons: ${r.reasons.join(', ')}`);
+});
+
+test('presence-and-kinds audit 2: with no lean, a route is graded by the planner\'s own cells, as before the slice', async () => {
+  const food: Place[] = [];
+  for (let e = 100; e <= 1300; e += 300) for (let n = 100; n <= 1300; n += 300) food.push(place(`f${e}-${n}`, 'food', undefined, at(e, n)));
+  const r = await planner(food).plan({ kind: 'food', area, from: at(130, 130), prefs: { ...prefs, budgetM: 4000 } });
+  assert.ok(r.routes.length > 0);
+  const lines = segs.flatMap((s) => s.geometry);
+  const own = onStreets(densestCells(food, area.at), lines).slice(0, CONSIDERED);
+  for (const route of r.routes) assert.deepEqual(route.runs, gradeRuns(route.path, own), `${route.preset}: graded only by the cells it considered`);
+});
+
+test('presence-and-kinds audit 3: places you pass out of reach fall back to every place of the bar', async () => {
+  const far = [at(1300, 1300), at(1310, 1290), at(900, 1300), at(910, 1310)].map((p, i) => place(`m${i}`, 'history', 'monuments', p));
+  const near = [at(200, 250), at(220, 260), at(600, 200), at(610, 220)].map((p, i) => museum(`Old Museum ${i}`, p));
+  const r = await planner([...far, ...near]).plan({ kind: 'history', area, from: at(130, 130), prefs: { ...prefs, budgetM: 1500 } });
+  assert.ok(r.routes.length > 0, `reasons: ${r.reasons.join(', ')}`);
+  assert.ok(r.routes[0].stops.every((s) => near.some((m) => distanceM(m.at, s) <= 300)), 'the near museums make the route');
 });

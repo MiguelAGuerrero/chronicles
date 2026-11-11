@@ -83,3 +83,16 @@ test('SR6: a found place is said as found; a kind switched off is no sight', asy
   const off = await createScenicRead(p, io).read(from, to, () => false);
   assert.deepEqual(off?.signals.sights, []);
 });
+
+test('presence-and-kinds audit 6: a choice saved before Community spaces existed hides it from the sights too (PK18)', async () => {
+  const { p, io } = await setup();
+  await p.db.setMeta('explore_hidden', JSON.stringify(['museums']));
+  const arts = { geometry: { type: 'Point', coordinates: at(2, 0.2) }, properties: { class: 'art_gallery', subclass: 'arts_centre', name: 'Banana Factory' }, zoom: 14 };
+  const withArts = { ...io, fetchTiles: async () => ({ ...features(), pois: [...features().pois, arts] }) };
+  const r = await createScenicRead(p, withArts).read(from, to, () => false);
+  assert.ok(r);
+  assert.ok(!r.signals.sights.some((s) => s.name === 'Banana Factory'), 'hidden with Museums and galleries');
+  await p.db.setMeta('explore_kinds_known', JSON.stringify(['museums', 'community']));
+  const again = await createScenicRead(p, withArts).read(from, to, () => false);
+  assert.ok(again!.signals.sights.some((s) => s.name === 'Banana Factory'), 'saved since: the walker\'s own choice');
+});

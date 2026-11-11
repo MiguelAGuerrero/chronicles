@@ -143,3 +143,18 @@ test('PK19: the pinned contract\'s notes name PK1 for the museum class', () => {
   assert.match(notes, /PK1/);
   assert.match(notes, /museum/);
 });
+
+// The audit (Nov 11): regression tests before their fixes.
+
+test('presence-and-kinds audit 5: a museum or gallery named for its neighbourhood lights Culture alone', () => {
+  const s = ringOf(map(poi('art_gallery', 'gallery', 'Old Town Gallery', east(100)), poi('museum', 'museum', 'Museum of Old and New Art', east(300)), poi('museum', 'museum', 'Old City Arts Museum', east(500))), null, O).steps;
+  assert.equal(s.history, 0, 'a neighbourhood\'s "old" is not the place\'s');
+  assert.equal(s.culture, 2);
+  assert.equal(ringOf(map(poi('museum', 'museum', 'Old Mill Museum', east(100))), null, O).steps.history, 1, 'PK2 still holds');
+});
+
+test('presence-and-kinds audit 13: "How the marks work" says one place can count toward two kinds, in words', async () => {
+  const { MARKS_EXPLAINED } = await import('../../atlas/atlas');
+  assert.ok(MARKS_EXPLAINED.some((l) => /count toward two/.test(l) && /histor/.test(l) && /culture/.test(l)), MARKS_EXPLAINED.join(' | '));
+  for (const l of MARKS_EXPLAINED) assert.ok(!/\d/.test(l) && !/\b(listed|listing|register|notable|landmark)\b/i.test(l), l);
+});

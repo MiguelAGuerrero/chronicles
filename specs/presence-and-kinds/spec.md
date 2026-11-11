@@ -139,3 +139,46 @@ nudge, outlines, planner, replay pass; scenic failed one check (fix preview-clut
 passed 3 of 3 on main (`e2e:baseline`) and passed after main was merged in (`0f3f216`), so it ran twice. The decision is
 0126 (main took 0125 for moment references while this was built). PK15's report run live on the gate's areas: Lititz's
 Sturgis Pretzel House (0116's test case) is among the listed places held back for want of a sign it is open.
+
+## Audit (Nov 11, at the owner's request)
+
+Three reviewers, with phone-size pictures from the `marks` journey (a new shot, `marks-what-im-into`, beside PK11's new
+on-screen check) and the `atlas` journey: the auditor (findings 1-6), the steward (7-8) and the UX reviewer (9-14).
+14 findings: 6 accepted and fixed (one of them in part), 3 deferred, 3 for the owner, 2 rejected. The regression tests
+are named `presence-and-kinds audit N`, in `__tests__/walk-planner/presence.test.ts`, `__tests__/explore/presence.test.ts`
+and `__tests__/navigation/scenicRead.test.ts`.
+
+1. **The planner never read the places archive.** A History bar lit by the Kilns alone opened a planner that said
+   "few". Accept, fixed: `PlannerDeps.read` returns `archive` beside the map's places, and the shell merges them as the
+   atlas ring does (PW8); the app's read calls `placesArchive.read` (audit 1). The merge is tested; the app's wiring
+   is an instance file that no test reaches.
+2. **`graded: all` changed every bar's grading,** not only a leaning one: cells past the first eight graded the route.
+   Accept, fixed: with no lean, a route is graded as before; with one, by the bar's first eight cells (audit 2).
+3. **The lean fell back only on the cell count,** never when the places you pass make no route (too far, out of
+   reach). Accept, fixed: a leaning plan that makes no route plans again with every place of the bar (audit 3).
+4. **A museum that lights History is a Culture "?" on the map,** and a found one is no found pin on a History route
+   (`found(kind)` reads the find's category). Defer: a find keeps only its category, and the archive's second bar is
+   not stored (RP11), so this needs a data-model call. See `docs/DEFERRED.md`.
+5. **"Old" in a neighbourhood's name lit History** ("Old Town Gallery", "Museum of Old and New Art"). Accept, fixed:
+   `barsOf` reads past "old town", "old city", "old quarter", "old village" and "old and new" (audit 5).
+6. **PK18's writer (`saveSettings`) and its second reader (the scenic read) had no test.** Accept in part: the scenic
+   read now has one (audit 6, which passed at once because the code was right). `settings.ts` imports the db
+   singleton, which a Node test can't load; moving it to a shell factory is SH5's work, so that part is deferred.
+7. **"Old Town" lights History** (the steward's first finding). Reject: a duplicate of 5.
+8. **"Buildings and structures" keeps the library icon,** though libraries moved to Community spaces. For the owner:
+   icons are a taste call, made with the labels.
+9. **"Community spaces" doesn't name what it holds** (libraries and arts centres). For the owner, who chose the label
+   on Nov 10.
+10. **The people icon reads as contacts** in an app with no accounts. For the owner, with 8.
+11. **Eleven switches with no visible groups.** Defer: an opinion, and section headings would change the settings'
+    layout.
+12. **The drawer's handle sits over the first visible switch.** Defer: it predates the slice and belongs to the
+    drawer, not the kinds.
+13. **"How the marks work" didn't say one place can count toward two kinds.** Accept, fixed: one clause added to the
+    second line, naming no listing (audit 13).
+14. **A History route may lean away from the museum that lit History.** Reject: the owner's call ("Pass-by only, if
+    enough", Nov 10, decision 0126).
+
+The steward also raised three points the spec is silent on. Two are answered above: whether the marks' text should say
+more (13), and a route skipping what lit the bar (14). The third, the settings sheet covering the capture stack during
+a walk, predates this slice and is for the owner.
