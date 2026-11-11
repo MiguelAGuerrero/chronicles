@@ -147,6 +147,17 @@ recording, and a recording bar brings a minimized walk back.
   place is public (its type, a sign it is open, or a Landmark) is built and
   moves to chronicles-data's pipeline. `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
+- **Complexes** (CX1-CX16, decision 0143). A named place made of other places (Strawberry Square,
+  the Lehigh Valley Mall; a market, a campus, a station, a civic centre) is a subdivision of the area
+  you are in. The area's card lists the nearest few by name with their kind as a word ("Shopping",
+  "Market", "Campus", "Station", "Civic") and Walk to, and a "See more" lists the rest, with no number,
+  no line about what a complex holds, no size or ranking; the selected area's complexes are quiet
+  outlines on the map, named only at close zoom. A moment taken inside one leads its arrival line with
+  it and keeps its street ("Strawberry Square, N 2nd St, Harrisburg"), from complexes already on the
+  phone: viewing a moment fetches nothing. Information only: never a mark, a find or a place a walk is
+  assigned to. A complex is a named building from Overture that holds enough places, or a market, a
+  station, a campus or a civic building by its type; five switches, beside What I'm into, hide a kind
+  from the card and the map. Built on web, native unverified.
 
 ### Navigate (during)
 
@@ -442,6 +453,7 @@ recording, and a recording bar brings a minimized walk back.
 | v0: record, capture, stop, replay, storage | Shipped |
 | v0.5: places (stars by area), navigate (walk me back, go here) | Shipped, audited |
 | v1: discovery (Explore mode, "?" marks, finds, Remind me here, notifications) | Shipped, audited |
+| Complexes (a named place made of other places on Explore's card and map and in a moment's line, CX1-CX16) | Built; web verified by the e2e `complexes`; native unverified |
 | Reminder bell (a pin with a reminder wears a bell) | Shipped, audited (web verified by the e2e; native unverified) |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
 | Presence (what a place is, classified once and read by the map's density and the marks alike; memorials and nature reserves join the notable classes) | Shipped (first of two slices) |

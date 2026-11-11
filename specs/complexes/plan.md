@@ -16,7 +16,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
   not guessed (CX3), and the Capitol Complex waits for a chronicles-data pack if Overture never holds its outline.
 - **The bytes** are the cost. A neighborhood's ring is about 4 to 9 z14 tiles; reading every `buildings` tile would be
   2 to 8 MB. The read therefore starts from the places the atlas already reads and fetches `buildings` or `base` only for
-  tiles that hold a candidate (CX14), so it is usually one to three tiles, once per release.
+  tiles within the area's reach, nearest first, at most nine, once per release (a kind cannot be told from places alone, so there is no candidate pre-filter; CX16).
 
 ## Files
 
@@ -27,7 +27,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
 | `src/lib/complexes/lines.ts` (core, new) | The card's words and a11y labels: the kind word only, the order (nearest to the area's point, ties by name then id) and the few shown before "See more" (CX4-CX6). |
 | `src/lib/complexes/place.ts` (core, new) | `complexAt(fix, complexes)`: the complex whose outline holds a point or lies within `STREET_REACH_M` of it, with `near`, and one tie rule for overlaps (CX11). |
 | `src/lib/complexes/overtureSource.ts` (adapter, new) | The only file that knows Overture's `buildings` and `base` schema; decodes a tile into polygons and keeps the named ones; reads through the existing `TileReader` (`net/tileReader.ts`) and the existing host, so no new host and no `check:vision` allow entry. |
-| `src/lib/complexes/read.ts` (shell, new) | `complexApp`: for an area, picks candidate tiles from the places already read, reads each tile once per release, stores a row per tile, returns the complexes; a failure is silent and retried after `retryMs` (CX12, CX14). |
+| `src/lib/complexes/shell.ts`, `overtureReader.ts`, `index.ts`, `settings.ts`, `useComplexes.ts` | As built: `createComplexes` reads the area's tiles through `ComplexSource` (once per release, kept by tile for the session), judges, stores a row per complex, fails silently; the reader is the Overture `buildings` and `places` tiles under their own timeouts; `useComplexes` asks for the selected area when Explore is in front and retries a failure after 90 s (CX12, CX14, CX16). |
 | `src/lib/db/types.ts`, `db/stores.ts`, `db/migrations.ts`, `db/index.web.ts`, `db/sqliteStore.ts` | A derived store `complex` (key building id, the release, `COMPLEX_CODE`, the kind, the outline, a bounding box with a `lat` index) in `DERIVED_STORES`: the next SQLite migration, IndexedDB `VERSION` 18 to 19 with an `oldVersion < 19` step. A migration, so it is your call (below). |
 | `src/lib/atlas/atlas.ts`, `atlas/useAtlas.ts` (core, view) | The selected area's complexes next to `busyAreas`; `ATLAS_CODE` is not bumped (nothing it stores changes). |
 | `src/lib/discovery/curation.ts` (core) | A guard test only: a complex is never a mark (CX8); no code change expected. |
@@ -41,7 +41,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
 
 ## Data
 
-- **New cache, no new truth.** `complex_tile` is derived (cleared by `purgeDerived`, tagged `COMPLEX_CODE` and the release),
+- **New cache, no new truth.** `complex` is derived (cleared by `purgeDerived`, tagged `COMPLEX_CODE` and the release),
   like `outline_tile`. SQLite migration: the next entry in `MIGRATIONS`; IndexedDB `VERSION` 18 to 19.
 - **Never on a capture, a moment, a walk or an `Area`** (CX7, CX11, CX12).
 - **A complex cut by a tile edge or buffer** (the Lehigh Valley Mall across two tiles; a fragment of Strawberry Square in the next
@@ -72,7 +72,7 @@ Files in `src/lib/__tests__/complexes/`; every name starts with its id and `:`.
 | CX13 | `surfaces.test.ts` | the complex reaches only the arrival line of Memories and the gallery viewer; never stored on a capture, moment, thread entry or walk |
 | CX14 | `read.test.ts` (shell, `fakePorts()`) | one row per tile and release; recomputed on a new code; cleared by `purgeDerived`; a complex across a tile edge is one |
 | CX15 | `overtureSource.test.ts` + the layer check | the adapter reads the real fixtures; core never imports it |
-| CX16 | `read.test.ts` | only candidate tiles within the tile and byte budgets, each once; a failure shows nothing and retries; the host table is unchanged |
+| CX16 | `read.test.ts` | only the area's tiles within the tile budget, nearest first, each once; a failure shows nothing and retries; the host table is unchanged |
 
 A new journey `scripts/e2e/journeys/complexes.js` (the harness gets a small fake `buildings` tile, as `curiosities` fakes
 the archive) checks CX4, CX9 and CX10 on the web build.
@@ -127,8 +127,17 @@ decision record at the end of the slice.
 
 ## Open for the owner
 
-1. **The migration.** `complex_tile` (derived, one row per tile and release) is new storage. Alternative: memory only, a
+1. **The migration.** `complex` (derived, one row per complex) is new storage (SQLite migration 23, IndexedDB 19): approved by the owner's defaults, Nov 11. Alternative: memory only, a
    read on every launch. Recommended: the cache.
 2. **How many show before "See more".** The owner chose nearest first and a "See more" (no cap). I use 4 as the constant unless you say another number.
 3. **Stations.** The steward notes the vision is silent on transport. Recommended: keep Stations as a kind, since a station
    with shops and services inside is a place made of places.
+
+## As built (Nov 11)
+
+Differences from the plan above, each in the spec: the store is `complex` (one row per complex, not per tile); the read has no
+candidate pre-filter and covers the area's tiles up to a budget of nine; the rule is judged once every tile holding a vertex is read;
+the five kinds are told from the building's type and contents (the owner's call over my recommendation, decision 0143); the list is the
+nearest four and "See more" with no cap; the street stays in a moment's line; a viewing never fetches. The gallery viewer's place name
+takes the complex too (`gallery/shell.ts`), since its line is the street name there. The kind switches are in the settings drawers
+beside What I'm into (the walk's and Navigate's ready bar), as the spec says; Explore itself has no settings panel.

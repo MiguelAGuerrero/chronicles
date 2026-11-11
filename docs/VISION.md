@@ -125,7 +125,7 @@ same argument is not had twice.
 | 0034 | Busy areas are information only |
 | 0052 | Counts are words |
 | 0094 | The vision gate: the gate advises and the owner decides; the mechanical check blocks |
-| 0095 | Scenic routes: a row per leaning (green, sights, streets with life) beside Direct, kept over the page's "one way"; no minutes compared, the detour in words (reshaped at the gate, Nov 5) |
+| 0095 | Scenic routes: a row per leaning beside Direct, kept over the page's "one way"; no minutes compared, the detour in words (reshaped at the gate, Nov 5) |
 | 0099 | The found tally is removed: a place's sheet names its finds and never counts them (answers open question 6, Nov 5) |
 | 0103 | A static places archive in the chronicles-data repo, read by tile; significance is a gate, never a measure; Curiosities are a kind of "Viewpoints & oddities"; reverses 0084's "no host" (reshaped at the gate, Nov 5) |
 | 0107 | Storage awareness: the room left said in words beside the captures, once for each level; every failed save held for Retry; no gauge, no limit on capturing, no Storage screen (reshaped at the gate, Nov 9) |
@@ -135,7 +135,8 @@ same argument is not had twice.
 | 0111 | The audit's calls: one place within 200 m for the same name and kind; a listed site, battlefield or wreck is a Monument, not a building |
 | 0112 | The app opens on Chronicle's Memories, which keeps a moment in one tap: the stack's three kinds in plain ink, fixed low, never a hero block (reshaped at the gate, Nov 9) |
 | 0115 | Places out of town: kinds filter what you see, never what exists; one-of-a-kind businesses only by a structural signal, never ratings or popularity; "?" within 50 km in countless stars, named only on a tap, never listed or counted (reshaped at the gate, Nov 9) |
-| 0121 | Drive there, walk back: a far Walk to asks "Walk now" or "When I get there"; the walk starts only on Start, never on arrival; Walk me back leads to where the last ride ended, or a spot chosen by hand; no waypoints (reshaped at the gate, Nov 10) |
-| 0127 | Presence by bars: a place may light two bars, never making two redundant; a route from a bar leans on places you pass, by kind, never named; a plain community centre is no place to find (reshaped at the gate, Nov 10) |
-| 0131 | A moment's responses in a sheet over the viewer: the info line's words, More and a swipe up; plain entries in words, no count, no unread (reshaped at the gate, Nov 11) |
+| 0121 | Drive there, walk back: a far Walk to asks Walk now or When I get there; the walk starts only on Start, never on arrival; Walk me back leads to where the last ride ended (reshaped at the gate, Nov 10) |
+| 0127 | Presence by bars: a place may light two bars, never making two redundant; a route from a bar leans on places you pass, by kind, never named (reshaped at the gate, Nov 10) |
+| 0131 | A moment's responses in a sheet over the viewer: plain entries in words, no count, no unread (reshaped at the gate, Nov 11) |
 | 0139 | Media: bare tiles; the day header says where |
+| 0143 | Complexes: information only; the street kept; a viewing never fetches (reshaped at the gate, Nov 11) |
