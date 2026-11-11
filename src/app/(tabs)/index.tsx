@@ -2,7 +2,7 @@ import { facedAll } from '../../lib/moment';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Linking, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
@@ -104,7 +104,8 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     [cameraNow],
   );
   const screenH = areaH;
-  const [placing, setPlacing] = useState<{ done: number; of: number } | null>(null);
+  // The walk being placed in the background, if any: its row waits, the rest of the screen doesn't.
+  const [placingId, setPlacingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Star | null>(null);
   // A long press at street zoom: Walk here, a one-tap start (NV12).
   const [spot, setSpot] = useState<LngLat | null>(null);
@@ -141,13 +142,10 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     router.navigate('/');
     return true;
   }), []);
-  const skip = useRef(false);
-
   useFocusEffect(
     useCallback(() => {
       let live = true;
-      skip.current = false;
-      const load = async () => {
+      const load = async (refit = true) => {
         const [walks, summaries, areas, rows] = await Promise.all([db.listWalks(), db.listSummaries(), db.listAreas(), db.listWalkAreas()]);
         const openWalk = walks.find((w) => w.open) ?? null;
         if (!live) return null;
@@ -170,7 +168,7 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
         // one made before any walk, is framed too, so its pin is in view. A moment being deleted isn't.
         const gone = deletions.hidden();
         const bounds = fitWithMoments(placesIndex(areas, rows, walks).bounds, caps.filter((c) => !gone.has(c.id)));
-        if (boundsKey(bounds) !== fittedTo.current) {
+        if (refit && boundsKey(bounds) !== fittedTo.current) {
           fittedTo.current = boundsKey(bounds);
           setFit((f) => ({ bounds, key: f.key + 1 }));
         }
@@ -179,27 +177,40 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
       reload.current = () => {
         load().catch(() => {});
       };
+      // A walk placed in the background: its star comes at once, and the map stays where you have it.
+      const refresh = async () => {
+        const [walks, summaries, areas, rows] = await Promise.all([db.listWalks(), db.listSummaries(), db.listAreas(), db.listWalkAreas()]);
+        if (live) setData({ walks, summaries, areas, rows });
+      };
       load()
         .then(async (d) => {
           if (!d) return;
-          // Walks with no places yet are placed in one pass, behind a cover
-          // that Skip lifts; leaving the screen stops the pass after the walk at hand.
+          // Walks with no places yet are placed in the background, one after another, from the tiles (the
+          // owner, Nov 11): the map and the places already walked show at once, with no cover, and each walk's
+          // star comes as it is placed. Leaving the screen stops the pass after the walk at hand.
           const todo = unplacedWalks(d.walks, d.rows).filter((w) => !tried.has(w.id));
           if (!todo.length) return;
-          setPlacing({ done: 0, of: todo.length });
-          await placeBacklog(todo, () => mapRef.current, {
-            onAttempt: (id) => tried.add(id),
-            onProgress: (done) => live && !skip.current && setPlacing({ done, of: todo.length }),
-            stopped: () => !live || skip.current,
+          const framed = fittedTo.current !== '';
+          await placeBacklog(todo, {
+            onAttempt: (id) => {
+              tried.add(id);
+              if (live) setPlacingId(id);
+            },
+            onProgress: () => {
+              if (live) refresh().catch(() => {});
+            },
+            stopped: () => !live,
           });
-          if (live) await load();
+          // The map is framed at the end only if it had nothing to frame before; otherwise it stays where you
+          // may have moved it, and the next opening frames the new places.
+          if (live) await load(!framed);
         })
         .catch((e) => live && setLoadError({ message: e instanceof Error ? e.message : String(e) }))
-        .finally(() => live && setPlacing(null));
+        .finally(() => live && setPlacingId(null));
       return () => {
         live = false;
         reload.current = null;
-        setPlacing(null);
+        setPlacingId(null);
       };
     }, []),
   );
@@ -246,7 +257,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     return got ? { found: got.map((f) => f.name) } : null;
   }, [mode, index, checklists, finds]);
 
-  const busy = placing != null || walkStart.starting;
 
   return (
     <View style={styles.screen}>
@@ -273,7 +283,8 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
           height={sheetAnim}
           bottomInset={0}
           areaHeight={areaH}
-          busy={busy}
+          busy={walkStart.starting}
+          placingId={placingId}
           // A one-tap start to the place (NV12): the saved choices, never the drawer.
           onGoToPlace={selected ? () => walkStart.start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
           placeExtra={placeExtra}
@@ -361,28 +372,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
       />
       <UndoToast style={{ top: insets.top + 64 }} />
 
-      {placing && (
-        // Above the sheet at whatever height it stands, never at a fixed fraction of the screen: a half-height
-        // sheet (the Days list) ran under a cover pinned at 38% and hid its Walks and Days chips.
-        <Animated.View style={[styles.center, styles.over, aboveSheet]} pointerEvents="box-none" accessibilityLiveRegion="polite">
-          <Text style={styles.centerText}>
-            {`Placing your walks (${Math.min(placing.done + 1, placing.of)} of ${placing.of})`}
-          </Text>
-          <Pressable
-            testID="skip-placing"
-            accessibilityRole="button"
-            accessibilityLabel="Skip placing your walks for now"
-            onPress={() => {
-              skip.current = true;
-              setPlacing(null);
-            }}
-            style={styles.skip}
-            hitSlop={8}
-          >
-            <Text style={styles.skipText}>Skip</Text>
-          </Pressable>
-        </Animated.View>
-      )}
 
       <View style={[StyleSheet.absoluteFill, styles.under]}>
         {/* Only while Chronicle is in front: another tab, a walk or a replay takes its map down, so
@@ -402,7 +391,7 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
             // Walk here only at street zoom (NV12): a press on a zoomed-out map lands far from anywhere walkable.
             onLongPress={(at) => {
               const zoom = view?.zoom ?? 0;
-              if (placing != null || zoom < 12) return;
+              if (zoom < 12) return;
               setSelected(null);
               setMode({ kind: 'summary' });
               setSpot(at);
@@ -419,7 +408,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
             initialCenter={savedCamera?.center ?? kept?.camera?.center ?? WORLD.center}
             initialZoom={savedCamera?.zoom ?? kept?.camera?.zoom ?? WORLD.zoom}
             onCameraChange={onCameraChange}
-            covered={placing != null}
             attributionTop
             // The scale bar above the sheet at its resting height (QL8).
             scaleInset={{ bottom: sheetH + 12, left: 12 }}
@@ -436,13 +424,6 @@ const styles = StyleSheet.create({
   under: { zIndex: 0 },
   over: { zIndex: 1 },
   top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
-  center: { position: 'absolute', left: 24, right: 24, alignItems: 'center', gap: 10 },
-  centerText: {
-    backgroundColor: 'rgba(255,255,255,0.94)', color: theme.ink, fontSize: 16, fontWeight: '600',
-    paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999, overflow: 'hidden', textAlign: 'center',
-  },
-  skip: { minHeight: 44, paddingHorizontal: 18, justifyContent: 'center', borderRadius: 22, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge },
-  skipText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   spotRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   spotStack: {

@@ -200,8 +200,13 @@ export function HomeSheet(props: {
   height?: Animated.Value;
   bottomInset?: number;
   areaHeight?: number;
-  /** While old walks are being placed, rows can't open a replay. */
+  /** While a walk is starting, rows can't open a replay. */
   busy?: boolean;
+  /**
+   * The walk being placed in the background: its row says so and waits, since its streets are being read
+   * (deletion audit 2); every other row opens as usual.
+   */
+  placingId?: string | null;
   /** Starts a walk navigating to the place shown (N11). */
   onGoToPlace?: () => void;
   /** The place's found places (E10), in the place view only. */
@@ -423,7 +428,7 @@ export function HomeSheet(props: {
             <View key={m.key} style={styles.month}>
               <Text testID="month-header" accessibilityRole="header" style={styles.section}>{m.label}</Text>
               {m.walks.map((w) => (
-                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} onMore={props.onWalkActions} />
+                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy || w.id === props.placingId} placing={w.id === props.placingId} onMore={props.onWalkActions} />
               ))}
             </View>
           ))}
@@ -432,7 +437,7 @@ export function HomeSheet(props: {
               <Text style={styles.section} accessibilityRole="header">Not placed yet</Text>
               <Text style={styles.note}>Placed when you’re online. Open one to place it now.</Text>
               {props.unplaced.map((w) => (
-                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} onMore={props.onWalkActions} />
+                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy || w.id === props.placingId} placing={w.id === props.placingId} onMore={props.onWalkActions} />
               ))}
             </>
           )}
@@ -512,12 +517,12 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
   );
 }
 
-function WalkRow({ walk, summary: s, disabled, onMore }: { walk: Walk; summary: WalkSummary | null; disabled?: boolean; onMore?: (walkId: string) => void }) {
+function WalkRow({ walk, summary: s, disabled, placing, onMore }: { walk: Walk; summary: WalkSummary | null; disabled?: boolean; placing?: boolean; onMore?: (walkId: string) => void }) {
   useUnits();
   const title = walk.title ?? suggestTitle(walk);
   const date = new Date(walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   // Distance and time stay; new streets aren't counted here (tabs audit U13).
-  const meta = s ? walkRowMeta(date, s) : `${date} · Open to finish reading its streets`;
+  const meta = placing ? `${date} · Placing…` : s ? walkRowMeta(date, s) : `${date} · Open to finish reading its streets`;
   return (
     <View style={styles.withMore}>
       <Pressable

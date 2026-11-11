@@ -168,7 +168,7 @@ Streets, snapping, fog
   ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
-  backlog.ts                 placeBacklog: places old walks in one pass through the home map
+  backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0134); shell.ts takes the snap and the reader
   mapReads.ts                one camera read at a time (mapReadLock)
 Places and areas (v0.5)
   areas/types.ts             PlaceCandidate, TownOutline, BoundarySource, Area, WalkArea: the whole contract
@@ -412,7 +412,7 @@ Layers (functional core, imperative shell)
   `explore_read`) are cleared by `purgeDerived`; `KEPT_STORES` (`offered`,
   `mark`, `recall`, `checklist_area`, `checklist_item`, `find`) never are.
 - **Screens read rows, never traces or media.** Chronicle reads walks,
-  summaries, Area, WalkArea and capture rows; `backlog.ts` is its one read of
+  summaries, Area, WalkArea and capture rows; `backlog/` is its one read of
   traces. Media is reached only through `resolveMedia`.
 - **The `npm test` rule.** Tests import only core modules, fakes and types, because `tsx --test`
   cannot load React Native. That is why `tileMath.ts` is split from

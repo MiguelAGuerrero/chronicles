@@ -187,8 +187,8 @@ on a phone.
   4. **The accent at launch:** "A year ago today" and "Relive it" carry the accent on the screen the app opens on,
      while capture is plain ink (also the "Thread" labels and MomentCard's play button). Muted ink and a secondary
      button?
-  5. **"Placing your walks (N of M)"**, the one excused tally worth a look: keep the count, or "Placing your walks…"
-     with Skip?
+  5. ~~**"Placing your walks (N of M)"**~~: answered Nov 11 (decision 0134): no cover, no count; walks are placed in
+     the background and the walk at hand says "Placing…" on its row.
   6. **Open question 5**, "nothing is ever calculated for you", against resurfacing and suggested threads (0098):
      where is the line?
   - Note: the commits `2a00092` and `29dac68` cite decisions 0112 and 0121 for the plain labels; the record is 0122.
