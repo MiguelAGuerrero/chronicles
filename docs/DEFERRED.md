@@ -565,3 +565,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   real geometry (layout about 660, keyboard and accessory bar about 320) the visible strip is about 170 px, so
   centring the card between the page's top and the visible foot still leaves Save under the keyboard, and the card
   slides at half the speed of a pan. A real fix places the card inside the visible band and is checked on an iPhone.
+- **Fix gallery-header's audit, deferred:** at the accessibility text sizes (iOS AX1-AX5, about 1.6 to 3.6 times) a
+  day's or month's one-line title can end in an ellipsis ("Tue, Nov 3, 2…"), and a two-line place line holds fewer
+  words: wrapping the title would make its row's height depend on its text, which getItemLayout cannot know without
+  measuring (audit 3). A month's line is one line, so its ", and outside a walk" (MG19) is often past the ellipsis on a
+  phone, and the block's spoken label leaves it out too (audit 7, an older issue than the fix).
+

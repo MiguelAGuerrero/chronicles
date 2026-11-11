@@ -200,3 +200,19 @@ test('fix gallery-header: a day header holds its title and two lines of place, a
   assert.equal(dayRows(days, 390, 0, 1.5).rows[0].height, headerHeight(1.5), "the row is the header's own height");
   assert.equal(blockRows(galleryBlocks(galleryTiles([mo('a', [['photo', at(2026, 11, 10, 9)]])], [], 'all', 'newest'), new Map(), {}, 'month', NOW), 390, 2)[0].height, blockTextHeight(2) + 260 + 12);
 });
+
+test('fix gallery-header audit 2: a text-size change keeps the day at the top', async () => {
+  const { anchorAfter } = await import('../../gallery/view');
+  const days = galleryDays(galleryTiles(Array.from({ length: 90 }, (_, i) => mo(`m${i}`, [['photo', at(2026, 9, 1 + Math.floor(i / 3), 9, i)]])), [], 'all', 'newest'), new Map(), {}, NOW);
+  const small = dayRows(days, 390, 0, 1).rows;
+  const large = dayRows(days, 390, 0, 1.353).rows;
+  const day = small.filter((r) => r.kind === 'header')[20];
+  const to = anchorAfter(small, day.offset + 30, large);
+  assert.equal(to, large.find((r) => r.kind === 'header' && r.day.key === (day.kind === 'header' ? day.day.key : ''))!.offset);
+  assert.notEqual(to, day.offset, 'the offset moves with the taller rows above');
+});
+
+test('fix gallery-header audit 5: BLOCK_TYPE line heights hold their glyphs', async () => {
+  const { BLOCK_TYPE } = await import('../../gallery/layout');
+  assert.ok(BLOCK_TYPE.titleLine >= BLOCK_TYPE.titleSize * 1.2 && BLOCK_TYPE.lineLine >= BLOCK_TYPE.lineSize * 1.2);
+});

@@ -142,14 +142,18 @@ async function run(h) {
   const roles = await pg.evaluate(() => ({ headers: document.querySelectorAll('[data-testid=gallery-day-title][role=heading]').length, tabs: document.querySelectorAll('[data-testid=gallery-zoom] [role=tab][aria-selected=true]').length }));
   check(roles.headers > 0 && roles.tabs === 1, `MG15: day titles are headings and Years, Months, Days are tabs (${JSON.stringify(roles)})`);
   const dayLines = await pg.locator('[data-testid=gallery-day-line]').allInnerTexts();
-  // fix gallery-header: no header's title or place line is cut, with a place line of two lines among them.
-  const cut = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=gallery-day], [data-testid=gallery-block]')].flatMap((h) => {
+  // fix gallery-header (audit 1, 4): no header's or block's title or line is cut: a title holds its text, a line is a
+  // whole number of its line heights (a squeezed one is not), and both stay inside their row.
+  const cutIn = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=gallery-day], [data-testid=gallery-block]')].filter((h) => !h.closest('[aria-hidden=true]')).flatMap((h) => {
     const box = h.getBoundingClientRect();
     return [...h.querySelectorAll('[data-testid$=-title], [data-testid$=-line]')].filter((t) => {
       const r = t.getBoundingClientRect();
-      return t.scrollHeight > t.clientHeight + 1 && t.getAttribute('data-testid').endsWith('title') || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5;
-    }).map((t) => `${t.getAttribute('data-testid')}: ${t.innerText}`);
+      const lh = parseFloat(getComputedStyle(t).lineHeight);
+      const squeezed = t.getAttribute('data-testid').endsWith('title') ? t.scrollHeight > t.clientHeight + 1 : !(lh > 0) || t.clientHeight < lh - 0.5 || Math.abs(t.clientHeight / lh - Math.round(t.clientHeight / lh)) > 0.05;
+      return squeezed || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5;
+    }).map((t) => `${t.getAttribute('data-testid')}: ${t.innerText} (${t.clientHeight}/${t.scrollHeight})`);
   }));
+  const cut = await cutIn();
   const twoLines = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=gallery-day-line]')].some((l) => l.getBoundingClientRect().height > 30));
   check(cut.length === 0 && twoLines, `fix gallery-header: no header text is cut, a two-line place line included (${cut.join('; ') || 'none cut'}; two lines: ${twoLines})`);
   check(dayLines.includes('A morning walk in Alfama') && dayLines.includes('Not on a walk'), `MG6: each day says where (${dayLines.join(' / ')})`);
@@ -282,6 +286,7 @@ async function run(h) {
   await pg.waitForTimeout(600);
   await shot(pg, '99-gallery-months');
   const blocks = await pg.locator('[data-testid=gallery-block-title]').allInnerTexts();
+  const cutMonths = await cutIn();
   const monthsWords = await words();
   const lastYear = String(new Date().getFullYear() - 1);
   const oldBlock = pg.locator(`[data-testid=gallery-block]:has-text("${lastYear}")`).first();
@@ -305,6 +310,8 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=gallery-block]', { timeout: 5000 });
   await pg.waitForTimeout(500);
   await shot(pg, '99-gallery-years');
+  const cutYears = await cutIn();
+  check(cutMonths.length === 0 && cutYears.length === 0 && blocks.length > 0, `fix gallery-header audit 1: no month or year block text is cut (${[...cutMonths, ...cutYears].join('; ') || 'none'})`);
   check(!tally(monthsWords) && !tally(await words()), 'MG7: no count in Months or Years');
 
   // MG1: leaving Chronicle and coming back is Memories again; Media is All Items and Days again (MG9, MG19).

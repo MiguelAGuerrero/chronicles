@@ -18,7 +18,7 @@ Every photo, video and memo piece in an edge-to-edge grid under day headers, wit
   viewer steps to, never what a moment shows. The viewer gets `startAt` (moment and piece), `position={false}` and
   `onShown`, which reads the moment's context line through `resurface.contextFor` (Memories' line, MC1-MC5).
 - **Every row's offset is known** (`dayRows`, `blockRows`): the list uses `getItemLayout`, and the day headers are
-  `stickyHeaderIndices`. A header has a fixed height (`HEADER_H`), so its place line is at most two lines.
+  `stickyHeaderIndices`. A header's height is `headerHeight(fontScale)`, made from `HEADER_TYPE`, so its place line is at most two lines.
 - **Traps:**
   - A pinch on the web is the browser's page zoom unless the grid says otherwise: the grid's View has
     `touch-action: pan-y` (one finger still scrolls). The e2e pinches with CDP touch events.

@@ -209,7 +209,6 @@ export const HEADER_TYPE = { padTop: 10, padBottom: 8, titleSize: 17, titleLine:
 /** A day header's height at the device's text size (1 on the web; larger with a phone's larger text). */
 export const headerHeight = (fontScale = 1): number =>
   Math.ceil(HEADER_TYPE.padTop + HEADER_TYPE.padBottom + (HEADER_TYPE.titleLine + HEADER_TYPE.lines * HEADER_TYPE.lineLine) * Math.max(1, fontScale));
-export const HEADER_H = headerHeight(1);
 /** The hairline between tiles (MG5). */
 export const GAP = 1;
 /** Tiles across on a 390 pt phone, by size (MG20). */
@@ -252,7 +251,6 @@ export function dayRows(days: DaySection[], width: number, size: Size, fontScale
 export const BLOCK_TYPE = { padTop: 10, padBottom: 8, titleSize: 22, titleLine: 28, lineSize: 14, lineLine: 18 } as const;
 export const blockTextHeight = (fontScale = 1): number =>
   Math.ceil(BLOCK_TYPE.padTop + BLOCK_TYPE.padBottom + (BLOCK_TYPE.titleLine + BLOCK_TYPE.lineLine) * Math.max(1, fontScale));
-export const BLOCK_TEXT_H = blockTextHeight(1);
 /** A cover's height: two thirds of the width, at most 420. */
 export const coverHeight = (width: number): number => Math.round(Math.min(420, (width * 2) / 3));
 

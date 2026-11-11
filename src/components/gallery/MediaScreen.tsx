@@ -88,6 +88,17 @@ export function MediaScreen() {
     return rows.findIndex((r) => (landing.kind === 'day' ? r.kind === 'header' && r.day.key === landing.key : r.kind === 'block' && r.block.key === landing.key));
   }, [rows, landing]);
 
+  // The text size changed while Media was up (fix gallery-header audit 2): every header grew or shrank, so the day that
+  // was at the top is found again in the new rows, as a size change does.
+  const lastRows = useRef<{ rows: Row[]; scale: number } | null>(null);
+  useEffect(() => {
+    const last = lastRows.current;
+    lastRows.current = { rows, scale: fontScale };
+    if (!last || last.scale === fontScale) return;
+    const to = anchorAfter(last.rows, offset.current, rows);
+    requestAnimationFrame(() => list.current?.scrollToOffset({ offset: to, animated: false }));
+  }, [rows, fontScale]);
+
   // A scroll asked for in a handler (a month opened, the size changed) lands once its rows are drawn (MG19, MG20).
   useEffect(() => {
     const to = pending.current;
