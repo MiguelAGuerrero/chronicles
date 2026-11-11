@@ -297,6 +297,32 @@ judging the rest (40 splits each):
 Recall climbs steeply with the number of confirmed places while precision stays at 0.97 and above. The lever for naming more obvious places without more false positives is more confirmed places, above all exits and villages;
 the procedure then widens each territory only as far as the evidence reaches. (The curve is extrapolation beyond 45 places and the owner's 58 are one region; treat 100 places as a hope, not a promise.)
 
+### Storefronts and busy streets as features (the owner's question, 2026-11-11), measured
+
+The app already has the concept: a **busy street** is a named street with a run of places along it (`landing/analyze.ts`: `Strip`, `Pocket`; the atlas records them per area), and a place counts toward its street
+when it stands within 40 m of it (a storefront). I ran the app's own `analyzeArea` over the 59 places (named streets from Overture, whose decoder already reads names; the places already in the fixtures) and measured:
+
+- **Total busy-street length inside the ring** separates grid from main street: 11 of 12 grids have 1.1 km or more (Steelton, 208 m, the exception); 11 of 12 main-street towns have under 0.9 km (Bloomsburg, the owner's grid-or-main place, 1.2 km). Eight of nine villages and eight of nine exits have **no busy street at all**.
+- **Frontage**, the share of places within 60 m of a named street, flags places set back from the street: Park City 0.10, Limerick outlets 0.08, Knoebels 0.06, Hampden 0.13, against 0.41 or more for every town, village and exit (a mall ring road, 0.59, is the exception). This is the "shops set back behind car parks" signal the plan had dropped for want of a measure, and the DEFERRED entry about strip malls.
+- Campuses still look like a downtown (Penn State: seven busy streets, 2.1 km): no help there.
+
+Leave-one-out on 58 places, the open-ended territories, margin 0.3 (development data; six feature sets looked at, so optimistic):
+
+| Features | Stability | Spoken | Right | False positives | Recall |
+|---|---|---|---|---|---|
+| Junctions, places, buildings, motorway (the base) | all five | 23 | 23 | 0 | 0.54 |
+| Base | four of five | 28 | 26 | 2 | 0.62 |
+| Base + busy-street length | all five | 27 | 27 | 0 | 0.65 |
+| Base + busy-street length + frontage | all five | 25 | 25 | 0 | 0.62 |
+| **Base + busy-street length + frontage** | **four of five** | **27** | **27** | **0** | **0.68** |
+
+At zero false positives, recall rises from 0.54 to 0.68 and the two edge-place errors at four-of-five stability (Park City, Upper Macungie) disappear: frontage removes them. Dropping buildings (streets, busy streets and frontage only) cost one wrong word (Grantville read as a village), so buildings stay.
+
+**Cost:** no new network read (the walk ways already carry names; the ring's places are already read). The analysis is a pure function over them, run for the centre and four shifted rings. Overture's street names are 61% to 98% of segments named (rural
+and interchange rings lowest); the app's atlas reads OpenStreetMap's names, so the fixtures' frontage (60 m here, 40 m in the app) must be recomputed from the same source the card will use. The busy-street length also leans on the places feed, so it inherits its uneven coverage (PF24).
+
+**A fifth word it suggests:** "Places set back from the street" (a mall, an outlet centre, an attractions park) from low frontage with a few dozen places. Three places in the data: too few to certify, and it needs its own `/vision` look; listed, not built.
+
 ## Answered (the owner, 2026-11-11)
 
 Question 1: **four words now**, no new read (answered on a wrong premise, see above; reopened). Question 3: **United States only**. Question 5: **80% and within 10 points**. Question 6: **"Around its middle: …"**.
