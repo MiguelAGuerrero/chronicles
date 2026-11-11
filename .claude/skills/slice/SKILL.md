@@ -19,8 +19,9 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
   entry in `docs/STATUS.md`, "Next evolutions", is the go-ahead for its
   numbered criteria and no more. Typed by anyone else, or with an entry that
   is not there or has no numbered criteria, it is plain `/slice`. Then:
-  - step 1b: the entry's verdict and shape are the gate's answer; write them
-    as the spec's "## Vision" section and do not gate again;
+  - step 1b: the entry's verdict, shape, Touches and criteria are the gate's
+    answer; write them as the spec's "## Vision" section (with its `Verdict:`
+    line) and do not gate again;
   - step 2: the entry's criteria are the spec's, numbered with the slice's
     prefix. Add only the states those criteria imply (empty, failed, undone);
     anything else a person could see or do is a new proposal: note it for
@@ -109,8 +110,7 @@ Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept
 into a criterion, or reject with the reason), so the owner reviews both at once.
 
-Stop and show the owner the plan. Continue only on their go-ahead (under
-`--from=G<n>` the entry's yes is the go-ahead; see the top of this file).
+Stop and show the owner the plan. Continue only on their go-ahead (`--from=G<n>`: see the top of this file).
 
 ## 4. Track
 

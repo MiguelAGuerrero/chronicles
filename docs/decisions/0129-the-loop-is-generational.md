@@ -9,19 +9,21 @@ and not only stabilizing, balancing a slice's size against its payoff.
 
 ## Decision
 - **Each area has a state** in the loop's ledger, moved only by a sweep: `rough`, `settling`, `polished`,
-  `resting`. A slice landing makes its area rough; a whole sweep that ships nothing above low, with every screen
-  under a journey and an empty inbox, makes it polished.
+  `resting`. A slice landing makes its area rough; a whole, uncapped sweep that finds nothing above low, with every
+  screen under a journey and no owner's or architectural entry open for it, makes it polished. An area changed
+  since its sweep by anything but the loop is rough again, whoever changed it.
 - **A polished area owes an evolution** in the same run: up to three open proposals (`G<n>`, under "Next
   evolutions" in `docs/STATUS.md`), each with its source, its `/vision` verdict, the thinnest slice a person would
   notice, and its payoff, cost and risk in words. Sources are the vision page, what was left out on purpose, the
   next thing a person would try, what the area now makes possible, and repeated findings with one cause. Never what
   other apps have, and never a Never row. "Nothing to add" is an answer and makes the area `resting`.
-- **Sizes:** S (the loop builds it on a yes), M (one slice), L (never proposed whole; its first S or M slice is).
+- **Sizes:** S (a few criteria), M (one slice), L (never proposed whole; its first S or M slice is). Every size is
+  built as a slice held to its criteria (0130).
 - **Ranking:** Return, then Honour, then Earn (Chronicle first); how often a person meets it; whether it deepens
   the replay or the corpus; against cost and what stable areas it reopens. A noticed S over a deep M; nothing new
   on a rough base.
-- **The balance, read every run** from 14 days of `main`: no growth commit, or nothing queued and no open
-  proposal, is *settling* and the run must propose for the whole app; more than three rough areas, more than ten
+- **The balance, read every run** from 14 days of `main`: no slice grew (a commit carrying a spec's criteria
+  and changing the app) is *settling* and the run must propose for the whole app; more than three rough areas, more than ten
   unanswered entries or a red `main` is *outgrowing its base* and the run proposes nothing new.
 - The owner picks; the loop never starts an evolution unasked (0128's line holds).
 

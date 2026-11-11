@@ -42,6 +42,8 @@ lists; each expects pictures for any screen it judges, and says so first when it
   `.claude/skills/tend/ledger.json` (area states, numbering, the balance, what was declined).
   A new session reads these and `git log` first. The copies on `main` are the only ones that count:
   a run reads them from a worktree of `origin/main` and publishes its changes to them with its work.
+- **A stopped slice is parked, not lost:** its branch is pushed as `slice/<slug>-parked`, its question
+  is a `T` entry on `main`, and the owner's answer resumes it (`/tend`, section 7).
 - **Gates are scripts where they can be:** `check:docs` (a criterion without a test), `check:vision`,
   `check:test-first`, the layer check, `check:tend` (a loop commit without a test or a source), the Stop
   hook and CI. A procedure step that keeps being missed becomes a check, not a louder sentence.

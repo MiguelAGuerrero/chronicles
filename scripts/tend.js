@@ -4,7 +4,8 @@
 //   node scripts/tend.js balance [--days N] [--write]   which slices grew on origin/main against the
 //                                                       refinement beside them, the areas by state (an
 //                                                       area changed since its sweep is rough), the
-//                                                       open entries, and a reading
+//                                                       open entries, and a reading (shallow-clone
+//                                                       boundary commits are left out)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
 //                                                       real test and its source, and none touches what
@@ -92,7 +93,7 @@ function readStatus(text) {
  * The reading, in the order the skill gives it: a base that is not holding comes before a product
  * that is not growing, since nothing new goes on a rough base.
  */
-function reading({ slices, rough, openT, openG, inProgress }, limits = LIMITS) {
+function reading({ slices, rough, openT }, limits = LIMITS) {
   if (rough > limits.rough || openT > limits.inbox) {
     const why = [];
     if (rough > limits.rough) why.push(`${words(rough)} areas are rough`);
@@ -100,7 +101,6 @@ function reading({ slices, rough, openT, openG, inProgress }, limits = LIMITS) {
     return { reading: 'outgrowing its base', propose: false, why: why.join('; ') };
   }
   if (slices === 0) return { reading: 'settling', propose: true, why: 'no slice grew in the window' };
-  if (inProgress === 0 && openG === 0) return { reading: 'settling', propose: true, why: 'no slice is being built and no evolution is proposed' };
   return { reading: 'in step', propose: false, why: 'slices are growing and the base holds' };
 }
 
@@ -108,43 +108,78 @@ function words(n) {
   return ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'][n] ?? 'many';
 }
 
-/** The area with the most commits not the loop's own since its sweep; ties by name. Null when none changed. */
-function nextArea(counts) {
+/**
+ * The area to sweep next: the one with the most commits not the loop's own since its sweep (ties by
+ * name); with none changed, one the ledger left rough, then one left settling. Null when all are at rest.
+ */
+function nextArea(counts, areas = {}) {
   const ranked = Object.entries(counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  return ranked.length ? ranked[0][0] : null;
+  if (ranked.length) return ranked[0][0];
+  for (const state of ['rough', 'settling']) {
+    const left = Object.keys(areas).filter((a) => areas[a].state === state).sort();
+    if (left.length) return left[0];
+  }
+  return null;
 }
 
-// What a sweep's commit may never touch: the identity, its exceptions, the baselines, the gates
-// themselves, the specs (the owner's doc wins) and the dependencies (an architectural call).
+/** The loop's own commits: a `tend …` commit, or the revert of one. They never make an area rough. */
+const isLoops = (subject) => /^tend /.test(subject) || /^Revert "tend /.test(subject);
+
+/** A shallow clone's boundary commits list every file as changed: they are left out of every read. */
+const dropBoundary = (commits, boundary) => commits.filter((c) => !boundary.has(c.sha));
+
+// What a loop commit may never touch: the identity, its exceptions, the baselines, the gates and the
+// procedures themselves, the sources it cites, the specs (the owner's doc wins), the schema and the
+// dependencies (architectural calls). A journey is the one script it may change.
 const FORBIDDEN = [
   /^docs\/VISION\.md$/,
-  /^scripts\/vision\.allow\.json$/,
+  /^docs\/research\//,
+  /^\.claude\/rules\/ui-patterns\.md$/,
   /\.baseline\.json$/,
   /^eslint-suppressions\.json$/,
-  /^scripts\/e2e\/flaky\.json$/,
-  /^\.claude\/(hooks\/|settings)/,
+  /^scripts\/(?!e2e\/journeys\/)/,
+  /^\.claude\/(hooks|agents)\//,
+  /^\.claude\/settings/,
+  /^\.claude\/skills\/(?!tend\/ledger\.json$)/,
   /^\.github\//,
   /^specs\//,
+  /^(AGENTS|CLAUDE)\.md$/,
   /^package(-lock)?\.json$/,
   /^app\.(json|config\.js)$/,
+  /^(eslint\.config|tsconfig)\./,
+  /^src\/lib\/db\/migrations\.ts$/,
 ];
 // The run's record and the notes: no test asked of these.
 const RECORD = [/^docs\//, /^\.claude\/rules\//, /^\.claude\/skills\/tend\/ledger\.json$/, /^README\.md$/];
 const TEST_FILE = /(^src\/lib\/__tests__\/.+\.test\.tsx?$|^scripts\/e2e\/journeys\/.+\.js$)/;
-const UNREAL_TEST = /(\{\s*todo\b|\btodo:|check\.todo\(|\.skip\(|\bskip:)/;
+const UNREAL_TEST = /(\{\s*todo\b|\btodo:|\.todo\(|\.skip\(|\bskip:|\bx(test|it)\()/;
+
+/** The name a loop commit's test must carry: "tend memories 3", "tend memories T12", "tend memories audit 2". */
+function testName(subject) {
+  const m = /^(tend \S+ (?:audit \d+|T\d+|\d+))\b/.exec(subject);
+  return m ? m[1] : null;
+}
 
 /**
- * What a commit in a sweep's range lacks. `files` are `{ status, path }` (git's A, M, D, R…);
- * `added` is the text of the lines the commit adds to its test files.
+ * What a commit in a loop's range lacks. `files` are `{ status, path, from? }` (git's A, M, D, R;
+ * `from` is a rename's old path); `added` is the text of the lines the commit adds to its test files.
  */
 function tendCommitProblems({ subject, body, files, added = '' }) {
   const problems = [];
-  if (!/^tend /.test(subject)) return ['not a loop commit: a sweep ships only `tend <scope> …` commits'];
-  for (const f of files) if (FORBIDDEN.some((re) => re.test(f.path))) problems.push(`touches ${f.path}, which the loop never edits`);
-  const code = files.filter((f) => !RECORD.some((re) => re.test(f.path)) && !TEST_FILE.test(f.path));
-  if (!code.length && !files.some((f) => TEST_FILE.test(f.path))) return problems;
-  if (!files.some((f) => TEST_FILE.test(f.path) && (f.status === 'A' || f.status === 'M'))) problems.push('no test or journey added or changed beside the change');
-  if (files.some((f) => TEST_FILE.test(f.path) && f.status === 'D')) problems.push('deletes a test');
+  if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
+  for (const f of files) {
+    for (const p of [f.path, f.from].filter(Boolean)) if (FORBIDDEN.some((re) => re.test(p))) problems.push(`touches ${p}, which the loop never edits`);
+    if (/^docs\//.test(f.from ?? f.path) && (f.status === 'D' || f.status === 'R')) problems.push(`removes ${f.from ?? f.path}: the loop deletes no document`);
+    if (/^docs\/decisions\/\d/.test(f.path) && f.status === 'M') problems.push(`edits ${f.path}: an accepted decision is superseded, never edited`);
+    if (TEST_FILE.test(f.from ?? f.path) && (f.status === 'D' || (f.status === 'R' && !TEST_FILE.test(f.path)))) problems.push('deletes a test');
+  }
+  const isTest = (f) => TEST_FILE.test(f.path);
+  const code = files.filter((f) => !RECORD.some((re) => re.test(f.path)) && !isTest(f));
+  if (!code.length && !files.some(isTest)) return problems;
+  const name = testName(subject);
+  if (!name) problems.push('its subject does not name the finding: `tend <area> <N>`, `tend <area> T<n>` or `tend <area> audit <N>`');
+  if (!files.some((f) => isTest(f) && (f.status === 'A' || f.status === 'M' || f.status === 'R'))) problems.push('no test or journey added or changed beside the change');
+  else if (name && !added.includes(name)) problems.push(`no added test line names "${name}"`);
   if (UNREAL_TEST.test(added)) problems.push('its test is a todo or a skip');
   const audit = /^tend \S+ audit \d/.test(subject);
   if (code.length && !audit && !/^\s*Source:\s*\S/m.test(body)) problems.push('no "Source:" line naming the rule it conforms to');
@@ -162,11 +197,25 @@ function readLedger() {
 /** Commits of a range or window, newest first, each with its subject and the files it touched. */
 function log(...range) {
   const out = git('log', '--no-merges', '--name-only', '--format=%x00%H%x01%s', ...range);
-  return out.split('\0').filter(Boolean).map((chunk) => {
+  const commits = out.split('\0').filter(Boolean).map((chunk) => {
     const [head, ...files] = chunk.split('\n');
     const [sha, subject] = head.split('\x01');
     return { sha, subject, files: files.filter(Boolean) };
   });
+  return dropBoundary(commits, shallowBoundary());
+}
+
+let boundary;
+function shallowBoundary() {
+  if (boundary) return boundary;
+  boundary = new Set();
+  try {
+    const file = path.resolve(ROOT, git('rev-parse', '--git-path', 'shallow').trim());
+    if (fs.existsSync(file)) for (const sha of fs.readFileSync(file, 'utf8').split('\n')) if (sha) boundary.add(sha);
+  } catch {
+    // not a git checkout the script can read: nothing to leave out
+  }
+  return boundary;
 }
 
 function knownPrefixes() {
@@ -182,7 +231,7 @@ function changesByArea(since) {
     if (f.name === 'arch') continue;
     const from = since(f.name);
     const commits = from ? log(`${from}..origin/main`) : log(`--since=${LIMITS.days} days ago`, 'origin/main');
-    counts[f.name] = commits.filter((c) => !/^tend /.test(c.subject) && c.files.some((p) => isAppSource(p) && featuresOf(p).some((x) => x.name === f.name))).length;
+    counts[f.name] = commits.filter((c) => !isLoops(c.subject) && c.files.some((p) => isAppSource(p) && featuresOf(p).some((x) => x.name === f.name))).length;
   }
   return counts;
 }
@@ -210,8 +259,7 @@ function balance(argv) {
   const changed = Object.fromEntries(Object.keys(ledger.areas ?? {}).map((a) => [a, counts[a] > 0]));
   const by = areasByState(ledger.areas, changed);
   const status = readStatus(fs.readFileSync(path.join(ROOT, 'docs', 'STATUS.md'), 'utf8'));
-  const inProgress = Object.keys(require('./features').IN_PROGRESS ?? {}).length;
-  const r = reading({ slices: t.slices.length, rough: by.rough.length, inProgress, ...status });
+  const r = reading({ slices: t.slices.length, rough: by.rough.length, ...status });
   const out = {
     date: new Date().toISOString().slice(0, 10),
     days,
@@ -219,7 +267,7 @@ function balance(argv) {
     commits: { growth: t.growth, refinement: t.refinement, other: t.other },
     areas: by,
     neverSwept: Object.keys(counts).filter((a) => !ledger.areas?.[a]).sort(),
-    open: { ...status, inProgress },
+    open: status,
     ...r,
   };
   console.log(JSON.stringify(out, null, 2));
@@ -229,10 +277,19 @@ function balance(argv) {
   }
 }
 
+/** The ledger as origin/main holds it: `next` runs before the run's worktree exists. */
+function mainLedger() {
+  try {
+    return JSON.parse(execFileSync('git', ['show', 'origin/main:.claude/skills/tend/ledger.json'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+  } catch {
+    return readLedger();
+  }
+}
+
 function next() {
-  const counts = changesByArea(sweptAt(readLedger()));
-  const area = nextArea(counts);
-  console.log(area ?? 'none: no area changed since it was swept');
+  const ledger = mainLedger();
+  const area = nextArea(changesByArea(sweptAt(ledger)), ledger.areas);
+  console.log(area ?? 'none: every area is at rest; run /tend evolve');
 }
 
 function commits(range) {
@@ -246,7 +303,7 @@ function commits(range) {
     const [subject, ...rest] = git('show', '-s', '--format=%s%n%b', sha).split('\n');
     const files = git('show', '--name-status', '--format=', sha).split('\n').filter(Boolean).map((l) => {
       const cols = l.split('\t');
-      return { status: cols[0][0], path: cols[cols.length - 1] };
+      return { status: cols[0][0], path: cols[cols.length - 1], from: cols.length > 2 ? cols[1] : undefined };
     });
     const tests = files.filter((f) => TEST_FILE.test(f.path) && f.status !== 'D').map((f) => f.path);
     const added = tests.length
@@ -272,4 +329,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, tendCommitProblems };
+module.exports = { LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems };

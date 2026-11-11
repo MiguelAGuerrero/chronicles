@@ -21,9 +21,9 @@ Echo the resolved mode, area and flags in your first line.
 
 | Argument | The run | Sections |
 |---|---|---|
-| none | a sweep of the area `node scripts/tend.js next` names (the one changed most since it was swept) | 0-5, 8-10 |
+| none | a sweep of the area `node scripts/tend.js next` names (the one changed most since it was swept, else one left rough or settling); if it names none, the run is `evolve` | 0-5, 8-10 |
 | an area (a name in `scripts/features.js`; say so and stop on any other word) | a sweep of that area | 0-5, 8-10 |
-| `triage [<section>]` | tag `docs/DEFERRED.md` | 0, 6, 10 |
+| `triage [<section>]` | tag `docs/DEFERRED.md` | 0, 6 (with 5's entry form), 10 |
 | `evolve [<area>]` | the balance, then proposals for that area, or for the app if none is named | 0, 8, 9, 10 |
 | `inbox <answers>` | act on the owner's answers ("T3 yes, G2 yes, T4 no: too busy a screen") | 0, 7, 10 |
 | `--cap=N` | ship at most N commits; the rest are filed `[loop]` in `docs/DEFERRED.md`. A capped sweep never moves an area to polished. | |
@@ -35,7 +35,8 @@ Every mode works in a worktree from `origin/main` and ends by publishing one
 branch (section 10), so the inbox, the tags and the ledger reach `main` with
 the code. Nothing is written in the primary checkout.
 
-1. `git fetch origin main`. Then `.claude/skills/ship.md`, "Open the worktree",
+1. `git fetch origin main`; in a shallow clone, `git fetch --shallow-since='30 days ago' origin main`,
+   so the script reads a whole window. Then `.claude/skills/ship.md`, "Open the worktree",
    with the branch `tend/<area or mode>-<yyyymmdd-hhmm>`.
 2. Read `docs/STATUS.md` and `.claude/skills/tend/ledger.json` there: they are
    `main`'s, and the only copies that count. An entry number means the entry
@@ -131,9 +132,8 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    recorder, the walk screen, the replay, and any change to what a screen
    shows: `npm test` and the journey that covers it, once, with a before and
    after picture kept for the report.
-3. **A "Hard stop"** reclassifies the finding as `[arch]` or `[owner]` and
-   drops the half-made change; it never ends the run and is never asked
-   mid-run.
+3. **A hard stop** (`.claude/skills/ship.md`, "Hard stops") reclassifies the
+   finding and drops the half-made change.
 4. Stop at `--cap`; file what is left as `[loop]` in `docs/DEFERRED.md`.
 
 ## 5. File the rest
@@ -162,7 +162,7 @@ entry per finding, written so a yes or no is enough:
 ## 6. Triage the deferred ledger (`/tend triage`)
 
 Give every untagged bullet in `docs/DEFERRED.md` (or the named section's) one
-tag at its start, by the table in section 1, changing no other word:
+tag at its start, by the table in section 1, keeping its words:
 
 - `[loop]`: the loop may ship it;
 - `[owner]`: an addition, a product question, or an owner's call already
@@ -171,7 +171,8 @@ tag at its start, by the table in section 1, changing no other word:
 - `[phone]`: needs a device;
 - `[kept]`: a limit recorded on purpose (a decision says so); nothing to do.
 
-A bullet holding several items is split first, one item per bullet. Then put
+A bullet holding several items is split first, one item per bullet, the
+words kept. Then put
 the `[owner]` and `[arch]` items the owner would most want to answer (**five
 at most** per run, and none while ten wait) in the inbox with
 recommendations; the rest stay tagged in place. Nothing but docs ships in a
@@ -182,29 +183,41 @@ triage run.
 Say back each entry's number and title as `main` holds it before acting; an
 entry that is gone, or whose title the owner's words plainly do not fit, is
 not acted on. One build per run: with several yeses, build the first and say
-which wait for the next `/tend inbox`.
+which wait for the next `/tend inbox`. Every no is recorded in the same run.
 
-- **Yes to a `T` entry** (always one commit's worth, by section 5): build its
-  recommended shape as section 4 does, one commit, subject
-  `tend <area> T<n>: …`, `Source:` naming the entry and what it rests on. Its
-  entry leaves the inbox.
+- **Yes to an `[owner]` `T` entry** (one commit's worth, by section 5): build
+  its recommended shape as section 4 does, one commit, subject
+  `tend <area> T<n>: …`, its test named the same, `Source:` naming the entry
+  and what it rests on. The entry leaves the inbox.
+- **Yes to an `[arch]` entry** is the owner's architectural call, not a
+  build: write its decision record, and shape the work as a `G` entry with
+  criteria (section 9's form) for a yes of its own.
+- **A `[phone]` entry** is answered with what the owner saw on the device:
+  as expected, and it leaves; otherwise it becomes a `/fix` the owner types.
 - **Yes to a `G` entry**, of any size: one slice (decision 0130). Run the
   `slice` skill with `<slug> --from=G<n>` **in this run's worktree**: the
   entry's criteria and verdict are its start, its plan is written and read by
   the steward but not held for the owner, and it returns its result block
-  without publishing or asking. Remove the entry from "Next evolutions",
-  then section 10: its checks are the slice's own step 9, the review is one
-  `auditor` pass named `<slug> audit N`, and `check:tend` is not run (a
-  slice's commits are not loop commits). If it returns
-  "Stopped on": file the question as a `T` entry with its recommended answer,
-  publish the branch for review, not to `main`, and say so.
-- **Reshape** ("yes, but…"): rewrite the entry as told, run `/vision` on the
-  new shape, and build it only if it is still aligned and still the same size;
-  otherwise the rewritten entry stays filed for a plain yes.
+  without publishing or asking. Remove the entry from "Next evolutions", then
+  section 10 (its checks are the slice's own step 9; the review's fixes are
+  named `<slug> audit N`; `check:tend` is not run, since a slice's commits
+  are not loop commits).
+- **A slice that returns "Stopped on":** push its branch as
+  `slice/<slug>-parked` and leave `main` without it. Then, on a new branch
+  from `origin/main` in the same worktree, file the question as a `T` entry
+  (`[arch]` or `[owner]`, naming the parked branch, the question and the
+  recommended answer), keep the `G` entry, and publish that record alone.
+  **A yes or no to such an entry** resumes it: check out the parked branch,
+  rebase it on `origin/main`, apply the answer, and finish the slice as above;
+  if the answer ends it, delete the parked branch and decline the `G` entry.
+- **Reshape** ("yes, but…"): rewrite the entry as told and run `/vision` on
+  the new shape. A reshaped `T` entry is built only if it is still aligned
+  and still one commit's worth. A reshaped `G` entry is never built in the
+  same run: its rewritten criteria are filed for the owner's plain yes.
 - **No:** remove the entry and add `{ title, area, date, reason }` to the
   ledger's `declined`, so no sweep proposes it again. A no that states a rule
-  ("never a count there") is a decision record too. A no to every evolution
-  of a polished area makes it `resting`.
+  ("never a count there") is a new decision record too. A no to every
+  evolution of a polished area makes it `resting`.
 - An answer that changes `docs/VISION.md` is the owner's edit; propose the
   wording and leave the page.
 
@@ -214,9 +227,10 @@ Every sweep and every `evolve` runs this before the close. It is for the
 owner and the ledger; none of it ever appears in the app.
 
 **Each area has a state** in the ledger's `areas`, set by a sweep published
-to `main`. The script overrides it: an area whose source changed since its
-sweep, by a slice, a `/fix` or anything but the loop's own commits, counts as
-`rough` whoever landed the change.
+to `main`; an area the ledger does not list has never been swept and is
+`rough`. The script overrides the ledger: an area whose source changed since its
+sweep, by a slice, a `/fix` or anything but the loop's own commits (a slice
+the loop built included), counts as `rough` whoever landed the change.
 
 | State | It means | What the loop does there |
 |---|---|---|
@@ -229,20 +243,14 @@ sweep, by a slice, a `/fix` or anything but the loop's own commits, counts as
 (`scripts/tend.js`). Over the last 14 days of `origin/main` it names the
 slices that grew (commits carrying a spec's criteria and changing the app's
 source), counts refinement beside them, groups the areas by state, counts the
-open `T` and `G` entries and the specs in `IN_PROGRESS`, and writes its
-reading to the ledger. The reading is the script's; a red `main` in the
+open `T` and `G` entries, and writes its reading to the ledger. The reading is the script's; a red `main` in the
 window is the one sign it cannot see, and reads as outgrowing its base.
 
 | Reading | Means | The run ends by |
 |---|---|---|
-| **settling** | No slice grew in 14 days, or none is being built and no `G` entry is open | Section 9 for the app (not only this area), said first in the report |
+| **settling** | No slice grew in 14 days | Section 9 for the app (not only this area), said first in the report. Proposals may sit on a rough area then, each saying what must be tended first. |
 | **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry; the report names the areas to tend and the entries to answer first |
-| **in step** | Otherwise | Section 9 only if this area is polished |
-
-The cycle this keeps turning: a slice lands (rough), the loop tends it
-(settling, polished), a polished area owes its next evolution, the owner
-picks, a slice lands. An area that is polished with nothing proposed, or
-rough with something new stacked on it, is the loop failing.
+| **in step** | Otherwise | Section 9 only if this area is polished. `/tend evolve`, typed by the owner, proposes for polished areas whatever the reading, and names the area to tend first when there is none. |
 
 ## 9. Evolve: propose the next iteration
 
@@ -301,7 +309,8 @@ ledger's `lastG`:
 ```
 - **G4 [M] Chronicle: search over moments, by word** (2026-11-11) · Return · aligned
   Area: memories. From: VISION.md Shapes, "Search over moments"; polished since <sha>.
-  The slice: 1. <criterion, an observable outcome> 2. <…> (three to ten).
+  Touches: <the gate's Never and Always lines and decisions, quoted, or none>.
+  The slice: 1. <criterion, an observable outcome> 2. <…> (three to ten, the gate's own criteria among them).
   Payoff: <words>. Cost: <words>. Reopens: <areas>. After it: <what it unlocks>.
   Instead: <the smaller shape>.
 ```
@@ -311,27 +320,32 @@ The owner picks; the loop never starts a `G` entry unasked.
 ## 10. Close and publish
 
 1. **The record**, in the worktree: the ledger (the area's `state`, `swept`
-   date, `main` as `git rev-parse origin/main` reads now, and a note; `lastT`, `lastG`; anything declined; valid JSON, only
-   those fields, the balance left to the script) and `docs/STATUS.md`, "Last
-   tend", replaced with this run's digest (area, commits with one line each,
-   entries filed, the balance in a sentence, lenses not run). Commit it with
-   the inbox and `docs/DEFERRED.md` edits as `tend <area>: the run's record`.
-2. **Checks:** `npm run check:docs`. A sweep also runs
-   `npm run check:tend -- origin/main..HEAD` (every commit is a loop commit
-   with a real test and its source, and none touches what the loop may not),
-   `npm run typecheck && npm run lint && npm test`, then
-   `.claude/skills/ship.md`, "Review": one `auditor` pass over the run's whole
-   diff, one round, fixes named `tend <area> audit N`.
+   date, a note, and `main`: the `origin/main` commit this worktree was
+   opened from, never a later one, so that anything landing during the run
+   reads as a change since the sweep; `lastT`, `lastG`; anything declined;
+   valid JSON, only those fields, the balance left to the script) and
+   `docs/STATUS.md`, "Last tend", replaced with this run's digest (area,
+   commits with one line each, entries filed, the balance in a sentence,
+   lenses not run). Commit it with the inbox and `docs/DEFERRED.md` edits as
+   `tend <area>: the run's record`. It holds documents and the ledger only.
+2. **Checks:** `npm run check:docs`. A run that changed code (a sweep, a `T`
+   build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
+   a loop commit with its own named, real test and its source, and none
+   touches what the loop may not), `npm run typecheck && npm run lint &&
+   npm test`, then `.claude/skills/ship.md`, "Review": one `auditor` pass over
+   the run's whole diff, one round, fixes named `tend <area> audit N`. A `G`
+   build runs the slice's step 9 and the same review in place of `check:tend`.
 3. **Publish**, by `--deploy`:
-   - `main`: `.claude/skills/ship.md`, "Publish to main", once. If `main` moved
-     and the rebase conflicts only in `docs/STATUS.md`, `docs/DEFERRED.md` or
-     the ledger, take `main`'s side and write this run's entries again,
-     numbered on from `main`'s `lastT` and `lastG`; any other conflict is
-     `ship.md`'s stop. After a rebase,
-     write the area's `main` again. On a red run the commit that owns the failure is reverted alone and its
-     finding filed as `[owner]` with the log's cause.
+   - `main`: `.claude/skills/ship.md`, "Publish to main", once. Whenever
+     `main` moved, compare its `lastT` and `lastG` with the ones this run
+     started from: if they changed, or the rebase conflicts in
+     `docs/STATUS.md`, `docs/DEFERRED.md` or the ledger, take `main`'s side of
+     those three and write this run's entries again, numbered on from
+     `main`'s. Any other conflict is `ship.md`'s stop. A red run is handled
+     by `ship.md`, "A red run".
    - `branch`: push the run's branch and stop; `none`: save a patch. Neither
-     moves an area's state: say the record is not on `main`.
+     moves an area's state, the entry numbers are provisional, and step 5 is
+     skipped: say the record is not on `main`.
 4. `.claude/skills/ship.md`, "Clean up".
 5. **Then ask the owner** about this run's new entries with AskUserQuestion
    (the recommended shape first, four entries per call). Their answers are a

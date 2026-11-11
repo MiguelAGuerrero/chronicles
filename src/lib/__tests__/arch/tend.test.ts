@@ -10,7 +10,7 @@ import { test } from 'node:test';
 const ROOT = join(__dirname, '..', '..', '..', '..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 type Reading = { reading: string; propose: boolean; why: string };
-type File = { status: string; path: string };
+type File = { status: string; path: string; from?: string };
 const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   STATES: string[];
   classify(subject: string, o?: { files?: string[]; known?: Set<string> }): 'growth' | 'refinement' | 'other';
@@ -18,8 +18,11 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   tally(commits: { subject: string; files?: string[] }[], known?: Set<string>): { growth: number; refinement: number; other: number; slices: string[] };
   areasByState(areas: Record<string, { state: string }>, changed?: Record<string, boolean>): Record<string, string[]>;
   readStatus(text: string): { openT: number; phoneT: number; openG: number };
-  reading(input: { slices: number; rough: number; openT: number; openG: number; inProgress: number }): Reading;
-  nextArea(counts: Record<string, number>): string | null;
+  reading(input: { slices: number; rough: number; openT: number }): Reading;
+  nextArea(counts: Record<string, number>, areas?: Record<string, { state: string }>): string | null;
+  isLoops(subject: string): boolean;
+  dropBoundary<T extends { sha: string }>(commits: T[], boundary: Set<string>): T[];
+  testName(subject: string): string | null;
   tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string }): string[];
 };
 const known = new Set(['PK', 'RF', 'PW', 'OT', 'MS', 'MT', 'QL', 'OP', 'EC']);
@@ -63,11 +66,10 @@ test('tend: the tally counts each kind and names the slices that grew', () => {
 });
 
 test('tend: the reading holds back on a rough base before it asks for growth', () => {
-  const base = { slices: 2, rough: 1, openT: 2, openG: 1, inProgress: 1 };
+  const base = { slices: 2, rough: 1, openT: 2 };
   assert.equal(tend.reading(base).reading, 'in step');
   assert.equal(tend.reading(base).propose, false);
   assert.deepEqual([tend.reading({ ...base, slices: 0 }).reading, tend.reading({ ...base, slices: 0 }).propose], ['settling', true]);
-  assert.equal(tend.reading({ ...base, openG: 0, inProgress: 0 }).reading, 'settling');
   // Four rough areas, or eleven unanswered entries: nothing new is proposed, even with no growth.
   assert.deepEqual([tend.reading({ ...base, slices: 0, rough: 4 }).reading, tend.reading({ ...base, slices: 0, rough: 4 }).propose], ['outgrowing its base', false]);
   assert.equal(tend.reading({ ...base, openT: 11 }).reading, 'outgrowing its base');
@@ -99,6 +101,26 @@ test('tend round 1: with no area named, the one changed most since its sweep is 
   assert.equal(tend.nextArea({ map: 0 }), null);
 });
 
+test('tend round 2: with nothing changed, an area the last sweep left rough or settling is next, never one at rest', () => {
+  const areas = { replay: { state: 'polished' }, tabs: { state: 'settling' }, map: { state: 'rough' }, memories: { state: 'resting' } };
+  assert.equal(tend.nextArea({ map: 0, replay: 0, tabs: 0, memories: 0 }, areas), 'map');
+  assert.equal(tend.nextArea({ replay: 0, tabs: 0 }, { replay: areas.replay, tabs: areas.tabs }), 'tabs');
+  assert.equal(tend.nextArea({ replay: 0 }, { replay: areas.replay, memories: areas.memories }), null);
+});
+
+test('tend round 2: the loop never marks its own area rough, by a commit or by its revert; a boundary commit is not read', () => {
+  assert.equal(tend.isLoops('tend memories 3: the Undo names what it restores'), true);
+  assert.equal(tend.isLoops('Revert "tend memories 3: the Undo names what it restores"'), true);
+  assert.equal(tend.isLoops('fix memories: a thing'), false);
+  assert.equal(tend.isLoops('Revert "Memories: search (MC1)"'), false);
+  assert.deepEqual(tend.dropBoundary([{ sha: 'a' }, { sha: 'b' }], new Set(['b'])), [{ sha: 'a' }]);
+});
+
+test('tend round 2: a busy fortnight is never settling for want of a proposal', () => {
+  assert.equal(tend.reading({ slices: 16, rough: 0, openT: 0 }).reading, 'in step');
+  assert.equal(tend.reading({ slices: 0, rough: 0, openT: 0 }).reading, 'settling');
+});
+
 const A = (path: string): File => ({ status: 'A', path });
 const M = (path: string): File => ({ status: 'M', path });
 const ok = {
@@ -115,7 +137,9 @@ test('tend: a loop commit that changes code carries a test and names its source;
   assert.equal(tend.tendCommitProblems({ ...ok, body: 'It looked wrong.' }).length, 1);
   assert.deepEqual(tend.tendCommitProblems({ ...ok, body: '  source: ui-patterns.md, "one primary action"' }).length, 1, 'the line is spelled Source:');
   assert.deepEqual(tend.tendCommitProblems({ subject: "tend memories: the run's record", body: '', files: [M('docs/STATUS.md'), M('docs/DEFERRED.md'), M('.claude/skills/tend/ledger.json'), M('.claude/rules/memories.md')] }), []);
-  assert.deepEqual(tend.tendCommitProblems({ ...ok, subject: 'tend memories audit 1: Undo keeps its name after a reload', body: '' }), [], 'an audit fix answers a failing input, not a source');
+  assert.deepEqual(tend.tendCommitProblems({ ...ok, subject: 'tend memories audit 1: Undo keeps its name after a reload', body: '', added: "+test('tend memories audit 1: x', () => {" }), [], 'an audit fix answers a failing input, not a source');
+  assert.deepEqual(tend.tendCommitProblems({ ...ok, subject: 'tend memories T12: a way back from a reply', added: "+  check(ok, 'tend memories T12: back')" }), []);
+  assert.deepEqual(tend.tendCommitProblems({ subject: 'tend inbox: T4 declined, a rule recorded', body: '', files: [M('docs/STATUS.md'), A('docs/decisions/0131-never-a-count-there.md'), M('docs/decisions/README.md')] }), []);
 });
 
 test('tend round 1: a sweep cannot carry what the loop may not ship', () => {
@@ -133,6 +157,35 @@ test('tend round 1: a sweep cannot carry what the loop may not ship', () => {
   assert.ok(one({ files: [M('.claude/skills/slice/SKILL.md')] }).length > 0, 'a skill is code to the loop, not a note');
 });
 
+test('tend round 2: the gates, the procedures, the cited sources and the schema are not the loop\'s to change', () => {
+  const one = (c: Partial<typeof ok>) => tend.tendCommitProblems({ ...ok, ...c });
+  for (const path of ['scripts/tend.js', 'scripts/check-docs.js', 'scripts/check-vision.js', 'scripts/features.js', 'scripts/e2e/economy.js', 'eslint.config.js', 'tsconfig.json', 'AGENTS.md', '.claude/agents/auditor.md', '.claude/skills/tend/SKILL.md', '.claude/skills/ship.md', '.claude/rules/ui-patterns.md', 'docs/research/ui-references.md', 'src/lib/db/migrations.ts']) {
+    assert.ok(one({ files: [...ok.files, M(path)] }).some((p) => p.includes(path)), `${path} with a test beside it`);
+    assert.ok(tend.tendCommitProblems({ subject: 'tend x: notes', body: '', files: [M(path)] }).length > 0, `${path} alone`);
+  }
+  assert.deepEqual(one({ files: [...ok.files, M('scripts/e2e/journeys/memories.js'), M('.claude/skills/tend/ledger.json'), M('.claude/rules/memories.md')] }), []);
+  // Renames are read on both sides; a document or a test never leaves.
+  assert.ok(tend.tendCommitProblems({ subject: 'tend x: notes', body: '', files: [{ status: 'R', from: 'docs/VISION.md', path: 'docs/OLD.md' }] }).some((p) => /docs\/VISION\.md/.test(p)));
+  assert.ok(tend.tendCommitProblems({ subject: 'tend x: notes', body: '', files: [{ status: 'D', path: 'docs/decisions/0094-the-vision-gate.md' }] }).some((p) => /deletes no document/.test(p)));
+  assert.ok(tend.tendCommitProblems({ subject: 'tend x: notes', body: '', files: [M('docs/decisions/0094-the-vision-gate.md')] }).some((p) => /never edited/.test(p)));
+  assert.ok(one({ files: [M('src/components/Undo.tsx'), { status: 'R', from: 'src/lib/__tests__/memories/undo.test.ts', path: 'src/lib/old/undo.ts' }] }).some((p) => /deletes a test/.test(p)));
+});
+
+test('tend round 2: the test beside a loop commit is its own, named for the finding, and real', () => {
+  const one = (c: Partial<typeof ok>) => tend.tendCommitProblems({ ...ok, ...c });
+  assert.equal(tend.testName('tend memories 3: x'), 'tend memories 3');
+  assert.equal(tend.testName('tend memories T12: x'), 'tend memories T12');
+  assert.equal(tend.testName('tend memories audit 2: x'), 'tend memories audit 2');
+  assert.equal(tend.testName('tend memories: tidy'), null);
+  assert.ok(one({ added: '+// a comment in some other test' }).some((p) => /names "tend memories 2"/.test(p)), 'a test touched in passing is not the finding\'s test');
+  assert.ok(one({ added: '' }).some((p) => /names "tend memories 2"/.test(p)), 'a test edit that only removes lines');
+  assert.ok(one({ subject: 'tend memories: tidy the Undo' }).some((p) => /does not name the finding/.test(p)));
+  for (const added of ["+test.todo('tend memories 2: x')", "+xtest('tend memories 2: x', () => {})", "+it.skip('tend memories 2: x', () => {})"]) {
+    assert.ok(one({ added }).some((p) => /todo or a skip/.test(p)), added);
+  }
+  assert.ok(one({ subject: 'tend memories audit 1: a new filter button', body: '', added: '+// nothing' }).length > 0, 'an audit fix still needs its named test');
+});
+
 test('tend: the ledger is JSON the script can read, and the skills name the shared procedure', () => {
   const ledger = JSON.parse(read('.claude/skills/tend/ledger.json')) as { lastT: number; lastG: number; areas: Record<string, { state: string }>; declined: unknown[] };
   assert.equal(typeof ledger.lastT, 'number');
@@ -145,7 +198,7 @@ test('tend: the ledger is JSON the script can read, and the skills name the shar
   const named = new Set<string>();
   for (const skill of ['fix', 'tend', 'slice', 'deploy']) for (const m of read(`.claude/skills/${skill}/SKILL.md`).matchAll(/ship\.md`?,?\s+"([^"]+)"/g)) named.add(m[1]);
   for (const h of ['Open the worktree', 'Hard stops', 'Review', 'Publish to main', 'Clean up', 'The result block', ...named]) {
-    assert.match(ship, new RegExp(`^## ${h}$`, 'm'), `ship.md keeps the heading "${h}" the skills name`);
+    assert.match(ship, new RegExp(`^###? ${h}$`, 'm'), `ship.md keeps the heading "${h}" the skills name`);
   }
   assert.match(read('.claude/skills/slice/SKILL.md'), /--from=G<n>/);
   assert.doesNotMatch(read('.claude/skills/tend/SKILL.md'), /--from=T/, 'only a proposal with criteria skips the plan review (decision 0130)');

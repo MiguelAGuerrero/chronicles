@@ -69,7 +69,7 @@ the limit, nothing goes to `main`: push `<branch>` so the owner can look, and li
 ## Publish to main
 
 Only under a grant, and only what the grant covers. `/deploy`'s preconditions hold (its section 1),
-at the caller's test level.
+with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
 2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
@@ -80,11 +80,21 @@ at the caller's test level.
 5. Green: load https://miguelaguerrero.github.io/chronicles/ (Playwright is installed) and check the
    visible effect. If the page cannot be reached from the session, say the live check was not done.
 
-**A red run.** One fix-forward attempt following `/deploy` section 4, only when the log names a cause
-this run plainly owns. Otherwise, or if that run is also red, or the live site is broken: in the
-worktree, `git revert` the commit that owns the failure (this run's commits only, never past the commit before them), push it
-the same way (the revert is covered by the grant), and confirm its Pages run is green. Never leave
-`main` red.
+### A red run
+
+One fix-forward attempt following `/deploy` section 4, only when the log names a cause this run plainly
+owns. Otherwise, or if that run is also red, or the live site is broken, revert in the worktree, push
+the revert the same way (it is covered by the grant) and confirm its Pages run is green. Never leave
+`main` red, and never revert a commit that is not this run's.
+
+What to revert:
+
+- **A fix:** its commit.
+- **A sweep:** the commit the log names as the cause, alone. If the log does not name one, every code
+  commit of the run. The same push carries a corrected record (documents and the ledger only): the
+  finding filed as `[owner]` with the log's cause, "Last tend" saying what was reverted, the area `rough`.
+- **A slice:** all of it as one unit, its record included (`git revert --no-commit <base>..<tip>`), so
+  the spec, the feature map and the proposal's entry go back together and the docs check stays green.
 
 After a revert, diagnose: reproduce the failure locally with the job's own command, name the cause,
 and put a corrected change on `<branch>-retry` with the failing check passing. Push that branch, not
