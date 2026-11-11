@@ -101,6 +101,11 @@ async function run(h) {
   const words = await pg.locator('[data-testid=atlas-onfoot-words]').innerText().catch(() => '');
   check(words === 'Streets close together, with crossings', `WK11, UF13, UF14: the area card for the neighborhood around the dense grid says what its ground is, in words (${JSON.stringify(words)})`);
   check(!/\d|%/.test(await pg.locator('[data-testid=atlas-onfoot]').innerText().catch(() => '1')), 'UF12: the card\'s line has no number or percentage');
+  // Place form (specs/place-form): the card's one extra line, text only, from the same read. Test first: the fake world has no buildings archive yet.
+  const form = await pg.locator('[data-testid=atlas-place-form]').innerText().catch(() => '');
+  check.todo(/^Around its middle: [a-z]/.test(form) && !/\d|%/.test(form), `PF12, PF18: the card says one line about how the ground around its middle is laid out, worded as the ring's (${JSON.stringify(form)})`);
+  check.todo((await pg.locator('[data-testid=atlas-place-form]').count()) <= 1 && (await pg.locator('[data-testid=atlas-onfoot-words]').count()) === 1, 'PF12: one description line at most, and the walkability line is as before');
+  check.todo((await pg.locator('[data-testid=atlas-waiting], [data-testid=atlas-walk-to]').count()) >= 0 && !/advice|avoid|should/i.test(form), 'PF13, PF19: the card\'s places and Walk to are the same with the line, and it says nothing about what to do');
   await shot(pg, 'walk-card');
   await c.close();
 

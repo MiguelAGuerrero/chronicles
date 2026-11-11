@@ -77,8 +77,10 @@ An honest limit: this is eastern Pennsylvania. The words are not shown to be rig
 
 Core (pure, `// @layer core`, no clock, no module state):
 
-- `src/lib/walk/placeSignals.ts`: `measureRing(tiles, junctions, places, centre, radiusM)` returns the measures: street metres, junctions per km²,
-  places per km², highway share (motorway and trunk; Overture's links arrive as class `motorway` with subtype `link`, so `walk/cells.ts`'s arterial set already
+- `src/lib/walk/buildings.ts` (a shell, like `activity/overture.ts`): Overture's `building` layer read by z14 tile through `OvertureReader`, centroids only, never stored; a
+  failed or timed-out read is `null`. `walkApp.ts` gets `walkBuildings(tiles, shouldStop)` beside `walkPlaces`. `lib/net/policy.ts`'s host name says buildings too.
+- `src/lib/walk/placeSignals.ts`: `measureRing(tiles, junctions, places, buildings, centre, radiusM)` returns the measures: street metres, junctions per km²,
+  places per km², the places' chain (largest run within 80 m, as a share and a length), buildings per km², highway share (motorway and trunk; Overture's links arrive as class `motorway` with subtype `link`, so `walk/cells.ts`'s arterial set already
   holds them: seen in the probe), stretch (the principal axis of street lengths, its own function). A ring with a tile unread, under 300 m of
   street, or with its places not read (`places` null) returns `null` (PF8, PF17). It uses `walk/cells.ts`'s own street classes so a street means one thing.
   The places carry a position and a weight only (`PlacePoint`), so no measure uses a category, a footprint or a parking.
@@ -114,7 +116,7 @@ None stored. The word is derived on read from the cached tile facts, so no migra
 | PF3 | `placeFormWords.test.ts`: `PF3: no request, host or stored row` (the module imports only core and the layer test holds it); `PF3: the same tiles, the same word` |
 | PF4 | `placeSignals.test.ts`: `PF4: places per km²`, `junctions per km²`, `highway share`, `stretch` (a straight street 2.1, a square grid 1.0), `roadside share`, each on a small made-up ground |
 | PF5 | `placeFormAccuracy.test.ts`: `PF5: every calibration place gets its confirmed word` (one assertion per place, so a miss names it and its measures) |
-| PF6 | `placeFormAccuracy.test.ts`: `PF6: held-out accuracy meets the floor` (per word and overall printed in the message), `PF6: the held-out fixture postdates the pinned thresholds` (`check:test-first`'s history, and a thresholds hash recorded beside the fixture) |
+| PF6 | `placeFormAccuracy.test.ts`: `PF6: held-out accuracy meets the floor` (per word and overall printed in the message), `PF6: the held-out fixture postdates the pinned thresholds` (`check:test-first`'s commit order: the held-out fixture is its own file, cut after the thresholds are pinned) |
 | PF7 | `placeFormAccuracy.test.ts`: `PF7: no cross-kind mistakes` over both sets |
 | PF8 | `placeFormAccuracy.test.ts`: `PF8: farmland, a park and an unread ring have no word`; `placeSignals.test.ts`: `PF8: under 300 m of street, or a tile unread, is null` |
 | PF9 | `placeFormAccuracy.test.ts`: `PF9: removing every sidewalk and crossing changes no word`, and adding them to a place with none changes none |
@@ -126,6 +128,8 @@ None stored. The word is derived on read from the cached tile facts, so no migra
 | PF12 | `scripts/e2e/journeys/walkability.js`: checks `PF12: the area card says the word, and says nothing without one`; `PF12: nothing shows while the read goes on` |
 | PF13 | `placeFormLayers.test.ts`: `PF13: explore, discovery, atlas and activity import no place-form module`; e2e `PF13: the same places with and without a word` |
 | PF14 | `placeFormLayers.test.ts`: `PF14: no layer, pin, icon, colour or setting is added` (the Layers panel's rows and `MAP_LAYERS` are unchanged) |
+| PF22 | `placeFormAccuracy.test.ts`: `PF22: moving the centre 300 m never makes a plainly wrong word` (the fixtures hold 1,100 m of data) |
+| PF21 | `placeFormAccuracy.test.ts`: `PF21: the village word separates the villages from the main-street towns on the calibration set` |
 | PF15 | `placeFormAccuracy.test.ts`: `PF15: every fixture has a confirmed word, a date and a set` |
 | PF16 | `placeFormReport.test.ts`: `PF16: the report names every place, its two words and its measures` |
 

@@ -36,7 +36,14 @@ Open: answered 2026-11-11 by the owner: Explore **says it and shows everything**
 - **Test first against real places** (the owner, 2026-11-11): every rule is a test and is evaluated on real Overture tiles for real places, with an accuracy measured on places the rule was **not** tuned on (PF5, PF6).
 - **The interchange is Bethel's case** (the owner, 2026-11-11): Bethel, PA, at its I-78 interchange, is "services at a highway exit", not a town.
 - **Words, unordered, no default** (decision 0093 and the vision gate): where none fits, there is no word (PF8).
-- **Four words; no place-category or buildings read** (the owner, 2026-11-11): the mall and the cul-de-sac suburb get no word until a measure supports one.
+- **Four words; the mall and the cul-de-sac suburb get no word** (the owner, 2026-11-11) until a measure supports one.
+- **The reads, the owner's default (2026-11-11, "proceed with your default", after the second review):** keep each place's category and confidence in the fixtures, and carry them through the
+  walkability read (no new request) only if the calibration shows a measure that needs them, and add a read of Overture's **buildings** tiles for a building count (the same host and archive reader as the places; nothing
+  stored; a buildings read that fails is no word, never a guess, PF17). Overture's exit nodes and industrial land use are not read in this slice.
+- **The village word is kept only if a measure shows it** (the owner's default, 2026-11-11): if no measure separates the village places from the main-street towns on
+  the calibration set, the word leaves the set (PF21).
+- **Labels, the one-line cap and the go-ahead** (the owner's default, 2026-11-11): the plan's proposed words are the confirmed labels (the places the owner marked
+  "?" accept either word named); the card holds one description line at most; tests first may begin.
 - **United States only for now** (the owner, 2026-11-11): the line shows nowhere else until fixtures from elsewhere exist (PF18).
 - **The copy is "Around its middle: …"** (the owner, 2026-11-11), so the line is read as the ring's, never the whole area's (PF18).
 - **The floor** (the owner, 2026-11-11): at least 80% of the held-out places get the confirmed word, and no more than 10 points below the calibration set (PF6).
@@ -81,9 +88,12 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
    read does not carry is not in the table).
 2. **PF2 · Unordered, with no default.** The table has no order a person could read as better or worse (it is stored and printed sorted by id,
    and a test checks that), and no word is what an area gets when nothing else fits: that is **no word**.
-3. **PF3 · Derived on read from what is already read.** A word is computed from the tiles' streets, street junctions and places the walkability
-   reads already hold. It adds no request, no host, no stored row and no `WALK_CODE` bump; two reads of the same tiles give the same word.
-4. **PF4 · The measures.** Each measure is defined once and tested before any rule uses it: stretch is length-weighted with its street classes named, and a test shows it keeps its answer when service ways are dropped (a measure that does not survive that is not a measure, and a word that needs it leaves the set). Each measure (places per km², street junctions per km², highway share of street length, stretch, and whether places
+3. **PF3 · Derived on read, from open tiles, stored nowhere.** A word is computed from the tiles' streets, street junctions, places (with their category and
+   confidence) and buildings. The buildings are one new tile read on the host and with the reader the places already use: no new host, no account, nothing
+   sent but the tile request. No row is stored (the building count is measured and dropped, as the places are), and no `WALK_CODE` bump is needed. Two reads of the same tiles give the same word.
+4. **PF4 · The measures.** (The starting list: counted places per km²; street junctions per km²; motorway and trunk share of street length; the largest chain of
+   counted places, each within 80 m of the next, as a share of the places and as a length; buildings per km²; whether places and buildings were read. A measure joins or
+   leaves the list by what the calibration set shows.) Each measure is defined once and tested before any rule uses it: stretch is length-weighted with its street classes named, and a test shows it keeps its answer when service ways are dropped (a measure that does not survive that is not a measure, and a word that needs it leaves the set). Each measure (places per km², street junctions per km², highway share of street length, stretch, and whether places
    were read) is computed by a function with a test on a small made-up ground whose answer is known, before the rule uses it.
 
 ### The accuracy, on real places
@@ -92,13 +102,13 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
    (plan.md), every place gets the word the owner confirmed for it, or one the owner accepted for it. A place the rule gets wrong is named in the
    failing test's message with its measures.
 6. **PF6 · Measured on places it was not tuned on.** The held-out set is cut and its words confirmed by the owner **before** the thresholds are
-   pinned, and its fixture is added in a commit after theirs. The test reports its accuracy per word and as a whole, and holds it to the floor
-   the owner sets (plan.md: at least 80% of the held-out places, and no worse than the calibration set by more than 10 points). A held-out
+   pinned, and its fixture is added in a commit after theirs. The test reports its accuracy and its recall per word and as a whole, and holds it to the floor
+   the owner set: at least 80% of the held-out places, no worse than the calibration set by more than 10 points, and at least 80% of the places the owner gave a
+   word (not silence) get some word, so staying silent cannot pass it. A place the owner marked "?" counts correct for the two words named and no other. A held-out
    miss is reported and never tuned away: a rule change after that needs a fresh held-out set.
 7. **PF7 · No plainly wrong word.** Across both sets, these pairs are never confused, in either direction: a street grid and a village along one
    road; a street grid and services at a highway exit; a town along a main street and services at a highway exit. A mall and a cul-de-sac suburb
-   (no word yet) are never called a street grid or a town along a main street. The pairs are listed in the test by name, with no grouping of the words
-   by size.
+   get **no word at all**, whichever the word. The pairs are listed in the test by name, with no grouping of the words by size.
 8. **PF8 · Too little to say.** A ring with under 300 m of street, or with too few places read to tell, has no word: farmland, a park, an
    unread tile. The fixtures include such places, and a ring whose tiles were not all read is no word, never a guess.
 9. **PF9 · A missing sidewalk never makes a word.** Removing every sidewalk, crossing and footway from every fixture changes no word; adding
@@ -120,6 +130,9 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
 14. **PF14 · No badge, tint, icon or filter.** The word is text on the card. It adds no map layer, no pin, no icon, no colour and no setting
     (the Layers panel is as before). It never changes a route, the heads-up or a walk.
 
+22. **PF22 · The centre can move.** Moving a place's centre 300 m north, east, south or west never turns its word into a plainly wrong one (PF7's pairs); it may
+    become no word. The fixtures hold 300 m of data beyond the ring for this, and the centre is the point the atlas passes the card (an Overture locality point).
+
 ### Where the data is thin, and what the words say
 
 17. **PF17 · No places read, no word.** A ring whose places were not read (the read failed or returned nothing, or its tiles were served only by
@@ -132,6 +145,10 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
     find. The word says what the ground is.
 20. **PF20 · The card renders the same for every word.** The kind rows, "Waiting to be found", the busy streets, the map's markers and the Walk to footer
     are identical for every word including none (a component test per word); the word reaches the card only through the one line that shows it.
+
+21. **PF21 · The village word has to earn its place.** "A village along one road" stays in the set only if a defined measure separates the calibration set's villages
+    from its main-street towns, found on the calibration set and held to the floor on the held-out set (PF6). If none does, the word is removed from the table, its places
+    get no word, and the Record says why.
 
 ### The evidence
 

@@ -1,0 +1,392 @@
+{
+  "release": "2026-10-21.0",
+  "confirmed": "2026-11-11",
+  "words": [
+    "grid",
+    "mainStreet",
+    "village",
+    "exit"
+  ],
+  "note": "A place's `word` is the owner's confirmed word, or null for no word. `accept` lists a second word the owner accepts for a place marked '?'. The point is the one the atlas would pass the card: an Overture locality point, or the point named in `pointNote`. `set` is calibration (the rule is tuned on it) or heldOut (never tuned on, PF6).",
+  "places": [
+    {
+      "id": "allentownDowntown",
+      "name": "Allentown downtown (Hamilton St at 7th)",
+      "at": [
+        -75.4714,
+        40.6023
+      ],
+      "word": "grid",
+      "set": "calibration",
+      "pointNote": "a street corner, not a locality point"
+    },
+    {
+      "id": "allentownGrid",
+      "name": "Allentown, 19th and Liberty",
+      "at": [
+        -75.5,
+        40.6
+      ],
+      "word": "grid",
+      "set": "calibration",
+      "pointNote": "a street corner"
+    },
+    {
+      "id": "reading",
+      "name": "Reading",
+      "at": [
+        -75.928,
+        40.3354
+      ],
+      "word": "grid",
+      "set": "calibration"
+    },
+    {
+      "id": "lancaster",
+      "name": "Lancaster",
+      "at": [
+        -76.3056,
+        40.038
+      ],
+      "word": "grid",
+      "set": "calibration"
+    },
+    {
+      "id": "hamburg",
+      "name": "Hamburg",
+      "at": [
+        -75.9824,
+        40.5553
+      ],
+      "word": "mainStreet",
+      "set": "calibration"
+    },
+    {
+      "id": "jonestown",
+      "name": "Jonestown",
+      "at": [
+        -76.4783,
+        40.4138
+      ],
+      "word": "mainStreet",
+      "set": "calibration"
+    },
+    {
+      "id": "kutztown",
+      "name": "Kutztown",
+      "at": [
+        -75.7774,
+        40.5173
+      ],
+      "word": "mainStreet",
+      "set": "calibration"
+    },
+    {
+      "id": "friedensburg",
+      "name": "Friedensburg",
+      "at": [
+        -76.2407,
+        40.6026
+      ],
+      "word": "village",
+      "set": "calibration"
+    },
+    {
+      "id": "fredericksburg",
+      "name": "Fredericksburg",
+      "at": [
+        -76.4313,
+        40.4449
+      ],
+      "word": "village",
+      "set": "calibration"
+    },
+    {
+      "id": "bethel",
+      "name": "Bethel, at the I-78 interchange",
+      "at": [
+        -76.2918,
+        40.4744
+      ],
+      "word": "exit",
+      "set": "calibration"
+    },
+    {
+      "id": "breezewood",
+      "name": "Breezewood (a Turnpike interchange town)",
+      "at": [
+        -78.243,
+        40.0
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "the interchange, chosen by hand"
+    },
+    {
+      "id": "lvMall",
+      "name": "Lehigh Valley Mall",
+      "at": [
+        -75.4925,
+        40.6455
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "a mall: no word yet"
+    },
+    {
+      "id": "parkCity",
+      "name": "Park City, Lancaster (a mall and Route 30 strip)",
+      "at": [
+        -76.3452,
+        40.0563
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "a mall and strip: no word yet"
+    },
+    {
+      "id": "upperMacungie",
+      "name": "Upper Macungie (a cul-de-sac suburb)",
+      "at": [
+        -75.575,
+        40.555
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "a suburb: no word yet"
+    },
+    {
+      "id": "lowerPaxton",
+      "name": "Lower Paxton (a suburb)",
+      "at": [
+        -76.8,
+        40.32
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "a suburb: no word yet"
+    },
+    {
+      "id": "blueMarsh",
+      "name": "Blue Marsh Lake (water and woods, no street)",
+      "at": [
+        -76.04,
+        40.38
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "chosen by hand: no street within 800 m"
+    },
+    {
+      "id": "farmA",
+      "name": "Farmland near Shartlesville (roads, scattered farms)",
+      "at": [
+        -76.12,
+        40.58
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "chosen by hand: 3.6 km of road, few buildings"
+    },
+    {
+      "id": "farmC",
+      "name": "Farmland near Womelsdorf",
+      "at": [
+        -76.2,
+        40.4
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "chosen by hand"
+    },
+    {
+      "id": "easton",
+      "name": "Easton",
+      "at": [
+        -75.21,
+        40.6916
+      ],
+      "word": "grid",
+      "set": "heldOut"
+    },
+    {
+      "id": "bethlehem",
+      "name": "Bethlehem",
+      "at": [
+        -75.3787,
+        40.6179
+      ],
+      "word": "grid",
+      "set": "heldOut"
+    },
+    {
+      "id": "steelton",
+      "name": "Steelton (a mill town of rowhouses)",
+      "at": [
+        -76.8294,
+        40.2326
+      ],
+      "word": "grid",
+      "accept": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "marked ?"
+    },
+    {
+      "id": "lititz",
+      "name": "Lititz",
+      "at": [
+        -76.3072,
+        40.1572
+      ],
+      "word": "mainStreet",
+      "set": "heldOut"
+    },
+    {
+      "id": "boyertown",
+      "name": "Boyertown",
+      "at": [
+        -75.6373,
+        40.3337
+      ],
+      "word": "mainStreet",
+      "set": "heldOut"
+    },
+    {
+      "id": "womelsdorf",
+      "name": "Womelsdorf",
+      "at": [
+        -76.1877,
+        40.3642
+      ],
+      "word": "mainStreet",
+      "accept": "village",
+      "set": "heldOut",
+      "pointNote": "marked ?"
+    },
+    {
+      "id": "emmaus",
+      "name": "Emmaus",
+      "at": [
+        -75.4919,
+        40.535
+      ],
+      "word": "mainStreet",
+      "accept": "grid",
+      "set": "heldOut",
+      "pointNote": "marked ?"
+    },
+    {
+      "id": "rehrersburg",
+      "name": "Rehrersburg",
+      "at": [
+        -76.2444,
+        40.4576
+      ],
+      "word": "village",
+      "set": "heldOut"
+    },
+    {
+      "id": "strausstown",
+      "name": "Strausstown",
+      "at": [
+        -76.1843,
+        40.4919
+      ],
+      "word": "village",
+      "set": "heldOut"
+    },
+    {
+      "id": "shartlesville",
+      "name": "Shartlesville",
+      "at": [
+        -76.1048,
+        40.513
+      ],
+      "word": "village",
+      "accept": "exit",
+      "set": "heldOut",
+      "pointNote": "marked ?"
+    },
+    {
+      "id": "grantville",
+      "name": "Grantville (I-81)",
+      "at": [
+        -76.6464,
+        40.3779
+      ],
+      "word": "exit",
+      "accept": null,
+      "set": "heldOut",
+      "pointNote": "marked ?"
+    },
+    {
+      "id": "fogelsville",
+      "name": "Fogelsville (I-78 and Route 100: warehouses, hotels)",
+      "at": [
+        -75.6226,
+        40.5757
+      ],
+      "word": "exit",
+      "accept": null,
+      "set": "heldOut",
+      "pointNote": "marked ?"
+    },
+    {
+      "id": "morgantown",
+      "name": "Morgantown (Turnpike exit)",
+      "at": [
+        -75.8899,
+        40.1553
+      ],
+      "word": "exit",
+      "accept": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "marked ?; the village's point, not the exit"
+    },
+    {
+      "id": "pennState",
+      "name": "Penn State campus",
+      "at": [
+        -77.8665,
+        40.7982
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "a campus: no word yet"
+    },
+    {
+      "id": "hershey",
+      "name": "Hershey (an attractions town)",
+      "at": [
+        -76.6502,
+        40.2859
+      ],
+      "word": null,
+      "accept": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "marked ?"
+    },
+    {
+      "id": "farmB",
+      "name": "Farmland near Pine Grove",
+      "at": [
+        -76.35,
+        40.53
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "chosen by hand"
+    },
+    {
+      "id": "hawkMountain",
+      "name": "Hawk Mountain (forest)",
+      "at": [
+        -75.993,
+        40.638
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "chosen by hand"
+    }
+  ]
+}
