@@ -65,8 +65,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
-- [owner] Presence's second slice (decision 0140): the places archive's classes (`archivePois.ts`), `barsOf`'s second bar, notable names (decided twice: `markableFor` and `historicName`), scenic routes' greens (`greenKind` reads landcover tags) and the planner onto presence classes; then G2 (Storefronts as a presence class). Filed as a G entry (specs/presence, Nov 11)
-- [loop] A plain-named memorial is a mark from the places archive (`archivePois.ts`, `historic_site`) but not from the tiles (presence's `memorial` is a mark only by a notable name); `mergePlaces` hides it only where the archive holds the place. Settled when the archive moves onto presence (the second slice; presence review F3, Nov 11, low)
 - [kept] A checklist takes a reclassified place's new category at the next tile build, not at once: items are kept and rebuilt only by E4 and PW12; `PRESENCE_CODE` re-derives the atlas and the landing only (specs/presence PR6, Nov 11)
 - [owner] When the places archive fails to load, the planner and the atlas ring read the map's places alone (`walkPlanner/service.ts`, `atlas.ts` `ringOf`), so a plain-named memorial or church the archive records shows no mark until it loads again: existing behaviour (specs/presence-readers, the steward, Nov 11)
 - [owner] Philadelphia's Old City Hall, a map museum, stays out of History: the museum step reads past "Old City" (presence-and-kinds audit 5), though the building is historic; PK6 holds it so (specs/presence-readers, the steward, Nov 11)
