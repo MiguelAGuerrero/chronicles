@@ -225,3 +225,12 @@ test('presence-readers audit 11: a8.p1 town rows and town near reads are read ag
   assert.equal(rowCurrent({ build: 'b', code: carried }, 'b'), false, 'a row with no level stands only under the current code');
   assert.equal(rowCurrent({ build: 'b', code: ATLAS_CODE }, 'b'), true);
 });
+
+test('presence-readers audit 12: presence\'s data notes name presence\'s normalizer, and the slice\'s plan names the live codes', () => {
+  for (const f of ['presence/notable.json', 'discovery/parkNotable.json', 'discovery/communityWords.json']) {
+    const note = (JSON.parse(readFileSync(join(lib, f), 'utf8')) as { _note: string })._note;
+    assert.ok(note.includes('normalizeWords') && !note.includes('normalizeBrand'), `${f}'s note names normalizeWords`);
+  }
+  const plan = readFileSync(join(lib, '..', '..', 'specs', 'presence-readers', 'plan.md'), 'utf8');
+  assert.ok(!/a8\.p[12]/.test(plan), 'the plan names a9.p1 and a9.p2, the codes that landed (T8)');
+});
