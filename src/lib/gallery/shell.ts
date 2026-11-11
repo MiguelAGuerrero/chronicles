@@ -143,7 +143,7 @@ export function createGallery(p: Pick<Ports, 'db'>, deps: GalleryDeps = { makeTh
             const segments = await p.db.getSegmentsIn([fix[0] - dLon, fix[1] - dLat, fix[0] + dLon, fix[1] + dLat]);
             name = streetAt(fix, segments, m.segment_id)?.name ?? null;
             // CX11, CX12: a complex already on the phone leads the place, the street kept; nothing is fetched.
-            const hit = complexAt(fix, await p.db.complexesNear(fix, COMPLEX_NEAR_DEG));
+            const hit = complexAt(fix, await p.db.complexesNear(fix, COMPLEX_NEAR_DEG).catch(() => []));
             if (hit) name = placeLine({ street: name, town: null, complex: { name: hit.complex.name, near: hit.near } });
           }
           store.set((s) => ({ ...s, streets: { ...s.streets, [id]: name } }));

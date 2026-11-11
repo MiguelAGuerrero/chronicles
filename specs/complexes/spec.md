@@ -165,3 +165,19 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
     its places alone, so there is no candidate pre-filter. A read that did not cover the area is `partial` (CX4). A failed read
     shows nothing and is tried again later (no pill, no error). It uses the host the app already uses: `npm run check:vision`
     passes with its host table unchanged.
+
+## Record (2026-11-11)
+
+Built test-first (16 of 16 by `check:test-first`): `src/lib/__tests__/complexes/` (21 tests over the real Overture fixtures
+for Harrisburg and Whitehall, plus the Db contract case and the version pins), and the `complexes` journey (CX4, CX5, CX9,
+CX10, CX16: 8 checks on the web build). 1894 unit tests, typecheck, lint, docs and vision checks pass. Journeys run on the
+/chronicles build: complexes, atlas, capturehome, carousel, drive, edit, gallery, gaps, grading, headsup, hidden, layers, marks,
+nudge, planner, qol, ready, reload, replay, resurface, snap, space, tabs, upgrade, walkability. Two needed fixes the slice caused
+(`upgrade` pinned IndexedDB version 18; `resurface` read a card's line the instant the card came, and the line now waits one more
+read), `nudge` failed once on a vibration-count timing check and passed on the rerun (it passes 3 of 3 on main), and the
+`atlas` journey's list of allowed Overture URLs now includes `buildings.pmtiles`. Not audited (decision 0074). Native unverified.
+
+Deferred: the Capitol Complex and other outlines Overture does not carry; Navigate, the walk screen and Walk me back naming a complex;
+a title suggestion, search and the share reel naming one; tuning the minimums beyond Harrisburg and Whitehall. The map outline
+and name labels are checked by unit tests and the journey's "no label at far zoom"; their drawn state at close zoom is not in a
+journey (the web map's canvas exposes no layer data to the e2e) and is on the device list.

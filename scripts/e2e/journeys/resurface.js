@@ -95,6 +95,8 @@ async function contextRun(h) {
   const cardOf = (words) => pg.locator(`[data-testid=moment-card]:has-text("${words}")`).first();
   const textOf = async (words) => (await cardOf(words).innerText()).replace(/\s+/g, ' ');
 
+  // The lines are read after the cards come (the street, and now a complex already on the phone): wait until the last one has its words.
+  await pg.waitForSelector('[data-testid=moment-card]:has-text("No place kept")', { timeout: 15000 }).catch(() => {});
   const placeOk = await attempt(async () => /Hope Street, Fox Point/.test(await textOf('harbor bench')) && /Hope Street/.test(await textOf('loose near hope')) && !/Fox Point/.test(await textOf('loose near hope')) && /No place kept/.test(await textOf('loose and unplaced')));
   check(placeOk, 'MC1: a card shows its street and town, the street alone outside a walk, else "No place kept"');
   const minutesOk = await attempt(async () => /Five minutes in/.test(await textOf('harbor bench')) && /Thirty minutes in/.test(await textOf('orchard blossoms')) && /On its own/.test(await textOf('loose near hope')));
