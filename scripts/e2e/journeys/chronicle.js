@@ -103,6 +103,11 @@ async function checks(h) {
     check([Math.round(vh * 0.5), vh - 56].some((h) => Math.abs(sheetH - h) < 30), `a dragged sheet settles at a step (${Math.round(sheetH)} px)`);
     await page.click('[data-testid=sheet-map]');
     await page.waitForTimeout(400);
+    // The section bar names what the sheet shows, and the sheet follows the bar, with one map up (specs/section-bar).
+    check.todo(false, 'SB1: the sheet\'s Days, Map and Walks move the section bar with them');
+    check.todo(false, 'SB2: the bar\'s Days, Walks and Map change the sheet, and its selected Map returns a place\'s walks to rest');
+    check.todo(false, 'SB3: one canvas stands and the camera holds across the moves');
+    check.todo(false, 'SB5: the bar and the sheet agree each way, pictured');
     // The map view survives a replay (H5): pan, note the star, replay, come back.
     const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
     // Grabbed where the map itself is under the pointer: not the star, nor Start or the sheet floating

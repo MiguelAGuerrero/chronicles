@@ -20,3 +20,8 @@ test('HC5: Chronicle at the root keeps its section; Explore at /explore is elsew
   assert.equal(sectionOnRoute('walks', '/explore'), 'memories');
   assert.equal(sectionOnRoute('map', '/navigate'), 'memories');
 });
+
+// The section bar names what Chronicle shows (specs/section-bar, G1, decision 0136).
+test('SB1: each list the sheet shows names its section: the walks list Walks, the days list Days, the sheet at rest Map', { todo: 'test first' }, () => {});
+test('SB2: each section opens its sheet: Walks and Days that list, Map the sheet at rest', { todo: 'test first' }, () => {});
+test('SB4: a place\'s walks and a day\'s timeline keep the section they were opened from', { todo: 'test first' }, () => {});
