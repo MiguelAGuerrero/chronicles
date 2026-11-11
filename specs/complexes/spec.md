@@ -78,6 +78,10 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
   "Capitol Complex" outline in the tile read, so Civic may wait on a chronicles-data pack.
 - **No cap; the nearest first and a "See more"** (2026-11-11, replacing the plan's cap of 6): every complex of an area
   can be listed; the card leads with the nearest to the area's point and "See more" shows the rest, with no number.
+- **All five kinds from building type** (2026-11-11, the owner's call over my recommendation of Shopping first): Markets,
+  Campuses, Stations and Civic are told from the named building's type and what it holds, as CX3 says. I argued once that a
+  hospital or a courthouse then becomes a "complex" with no proof that it is made of places; the owner accepted that. The
+  Capitol Complex still waits (CX2: its buildings are separate polygons, never joined by us).
 - **The steward's pass was accepted** (2026-11-11, plan "Steward's findings"): the street stays in a moment's line; viewing
   a moment never fetches; no "what it holds" sentence; the list opens on the nearest and a "See more" holds the rest.
 
@@ -91,9 +95,16 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
 2. **CX2 · No outline, no complex.** A point named like a mall, a cluster of shops with no named polygon, or several
    named buildings that sit together (the Capitol's) are not a complex. The outline is the named polygon as the
    source gives it, never inflated, smoothed, joined or boxed.
-3. **CX3 · The kind is a word.** A complex is one of Shopping, Markets, Campuses, Stations or Civic, said as that word;
-   a polygon that fits none is not a complex (it may be missed, it is never guessed). The table from what is inside to
-   a kind is one place in core, as presence's table is. A kind with no real fixture is not built (plan).
+3. **CX3 · The kind is a word.** A named polygon is at most one of Shopping, Markets, Campuses, Stations or Civic, said as
+   that word, by one table in core (as presence's table is), first match winning in this order:
+   - **Markets:** it holds a place whose Overture category is a market (farmers', public or flea market).
+   - **Stations:** its Overture building subtype is `transportation` and its class is not parking, and it holds a place.
+   - **Campuses:** its subtype is `medical` or `education` and it holds at least a fixed minimum of places.
+   - **Civic:** its subtype is `civic` and it holds at least a fixed minimum of places.
+   - **Shopping:** by CX1's contents, whatever its type.
+   A polygon that fits none is not a complex (it may be missed, never guessed). The minimums are core constants tuned on real
+   fixtures. A kind enters only once a real fixture passes its rule; one that no fixture can show is recorded in
+   `docs/DEFERRED.md` with the evidence and its switch is not shown.
 4. **CX4 · The area card lists its complexes.** A neighborhood's or a town's card shows a "Complexes" section: each
    complex by its name and its kind as a word, and a Walk to as the Busy areas have (TP7, DW). There is no line about
    what a complex holds. The section shows the nearest few first and a "See more" lists the rest; every complex of the
