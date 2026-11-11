@@ -27,7 +27,7 @@ const AT: LngLat = [-75.47, 40.6];
 const pt = (props: Record<string, unknown>, at: LngLat = AT) => ({ geometry: { type: 'Point', coordinates: at }, properties: props, zoom: 14 }) as never;
 const view = (barsOf: (p: any) => string[], p: any): View => (p ? { category: p.category, kind: p.kind ?? null, markable: !!p.markable, bars: barsOf(p) } : null);
 const CATEGORY_IDS = ['art', 'food', 'shops', 'history', 'parks', 'culture', 'viewpoints', 'nightlife'];
-const KIND_IDS = ['public_art', 'museums', 'theatres', 'monuments', 'churches', 'cemeteries', 'parks', 'viewpoints', 'structures', 'curiosities', 'community'];
+const KIND_IDS = ['public_art', 'museums', 'theatres', 'monuments', 'churches', 'cemeteries', 'parks', 'community_parks', 'viewpoints', 'structures', 'curiosities', 'community'];
 const quoted = (text: string, w: string) => new RegExp(`['"]${w}['"]`).test(text);
 
 function libFiles(): string[] {

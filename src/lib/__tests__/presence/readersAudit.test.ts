@@ -195,3 +195,23 @@ test('presence-readers audit 9: park and wood are plain only where a green\'s ki
   for (const f of ['discovery/refine.ts', 'discovery/refinements.ts', 'discovery/parkKind.ts', 'discovery/green.ts'])
     assert.ok(!destructures.test(readFileSync(join(lib, f), 'utf8')), `${f} destructures a feature's class`);
 });
+
+test('presence-readers audit 10: a refined community park keeps its classes and counts toward Parks', async () => {
+  const { refineRead } = await import('../../discovery/refinements');
+  const { placesFromTilePois } = await import('../../discovery/tilePois');
+  const { barsOf } = await import('../../discovery/bars');
+  const { countsToward } = await import('../../discovery/curation');
+  const { presenceSteps } = await import('../../atlas/atlas');
+  const at: [number, number] = [-75.47, 40.6];
+  const [p] = refineRead(placesFromTilePois([{ geometry: { type: 'Point', coordinates: at }, properties: { class: 'park', subclass: 'park', name: 'Elm Street Playground' }, zoom: 14 } as never], 'b'), {});
+  assert.equal(p.kind, 'community_parks');
+  assert.ok(p.classes?.includes('park'), 'the refinement changes the kind, never the classes');
+  assert.deepEqual(barsOf(p), ['parks']);
+  assert.equal(countsToward(p), true);
+  assert.ok(presenceSteps([p, { ...p, key: 'k2' }, { ...p, key: 'k3' }], at).parks > 0, 'it lights Parks');
+  const plain = { ...p, kind: 'parks' as const };
+  for (const n of [1, 3, 6, 12]) {
+    const many = (q: typeof p) => Array.from({ length: n }, (_, i) => ({ ...q, key: `k${i}` }));
+    assert.deepEqual(presenceSteps(many(p), at), presenceSteps(many(plain), at), `${n} community parks light Parks as ${n} parks do`);
+  }
+});
