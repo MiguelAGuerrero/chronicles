@@ -3,7 +3,7 @@ import { distanceM, projector } from '../geo';
 import { inRings } from './green';
 import type { LngLat } from '../types';
 import community from './communityWords.json';
-import { normalizeWords, notableName } from '../presence/notable';
+import { normalizeWords, notableBeyondNeighbourhood } from '../presence/notable';
 import parkNotable from './parkNotable.json';
 import type { Refinement } from './refine';
 import type { Place } from './types';
@@ -38,9 +38,10 @@ const hasWord = (name: string, list: readonly string[]): boolean => {
 const communityName = (name: string): boolean => hasWord(name, COMMUNITY);
 /**
  * PC2: the name says it is more: a park word of the refinement's own curation (`parkNotable.json`: a state park, a memorial,
- * an arboretum), or a name presence calls notable (`notableName`, the one rule; specs/presence-readers PS3, T8).
+ * an arboretum), or a name presence calls notable as it reads a museum's (`notableBeyondNeighbourhood`: the one word list,
+ * past a neighbourhood's "Old Town" or "old and new"; presence-and-kinds audit 5, specs/presence-readers PS3, T8, T9).
  */
-const notablePark = (name: string): boolean => hasWord(name, NOTABLE) || notableName(name);
+const notablePark = (name: string): boolean => hasWord(name, NOTABLE) || notableBeyondNeighbourhood(name);
 
 /** A place a park is not plain for (PC2): something to find that is not a park itself. */
 const isSignal = (p: Place): boolean => p.markable === true && !!p.kind && p.kind !== 'parks' && p.kind !== 'community_parks' && p.kind !== 'community';

@@ -73,7 +73,7 @@ test('PS2: a place carries its classes; a museum the data calls historic is muse
   for (const f of ['discovery/bars.ts', 'discovery/types.ts', 'discovery/archivePois.ts', 'atlas/atlas.ts']) assert.ok(!src(f).includes('alsoBars'), `${f} still names alsoBars`);
 });
 
-test('PS3: one word list and one name rule, for marks and bars alike; only the museum step reads past a neighbourhood', async () => {
+test('PS3: one word list and one name rule, for marks and bars alike; only the museum step and community parks (tend explore T9) read past a neighbourhood', async () => {
   const p = await presence();
   assert.ok(existsSync(join(lib, 'presence/notable.json')) && !existsSync(join(lib, 'discovery/notable.json')), 'the word list lives in presence');
   const { notableName } = (await import('../../presence/notable' as string)) as { notableName: (n: string) => boolean };
@@ -84,7 +84,8 @@ test('PS3: one word list and one name rule, for marks and bars alike; only the m
   // T8: community parks (main's first refinement) asks presence whether a name is notable; its park words (`parkNotable.json`,
   // `communityWords.json`) are the refinement's own curation, never a second notable rule.
   const park = src('discovery/parkKind.ts');
-  assert.ok(/import \{[^}]*\bnotableName\b[^}]*\} from '\.\.\/presence\/notable'/.test(park), 'parkKind reads notableName from presence');
+  // tend explore T9: as presence reads a museum's name, past a neighbourhood's "Old Town" (presence-and-kinds audit 5).
+  assert.ok(/import \{[^}]*\bnotableBeyondNeighbourhood\b[^}]*\} from '\.\.\/presence\/notable'/.test(park), 'parkKind reads presence\'s rule');
   assert.ok(!/function notableName|const notableName/.test(park), 'parkKind defines no notable rule of its own');
   for (const f of libFiles()) assert.ok(!/['/]notable\.json/.test(readFileSync(f, 'utf8')), `${relative(lib, f)} reads notable.json`);
   assert.ok(p.named(['civic_hall'], 'Old Town Hall').includes('historic_name'), 'a historic name, for marks');
@@ -169,13 +170,18 @@ test('PS7: PR2\'s guard holds with no exception: no module outside presence spel
   assert.ok(!/ALLOWED: Record<string, \(w: string\) => boolean> = \{\s*'/.test(readFileSync(join(__dirname, 'presenceAudit.test.ts'), 'utf8')), 'presence audit 2 allows nothing');
 });
 
-test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change', async () => {
+test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change but tend explore T9\'s', async () => {
   const { placesFromArchive } = await import('../../discovery/archivePois');
   const { placesFromTilePois } = await import('../../discovery/tilePois');
   const { barsOf } = await import('../../discovery/bars');
   const { ringOf } = await import('../../atlas/atlas');
   const { outlined } = await import('./outlinedRings');
   const marksOf = (r: { marks: { key: string; kind?: string }[] }) => r.marks.map((m) => `${m.key}|${m.kind ?? ''}`).sort();
+  // tend explore T9, the one listed change since the capture: a park named for a ground for play whose only notable word was
+  // "heritage" or a neighbourhood's "Old Town" is a community park now. Of the golden rings, only this one moves.
+  const T9 = new Set(['heritage park playground']);
+  const t9 = (marks: string[]) =>
+    marks.map((m) => (m.endsWith('|parks') && T9.has((JSON.parse(m.slice(0, m.lastIndexOf('|'))) as string[])[1]) ? m.replace(/\|parks$/, '|community_parks') : m)).sort();
   const names = golden.names;
   for (const g of golden.archive)
     for (const k of ['plain', 'notable', 'hood'] as const)
@@ -194,13 +200,13 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
       const r = ringOf(map, arch, a.at);
       const g = golden.steps[i];
       assert.deepEqual([g.file, g.name], [file, a.name], 'the golden rows follow the fixtures');
-      assert.deepEqual({ steps: r.steps, marks: marksOf(r), thin: r.thin }, { steps: g.steps, marks: g.marks, thin: g.thin }, `${file} ${a.name}`);
+      assert.deepEqual({ steps: r.steps, marks: marksOf(r), thin: r.thin }, { steps: g.steps, marks: t9(g.marks), thin: g.thin }, `${file} ${a.name}`);
       // presence-readers audit 8: the same ring fed landcover outlines, so the kind pipeline's refinement runs on outlines.
       const o = outlined(a);
       const outlinedMap = placesFromTilePois(o.pois.map(([name, cls, sub, lon, lat]) => pt({ name, class: cls, subclass: sub }, [lon, lat])), d.tiles);
       const ro = ringOf(outlinedMap, arch, a.at, undefined, [], o.landcover as never);
       const go = golden.outlined[i++];
-      assert.deepEqual({ steps: ro.steps, marks: marksOf(ro), thin: ro.thin }, { steps: go.steps, marks: go.marks, thin: go.thin }, `${file} ${a.name}, outlined`);
+      assert.deepEqual({ steps: ro.steps, marks: marksOf(ro), thin: ro.thin }, { steps: go.steps, marks: t9(go.marks), thin: go.thin }, `${file} ${a.name}, outlined`);
       if (file === 'presenceSample.json') lit.push(r.steps);
     }
   }
@@ -221,7 +227,9 @@ test('PS9: the presence code moves on; atlas and landing rows from the last code
   assert.ok(ATLAS_CODE.endsWith(PRESENCE_CODE));
   // presence-readers audit 2: p1's rows stand only while the code is p2; the next bump decides its carry afresh.
   if (PRESENCE_CODE === 'p2') {
-    for (const level of ['neighborhood', 'town'] as const) assert.equal(rowCurrent({ build: 'b', code: 'a9.p1', level }, 'b'), true, `${level} a9.p1 stands`);
+    // The carry is spelled with the atlas's own part (decision 0146): a9.p1 under a9.p2, a10.p1 under a10.p2 (tend explore T9).
+    const carried = `${ATLAS_CODE.split('.')[0]}.p1`;
+    for (const level of ['neighborhood', 'town'] as const) assert.equal(rowCurrent({ build: 'b', code: carried, level }, 'b'), true, `${level} ${carried} stands`);
     assert.equal(rulesCurrent(`${LANDING_CODE}:p1:${JSON.stringify(LANDING_RULES)}`), true, 'a p1 landing row stands');
   }
 });

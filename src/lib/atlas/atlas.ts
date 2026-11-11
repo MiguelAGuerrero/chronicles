@@ -32,16 +32,17 @@ import type { Pocket } from './pockets';
 /** a7: the places archive's curiosities and landmarks count among the findable kinds (PW10); rows stand until an archive is known, then read again (profileStale). */
 /** a8: presence by bars (PK1-PK7): a museum the data calls historic lights History too; community spaces join Culture. */
 /** a9: a park whose name says a playground or the like, with nothing notable in it, is a community park (PC13); curation over presence's classes, so presence's own code is unchanged. */
-/** The atlas's own part of a row's code (a9). */
-const ATLAS_OWN = 'a9';
-/** A row's code: the atlas's own (a9) and presence's (PR6), so a reclassification re-reads every row. */
+/** a10: community parks reads a park's name as presence reads a museum's, past a neighbourhood's "Old Town", and "heritage" keeps no park (tend explore T9); none carried. */
+/** The atlas's own part of a row's code (a10). */
+const ATLAS_OWN = 'a10';
+/** A row's code: the atlas's own (a10) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
 /**
  * TP10: the older rules a level's rows still stand under, because the change did not touch that level. None of a8's
- * (PK7: the bars changed at every level; PC13: community parks, at every level); the presence codes presence carries
- * stand at every level under the atlas's own part (`PRESENCE_CARRIED`, specs/presence-readers PS9: a9.p1 under a9.p2), so a
- * bump of the atlas's own part carries none.
+ * (PK7: the bars changed at every level; PC13: community parks, at every level), nor of a9's (T9: park kinds, at every
+ * level); the presence codes presence carries stand at every level under the atlas's own part (`PRESENCE_CARRIED`,
+ * specs/presence-readers PS9: a9.p1 under a9.p2, now a10.p1 under a10.p2), so a bump of the atlas's own part carries none.
  */
 const CARRIED_PRESENCE = PRESENCE_CARRIED.map((c) => `${ATLAS_OWN}.${c}`);
 const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: CARRIED_PRESENCE };

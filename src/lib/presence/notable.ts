@@ -29,7 +29,8 @@ export function notableName(name: string): boolean {
 
 /**
  * presence-and-kinds audit 5: "Old" in a neighbourhood's name (Old Town, Old City) or in "old and new" says nothing of the
- * place, so the step that makes a museum historic reads those phrases past; marks read the name whole (the steward, S1).
+ * place, so the step that makes a museum historic reads those phrases past, and community parks reads a park's name so
+ * (`discovery/parkKind.ts`, tend explore T9); marks read the name whole (the steward, S1).
  */
 export const notableBeyondNeighbourhood = (name: string): boolean =>
   notableName(name.replace(/\bold\s+(town|city|quarter|village)\b/gi, ' ').replace(/\bold\s+(and|&)\s+new\b/gi, ' '));

@@ -163,8 +163,8 @@ test('PC12: nothing is fetched to sort: the judgement is synchronous and the mod
   }
 });
 
-test('PC13: ATLAS_CODE is a9 and a stored place carries no kind', () => {
-  assert.ok(ATLAS_CODE.startsWith('a9'), ATLAS_CODE);
+test('PC13: ATLAS_CODE is past a8 (a9, a10 since tend explore T9) and a stored place carries no kind', () => {
+  assert.ok(ATLAS_CODE.startsWith('a10.'), ATLAS_CODE);
   const p = read([park('Elm Street Playground')])[0];
   assert.equal(p.kind, CP);
   assert.ok(!('kind' in placeToRow(p)));
@@ -201,4 +201,23 @@ test('PC17: size never demotes a park without a community word', () => {
   for (const side of [20, 60, 90]) assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), side)])]), 'Cedar Park'), 'parks', `${side} m square`);
   // An outline cut at a tile edge (a thin sliver) changes nothing either.
   assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), 6)])]), 'Cedar Park'), 'parks');
+});
+
+test('tend explore T9: parkNotable.json holds no word notable.json leaves out as a neighbourhood\'s', () => {
+  const list = (f: string) => JSON.parse(readFileSync(new URL(f, import.meta.url), 'utf8')) as { _note: string; words: string[] };
+  const notable = list('../../presence/notable.json');
+  const parkWords = list('../../discovery/parkNotable.json');
+  // notable.json's note names the words it leaves out because they also name neighbourhoods; the park words follow it.
+  const left = /left out/.test(notable._note) ? (/\(([^)]*)\)\s*are left out/.exec(notable._note)?.[1] ?? '').split(/,\s*/) : [];
+  assert.ok(left.includes('heritage') && left.length >= 5, `the note names its neighbourhood words: ${left.join(', ')}`);
+  for (const w of left) assert.ok(!parkWords.words.includes(w), `parkNotable.json holds "${w}"`);
+  // Presence's reading, with presence-and-kinds audit 5's read-past of a neighbourhood: these four are plain grounds for play.
+  for (const n of ['Old Town Playground', 'Old City Tot Lot', 'Old and New Ball Field', 'Heritage Hills Playground'])
+    assert.equal(kindOf(read([park(n)]), n), CP, n);
+  // The same reading presence gives a museum: a notable word beside the neighbourhood still keeps a park.
+  for (const n of ['Old Mill Playground', 'Old Town Historic Playground', 'Heritage Memorial Playground', 'Old Quarry Ball Field'])
+    assert.equal(kindOf(read([park(n)]), n), 'parks', n);
+  const src = readFileSync(new URL('../../discovery/parkKind.ts', import.meta.url), 'utf8');
+  assert.match(src, /import \{[^}]*\bnotableBeyondNeighbourhood\b[^}]*\} from '\.\.\/presence\/notable'/, 'parkKind reads presence\'s read-past');
+  assert.doesNotMatch(src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ''), /old\\s|\bold\b.*town/i, 'parkKind spells no neighbourhood of its own');
 });

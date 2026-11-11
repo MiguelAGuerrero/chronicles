@@ -1,5 +1,5 @@
 {
-  "_note": "Words in a park's name that keep it a park however it is also named (community-parks, PC2): the refinement's own curation, never a second notable rule (presence-readers PS3, T8); a name presence calls notable (notableName) keeps it a park too. Matched as whole words or phrases after presence's normalizeWords. Data, not code: edit freely.",
+  "_note": "Words in a park's name that keep it a park however it is also named (community-parks, PC2): the refinement's own curation, never a second notable rule (presence-readers PS3, T8); a name presence calls notable, read past a neighbourhood as a museum's is (notableBeyondNeighbourhood), keeps it a park too. Words that also name neighbourhoods, which notable.json leaves out (heritage among them), stay out here too (tend explore T9). Matched as whole words or phrases after presence's normalizeWords. Data, not code: edit freely.",
   "words": [
     "state park",
     "national",
@@ -15,7 +15,6 @@
     "regional",
     "county park",
     "metro park",
-    "metropark",
-    "heritage"
+    "metropark"
   ]
 }
