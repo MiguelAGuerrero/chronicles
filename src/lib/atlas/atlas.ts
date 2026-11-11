@@ -171,9 +171,9 @@ export interface AtlasArea {
 export const atlasKey = (a: { level: string; name: string; at: LngLat }) =>
   JSON.stringify([a.level, a.name.normalize('NFC').trim().toLowerCase(), a.at[0].toFixed(3), a.at[1].toFixed(3)]);
 
-/** Whether a row was made under this build and these rules (AT12). */
+/** Whether a row was made under this build and these rules (AT12); a row with no level stands only under the current code (presence-readers audit 11). */
 export const rowCurrent = (r: { build: string; code: string; level?: AtlasLevel }, build: string | null) =>
-  !!build && r.build === build && codeCurrent(r.code, r.level);
+  !!build && r.build === build && (r.level != null ? codeCurrent(r.code, r.level) : r.code === ATLAS_CODE);
 
 /**
  * Whether rows or reads made under this code stand (presence-readers audit 4): the current code, or one carried for the

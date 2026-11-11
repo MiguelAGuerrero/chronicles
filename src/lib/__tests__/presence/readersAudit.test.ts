@@ -215,3 +215,13 @@ test('presence-readers audit 10: a refined community park keeps its classes and 
     assert.deepEqual(presenceSteps(many(p), at), presenceSteps(many(plain), at), `${n} community parks light Parks as ${n} parks do`);
   }
 });
+
+test('presence-readers audit 11: a8.p1 town rows and town near reads are read again; a row without a level stands only under the current code', async () => {
+  const { ATLAS_CODE, needsNear, rowCurrent } = await import('../../atlas/atlas');
+  const at: [number, number] = [-75.38, 40.62];
+  for (const level of ['neighborhood', 'town'] as const) assert.equal(rowCurrent({ build: 'b', code: 'a8.p1', level }, 'b'), false, `a8.p1 ${level} row`);
+  assert.equal(needsNear([{ at, build: 'b', code: 'a8.p1', town: 'T' }], at, 'b', undefined, 'T'), true, 'a8.p1 town near read');
+  const carried = `${ATLAS_CODE.split('.')[0]}.p1`;
+  assert.equal(rowCurrent({ build: 'b', code: carried }, 'b'), false, 'a row with no level stands only under the current code');
+  assert.equal(rowCurrent({ build: 'b', code: ATLAS_CODE }, 'b'), true);
+});
