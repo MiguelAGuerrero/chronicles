@@ -260,6 +260,12 @@ test('E8: a capture finds the one unfound place within 60 m; with two in reach i
   assert.equal(findFor(O, [item('Far', m(70, 0))], new Set()), null);
 });
 
+test('fix which-place audit 1: the same place listed twice is one candidate', () => {
+  const a = item('A', m(50, 0));
+  assert.equal(findCandidates(O, [a, { ...a }], new Set()).length, 1);
+  assert.equal(findFor(O, [a, { ...a }], new Set())?.name, 'A');
+});
+
 test('E18: a hidden kind is still found by a capture', () => {
   const c = item('Church', m(20, 0), 'churches');
   assert.equal(findFor(O, [c], new Set())?.name, 'Church');

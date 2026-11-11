@@ -26,6 +26,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
 - Finding, fix which-place: a moment with two or more unfound places within 60 m is tagged to none unless made on an exploring walk, where "Which place is this moment about?" asks; the home's loose moments and quiet walks never ask, and a moment cannot be tagged to a place afterwards (Explore, E8)
+- Finding, fix which-place audit 3, 5, 6: a declined "Which place?" is not remembered (a reload asks again); several ambiguous captures in a row ask only about the newest; a capture made before Explore is switched on is never asked; the chip lists three places at most and has no e2e journey
 
 ## Streets and snapping
 

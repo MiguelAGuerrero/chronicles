@@ -1957,7 +1957,7 @@ const styles = StyleSheet.create({
   findChoice: { backgroundColor: theme.ink, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, alignSelf: 'center', maxWidth: 420, gap: 8 },
   findChoiceTitle: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   findChoiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 36, justifyContent: 'center', maxWidth: 220 },
+  findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', maxWidth: 220 },
   findChoiceBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },

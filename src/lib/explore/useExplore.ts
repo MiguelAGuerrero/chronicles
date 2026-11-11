@@ -260,13 +260,17 @@ export function useExplore(opts: {
     const places = left.map((k) => [...items, ...routeItems].find((i) => i.key === k)).filter((i): i is ChecklistItem => !!i);
     return places.length > 1 ? { captureId: asked.captureId, places } : null;
   }, [asked, found, opts.captures, items, routeItems]);
+  const answered = useRef<string | null>(null);
   const choose = useCallback(
     (item: ChecklistItem | null) => {
-      const id = asked?.captureId;
+      // One answer per question (a double tap), and none for a capture that is gone (audit 2, 4).
+      const id = choice?.captureId;
+      if (answered.current === id) return;
+      answered.current = id ?? null;
       setAsked(null);
       if (item && id) record(item, id).catch(() => {});
     },
-    [asked, record],
+    [choice, record],
   );
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;

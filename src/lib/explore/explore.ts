@@ -334,7 +334,7 @@ export function visibleMarks(o: {
 export function findCandidates(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem[] {
   const near: { item: ChecklistItem; d: number }[] = [];
   for (const x of items) {
-    if (found.has(x.key)) continue;
+    if (found.has(x.key) || near.some((n) => n.item.key === x.key)) continue;
     const d = distanceM(at, x.at);
     if (d <= EXPLORE_RULES.revealM) near.push({ item: x, d });
   }
