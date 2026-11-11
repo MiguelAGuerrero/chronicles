@@ -25,9 +25,9 @@ Chronicle's section bar (Memories | Walks | Days | Map) and the sheet over the m
 
 ## Criteria
 
-1. **SB1** Whenever the sheet changes what it lists (its Walks | Days switch, its Map button, or dragged up from rest or down to rest), Chronicle's section changes with it: the bar selects Walks for the walks list, Days for the days list and Map for the sheet at rest.
-2. **SB2** The bar's Walks, Days and Map change the sheet as before: Walks and Days open it on that list, Map lowers it to rest, from whatever the sheet showed.
-3. **SB3** Moving among Walks, Days and Map, by either control, keeps one map: no new canvas, and the camera where it was.
+1. **SB1** Whenever the sheet changes what it lists (its Walks | Days switch, its Map button, dragged up from rest or down to rest, or lowered by a long press that offers Walk here), Chronicle's section changes with it: the bar selects Walks for the walks list, Days for the days list and Map for the sheet at rest.
+2. **SB2** The bar's Walks, Days and Map change the sheet as before: Walks and Days open it on that list, Map lowers it to rest, from whatever the sheet showed, a place's walks or a day's timeline included, and also when the section pressed is the one already selected. A selected star and a Walk here card go, as with the sheet's own switch. A list opens at the height it was last left, as the sheet's switch already does.
+3. **SB3** Moving among Walks, Days and Map, by either control, keeps one map: no new canvas, and the camera where it was. The sheet's Walks still zooms out to every place walked when some are out of view (decision 0054), and the bar's Walks still does not, as before.
 4. **SB4** A place's walks and a day's timeline keep the section they were opened from; a replay or a day opened from a section returns to it.
 5. **SB5** The `chronicle` journey checks each way, the bar to the sheet and the sheet to the bar, that the two agree and one canvas stands, with a picture of each.
 

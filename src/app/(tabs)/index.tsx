@@ -8,6 +8,7 @@ import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
 import { MediaScreen } from '../../components/gallery/MediaScreen';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
+import { sectionOfSheet, sheetForSection } from '../../lib/resurface/section';
 import { useStore } from '../../lib/useStore';
 import { CaptureViewer } from '../../components/CaptureView';
 import { HomeSheet, SHEET_PEEK, type SheetMode } from '../../components/HomeSheet';
@@ -67,7 +68,10 @@ const allCaptures = () => db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(fac
  * only walks, summaries, Area, WalkArea and capture rows; placing old walks
  * (which reads their traces) lives in lib/backlog.
  */
-function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
+/** A press on the section bar, counted, so a press on the section already selected still reaches the sheet (SB2). */
+type BarPress = { section: 'memories' | 'walks' | 'days' | 'map'; n: number };
+
+function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; press: BarPress }) {
   perfCount('render:home');
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -119,6 +123,24 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
   const [selected, setSelected] = useState<Star | null>(null);
   // A long press at street zoom: Walk here, a one-tap start (NV12).
   const [spot, setSpot] = useState<LngLat | null>(null);
+  // Every change of what the sheet lists: the section bar follows it (SB1), and a selected star and a Walk here card
+  // go with the list they were shown over (SB2). A place's walks and a day's timeline keep their section (SB4).
+  const showSheet = (m: SheetMode) => {
+    if (m.kind !== 'place') setSelected(null);
+    setSpot(null);
+    setMode(m);
+    const next = sectionOfSheet(m.kind, section);
+    if (next !== section) chronicleSection.set(next);
+  };
+  // A press on the bar while the map is up changes the sheet without a new map (SB2, SB3): adjusted while rendering,
+  // as React has a prop change adjust state, never in an effect.
+  const [seenPress, setSeenPress] = useState(press.n);
+  if (press.n !== seenPress && press.section !== 'memories') {
+    setSeenPress(press.n);
+    setSelected(null);
+    setSpot(null);
+    setMode({ kind: sheetForSection(press.section) });
+  }
   // The map refits only when the places walked change (a new walk, a pass),
   // never just for coming back: a replay keeps the view you left (H5).
   // Kept while the app is open, so the section comes back where it was (audit 8): the framed places, and the camera below.
@@ -277,8 +299,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
           unplaced={unplaced}
           mode={mode}
           onMode={(m) => {
-            if (m.kind !== 'place') setSelected(null);
-            setSpot(null);
             // Opening the walks list zooms out to every place walked (M6), at once, framed above the
             // half-height sheet it opens to; only when they aren't all in view already, and never
             // closer than now (audit 7).
@@ -287,7 +307,7 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
               const z = zoomOutFor({ camera: cameraNow.current, size: { width: screenW, height: screenH }, padding, places: index.bounds });
               if (z) setFit((f) => ({ bounds: z.bounds, key: f.key + 1, padding, maxZoom: z.maxZoom }));
             }
-            setMode(m);
+            showSheet(m);
           }}
           onHeight={setSheetH}
           height={sheetAnim}
@@ -402,8 +422,8 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
             onLongPress={(at) => {
               const zoom = view?.zoom ?? 0;
               if (zoom < 12) return;
-              setSelected(null);
-              setMode({ kind: 'summary' });
+              // The sheet goes to rest, so the bar says Map (SB1); then the card.
+              showSheet({ kind: 'summary' });
               setSpot(at);
             }}
             onPress={() => spot && setSpot(null)}
@@ -450,10 +470,15 @@ const styles = StyleSheet.create({
 export default function Chronicle() {
   const insets = useSafeAreaInsets();
   const section = useStore(chronicleSection.store, (s) => s);
+  const [press, setPress] = useState<BarPress>(() => ({ section, n: 0 }));
+  const choose = (s: BarPress['section']) => {
+    setPress((p) => ({ section: s, n: p.n + 1 }));
+    chronicleSection.set(s);
+  };
   return (
     <View style={styles.screen}>
       <View style={{ paddingTop: insets.top, backgroundColor: theme.bg }}>
-        <SectionBar section={section} onChange={chronicleSection.set} />
+        <SectionBar section={section} onChange={choose} />
       </View>
       <View style={styles.body}>
         {section === 'memories' ? (
@@ -461,9 +486,10 @@ export default function Chronicle() {
         ) : section === 'media' ? (
           <MediaScreen />
         ) : (
-          // The bar above has taken the safe area's top: the map's own offsets start below it.
+          // The bar above has taken the safe area's top: the map's own offsets start below it. One map across Walks,
+          // Days and Map: the bar and the sheet change what it lists, never the map (SB3).
           <SafeAreaInsetsContext.Provider value={{ ...insets, top: 0 }}>
-            <ChronicleMap key={section} section={section} />
+            <ChronicleMap section={section} press={press} />
           </SafeAreaInsetsContext.Provider>
         )}
       </View>

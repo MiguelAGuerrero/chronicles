@@ -10,7 +10,15 @@ From G1 (decision 0130: the plan is read by the steward, not held for the owner)
 | SB1, SB2, SB3 | `src/app/(tabs)/index.tsx`: `ChronicleMap` is no longer keyed by section, so one map stays mounted across Walks, Days and Map. The sheet's `onMode` also sets the section (`chronicleSection.set`), noting the section it now shows; a section that changes from the bar while the map is up sets the sheet's mode during render (React's "adjusting state when a prop changes", compared with the section last shown), never in an effect |
 | SB5 | `scripts/e2e/journeys/chronicle.js`: a step after the walks list is reached |
 
-`HomeSheet` and `SectionBar` do not change: the sheet already reports every list change through `onMode` (switch, Map, drag), and the bar already reports through `onChange`.
+`HomeSheet` and `SectionBar` do not change: the sheet already reports every list change through `onMode` (switch, Map, drag), and the bar reports every press through `onChange`, the selected section included. Every change of the sheet's mode in `ChronicleMap` (the sheet's `onMode`, the long press) goes through one function that also sets the section and clears a selected star and a Walk here card; a press on the bar reaches the map as a counted press (`{ section, n }` from `Chronicle`), so a press on the selected section still resets the sheet.
+
+## The steward (Nov 11): triage
+
+- S1 (the long press lowers the sheet without the bar): accepted into SB1; the long press goes through the one function.
+- S2 (a press on the selected section does nothing): accepted into SB2; the bar's press is counted, not compared.
+- S3 (the bar's Walks and the sheet's Walks move the camera differently): kept as before, written into SB3; the shape is unchanged, and whether both should zoom out is filed for the owner (`/tend`).
+- S4 (a bar change no longer clears a selected star or a Walk here card): accepted into SB2.
+- Silent: a list opens at the height it was last left, as the sheet's switch already did (written into SB2); a drag up opens Walks whatever list was last shown, as before.
 
 ## Data
 

@@ -17,3 +17,21 @@ export function keepsSection(path: string): boolean {
   const p = path.split('?')[0];
   return p.startsWith('/replay/') || p.startsWith('/day/') || p === '/';
 }
+
+/** The sheet's lists as the map shows them (`SheetMode['kind']` in `HomeSheet`). */
+export type SheetKind = 'summary' | 'walks' | 'days' | 'place' | 'day';
+
+/**
+ * The section the sheet names (SB1, SB4): the walks list Walks, the days list Days, the sheet at rest Map. A place's
+ * walks and a day's timeline keep the section they were opened from.
+ */
+export function sectionOfSheet(kind: SheetKind, current: Section): Section {
+  if (kind === 'walks' || kind === 'days') return kind;
+  if (kind === 'summary') return 'map';
+  return current;
+}
+
+/** The sheet a section opens (SB2): Walks and Days that list, Map the sheet at rest. */
+export function sheetForSection(section: Exclude<Section, 'memories'>): 'summary' | 'walks' | 'days' {
+  return section === 'map' ? 'summary' : section;
+}

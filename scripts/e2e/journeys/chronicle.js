@@ -104,10 +104,57 @@ async function checks(h) {
     await page.click('[data-testid=sheet-map]');
     await page.waitForTimeout(400);
     // The section bar names what the sheet shows, and the sheet follows the bar, with one map up (specs/section-bar).
-    check.todo(false, 'SB1: the sheet\'s Days, Map and Walks move the section bar with them');
-    check.todo(false, 'SB2: the bar\'s Days, Walks and Map change the sheet, and its selected Map returns a place\'s walks to rest');
-    check.todo(false, 'SB3: one canvas stands and the camera holds across the moves');
-    check.todo(false, 'SB5: the bar and the sheet agree each way, pictured');
+    {
+      const selectedSection = () => page.locator('[data-testid^=section-][aria-selected=true]').getAttribute('data-testid');
+      const shows = async () => ((await page.locator('[data-testid=walk-row]').count()) ? 'walks'
+        : (await page.locator('[data-testid=day-row]').count()) ? 'days'
+          : (await page.locator('[data-testid=place-title]').count()) ? 'place' : 'rest');
+      const camera = () => page.locator('[data-zoom]').first().evaluate((e) => `${e.getAttribute('data-zoom')} ${e.getAttribute('data-center')}`);
+      const canvases = () => page.locator('canvas.maplibregl-canvas').count();
+      const settle = () => page.waitForTimeout(700);
+      const cam0 = await camera();
+      const seen = [];
+      // The sheet to the bar (SB1).
+      await page.click('[data-testid=sheet-days]');
+      await page.waitForSelector('[data-testid=day-row]', { timeout: 10000 });
+      await settle();
+      seen.push(['sheet Days', await selectedSection(), await shows(), await canvases(), await camera()]);
+      await shot(page, 'chronicle-sb-sheet-to-bar');
+      await page.click('[data-testid=sheet-map]');
+      await settle();
+      seen.push(['sheet Map', await selectedSection(), await shows(), await canvases(), await camera()]);
+      const sheetToBar = seen.slice(0, 2);
+      check(sheetToBar[0][1] === 'section-days' && sheetToBar[0][2] === 'days' && sheetToBar[1][1] === 'section-map' && sheetToBar[1][2] === 'rest',
+        `SB1: the sheet's Days and Map move the section bar with them (${JSON.stringify(sheetToBar.map((x) => x.slice(0, 3)))})`);
+      // The bar to the sheet (SB2), with no new map (SB3).
+      await page.click('[data-testid=section-days]');
+      await page.waitForSelector('[data-testid=day-row]', { timeout: 10000 });
+      await settle();
+      seen.push(['bar Days', await selectedSection(), await shows(), await canvases(), await camera()]);
+      await shot(page, 'chronicle-sb-bar-to-sheet');
+      await page.click('[data-testid=section-walks]');
+      await page.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
+      await settle();
+      seen.push(['bar Walks', await selectedSection(), await shows(), await canvases(), await camera()]);
+      await page.click('[data-testid=section-map]');
+      await settle();
+      seen.push(['bar Map', await selectedSection(), await shows(), await canvases(), await camera()]);
+      const barToSheet = seen.slice(2);
+      // A place's walks opened from Map keep Map (SB4); the bar's Map, already selected, returns it to rest (SB2).
+      await page.click('[aria-label^="Fox Point,"]');
+      await page.waitForSelector('[data-testid=place-title]');
+      const placeSection = await selectedSection();
+      await page.click('[data-testid=section-map]');
+      await settle();
+      const afterSame = [await selectedSection(), await shows()];
+      check(barToSheet[0].slice(1, 3).join() === 'section-days,days' && barToSheet[1].slice(1, 3).join() === 'section-walks,walks'
+        && barToSheet[2].slice(1, 3).join() === 'section-map,rest' && placeSection === 'section-map' && afterSame.join() === 'section-map,rest',
+        `SB2: the bar's Days, Walks and Map change the sheet, and its selected Map returns a place's walks to rest (${JSON.stringify(barToSheet.map((x) => x.slice(0, 3)))}, place ${placeSection}, then ${afterSame})`);
+      check(seen.every((x) => x[3] === 1) && seen.every((x) => x[4] === cam0),
+        `SB3: one canvas stands and the camera holds across the moves (${JSON.stringify(seen.map((x) => [x[0], x[3], x[4]]))}, from ${cam0})`);
+      check(sheetToBar.every((x) => x[1] === `section-${x[2] === 'rest' ? 'map' : x[2]}`) && barToSheet.every((x) => x[1] === `section-${x[2] === 'rest' ? 'map' : x[2]}`),
+        'SB5: the bar and the sheet agree each way, pictured (chronicle-sb-sheet-to-bar, chronicle-sb-bar-to-sheet)');
+    }
     // The map view survives a replay (H5): pan, note the star, replay, come back.
     const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
     // Grabbed where the map itself is under the pointer: not the star, nor Start or the sheet floating
