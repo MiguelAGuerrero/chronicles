@@ -115,3 +115,12 @@ From the steward's review (Nov 11, triaged in the plan):
 - Subsets under other categories, and a parent switch over a group of kinds (the owner: parks only now).
 - Trails (named paths inside a park) as a signal.
 - A card or sheet line about a park's size or contents.
+
+## Record (Nov 11)
+
+- **Built test-first** (17 of 17 by `check:test-first`): PC1-PC17 in `src/lib/__tests__/explore/communityParks.test.ts`; PC6 also in the `marks` journey. 1,880 unit tests, typecheck, lint, layers, `check:docs`, `check:vision` pass on the tree merged with main (presence, decision 0140).
+- **Journeys:** `marks`, `atlas`, `grading`, `curiosities`, `outlines`, `replay` and `nudge` pass on the web build. `scenic` fails "fix preview-clutter audit 1" and fails it on `origin/main` too (3 of 3 runs), so it is not this slice's.
+- **Defaults taken** (Nov 11): name only, size never demotes; the kind "Community parks" with `people-outline`; an unfound place never named for its kind; old checklists keep `parks` until read again. PC15 was narrowed from the steward's finding 6: the planner and scenic routes read no "What I'm into" for any kind, so they count both kinds as parks.
+- **Not built:** a fixture from the real Allentown park's tiles (blocked host; "Franklin Memorial Park" is a name case, the owner's recollection); colouring green spaces; subsets for other categories (`docs/DEFERRED.md`).
+- **Native has never run on a device;** the one device item is in `docs/NATIVE_UNVERIFIED.md`.
+
