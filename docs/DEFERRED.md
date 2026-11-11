@@ -25,6 +25,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
+- Finding, fix which-place: a moment with two or more unfound places within 60 m is tagged to none unless made on an exploring walk, where "Which place is this moment about?" asks; the home's loose moments and quiet walks never ask, and a moment cannot be tagged to a place afterwards (Explore, E8)
+- Finding, fix which-place audit 3, 5, 6: a declined "Which place?" is not remembered (a reload asks again); several ambiguous captures in a row ask only about the newest; a capture made before Explore is switched on is never asked; the chip lists three places at most and has no e2e journey
 
 ## Streets and snapping
 
@@ -433,7 +435,23 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
 
-## Presence and kinds (PK1-PK19, decision 0126, Nov 10)
+## Explore: a neighborhood with no listed town (fix explore-town-scope, decision 0126)
+
+- **Deferred, the owner's call (Nov 10):** near you the row is the towns; a neighborhood is only on its town's page, which
+  looks within `townReachM` (capped at 5 km) of the town's point. A neighborhood past every town's reach is shown nowhere,
+  even the one you stand in, deep inside a large city's outline far from its point (audit 3). The neighborhoods stand in
+  only when no town is named around you. Next, if wanted: a town's page takes the neighborhoods inside its outline,
+  whatever their distance from its point.
+- **Deferred (audit 5):** outside every town, the nearest town leads and is framed whole on arrival, so the page titled
+  "Near you" may open on a town some kilometres off; and when an outline arrives that marks another town as yours, the
+  selection and the frame move to it. Framing the selected town is the row's rule (EC5).
+- **Deferred (fix add-pill-cramped audit 3, 4):** the "Adding to this moment" pill (grouping) is still a capsule whose label
+  can wrap at very narrow widths, and the stacked "Add to this moment" card (radius 28) differs in shape from the
+  capsule pills beside it. Next, if wanted: give the grouping pill the same stacked treatment once both are seen in a
+  phone-size screenshot.
+- **Deferred (fix carousel-live-select audits 2, 4-7):** a programmatic `scrollTo` sets `intended`, and on web a wheel or trackpad scroll may not fire `onScrollBeginDrag`, so that scroll is read as the row's own until it settles (2); each card passed runs the whole `selectKey` (announcement, layer re-read, map easing), where a screen reader may want one announcement for the card the scroll ends on (4); the selected card's footer can change the row's height while the finger is down (5); the settle's ease onto a card also runs on a phone when a finger is held between cards for 120 ms, as before the fix (6); no e2e step yet asserts a card is selected before the scroll settles (7).
+
+## Presence and kinds (PK1-PK19, decision 0127, Nov 10)
 
 - **Plazas and art walkways** (the owner's picture of Culture): no data the app reads holds them; a source that adds places is 0115's question, not a sorting one (0117).
 - **Food and Parks are lit in most areas**, and Food wherever nearly any other bar is: they say little when lit. For the owner.

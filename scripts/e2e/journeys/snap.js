@@ -8,19 +8,27 @@ async function run(h) {
   const { c, pg } = await freshPage('snap');
   await c.addInitScript(() => { window.__perf = {}; });
   try {
-    await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 30000 }).catch(() => {});
-    await pg.waitForTimeout(2500);
+    // Near you the row is the towns; the gestures step Providence's neighborhoods, on its page (fix explore-town-scope).
+    const intoTown = async () => {
+      await pg.goto(exploreUrl);
+      await h.areaTile(pg, 'Wickenden');
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 4, null, { timeout: 60000 }).catch(() => {});
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 4, null, { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(2500);
+      // The town's own card leads; step onto its first neighborhood.
+      await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
+      await pg.keyboard.press('ArrowRight');
+      await pg.waitForTimeout(1200);
+    };
+    await intoTown();
     const map = pg.locator('.maplibregl-map').first();
     const centre = async () => ((await map.getAttribute('data-center')) || '0,0').split(',').map(Number);
     const zoom = async () => Number(await map.getAttribute('data-zoom'));
     const selected = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point][data-selected="1"]')].map((e) => e.dataset.name));
     const said = () => pg.locator('[data-testid=atlas-snap-said]').textContent().catch(() => '');
     const drag = async (dx, dy) => {
-      const b = await map.boundingBox();
-      const x = b.x + b.width / 2;
-      const y = b.y + b.height * 0.5;
+      // On bare map: a "?" or an area point under the finger takes the touch (fix explore-town-scope).
+      const { x, y } = await h.bareMapPoint(pg);
       await pg.mouse.move(x, y);
       await pg.mouse.down();
       await pg.mouse.move(x + dx, y + dy, { steps: 6 });
@@ -95,10 +103,8 @@ async function run(h) {
     // discrete-navigation audit 1: on a wide screen the card is a side panel beside the map. A swipe with a card
     // open never leaves it showing another area.
     await pg.setViewportSize({ width: 1200, height: 800 });
-    await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
-    await pg.waitForTimeout(2000);
-    // The first card is selected on arrival; a tap on it opens its card.
+    await intoTown();
+    // A neighborhood is selected; a tap on it opens its card.
     const firstName = (await selected())[0];
     await pg.locator(`[data-testid=atlas-tile][data-name="${firstName}"]`).click().catch(() => {});
     await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 5000 }).catch(() => {});

@@ -17,6 +17,7 @@ import {
   checklistKey,
   clampRange,
   findFor,
+  findCandidates,
   foundList,
   foundLine,
   placeFinds,
@@ -249,12 +250,20 @@ test('E17: a hidden kind gets no ? marks, but its found places still show', () =
 
 // ——— Finding (E8, E18) ———
 
-test('E8: a capture finds the nearest unfound place within 60 m', () => {
+test('E8: a capture finds the one unfound place within 60 m; with two in reach it finds none by itself', () => {
   const a = item('A', m(50, 0));
   const b = item('B', m(30, 0));
-  assert.equal(findFor(O, [a, b], new Set())?.name, 'B');
+  assert.equal(findFor(O, [a], new Set())?.name, 'A');
+  assert.equal(findFor(O, [a, b], new Set()), null, 'two in reach: the reader picks');
+  assert.deepEqual(findCandidates(O, [a, b], new Set()).map((x) => x.name), ['B', 'A'], 'nearest first');
   assert.equal(findFor(O, [a, b], new Set([b.key]))?.name, 'A');
   assert.equal(findFor(O, [item('Far', m(70, 0))], new Set()), null);
+});
+
+test('fix which-place audit 1: the same place listed twice is one candidate', () => {
+  const a = item('A', m(50, 0));
+  assert.equal(findCandidates(O, [a, { ...a }], new Set()).length, 1);
+  assert.equal(findFor(O, [a, { ...a }], new Set())?.name, 'A');
 });
 
 test('E18: a hidden kind is still found by a capture', () => {

@@ -17,7 +17,7 @@ async function arrive(h) {
 }
 
 async function checks(h) {
-  const { BASE, ctx, page, start, at, distanceM, names, OVERTURE_RELEASE, overtureAsked, check, shot, tabTo, tabBarShown, tiles } = h;
+  const { BASE, ctx, page, start, at, distanceM, names, OVERTURE_RELEASE, overtureAsked, check, shot, tabTo, tabBarShown, tiles, areaTile } = h;
   await arrive(h);
     // The place view names Fox Point's finds, never counts them, and the overview shows neither (E10, decision 0099).
     check((await page.locator('[data-testid=place-count]').count()) === 0 && (await page.locator('[data-testid=mark-pin]').count()) === 0, 'the home shows no count and no "?" on the overview');
@@ -37,13 +37,15 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=atlas-carousel]');
     };
     await toExplore();
+    // Near you the row is the towns; Fox Point is on your town's page (fix explore-town-scope).
+    await areaTile(page, 'Fox Point');
     await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 60000 }).catch(() => {});
     {
       const names = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
       const fox = tileOf('Fox Point');
       const label = (await fox.getAttribute('aria-label')) ?? '';
-      check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
-        `AT1: the atlas lists the neighborhoods near you, the one you're in first (${names.join(', ')}: ${label})`);
+      check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
+        `AT1: your town's page lists its neighborhoods, the one you're in first (${names.join(', ')}: ${label})`);
       check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('[data-kind]').count()) >= 1 && (await fox.locator('svg').count()) === 0,
         'AT3, AT5: its ring was read by itself; the card has the kinds it has (round 3: only those present) and no picture (the area\'s card has it, decision 0124)');
       check(/Walked (once|\d+ times)/.test(label) && /History: (some|plenty|lots)/.test(label),
@@ -87,7 +89,9 @@ async function checks(h) {
       const ringBefore = await ring();
       const hoods = await page.locator('[data-testid=atlas-tile]:not([data-level="town"])').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
       const pickName = hoods.find((n) => n !== 'Fox Point') ?? 'Fox Point';
+      // On a town's page its own card is selected on arrival: a first tap selects the area, a second opens it (EC11).
       await tileOf(pickName).click();
+      if (!(await page.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await tileOf(pickName).click();
       await page.waitForSelector('[data-testid=atlas-card]');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(1500);
@@ -102,8 +106,8 @@ async function checks(h) {
       const dy = dot ? dot.y + dot.height / 2 - (canvas.y + canvas.height / 2) : NaN;
       const selName = (await sel.count()) ? await sel.first().getAttribute('data-name') : null;
       // Explore's fit pads 84 px under its title and 24 px at the bottom: the area sits 30 px below the middle.
-      check(points >= hoods.length && ringBefore === '800' && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
-        `AT9: the small map shows the areas' points, and the first area is selected on arrival, and opening its card frames it with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      check(points >= hoods.length && !ringBefore && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
+        `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
@@ -182,19 +186,25 @@ async function checks(h) {
       await tabTo(page, 'explore');
       await page.waitForSelector('[data-testid=atlas-carousel]');
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
-      // AT2 (round 3): your own town is the title, never listed again among the other towns; the title opens its page.
-      const towns = await page.locator('[data-testid=atlas-tile][data-level="town"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
-      const homeName = await page.locator('[data-testid=explore-area]').innerText();
-      check(!towns.includes(homeName), `atlas round 3: your town (${homeName}) isn't listed again among the other towns (${towns.join(', ') || 'none'})`);
-      await page.click('[data-testid=atlas-title]');
+      // AT2 (fix explore-town-scope): near you the row is the towns, yours leading and selected, listed once; a tap on it
+      // opens its page, whose pill goes back to the towns with it still selected.
+      if (await page.locator('[data-testid=atlas-back-pill]').count()) await page.click('[data-testid=atlas-back-pill]');
+      await page.waitForSelector('[data-testid=atlas-tile][data-level="town"][data-selected="1"]', { timeout: 10000 }).catch(() => {});
+      const front = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => ({ name: e.getAttribute('data-name'), level: e.getAttribute('data-level'), sel: e.getAttribute('data-selected') })));
+      const homeName = front[0]?.name;
+      check(front.length > 0 && front.every((t) => t.level === 'town') && front[0].sel === '1' && front.filter((t) => t.name === homeName).length === 1
+        && (await page.locator('[data-testid=explore-area]').innerText()) === 'Near you',
+        `AT2: near you the row is the towns, your town (${homeName}) leading, selected and listed once (${front.map((t) => t.name).join(', ')})`);
+      await page.click('[data-testid=atlas-tile][data-level="town"][data-selected="1"]');
       const head = await page.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).then(() => true, () => false);
-      check(head && (await page.locator('[data-testid=explore-area]').innerText()) === homeName && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1,
-        `AT2: the title opens your town's own page, its own card first, with a way back low on the screen (${homeName})`);
+      check(head && (await page.locator('[data-testid=explore-area]').innerText()) === homeName && /\bTowns$/.test((await page.locator('[data-testid=atlas-back-pill]').innerText()).trim()),
+        `AT2: the town's card opens its own page, its own card first, with a way back to the towns low on the screen (${homeName})`);
       check((await page.locator('[data-testid=atlas-back]').count()) === 0, 'town page: one way back, the low pill; the title has no arrow (decision 0077)');
       await shot(page, '11d-atlas-town');
       await page.click('[data-testid=atlas-back-pill]');
-      await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 10000 });
-      check((await page.locator('[data-testid=atlas-town-head]').count()) === 0, 'AT2: back returns to the areas near you');
+      await page.waitForSelector(`[data-testid=atlas-tile][data-name="${homeName}"][data-selected="1"]`, { timeout: 10000 }).catch(() => {});
+      check((await page.locator('[data-testid=atlas-town-head]').count()) === 0 && (await page.locator(`[data-testid=atlas-tile][data-name="${homeName}"][data-selected="1"]`).count()) === 1,
+        'AT2: back returns to the towns, the one you left still selected');
     }
     // What's good here (v1.5): a long press on the small map, then a read of the area around the city
     // nearby, finds Thayer Street's strip, as information (L1, L2, L5, L7, L9, NV15).
@@ -275,13 +285,16 @@ async function checks(h) {
       check((await rows()).length === first.length, 'looking again replaces the area');
       // Reloaded on the tab, the atlas comes back from storage at once (AT12), offline of the map's reads (NV5).
       await page.reload();
+      await areaTile(page, 'Fox Point', 30000);
       const back = await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).then(() => true, () => false);
       const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
       check(back && new URL(page.url()).pathname === `${BASE}/explore`,
         `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
       if (back) {
         // AD14: the area's small map (on its card, decision 0124) draws its graded streets in magenta, a path per grade, wider as the grade rises.
+        // On your town's page its own card is selected on arrival: a first tap selects Fox Point, a second opens it (EC11).
         await tileOf('Fox Point').click();
+        if (!(await page.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await tileOf('Fox Point').click();
         await page.waitForSelector('[data-testid=atlas-card]');
         const strokes = await page.locator('[data-testid=atlas-card]').evaluate((el) => [...el.querySelectorAll('path')]
           .filter((p) => (p.getAttribute('stroke') ?? '').toLowerCase() === '#d6268c')

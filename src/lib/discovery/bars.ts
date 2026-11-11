@@ -3,7 +3,7 @@ import { notableName } from './noise';
 import type { CategoryId, Kind, Place } from './types';
 
 /*
- * Presence and kinds (PK1-PK3, PK8-PK10, decision 0126): which presence bars a place lights, and which places a route
+ * Presence and kinds (PK1-PK3, PK8-PK10, decision 0127): which presence bars a place lights, and which places a route
  * passes rather than goes into. Kinds are the switches; the bars are a grouping over them, and a place may light two.
  */
 

@@ -1334,6 +1334,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
+        {exploring && explore.choice && (
+          <LiftIn testID="find-choice" style={styles.findChoice} accessibilityLiveRegion="polite">
+            <Text style={styles.findChoiceTitle}>Which place is this moment about?</Text>
+            <View style={styles.findChoiceRow}>
+              {explore.choice.places.slice(0, 3).map((pl) => (
+                <Pressable key={pl.key} testID="find-choice-place" accessibilityRole="button" accessibilityLabel={`Tag this moment to ${pl.name}`} onPress={() => explore.choose(pl)} style={styles.findChoiceBtn} hitSlop={6}>
+                  <Text style={styles.findChoiceBtnText} numberOfLines={1}>{pl.name}</Text>
+                </Pressable>
+              ))}
+              <Pressable testID="find-choice-none" accessibilityRole="button" accessibilityLabel="Neither, don’t tag a place" onPress={() => explore.choose(null)} style={styles.findChoiceBtn} hitSlop={6}>
+                <Text style={styles.findChoiceBtnText}>Neither</Text>
+              </Pressable>
+            </View>
+          </LiftIn>
+        )}
         {arrived && (
           <LiftIn style={styles.toast}>
             <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
@@ -1939,6 +1954,11 @@ const styles = StyleSheet.create({
   edgeBtnOff: { opacity: 0.5 },
   spotActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  findChoice: { backgroundColor: theme.ink, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, alignSelf: 'center', maxWidth: 420, gap: 8 },
+  findChoiceTitle: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  findChoiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', maxWidth: 220 },
+  findChoiceBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   hidden: { display: 'none' },

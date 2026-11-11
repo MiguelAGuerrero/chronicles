@@ -20,13 +20,15 @@ async function run(h) {
   };
   const tileOf = (pg, name) => pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`);
   const openCard = async (pg, name) => {
-    await pg.waitForSelector(`[data-testid=atlas-tile][data-name="${name}"]`, { timeout: 60000 });
+    // Near you the row is the towns; a neighborhood is on its town's page (fix explore-town-scope).
+    await h.areaTile(pg, name);
     // The row (decision 0124): a tap on a card that is not selected only selects it; a tap on the selected card opens a
     // neighborhood's card, or a town's page (AT2), whose own card then opens the area's card.
     const cardUp = () => pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null);
     await tileOf(pg, name).first().click();
-    // The first card is selected on arrival, so that tap may already have opened a town's page (its card then has no tile).
-    if (!(await cardUp()) && !(await pg.locator('[data-testid=atlas-town-head]').count())) await tileOf(pg, name).first().click();
+    // A first tap may only select it; a second opens a neighborhood's card, or a town's page (its card then has no tile).
+    if (!(await cardUp()) && (await tileOf(pg, name).count())) await tileOf(pg, name).first().click();
+    // On a town's page its own card leads, selected: a tap opens the area's card.
     if (!(await cardUp())) {
       await pg.click('[data-testid=atlas-town-head]', { timeout: 30000 });
       await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 });

@@ -26,16 +26,22 @@ async function seeded(): Promise<FakePorts> {
   return p;
 }
 
-test('SH4 the nearest unfound place in reach is found and recorded', async () => {
+test('SH4 the one unfound place in reach is found and recorded; two in reach find none', async () => {
   const p = await seeded();
   const finder = createMomentFind({ ...p, hidden: () => new Set() });
-  const c = moment('c1', at(0, 0));
+  // Both places are within 60 m of the origin: a guess is no find.
+  const both = moment('c0', at(0, 0));
+  await p.db.addMoment(momentOf(both));
+  assert.equal(await finder.findForMoment(both), null);
+  assert.deepEqual(await p.db.listFinds(), []);
+  // 50 m from one place and 70 m from the other: only one in reach.
+  const c = moment('c1', at(-0.2, 0));
   await p.db.addMoment(momentOf(c));
   const f = await finder.findForMoment(c);
   assert.equal(f?.key, 'near');
   const kept = await p.db.listFinds();
   assert.deepEqual(kept.map((x) => [x.key, x.walk_id, x.capture_id, x.found_at]), [['near', 'm1', 'c1', p.clock.now()]]);
-  // The next moment there finds the next place: the first find stands.
+  // The next moment at the origin has only the other place left in reach: the first find stands.
   const c2 = moment('c2', at(0, 0));
   await p.db.addMoment(momentOf(c2));
   assert.equal((await finder.findForMoment(c2))?.key, 'farther');
@@ -64,7 +70,7 @@ test('SH4 nothing found or recorded: no position, in Undo, deleted during the re
   await p.db.addMoment(momentOf(midway));
   const racing = createMomentFind({ ...p, hidden: () => hidden, db: { ...p.db, checklistItemsIn: async (b) => { hidden.add('midway'); return p.db.checklistItemsIn(b); } } });
   assert.equal(await racing.findForMoment(midway), null, 'put in Undo during the read');
-  const done = moment('done', at(0, 0));
+  const done = moment('done', at(-0.2, 0));
   await p.db.addMoment(momentOf(done));
   assert.equal((await finder.findForMoment(done))?.key, 'near');
   await none(done, 'already found a place');

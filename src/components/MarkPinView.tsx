@@ -15,6 +15,8 @@ export interface MarkPin {
   found?: boolean;
   /** On the way, beyond your range (E22): a faint "?". */
   faint?: boolean;
+  /** Its name would be written over another's (lib/markNames): the pin shows without it. */
+  nameHidden?: boolean;
   icon: IconName;
   name: string;
   /** Spoken with the name: "Food & drink". */
@@ -59,7 +61,7 @@ function MarkBody({ pin }: { pin: MarkPin }) {
         )}
       </View>
       <View style={[styles.stem, pin.found && styles.stemFound]} />
-      {shown && !pin.faint && !pin.found && (
+      {shown && !pin.faint && !pin.found && !pin.nameHidden && (
         <Text style={styles.name}>
           {pin.name}
         </Text>
@@ -75,7 +77,7 @@ export function markLabel(pin: MarkPin): string {
 }
 
 /** What changes a pin's look, for re-rendering a marker only when it changes. */
-export const markKey = (pin: MarkPin) => `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}`;
+export const markKey = (pin: MarkPin) => `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}`;
 
 /** Found places: the trace's green family, so a find reads as walked, not as a capture. */
 export const FOUND_COLOR = '#1f7a4d';

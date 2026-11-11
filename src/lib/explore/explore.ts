@@ -332,16 +332,26 @@ export function visibleMarks(o: {
   return out;
 }
 
-/** The unfound place a capture at `at` finds: the nearest within 60 m, whatever its kind (E8, E18). */
-export function findFor(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem | null {
-  let best: ChecklistItem | null = null;
-  let bestD = Infinity;
+/** The unfound places within 60 m of a capture at `at`, whatever their kind, nearest first (E8, E18). */
+export function findCandidates(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem[] {
+  const near: { item: ChecklistItem; d: number }[] = [];
   for (const x of items) {
-    if (found.has(x.key)) continue;
+    if (found.has(x.key) || near.some((n) => n.item.key === x.key)) continue;
     const d = distanceM(at, x.at);
-    if (d <= EXPLORE_RULES.revealM && d < bestD) [best, bestD] = [x, d];
+    if (d <= EXPLORE_RULES.revealM) near.push({ item: x, d });
   }
-  return best;
+  near.sort((a, b) => a.d - b.d);
+  return near.map((n) => n.item);
+}
+
+/**
+ * The place a capture finds by itself: the one unfound place within 60 m. With two or more in reach
+ * the nearest is only a guess (a park's marker can sit farther than a statue in it), so nothing is
+ * found until the reader picks from `findCandidates`.
+ */
+export function findFor(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem | null {
+  const c = findCandidates(at, items, found);
+  return c.length === 1 ? c[0] : null;
 }
 
 /** The places an accepted fix came within 60 m of: named, never found, by walking past (E7). */

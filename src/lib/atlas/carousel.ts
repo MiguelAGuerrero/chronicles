@@ -2,13 +2,48 @@
 import { distanceM } from '../geo';
 import type { LandingView } from '../landing/view';
 import type { LngLat } from '../types';
-import type { Listed } from './atlas';
+import { ATLAS_RULES, needsNear, type Listed, type NearRead } from './atlas';
 
 /** Explore's row of area cards (EC1-EC15): what is in it, which card a swipe or a scroll means, and which Busy names the map keeps. */
 
-/** The row's areas in order (EC3): a town's own card first on its page, then its neighborhoods; near you, the neighborhoods, then the other towns. */
-export function rowOf(p: { ownTown: Listed | null; neighborhoods: Listed[]; towns: Listed[] }): Listed[] {
-  return p.ownTown ? [p.ownTown, ...p.neighborhoods] : [...p.neighborhoods, ...p.towns];
+/**
+ * The row's areas in order (EC3): a town's own card first on its page, then its neighborhoods; near you, the towns alone,
+ * the one you are in leading, then the others in the order given, or the neighborhoods where no town is named (fix
+ * explore-town-scope: one level per row).
+ */
+export function rowOf(p: { ownTown: Listed | null; neighborhoods: Listed[]; towns: Listed[]; townsListed: boolean }): Listed[] {
+  if (p.ownTown) return [p.ownTown, ...p.neighborhoods];
+  // Where the map names no town around you, the neighborhoods near you, so the row is never empty for want of a town; never
+  // while the towns are still being listed, or the row would show neighborhoods, then swap (fix explore-town-scope audit 1).
+  if (!p.towns.length) return p.townsListed ? p.neighborhoods : [];
+  return [...p.towns.filter((l) => l.here), ...p.towns.filter((l) => !l.here)];
+}
+
+/** The words near you name the row's level (decision 0126): the towns, or the areas where no town is named (fix explore-town-scope audit 1). */
+export function nearWords(row: Listed[]): { subtitle: string; label: string } {
+  return row.length && row.every((l) => l.area.level === 'town')
+    ? { subtitle: 'Towns around you', label: 'Towns near you' }
+    : { subtitle: 'Areas around you', label: 'Areas near you' };
+}
+
+/**
+ * Where the map's layers read (ML3-ML9): around the selected area, but around you while your own town is selected, as it is on
+ * arrival near you; its label point can be kilometres off (fix explore-town-scope audit 8).
+ */
+export function layerCentre(sel: Listed | null, from: LngLat | null, nearYou = true): LngLat | null {
+  // Only on the page near you: on a town's own page, yours too, they read around the town (audit 11).
+  if (nearYou && sel && sel.here && sel.area.level === 'town' && from) return from;
+  return sel?.area.at ?? from;
+}
+
+/**
+ * Whether the towns around you count as listed (fix explore-town-scope audits 9, 10): once a town near read of this build and
+ * these rules covers you, and from then on until the build changes (the caller starts again at false), so a failed or pending
+ * town read never puts the neighborhoods in the towns' place, and listing again after a walk never empties a row of them.
+ */
+export function townsListedAfter(prev: boolean, p: { reads: NearRead[]; at: LngLat; build: string | null }): boolean {
+  if (prev || !p.build) return prev;
+  return !needsNear(p.reads, p.at, p.build, ATLAS_RULES.nearTownM);
 }
 
 /** The key to select now (EC1): the selected one while it is in the row, else the first, else null. */
@@ -59,6 +94,17 @@ export function busyNamesNear(view: LandingView | null, at: LngLat | null, zoom:
 export function settleStep(p: { index: number; intended: number | null; selected: number }): { report: number | null; scrollTo: number | null } {
   if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended };
   return { report: p.index === p.selected ? null : p.index, scrollTo: null };
+}
+
+/**
+ * The card to select while the reader's own scroll is still moving (fix carousel-live-select): the one nearest the middle, as
+ * soon as it is not the selected one nor the one last reported, so each card previews as it passes, not after the scroll
+ * settles. Never while the row is scrolling itself to a card (`intended`).
+ */
+export function liveReport(p: { index: number; intended: number | null; selected: number; last: number | null }): number | null {
+  if (p.intended != null) return null;
+  // Once the scroll has reported a card, that one is the selection (the screen's may not have committed it yet).
+  return p.index === (p.last ?? p.selected) ? null : p.index;
 }
 
 /** The footer a card shows (explore-carousel audit 4, EC15): only the selected card, so a tap on it does what it says. */

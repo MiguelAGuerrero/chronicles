@@ -71,7 +71,7 @@ recording, and a recording bar brings a minimized walk back.
   turn up as a "?"), so a plain parish church counts toward nothing; food, shops
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
-- A place may light two bars (presence and kinds, decision 0126): a museum or
+- A place may light two bars (presence and kinds, decision 0127): a museum or
   gallery lights History as well as Culture when the data already says it is
   historic (a listed museum in the places archive, or a historic word in its
   name), so the Coplay Cement Company Kilns light Coplay's History. A plain
@@ -84,7 +84,7 @@ recording, and a recording bar brings a minimized walk back.
   end"), how much of it is only getting there, which other kinds it also passes (by kind, never by place), and whether it can be walked the whole way; a strip along each row and a shading of the
   highlighted route show the same without a number. A route leans on the places you pass (monuments, buildings,
   churches, art, views) when there are enough of them to make one; museums and theatres, which you go into, still count
-  toward how much of the kind it passes (decision 0126). It never shows or names a place not yet found, so the "?" marks stay hidden until
+  toward how much of the kind it passes (decision 0127). It never shows or names a place not yet found, so the "?" marks stay hidden until
   reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
   or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page
   says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
@@ -131,7 +131,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Remarkable and public** (decisions 0109-0111): attractions in the map
   stay places to find, and the National Aviary joins them. A new kind,
   "Buildings and structures", on by default, holds the archive's listed
-  buildings and structures. "Community spaces" (decision 0126), on by default
+  buildings and structures. "Community spaces" (decision 0127), on by default
   unless Museums and galleries was switched off, holds arts centres, libraries
   and community centres whose names say they are historic. A place to find with no street or path within 60 m
   says "No street or path close by" on its card; nothing is hidden for it. The
@@ -421,6 +421,7 @@ recording, and a recording bar brings a minimized walk back.
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map never pans by one finger, DN1, DN10-DN13; the directional step retired by the carousel) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
+| Explore one level per row (near you the towns, yours leading and selected; a town's page its own card, then its neighborhoods; the title names the level, the back pill reads "Towns"; decision 0126, fix explore-town-scope) | Shipped 2026-11-10 (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |

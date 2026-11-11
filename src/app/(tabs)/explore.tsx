@@ -23,12 +23,12 @@ import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
@@ -70,10 +70,10 @@ const fmt = (m: number) => formatDistance(m);
 
 /**
  * Explore as an atlas (AT1-AT16, EC1-EC20, decision 0124): the map fills the screen with the page's
- * title over it, and the areas are one row of cards at the bottom: the neighborhoods near you, then
- * the other towns. One is always selected, highlighted on the map and the only one named there. The
- * title opens your own town; the selected town's card opens its page, the selected neighborhood's
- * its card, a sheet that keeps the map in sight. Rings are
+ * title over it, and the areas are one row of cards at the bottom: near you, the towns, yours first and
+ * selected; on a town's page, the town, then its neighborhoods (one level per row, fix explore-town-scope).
+ * One is always selected, highlighted on the map and the only one named there. The selected town's card
+ * opens its page, the selected neighborhood's its card, a sheet that keeps the map in sight. Rings are
  * read by themselves while the tab is open. A long press on the map offers
  * What's good here and Walk here, over the map. It never tracks you: it reads
  * one fix as the app opens (it is the first tab, NV2), then moves with your last
@@ -114,8 +114,6 @@ export default function Explore() {
   const town = useMemo(() => (townSeen ? fresh.rows.find((r) => r.key === townSeen.key) ?? townSeen : null), [fresh.rows, townSeen]);
   const neighborhoods = useMemo(() => (stale ? fresh.neighborhoods.map((x) => ({ ...x, here: false })) : fresh.neighborhoods), [fresh.neighborhoods, stale]);
   const allTowns = useMemo(() => (stale ? fresh.towns.map((x) => ({ ...x, here: false })) : fresh.towns), [fresh.towns, stale]);
-  // Your own town is the title, never listed again (atlas round 3).
-  const towns = useMemo(() => otherTowns(allTowns), [allTowns]);
   const home = stale ? null : fresh.home;
   // What this visit to the page has framed; opening a page or going back starts a new visit.
   const framed = useRef<PageFramed | null>(null);
@@ -207,7 +205,11 @@ export default function Explore() {
     if (!town) return null;
     return allTowns.find((x) => x.area.key === town.key) ?? { area: town, distanceM: 0, here: false };
   }, [town, allTowns]);
-  const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns }), [ownTown, neighborhoods, towns]);
+  // Near you the row is the towns, yours leading and so selected on arrival; a town's page is the town, then its neighborhoods.
+  // The neighborhoods stand in only once a town read has covered you and named none (fix explore-town-scope audits 1, 9, 10).
+  const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
+  const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns: allTowns, townsListed: fresh.townsListed }), [ownTown, neighborhoods, allTowns, fresh.townsListed]);
+  const words = useMemo(() => nearWords(shown), [shown]);
   const order = useMemo(() => shown.map((l) => l.area.key), [shown]);
   const selected = useMemo(() => firstSelection(order, picked), [order, picked]);
   const famOf = useMemo(() => {
@@ -260,13 +262,14 @@ export default function Explore() {
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
-  const layersAt = sel?.area.at ?? from ?? null;
+  const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
   const namesOn = busyNamesOn(view?.zoom ?? 0, BUSY_NAMES_ZOOM);
+  // The names stay near the selected area itself, your town's too, so they never reach into the next town (audit 12).
   const namesAt = sel?.area.at ?? null;
   const selLevel = sel?.area.level ?? 'neighborhood';
   const selReach = sel ? sel.area.reachM : 0;
@@ -294,12 +297,13 @@ export default function Explore() {
     setSelected(null);
     frame([area.at], townReachM(area) * 0.6);
   }, [frame]);
+  // Back to the towns with the one you left still selected (fix explore-town-scope).
   const leave = useCallback(() => {
     setSpot(null);
     framed.current = null;
+    setSelected(townSeen?.key ?? null);
     setTownSeen(null);
-    setSelected(null);
-  }, []);
+  }, [townSeen]);
   useEffect(() => {
     if (!townSeen || open || !focused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -392,16 +396,17 @@ export default function Explore() {
 
   const wide = screen.w >= TWO_PANES;
   const error = walkStart.error ?? locError;
-  const title = town?.name ?? home?.area.name ?? 'Near you';
+  // The title names the level shown (fix explore-town-scope): the towns near you, or the town whose page is open.
+  const title = town?.name ?? 'Near you';
   const subtitle = town
     ? (ownTown?.here || (home && home.area.key === town.key) ? 'You’re here' : distanceWords(ownTown?.distanceM ?? 0, false, fmt))
-    : home ? 'Your town' : 'Areas around you';
-  const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
+    : words.subtitle;
   const cardLayout: CardLayout = wide
     ? { kind: 'side', width: 400, height: screen.h }
     : { kind: 'sheet', screenH: screen.h };
 
-  const noteText = town && ownTown && !neighborhoods.length ? townNote(town.name, listing) : null;
+  // Never after a failed read: that is no claim about the map (the row then holds the town's card, as before).
+  const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
   const overlay = error ? (
     <Banner
       tone="error"
@@ -433,11 +438,6 @@ export default function Explore() {
       >
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
-    </View>
-  ) : noteText ? (
-    <View style={styles.note} testID="atlas-town-note" accessibilityLiveRegion="polite">
-      {listing ? <ActivityIndicator color={theme.muted} /> : null}
-      <Text style={styles.noteText}>{noteText}</Text>
     </View>
   ) : !pressSeen && !spot && from ? (
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
@@ -503,20 +503,12 @@ export default function Explore() {
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
       <View style={[styles.titleWrap, { top: topInset + 8, left: 12 }]} pointerEvents="box-none">
         <View style={styles.titleCard}>
-          <Pressable
-            disabled={!!town || !home}
-            onPress={() => home && enterArea(home.area)}
-            accessibilityRole={!town && home ? 'button' : 'header'}
-            accessibilityLabel={!town && home ? `${home.area.name}, your town. See all its neighborhoods` : undefined}
-            style={styles.titleText}
-            testID="atlas-title"
-          >
+          <View accessibilityRole="header" style={styles.titleText} testID="atlas-title">
             <View style={styles.titleRow}>
               <Text testID="explore-area" style={styles.title} numberOfLines={1}>{title}</Text>
-              {!town && home ? <Icon name="chevron-forward" size={18} color={theme.muted} /> : null}
             </View>
             <Text testID="explore-subtitle" style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
-          </Pressable>
+          </View>
         </View>
       </View>
       {/* The long press's choices sit over the map where it was pressed, never inside the scrolled list (round 3). */}
@@ -568,9 +560,9 @@ export default function Explore() {
       {overlay ? <View style={[styles.overlay, { bottom: (spot ? 10 + SPOT_H + 8 : 12) + (town ? 44 + 8 : 0) }]} pointerEvents="box-none">{overlay}</View> : null}
       {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
       {town ? (
-        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + 8 } : null]}>
+        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel="Back to the towns" onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + 8 } : null]}>
           <Icon name="chevron-back" size={18} color={theme.ink} />
-          <Text style={styles.backPillText} numberOfLines={1}>{home?.area.name ?? 'Near you'}</Text>
+          <Text style={styles.backPillText} numberOfLines={1}>Towns</Text>
         </Pressable>
       ) : null}
     </View>
@@ -581,13 +573,19 @@ export default function Explore() {
       {mapPane}
       {/* The row of areas under the map (EC2, EC3): one card at a time is selected; with no area to show, one status card. */}
       <View style={styles.rowPane} testID="atlas-row">
-        {shown.length ? (
+        {noteText ? (
+          // A town with no neighborhoods: its own card alone would repeat the page, so the note takes the row's place.
+          <View style={styles.empty} testID="atlas-town-note" accessibilityLiveRegion="polite">
+            {listing ? <ActivityIndicator color={theme.muted} /> : null}
+            <Text style={styles.emptyText}>{noteText}</Text>
+          </View>
+        ) : shown.length ? (
           <AtlasCarousel
             items={shown}
             selected={selected}
             width={screen.w}
             reduced={reduced}
-            label={town ? `Areas in ${town.name}` : 'Areas near you'}
+            label={town ? `Areas in ${town.name}` : words.label}
             onSettle={selectKey}
             renderCard={(l, isSel) => (
               <AtlasTile
@@ -612,7 +610,7 @@ export default function Explore() {
             <Text style={styles.emptyText}>
               {listing ? 'Reading the map around you…'
                 : fresh.status === 'offline' ? 'Couldn’t read the map. It will try again in a moment.'
-                  : 'No neighborhoods are named on the map here.'}
+                  : town ? 'No neighborhoods are named on the map here.' : 'No towns are named on the map here.'}
             </Text>
           </View>
         )}
@@ -686,8 +684,6 @@ const styles = StyleSheet.create({
   // The row under the map sizes to its cards: never `flex: 1` (react-native-web would stretch it).
   rowPane: { flexGrow: 0, flexShrink: 0, paddingBottom: 8, paddingTop: 4 },
   overlay: { position: 'absolute', left: 12, right: 64, alignItems: 'flex-start', gap: 8 },
-  note: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12 },
-  noteText: { fontSize: 14, color: theme.muted, flexShrink: 1 },
   titleWrap: { position: 'absolute', right: 12, alignItems: 'flex-start' },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,

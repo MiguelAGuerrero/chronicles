@@ -137,7 +137,7 @@ carried), E16 (eleven kinds), AG5 (the community centre, by name). Deferred: `do
 Nothing native is new; not audited (decision 0074). Journeys (one run each): atlas, curiosities, grading, marks,
 nudge, outlines, planner, replay pass; scenic failed one check (fix preview-clutter audit 1) on the branch's old base,
 passed 3 of 3 on main (`e2e:baseline`) and passed after main was merged in (`0f3f216`), so it ran twice. The decision is
-0126 (main took 0125 for moment references while this was built). PK15's report run live on the gate's areas: Lititz's
+0127 (main took 0125 for moment references and 0126 for Explore's one level per row while this was built). PK15's report run live on the gate's areas: Lititz's
 Sturgis Pretzel House (0116's test case) is among the listed places held back for want of a sign it is open.
 
 ## Audit (Nov 11, at the owner's request)
@@ -179,7 +179,7 @@ and `__tests__/navigation/scenicRead.test.ts`.
 13. **"How the marks work" didn't say one place can count toward two kinds.** Accept, fixed: one clause added to the
     second line, naming no listing (audit 13).
 14. **A History route may lean away from the museum that lit History.** Reject: the owner's call ("Pass-by only, if
-    enough", Nov 10, decision 0126).
+    enough", Nov 10, decision 0127).
 
 The steward also raised three points the spec is silent on. Two are answered above: whether the marks' text should say
 more (13), and a route skipping what lit the bar (14). The third, the settings sheet covering the capture stack during

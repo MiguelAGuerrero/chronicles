@@ -9,17 +9,15 @@ async function run(h) {
   const safe = async (fn, fallback = null) => fn().catch(() => fallback);
   try {
     await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 30000 }).catch(() => {});
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(2500);
     const map = pg.locator('.maplibregl-map').first();
     const names = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.name));
     const selected = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point][data-selected="1"]')].map((e) => e.dataset.name));
     const said = () => safe(() => pg.locator('[data-testid=atlas-snap-said]').textContent(), '');
     const drag = async (dx, dy) => {
-      const b = await map.boundingBox();
-      const x = b.x + b.width / 2;
-      const y = b.y + b.height * 0.5;
+      // On bare map: a "?" or an area point under the finger takes the touch (fix explore-town-scope).
+      const { x, y } = await h.bareMapPoint(pg);
       await pg.mouse.move(x, y);
       await pg.mouse.down();
       await pg.mouse.move(x + dx, y + dy, { steps: 6 });
@@ -27,6 +25,39 @@ async function run(h) {
       await pg.mouse.up();
       await pg.waitForTimeout(1200);
     };
+
+    // EC3 (fix explore-town-scope): near you the row is the towns alone, the first selected; the title names the level.
+    const front = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => ({ name: e.dataset.name, level: e.dataset.level, sel: e.dataset.selected })));
+    check(front.length >= 2 && front.every((t) => t.level === 'town') && front[0].sel === '1',
+      `fix explore-town-scope: near you the row holds only towns, the first selected (${JSON.stringify(front)})`);
+    check((await safe(() => pg.locator('[data-testid=explore-area]').innerText(), '')) === 'Near you' && (await pg.locator('[data-testid=atlas-back-pill]').count()) === 0,
+      'fix explore-town-scope: near you the title says "Near you" and there is no back pill');
+    // EC5, EC6: a town selected has no ring (a town has its border), and the map names only that town.
+    const townSel = front[0]?.name;
+    const townNamed = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point]')].filter((e) => e.dataset.name).map((e) => e.dataset.name));
+    check(((await map.getAttribute('data-ring')) ?? '') === '' && townNamed.length === 1 && townNamed[0] === townSel,
+      `EC5: a town's card selected has no ring, and the map names only that town (${townSel}, ring "${await map.getAttribute('data-ring')}", ${JSON.stringify(townNamed)})`);
+    // explore-carousel audit 15: the row has an accessible name that holds no count.
+    const rowLabel = await safe(() => pg.locator('[data-testid=atlas-carousel]').getAttribute('aria-label'), '');
+    check(rowLabel === 'Towns near you', `explore-carousel audit 15: the row is named for a screen reader, with no count (${JSON.stringify(rowLabel)})`);
+    // explore-carousel audit 4: a town card that is not selected makes no promise of a way in.
+    const townFooters = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-level="town"]')].map((e) => ({ sel: e.dataset.selected, has: /See its neighborhoods/.test(e.innerText) })));
+    check(townFooters.length > 0 && townFooters.every((t) => t.has === (t.sel === '1')), `explore-carousel audit 4: the footer shows only on the selected town card (${JSON.stringify(townFooters)})`);
+
+    // A tap on the selected town opens its page: the town's own card, then its neighborhoods; the pill goes back to the towns.
+    await safe(() => pg.locator('[data-testid=atlas-tile][data-selected="1"]').first().click());
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 4, null, { timeout: 30000 }).catch(() => {});
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 4, null, { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const pillText = await safe(() => pg.locator('[data-testid=atlas-back-pill]').innerText(), '');
+    check(/\bTowns$/.test(pillText.trim()) && (await safe(() => pg.locator('[data-testid=explore-area]').innerText(), '')) === townSel,
+      `fix explore-town-scope: a town's page is titled with its name and its pill reads "Towns" (${townSel}, ${JSON.stringify(pillText)})`);
+    const pageLevels = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-town-head], [data-testid=atlas-tile]')].map((e) => e.dataset.level));
+    check(pageLevels[0] === 'town' && pageLevels.slice(1).every((l) => l === 'neighborhood'), `EC3: a town's page is its own card, then its neighborhoods (${pageLevels.join(', ')})`);
+    // The town's own card leads; step onto its first neighborhood for the gestures (the keys go to the canvas, audit 3).
+    await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
+    await pg.keyboard.press('ArrowRight');
+    await pg.waitForTimeout(1200);
     const row = await safe(() => pg.locator('[data-testid=atlas-carousel]').boundingBox());
     const mapBox = await safe(() => map.boundingBox());
     const vh = await pg.evaluate(() => window.innerHeight);
@@ -43,10 +74,6 @@ async function run(h) {
     check((await pg.locator('[data-testid=atlas-grid]').count()) === 0, 'EC2: there is no grid');
     const text = await pg.evaluate(() => document.body.innerText);
     check(!/Neighborhoods near you|Other towns/.test(text), 'EC2: no section headings');
-
-    // EC3: neighborhoods nearest first, then the towns, in one row.
-    const order = await names();
-    check(order.length >= 6 && order.indexOf('Cranston') > order.indexOf('Ship Street'), `EC3: the row holds the neighborhoods, then the towns (${order.join(', ')})`);
 
     // EC4, EC8: a drag left on the map steps to the next card, and the row settles on it.
     const before = (await selected())[0];
@@ -84,26 +111,13 @@ async function run(h) {
     await pg.waitForTimeout(1200);
     check((await selected())[0] === k0, 'EC9: ArrowLeft steps back');
 
-    // EC5, EC6: stepping on to a town's card selects it: no ring (a town has its border), and the map names only that town.
-    for (let i = 0; i < 8 && (await selected())[0] !== 'Cranston'; i++) {
-      await pg.keyboard.press('ArrowRight');
-      await pg.waitForTimeout(900);
-    }
-    const townNamed = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point]')].filter((e) => e.dataset.name).map((e) => e.dataset.name));
-    check((await selected())[0] === 'Cranston' && ((await map.getAttribute('data-ring')) ?? '') === '' && townNamed.length === 1 && townNamed[0] === 'Cranston',
-      `EC5: a town's card selected has no ring, and the map names only that town (${JSON.stringify(await selected())}, ring "${await map.getAttribute('data-ring')}", ${JSON.stringify(townNamed)})`);
-    for (let i = 0; i < 8 && (await selected())[0] !== k0; i++) {
-      await pg.keyboard.press('ArrowLeft');
-      await pg.waitForTimeout(900);
-    }
-
     // EC10: one finger never pans; the wheel zooms.
     const c0 = await map.getAttribute('data-center');
     await drag(0, 24 + 5);
     check(await safe(async () => (await map.getAttribute('data-center')) === c0, false), 'EC10: a drag never pans the map');
 
     // EC11: a tap on the selected card opens its card; a tap on another selects and opens nothing.
-    const other = pg.locator('[data-testid=atlas-tile]:not([data-selected="1"]):not([data-selected="true"])').first();
+    const other = pg.locator('[data-testid=atlas-tile][data-level="neighborhood"]:not([data-selected="1"])').first();
     const otherName = await safe(() => other.getAttribute('data-name'));
     await safe(() => other.click());
     await pg.waitForTimeout(1200);
@@ -122,13 +136,6 @@ async function run(h) {
     const cards = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.innerText));
     const stray = cards.filter((t) => t.replace(/\d+(\.\d+)?\s?(km|mi|min|m|ft|h)\b/gi, '').replace(/Walked \d+ times?/gi, '').match(/\d/));
     check(cards.length > 0 && stray.length === 0 && !cards.some((t) => /\b(nearest|top|best)\b/i.test(t)), 'EC15: no digit outside a distance or a Walked-N-times clause, and no ranking words on a card');
-
-    // explore-carousel audit 15: the row has an accessible name that holds no count.
-    const rowLabel = await safe(() => pg.locator('[data-testid=atlas-carousel]').getAttribute('aria-label'), '');
-    check(rowLabel === 'Areas near you', `explore-carousel audit 15: the row is named for a screen reader, with no count (${JSON.stringify(rowLabel)})`);
-    // explore-carousel audit 4: a town card that is not selected makes no promise of a way in.
-    const townFooters = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-level="town"]')].map((e) => ({ sel: e.dataset.selected, has: /See its neighborhoods/.test(e.innerText) })));
-    check(townFooters.length > 0 && townFooters.every((t) => t.has === (t.sel === '1')), `explore-carousel audit 4: the footer shows only on the selected town card (${JSON.stringify(townFooters)})`);
 
     // EC19: Locate, Layers and the compass are inside the map, none under the row.
     const loc = await safe(() => pg.locator('[data-testid=locate]').boundingBox());
@@ -191,8 +198,9 @@ async function townPage(h) {
   const { c, pg } = await freshPage('carousel-town');
   try {
     await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
-    await pg.click('[data-testid=atlas-title]').catch(() => {});
+    // Your town leads the row near you, selected (fix explore-town-scope).
+    await pg.waitForFunction(() => !!document.querySelector('[data-testid=atlas-tile][data-name="Allentown"][data-selected="1"]'), null, { timeout: 60000 }).catch(() => {});
+    await pg.click('[data-testid=atlas-tile][data-selected="1"]').catch(() => {});
     await pg.waitForTimeout(3000);
     const first = await pg.evaluate(() => document.querySelector('[data-testid=atlas-town-head], [data-testid=atlas-tile]')?.dataset.name ?? null);
     const sel = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-town-head][data-selected="1"], [data-testid=atlas-tile][data-selected="1"]')].map((e) => e.dataset.name));
@@ -230,7 +238,7 @@ async function wide(h) {
   try {
     await pg.setViewportSize({ width: 1200, height: 800 });
     await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(2500);
     const map = await pg.locator('.maplibregl-map').first().boundingBox();
     const row = await pg.locator('[data-testid=atlas-carousel]').boundingBox().catch(() => null);
@@ -248,12 +256,12 @@ async function hintOnce(h) {
   const { c, pg } = await freshPage('carousel-hint');
   try {
     await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(1500);
     const first = await pg.locator('[data-testid=atlas-press-hint]').count();
     await pg.waitForTimeout(7000);
     await pg.reload();
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(2500);
     const second = await pg.locator('[data-testid=atlas-press-hint]').count();
     check(first === 1 && second === 0, `explore-carousel audit 10: the hint shows once, and not again on the next visit (${first} → ${second})`);
@@ -271,12 +279,14 @@ async function townFramedOnce(h) {
   const { c, pg } = await freshPage('carousel-frame');
   try {
     await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
+    // Your town leads the row near you, selected (fix explore-town-scope).
+    await pg.waitForFunction(() => !!document.querySelector('[data-testid=atlas-tile][data-name="Allentown"][data-selected="1"]'), null, { timeout: 60000 }).catch(() => {});
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 30000 }).catch(() => {});
     await pg.waitForTimeout(2500);
     const map = pg.locator('.maplibregl-map').first();
     await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
-    const selTown = () => pg.evaluate(() => !!document.querySelector('[data-testid=atlas-tile][data-level="town"][data-selected="1"]'));
+    // Another town than yours (which leads the row, selected): one step along the row of towns.
+    const selTown = () => pg.evaluate(() => !!document.querySelector('[data-testid=atlas-tile][data-level="town"][data-selected="1"]:not([data-name="Allentown"])'));
     for (let i = 0; i < 12 && !(await selTown()); i++) {
       await pg.keyboard.press('ArrowRight');
       await pg.waitForTimeout(700);
