@@ -39,6 +39,34 @@ export function toMomentViews(captures: Faced[], walks: Walk[], transcript?: (c:
 }
 
 /**
+ * The moments of a walk still open, which the feed leaves out (RM17) but a thread must show: a reply made during a
+ * walk joins its thread at once, and a thread that cannot show it reads as one that is not there.
+ */
+export function openWalkViews(captures: Faced[], walks: Walk[], transcript?: (c: Faced) => string | null): MomentView[] {
+  const open = new Set(walks.filter((w) => w.open || w.ended_at == null).map((w) => w.id));
+  return toMomentViews(
+    captures.filter((c) => c.walk_id && open.has(c.walk_id)),
+    walks.map((w) => (open.has(w.id) ? { ...w, open: false, ended_at: w.ended_at ?? w.started_at } : w)),
+    transcript,
+  );
+}
+
+/**
+ * The moments the owner's threads can show: the feed's and a walk-in-progress's, with a delete's hidden ids and walks
+ * gone at once (RM19), as `compose` does for the feed.
+ */
+export function threadPool(feed: MomentView[], inOpenWalk: MomentView[], hidden: ReadonlySet<string>): Map<string, MomentView> {
+  const pool = new Map<string, MomentView>();
+  for (const m of [...feed, ...inOpenWalk]) if (!hidden.has(m.id) && !(m.walkId && hidden.has(m.walkId))) pool.set(m.id, m);
+  return pool;
+}
+
+/** The walks a card may link to: a walk still being recorded has no replay yet. */
+export function closedWalks(walks: Record<string, Walk>): Record<string, Walk> {
+  return Object.fromEntries(Object.entries(walks).filter(([, w]) => !w.open && w.ended_at != null));
+}
+
+/**
  * The small "From ..." line under a card: the walk's own name, else its day and part of the day. No town: the
  * arrival line carries the place, and says none until it is read (audit 3).
  */
