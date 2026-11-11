@@ -126,9 +126,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 - **T4 [owner] Explore: an area's busy streets are listed busiest first, and its walk starts on "its busiest street"** (2026-11-11)
   Area: explore. Seen: `src/components/atlas/AtlasCard.tsx:236` ("each busy street once, busiest first") and `:355` ("Starts you at {via}, its busiest street"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best of', rankings of places"; the steward calls it drift, not a breach: decisions 0034, 0080 and 0127 make busy streets information, and no rank number shows. Recommended: list the busy streets by distance from you, and say "Starts you on {via}"; the words "busy streets" stay. /vision: not run as a gate this time; the steward's reading stands in, so the answer is yours. Otherwise: leave it; the order is the information.
-- **T5 [owner] Explore: "How the marks work" is always open on an area's card, about a third of the sheet** (2026-11-11)
-  Area: explore. Seen: picture `11c-atlas-card`: the explainer pushes the Views row below the fold, above four equal "Suggest a walk" pills. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; the UX review's opinion, no cited source. Recommended: the explainer opens from its own "How the marks work" link and stays shut on the next visit. Otherwise: leave it; it is the one place that says no mark is a score.
-
 ### Next evolutions
 
 The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.
@@ -150,20 +147,11 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend explore`** (a second sweep, from `0193552`, for the lenses the first left out). Five loop commits:
-`tend explore 2` a cancelled "What's good here?" stays stopped when a newer one starts (`lib/atlas/look`); `5` a town's spoken
-"Waiting in" names only kinds still waiting (WT11); `4` one Escape closes the planner over a card, and the card stays; `6` on a
-town's page Escape closes the long press's choices or Layers before the page; `7` one tap on a town's dot eases in far enough
-for it to be a "?" (WT13). The review (one round): `audit 1` Back with Layers open on a town's page closes the panel (Android
-lost it in `6`), `audit 3` a found place's dot is not sent to where finds vanish (`7`); and `audit 4` the Escape that closes Layers stops there
-(the town page's journey step caught Escape leaving the page too: React re-adds the page's handler mid-event); one deferred (a look cancelled during its
-write can still speak), one rejected (an all-found town keeps its keyboard way in: the selected tile opens its card). A sixth (a look left running when the tab is left) was dropped: its journey step passed on the build
-before the fix, so it is filed unconfirmed. Filed: `docs/DEFERRED.md` Explore and discovery, twelve `[loop]` items (two retry and
-centre bugs in shells no unit test reaches, a capture missed during a read, focus on the web, low ones); no inbox entry. The
-balance: in step; explore stays rough (medium findings). Lenses run: 1 (`grading`, `snap`, `curiosities` new; `atlas`, `carousel`
-again), 2 (read in the code; 320 px pictured for the carousel's town screens through a scratch preload, the atlas journey's Explore
-pages stayed 390), 3, 4 (EC, WT, AT, DN, TP, AG and the rule file), 5 (races, cost, truth vs cache), 6 (`check:vision`).
-Not run: 200% text, offline pictured, the reviewers on this run's pictures. Nothing here has run on a phone.
+**Nov 11, `/tend inbox T5 yes`** (from `6645d4c`). No build: T5 ("How the marks work" is always open on an area's card) rested on a
+misread picture. The explainer already starts shut and opens only from its own link (`AtlasCard.tsx`, `how` is `false`), and the card
+is keyed by its area and unmounted when closed, so it is shut again on every visit: the recommended shape was already the build. The
+`11c-atlas-card` picture is taken just after the `atlas` journey taps the link, which is what the first explore sweep read as
+"always open". T5 leaves the inbox. T4 (busy streets listed busiest first) waits for the owner's reshaped wording.
 
 ### Open before the loop
 
