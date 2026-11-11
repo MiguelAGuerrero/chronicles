@@ -223,6 +223,8 @@ async function checks(h) {
       const framed = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
       const top = (await page.locator('[data-testid=home-sheet]').boundingBox()).y;
       const fits1 = await page.evaluate(() => window.__perf.fit ?? 0);
+      // tend chronicle audit 4: the bar's Walks after its zoom-out, pictured.
+      await shot(page, 'chronicle-t6-bar-walks-framed');
       check(offScreen && fits1 === fits0 + 1 && framed && framed.x >= box.x && framed.x + framed.width <= box.x + box.width && framed.y + framed.height < top,
         `tend chronicle T6: the bar's Walks zooms out to every place walked when one is out of view (off screen ${offScreen}, ${fits1 - fits0} fit, star at ${framed && Math.round(framed.x)},${framed && Math.round(framed.y)}, sheet at ${Math.round(top)})`);
       await page.click('[data-testid=section-map]');
