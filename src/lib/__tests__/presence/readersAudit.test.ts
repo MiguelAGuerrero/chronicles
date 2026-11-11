@@ -133,3 +133,22 @@ test('presence-readers audit 8: the golden rings hold each mark\'s kind, with ou
   for (const k of ['parks', 'community_parks']) assert.ok(kinds.has(k), `the outlined rings hold ${k}, so a kind flip between them shows`);
   assert.match(readFileSync(join(__dirname, 'readers.test.ts'), 'utf8'), /golden\.outlined\[/, 'PS8 compares the outlined rings');
 });
+
+test('presence-readers audit 7: a park named with a notable.json word stays a park (Old Mill Playground, Historic Ball Field)', async () => {
+  const { refineRead } = await import('../../discovery/refinements');
+  const { placesFromTilePois } = await import('../../discovery/tilePois');
+  const { notableName } = await import('../../presence/notable');
+  const notable = JSON.parse(readFileSync(join(lib, 'presence/notable.json'), 'utf8')) as { words: string[] };
+  const parkWords = JSON.parse(readFileSync(join(lib, 'discovery/parkNotable.json'), 'utf8')) as { words: string[] };
+  const kindOf = (name: string) =>
+    refineRead(placesFromTilePois([{ geometry: { type: 'Point', coordinates: [-75.47, 40.6] }, properties: { class: 'park', subclass: 'park', name }, zoom: 14 } as never], 'b'), {})[0]?.kind;
+  assert.equal(kindOf('Old Mill Playground'), 'parks');
+  assert.equal(kindOf('Historic Ball Field'), 'parks');
+  assert.equal(kindOf('Elm Street Playground'), 'community_parks', 'a plain name with a community word is the subset');
+  // Every word of presence's list keeps a park a park, through presence's own rule, whichever list the word is not in.
+  for (const w of notable.words) {
+    const name = `${w} Playground`;
+    if (!notableName(name) || parkWords.words.includes(w)) continue;
+    assert.equal(kindOf(name), 'parks', name);
+  }
+});
