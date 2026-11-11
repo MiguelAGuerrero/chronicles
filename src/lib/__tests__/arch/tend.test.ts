@@ -24,7 +24,8 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   isLoops(subject: string): boolean;
   dropBoundary<T extends { sha: string }>(commits: T[], boundary: Set<string>): T[];
   testName(subject: string): string | null;
-  tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string; rewritesLog?: boolean }): string[];
+  tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string; rewritesLog?: boolean; rewritesRules?: string[] }): string[];
+  citedOwnEdits(commits: { subject: string; body: string; files: File[] }[]): { subject: string; problem: string }[];
   logProblems(given: unknown): string[];
   runLine(r: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown>;
 };
@@ -295,4 +296,33 @@ test('tend 0134: the run log is the loop\'s to add to and nobody\'s to rewrite; 
     assert.ok(Array.isArray(run.shipped));
   }
   assert.match(read('.claude/skills/tend/SKILL.md'), /npm run tend:log/);
+});
+
+test('tend 0135: the loop adds a trap to a rule file, never rewords a rule, and never cites a rule it edited', () => {
+  const rule = '.claude/rules/tabs-and-home.md';
+  const fix = {
+    subject: 'tend chronicle 4: one Escape steps out of the Rename editor',
+    body: 'Test: tend chronicle 4\nSource: WCAG 2.2, 2.1.2 No Keyboard Trap\n',
+    files: [M('src/components/Rename.tsx'), M('scripts/e2e/journeys/qol.js'), M(rule)],
+    added: "+  check(ok, 'tend chronicle 4: Escape')",
+  };
+  assert.deepEqual(tend.tendCommitProblems(fix), [], 'a trap noted beside its fix');
+  assert.ok(tend.tendCommitProblems({ ...fix, rewritesRules: [rule] }).some((p) => /never reword a rule/.test(p)));
+  const cites = (source: string) => tend.tendCommitProblems({ ...fix, body: `Test: tend chronicle 4\nSource: ${source}\n` });
+  assert.ok(cites('.claude/rules/tabs-and-home.md, Rename later: "Escape steps out of the editor first"').some((p) => /same commit/.test(p)));
+  assert.ok(cites('tabs-and-home.md, Rename later').some((p) => /same commit/.test(p)), 'by its bare name too');
+  assert.ok(cites('specs/quality-of-life QL22\n  and .claude/rules/tabs-and-home.md, Rename later').some((p) => /same commit/.test(p)), 'on a wrapped Source line');
+  assert.deepEqual(cites('.claude/rules/ui-patterns.md, Where actions live'), [], 'another rule file is a source like any other');
+  assert.deepEqual(cites('home.md is not this file'), []);
+});
+
+test('tend 0135: a rule written in one commit of a run is not the source of another', () => {
+  const rule = '.claude/rules/memories.md';
+  const note = { subject: "tend memories: the run's record", body: '', files: [M('docs/STATUS.md'), M(rule)] };
+  const fix = (source: string) => ({ subject: 'tend memories 2: a thing', body: `Test: tend memories 2\nSource: ${source}\n`, files: [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js')] });
+  assert.equal(tend.citedOwnEdits([fix('.claude/rules/memories.md, Hidden'), note]).length, 1);
+  assert.match(tend.citedOwnEdits([note, fix('memories.md, Hidden')])[0].problem, /a rule the loop wrote is not a source/);
+  assert.deepEqual(tend.citedOwnEdits([note, fix('WCAG 2.2, 1.3.1')]), []);
+  assert.deepEqual(tend.citedOwnEdits([fix('.claude/rules/memories.md, Hidden')]), [], 'a rule nobody in the run touched');
+  assert.deepEqual(tend.citedOwnEdits([{ ...note, subject: 'Memories: a rule (MC1)' }, fix('.claude/rules/memories.md, Hidden')]), [], 'a rule the owner or a slice wrote is theirs');
 });

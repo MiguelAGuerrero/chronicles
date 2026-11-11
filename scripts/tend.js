@@ -170,10 +170,14 @@ function testName(subject) {
  * What a commit in a loop's range lacks. `files` are `{ status, path, from? }` (git's A, M, D, R;
  * `from` is a rename's old path); `added` is the text of the lines the commit adds to its test files.
  */
-function tendCommitProblems({ subject, body, files, added = '', rewritesLog = false }) {
+function tendCommitProblems({ subject, body, files, added = '', rewritesLog = false, rewritesRules = [] }) {
   const problems = [];
   if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
   if (rewritesLog) problems.push('rewrites the run log: a run adds its line and changes no other');
+  for (const f of rewritesRules) problems.push(`changes or removes a line of ${f}: the loop may add a trap to a rule file, never reword a rule (the owner's, through the inbox)`);
+  for (const f of files) {
+    if (RULE_FILE.test(f.path) && citesRule(body, f.path)) problems.push(`cites ${f.path} as its source and edits it in the same commit`);
+  }
   for (const f of files) {
     for (const p of [f.path, f.from].filter(Boolean)) if (FORBIDDEN.some((re) => re.test(p))) problems.push(`touches ${p}, which the loop never edits`);
     if (/^docs\//.test(f.from ?? f.path) && (f.status === 'D' || f.status === 'R')) problems.push(`removes ${f.from ?? f.path}: the loop deletes no document`);
@@ -190,6 +194,26 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
   if (UNREAL_TEST.test(added)) problems.push('its test is a todo or a skip');
   const audit = /^tend \S+ audit \d/.test(subject);
   if (code.length && !audit && !/^\s*Source:\s*\S/m.test(body)) problems.push('no "Source:" line naming the rule it conforms to');
+  return problems;
+}
+
+const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
+const ruleName = (p) => p.replace(/^\.claude\/rules\//, '');
+/** Whether a commit's Source line names a rule file, by its path or its bare name ("tabs-and-home.md"). */
+function citesRule(body, rulePath) {
+  const source = (body.match(/^\s*Source:.*(?:\n(?!\s*\w+:).*)*/m) ?? [''])[0];
+  return source.includes(rulePath) || new RegExp(`(^|[^\\w/-])${ruleName(rulePath).replace('.', '\\.')}`).test(source);
+}
+
+/**
+ * Across one push: a loop commit may not rest on a rule file that a loop commit of the same push
+ * touched, so a rule cannot be written in one commit and cited as the source in the next.
+ */
+function citedOwnEdits(commits) {
+  const loops = commits.filter((c) => /^tend /.test(c.subject));
+  const touched = new Set(loops.flatMap((c) => c.files.map((f) => f.path).filter((p) => RULE_FILE.test(p))));
+  const problems = [];
+  for (const c of loops) for (const rule of touched) if (citesRule(c.body, rule)) problems.push({ subject: c.subject, problem: `cites ${rule}, which this run's commits edit: a rule the loop wrote is not a source` });
   return problems;
 }
 
@@ -374,6 +398,7 @@ function commits(argv) {
   const all = git('rev-list', '--no-merges', range).split('\n').filter(Boolean);
   const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
   let bad = 0;
+  const read = [];
   for (const sha of shas) {
     const [subject, ...rest] = git('show', '-s', '--format=%s%n%b', sha).split('\n');
     const files = git('show', '--name-status', '--format=', sha).split('\n').filter(Boolean).map((l) => {
@@ -384,11 +409,18 @@ function commits(argv) {
     const added = tests.length
       ? git('show', '--format=', '-U0', sha, '--', ...tests).split('\n').filter((l) => /^\+(?!\+\+)/.test(l)).join('\n')
       : '';
-    const rewritesLog = files.some((f) => f.path === RUNS_REL) && git('show', '--format=', '-U0', sha, '--', RUNS_REL).split('\n').some((l) => /^-(?!--)/.test(l));
-    for (const p of tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog })) {
+    const removes = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').some((l) => /^-(?!--)/.test(l));
+    const rewritesLog = files.some((f) => f.path === RUNS_REL) && removes(RUNS_REL);
+    const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && removes(f.path)).map((f) => f.path);
+    read.push({ subject, body: rest.join('\n'), files });
+    for (const p of tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules })) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
     }
+  }
+  for (const { subject, problem } of citedOwnEdits(read)) {
+    bad += 1;
+    console.error(`${subject}\n  ${problem}`);
   }
   if (bad) process.exit(1);
   console.log(`check:tend: ${shas.length} commits read, clean.`);
@@ -406,4 +438,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, logProblems, runLine };
+module.exports = { LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, logProblems, runLine };

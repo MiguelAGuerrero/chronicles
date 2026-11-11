@@ -61,6 +61,12 @@ The loop never edits `docs/VISION.md`, a spec, a `vision-ok:` or
 `package.json`; `npm run check:tend` fails a run that does, and CI runs the
 same check on every `tend …` commit pushed to `main` (decision 0133).
 
+A rule file (`.claude/rules/`) is where a fix notes the trap it settled, so
+the loop may **add** lines to one. It never changes or removes a line
+already there (a reworded rule is the owner's, filed as a `T` entry), and no
+commit of a run names as its `Source:` a rule file the run edited (decision
+0135): a rule the loop wrote is not a source.
+
 ## 2. Sweep: deduce, do not wait to be told
 
 Read the area's rule files, its specs and its `docs/DEFERRED.md` section first,
