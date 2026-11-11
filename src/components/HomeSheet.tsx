@@ -562,8 +562,9 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   pills: { flexDirection: 'row', gap: 8 },
   switchRow: { flexDirection: 'row' },
-  switch: { flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, padding: 2 },
-  seg: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: 20 },
+  switch: { flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, padding: 1 },
+  // 44 pt, the target size (X0; tend chronicle 8).
+  seg: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22 },
   segOn: { backgroundColor: theme.ink },
   segOnText: { color: '#ffffff' },
   entry: {

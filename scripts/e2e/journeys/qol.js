@@ -606,6 +606,12 @@ async function run(h) {
       if (twice.menu) await pg.click('[data-testid=actions-cancel]');
     });
 
+    // tend chronicle 8: the sheet's Walks and Days segments are 44 px targets (X0, docs/research/ui-references.md).
+    await qstep('tend chronicle 8', async () => {
+      const sizes = await Promise.all(['sheet-walks', 'sheet-days'].map((id) => shown(id).first().boundingBox().then((b) => b && Math.round(b.height))));
+      check(sizes.every((h) => h >= 44), `tend chronicle 8: the sheet's Walks and Days are 44 px tall at least (${JSON.stringify(sizes)})`);
+    });
+
     // tend chronicle 5: the title's return key (Next) goes on to the line, in Rename as in the first replay's name.
     await qstep('tend chronicle 5', async () => {
       await pg.locator('[data-testid=walk-more]').first().click();
