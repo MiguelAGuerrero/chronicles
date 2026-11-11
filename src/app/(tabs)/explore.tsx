@@ -329,18 +329,21 @@ export default function Explore() {
     setTownSeen(null);
   }, [townSeen]);
   useEffect(() => {
-    if (!townSeen || open || !focused) return;
+    // tend explore 6: one Back or Escape steps out of one thing. The Layers panel closes itself first; the long press's
+    // choices close before the page does.
+    if (!townSeen || open || !focused || layers.open) return;
+    const out = () => (spot ? setSpot(null) : leave());
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      leave();
+      out();
       return true;
     });
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && leave();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && out();
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [townSeen, open, focused, leave]);
+  }, [townSeen, open, focused, leave, layers.open, spot]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
