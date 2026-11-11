@@ -189,7 +189,7 @@ export default function Explore() {
       fixSeen.current = Date.now();
       // Locate is a way back to you: leave a town's page, drop the reader's pick (so the row's first, your own
       // town, is selected again) and close anything open over the map.
-      framed.current = null;
+      // (`framed` is left alone: a new page frames itself, and on the same page nothing refits over Locate's frame.)
       setTownSeen(null);
       setSelected(null);
       setOpen(null);
