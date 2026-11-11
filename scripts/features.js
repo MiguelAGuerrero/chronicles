@@ -131,7 +131,7 @@ const FEATURES = [
     source: ['src/lib/presence/**'],
     // Its consumers own the journeys that show it: explore's marks, atlas and grading.
     journeys: [],
-    specs: ['presence'],
+    specs: ['presence', 'presence-readers'],
   },
   {
     name: 'explore',
@@ -411,7 +411,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'presence-readers': { branch: 'tend/inbox-20261111-1904', since: '2026-11-11' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
