@@ -486,18 +486,18 @@ async function run(h) {
       await input.click();
       await input.press('End');
       await pg.keyboard.type(' and @');
-      await pg.waitForSelector('[data-testid=moment-picker]', { timeout: 5000 });
+      await pg.waitForSelector('[data-testid=ref-palette]', { timeout: 5000 });
       await pg.waitForTimeout(800);
       await shot(pg, 'qol-05-note-mention');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(600);
       const after = {
-        picker: await pg.locator('[data-testid=moment-picker]').count(),
+        picker: await pg.locator('[data-testid=ref-palette]').count(),
         editor: await pg.locator('[data-testid=note-editor]').count(),
         text: (await pg.locator('[data-testid=note-edit-input]').count()) ? await input.inputValue() : null,
       };
       check(after.picker === 0 && after.editor === 1 && after.text === 'Edited on the replay. and @',
-        `tend chronicle 1: Escape closes the @ picker alone, and the note editor keeps its words (${JSON.stringify(after)})`);
+        `tend chronicle 1: Escape closes the @ menu alone, and the note editor keeps its words (${JSON.stringify(after)})`);
       if (after.editor) await pg.click('[data-testid=note-editor] >> text=Cancel');
       await pg.waitForTimeout(300);
       if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
