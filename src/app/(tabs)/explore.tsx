@@ -438,11 +438,6 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : noteText ? (
-    <View style={styles.note} testID="atlas-town-note" accessibilityLiveRegion="polite">
-      {listing ? <ActivityIndicator color={theme.muted} /> : null}
-      <Text style={styles.noteText}>{noteText}</Text>
-    </View>
   ) : !pressSeen && !spot && from ? (
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
@@ -577,7 +572,13 @@ export default function Explore() {
       {mapPane}
       {/* The row of areas under the map (EC2, EC3): one card at a time is selected; with no area to show, one status card. */}
       <View style={styles.rowPane} testID="atlas-row">
-        {shown.length ? (
+        {noteText ? (
+          // A town with no neighborhoods: its own card alone would repeat the page, so the note takes the row's place.
+          <View style={styles.empty} testID="atlas-town-note" accessibilityLiveRegion="polite">
+            {listing ? <ActivityIndicator color={theme.muted} /> : null}
+            <Text style={styles.emptyText}>{noteText}</Text>
+          </View>
+        ) : shown.length ? (
           <AtlasCarousel
             items={shown}
             selected={selected}
@@ -682,8 +683,6 @@ const styles = StyleSheet.create({
   // The row under the map sizes to its cards: never `flex: 1` (react-native-web would stretch it).
   rowPane: { flexGrow: 0, flexShrink: 0, paddingBottom: 8, paddingTop: 4 },
   overlay: { position: 'absolute', left: 12, right: 64, alignItems: 'flex-start', gap: 8 },
-  note: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12 },
-  noteText: { fontSize: 14, color: theme.muted, flexShrink: 1 },
   titleWrap: { position: 'absolute', right: 12, alignItems: 'flex-start' },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
