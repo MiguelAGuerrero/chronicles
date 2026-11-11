@@ -8,7 +8,7 @@ The spec is `specs/media-gallery/spec.md` (MG1-MG15). The owner reviews this bef
 |---|---|---|
 | `src/lib/gallery/layout.ts` | core | `galleryTiles(moments, walks, filter)`: one tile per photo, video or memo piece, newest first, no notes, no open walk (MG3, MG9); `galleryDays(tiles, walks, now)`: a section per local day with its title and place line (MG6); `galleryRows(days, width, size)`: columns from the width and the size step, rows of tiles, each row's offset and height (MG5, MG12, MG20); `galleryBlocks(tiles, walks, 'month' | 'year', now)`: a block per month or year with its title, newest photo and place line (MG19); `sorted(…, order)` (MG18); `lengthLabel(ms)` ("0:42"); `tileLabel(tile)` (MG15). Reads only its arguments. |
 | `src/lib/gallery/view.ts` | core | The saved view `{ order, size, shape }`, its default and codec (MG22); `zoom(size, ±1)` clamped to three steps (MG20); `anchorAfter(rows, topKey)`: the row to keep at the top after a size change (MG20). |
-| `src/lib/gallery/copy.ts` | core | Every sentence: the empty lines (MG10), "Not on a walk", "and outside a walk", "and others". Numbers as words, as in `lib/resurface/lines.ts`. |
+| `src/lib/gallery/copy.ts` | core | Every sentence: the empty lines (MG10); MG6's "Not on a walk", "Not on a walk, on …", "and outside a walk", "and another walk", "and two other walks", "and other streets"; MG19's "and another place", "and other places"; "Videos only" and the menu's items. Numbers as words, as in `lib/resurface/lines.ts`; `copy.test.ts` asserts each verbatim, and that no "and others" is left. |
 | `src/lib/gallery/shell.ts` | shell | `createGallery({ db, clock })`: a `Store` of `{ status, moments, walks, filter, zoom, view }`; `loadView()`/`setView()` through `metaStore` under a new `META` key `gallery_view` (MG22); `load()` reads `db.momentsBetween(0, MAX)` and `db.listWalks()` once per show (MG14); `patch(id, patch)` applies an edit at once (MG14); `setFilter`, `setZoom`, and `reset()` back to All Items and Days on a new open of Chronicle (MG9, MG19). Latest read wins, as `useResurface`. |
 | `src/lib/gallery/index.ts` | shell, `@instance` | `export const gallery = createGallery(ports)`. |
 | `src/lib/resurface/section.ts` | core | `Section` gains `'media'`; `sectionOnRoute` is unchanged (it already resets to Memories). |
@@ -42,7 +42,7 @@ New feature `gallery` in `scripts/features.js` (source `src/lib/gallery/**`, `sr
 | MG4 | journey `gallery` (no caption, no text on tiles) and `layout.test.ts` (`lengthLabel`) | `MG4: tiles are bare` |
 | MG5 | `layout.test.ts` | `MG5: three across on a phone, more as it widens, none under 100 pt` |
 | MG6 | `layout.test.ts` | `MG6: a header per day, with the year off this year, and the place line from what is under it` |
-| MG7 | `layout.test.ts` (no digit leaves `copy.ts`, headers or tile labels but dates, times and lengths) and journey (every text and accessibility label on Media and its viewer: no " of ", no "items") | `MG7: nothing counts` |
+| MG7 | `layout.test.ts` (no digit leaves `copy.ts`, headers, block lines or tile labels but dates, times and lengths) and journey (every text and accessibility label in Days, Months and Years, with the View menu open, with a kind chosen, and in the viewer: no " of ", no "items") | `MG7: nothing counts` |
 | MG8 | journey `gallery` | `MG8: a tile opens its moment at its piece, with its context; steps follow the gallery; Close keeps the scroll` |
 | MG9 | `layout.test.ts` and `gallery/shell.test.ts` (reset) | `MG9: the filter shows one kind and is All on a new open` |
 | MG10 | `layout.test.ts` (copy) and journey (the empty line) | `MG10: empty in words` |
@@ -59,7 +59,7 @@ New feature `gallery` in `scripts/features.js` (source `src/lib/gallery/**`, `sr
 | MG16 | journey `gallery` (scroll into a long day; its header is on screen) | `MG16: the day's header stays pinned while its tiles scroll` |
 | MG17 | journey `gallery` (no band; the bar's camera with a walk minimized) | `MG17: no capture stack; the bar keeps its camera` |
 
-The journey seeds moments through the app's own stores, as `resurface` does, and calls `shot()` on the gallery, the filter on Memos, the viewer from a tile, and the empty state.
+The journey seeds moments through the app's own stores, as `resurface` does, and calls `shot()` on Days, Months and Years, the View menu open, "Memos only", Aspect Ratio Grid, the largest and smallest sizes, the viewer from a tile, and the empty state.
 
 ## Each action on the screen
 
@@ -91,8 +91,14 @@ No control the matrix avoids. Two segmented controls are stacked (Chronicle's se
 | S7 | MG7's test misses labels and the screen reader | Accepted: MG7 and its journey scan; a TalkBack item in `docs/NATIVE_UNVERIFIED.md` |
 | S8 | The header names walks opposite to the tiles | Accepted: MG6, newest first, as the tiles |
 | S9 | Media and the capture row | Accepted: MG17 |
+| S10 | A block's cover can be a kind the filter hid, or from a walk its line doesn't name | Accepted: MG19, the cover is of the shown kinds, and the line names its place first |
+| S11 | The month and year line was unspecified (repeats, "and other places" for one, loose only) | Accepted: MG19 |
+| S12 | The plan's copy row still said "and others" | Accepted: the copy row lists MG6 and MG19's phrases; `copy.test.ts` asserts no "and others" |
+| S13 | MG7's scan missed Months, Years and the menu | Accepted: MG7 and the journey's shots |
+| S14 | The cover ignored Oldest First | Accepted: the cover is the block's first piece in the Sort's order |
 | Silent 1 | A piece at 1 am: which day's header? | Midnight to midnight, as the Days list (MG6); the viewer's "late Tuesday night" stays as it is |
-| Silent 2, 3 | Is the gallery Chronicles' own enough; memo tiles look alike | Put to the owner below |
+| Silent 2, 3 | Is the gallery Chronicles' own enough; memo tiles look alike | The owner: the look of a photo gallery; memo tiles stay (Nov 11) |
+| Second pass, silent | A cover the owner picks; a year's line names its latest places | A fixed rule now; latest first, never by frequency. A cover the owner picks would be a stored choice, deferred |
 
 ## Deferred, and why
 
