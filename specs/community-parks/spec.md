@@ -18,6 +18,7 @@ Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (neares
 Verdict: aligned if reshaped
 Shape: A park is a community park only on evidence: a name that says playground, playfield or the like, and nothing notable inside or near it (an archive place, a monument, art, history or viewpoint place, a notable word in the name, a large outline). Everything unsure stays a park. The kind keeps the parks category, so the Green bar, the colours and the planner's bar are unchanged. Nothing says why a park is one kind or the other. The reader can switch the kind off; the other parks stay. Colouring green spaces on the map is a later slice with its own gate.
 Criteria: PC1 (evidence, never a guess), PC2 (a notable signal keeps a park), PC3 (unknown stays a park), PC7 (no description, no judgement words, no count), PC8 (the switch hides only the subset), PC10 (Green and the colours unchanged), PC12 (no fetch to sort).
+Pipeline (Nov 11): no surface beyond PC22 and PC23, a parent switch hides its children, which is what "a subset of Parks" means.
 Open: none (the owner took the defaults, Nov 11: name only, size never demotes; the Allentown park's name from the owner's recollection, "Franklin Memorial Park").
 
 ## Decisions
@@ -108,6 +109,29 @@ From the steward's review (Nov 11, triaged in the plan):
     and on a found place (the owner's default, Nov 11).
 17. **PC17 Size never demotes.** A park whose name holds no community word is `parks` whatever its outline's area, and an
     outline cut by a tile edge or adjoining another park outline never changes a kind. (Steward findings 1 and 2.)
+
+The pipeline (the owner, Nov 11: "classifications and derived data separate from the shell … pure functions that fit into
+an overall pipeline that produces these filters … a flexible pipeline that categorizes large categories into fine
+subsets"; the owner chose a registry of pure refinements and kinds that know their parent):
+
+18. **PC18 A registry of pure refinements.** Subsets are produced by `REFINEMENTS`, a list of data objects (`id`, `parent`, `child`,
+    `judge`); community parks is one entry. `refine(places, context, refinements)` is a pure function: it returns new
+    places, never changes its input, gives the same answer run twice over its own output, and changes nothing with an
+    empty list.
+19. **PC19 A new subset is an entry.** A refinement added to a registry splits another kind with no other code changed;
+    refinements run in order, so a child of a child works; a place whose kind is not the refinement's parent is never touched.
+20. **PC20 Kinds know their parent.** `kindParent` and `kindChain` are read from the registry; every refinement's parent and
+    child are kinds of "What I'm into", the child listed after its parent. A child switched off hides only itself; a
+    parent switched off hides its children too; a child cannot be switched on under a parent that is off (`kindSwitch`
+    says it is locked).
+21. **PC21 The stages are apart.** The poi adapter judges nothing about parks (a playground comes out of it as `parks`);
+    `mergePlaces` merges and judges nothing; the refinement runs after the merge with the archive's places in its context,
+    so an archive place promotes a community park there; no pipeline module (`refine`, `refinements`, `parkKind`,
+    `green`) imports a shell, the db, `ports`, a recorder, a notifier or React Native.
+22. **PC22 One reader of the hierarchy.** Every consumer tests a kind against the switches through `isKindHidden`
+    (`visibleMarks`, `routeMarks`, `passedPlaces`, `waitingKinds`, `waitingMarks`): with Parks off, community parks are off too.
+23. **PC23 The settings row says so.** With Parks off, the Community parks row reads off and cannot be switched on (a
+    disabled switch); with Parks on it follows its own switch. Nothing else in "What I'm into" changes.
 
 ## Not in this slice
 
