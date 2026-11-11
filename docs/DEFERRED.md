@@ -375,6 +375,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
 - **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
 - **A place-rooted journal**: a thread with no moments, started top-down and rooted in a place. Out of the owner-made threads slice by the owner's call (a thread comes only from connecting moments that have their own time and place). It would be its own feature and goes through `/vision` first.
+- **A note in the owner's thread shows no place or walk context line** (fix thread-log audit 6, older than the fix): Memories reads context lines only for the Chronicle's threads and Lately, so a bubble (and a card) in the owner's thread says only when and "From ..." its walk, short of OT9's context line. Reading `contextFor` for the owner's thread ids is its own change.
+- **A failed read of the moment pool shows every mention as "no longer kept"** (fix thread-log audit 1, older than the fix): `useMomentPool` takes a failure for an empty pool, so `NoteText` says a mention is gone when it could not be read (RF5).
+- **The thread journey's owner thread holds only notes** (fix thread-log): a thread mixing a photo or memo card with note bubbles, a bubble with a mention or a walk line, and a long note at 320 px have no check or picture yet.
 - **A failed resume drops the paused reminder** (fix pause-banner audit 2, Nov 9): the error notice replaces the "Paused for N min" one, and `remindedFor` keeps it from coming back, so the walk stays paused with no banner. Predates the fix; low.
 
 ## Storage awareness (SA1-SA10, decision 0107)

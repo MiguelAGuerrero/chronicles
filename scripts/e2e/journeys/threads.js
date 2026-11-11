@@ -200,7 +200,14 @@ async function run(h) {
   await pg.locator(bubble('looked strong at the pier')).locator('text=looked strong at the pier').click();
   await pg.waitForTimeout(500);
   check(!(await has('[data-testid=viewer-close]')), 'fix thread-log: a tap on a note in the thread opens no viewer');
-  await shot(pg, '76-thread-log');
+  {
+    const xs = await pg.locator('[data-testid=own-thread] [data-testid=note-bubble] [data-testid=moment-more]').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
+    const ownX = (await pg.locator('[data-testid=own-thread]').boundingBox()) ?? { x: 0, width: 0 };
+    check(xs.length === 3 && xs.every((x) => x === xs[0]) && Math.abs(xs[0] - (ownX.x + ownX.width)) <= 2, `fix thread-log audit 4: every note's More is at the row's end, in one column (${xs.join(', ')})`);
+    const spoken = await pg.locator(`${bubble('looked strong at the pier')} [aria-label^="Note, "]`).count();
+    check(spoken === 1, 'fix thread-log audit 2: a plain note in the thread is one item to a screen reader, naming a note');
+  }
+  await shot(pg, '79-thread-log');
   const line = await pg.locator('[data-testid=own-thread-line]').innerText();
   check(/a few moments, since /.test(line) && !/\b(three|four|five|six)\b/.test(line), `OT10: the size is a phrase from the fixed set (${line})`);
   check(!/^Compliments/.test(await pg.locator('[data-testid=own-thread-title]').innerText()), 'OT13: an unnamed thread is headed by its place and date, not a name made up for it');

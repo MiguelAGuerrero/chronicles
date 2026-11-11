@@ -15,7 +15,7 @@ export function ThreadMomentMenu(props: { open: boolean; onClose: () => void; on
       <View style={styles.back}>
         <Pressable style={StyleSheet.absoluteFill} onPress={props.onClose} accessible={false} />
         <View style={styles.sheet} testID="thread-moment-menu" accessibilityViewIsModal>
-          {item('thread-menu-open', 'Open the moment', 'Full screen, with its own menu', props.onOpen)}
+          {item('thread-menu-open', 'Open the moment', 'Full screen, to respond or edit', props.onOpen)}
           {item('thread-menu-remove', 'Remove from this thread', 'The moment stays kept, and so do its other threads', props.onRemove)}
           <Pressable testID="thread-menu-cancel" accessibilityRole="button" onPress={props.onClose} style={styles.item}>
             <Text style={[styles.label, { color: theme.muted }]}>Cancel</Text>
