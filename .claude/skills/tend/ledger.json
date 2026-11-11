@@ -1,5 +1,5 @@
 {
-  "lastT": 9,
+  "lastT": 13,
   "lastG": 4,
   "balance": {
     "date": "2026-11-11",
@@ -37,9 +37,11 @@
       "NV",
       "OT",
       "PA",
+      "PC",
       "PK",
       "PP",
       "PR",
+      "PS",
       "PW",
       "QL",
       "R",
@@ -65,15 +67,16 @@
       "WT"
     ],
     "commits": {
-      "growth": 122,
-      "refinement": 214,
-      "other": 423
+      "growth": 128,
+      "refinement": 244,
+      "other": 446
     },
     "areas": {
       "rough": [
         "chronicle",
         "explore",
         "navigation",
+        "tabs",
         "walk-screen"
       ],
       "settling": [],
@@ -101,20 +104,19 @@
       "rides",
       "storage",
       "streets",
-      "tabs",
       "threads",
       "walk-planner",
       "walkability",
       "web"
     ],
     "open": {
-      "openT": 1,
-      "phoneT": 0,
-      "openG": 2
+      "openT": 4,
+      "phoneT": 1,
+      "openG": 1
     },
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "four areas are rough"
+    "why": "five areas are rough"
   },
   "areas": {
     "chronicle": {
@@ -140,6 +142,12 @@
       "swept": "2026-11-11",
       "main": "bc41449fde47f1c5e3853364a51c46560392cd41",
       "note": "First sweep, not whole: the auditor read half the area's modules (not useReady, CaptureStack, ReadyBar, StartSettings, MomentBar, useLiveTrace); 320 px, 200% text and offline were not pictured. One medium finding shipped (Stop's second held-photo warning); two medium hook findings filed [loop] for want of a hook harness."
+    },
+    "tabs": {
+      "state": "rough",
+      "swept": "2026-11-11",
+      "main": "6b099ea6f3f46045fcbfbf869bd0f867582c4a27",
+      "note": "First sweep, not whole: real 200% text (phone, T13), offline and an interrupted launch were not pictured. Shipped: the focus ring on ink (two-tone, swapped on the recording bar), the bar's spoken camera, units on the destination and the range (with the review's three fixes), the empty peek's cut line, the bar's two-line word at 320, pictures. Dropped after the review and filed [loop] medium: a reminder into the folded bar, the bar's Stop and a held photo. T10-T12 [owner], T13 [phone] open."
     }
   },
   "declined": []

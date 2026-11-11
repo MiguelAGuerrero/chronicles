@@ -151,6 +151,10 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   - **Native** (unverified on a device): the replay's `BackHandler`,
     `capFitBounds` on MapLibre RN's fitBounds.
 
+- **Judged against the owner's calls** (the UX review of `/tend tabs`, Nov 11): Memories' capture band above the
+  recording bar and the tab bar (T8, the matrix's row 5) was weighed against decision 0112, and the Navigate tab as an
+  action that opens the walk screen (T1) against decision 0076; both decisions stand.
+
 ## The home map
 
 - **The home map is taken down while the home isn't focused** (a walk, a

@@ -142,6 +142,46 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   /vision: aligned (earn; "Guidance is structural: where there is a lot, and what makes a place itself"; the same name
   reads the same for a museum and a park).
   Otherwise: leave the two readings apart (a neighbourhood's "Old" or "Heritage" keeps a playground a park), or leave it.
+- **T10 [owner] Chronicle's Map peek: one way to act, and a line that is true while you walk** (2026-11-11)
+  Area: tabs. Seen: `tabs-2-chronicle-peek-with-a-walk-minimized-and-none-finished` (the `tabs` journey's picture; `HomeSheet.tsx`
+  ~l.282-370): with a walk minimized and none finished the peek says "Walk somewhere and it is starred here" and offers Days and
+  Navigate. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; NN/g H8 (the peek's Days repeats the section bar's
+  Days, its Navigate the Navigate tab just below, and the recording bar's › is a third way; UX review U8); the line asks you to walk
+  while you are walking (steward S1). `tend tabs 7` already keeps the line whole; this is what it says and what sits beside it.
+  Recommended: with nothing open, the line and Navigate only (Days goes: the section bar holds it); with a walk open and none
+  finished, "This walk is starred here when it ends" and no button (the bar's › is the way back). It amends tabs audit U7 (your
+  call, Nov 2). /vision: aligned (return; restraint).
+  Otherwise: drop the peek's Days alone and keep the line, or leave it.
+- **T11 [owner] Voice and note are two taps away while a walk is minimized, off Memories** (2026-11-11)
+  Area: tabs. Seen: `tabs-2-recording-bar`, `probe-explore-minimized` (pictures): on Explore and Chronicle's other sections the
+  recording bar offers the camera only. Rests on: VISION.md Always, "Capture is one tap away on every screen you walk or capture
+  from", and Never, "A capture behind a menu, a drawer or an extra tap" (steward S2). NV9 (your call, Nov 1) settled the camera on
+  the bar; the voice memo and the note were never ruled.
+  Recommended: a mic beside the bar's camera, the same 44 pt ink-on-white button, hidden on Memories as the camera is (the band
+  has one there); a memo records in place with Stop & save, Discard and its timer, as on the walk screen, and leaving the tab saves
+  it (`memoGate`); the bar's line shortened to fit at 320 px (the time alone, the distance still spoken). It extends NV9 and
+  decision 0048 and reverses neither. More than one commit: on a yes it is built as a slice. /vision: aligned (honour), with no
+  accent and no count on the bar.
+  Otherwise: the mic and the pencil both; or record the camera as the bar's whole stack in VISION.md's Shapes; or leave it.
+- **T12 [owner] The recording bar's Edit offer goes after six seconds** (2026-11-11)
+  Area: tabs. Seen: `tabs-9-bar-edit-offer`, `tabs-9-bar-edit-offer-320` (the `launch` journey's pictures): after a photo from the
+  bar, "Photo saved to your walk" and an Edit button replace the time and distance for ME23's six seconds. Rests on:
+  `.claude/rules/ui-patterns.md`, "Undo stays until it is used or dismissed" (F3; M3, "Snackbars with actions shouldn't
+  auto-dismiss"; decision 0113), and decision 0114 (an action on a moment lives in its toolbar or menu; the viewer has Edit)
+  (UX review U7).
+  Recommended: on the bar only, the offer becomes a pill above it, "Photo saved to your walk · Edit · ✕", that stays until Edit,
+  Close or the next capture, announced politely; the bar's line keeps its time and distance throughout. ME23's other places are
+  unchanged. /vision: aligned (honour).
+  Otherwise: no Edit offer on the bar at all (the photo's viewer has Edit), or leave it.
+  At 320 px the offer's words are cut today, "Photo save…" on two lines beside Edit (`tabs-9-bar-edit-offer-320`; the run's
+  review F9): the pill's layout settles that too.
+- **T13 [phone] The tabs at the largest text size** (2026-11-11)
+  Area: tabs. Seen: `probe-minimized-200pct` (the web at zoom 2, a rough stand-in: react-native-web sizes text in px): the section
+  bar read "M… / W. / D.", the band lost Note off the screen, the bar's line read "0:07 …" (UX review U6; WCAG 1.4.4).
+  Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open Chronicles on Memories
+  with a walk minimized, then Explore.
+  Expect: the section names, the band's Photo, Voice and Note, the recording bar's time and distance and the tab labels are all
+  there, wrapping where they must, none cut to a letter or pushed off the screen.
 
 ### Next evolutions
 
@@ -169,19 +209,22 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox T8 yes`** (from `6b099ea`). The owner answered T8 [arch] with its recommended shape (decision 0146):
-the parked slice `specs/presence-readers` (G4, PS1-PS11) resumed on main beside community parks and the kind pipeline.
-The golden tables captured again on main before any code (equal to the first capture); the thirteen parked commits brought
-over with five conflicts resolved by the answer: `discovery/green.ts` reads `classesOfLandcover` (PS4), `parkKind.ts` asks
-presence's `notableName` and keeps its park words as the refinement's curation (PS3), the carry `a9.p1` under `a9.p2`
-(`ATLAS_OWN`, `PRESENCE_CARRIED`, `codeCurrent`), the guard over the pipeline's modules (PS7). The old/new differential
-against main matched: 18,129 archive places, 2,482,980 tag and name pairs, 907 rings (only audit 5's four names apart),
-and the pipeline's 413,270 park cases, 484 green inputs and 3,628 rings with outlines: no difference. One auditor round
-over the resolution (its `readAround` differential, 10,360 reads, matched too): seven findings, six fixed as
-`presence-readers audit 7-12`, one filed as T9. Unit tests 1918, typecheck, lint, check:docs; journeys marks, atlas,
-grading, curiosities, outlines, planner and upgrade green (marks, atlas, grading, outlines again after the review). T8
-leaves the inbox and G4 "Next evolutions"; the parked branch is deleted once this is on main. The balance: unchanged by an
-inbox run. Nothing here touched native code or has run on a phone.
+**Nov 11, `/tend tabs`** (a sweep from `6b099ea`, its first; rebased on `ed7cd8e` with the presence-readers slice). Seven loop commits and five from the review:
+- `tend tabs 1`: keyboard focus shows a two-tone ring (`webStyles.web.ts`), visible on ink grounds (it was 1:1 on the recording bar); `tend tabs audit 13`: on the bar the tones swap, so the ring shows around its white buttons too.
+- `tend tabs 2`: the tabs journey pictures the recording bar, paused, at 320 px, and Chronicle's empty peek.
+- `tend tabs 3`: the bar's camera is spoken as the band's with a walk open.
+- `tend tabs 6`: the destination's distance and the "?" range follow km or miles (QL14); `audit 5`: the walk screen's range line too; `audit 6`: every range step reads its own value in feet; `audit 7`: the destination converts to miles from its own distance.
+- `tend tabs 7`: the empty peek's line sits on its own row, never cut by Days and Navigate.
+- `tend tabs 8`: a tap on the bar's Stop says "Hold to stop", on one line at 320 px.
+- `tend tabs 9`: the bar's Edit offer is pictured; `audit 14`: the tabs journey puts its viewport back after its 320 px checks.
+Not shipped, dropped after the review: the bar listening for reminders only while unfolded (it lost a reminder fired with the
+page in front) and the bar's Stop warning about a held photo (a stale read, a stuck fill, untrue words, cut at 320 px); both
+are [loop] medium in `docs/DEFERRED.md`. Filed: T10-T12 [owner] (the Map peek's buttons and line; a mic on the recording bar;
+the bar's Edit offer as a pill that stays), T13 [phone] (the largest text size); [loop] items under "Tabs and the recording
+bar" in `docs/DEFERRED.md`, one [owner] item for the next explore sweep; NV9's wording in "Open before the loop". The review:
+one auditor round, 6 accepted, 6 deferred, none rejected. The balance: outgrowing its base (five areas rough: chronicle,
+explore, navigation, tabs, walk-screen), so no G entry. Lenses not whole: real 200% text (phone), offline and an interrupted
+launch were not pictured. Nothing here has run on a phone.
 
 ### Open before the loop
 
@@ -189,6 +232,9 @@ inbox run. Nothing here touched native code or has run on a phone.
   before"; since T6 (decision 0141) it zooms out as the sheet's does. Amend SB3 to "the walks list's zoom-out (0054),
   by either Walks, from the sheet at rest, and once as the map mounts on Walks" and point it to `tend chronicle T6`
   and `tend chronicle T7` (decision 0142); the loop may not edit a spec.
+- **NV9's wording after 0048** (Nov 11): `specs/navigation-and-tabs/spec.md` NV9 says the recording bar "has no Stop";
+  decision 0048 gave it a held Stop (`bar-stop`). Amend NV9 to "It has a held Stop (decision 0048)", in the doc and the mirror;
+  the loop may not edit a spec.
 - **QL23's wording after T1** (Nov 11): the quality-of-life doc (mirrored in `specs/quality-of-life/spec.md`) says "an
   empty title becomes the suggested one"; the build now stores no title for an empty one or the suggestion kept as it
   was, shown as the suggestion. Amend the doc to "an empty title, or the suggestion unchanged, is no title, shown as

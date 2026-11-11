@@ -148,6 +148,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on a fresh install, open the app and touch nothing, then tap Explore. **Expect:** no location prompt while the app sits on Chronicle; Explore's first focus raises it, then frames where you are once (decision 0112). (NV16, HC14)
 - [ ] **Do:** add the web build to an iPhone's Home Screen, open a walk's replay, close the app from the app switcher, delete that walk in another session or wait for the link to go stale, and reopen it. **Expect:** an iPhone Home Screen app reopening on its last page lands on Chronicle (the `/chronicle` redirect, a stale replay link) (decision 0112). (NV2, HC5)
 - [ ] **Do:** start a walk, force-quit, and open the app again. **Expect:** the launch cover hides the native stack while the open walk is read, and the walk screen comes up under it before the recorder resumes: no flash of Chronicle (NV2 launch 1-5, HC2). (NV2, HC2)
+- [ ] **Do:** on a phone with nothing walked, open Chronicle's Map, then start a walk, keep a memo and minimize it. **Expect:** the peek's line, "Walk somewhere and it is starred here", sits whole on its own row above Navigate (and Days, once a day exists), and the peek opens at its own height (`tend tabs 7`).
+- [ ] **Do:** set Distances to miles, set a destination and pull up the ready bar; step the "?" range from 60 to 300 m. **Expect:** the destination and the range read in feet or miles, each range step a different number of feet, on the ready bar and the walk's options alike (`tend tabs 6`, audits 5-7).
 
 ## Capture from Chronicle (HC1-HC15, decision 0112)
 
