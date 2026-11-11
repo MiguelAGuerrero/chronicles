@@ -17,6 +17,16 @@ const name = (w: FormWord | null) => w ?? 'no word';
 const right = (r: ReportRow) => r.got === r.expected || (r.accept !== undefined && r.got === r.accept);
 const pct = (n: number, d: number) => (d ? `${n}/${d} = ${(n / d).toFixed(2)}` : 'none');
 
+/** The 95% Wilson interval of n right in d, as `[low, high]`. */
+export function wilson(n: number, d: number): [number, number] {
+  if (!d) return [0, 1];
+  const z = 1.96;
+  const p = n / d;
+  const centre = (p + (z * z) / (2 * d)) / (1 + (z * z) / d);
+  const half = (z * Math.sqrt((p * (1 - p)) / d + (z * z) / (4 * d * d))) / (1 + (z * z) / d);
+  return [Math.max(0, centre - half), Math.min(1, centre + half)];
+}
+
 /**
  * The text of the report: each place with the owner's word, the rule's word and its measures; then, for each set, the confusion table (the owner's word
  * down, the rule's across), the accuracy and the recall (the share of places the owner gave a word that got any word, so silence cannot pass). It lives
@@ -38,7 +48,8 @@ export function formatReport(rows: readonly ReportRow[]): string {
     out.push('', `confusion, ${set} (owner down, rule across): ${words.join(' | ')}`);
     for (const a of words) out.push(`  ${a.padEnd(11)} ${words.map((b) => String(mine.filter((r) => name(r.expected) === a && name(r.got) === b).length).padStart(b.length)).join(' | ')}`);
     const asked = mine.filter((r) => r.expected !== null);
-    out.push('', `accuracy, ${set}: ${pct(mine.filter(right).length, mine.length)}`, `recall, ${set}: ${pct(asked.filter((r) => r.got !== null).length, asked.length)}`, '');
+    const [lo, hi] = wilson(mine.filter(right).length, mine.length);
+    out.push('', `accuracy, ${set}: ${pct(mine.filter(right).length, mine.length)} (95% interval ${lo.toFixed(2)} to ${hi.toFixed(2)})`, `recall, ${set}: ${pct(asked.filter((r) => r.got !== null).length, asked.length)}`, '');
   }
   return out.join('\n');
 }

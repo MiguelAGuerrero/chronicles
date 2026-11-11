@@ -27,57 +27,42 @@ export const FORM_WORDS: readonly FormEntry[] = [
 ];
 
 /**
- * The thresholds, per km² of the 800 m ring unless a share. Each sits in the gap between confirmed places on either side (the comment names the nearest on
- * each). Retuned on 2026-11-11 on 35 places: the first 18, and the first held-out set of 17 folded in after it scored 0.71 (PF6); the fresh held-out set that
- * follows is the measure.
+ * The thresholds, per km² of the 800 m ring unless a share. Street-first (the second and third reviews, 2026-11-11): the street network is the best-mapped
+ * signal, so the words lean on junctions and the motorway share, and use buildings and places only coarsely (Overture's coverage is uneven, PF24). Each sits
+ * in a gap between confirmed places, with room for a 300 m move of the centre (PF22) and half the places and buildings (PF24). Found on the 35 calibration
+ * places; three of them it does not get (the known misses in PF5). The fresh held-out set is the measure.
  */
 export const FORM = {
-  /** Exit: a quarter or more of the street is motorway or trunk, few streets cross and few places stand. (Morgantown 0.27, 25 and 38 places; Park City 0.21; the mall has 103 places; Bethel's 15 against none, which is a failed read and no layout, PF17.) */
-  exitHighwayShare: 0.25,
+  /** Exit: mostly motorway or trunk, few streets crossing, a few places so a failed read is never an exit (PF17). (Bethel 0.45, Breezewood 0.43, Fogelsville 0.42; the mall 0.28.) */
+  exitHighwayShare: 0.35,
   exitJunctionsMax: 26,
-  exitPlacesMin: 5,
-  exitPlacesMax: 60,
-  /** Grid: streets close together with many places, or very close together with whatever places are mapped (a town of rowhouses). (Bethlehem 49 and 275; Hershey 49 and 125; Steelton 82 and 31; Lower Paxton 45.) */
-  gridJunctions: 48,
-  gridPlaces: 150,
+  exitPlacesMin: 3,
+  /** Grid: streets very close together, or close together with a crowd of places. (Steelton 82 alone; Bethlehem 49 with 275 places, Allentown's grid 54 with 201; Hershey 49 with 125.) */
   gridJunctionsAlone: 70,
-  /** Main street: streets crossing a little, built up, a run of places but not a crowd of them, no highway. (Jonestown 28 and 470 buildings; the mall 25 and 380; Womelsdorf 410; Lower Paxton 208; Lititz 117 places against Penn State's 205.) */
+  gridJunctions: 48,
+  gridPlaces: 100,
+  /** Main street: streets crossing a little, built up, a run of places but not a crowd of them, no highway. (Jonestown 28 junctions and 23 places; the mall 25; Lower Paxton 208 buildings; Lititz 117 places against Penn State's 205.) */
   mainJunctions: 27,
-  mainBuildings: 400,
-  mainPlaces: 15,
+  mainPlaces: 20,
   mainPlacesMax: 150,
+  mainBuildings: 250,
   mainHighwayMax: 0.2,
-  /** Village: few streets crossing, few buildings, almost no highway. (Rehrersburg 10 and 142, Fredericksburg 16 and 267; Park City 0.21 highway; Grantville 18 buildings.) */
+  /** Village: few streets crossing, a few buildings, almost no highway. (Rehrersburg 10 and 142 buildings, Fredericksburg 16 and 267; Park City 0.21 highway; Grantville 18 buildings.) */
   villageJunctionsMin: 8,
   villageJunctionsMax: 20,
-  villageBuildingsMin: 120,
-  villageBuildingsMax: 350,
-  villagePlacesMin: 5,
+  villageBuildingsMin: 80,
+  villagePlacesMin: 3,
   villageHighwayMax: 0.15,
 } as const;
 
 /** The word for a ring's measures, or null: none fits, or it could not be measured (PF5-PF9, PF17). */
 export function placeForm(m: Measures | null): FormWord | null {
   if (!m) return null;
-  if (m.highwayShare >= FORM.exitHighwayShare && m.junctionsPerKm2 < FORM.exitJunctionsMax && m.placesPerKm2 >= FORM.exitPlacesMin && m.placesPerKm2 < FORM.exitPlacesMax) return 'exit';
-  if ((m.junctionsPerKm2 >= FORM.gridJunctions && m.placesPerKm2 >= FORM.gridPlaces) || m.junctionsPerKm2 >= FORM.gridJunctionsAlone) return 'grid';
-  if (
-    m.junctionsPerKm2 >= FORM.mainJunctions &&
-    m.buildingsPerKm2 >= FORM.mainBuildings &&
-    m.placesPerKm2 >= FORM.mainPlaces &&
-    m.placesPerKm2 < FORM.mainPlacesMax &&
-    m.highwayShare < FORM.mainHighwayMax
-  )
-    return 'mainStreet';
-  if (
-    m.junctionsPerKm2 >= FORM.villageJunctionsMin &&
-    m.junctionsPerKm2 < FORM.villageJunctionsMax &&
-    m.buildingsPerKm2 >= FORM.villageBuildingsMin &&
-    m.buildingsPerKm2 <= FORM.villageBuildingsMax &&
-    m.placesPerKm2 >= FORM.villagePlacesMin &&
-    m.highwayShare < FORM.villageHighwayMax
-  )
-    return 'village';
+  const { highwayShare: hwy, junctionsPerKm2: jct, placesPerKm2: places, buildingsPerKm2: buildings } = m;
+  if (hwy >= FORM.exitHighwayShare && jct < FORM.exitJunctionsMax && places >= FORM.exitPlacesMin) return 'exit';
+  if (jct >= FORM.gridJunctionsAlone || (jct >= FORM.gridJunctions && places >= FORM.gridPlaces)) return 'grid';
+  if (jct >= FORM.mainJunctions && jct < FORM.gridJunctions && places >= FORM.mainPlaces && places < FORM.mainPlacesMax && buildings >= FORM.mainBuildings && hwy < FORM.mainHighwayMax) return 'mainStreet';
+  if (jct >= FORM.villageJunctionsMin && jct < FORM.villageJunctionsMax && buildings >= FORM.villageBuildingsMin && places >= FORM.villagePlacesMin && hwy < FORM.villageHighwayMax) return 'village';
   return null;
 }
 
