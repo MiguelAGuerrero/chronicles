@@ -1,7 +1,7 @@
 import { facedAll } from '../../lib/moment';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
@@ -68,10 +68,10 @@ const allCaptures = () => db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(fac
  * only walks, summaries, Area, WalkArea and capture rows; placing old walks
  * (which reads their traces) lives in lib/backlog.
  */
-/** A press on the section bar, counted, so a press on the section already selected still reaches the sheet (SB2). */
-type BarPress = { section: Section; n: number };
+/** What the section bar asks of the map while it is up: show a section's list, as the sheet's own controls do (SB2, T6). */
+type ChronicleMapHandle = { show: (s: 'walks' | 'days' | 'map') => void };
 
-function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; press: BarPress }) {
+const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' | 'map' }>(function ChronicleMap({ section }, ref) {
   perfCount('render:home');
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -132,15 +132,6 @@ function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; p
     const next = sectionOfSheet(m.kind, section);
     if (next !== section) chronicleSection.set(next);
   };
-  // A press on the bar while the map is up changes the sheet without a new map (SB2, SB3): adjusted while rendering,
-  // as React has a prop change adjust state, never in an effect.
-  const [seenPress, setSeenPress] = useState(press.n);
-  if (press.n !== seenPress && (press.section === 'walks' || press.section === 'days' || press.section === 'map')) {
-    setSeenPress(press.n);
-    setSelected(null);
-    setSpot(null);
-    setMode({ kind: sheetForSection(press.section) });
-  }
   // The map refits only when the places walked change (a new walk, a pass),
   // never just for coming back: a replay keeps the view you left (H5).
   // Kept while the app is open, so the section comes back where it was (audit 8): the framed places, and the camera below.
@@ -255,6 +246,19 @@ function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; p
     [captures, pinZoom],
   );
   const index = useMemo(() => placesIndex(data?.areas ?? [], data?.rows ?? [], data?.walks ?? []), [data]);
+  // Opening the walks list zooms out to every place walked (M6), at once, framed above the half-height sheet it opens
+  // to; only from the sheet at rest, only when they aren't all in view already, and never closer than now (audit 7).
+  // The sheet's Walks, a drag up and the bar's Walks all come here, so the same word moves the map the same way (T6).
+  const openSheet = (m: SheetMode) => {
+    if (m.kind === 'walks' && mode.kind === 'summary' && index.bounds) {
+      const padding = { top: insets.top + 60, right: 48, bottom: Math.round(screenH * 0.5) + 96, left: 48 };
+      const z = zoomOutFor({ camera: cameraNow.current, size: { width: screenW, height: screenH }, padding, places: index.bounds });
+      if (z) setFit((f) => ({ bounds: z.bounds, key: f.key + 1, padding, maxZoom: z.maxZoom }));
+    }
+    showSheet(m);
+  };
+  // The bar's press, the selected section's too, reaches the sheet with no new map (SB2, SB3).
+  useImperativeHandle(ref, () => ({ show: (s) => openSheet({ kind: sheetForSection(s) }) }));
   // TB3: the towns your walks were in, as regions in one tint behind the stars (from z8, BORDER.minZoom).
   const walkedTowns = useMemo(() => townPlaces([...index.byArea.keys()].map((k) => index.areas.get(k)!).filter(Boolean)), [index]);
   const drawn = useOutlineSet(walkedTowns.map((t) => t.at), BORDER_ZOOM, focused);
@@ -300,17 +304,7 @@ function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; p
           summaries={summaries}
           unplaced={unplaced}
           mode={mode}
-          onMode={(m) => {
-            // Opening the walks list zooms out to every place walked (M6), at once, framed above the
-            // half-height sheet it opens to; only when they aren't all in view already, and never
-            // closer than now (audit 7).
-            if (m.kind === 'walks' && mode.kind === 'summary' && index.bounds) {
-              const padding = { top: insets.top + 60, right: 48, bottom: Math.round(screenH * 0.5) + 96, left: 48 };
-              const z = zoomOutFor({ camera: cameraNow.current, size: { width: screenW, height: screenH }, padding, places: index.bounds });
-              if (z) setFit((f) => ({ bounds: z.bounds, key: f.key + 1, padding, maxZoom: z.maxZoom }));
-            }
-            showSheet(m);
-          }}
+          onMode={openSheet}
           onHeight={setSheetH}
           height={sheetAnim}
           bottomInset={0}
@@ -448,7 +442,7 @@ function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; p
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
@@ -472,10 +466,12 @@ const styles = StyleSheet.create({
 export default function Chronicle() {
   const insets = useSafeAreaInsets();
   const section = useStore(chronicleSection.store, (s) => s);
-  const [press, setPress] = useState<BarPress>(() => ({ section, n: 0 }));
-  const choose = (s: BarPress['section']) => {
-    setPress((p) => ({ section: s, n: p.n + 1 }));
+  const map = useRef<ChronicleMapHandle>(null);
+  // The bar names the section and, with the map up, has the sheet show it (SB2); a press on Memories or Media, or with
+  // no map yet, only names it, and a map that mounts opens on it.
+  const choose = (s: Section) => {
     chronicleSection.set(s);
+    if (s === 'walks' || s === 'days' || s === 'map') map.current?.show(s);
   };
   return (
     <View style={styles.screen}>
@@ -491,7 +487,7 @@ export default function Chronicle() {
           // The bar above has taken the safe area's top: the map's own offsets start below it. One map across Walks,
           // Days and Map: the bar and the sheet change what it lists, never the map (SB3).
           <SafeAreaInsetsContext.Provider value={{ ...insets, top: 0 }}>
-            <ChronicleMap section={section} press={press} />
+            <ChronicleMap ref={map} section={section} />
           </SafeAreaInsetsContext.Provider>
         )}
       </View>

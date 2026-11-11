@@ -192,6 +192,28 @@ async function checks(h) {
         `section-bar audit 1: Escape on a replay opened from a day leaves Chronicle on Days and the day (${JSON.stringify(back)})`);
       await page.click('[data-testid=section-map]');
       await settle();
+      // inbox T6: the bar's Walks zooms out to every place walked when one is out of view, as the sheet's Walks does
+      // (decision 0054): the map is dragged until the star is off the screen, then the bar's Walks frames it above the sheet.
+      const box = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
+      const from = { x: box.x + 60, y: box.y + box.height * 0.3 };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x + 320, from.y + 40, { steps: 10 });
+      await page.mouse.up();
+      await page.waitForTimeout(700);
+      const away = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      const offScreen = !away || away.x > box.x + box.width || away.x + away.width < box.x;
+      const fits0 = await page.evaluate(() => window.__perf.fit ?? 0);
+      await page.click('[data-testid=section-walks]');
+      await page.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
+      await page.waitForTimeout(1500);
+      const framed = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      const top = (await page.locator('[data-testid=home-sheet]').boundingBox()).y;
+      const fits1 = await page.evaluate(() => window.__perf.fit ?? 0);
+      check(offScreen && fits1 === fits0 + 1 && framed && framed.x >= box.x && framed.x + framed.width <= box.x + box.width && framed.y + framed.height < top,
+        `tend chronicle T6: the bar's Walks zooms out to every place walked when one is out of view (off screen ${offScreen}, ${fits1 - fits0} fit, star at ${framed && Math.round(framed.x)},${framed && Math.round(framed.y)}, sheet at ${Math.round(top)})`);
+      await page.click('[data-testid=section-map]');
+      await settle();
     }
     // The map view survives a replay (H5): pan, note the star, replay, come back.
     const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
