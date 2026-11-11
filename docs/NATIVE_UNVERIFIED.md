@@ -478,3 +478,8 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Community parks (PC1-PC17, decision 0143)
 
 - [ ] **Do:** on a phone, switch Community parks off in "What I'm into", then walk (Explore on) past a playground and a park with a monument or sculpture. **Expect:** the playground is no "?" and no alert; the park with the monument is; switching the kind back on shows the playground at once (PC8; the explore read decodes the tiles' `landcover` in code on every platform, so the outline is known; whether the native map view's own read carries it is unknown, in which case a park is judged by its name and what lies within 60 m of its point).
+
+## Gaps on a bridge (GB1-GB6, Nov 11)
+
+- [ ] **Do:** update the app on an iPhone and an Android phone that already hold street pieces, open Explore, then a walk. **Expect:** the app opens and reads streets as before; the SQLite migration 24 (`street_segment.level`) ran, the old pieces were dropped once (`STREET_CODE` 4) and are derived again with their levels (verified only over `node:sqlite`).
+- [ ] **Do:** walk onto a bridge with a street under it, switch the phone's data and GPS off for a few minutes on the span, switch them back on, then open the replay. **Expect:** the missing stretch runs along the bridge, never down onto the street under it and back.

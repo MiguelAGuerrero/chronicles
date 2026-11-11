@@ -65,8 +65,10 @@ export async function ensureTileBuild(): Promise<string> {
  * 2: junction points no longer collapse onto one spot (the fog streaks, Nov 1).
  * 3: bridges and tunnels meet only their own level, or at their ends (NB1-NB6,
  *    a route off a bridge onto the path under it, Nov 3).
+ * 4: pieces keep their bridge or tunnel level (gap bridges GB1, a gap on the
+ *    State Street bridge filled down onto the streets under it, Nov 11).
  */
-const STREET_CODE = '3';
+const STREET_CODE = '4';
 
 /**
  * The version of the snapping rules (snapper.ts). Bump it when they change

@@ -134,6 +134,8 @@ export interface StreetSegment {
   /** One or more lines; a segment runs from one junction (or dead end) to the next. */
   geometry: LngLat[][];
   build: string;
+  /** Above (1, a bridge) or below (-1, a tunnel) the ground, as `levelOf` reads it; absent on the ground (gap bridges GB1). */
+  level?: number;
 }
 
 export interface VisitedSegment {

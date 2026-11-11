@@ -58,12 +58,12 @@ async function currentRules() {
   return (await d.getMeta('snap_rules'))!;
 }
 
-test('NB6: STREET_CODE 3 drops the street cache once and marks every walk to re-snap', async () => {
+test('NB6: the street code (bridges, 2 to now) drops the street cache once and marks every walk to re-snap', async () => {
   // Streets derived by the code before bridges (street code 2), on the same tile build and rules.
   const rules = await currentRules();
   const db = await seeded({ tile_build: 'b1', street_code: '2', snap_rules: rules });
   await loadTiles(db).ensureTileBuild();
-  assert.equal(await db.getMeta('street_code'), '3', 'the street code is the bridges one');
+  assert.equal(await db.getMeta('street_code'), '4', 'the street code is the current one (pieces keep their level, gap bridges GB1)');
   assert.deepEqual((await db.getSegmentsIn(BOX)).map((s) => s.id), [], 'pieces derived by the old code are dropped');
   assert.deepEqual((await db.listWalks()).map((w) => w.snapped_build), [null, null], 'every walk re-snaps when its replay next opens');
 
@@ -87,7 +87,7 @@ test('G13: the gap rules bumped SNAP_RULES, which marks every walk to snap again
 
   // Walks snapped under the rules before gaps were filled (6), same build, same street code.
   const before = `6/${AREA_RULES}/${BOUNDARY_PACKS_ID}`;
-  const db = await seeded({ tile_build: 'b1', street_code: '3', snap_rules: before });
+  const db = await seeded({ tile_build: 'b1', street_code: '4', snap_rules: before });
   await db.createWalk(walk('w3', null));
   await loadTiles(db).ensureTileBuild();
   assert.equal(await db.getMeta('snap_rules'), rules, 'the new rules are stored');

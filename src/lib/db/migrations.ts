@@ -238,4 +238,9 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX moment_t ON moment (t);
   CREATE INDEX capture_moment ON capture (moment_id, t);
   `,
+  // 24: a street piece's level (gap bridges GB1): 1 on a bridge, -1 in a tunnel, 0 on the ground. A cache: pieces
+  // derived before it (street code 3) are dropped once, so none is read without it.
+  `
+  ALTER TABLE street_segment ADD COLUMN level INTEGER NOT NULL DEFAULT 0;
+  `,
 ];

@@ -44,7 +44,8 @@ export const undoPoint = (d: Draw): Draw => ({ ...d, points: d.points.slice(0, -
 export function drawnLine(d: Draw, segments: StreetSegment[], opts: { done: boolean }): DrawnLine {
   const stops = [d.gap.from, ...d.points, d.gap.to];
   const graph = segments.length ? PieceGraph.of(segments, d.gap.from) : null;
-  const ends = stops.map((p) => graph?.joinFix(p) ?? null);
+  // The fixes beside the gap carry the heading (GB3); a tap has none, so it joins its nearest street.
+  const ends = stops.map((p, i) => graph?.joinFix(p, i === 0 ? d.gap.fromHeading : i === stops.length - 1 ? d.gap.toHeading : undefined) ?? null);
   const joined = ends.filter((e): e is number => e != null);
   const path: LngLat[] = [stops[0]];
   let sofar: LngLat[] = [stops[0]];

@@ -16,6 +16,14 @@ export const GAP_RULES = {
   straightM: 10,
   /** Each end joins every street within this of its fix (G2). */
   joinM: 40,
+  /**
+   * A fix is on one level (the ground, a bridge, a tunnel) and joins only the streets there (gap bridges GB2).
+   * The level is the nearest street's within joinM, among those running within this many degrees of the way
+   * the walker was heading, when one does (GB3).
+   */
+  levelAlignDeg: 35,
+  /** The heading into or out of a gap is read over at least this far along the walked fixes beside it (GB3). */
+  headingM: 15,
   /** A way needing more than this was not walked (G3). */
   maxPace: 2.5,
   /** A walking pace: a filled stretch's points are walked at it (G11). */

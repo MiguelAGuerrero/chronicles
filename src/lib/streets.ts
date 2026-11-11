@@ -326,6 +326,7 @@ export function deriveSegments(roads: RoadFeature[], names: RoadFeature[] = [], 
       length_m: lineLengthM(p.pts),
       geometry: [p.pts],
       build,
+      ...(p.level ? { level: p.level } : {}),
     });
   }
   return [...out.values()];

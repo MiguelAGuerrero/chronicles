@@ -110,7 +110,7 @@ test('MT1: SQLite migration 22 turns every capture into a one-piece moment (node
     OLD_CAPTURES.map(({ id, walk_id, t, lat, lon, segment_id }) => ({ id, walk_id, t, lat, lon, segment_id })),
   );
   assert.deepEqual(d.prepare('SELECT id, moment_id FROM capture ORDER BY t').all().map((r) => [r.id, r.moment_id]), OLD_CAPTURES.map((c) => [c.id, c.id]));
-  assert.equal(MIGRATIONS.length, 23);
+  assert.equal(MIGRATIONS.length, 24);
 });
 
 test('MT1: no earlier SQLite migration changed', async () => {

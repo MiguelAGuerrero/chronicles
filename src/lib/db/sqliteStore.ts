@@ -353,12 +353,12 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       if (segments.length === 0) return Promise.resolve();
       return write(async (t) => {
         const seg = await t.prepareAsync(
-          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build, level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         );
         try {
           for (const x of segments) {
             const [w, so, e, n] = segmentBbox(x);
-            await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+            await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build, x.level ?? 0);
           }
         } finally {
           await seg.finalizeAsync();
@@ -374,12 +374,12 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         const rowsNow = await t.getAllAsync<{ kind: Capture['kind'] }>('SELECT c.kind FROM capture c JOIN moment m ON c.moment_id = m.id WHERE m.walk_id = ?', walkId);
         const s = { ...snapSummary, ...countsOf(rowsNow) };
         const seg = await t.prepareAsync(
-          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build, level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         );
         try {
           for (const x of segments) {
             const [w, so, e, n] = segmentBbox(x);
-            await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+            await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build, x.level ?? 0);
           }
         } finally {
           await seg.finalizeAsync();
@@ -422,11 +422,12 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return (await conn()).getAllAsync<WalkArea>('SELECT * FROM walk_area');
     },
     async getSegmentsIn([w, s, e, n]) {
-      const rows = await (await conn()).getAllAsync<Omit<StreetSegment, 'geometry'> & { geometry: string }>(
-        'SELECT id, name, kind_detail, length_m, geometry, build FROM street_segment WHERE w <= ? AND e >= ? AND s <= ? AND n >= ?',
+      const rows = await (await conn()).getAllAsync<Omit<StreetSegment, 'geometry' | 'level'> & { geometry: string; level: number }>(
+        'SELECT id, name, kind_detail, length_m, geometry, build, level FROM street_segment WHERE w <= ? AND e >= ? AND s <= ? AND n >= ?',
         e, w, n, s,
       );
-      return rows.map((r) => ({ ...r, geometry: JSON.parse(r.geometry) }));
+      // The ground has no level, as a piece derived in memory has none.
+      return rows.map(({ level, ...r }) => ({ ...r, geometry: JSON.parse(r.geometry), ...(level ? { level } : {}) }));
     },
     async getVisited(walkId) {
       return (await conn()).getAllAsync<VisitedSegment>('SELECT * FROM visited_segment WHERE walk_id = ?', walkId);

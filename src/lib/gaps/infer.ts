@@ -23,6 +23,9 @@ export interface Gap {
   to: LngLat;
   /** The walk's own moving pace (GT1), for a guess that fits the time; absent, the shortest way is offered. */
   pace?: number;
+  /** The way the walker was heading into the gap, and out of it, in degrees (GB3); absent when the walked fixes beside it are too close to say. */
+  fromHeading?: number;
+  toHeading?: number;
 }
 
 export interface Inference {
@@ -68,9 +71,34 @@ export function gapsOf(tr: ReadTrace): Gap[] {
     if (dt <= GAP_RULES.gapMs || dt > GAP_RULES.maxMs) continue;
     if (isBreak(a, b, tr.breaks, Infinity)) continue;
     pace ??= movingPace(tr);
-    out.push({ t0: a.t, t1: b.t, from: pos(a), to: pos(b), pace });
+    const gap: Gap = { t0: a.t, t1: b.t, from: pos(a), to: pos(b), pace };
+    const fromHeading = headingInto(tr, i - 1);
+    const toHeading = headingOutOf(tr, i);
+    if (fromHeading != null) gap.fromHeading = fromHeading;
+    if (toHeading != null) gap.toHeading = toHeading;
+    out.push(gap);
   }
   return out;
+}
+
+/** The way the walker was heading at walked fix `i`: from the fixes up to a few before it, at least GAP_RULES.headingM back, no break between (GB3). */
+function headingInto(tr: ReadTrace, i: number): number | undefined {
+  const w = tr.walked;
+  for (let j = i - 1; j >= 0 && i - j <= 8; j--) {
+    if (isBreak(w[j], w[j + 1], tr.breaks, Infinity)) return undefined;
+    if (distanceM(pos(w[j]), pos(w[i])) >= GAP_RULES.headingM) return bearingDeg(pos(w[j]), pos(w[i]));
+  }
+  return undefined;
+}
+
+/** The way the walker was heading from walked fix `i`: to the fixes up to a few after it (GB3). */
+function headingOutOf(tr: ReadTrace, i: number): number | undefined {
+  const w = tr.walked;
+  for (let j = i + 1; j < w.length && j - i <= 8; j++) {
+    if (isBreak(w[j - 1], w[j], tr.breaks, Infinity)) return undefined;
+    if (distanceM(pos(w[i]), pos(w[j])) >= GAP_RULES.headingM) return bearingDeg(pos(w[i]), pos(w[j]));
+  }
+  return undefined;
 }
 
 /**
@@ -139,6 +167,8 @@ export class PieceGraph {
   /** Each street edge once: its ends and piece, for joining a fix to the nearest streets. */
   /** Live street edges (a split one is replaced by its two halves). */
   lines = new Set<Line>();
+  /** Each piece's level, by index: 1 on a bridge, -1 in a tunnel, 0 (absent) on the ground (GB1). */
+  readonly levels: number[] = [];
   private readonly cells = new Map<string, number[]>();
   readonly proj: (p: LngLat) => [number, number];
 
@@ -197,6 +227,7 @@ export class PieceGraph {
   static of(segments: StreetSegment[], origin: LngLat): PieceGraph {
     const graph = new PieceGraph(origin);
     for (let s = 0; s < segments.length; s++) {
+      graph.levels[s] = segments[s].level ?? 0;
       for (const line of segments[s].geometry) {
         let prev = -1;
         line.forEach((p, k) => {
@@ -210,22 +241,30 @@ export class PieceGraph {
   }
 
   /**
-   * A fix (or a tapped point) joined to every street within GAP_RULES.joinM,
+   * A fix (or a tapped point) joined to every street within GAP_RULES.joinM on its level,
    * where it is nearest on each: the street edge is split there (an end of it
    * is used as it is), so a second point on the same edge splits the half it
    * lies on and a way runs straight along it. Null with no street that near.
+   *
+   * The level is the nearest street's (GB2), among those running the way `heading` points
+   * when any does (GB3): a fix on a bridge never joins the street under it, nor a walker on
+   * that street the bridge over it, whatever is shorter. Where nothing but the ground is
+   * near, that is every street, as before.
    */
-  joinFix(p: LngLat): number | null {
+  joinFix(p: LngLat, heading?: number): number | null {
     const xy = this.proj(p);
-    const near: { e: Line; t: number }[] = [];
+    const found: { e: Line; t: number; d: number }[] = [];
     for (const e of this.lines) {
       const a = this.proj(this.pts[e.a]);
       const b = this.proj(this.pts[e.b]);
-      if (pointSegmentDist(xy, a, b) > GAP_RULES.joinM) continue;
+      const d = pointSegmentDist(xy, a, b);
+      if (d > GAP_RULES.joinM) continue;
       const len2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2;
       const t = len2 ? Math.max(0, Math.min(1, ((xy[0] - a[0]) * (b[0] - a[0]) + (xy[1] - a[1]) * (b[1] - a[1])) / len2)) : 0;
-      near.push({ e, t });
+      found.push({ e, t, d });
     }
+    const level = this.levelOf(found, heading);
+    const near = found.filter((f) => (this.levels[f.e.seg] ?? 0) === level);
     if (!near.length) return null;
     const end = this.node(p, false);
     const joined = new Set<number>();
@@ -247,6 +286,21 @@ export class PieceGraph {
       this.link(end, k, JOIN, 2 * distanceM(p, this.pts[k]));
     }
     return end;
+  }
+
+  /** The level of the nearest street, among those along `heading` when any runs that way (GB2, GB3). */
+  private levelOf(found: { e: Line; d: number }[], heading?: number): number {
+    let pool = found;
+    if (heading != null) {
+      const along = found.filter(({ e }) => {
+        const diff = Math.abs((((bearingDeg(this.pts[e.a], this.pts[e.b]) - heading) % 180) + 180) % 180);
+        return Math.min(diff, 180 - diff) <= GAP_RULES.levelAlignDeg;
+      });
+      if (along.length) pool = along;
+    }
+    let best: { e: Line; d: number } | undefined;
+    for (const f of pool) if (!best || f.d < best.d) best = f;
+    return best ? (this.levels[best.e.seg] ?? 0) : 0;
   }
 
   /**
@@ -397,9 +451,8 @@ export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | n
   }
   if (!coverage || !segments.length) return null;
   const graph = PieceGraph.of(segments, g.from);
-  const join = (p: LngLat) => graph.joinFix(p);
-  const a = join(g.from);
-  const b = join(g.to);
+  const a = graph.joinFix(g.from, g.fromHeading);
+  const b = graph.joinFix(g.to, g.toHeading);
   if (a == null || b == null) return null;
 
   const dt = (g.t1 - g.t0) / 1000;

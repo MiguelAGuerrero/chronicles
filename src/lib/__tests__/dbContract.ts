@@ -580,6 +580,15 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
     });
 
+    test('FC7 putSegments, getSegmentsIn: a bridge or tunnel piece keeps its level, a ground piece has none (gap bridges GB1)', async () => {
+      const db = await fresh();
+      await db.putSegments([{ ...segment('near'), level: 1 }, { ...segment('far', 1), level: -1 }, segment('ground', 0.0005)]);
+      const read = await db.getSegmentsIn([LON - 0.01, LAT - 0.01, LON + 1.01, LAT + 0.01]);
+      assert.equal(read.find((s) => s.id === 'near')?.level, 1);
+      assert.equal(read.find((s) => s.id === 'far')?.level, -1);
+      assert.deepEqual(read.find((s) => s.id === 'ground'), segment('ground', 0.0005), 'no level key on the ground');
+    });
+
     test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box, MT11)', async () => {
       // The web store files pieces under one z14 tile and reads the bounds' tiles widened by 250 m
       // (pieces are at most 200 m); SQLite compares each piece's box.

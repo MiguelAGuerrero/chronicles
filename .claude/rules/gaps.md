@@ -48,6 +48,18 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
   - A budget whose prism (a circle on the gap's middle, half the budget
     across) leaves the read box is never judged, so unread ground never
     looks certain.
+- **Bridges** (GB1-GB6, Nov 11): a fix joins only the streets on its own level
+  (`PieceGraph.joinFix`), never the street under a bridge or the bridge over a
+  street. A walk on the State Street bridge lost its fixes and the gap was
+  filled down onto the streets under it, because the street was the shorter
+  way. Pieces keep `level` (1 bridge, -1 tunnel, absent on the ground;
+  `STREET_CODE` 4, SQLite migration 24). The level is the nearest street's,
+  among those within 35° of the heading into or out of the gap
+  (`Gap.fromHeading`/`toHeading`, read from walked fixes 15 m or more beside
+  it), when any run that way. With no bridge in reach every street is on one
+  level, so a town without bridges joins as before. Not read: navigation's
+  nearest-street join (`streetRoute.ts`) and the walk's own snapping, which
+  have their own bridge rules (NB1-NB7).
 - **Reads** (`gaps/index.ts`): `readBounds` is the time budget (or 2x the
   straight line, capped at 4 km across). The z14 tiles over it plus 250 m are
   fetched and decoded in code (`fetchTiles`), so the walk screen, a snap and
