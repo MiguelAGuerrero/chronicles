@@ -10,9 +10,6 @@ paths:
   - "src/components/atlas/**"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
   - "src/lib/__tests__/explore/**"
-  - "src/lib/complexes/**"
-  - "src/lib/__tests__/complexes/**"
-  - "scripts/fixture-complexes.mjs"
 ---
 # Explore and discovery
 
@@ -22,7 +19,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 
 - **One classification.** `presence/presence.ts` (core) is the only table from OpenMapTiles poi classes and Overture's taxonomy to what a place is: `classesOfOsm(cls, sub)` (a class's own rules, then a subclass that is the same thing under any class, then the class's default) and `classesOfOverture(hierarchy)` give classes from one vocabulary (`CLASSES`: each a density weight and, where it has one, a category and kind). Density reads `densityWeight` (the greatest), marks and bars `markClassOf` (the first with a category). A feature may carry several classes.
 - **Curation is apart.** `discovery/curation.ts` decides what is a mark over classes (`NEVER_MARK`, `BY_NAME`, `MARK_CATEGORIES`); presence says what a place is, never whether it is worth finding.
-- **Change a class or a table, bump `PRESENCE_CODE`.** It is part of `ATLAS_CODE` (`a8.p1`) and `LANDING_VERSION`, so atlas and landing rows are read again. Cached places keep their read's category (nothing reads them); checklists take a new class at the next tile build.
+- **Change a class or a table, bump `PRESENCE_CODE`.** It is part of `ATLAS_CODE` (`a9.p1`) and `LANDING_VERSION`, so atlas and landing rows are read again. Cached places keep their read's category (nothing reads them); checklists take a new class at the next tile build.
 - **Not yet on presence** (its second slice): the archive's classes (`archivePois.ts`), `barsOf`, notable names, scenic routes' greens (`greenKind`), the planner. "Busy" is not presence: traffic, if ever, is a signal of its own (0140).
 - **Golden table:** `__tests__/presence/golden.json` holds what the two old tables answered for every realistic pair; PR8 holds every pair outside PR5's list to it. A deliberate reclassification adds the pair to the test's `CHANGED` with its new answer and to the spec's PR5 table.
 
@@ -182,6 +179,25 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Atlas grading (AG1-AG6, decision 0084):** the five findable kinds (`MARK_CATEGORIES`) count only places with `markable` true (`read.ts` sets it from `isMarkable`, chains included), so the dots and the "?" agree. Food, shops and nightlife count all. `profile.thin` (fewer than `ATLAS_RULES.thinPlaces` places in the ring): the tile shows no kinds or character line, the card no kind rows. `MARKABLE_CLASSES` (`tilePois.ts`) is pinned by AG5's test: a new markable class is a change to the spec's definition of a mark. Next: whole areas (DEFERRED).
 - **A place may light two bars** (PK1-PK19, decision 0127): `barsOf` (`discovery/bars.ts`, core) is the one rule for both the bars and the planner: a place's category, plus History for a museum or gallery the data calls historic (`alsoBars` from `ARCHIVE_ALSO`, the archive's `museum`, never stored; or `historicName`: `notableName` reading past a neighbourhood's “Old Town” and “old and new”, audit 5). A plain museum stays in Culture alone, so History and Culture stay apart (PK5, held by `presenceSample.json`, recorded by `scripts/fixture-presence.mjs`). Never add a second bar to a kind wholesale without re-running PK5. `ATLAS_CODE` a8 carries no older code. History for the archive's `museum` rests on contract v2 (a museum enters only by its listing): the pinned contract's README says so (PK19).
 - **Community spaces** (`community`, in Culture): `town_hall/community_centre`, `library/library` and `community_centre` by a notable name only (presence class `community`, in curation's `BY_NAME`), `art_gallery/arts_centre` and `arts_centre` as any name (class `arts_centre`). `parseHidden(raw, known)`: a choice saved before the kind existed (meta `explore_kinds_known` lacks it, written by `saveSettings`) keeps it off when Museums and galleries is off (PK18); every reader of `explore_hidden` goes through `parseHidden` (the scenic read too).
+- **The kind pipeline** (PC18-PC23, decisions 0143, 0144): a registry of pure refinements splits a kind into finer subsets.
+  adapter (`tilePois`) -> presence classes -> curation (marks) -> merge of sources (`mergePlaces`) -> **refinement**
+  (`discovery/refine.ts` the engine, `refinements.ts` the registry) -> the reader's switches. A `Refinement` is `{ id, parent,
+  child, judge(places, ctx) => (place) => boolean }`; `refine(places, ctx, refinements)` returns new places, never mutates, applies in order
+  (a child may be a later parent). **A new subset is a new entry in `REFINEMENTS`** plus its child in `KINDS` (after its parent) and
+  `Kind`; its words go in a JSON file. The adapter and the merge judge nothing about parks. The reads that feed checklists
+  and the atlas call `refineRead(merged, { landcover, archive })` after the merge (`landing/read.ts`, `ringOf`); a read with no
+  `landcover` judges by name and what is near the point. Never test a kind against the switches with `hidden.has(kind)`: use
+  `isKindHidden(hidden, kind)` (a parent off hides its children, `kindChain`), and `kindSwitch` for a row (off and locked
+  while a parent is off).
+- **Community parks** (PC1-PC17, decision 0143): the first refinement, `discovery/parkKind.ts` (`communityParks`). A park whose
+  name holds a word of `communityWords.json` (playground, playfield, tot lot, ball field, courts) is the kind `community_parks`
+  when nothing notable is in or near it: a mark inside the `landcover` outline (`discovery/green.ts`, `outlinesOf`; within 60 m
+  of the point with none), a name word of `parkNotable.json` or `notable.json`, an outline of 5 ha or more, or an archive place
+  within 150 m (the refinement's context). **Size never demotes.** The kind is of the parks category (same bar, colour, find,
+  mark); a switch hides only it. **Never name an unfound place for its kind**: bars and waiting kinds are categories, so
+  "Community parks" shows only in "What I'm into" and on a found place (`foundLine`). The planner and scenic routes do not
+  read "What I'm into" and count both as parks. It is curation (0140), so a change to the words bumps `ATLAS_CODE`'s own
+  part, never `PRESENCE_CODE`.
 - **Presence, not quality.** Bars come only from places inside the ring, against fixed steps. They are never relative to the neighbors, and every level uses the same ring (a town's is around its point). Green counts park places, not park area (deferred).
 - **Reads** (`atlas/read.ts`) decode tiles in code, like every read:
   - the near read: z14 place points for neighborhoods, z11 for towns, recorded in meta `atlas_near:<level>`;
@@ -236,15 +252,3 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Silent and off by default:** any failure is no archive (PW3); `PLACES_BASE` is the chronicles-data Pages site (PW16, recorded Nov 10; the host is in `ALLOWED_HOSTS` and `lib/net`). The e2e build sets `EXPO_PUBLIC_PLACES_BASE=/places-e2e/`, which the harness serves (an empty manifest unless the `curiosities` journey sets one).
 - **Meta:** `places_archive_manifest`, `places_archive_checked_at`, read and written with direct `getMeta`/`setMeta` so the meta scan sees them.
 - **The build is chronicles-data's** (decision 0108): the pipeline, its schemas and class names, and the owner's edits live there, as the interface the app consumes; a new contract version fails PP17 until the app takes its copy (`__tests__/explore/contract/`) and its class table follows. Only a `locates` source puts a place on the map; a community source only reaches the owner's review list, never a pack. Place IDs are opaque (`p_` + 16 hex). The manifest's `blocks` (z8 tile to a hash of its places) let `versionAt` tag an area with its block's hash (`b:<hash>`), and Explore tags and judges each area at its own point, so an area is rebuilt only when its block's places change (PP13).
-
-## Complexes (CX1-CX16, decision 0143)
-
-A named place made of other places, on the area card and map and in a moment's arrival line. Information only. `lib/complexes/` (`rule.ts` core; `shell.ts`, `overtureReader.ts`, `index.ts` shells; `overtureSource.ts` the adapter that alone knows Overture's `buildings` and `places` tiles); the spec is `specs/complexes/spec.md`.
-
-- **Judged on real data.** `scripts/fixture-complexes.mjs` saves the named buildings and the places inside them from Overture tiles (Harrisburg, Whitehall); `rule.test.ts` runs the rule on them. Tune `MIN_GO`, `MIN_MARKET`, `MIN_CAMPUS`, `MIN_CIVIC` there and bump `COMPLEX_CODE`. In dense downtowns many named buildings hold places (a bank building held 24, mostly offices): Shopping counts only places to go (presence weight 1), never offices or services.
-- **Tiles carry a buffer, so a building is in more than one.** Strawberry Square lies whole in one z14 tile with a 3-point fragment in the next; the Lehigh Valley Mall is cut across two. Pieces are joined by the building's Overture id, and a building is judged only when every tile that holds a vertex of any of its pieces is read (`neededTiles`); one not fully read is missing, never a partial outline. The shell keeps pieces and places by tile for the session (`tiles`), so a repeat asks for nothing.
-- **Kinds come from the building's type and what it holds** (the owner's call, 0143): markets by two market-category places; stations by `transportation` subtype and a class that is not parking; campuses by `medical` or `education`; civic by `civic`; shopping by contents. First match wins. A courthouse that holds eight places is Civic.
-- **Viewing a moment never fetches** (CX12): the resurface and gallery shells ask `db.complexesNear` and `complexAt`; only `useComplexes` (the selected area on Explore) reads tiles, silently, and a failure is asked again after 90 s.
-- **Never counted, ranked or marked.** The card's rows are name, kind word and Walk to; nearest first, then name, then id; "See more" has no number; the map layer's labels are name and kind word only. `notMark`, `notVisited` and `surfaces` tests hold the invariants.
-- **The e2e world:** `complexWorld.serve` (harness) serves Wickenden Arcade (a building and nine restaurants near Fox Point) only while the `complexes` journey runs; every other journey gets an empty `buildings.pmtiles`.
-- **Native** (unverified): the outline source and the Markers, migration 23. See `docs/NATIVE_UNVERIFIED.md`.

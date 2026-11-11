@@ -224,6 +224,10 @@ Discovery and Explore (v1)
   discovery/curation.ts      what makes a mark, over presence classes: NEVER_MARK, BY_NAME (PR7)
   discovery/archivePois.ts   the places archive's schema: ARCHIVE_CLASSES (pinned, PW5), placesFromArchive (the only file that knows it; decision 0103)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), ARCHIVE_EDITS and applyEdits (archiveEdits.json, PW13)
+  discovery/refine.ts        the kind pipeline's engine: Refinement, refine() (pure, in order; PC18-PC19, decision 0144)
+  discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch (PC20-PC23)
+  discovery/parkKind.ts      communityParks: the first refinement, Parks into Community parks by name and what is near (PC1-PC5; communityWords.json, parkNotable.json)
+  discovery/green.ts         the tiles' park outlines (landcover): GreenArea, greenFromTiles, outlinesOf; scenic routes re-export it
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
   discovery/archive/shell.ts createPlacesArchive: the manifest daily, the region, the read's tiles through net/tileReader; index.ts is the app's instance
   discovery/places.ts placeKey, normalization, same-place rules

@@ -137,7 +137,7 @@ decision record at the end of the slice.
 
 Differences from the plan above, each in the spec: the store is `complex` (one row per complex, not per tile); the read has no
 candidate pre-filter and covers the area's tiles up to a budget of nine; the rule is judged once every tile holding a vertex is read;
-the five kinds are told from the building's type and contents (the owner's call over my recommendation, decision 0143); the list is the
+the five kinds are told from the building's type and contents (the owner's call over my recommendation, decision 0146); the list is the
 nearest four and "See more" with no cap; the street stays in a moment's line; a viewing never fetches. The gallery viewer's place name
 takes the complex too (`gallery/shell.ts`), since its line is the street name there. The kind switches are in the settings drawers
 beside What I'm into (the walk's and Navigate's ready bar), as the spec says; Explore itself has no settings panel.

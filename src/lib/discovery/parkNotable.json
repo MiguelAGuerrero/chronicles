@@ -1,0 +1,21 @@
+{
+  "_note": "Words in a park's name that keep it a park however it is also named (community-parks, PC2); notable.json's words count too. Matched as whole words or phrases after normalizeBrand. Data, not code: edit freely.",
+  "words": [
+    "state park",
+    "national",
+    "memorial",
+    "monument",
+    "arboretum",
+    "botanical",
+    "botanic",
+    "preserve",
+    "reservation",
+    "battlefield",
+    "recreation area",
+    "regional",
+    "county park",
+    "metro park",
+    "metropark",
+    "heritage"
+  ]
+}

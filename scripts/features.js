@@ -136,7 +136,7 @@ const FEATURES = [
   {
     name: 'complexes',
     about: 'complexes: named, bounded places made of other places (a mall, a market, a campus, a station), on Explore and in a moment\'s place line',
-    rule: 'explore-and-discovery',
+    rule: 'complexes',
     source: ['src/lib/complexes/**', 'src/components/ComplexLabel.tsx'],
     journeys: ['complexes'],
     specs: ['complexes'],
@@ -156,7 +156,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks'],
   },
   {
     name: 'kind-walk',

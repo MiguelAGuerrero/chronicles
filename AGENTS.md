@@ -45,7 +45,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 | Which feature owns a file, its tests, journeys and specs | `scripts/features.js`; tests in `src/lib/__tests__/<feature>/` |
 | Rules and traps of one area | `.claude/rules/<area>.md`: they load by themselves when you read or edit that area's files. Read one directly when planning work in an area you haven't opened yet |
 
-Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, kind-walk, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, ui-patterns, walk-screen, walkability.
+Rule areas: captures-and-media, complexes, deletion, explore-and-discovery, functional-core, gaps, kind-walk, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, ui-patterns, walk-screen, walkability.
 
 Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree, deployed by default; 0081), `/tend` (loop: ships what conforms, files the rest; 0128).
 
@@ -70,7 +70,7 @@ Procedures are skills: `/vision` (the gate before any spec; `review` for drift; 
 - **Gate first:** `/vision` on any feature idea before its spec. Push back once when it betrays `docs/VISION.md`; then the owner decides (0094).
 - **Ask before architectural decisions:** libraries, data model, platform strategy, navigation flow. Use AskUserQuestion with a recommended option. Local fixes don't need asking.
 - **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`), committed as todos first (`check:test-first` reads the history); `check:docs` fails on a criterion with no test or recorded reason. It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
-- **Audit when the owner asks** (`/audit`, decision 0074): a report-only pass that tries to break the slice, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix.
+- **Audit when the owner asks** (`/audit`, 0074): a report-only pass to break the slice, triage (accept, defer, reject; architecture goes to the owner), a regression test `<slice> audit N` before each fix. A screen change gets the `ux-reviewer` (0145).
 - **Deferred is a decision, not a gap.** Record it in `docs/DEFERRED.md`; if the owner chose it, in `docs/decisions/` too.
 
 ## Gotchas that cost real time
@@ -89,7 +89,7 @@ The area rule files hold the rest; these recur across areas.
 
 ## Keeping these notes honest
 
-- New knowledge goes where it loads on demand: an area's rule or trap in `.claude/rules/<area>.md`; an owner's call in `docs/decisions/`; something left undone in `docs/DEFERRED.md`; untested native code in `docs/NATIVE_UNVERIFIED.md`; a shipped or started slice in `docs/STATUS.md` and `docs/PRODUCT.md`. This file has a budget of 200 lines and 12 KB (`scripts/check-docs.js`): it holds only what every session needs and what the code can't say.
+- New knowledge goes where it loads on demand: an area's rule or trap in `.claude/rules/<area>.md`; an owner's call in `docs/decisions/`; something left undone in `docs/DEFERRED.md`; untested native code in `docs/NATIVE_UNVERIFIED.md`; a shipped or started slice in `docs/STATUS.md` and `docs/PRODUCT.md`. This file has a budget of 200 lines and 12 KB: it holds only what every session needs and what the code can't say.
 - Commit messages name the criteria they satisfy (`QL1-QL8`, `rides audit 3`), as the log already does.
 - Run `/docs-gc` at the end of a slice.
 - The 1,600-line AGENTS.md this index replaced is in git at `553d10b` (`git show 553d10b:AGENTS.md`); everything in it moved to the files above.

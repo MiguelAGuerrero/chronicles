@@ -58,6 +58,16 @@ issue or criteria, the root cause or plan, the diff and the covering rule files,
 the change: inputs that still fail, neighbours it could regress, the web and native split. Ask for a
 failing input or a file and line with each finding; a finding with neither is opinion.
 
+**A screen changed** (the diff touches `src/app/` or `src/components/`, or a module a screen draws from): the review
+also looks at the screens (decision 0145). Run the journeys that cover the changed files with
+`E2E_SHOTS=<scratchpad>/shots` (390 x 844) so every changed state is a picture, after making sure the journey seeds
+the longest text the screen can meet (a title, a place line, a label that wraps); a journey with only short text gets a
+long case first, and a changed state with no `shot()` gets one. Give the auditor the pictures too, and run the
+`ux-reviewer` subagent beside it with the pictures, the issue or criteria and the changed files: text cut, clipped or
+overlapping, rows that wrap, targets under 44 pt, controls over content, against `.claude/rules/ui-patterns.md` and
+the goal-to-control matrix. Its findings are triaged with the auditor's. This runs whatever the test level: a `lean`
+fix still gets its screens looked at.
+
 Triage each finding accept, defer or reject with a reason (as `/audit` does). An accepted one gets a
 regression test before its fix, named for the caller (`fix <name> audit N`, `tend <scope> audit N`,
 `<slug> audit N`). An architectural finding is a hard stop.

@@ -3,7 +3,9 @@ import { PRESENCE_CODE } from '../presence/presence';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
+import type { RoadFeature } from '../streets';
 import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
+import { isKindHidden, refineRead } from '../discovery/refinements';
 import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
 import { barsOf } from '../discovery/bars';
 import type { CategoryId, Kind, Place } from '../discovery/types';
@@ -28,8 +30,9 @@ import type { Pocket } from './pockets';
 /** a6: wards inside a city are not towns (fix ward-subdivision); neighborhood rows stand as under a5. */
 /** a7: the places archive's curiosities and landmarks count among the findable kinds (PW10); rows stand until an archive is known, then read again (profileStale). */
 /** a8: presence by bars (PK1-PK7): a museum the data calls historic lights History too; community spaces join Culture. */
-/** A row's code: the atlas's own (a8) and presence's (PR6), so a reclassification re-reads every row. */
-export const ATLAS_CODE = `a8.${PRESENCE_CODE}`;
+/** a9: a park whose name says a playground or the like, with nothing notable in it, is a community park (PC13); curation over presence's classes, so presence's own code is unchanged. */
+/** A row's code: the atlas's own (a9) and presence's (PR6), so a reclassification re-reads every row. */
+export const ATLAS_CODE = `a9.${PRESENCE_CODE}`;
 
 /** TP10: the older rules a level's rows still stand under, because the change did not touch that level. None since a8 (PK7): the bars changed at every level. */
 const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = {};
@@ -450,7 +453,7 @@ export function familiarityWords(f: Familiarity): string {
 /** AT7, AT10: the kinds still waiting in the ring, in the tiles' order, never their names; kinds switched off are left out. */
 export function waitingKinds(marks: AtlasMark[], found: Set<string>, hidden: Set<Kind> = new Set()): CategoryId[] {
   const kinds = new Set<CategoryId>();
-  for (const m of marks) if (!found.has(m.key) && !(m.kind && hidden.has(m.kind))) kinds.add(m.category);
+  for (const m of marks) if (!found.has(m.key) && !isKindHidden(hidden, m.kind)) kinds.add(m.category);
   return ATLAS_ORDER.filter((c) => kinds.has(c));
 }
 
@@ -623,10 +626,10 @@ export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => strin
 /** AT6, AT7: one "?" per kind waiting in the ring, at its place nearest the area's point; never named. */
 export function waitingMarks(marks: AtlasMark[], found: Set<string>, centre: LngLat, hidden: Set<Kind> = new Set(), o: { all?: boolean } = {}): AtlasMark[] {
   // WT7: every one still to find (the map, split into "?" and dots), else the nearest of each kind (the card).
-  if (o.all) return marks.filter((m) => !found.has(m.key) && !(m.kind && hidden.has(m.kind)));
+  if (o.all) return marks.filter((m) => !found.has(m.key) && !isKindHidden(hidden, m.kind));
   const best = new Map<CategoryId, { m: AtlasMark; d: number }>();
   for (const m of marks) {
-    if (found.has(m.key) || (m.kind && hidden.has(m.kind))) continue;
+    if (found.has(m.key) || isKindHidden(hidden, m.kind)) continue;
     const d = distanceM(m.at, centre);
     const b = best.get(m.category);
     if (!b || d < b.d) best.set(m.category, { m, d });
@@ -706,8 +709,9 @@ export function marksOf<T extends AtlasMark & { name?: string }>(places: T[], ma
  * place, PW8; the owner's edits are applied when the archive is built), against the fixed STEPS. `thin` is judged from the map's places alone, so a
  * ring reads the same with or without the archive.
  */
-export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centre: LngLat, within: Within = ringWithin(centre), finds: { key: string; name: string; at: LngLat }[] = []) {
-  const merged = archivePlaces ? mergePlaces(tilePlaces, archivePlaces) : tilePlaces;
+export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centre: LngLat, within: Within = ringWithin(centre), finds: { key: string; name: string; at: LngLat }[] = [], landcover?: RoadFeature[]) {
+  // community-parks PC21: the merge, then the refinement with the tiles' outlines and the archive's places.
+  const merged = refineRead(archivePlaces ? mergePlaces(tilePlaces, archivePlaces) : tilePlaces, { landcover, archive: archivePlaces });
   // A found place keeps its find's key, so the atlas shows it found (places-worth-the-stop audit 1).
   const counted = keepFindKeys(merged, finds);
   // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.

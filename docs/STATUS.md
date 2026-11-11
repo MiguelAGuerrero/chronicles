@@ -126,18 +126,21 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-Nothing open.
-
-### From /fix
-
-- **[owner] Process: a slice that changes a screen is not done until its pictures are reviewed, with long text** (2026-11-11)
-  From: fix gallery-header (the media gallery's day header cut its title on the owner's iPhone, a day after it shipped).
-  Missed because: the slice's fixtures had only short place lines, so no header wrapped; its screenshots were taken
-  but the `ux-reviewer` only runs inside `/audit`, which runs only when the owner asks (decision 0074), and the media
-  gallery was shipped unaudited; no check tied a fixed row height to the text it holds. Recommended: (1) `/slice`
-  step 9 runs the `ux-reviewer` on the slice's own shots (report-only, a few minutes) whenever it changes a screen,
-  audit or not; (2) a journey that draws text in a fixed box seeds the longest text it can meet and checks nothing is
-  cut (as the gallery journey now does). Otherwise: keep 0074 as it is and ask for `/audit` on each screen slice.
+- **T8 [arch] Presence readers (G4) is parked: main's kind pipeline and community parks landed beside it** (2026-11-11)
+  Area: explore. Seen: `slice/presence-readers-parked` (G4 built as `specs/presence-readers`, PS1-PS11; the steward and one
+  auditor round done, every check green on its base `0d03c4b`) conflicts with main in `atlas/atlas.ts`,
+  `nav/scenicSignals.ts` and two test pins. Main's community parks (PC1-PC23) added, meanwhile, a kind pipeline that decides
+  a kind over places (`discovery/refine.ts`, `refinements.ts`), a second name-word list (`parkNotable.json`, with
+  `communityWords.json`, in `discovery/parkKind.ts`, beside `notable.json`), greens read from raw landcover tags
+  (`discovery/green.ts`), and `ATLAS_CODE` a9. Rests on: decision 0140, "consumers read its classes, never source tags";
+  G4's criterion 3, "Whether a name is notable is decided once, for marks and bars alike".
+  Recommended: resume the parked branch on main as it stands. `green.ts` reads presence's `classesOfLandcover` (PS4); the
+  carry becomes `a9.p1` under `a9.p2`; `parkKind.ts` reads `notableName` from presence and keeps its park words as the
+  community-parks judgement (curation of a refinement, named so in PS3), not a second notable rule; the guard (PS7,
+  `presence-readers audit 1`) reads main's new modules; the golden tables are captured again on main before any code. /vision:
+  no surface (nothing a person sees changes).
+  Otherwise: fold `parkNotable.json` into `notable.json`, so one list (a church or town hall named "national" or "arboretum"
+  would then be a mark by its name), or drop G4 and delete the parked branch.
 
 ### Next evolutions
 
@@ -181,14 +184,14 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox T7 yes`** (from `4e138f2`). T7 built, decision 0142: a map that mounts on Walks (the bar's Walks
-from Memories or Media) zooms out once, by 0054's rule, when a place walked is out of the kept view; a read that frames
-the places itself needs none, and Days and Map mount as before. Commits: `tend chronicle T7` (the mount's zoom-out, in
-`ChronicleMap`; the chronicle journey checks one fit from Memories with the star dragged away, none from Media with it
-in view, pictured before and after) and `tend chronicle audit 1` (the review: the zoom-out frames only the walks shown,
-never one deleted while its Undo waits; `shownPlaces`). T7 leaves the inbox; nothing filed. The balance: unchanged by an
-inbox run (outgrowing its base: four areas rough). Not run: the journeys `capturehome`, `qol` and `tabs`, reached but
-holding no check on the change. Nothing here has run on a phone.
+**Nov 11, `/tend inbox G4 yes`** (from `0d03c4b`). G4 built as the slice `specs/presence-readers` (PS1-PS11, decision
+0140): the places archive, the bars, notable names, scenic greens and the planner read presence's classes, nothing a person
+sees changing (golden tables captured first). The steward read the plan (S1-S4 accepted); one auditor round (an old/new
+differential over 18,129 archive places, 2,482,980 poi pairs and 907 rings, matched) found six, all fixed as
+`presence-readers audit 1-6`. Not published: while it ran, main gained community parks and the kind pipeline (PC1-PC23), and
+the rebase conflicts in source (`atlas.ts`, `scenicSignals.ts`, two test pins) over a question for the owner, filed as T8.
+The slice is on `slice/presence-readers-parked` (`7a4c28e`); G4 stays in "Next evolutions". The balance: unchanged by an
+inbox run (outgrowing its base: four areas rough). Nothing here touched native code or has run on a phone.
 
 ### Open before the loop
 
@@ -262,7 +265,8 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0143) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; not audited (decision 0074); not merged or deployed; native unverified; spec `specs/complexes/spec.md` |
+| Community parks and the kind pipeline (Parks gets a subset, "Community parks", the reader can switch off: a park whose name says playground or the like with nothing notable in or near it; size never demotes; never described; built as the first entry of a registry of pure refinements, kinds know their parent so a parent switch hides its children; PC1-PC23, decisions 0143, 0144) | `claude/confident-mendel-gf0ck0` | built 2026-11-11, test-first by history (23 of 23): unit tests, typecheck, lint, layers; merged with main (presence); the journeys `check:affected` names pass on the web build (marks, with its new PC6 check, atlas, grading, curiosities, outlines, replay, nudge) except `scenic`, whose check "fix preview-clutter audit 1" (the trace drawn again as the preview closes) fails the same way on `origin/main` (3 of 3 runs of `e2e:baseline`), so it is main's, not this slice's; steward read once (10 findings, triaged in the plan); the sub-path build passes marks, atlas, grading, curiosities, outlines, chronicle, replay, scenic and nudge, where nudge's PA2 counted the double-tap's taps at the instant the first "?" showed and read 1 when its 1 s poll fell between the two (about 150 ms apart): it now counts after the pair, 8 of 8 runs; native unverified; not audited (decision 0074); spec `specs/community-parks/spec.md` |
+| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0146) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; not audited (decision 0074); not merged or deployed; native unverified; spec `specs/complexes/spec.md` |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in an edge-to-edge grid under pinned day headers; Years, Months, Days; Sort, Show, Zoom and pinch, Square or Aspect; MG1-MG22, decision 0139) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-11, test-first by history (22 of 22): unit tests (1814), typecheck, lint, docs and vision checks; the eleven journeys `check:affected` names (gallery, capturehome, chronicle, edit, qol, responses, resurface, stacks, tabs, threads, walk) pass on the /chronicles build, `resurface` run twice (its RM1 check counted four sections; now five); steward read twice (S1-S14 accepted); merged with main and deployed 2026-11-11 (`498e412`, Pages run 43050937634, the live page shows Media); not audited (decision 0074); native unverified. Video thumbnails are the next slice (the owner, Nov 11); spec `specs/media-gallery/spec.md` |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14, decision 0131) | `claude/elegant-cannon-gs9yrk` | built 2026-11-11: RT1-RT14 tested first (unit and the `responses` journey), typecheck, lint, 1741 unit tests; the nine journeys `check:affected` names pass on the /chronicles build; deployed 2026-11-11 (`9ed9a15`, Pages run 42957716629); not audited; native unverified; spec `specs/response-thread/spec.md` |
 | Presence and kinds (a museum the data calls historic lights History too, the bars kept apart; routes from a bar lean on places you pass; a Community spaces kind; the needsOpen gate measured; PK1-PK19, after the Coplay Kilns diagnosis) | `claude/dazzling-fermat-ws5c6a` | built 2026-11-10, test-first by history (19 of 19): PK1-PK19 pass (1715 unit tests with main's, merged at `0f3f216`); typecheck, lint, docs and vision checks clean; journeys atlas, curiosities, grading, marks, nudge, outlines, planner, replay pass, and scenic on the merged tree (its one failure before the merge was the old base's, passing 3 of 3 on main); audited 2026-11-11 at the owner's request (14 findings: 8 fixed, one in part, two at the owner's call (the icons); 3 deferred; 3 rejected, one at the owner's call (the label kept); tests `presence-and-kinds audit 1-3, 5, 6, 8, 10, 13`); nothing native new; not merged or deployed. For the owner: the live places archive is still v1, so the Kilns show only once a v2 archive publishes; decision 0127. Spec `specs/presence-and-kinds/spec.md` |

@@ -12,7 +12,9 @@ export type Kind =
   /** Odd places of the Viewpoints & oddities category, from the places archive (PW4, decision 0103). */
   | 'curiosities'
   /** Community centres (by a notable name), arts centres and libraries, in Culture (PK11-PK13). */
-  | 'community';
+  | 'community'
+  /** Parks whose name says a playground or the like and nothing notable lies in them: a subset of Parks the reader can switch off (community-parks, PC1). */
+  | 'community_parks';
 
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */
 export interface Place {

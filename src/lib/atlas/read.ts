@@ -132,7 +132,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   const places = placesFromTilePois(feats.pois, build);
   const within: Within = extent ? (p) => inExtent(p, extent.outline) : (p) => distanceM(p, at) <= ATLAS_RULES.ringM;
   // PW10: the map's places and the archive's (the owner's edits are already in it); thin from the map's alone.
-  const counted = ringOf(places, archive?.places ?? null, at, within, finds);
+  const counted = ringOf(places, archive?.places ?? null, at, within, finds, feats.landcover);
   const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
   const towns = placesFromTiles(feats.places);
   const transit = transitFromTilePois(feats.pois);
