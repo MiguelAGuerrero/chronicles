@@ -581,6 +581,14 @@ async function run(h) {
       await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
       await pg.waitForTimeout(800);
       await shot(pg, 'qol-04b-rename-editor');
+      // The editor opens weeks after the walk as often as just after it: its line asks for words, not for a feeling
+      // still fresh; the first replay keeps its own (inbox T2).
+      const lineLabel = await pg.evaluate(() => ({
+        shown: document.getElementById('rename-epilogue-label')?.textContent ?? '',
+        spoken: document.querySelector('[data-testid=rename-epilogue]')?.getAttribute('aria-label') ?? '',
+      }));
+      check(lineLabel.shown === 'One line, in your own words' && lineLabel.spoken === 'One line, in your own words',
+        `tend chronicle T2: Rename's line reads "One line, in your own words", shown and spoken (${JSON.stringify(lineLabel)})`);
       await pg.click('[data-testid=rename-cancel]');
       await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 5000 });
       await pg.click('[data-testid=actions-cancel]');

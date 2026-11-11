@@ -221,13 +221,13 @@ export function WalkActions(props: {
               selectTextOnFocus
               style={styles.input}
             />
-            <Text style={styles.label} nativeID="rename-epilogue-label">One line, while the feeling is fresh</Text>
+            <Text style={styles.label} nativeID="rename-epilogue-label">One line, in your own words</Text>
             <TextInput
               ref={lineInput}
               testID="rename-epilogue"
               value={epilogue}
               onChangeText={setEpilogue}
-              accessibilityLabel="One line, while the feeling is fresh"
+              accessibilityLabel="One line, in your own words"
               accessibilityLabelledBy="rename-epilogue-label"
               placeholder="e.g. The bakery was closed, the river was not."
               placeholderTextColor={theme.muted}
