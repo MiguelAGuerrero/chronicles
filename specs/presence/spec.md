@@ -56,4 +56,11 @@ A community centre unnamed is no place (only artworks and viewpoints are kept un
 
 ## Record
 
-(Filled in as the slice lands.)
+Shipped Nov 11 (from G3, `/tend inbox G3 yes`), on the web build; nothing here is native.
+
+- **PR1-PR8 pass** (`src/lib/__tests__/presence/presence.test.ts`): tests first `0e10bf2`, the code `bf5d3c4`.
+- **The golden table** (`golden.json`, 156 realistic poi pairs and 250 Overture hierarchies captured before the slice) holds every pair outside PR5's list to its old answer.
+- **On real places:** presenceSample.json's 5,913 places in 61 tag pairs (18 towns in four regions), the SteelStacks tile fixture (144 features) and Phillipsburg's 840 Overture places answer exactly as before: none of PR5's tags occur in them. So no picture differs, and the change is shown by the unit tests (decision 0140 asked for before and after pictures; the steward's S1, accepted in this form, and the owner is told).
+- **Re-pinned on purpose:** AG5's and PK14's markable classes gain PR5's six (`arts_centre`, `community_centre` by name, `memorial` by name, `nature_reserve` by name, `park/nature_reserve` by name, `viewpoint`); TP10 and PW10 pin `ATLAS_CODE` `a8.p1`, and a8 rows are read again.
+- **The steward** (plan): S1 accepted as above; S2 accepted for nature reserves (a mark only by a notable name) and not for viewpoints (in the tiles a viewpoint arrives as `attraction/viewpoint`, a mark already); the community centre question answered in "What changes".
+- **Deferred** (`docs/DEFERRED.md`, Explore and discovery): the second slice (the archive's classes, `barsOf`, notable names, scenic greens, the planner on presence); a checklist takes a new class at the next tile build.

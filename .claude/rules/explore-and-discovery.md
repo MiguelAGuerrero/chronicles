@@ -15,6 +15,14 @@ paths:
 
 Places of interest from the tiles, marks, checklists and finds (Explore), and Remind me here. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
+## Presence: what a place is (PR1-PR8, decision 0140)
+
+- **One classification.** `presence/presence.ts` (core) is the only table from OpenMapTiles poi classes and Overture's taxonomy to what a place is: `classesOfOsm(cls, sub)` (a class's own rules, then a subclass that is the same thing under any class, then the class's default) and `classesOfOverture(hierarchy)` give classes from one vocabulary (`CLASSES`: each a density weight and, where it has one, a category and kind). Density reads `densityWeight` (the greatest), marks and bars `markClassOf` (the first with a category). A feature may carry several classes.
+- **Curation is apart.** `discovery/curation.ts` decides what is a mark over classes (`NEVER_MARK`, `BY_NAME`, `MARK_CATEGORIES`); presence says what a place is, never whether it is worth finding.
+- **Change a class or a table, bump `PRESENCE_CODE`.** It is part of `ATLAS_CODE` (`a8.p1`) and `LANDING_VERSION`, so atlas and landing rows are read again. Cached places keep their read's category (nothing reads them); checklists take a new class at the next tile build.
+- **Not yet on presence** (its second slice): the archive's classes (`archivePois.ts`), `barsOf`, notable names, scenic routes' greens (`greenKind`), the planner. "Busy" is not presence: traffic, if ever, is a signal of its own (0140).
+- **Golden table:** `__tests__/presence/golden.json` holds what the two old tables answered for every realistic pair; PR8 holds every pair outside PR5's list to it. A deliberate reclassification adds the pair to the test's `CHANGED` with its new answer and to the spec's PR5 table.
+
 ## Places of interest and marks
 
 - **Places of interest** come from the tiles' `poi` layer, read in the same z14
