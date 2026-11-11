@@ -56,10 +56,10 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'museums', label: 'Museums and galleries', icon: 'images-outline' },
   { id: 'theatres', label: 'Theatres', icon: 'ticket-outline' },
   // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
-  { id: 'community', label: 'Community spaces', icon: 'people-outline' },
+  { id: 'community', label: 'Community spaces', icon: 'reader-outline' },
   { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline' },
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
-  { id: 'structures', label: 'Buildings and structures', icon: 'library-outline' },
+  { id: 'structures', label: 'Buildings and structures', icon: 'home-outline' },
   { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },

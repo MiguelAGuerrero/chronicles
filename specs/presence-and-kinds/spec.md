@@ -144,7 +144,7 @@ Sturgis Pretzel House (0116's test case) is among the listed places held back fo
 
 Three reviewers, with phone-size pictures from the `marks` journey (a new shot, `marks-what-im-into`, beside PK11's new
 on-screen check) and the `atlas` journey: the auditor (findings 1-6), the steward (7-8) and the UX reviewer (9-14).
-14 findings: 6 accepted and fixed (one of them in part), 3 deferred, 3 for the owner, 2 rejected. The regression tests
+14 findings: 8 fixed (one of them in part; two at the owner's call), 3 deferred, 3 rejected (one at the owner's call). The regression tests
 are named `presence-and-kinds audit N`, in `__tests__/walk-planner/presence.test.ts`, `__tests__/explore/presence.test.ts`
 and `__tests__/navigation/scenicRead.test.ts`.
 
@@ -165,11 +165,13 @@ and `__tests__/navigation/scenicRead.test.ts`.
    read now has one (audit 6, which passed at once because the code was right). `settings.ts` imports the db
    singleton, which a Node test can't load; moving it to a shell factory is SH5's work, so that part is deferred.
 7. **"Old Town" lights History** (the steward's first finding). Reject: a duplicate of 5.
-8. **"Buildings and structures" keeps the library icon,** though libraries moved to Community spaces. For the owner:
-   icons are a taste call, made with the labels.
-9. **"Community spaces" doesn't name what it holds** (libraries and arts centres). For the owner, who chose the label
-   on Nov 10.
-10. **The people icon reads as contacts** in an app with no accounts. For the owner, with 8.
+8. **"Buildings and structures" keeps the library icon,** though libraries moved to Community spaces. The owner's
+   call, Nov 11 ("Change both"): fixed, `home-outline` (audit 8, 10).
+9. **"Community spaces" doesn't name what it holds** (libraries and arts centres). Reject, the owner's call, Nov 11
+   ("Keep \"Community spaces\"").
+10. **The people icon reads as contacts** in an app with no accounts. The owner's call, Nov 11: fixed with 8,
+    `reader-outline` (the recommended `book-outline` is the Chronicle tab's icon, so a kind may not use it; the test
+    holds every kind's icon apart from the tabs' and from each other).
 11. **Eleven switches with no visible groups.** Defer: an opinion, and section headings would change the settings'
     layout.
 12. **The drawer's handle sits over the first visible switch.** Defer: it predates the slice and belongs to the

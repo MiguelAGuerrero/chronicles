@@ -158,3 +158,12 @@ test('presence-and-kinds audit 13: "How the marks work" says one place can count
   assert.ok(MARKS_EXPLAINED.some((l) => /count toward two/.test(l) && /histor/.test(l) && /culture/.test(l)), MARKS_EXPLAINED.join(' | '));
   for (const l of MARKS_EXPLAINED) assert.ok(!/\d/.test(l) && !/\b(listed|listing|register|notable|landmark)\b/i.test(l), l);
 });
+
+test('presence-and-kinds audit 8, 10: the kinds\' icons are their own: no two alike, none a tab\'s, none reading as contacts or as the History category', async () => {
+  const { TABS } = await import('../../startPlan');
+  const icons = KINDS.map((k) => k.icon);
+  assert.equal(new Set(icons).size, icons.length, icons.join(', '));
+  for (const t of TABS as readonly { icon: string; iconOn?: string }[]) assert.ok(!icons.includes(t.icon), `a kind uses the ${t.icon} tab icon`);
+  assert.notEqual(KINDS.find((k) => k.id === 'community')?.icon, 'people-outline', 'two silhouettes read as contacts (audit 10)');
+  assert.notEqual(KINDS.find((k) => k.id === 'structures')?.icon, 'library-outline', 'libraries moved out of Buildings and structures (audit 8)');
+});

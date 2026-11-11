@@ -29,4 +29,6 @@ The owner's calls, Nov 10:
 - A choice saved with Museums and galleries off keeps Community spaces off (PK18, meta `explore_kinds_known`).
 - History for an archive museum rests on contract v2; a new contract version revisits it (PK19, the pinned contract's
   README).
+- The audit (Nov 11): the owner kept "Community spaces" and changed both icons (Community spaces `reader-outline`,
+  Buildings and structures `home-outline`; no kind uses a tab's icon).
 - Amends 0084 (AG1: what a findable kind counts, now by `barsOf`), 0102 (the planner's cells) and 0117's kinds.
