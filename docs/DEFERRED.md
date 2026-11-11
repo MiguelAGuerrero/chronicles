@@ -397,6 +397,11 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **Retry on the recording bar's camera** (other tabs, NV9): it shows the SA9 words; the held pill is on the walk screen and Navigate, ready.
 - **A check before a video starts**: the system camera owns the recording; the line beside the captures says it beforehand.
 
+## Old walks placed in the background (fix background-placing, decision 0134)
+
+- **The tile reader reads less ground than the map's views did** (fix background-placing audit 3, deferred): `tileCollector`'s plan takes the z14 tiles within 150 m of the trace, while a map view at street zoom loaded every tile it touched over the padded bounds. A neighborhood point up to 1 km away in a tile the walk never entered is read by the replay's map snap but not by the backlog (nor by a gap decision's re-snap, which has read tiles this way since G12), so the same walk can land in a different neighborhood depending on the path. Widening the reader changes what a snap derives (a derivation rule, a hard stop for a fix): the owner's call, with a test over `tileCollectorOf` and a fake `fetchTiles`.
+- **The walk at hand finishes after the screen is left** (audit 5, rejected as a fix): `stopped` is read between walks, so leaving Chronicle mid-walk lets that one walk's tiles decode and snap on the JavaScript thread, as a gap decision does in view. Bounded to one walk; the device item in `docs/NATIVE_UNVERIFIED.md` asks for the smoothness check.
+
 ## Explore's map points (fix pins-selected-only, Nov 10)
 
 - **A town's page with its own tile selected names nothing on the map** (audit 2): the town's pin is not drawn there (one level only, fix map-levels audit 1), and the neighborhoods are dots. The page title, the wide tile and the border name the town. Drawing the town's pin as the lone named one would mix levels again; the owner's call.

@@ -15,7 +15,7 @@ test('fix background-placing 1: old walks are placed from the tiles, one after a
   const collector = tiles();
   const snapped: string[] = [];
   const order: string[] = [];
-  const place = createBacklog({
+  const { placeBacklog: place } = createBacklog({
     tileBuild: async () => 'b1',
     collector: () => collector,
     still: async () => true,
@@ -37,7 +37,7 @@ test('fix background-placing 1: old walks are placed from the tiles, one after a
 
 test('fix background-placing 2: a walk deleted, or waiting on Undo, since the pass began is never placed', async () => {
   const snapped: string[] = [];
-  const place = createBacklog({
+  const { placeBacklog: place } = createBacklog({
     tileBuild: async () => 'b1',
     collector: tiles,
     still: async (id) => id !== 'gone',
@@ -50,9 +50,9 @@ test('fix background-placing 2: a walk deleted, or waiting on Undo, since the pa
   assert.deepEqual(r, { placed: ['kept'], failed: ['gone'] });
 });
 
-test('fix background-placing 3: a tile read that never answers fails its walk, and the pass goes on', async () => {
+test('fix background-placing 3: a tile read that never answers is cut off, and the pass goes on', async () => {
   const snapped: string[] = [];
-  const place = createBacklog({
+  const { placeBacklog: place } = createBacklog({
     tileBuild: async () => 'b1',
     collector: () => ({ ...tiles(), collect: (c) => (c.length ? new Promise(() => {}) : Promise.resolve(EMPTY)) }),
     still: async () => true,
@@ -69,7 +69,7 @@ test('fix background-placing 3: a tile read that never answers fails its walk, a
 test('fix background-placing 4: with no tile build known, nothing is tried', async () => {
   let snaps = 0;
   const attempts: string[] = [];
-  const place = createBacklog({
+  const { placeBacklog: place } = createBacklog({
     tileBuild: async () => 'unknown',
     collector: tiles,
     still: async () => true,
@@ -81,4 +81,35 @@ test('fix background-placing 4: with no tile build known, nothing is tried', asy
   assert.equal(snaps, 0);
   assert.deepEqual(attempts, []);
   assert.deepEqual(r, { placed: [], failed: ['a'] });
+});
+
+// Audit 1: a section switch remounts Chronicle mid-pass; the new screen joined the old pass's callbacks, lost
+// "Placing…" and the star, and the walks after the one at hand were never tried.
+test('fix background-placing audit 1: a second pass waits for the one under way, then places its own walks; the walk at hand is in the store', async () => {
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  const snapped: string[] = [];
+  const { placeBacklog, status } = createBacklog({
+    tileBuild: async () => 'b1',
+    collector: tiles,
+    still: async () => true,
+    snap: async (w) => {
+      if (w.id === 'x') await gate;
+      snapped.push(w.id);
+    },
+  });
+  let leftFirst = false;
+  const first = placeBacklog([walk('x'), walk('y')], { stopped: () => leftFirst });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(status.get().at, 'x');
+  // The screen is left mid-walk and a new one asks for what is still waiting.
+  leftFirst = true;
+  const attempts: string[] = [];
+  const second = placeBacklog([walk('y'), walk('z')], { onAttempt: (id) => attempts.push(id) });
+  release();
+  assert.deepEqual(await first, { placed: ['x'], failed: [] });
+  assert.deepEqual(await second, { placed: ['y', 'z'], failed: [] });
+  assert.deepEqual(snapped, ['x', 'y', 'z']);
+  assert.deepEqual(attempts, ['y', 'z']);
+  assert.deepEqual(status.get(), { at: null, placed: 3 });
 });

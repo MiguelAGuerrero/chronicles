@@ -62,15 +62,17 @@ async function checks(h) {
     }));
     await page.reload();
     await h.mapUp(page);
-    // Sampled until the star comes: a single walk can be placed between two looks.
+    // Sampled until the star comes: a single walk can be placed between two looks. The map's grey cover
+    // (`map-cover`, drawn when a map is `covered`) is what the owner saw; the old line and Skip went with it.
+    await shot(page, '11-home-placing');
     let covered = false;
     for (let i = 0; i < 600 && !(await page.locator('[aria-label^="Fox Point,"]').count()); i++) {
-      covered ||= (await page.locator('[data-testid=skip-placing]').count()) + (await page.locator('text=/Placing your walks/').count()) > 0;
-      if (i === 2) await shot(page, '11-home-placing');
+      covered ||= (await page.locator('[data-testid=map-cover], [data-testid=skip-placing]').count()) > 0;
+      covered ||= (await page.locator('text=/Placing your walks/').count()) > 0;
       await page.waitForTimeout(100);
     }
     check((await page.locator('[aria-label^="Fox Point,"]').count()) > 0, 'the walk is placed again and its star shows');
-    check(!covered, 'placing old walks never covers the map or counts the walks (fix background-placing)');
+    check(!covered, 'placing old walks never covers the map or counts the walks (fix background-placing audit 7)');
 }
 
 // Alone: the walk journey first (the first walk, with its captures), then this.

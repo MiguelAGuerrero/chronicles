@@ -410,7 +410,7 @@ export function HomeSheet(props: {
                     key={e.kind === 'walk' ? e.walk.id : e.capture.id}
                     entry={e}
                     summary={e.kind === 'walk' ? props.summaries.get(e.walk.id) ?? null : null}
-                    disabled={props.busy}
+                    disabled={props.busy || (e.kind === 'walk' && e.walk.id === props.placingId)}
                     onOpen={(c) => props.onOpenMoments?.(c)}
                     onMore={props.onWalkActions}
                   />
@@ -435,7 +435,9 @@ export function HomeSheet(props: {
           {!place && props.unplaced.length > 0 && (
             <>
               <Text style={styles.section} accessibilityRole="header">Not placed yet</Text>
-              <Text style={styles.note}>Placed when you’re online. Open one to place it now.</Text>
+              <Text style={styles.note}>
+                {props.placingId && unplacedIds.has(props.placingId) ? 'Being placed now, one after another.' : 'Placed when you’re online. Open one to place it now.'}
+              </Text>
               {props.unplaced.map((w) => (
                 <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy || w.id === props.placingId} placing={w.id === props.placingId} onMore={props.onWalkActions} />
               ))}

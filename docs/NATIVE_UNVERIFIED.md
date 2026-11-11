@@ -417,7 +417,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 
 ## Old walks placed in the background (fix background-placing, decision 0134)
 
-- [ ] **Do:** with a walk from before places (or one stopped offline, then back online), open Chronicle's Map. **Expect:** the map and the stars already placed show at once, with no grey cover and no "Placing your walks"; the walk's row under "Not placed yet" says "Placing…" while its tiles are fetched and decoded on the phone (`tileCollector`, `fetchTiles`), then its star comes, and the map never jumps to it by itself.
+- [ ] **Do:** with a walk from before places (or one stopped offline, then back online), open Chronicle's Map. **Expect:** the map and the stars already placed show at once, with no grey cover and no "Placing your walks"; the walk's row under "Not placed yet" says "Placing…" while its tiles are fetched and decoded on the phone (`tileCollector`, `fetchTiles`), then its star comes, and the map never jumps to it by itself. Switch Map → Walks mid-pass: the row still says "Placing…". Tap Start mid-pass: the walk screen's first seconds stay smooth while the walk at hand finishes (audit 5).
 
 ## Captures while paused (fix paused-pins)
 

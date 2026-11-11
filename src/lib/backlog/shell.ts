@@ -1,6 +1,7 @@
 // @layer shell
 import type { Collector } from '../finish';
 import { placeAll, withTimeout } from '../placeAll';
+import { createStore, type Store } from '../store';
 import type { Walk } from '../types';
 
 /** A walk's street tiles, then its wider read of places; past these the tiles are not answering. */
@@ -18,6 +19,12 @@ export interface BacklogDeps {
   ms?: { collect: number; places: number };
 }
 
+/** What any screen shows of the passes: the walk at hand, and how many have been placed, to read the rows again. */
+export interface BacklogStatus {
+  at: string | null;
+  placed: number;
+}
+
 export type PlaceBacklog = (
   walks: Walk[],
   opts: { onProgress?: (done: number) => void; stopped?: () => boolean; onAttempt?: (id: string) => void },
@@ -33,9 +40,12 @@ export type PlaceBacklog = (
  * times out, so a read that never answers fails the walk instead of hanging
  * the pass. Without a known tile build (never online), the pass does not start.
  */
-export function createBacklog(d: BacklogDeps): PlaceBacklog {
+export function createBacklog(d: BacklogDeps): { placeBacklog: PlaceBacklog; status: Store<BacklogStatus> } {
   const ms = d.ms ?? LIMITS;
-  return async (walks, opts) => {
+  // Kept here, not in a screen: Chronicle remounts on a section switch, and the new screen still shows the
+  // walk at hand and its star (fix background-placing audit 1).
+  const status = createStore<BacklogStatus>({ at: null, placed: 0 });
+  const run: PlaceBacklog = async (walks, opts) => {
     if ((await d.tileBuild().catch(() => 'unknown')) === 'unknown') return { placed: [], failed: walks.map((w) => w.id) };
     const byId = new Map(walks.map((w) => [w.id, w]));
     return placeAll(
@@ -43,16 +53,27 @@ export function createBacklog(d: BacklogDeps): PlaceBacklog {
       async (id) => {
         // A delete waits on Undo with the walk's rows still stored: placing it would write them back (deletion audit 2).
         if (!(await d.still(id))) throw new Error('The walk is gone');
+        status.set((s) => ({ ...s, at: id }));
         const c = d.collector();
         await d.snap(byId.get(id)!, {
           plan: (bounds, trace) => c.plan(bounds, trace),
           collect: (centers) => withTimeout(c.collect(centers), ms.collect, 'The tiles'),
           collectPlaces: (center) => withTimeout(c.collectPlaces(center), ms.places, 'The tiles'),
         });
+        status.set((s) => ({ ...s, placed: s.placed + 1 }));
       },
       opts.onProgress,
       opts.stopped,
       opts.onAttempt,
-    );
+    ).finally(() => status.set((s) => (s.at === null ? s : { ...s, at: null })));
   };
+  // One pass at a time: a second asks after the one under way, with its own walks and callbacks, never joining
+  // the first's (whose screen may be gone and whose pass stops after the walk at hand).
+  let last: Promise<unknown> = Promise.resolve();
+  const placeBacklog: PlaceBacklog = (walks, opts) => {
+    const pass = last.catch(() => {}).then(() => run(walks, opts));
+    last = pass;
+    return pass;
+  };
+  return { placeBacklog, status };
 }
