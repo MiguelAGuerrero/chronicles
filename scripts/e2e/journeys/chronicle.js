@@ -104,12 +104,15 @@ async function checks(h) {
     // section-bar audit 3: a drag up names the list it opens on the bar, and a drag down to rest names Map (SB1).
     const barAfterDrag = await page.locator('[data-testid^=section-][aria-selected=true]').getAttribute('data-testid');
     const listAfterDrag = (await page.locator('[data-testid=walk-row]').count()) ? 'section-walks' : 'section-days';
+    // Down as a finger drags it (a mouse drag down is dropped by the browser, .claude/rules/motion-polish.md).
     const headUp = await page.locator('[data-testid=sheet-drag]').boundingBox();
-    await page.mouse.move(headUp.x + headUp.width / 2, headUp.y + headUp.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(headUp.x + headUp.width / 2, vh - 40, { steps: 8 });
-    await page.mouse.up();
-    await page.waitForTimeout(700);
+    const fingerDown = await page.context().newCDPSession(page);
+    const fx = headUp.x + headUp.width / 2;
+    await fingerDown.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fx, y: headUp.y + headUp.height / 2 }] });
+    for (let y = headUp.y + 30; y < vh - 10; y += 60) await fingerDown.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: fx, y }] });
+    await fingerDown.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await fingerDown.detach();
+    await page.waitForTimeout(900);
     const barAfterDown = await page.locator('[data-testid^=section-][aria-selected=true]').getAttribute('data-testid');
     const restAfterDown = (await page.locator('[data-testid=walk-row], [data-testid=day-row]').count()) === 0;
     check(barAfterDrag === listAfterDrag && barAfterDown === 'section-map' && restAfterDown,
