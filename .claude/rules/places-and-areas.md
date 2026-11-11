@@ -108,17 +108,26 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
   responders, no library) peeks with a Walks | Days switch (no counts, U8,
   U13) and opens to the
   walks list or a place's walks. Start floats above it.
-  - Walks with no places are placed in one pass behind a cover
-    (`placeAll`); a failure waits for the next launch.
+  - Walks with no places are placed in the background (`placeAll`, decision
+    0134); a failure waits for the next launch.
   - It reads only walks, summaries, `Area` and `WalkArea` (`places.ts`), never
     traces or media. Keep it that way.
 
-- **Placing old walks** happens in `lib/backlog.ts`, the home's one read of
-  traces.
-  - It runs in one pass, and every map read in it times out.
+- **Placing old walks** happens in `lib/backlog/`, the home's one read of
+  traces (decision 0134).
+  - It reads tiles in code (`tileCollector`), never through the home map: the
+    map once jumped from walk to walk at street zoom, so it sat behind a grey
+    cover with "Placing your walks (1 of 1)" for up to 80 s a walk, and the
+    owner read the count as their walks. No cover, no count, no Skip.
+  - It runs in one pass, and every tile read in it times out.
   - It needs a known tile build to start.
+  - Each walk's star comes as it is placed (the screen reads the rows again);
+    the map is framed at the end only if it had nothing to frame before.
+  - Only the walk at hand waits ("Placing…" on its row, its More off): a
+    delete mid-read would write its rows back (deletion audit 2). A walk
+    deleted or in Undo since the pass began is skipped.
   - A walk counts as tried only once its placing begins. Leaving the screen
-    or tapping Skip stops the pass after the walk at hand.
+    stops the pass after the walk at hand.
   - A walk is "placed" once snapped under the current rules, even with no
     rows to show. A partial street read (`complete: false`) is not done.
 - The map refits only when the places walked change, never just because the

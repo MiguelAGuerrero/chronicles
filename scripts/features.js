@@ -185,7 +185,7 @@ const FEATURES = [
     name: 'places',
     about: 'places and areas: boundaries, assignment, the walk\'s title',
     rule: 'places-and-areas',
-    source: ['src/lib/areas/**', 'src/lib/{places,placeAll,backlog}.ts', 'src/components/{StarView,AreaPoint}.tsx'],
+    source: ['src/lib/areas/**', 'src/lib/{places,placeAll}.ts', 'src/lib/backlog/**', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
     specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence'],
   },
