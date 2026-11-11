@@ -1,16 +1,17 @@
 // @layer core
 import { distanceM, projector } from '../geo';
-import { greenFromTiles, inRings } from '../nav/scenicSignals';
-import type { RoadFeature } from '../streets';
+import { inRings } from './green';
 import type { LngLat } from '../types';
 import community from './communityWords.json';
 import { normalizeBrand, notableName } from './noise';
 import parkNotable from './parkNotable.json';
+import type { Refinement } from './refine';
 import type { Place } from './types';
 
 /*
- * Community parks (specs/community-parks, PC1-PC5, PC11): the parks of the map are one kind, `parks`, and a park that
- * the data says is a plain neighbourhood one is the kind `community_parks`, which the reader can switch off. The default
+ * Community parks (specs/community-parks, PC1-PC5, PC11): the first refinement of the kind pipeline (`refine.ts`). The parks
+ * of the map are one kind, `parks`, and a park that the data says is a plain neighbourhood one is the kind
+ * `community_parks`, which the reader can switch off. The default
  * is a park; a demotion needs a name that says playground, playfield or the like, and nothing notable inside or near
  * it. Size never demotes (the tiles cannot see what makes a park worth the walk). Nothing says why a park is one kind or
  * the other.
@@ -21,7 +22,7 @@ export const PARK_RULES = {
   largeM2: 50_000,
   /** With no outline, a notable place within this of the park's point keeps it a park (PC2). */
   signalNearM: 60,
-  /** An archive place this near promotes a community park, in `mergePlaces` (PC2). */
+  /** An archive place this near keeps a park a park (PC2, PC21: the context of the refinement, never of the merge). */
   archiveNearM: 150,
 } as const;
 
@@ -54,18 +55,22 @@ function areaM2(rings: LngLat[][]): number {
 }
 
 /**
- * PC1-PC5, PC11: the kind of each park among `places`, judged from what the same read holds: the park outlines of the
- * tiles' `landcover` (none: judged by name and what is near the point, PC3) and its other places. A place that is not a
- * park is returned as it is.
+ * PC1-PC5, PC11: the refinement of Parks into community parks, from what the same read holds: the park outlines of the tiles'
+ * `landcover` (none: judged by name and what is near the point, PC3), its other places and the places archive's. A place
+ * that is not a park is never touched (`refine` judges only the parent kind).
  */
-export function judgeParks(places: Place[], landcover: RoadFeature[] = []): Place[] {
-  const outlines = greenFromTiles(landcover, []).filter((a) => a.kind === 'park');
-  const signals = places.filter(isSignal);
-  return places.map((p) => {
-    if (p.kind !== 'parks' || !communityName(p.name) || notablePark(p.name)) return p;
-    const outline = outlines.find((o) => inRings(p.at, o.rings));
-    if (outline && (areaM2(outline.rings) >= PARK_RULES.largeM2 || signals.some((s) => inRings(s.at, outline.rings)))) return p;
-    if (signals.some((s) => distanceM(s.at, p.at) <= PARK_RULES.signalNearM)) return p;
-    return { ...p, kind: 'community_parks' };
-  });
-}
+export const communityParks: Refinement = {
+  id: 'community_parks',
+  parent: 'parks',
+  child: 'community_parks',
+  judge(places, ctx) {
+    const signals = places.filter(isSignal);
+    return (p) => {
+      if (!communityName(p.name) || notablePark(p.name)) return false;
+      const outline = ctx.outlines.find((o) => inRings(p.at, o.rings));
+      if (outline && (areaM2(outline.rings) >= PARK_RULES.largeM2 || signals.some((s) => inRings(s.at, outline.rings)))) return false;
+      if (signals.some((s) => distanceM(s.at, p.at) <= PARK_RULES.signalNearM)) return false;
+      return !ctx.archive.some((a) => distanceM(a.at, p.at) <= PARK_RULES.archiveNearM);
+    };
+  },
+};

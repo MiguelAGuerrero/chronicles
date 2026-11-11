@@ -5,36 +5,21 @@ import { test } from 'node:test';
 import { waitingKinds, waitingMarks } from '../../atlas/atlas';
 import { mergePlaces } from '../../discovery/archiveMerge';
 import { archivePlace } from '../../discovery/archivePois';
+import { refine, type Refinement } from '../../discovery/refine';
+import { isKindHidden, kindChain, kindParent, kindSwitch, refineRead, REFINEMENTS } from '../../discovery/refinements';
 import { placesFromTilePois } from '../../discovery/tilePois';
 import type { Kind, Place } from '../../discovery/types';
 import { KINDS, passedPlaces, routeMarks, visibleMarks, type ChecklistItem } from '../../explore/explore';
-import type { RoadFeature } from '../../streets';
 import type { LngLat } from '../../types';
 
-// The kind pipeline (PC18-PC23), written from specs/community-parks/spec.md before the code. The modules under test do not
-// exist yet, so each test loads them when it runs and a missing one fails that test alone.
+// The kind pipeline (PC18-PC23), written from specs/community-parks/spec.md before the code.
 
-type Ctx = { outlines: readonly unknown[]; archive: readonly Place[] };
-type Ref = { id: string; parent: Kind; child: Kind; judge(places: readonly Place[], ctx: Ctx): (p: Place) => boolean };
-interface Pipe {
-  REFINEMENTS: readonly Ref[];
-  refine(places: readonly Place[], ctx: Ctx, refinements: readonly Ref[]): Place[];
-  refineRead(places: readonly Place[], read: { landcover?: RoadFeature[]; archive?: readonly Place[] | null }): Place[];
-  kindParent(k: Kind): Kind | undefined;
-  kindChain(k: Kind): Kind[];
-  isKindHidden(hidden: ReadonlySet<Kind>, k: Kind | undefined): boolean;
-  kindSwitch(hidden: ReadonlySet<Kind>, k: Kind): { on: boolean; locked: boolean };
-}
-const mod = (name: string) => import(`../../discovery/${name}`) as Promise<unknown>;
-const pipe = () => mod('refinements') as Promise<Pipe>;
 const CP = 'community_parks' as Kind;
 const O: LngLat = [-75.47, 40.6];
 const at = (e: number, n = 0): LngLat => [O[0] + e / (111320 * Math.cos((O[1] * Math.PI) / 180)), O[1] + n / 110540];
 const place = (name: string, kind: Kind, p: LngLat = at(0), category: Place['category'] = 'parks'): Place => ({ key: `${name}${p[0]}`, name, category, at: p, generic: false, build: 'b', markable: true, kind });
-const TODO = 'test first';
 
-test('PC18: REFINEMENTS is a list of data objects, community parks one; refine is pure, idempotent and empty-safe', { todo: TODO }, async () => {
-  const { REFINEMENTS, refine } = await pipe();
+test('PC18: REFINEMENTS is a list of data objects, community parks one; refine is pure, idempotent and empty-safe', () => {
   const cp = REFINEMENTS.find((r) => r.id === 'community_parks');
   assert.ok(cp && cp.parent === 'parks' && cp.child === CP && typeof cp.judge === 'function');
   const input = Object.freeze([place('Elm Street Playground', 'parks'), place('Cedar Park', 'parks', at(500))].map((p) => Object.freeze(p)));
@@ -46,10 +31,9 @@ test('PC18: REFINEMENTS is a list of data objects, community parks one; refine i
   assert.deepEqual(refine(input, { outlines: [], archive: [] }, []), [...input]);
 });
 
-test('PC19: a refinement added to a registry splits another kind; they run in order; other kinds are untouched', { todo: TODO }, async () => {
-  const { refine } = await pipe();
+test('PC19: a refinement added to a registry splits another kind; they run in order; other kinds are untouched', () => {
   const named = (re: RegExp) => () => (p: Place) => re.test(p.name);
-  const registry: Ref[] = [
+  const registry: Refinement[] = [
     { id: 't1', parent: 'monuments', child: 'structures', judge: named(/Plaque/) },
     { id: 't2', parent: 'structures', child: 'curiosities', judge: named(/Big/) },
   ];
@@ -57,8 +41,7 @@ test('PC19: a refinement added to a registry splits another kind; they run in or
   assert.deepEqual(out.map((p) => p.kind), ['curiosities', 'structures', 'monuments', 'parks']);
 });
 
-test('PC20: kinds know their parent from the registry, and the switches follow the chain', { todo: TODO }, async () => {
-  const { REFINEMENTS, kindParent, kindChain, isKindHidden, kindSwitch } = await pipe();
+test('PC20: kinds know their parent from the registry, and the switches follow the chain', () => {
   assert.equal(kindParent(CP), 'parks');
   assert.equal(kindParent('parks'), undefined);
   assert.deepEqual(kindChain(CP), [CP, 'parks']);
@@ -79,8 +62,7 @@ test('PC20: kinds know their parent from the registry, and the switches follow t
   assert.deepEqual(kindSwitch(new Set<Kind>(['parks']), 'parks'), { on: false, locked: false });
 });
 
-test('PC21: the adapter and the merge judge nothing; the refinement after the merge, with the archive, does', { todo: TODO }, async () => {
-  const { refineRead } = await pipe();
+test('PC21: the adapter and the merge judge nothing; the refinement after the merge, with the archive, does', () => {
   const f = [{ geometry: { type: 'Point', coordinates: at(0) }, properties: { class: 'park', subclass: 'park', name: 'Elm Street Playground' }, zoom: 14 }];
   const tile = placesFromTilePois(f, 'b', { landcover: [] } as never);
   assert.equal(tile[0].kind, 'parks', 'the adapter: a park is a park');
@@ -99,7 +81,7 @@ test('PC21: the adapter and the merge judge nothing; the refinement after the me
 const item = (key: string, kind: Kind, p: LngLat): ChecklistItem => ({ key, area_key: null, name: key, category: 'parks', kind, at: p, generic: false });
 const off = new Set<Kind>(['parks']);
 
-test('PC22: with Parks off, community parks are off too, in every consumer', { todo: TODO }, () => {
+test('PC22: with Parks off, community parks are off too, in every consumer', () => {
   const items = [item('play', CP, at(10)), item('park', 'parks', at(20)), item('art', 'public_art', at(30))];
   const keys = (l: { item: ChecklistItem }[]) => l.map((m) => m.item.key).sort();
   assert.deepEqual(keys(visibleMarks({ items, here: at(0), rangeM: 300, found: new Set(), hidden: off, revealed: new Set() })), ['art']);
@@ -112,8 +94,7 @@ test('PC22: with Parks off, community parks are off too, in every consumer', { t
   assert.deepEqual(waitingMarks(marks, new Set(), at(0), new Set<Kind>([CP]), { all: true }).map((m) => m.key), ['park', 'art']);
 });
 
-test('PC23: the settings row reads off and locked while Parks is off', { todo: TODO }, async () => {
-  const { kindSwitch } = await pipe();
+test('PC23: the settings row reads off and locked while Parks is off', () => {
   assert.deepEqual(kindSwitch(new Set<Kind>(['parks']), CP), { on: false, locked: true });
   assert.deepEqual(kindSwitch(new Set<Kind>(), CP), { on: true, locked: false });
   assert.deepEqual(kindSwitch(new Set<Kind>(['parks']), 'viewpoints'), { on: true, locked: false }, 'no other row changes');

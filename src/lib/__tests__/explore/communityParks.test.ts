@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_LABEL, ringOf, waitingKinds } from '../../atlas/atlas';
-import { mergePlaces } from '../../discovery/archiveMerge';
 import { archivePlace } from '../../discovery/archivePois';
 import { barsOf, passesBy } from '../../discovery/bars';
+import { refineRead } from '../../discovery/refinements';
 import { placesFromTilePois } from '../../discovery/tilePois';
 import type { Kind, Place } from '../../discovery/types';
 import { placeToRow } from '../../db/placeRow';
@@ -30,7 +30,7 @@ const grass = (rings: LngLat[][] | LngLat[][][], multi = false): RoadFeature => 
   geometry: multi ? { type: 'MultiPolygon', coordinates: rings } : { type: 'Polygon', coordinates: rings },
   properties: { class: 'grass', subclass: 'park' },
 });
-const read = (features: ReturnType<typeof poi>[], landcover?: RoadFeature[]) => placesFromTilePois(features, 'b', landcover ? { landcover } : {});
+const read = (features: ReturnType<typeof poi>[], landcover?: RoadFeature[], archive: Place[] = []) => refineRead(placesFromTilePois(features, 'b'), { landcover, archive });
 const kindOf = (places: Place[], name: string) => places.find((p) => p.name === name)?.kind;
 
 
@@ -53,13 +53,12 @@ test('PC2: each notable signal keeps a park', () => {
   assert.equal(kindOf(read([park('Franklin Memorial Playground')]), 'Franklin Memorial Playground'), 'parks', 'a notable word in the name');
   assert.equal(kindOf(read([park('Valley State Park Playground')]), 'Valley State Park Playground'), 'parks', 'a notable phrase in the name');
   assert.equal(kindOf(read([park(n)], [grass([ring(at(0), 300)])]), n), 'parks', 'an outline of 5 ha or more (300 m square is 9 ha)');
-  // The archive: a place within 150 m promotes a community park, in the merge.
-  const tile = read([park(n)]);
-  assert.equal(kindOf(tile, n), CP);
+  // The archive: a place within 150 m keeps it a park, in the refinement's context.
+  assert.equal(kindOf(read([park(n)]), n), CP);
   const arch = [archivePlace('Elm Street Mill', 'historic_site', at(100), 'v')].filter((p): p is Place => !!p);
-  assert.equal(kindOf(mergePlaces(tile, arch), n), 'parks', 'an archive place within 150 m');
+  assert.equal(kindOf(read([park(n)], undefined, arch), n), 'parks', 'an archive place within 150 m');
   const far = [archivePlace('Elm Street Mill', 'historic_site', at(400), 'v')].filter((p): p is Place => !!p);
-  assert.equal(kindOf(mergePlaces(tile, far), n), CP, 'an archive place 400 m away');
+  assert.equal(kindOf(read([park(n)], undefined, far), n), CP, 'an archive place 400 m away');
   // With no outline a signal within 60 m of the point counts, one 200 m away does not.
   assert.equal(kindOf(read([park(n), poi('monument', 'memorial', 'Soldiers Memorial', at(40))]), n), 'parks');
   assert.equal(kindOf(read([park(n), poi('monument', 'memorial', 'Soldiers Memorial', at(200))]), n), CP);
@@ -68,7 +67,7 @@ test('PC2: each notable signal keeps a park', () => {
 test('PC3: no outline is judged by its name and what is near it; an incomplete read judges nothing', () => {
   assert.equal(kindOf(read([park('Cedar Park')]), 'Cedar Park'), 'parks');
   assert.equal(kindOf(read([park('Liberty State Park')]), 'Liberty State Park'), 'parks');
-  assert.deepEqual(placesFromTilePois([park('Elm Street Playground')], 'b', { complete: false, landcover: [] }), []);
+  assert.deepEqual(placesFromTilePois([park('Elm Street Playground')], 'b', { complete: false }), []);
 });
 
 test('PC4: both kinds are of the parks category and markable, and a dog park is still no mark', () => {
@@ -158,7 +157,7 @@ test('PC11: the judgement is the same for the same input, and no outline read is
 
 test('PC12: nothing is fetched to sort: the judgement is synchronous and the modules reach no network or store', () => {
   assert.ok(Array.isArray(read([park('Elm Street Playground')])));
-  for (const f of ['../../discovery/tilePois.ts', '../../discovery/parkKind.ts']) {
+  for (const f of ['../../discovery/tilePois.ts', '../../discovery/parkKind.ts', '../../discovery/refine.ts', '../../discovery/refinements.ts', '../../discovery/green.ts']) {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
     assert.doesNotMatch(src, /\bfetch\(|getMeta|Date\.now|Math\.random|from '\.\.\/db/, f);
   }

@@ -14,6 +14,8 @@ export function SwitchRow(props: {
   hint?: string;
   icon?: IconName;
   value: boolean;
+  /** A row that cannot be switched now (a subset under a parent that is off): dimmed, announced, and a tap does nothing. */
+  disabled?: boolean;
   onChange: (on: boolean) => void;
 }) {
   return (
@@ -22,10 +24,11 @@ export function SwitchRow(props: {
       accessibilityRole="switch"
       accessibilityLabel={props.label}
       accessibilityHint={props.hint ?? props.note}
-      accessibilityState={{ checked: props.value }}
+      accessibilityState={{ checked: props.value, disabled: !!props.disabled }}
       aria-checked={props.value}
-      onPress={() => props.onChange(!props.value)}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      aria-disabled={!!props.disabled}
+      onPress={() => !props.disabled && props.onChange(!props.value)}
+      style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled]}
     >
       {props.icon && <Icon name={props.icon} size={20} color={theme.ink} />}
       <View style={styles.rowText} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
@@ -42,6 +45,7 @@ export function SwitchRow(props: {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
   rowPressed: { opacity: 0.7 },
+  rowDisabled: { opacity: 0.45 },
   rowText: { flex: 1, gap: 2 },
   rowLabel: { fontSize: 15, color: theme.ink },
   sub: { fontSize: 13, color: theme.muted },

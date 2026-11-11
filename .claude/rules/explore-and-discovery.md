@@ -179,16 +179,25 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Atlas grading (AG1-AG6, decision 0084):** the five findable kinds (`MARK_CATEGORIES`) count only places with `markable` true (`read.ts` sets it from `isMarkable`, chains included), so the dots and the "?" agree. Food, shops and nightlife count all. `profile.thin` (fewer than `ATLAS_RULES.thinPlaces` places in the ring): the tile shows no kinds or character line, the card no kind rows. `MARKABLE_CLASSES` (`tilePois.ts`) is pinned by AG5's test: a new markable class is a change to the spec's definition of a mark. Next: whole areas (DEFERRED).
 - **A place may light two bars** (PK1-PK19, decision 0127): `barsOf` (`discovery/bars.ts`, core) is the one rule for both the bars and the planner: a place's category, plus History for a museum or gallery the data calls historic (`alsoBars` from `ARCHIVE_ALSO`, the archive's `museum`, never stored; or `historicName`: `notableName` reading past a neighbourhood's “Old Town” and “old and new”, audit 5). A plain museum stays in Culture alone, so History and Culture stay apart (PK5, held by `presenceSample.json`, recorded by `scripts/fixture-presence.mjs`). Never add a second bar to a kind wholesale without re-running PK5. `ATLAS_CODE` a8 carries no older code. History for the archive's `museum` rests on contract v2 (a museum enters only by its listing): the pinned contract's README says so (PK19).
 - **Community spaces** (`community`, in Culture): `town_hall/community_centre`, `library/library` and `community_centre` by a notable name only (presence class `community`, in curation's `BY_NAME`), `art_gallery/arts_centre` and `arts_centre` as any name (class `arts_centre`). `parseHidden(raw, known)`: a choice saved before the kind existed (meta `explore_kinds_known` lacks it, written by `saveSettings`) keeps it off when Museums and galleries is off (PK18); every reader of `explore_hidden` goes through `parseHidden` (the scenic read too).
-- **Community parks** (PC1-PC17, decision 0142): `discovery/parkKind.ts` (core, `judgeParks`) sets the kind `community_parks` on a
-  park whose name holds a word of `communityWords.json` (playground, playfield, tot lot, ball field, courts) when nothing
-  notable is in or near it: a mark inside the `landcover` outline (within 60 m of the point with none), a name word of
-  `parkNotable.json` or `notable.json`, an outline of 5 ha or more; `mergePlaces` promotes it back to `parks` for an archive
-  place within 150 m. **Size never demotes.** The kind is of the parks category (same bar, colour, find, mark); a switch hides
-  only it. **Never name an unfound place for its kind**: bars and waiting kinds are categories, so "Community parks" shows
-  only in "What I'm into" and on a found place (`foundLine`). `placesFromTilePois(features, build, { landcover })` takes the
-  outlines (the explore read and the atlas ring read pass them); a read without them judges by name and what is near the
-  point. The planner and scenic routes do not read "What I'm into" and count both as parks. It is curation (0140), so a
-  change to the words bumps `ATLAS_CODE`'s own part, never `PRESENCE_CODE`.
+- **The kind pipeline** (PC18-PC23, decisions 0142, 0143): a registry of pure refinements splits a kind into finer subsets.
+  adapter (`tilePois`) -> presence classes -> curation (marks) -> merge of sources (`mergePlaces`) -> **refinement**
+  (`discovery/refine.ts` the engine, `refinements.ts` the registry) -> the reader's switches. A `Refinement` is `{ id, parent,
+  child, judge(places, ctx) => (place) => boolean }`; `refine(places, ctx, refinements)` returns new places, never mutates, applies in order
+  (a child may be a later parent). **A new subset is a new entry in `REFINEMENTS`** plus its child in `KINDS` (after its parent) and
+  `Kind`; its words go in a JSON file. The adapter and the merge judge nothing about parks. The reads that feed checklists
+  and the atlas call `refineRead(merged, { landcover, archive })` after the merge (`landing/read.ts`, `ringOf`); a read with no
+  `landcover` judges by name and what is near the point. Never test a kind against the switches with `hidden.has(kind)`: use
+  `isKindHidden(hidden, kind)` (a parent off hides its children, `kindChain`), and `kindSwitch` for a row (off and locked
+  while a parent is off).
+- **Community parks** (PC1-PC17, decision 0142): the first refinement, `discovery/parkKind.ts` (`communityParks`). A park whose
+  name holds a word of `communityWords.json` (playground, playfield, tot lot, ball field, courts) is the kind `community_parks`
+  when nothing notable is in or near it: a mark inside the `landcover` outline (`discovery/green.ts`, `outlinesOf`; within 60 m
+  of the point with none), a name word of `parkNotable.json` or `notable.json`, an outline of 5 ha or more, or an archive place
+  within 150 m (the refinement's context). **Size never demotes.** The kind is of the parks category (same bar, colour, find,
+  mark); a switch hides only it. **Never name an unfound place for its kind**: bars and waiting kinds are categories, so
+  "Community parks" shows only in "What I'm into" and on a found place (`foundLine`). The planner and scenic routes do not
+  read "What I'm into" and count both as parks. It is curation (0140), so a change to the words bumps `ATLAS_CODE`'s own
+  part, never `PRESENCE_CODE`.
 - **Presence, not quality.** Bars come only from places inside the ring, against fixed steps. They are never relative to the neighbors, and every level uses the same ring (a town's is around its point). Green counts park places, not park area (deferred).
 - **Reads** (`atlas/read.ts`) decode tiles in code, like every read:
   - the near read: z14 place points for neighborhoods, z11 for towns, recorded in meta `atlas_near:<level>`;

@@ -1,8 +1,9 @@
 // @layer core
+import { greenFromTiles, inRings, type GreenArea } from '../discovery/green';
 import { isMarkable } from '../discovery/noise';
+import { isKindHidden } from '../discovery/refinements';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, projector, type Bounds } from '../geo';
-import type { RoadFeature } from '../streets';
 import type { LngLat } from '../types';
 import { NAV, SCENIC } from './rules';
 
@@ -11,13 +12,6 @@ import { NAV, SCENIC } from './rules';
  * between the two ends: green areas, places worth seeing, and the graded busy streets. Pure: the
  * read is the shell's (`scenicRead`), and these are only shapes and indexes over it.
  */
-
-/** A park, garden or wood: its rings (the first the outside), and a name when a park point lies inside. */
-export interface GreenArea {
-  rings: LngLat[][];
-  kind: 'park' | 'wood';
-  name: string | null;
-}
 
 /** A place worth seeing, and whether it was found (only a found place is named, SR4). */
 export interface Sight {
@@ -34,48 +28,12 @@ export interface BusyLine {
   lines: LngLat[][];
 }
 
+export { greenFromTiles, type GreenArea };
+
 export interface Signals {
   green: GreenArea[];
   sights: Sight[];
   busy: BusyLine[];
-}
-
-/** OpenMapTiles' landcover classes that count as green (SR15): parks and gardens, and woods. */
-function greenKind(props: Record<string, unknown> | null): GreenArea['kind'] | null {
-  const cls = String(props?.class ?? '');
-  const sub = String(props?.subclass ?? '');
-  if (cls === 'wood') return 'wood';
-  if (cls === 'grass' && (sub === 'park' || sub === 'garden')) return 'park';
-  return null;
-}
-
-export const inRings = (p: LngLat, rings: LngLat[][]): boolean => {
-  // Even-odd over every ring, so a hole is outside.
-  let inside = false;
-  for (const ring of rings)
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i];
-      const [xj, yj] = ring[j];
-      if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside;
-    }
-  return inside;
-};
-
-/** SR15: the green areas of the tiles' landcover, each named by a park point inside it. */
-export function greenFromTiles(landcover: RoadFeature[], parks: Pick<Place, 'name' | 'at'>[]): GreenArea[] {
-  const out: GreenArea[] = [];
-  for (const f of landcover) {
-    const kind = greenKind(f.properties);
-    if (!kind) continue;
-    const polys =
-      f.geometry.type === 'Polygon' ? [f.geometry.coordinates as LngLat[][]] : f.geometry.type === 'MultiPolygon' ? (f.geometry.coordinates as LngLat[][][]) : [];
-    for (const rings of polys) {
-      if (!rings.length || rings[0].length < 4) continue;
-      const name = parks.find((p) => inRings(p.at, rings))?.name ?? null;
-      out.push({ rings, kind, name });
-    }
-  }
-  return out;
 }
 
 /** Whether a point is inside any green area (a plain scan; routes use `greenProbe`). */
@@ -87,7 +45,7 @@ const SIGHT_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'culture', 'v
 /** SR6: the places a Sights route leans toward: marks of a kind switched on in "What I'm into". */
 export function sightsFrom(places: Place[], hidden: Set<Kind>, found: Set<string>): Sight[] {
   return places
-    .filter((p) => SIGHT_CATEGORIES.includes(p.category) && isMarkable(p) && !(p.kind && hidden.has(p.kind)))
+    .filter((p) => SIGHT_CATEGORIES.includes(p.category) && isMarkable(p) && !isKindHidden(hidden, p.kind))
     .map((p) => ({ key: p.key, at: p.at, name: p.name, found: found.has(p.key) }));
 }
 
