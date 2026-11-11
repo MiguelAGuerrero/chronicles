@@ -124,7 +124,29 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-Nothing filed yet. The first runs to make: `/tend triage` (tags `docs/DEFERRED.md`), then `/tend <area>`.
+- **T1 [owner] Chronicle: a walk named without changing the suggested title keeps that suggestion for good** (2026-11-11)
+  Area: chronicle. Seen: `src/lib/rename.ts:17` stores `title || suggestTitle(walk)`, and the first replay's Keep it
+  (`src/app/replay/[id].tsx:409`) stores the suggestion too; a walk named before its area was read stays "Tuesday
+  evening walk" after `finish.ts` finds Fox Point, and memory cards then quote it as if typed (`resurface/views.ts`
+  `fromLine`). Rests on: VISION.md Never, "Writing the owner's words for them", nearest fit "A suggested title from
+  the data, always editable, never overwriting"; Always, "streets, areas and summaries are recomputed"; the steward
+  calls it drift, not a breach. Recommended: store a title only when the words differ from the suggestion at save
+  (`renamePatch` returns `title: null` otherwise, and Keep it calls `renamePatch`); walks saved before stay as they
+  are. QL23's "an empty title becomes the suggested one" becomes "becomes no title, shown as the suggestion". /vision:
+  aligned (Return). Otherwise: leave it; the suggestion, once kept, is the name.
+- **T2 [owner] Chronicle: Rename asks for a line "while the feeling is fresh", weeks later** (2026-11-11)
+  Area: chronicle. Seen: `src/components/WalkActions.tsx`, the Rename editor's label (picture `qol-04b-rename-editor`).
+  Rests on: VISION.md Always, "Restraint in motion, colour and copy"; the concept doc's epilogue is "one line in your
+  own words while the feeling is fresh", said of the first replay. Recommended: Rename's label reads "One line, in
+  your own words"; the first replay keeps its own. /vision: aligned (Return). Otherwise: leave it.
+- **T3 [arch] Chronicle: the section bar says Map while the sheet shows Walks** (2026-11-11)
+  Area: chronicle. Seen: pictures `10-home-walks`, `qol-04-chronicle-renamed`: the top bar (Memories, Walks, Days,
+  Map) has Map selected while the sheet's own Walks | Days switch has Walks, beside a second Map button
+  (`(tabs)/index.tsx:90, 465`; `HomeSheet` header). Rests on: NN/g H4 (docs/research/ui-references.md), "Users should
+  not have to wonder whether different words, situations, or actions mean the same thing"; decision 0098, "One
+  screen, four sections". Recommended: the sheet's Walks, Days and Map also move the section bar
+  (`chronicleSection.set`), so the bar always names what is shown; the sheet keeps its switch. /vision: aligned
+  (Return). Otherwise: hide the sheet's switch while the section bar shows (a removal), or leave it.
 
 ### Next evolutions
 
@@ -132,7 +154,16 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-No run yet.
+**Nov 11, `/tend chronicle`** (a sweep, from `83a3f25`; the first run of the loop). Eight loop commits:
+`tend chronicle 1` Escape or Back with the @ picker open closes the picker, not the note; `2` a walks row says its
+date, distance, time and one line (the web dropped the hint); `3` a day's timeline says its walk's title; `4` one
+Escape steps out of Rename, not out of the menu too; `5` the title's Next goes on to the line (Rename and the first
+replay's name); `6` the More menu and Rename editor are pictured in `qol`; `7` `qol` covers `WalkActions` and
+`NoteEditor`; `8` the sheet's Walks and Days are 44 px. Filed: T1 (a kept suggested title freezes), T2 (Rename's
+"while the feeling is fresh"), T3 [arch] (the section bar and the sheet's switch disagree); `docs/DEFERRED.md`
+Quality of life 12-17 and a map item. The balance: in step, no evolution proposed; chronicle is rough (medium
+findings found). Lenses not whole: lens 2 did not picture 320 px, 200% text, offline or an interrupted rename.
+Nothing here has run on a phone.
 
 ### Open before the loop
 
