@@ -46,7 +46,7 @@ export function RoutePreview(props: { preview: Preview; onSelect: (i: number) =>
                 {[w.distance, w.passes].filter(Boolean).join(' · ')}
               </Text>
             </Pressable>
-            <Button testID={`route-go-${i}`} label="Go" variant={on ? 'primary' : 'secondary'} accessibilityHint={`Start: ${w.title}`} onPress={() => props.onGo(i)} />
+            <Button testID={`route-go-${i}`} label="Go" spokenLabel={`Go: ${w.title}`} variant={on ? 'primary' : 'secondary'} onPress={() => props.onGo(i)} />
           </View>
         );
       })}

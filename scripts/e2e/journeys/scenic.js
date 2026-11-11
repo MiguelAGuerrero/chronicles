@@ -88,6 +88,10 @@ async function run(h) {
       `scenic SR3: every row says its own distance, never a time or minutes compared (${JSON.stringify(r.map((x) => x.text))})`);
     check(r.length === 2 && /through India Point Park/.test(r[1].text), `scenic SR4: the park is named (${r[1]?.text})`);
     check(r.length === 2 && /^Through green, \d+ m, through India Point Park$/.test(r[1].label), `scenic SR14: the row's label says the whole row (${r[1]?.label})`);
+    // tend navigation 1: each row's Go has its own spoken name, the visible word first (X4, WCAG 2.5.3), not "Go" twice.
+    const goNames = await pg.evaluate(() => [...document.querySelectorAll('[data-testid^=route-go-]')].map((b) => b.getAttribute('aria-label')));
+    check(goNames.length === 2 && new Set(goNames).size === 2 && goNames.every((n) => /^Go\b/.test(n ?? '')) && /Direct/.test(goNames[0] ?? '') && /Through green/.test(goNames[1] ?? ''),
+      `tend navigation 1: each route's Go has its own spoken name (${JSON.stringify(goNames)})`);
     await shot(pg, 'scenic-preview');
     await pg.waitForTimeout(400);
     if (process.env.E2E_DEBUG) console.log('DRAWN', JSON.stringify([drawnBefore, await drawn(pg)]));

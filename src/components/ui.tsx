@@ -42,6 +42,8 @@ export function Button(props: {
   style?: StyleProp<ViewStyle>;
   testID?: string;
   accessibilityHint?: string;
+  /** What a screen reader says when the visible word alone is not unique in its list; it starts with the label (WCAG 2.5.3). */
+  spokenLabel?: string;
   children?: ReactNode;
 }) {
   const v = props.variant ?? 'primary';
@@ -55,7 +57,7 @@ export function Button(props: {
     <PressableAnim
       testID={props.testID}
       accessibilityRole="button"
-      accessibilityLabel={props.busy && props.busyLabel ? props.busyLabel : props.label}
+      accessibilityLabel={props.busy && props.busyLabel ? props.busyLabel : props.spokenLabel ?? props.label}
       accessibilityHint={props.accessibilityHint}
       accessibilityState={{ disabled: !!(props.disabled || props.busy), busy: !!props.busy }}
       disabled={props.disabled || props.busy}
