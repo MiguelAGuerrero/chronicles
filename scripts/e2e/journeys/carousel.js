@@ -318,6 +318,13 @@ async function wholeTowns(h) {
     await pg.waitForFunction(() => !!document.querySelector('[data-testid=atlas-tile][data-name="Allentown"][data-selected="1"]'), null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(4000);
     await shot(pg, 'whole-towns-0-town-selected');
+    // whole-towns audit 14: a town at its own scale shows its places as dots, found or not, and no "?".
+    const townView = await pg.evaluate(() => ({
+      pins: document.querySelectorAll('[data-testid=mark-pin]').length,
+      dots: JSON.parse(document.querySelector('[data-waiting-dots]')?.getAttribute('data-waiting-dots') ?? '[]').length,
+      zoom: Number(document.querySelector('[data-zoom]')?.getAttribute('data-zoom') ?? 0),
+    }));
+    check(townView.zoom >= 14 || (townView.pins === 0 && townView.dots >= 1), `whole-towns audit 14: a town at its own scale is dots, no "?" (${JSON.stringify(townView)})`);
     // WT5, WT6: on Allentown's page, the hamlet inside its border has a card; the ward has none.
     const hamlet = await areaTile(pg, 'Quarry Hill');
     const cards = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.name));
@@ -346,9 +353,28 @@ async function wholeTowns(h) {
     check(out.dots.length >= 1, `WT12: zoomed out, the murals 30 m apart are dots where a "?" would crowd (${out.dots.length} dots at zoom ${out.zoom})`);
     check(out.pins.every((p) => p.text.trim() === '?' || p.text.trim() === ''), `WT10, WT14: no pin on Explore's map is named or found (${JSON.stringify(out.pins.map((p) => p.text))})`);
     check(out.pins.every((p) => p.label === 'A place to find. Open'), 'WT10: no found place is drawn');
-    const said = await pg.locator('[data-testid=atlas-waiting-said]').textContent().catch(() => '');
-    check(out.pins.every((p) => p.hidden === 'true') && /^Places to find in Wickenden: /.test(said ?? '') && !/\d/.test(said ?? ''),
+    const said = await pg.locator('[data-testid=atlas-waiting-said]').getAttribute('aria-label').catch(() => '');
+    check(out.pins.every((p) => p.hidden === 'true') && /^Waiting in Wickenden: /.test(said ?? '') && !/\d/.test(said ?? ''),
       `WT11: the "?" are one accessible element naming the area and the kinds ("${said}"; pins hidden: ${out.pins.every((p) => p.hidden === 'true')})`);
+    // whole-towns audit 6: no two "?" overlap on screen.
+    const overlapping = () => pg.evaluate(() => {
+      const r = [...document.querySelectorAll('[data-testid=mark-pin]')].map((e) => e.getBoundingClientRect());
+      for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) {
+        if (r[i].left < r[j].right - 4 && r[j].left < r[i].right - 4 && r[i].top < r[j].bottom - 4 && r[j].top < r[i].bottom - 4) return true;
+      }
+      return false;
+    });
+    check(!(await overlapping()), 'whole-towns audit 6: no two "?" overlap on screen (a neighborhood selected)');
+    // whole-towns audit 5: the spoken line is a button that opens the selected area's card, by keyboard too.
+    await pg.locator('[data-testid=atlas-waiting-said]').focus().catch(() => {});
+    await pg.keyboard.press('Enter');
+    await pg.waitForTimeout(1500);
+    const cardOpen = (await pg.locator('[data-testid=atlas-card]').count()) > 0;
+    check(cardOpen, 'whole-towns audit 5: the spoken line opens the selected area\'s card by keyboard');
+    if (cardOpen) {
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(1200);
+    }
 
     // WT13: a tap on a dot eases the map in around it until it is a "?". Zoomed out the murals lie under their "?" (a tap
     // there opens the card, as a "?" does), so zoom in two steps first, where they are dots apart, and tap one no pin covers.
@@ -379,8 +405,37 @@ async function wholeTowns(h) {
       }), free);
       check(after.zoom > before.zoom && isPin, `WT13: a tapped dot zooms in until it is a "?" (zoom ${before.zoom} → ${after.zoom}; a "?" there: ${isPin})`);
       check(after.pins.length > out.pins.length, `WT12: zoomed in, more of the cluster is "?" (${out.pins.length} → ${after.pins.length})`);
+      check(!(await overlapping()), 'whole-towns audit 6: no two "?" overlap on screen (zoomed in)');
     } else {
       check(false, `WT13: a dot no pin covers, to tap (${before.dots.length} dots at zoom ${before.zoom})`);
+    }
+
+    // whole-towns audit 4: a "?" with places under it zooms in on a tap rather than opening the card.
+    await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
+    for (let i = 0; i < 3; i++) {
+      await pg.keyboard.press('-');
+      await pg.waitForTimeout(700);
+    }
+    await pg.waitForTimeout(1500);
+    const z0 = (await drawn()).zoom;
+    // A "?" with a dot under its drawn box.
+    const crowdedAt = await pg.evaluate((dots) => {
+      const pts = dots.map((d) => window.__project(d));
+      for (const e of document.querySelectorAll('[data-testid=mark-pin]')) {
+        const r = e.getBoundingClientRect();
+        if (pts.some(([x, y]) => x > r.left && x < r.right && y > r.top && y < r.bottom)) return [r.left + r.width / 2, r.top + r.height / 3];
+      }
+      return null;
+    }, (await drawn()).dots);
+    if (crowdedAt) {
+      await pg.mouse.click(crowdedAt[0], crowdedAt[1]);
+      await pg.waitForTimeout(2500);
+      const z1 = (await drawn()).zoom;
+      const opened = (await pg.locator('[data-testid=atlas-card]').count()) > 0;
+      check(z1 > z0 && !opened, `whole-towns audit 4: a "?" with places under it zooms in on a tap (zoom ${z0} → ${z1}, card ${opened ? 'opened' : 'closed'})`);
+      if (opened) await pg.keyboard.press('Escape');
+    } else {
+      check(false, 'whole-towns audit 4: a "?" to tap');
     }
 
     // WT14: only the selected area's: select another neighborhood, and none of Wickenden's dots stays.

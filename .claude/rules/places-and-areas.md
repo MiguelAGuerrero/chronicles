@@ -82,6 +82,9 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     not a neighborhood either: neighborhoods come from the map tiles' place
     points only. An unclassed, unpopulated village inside a township (Deer
     Park, IL) is dropped too (the owner accepted it; `docs/DEFERRED.md`).
+  - **Hamlets inside a town are neighborhoods** (whole-towns audit 7, decision 0127; `AREA_RULES` 4): `finish.ts` adds
+    `hamletsFromTiles` to the candidates, and `hoodAllowed` takes a hamlet only inside the outline that decided the
+    piece's town (never by a town's point, never out of town), so a hamlet listed on Explore's town page is walked too.
   - **Traps:** outlines are clipped at tile edges, so "not inside" means
     something only where the point's own tile was read (`coveredBy`).
     Of nested outlines the smaller wins by area of the pieces read (Midtown

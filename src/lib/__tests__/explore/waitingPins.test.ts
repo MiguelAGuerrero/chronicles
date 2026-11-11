@@ -12,8 +12,8 @@ const m = (key: string, at: LngLat) => ({ key, at });
 // A block of eight places 20 m apart, and one alone 2 km away.
 const BLOCK = [...Array.from({ length: 8 }, (_, i) => m(`b${i}`, east(i * 20, north(300)))), m('alone', east(2000))];
 const overlap = (a: LngLat, b: LngLat, zoom: number) => {
-  const gap = PIN_ROOM.px * metresPerPx(halfZoom(zoom), O[1]);
-  return Math.abs(a[0] - b[0]) * 111320 * Math.cos((O[1] * Math.PI) / 180) < gap && Math.abs(a[1] - b[1]) * 110574 < gap;
+  const mpp = metresPerPx(halfZoom(zoom), O[1]);
+  return Math.abs(a[0] - b[0]) * 111320 * Math.cos((O[1] * Math.PI) / 180) < PIN_ROOM.w * mpp && Math.abs(a[1] - b[1]) * 110574 < (PIN_ROOM.up + PIN_ROOM.below) * mpp;
 };
 
 // Whole towns (specs/whole-towns, decision 0127): a "?" where it has room on screen, a dot where it would crowd.
@@ -46,8 +46,8 @@ test('WT13: a tap on a dot zooms to where it has room, at most the map\'s closes
   assert.equal(roomZoom(m('x', O), [m('x', O), m('y', O)], O[1]), PIN_ROOM.maxZoom, 'two places on one spot: as close as the map goes');
   // The tap: the nearest dot within the press's reach, or none.
   const dots = [m('d1', east(30)), m('d2', east(60))];
-  assert.equal(dotAt(O, 44, dots)?.key, 'd1');
-  assert.equal(dotAt(east(-100), 44, dots), null);
+  assert.equal(dotAt(O, 16, dots)?.key, 'd1', 'nearest within 44 px (about 40 m at zoom 16)');
+  assert.equal(dotAt(east(-100), 16, dots), null, 'none within 44 px at zoom 16');
 });
 test('WT14: a dot carries no name, number or icon; only the selected area\'s are drawn', () => {
   const fc = waitingDotsGeoJSON([{ id: 'p_secret', at: O, color: '#7a4fbf' }]);

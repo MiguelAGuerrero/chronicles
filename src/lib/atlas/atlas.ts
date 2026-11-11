@@ -300,11 +300,19 @@ export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build
   const list = !reads ? [] : Array.isArray(reads) ? reads : [reads];
   // WT9: a town's page asks for a read of that town (across its border, or by its reach where it has none).
   if (town) return !list.some((r) => r.build === build && r.code === ATLAS_CODE && r.town === town);
-  return !list.some((r) => r.build === build && r.code === ATLAS_CODE && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
+  // Whole-towns audit 8: a town's read wrote only what is inside its border; it never stands for the read around you.
+  return !list.some((r) => !r.town && r.build === build && r.code === ATLAS_CODE && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
 /** The kept near reads after a new one: newest first, at most NEAR_KEPT. */
-export const withNear = (reads: NearRead[], read: NearRead): NearRead[] => [read, ...reads].slice(0, NEAR_KEPT);
+export function withNear(reads: NearRead[], read: NearRead): NearRead[] {
+  // Whole-towns audit 13: towns' reads are kept apart from the reads around you, NEAR_KEPT of each, so moving about
+  // never pushes out a town's whole-border listing.
+  const all = [read, ...reads];
+  const towns = new Set(all.filter((r) => r.town).slice(0, NEAR_KEPT));
+  const near = new Set(all.filter((r) => !r.town).slice(0, NEAR_KEPT));
+  return all.filter((r) => towns.has(r) || near.has(r));
+}
 
 /**
  * AT2: the town or city an area belongs to: the one whose outline holds it,

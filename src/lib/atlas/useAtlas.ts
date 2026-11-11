@@ -13,6 +13,7 @@ import type { LngLat } from '../types';
 import { ATLAS_RULES, atlasStep, nearList, rowCurrent, townNeighborhoods, townReachM, type AtlasArea, type Listed, type NearTarget } from './atlas';
 import { nearReads, readNear, readRing } from './read';
 import { townsListedAfter } from './carousel';
+import { borderReach } from './hoods';
 import { placesArchive } from '../discovery/archive';
 
 /** Another read is running (the walk's, or the other level's): look again shortly. */
@@ -135,7 +136,11 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
 
   const towns = useMemo(() => (from ? nearList(rows, from, 'town', build, borders) : []), [rows, from, build, borders]);
   // WT1: the open town's whole border (the z10 read the borders use): its page lists every neighborhood inside it.
-  const townBorders = useOutlineSet(town ? [town.at] : [], BORDER_ZOOM, focused && !!town);
+  const firstBorders = useOutlineSet(town ? [town.at] : [], BORDER_ZOOM, focused && !!town);
+  // Whole-towns audit 1: a border cut at the tile's edge is read on across it.
+  const beyond = useMemo(() => (town ? borderReach(town, firstBorders) : []), [town, firstBorders]);
+  const wider = useOutlineSet(town && beyond.length ? [town.at, ...beyond] : [], BORDER_ZOOM, focused && !!town && beyond.length > 0);
+  const townBorders = beyond.length && wider ? wider : firstBorders;
   const neighborhoods = useMemo(() => {
     if (!from) return [];
     if (!town) return nearList(rows, from, 'neighborhood', build);

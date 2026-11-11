@@ -26,6 +26,14 @@ The owner's calls, Nov 11 (each the recommended option but the third):
   presence", and the remedy is to take found places off the view. Explore's map draws no found place,
   whatever is selected. The card keeps its "Found" list.
 
+- **The audit's calls** (Nov 11, `/audit whole-towns`):
+  - **A town at its own scale is dots, found or not** (the steward's S1, that the town's field of places thinned as
+    you found them): under a neighborhood's zoom (14) a selected town shows every findable place as the same dot, and
+    no "?"; "?" (the unfound only) on a neighborhood or zoomed in.
+  - **Kind colours stay, with a dark edge** that reaches 3:1 on every ground (the UX review's contrast finding).
+  - **A "?" with places under it zooms in** on a tap until they part; at the closest zoom it opens the card.
+  - **Walks are placed in hamlets** inside the walk's town border (`AREA_RULES` 4), so a hamlet's card counts them.
+
 ## Vision
 Idea: list a whole town's neighborhoods wherever you stand, and show the selected area's places where they wait.
 Verb: earn. Touches: Never "completion" and 0031 ("discoveries in the moment, not a planned list"),

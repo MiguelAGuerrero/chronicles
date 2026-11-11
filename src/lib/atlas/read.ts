@@ -21,7 +21,7 @@ import {
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead, type Within,
 } from './atlas';
 import { extentTiles, inExtent } from './extent';
-import { isWard, listingBy, townHoods } from './hoods';
+import { borderReach, isWard, listingBy, townHoods } from './hoods';
 import { findPockets, type Pocket } from './pockets';
 import { placesArchive } from '../discovery/archive';
 import type { ArchiveRead } from '../discovery/archive/shell';
@@ -59,6 +59,15 @@ function one<T>(task: () => Promise<T>): Promise<T | null> {
   return p;
 }
 
+/** A town's whole border (z10), read across the tile edges it is cut at (whole-towns audit 1). */
+async function wholeBorder(town: { name: string; at: LngLat }, shouldStop: () => boolean) {
+  const first = await outlines.borders([town.at], shouldStop).catch(() => null);
+  const beyond = first ? borderReach(town, first.set) : [];
+  if (!first || !beyond.length || shouldStop()) return first;
+  const all = await outlines.borders([town.at, ...beyond], shouldStop).catch(() => null);
+  return all && (all.complete || !first.complete) ? all : first;
+}
+
 /**
  * AT1, AT14: lists the areas of a level around you. Resolves whether it read.
  * WT1-WT6, WT9: with `town`, a town's own neighborhoods: across its whole border (the z14 tiles it touches, as the
@@ -74,7 +83,7 @@ export function readNear(
     if (!url || build === 'unknown' || shouldStop()) return false;
     let candidates: PlaceCandidate[] | null = null;
     if (level === 'neighborhood' && town) {
-      const border = await outlines.borders([town.at], shouldStop).catch(() => null);
+      const border = await wholeBorder(town, shouldStop);
       if (shouldStop()) return false;
       const outline = border ? outlineOf(town, border.set) : null;
       const by = listingBy(border, outline);
@@ -185,7 +194,7 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     let extent: Extent | null = null;
     let outlineRetry = false;
     if (area.level === 'town') {
-      const read = await outlines.borders([area.at], shouldStop).catch(() => null);
+      const read = await wholeBorder(area, shouldStop);
       if (shouldStop()) return null;
       const outline = read ? outlineOf(area, read.set) : null;
       // No outline because the read failed is not a town with none (TP12): the ring for now, asked again after the retry wait.

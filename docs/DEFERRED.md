@@ -437,14 +437,16 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Whole towns (WT1-WT14, decision 0127)
 
-- **Hamlets and wards in walk placement:** a hamlet inside a town is a neighborhood on Explore only; the home's stars
-  and `AREA_RULES` are unchanged (a ward point can still be a walk's neighborhood there). Changing it re-places every walk.
+- **Wards in walk placement:** hamlets inside a town are placed (audit 7, `AREA_RULES` 4); a ward point can still be a
+  walk's neighborhood on the home's stars. Dropping it there re-places every walk.
 - **A neighborhood's places are its 800 m ring**, not its share of the town (the tiles carry no neighbourhood outlines;
   "Whole areas" above).
 - **History reads thin in a city** (Allentown: 2 of 122 history places count): AG1's rule (worship and memorials need a
   notable word in their name), not a read. Its own question for the owner.
-- **A cluster's dots under its "?"**: zoomed out, a pin stands over the dots at its foot, so a tap there opens the card;
-  pinch or tap a dot clear of it to zoom in. A tap on such a "?" that zoomed in instead would change AT8's card (owner's call).
+- **After a dot's zoom the crowd can run off screen** (whole-towns audit 19, opinion): the map eases around the tapped dot,
+  not the places it crowded; fitting them all, or marking the tapped "?" for a moment, is not done.
+- **Android's 48 dp tap reach** (audit 21, in part): a dot's reach is 44 px everywhere.
+- **The back pill covers the scale bar; something peeks under Locate** (audit 23): predates the slice.
 - **A town past `TILE_BUDGET`** (60 z14 tiles): the nearest 60 are read for its list, as for its card.
 
 ## Explore: a neighborhood with no listed town (fix explore-town-scope, decision 0126)

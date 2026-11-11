@@ -54,6 +54,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** select the city zoomed out, then a dense neighborhood; pinch in; tap a dot clear of every "?". **Expect:** the places show as "?" where they have room and small coloured dots (the `waiting-dots` circle layer) where not; more become "?" as you zoom; the tapped dot's spot eases in until it is a "?". (WT7, WT12, WT13, WT14)
 - [ ] **Do:** with VoiceOver on, select a neighborhood and swipe through the map's elements. **Expect:** one "Places to find in …" line, and no "?" pin announced on its own (`accessibilityElementsHidden`). (WT11)
 
+- [ ] **Do:** with VoiceOver, select a neighborhood on Explore, find the "Waiting in …" line and double-tap it; tap a "?" with a dot under it. **Expect:** the line opens the area's card; no "?" Marker is announced (the annotation itself included); the opacity-0 line is reachable; a tap on a "?" Marker does not also fire the map's press (no card and zoom at once). (whole-towns audits 4, 5)
+- [ ] **Do:** select Allentown on Explore and pinch from its whole-town zoom to 17 and back. **Expect:** dots under zoom 14 with no "?"; from 14 the "?" are only those in view, at most a screen's worth of Markers, panning stays smooth; the split follows the settled zoom (`onRegionDidChange`), never a stale one. (whole-towns audits 3, 6, 14)
+- [ ] **Do:** open the page of a city whose border crosses a z10 tile edge (a large city), on cellular. **Expect:** its neighborhoods past the edge are listed; the border read across both tiles and the up-to-60 z14 reads finish without a crash. (whole-towns audit 1)
+
 ## Activity density (AD1-AD16)
 
 - [ ] **Do:** with a proxy (Proxyman, Charles) or Xcode's network report, open Explore in a town twice, the second time after a force-quit. **Expect:** every request to Overture's host carries a `Range` header and gets a 206, the bytes read through `arrayBuffer()` and `Headers`, and the stop passes an `AbortSignal` through (`activity/overture.ts`); record whether iOS's URL cache answers a range request with a cached 200 (the busy streets would then be wrong or missing).

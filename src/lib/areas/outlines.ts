@@ -226,6 +226,8 @@ export function townAt(
  * outlines weren't read at the neighborhood's point, it counts as before.
  */
 export function hoodAllowed(hood: PlaceCandidate, town: TownPick | null, set: OutlineSet | null | undefined): boolean {
+  // Whole-towns audit 7: a hamlet is a neighborhood only inside the town border that decided the piece; out of town, never.
+  if (hood.kind === 'hamlet') return !!town && town.by === 'outline' && !!town.c.outline && coveredBy(set, hood.at) && inOutline(hood.at, town.c.outline);
   if (!town || town.by !== 'outline' || !town.c.outline || !coveredBy(set, hood.at)) return true;
   return inOutline(hood.at, town.c.outline);
 }

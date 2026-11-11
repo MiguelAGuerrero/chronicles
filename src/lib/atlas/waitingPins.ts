@@ -5,16 +5,24 @@ import { ATLAS_LABEL, ATLAS_ORDER, waitingMarks, type AtlasMark } from './atlas'
 import type { Kind } from '../discovery/types';
 
 /*
- * Whole towns (WT7, WT12-WT14, decision 0127): every place still to find in the selected area is on Explore's map,
- * a "?" pin where the pin has room on screen and a dot in its kind's colour where it would overlap another pin.
- * Decided at the settled zoom, rounded to half levels (as capture pins are), nearest the area's middle first.
+ * Whole towns (WT7, WT12-WT14, decision 0127; whole-towns audit): the selected area's places on Explore's map.
+ * A neighborhood (or a town zoomed in to a neighborhood's scale): every place still to find, a "?" where its pin has
+ * room on screen, a dot in its kind's colour where it would overlap a pin, and only places in view can be "?" (audit 3).
+ * A town at its own scale: every findable place as the same dot, found or not, so the field never thins as you find
+ * (audit 14, the owner's call). Decided at the settled camera's zoom (audit 6), rounded to half levels.
  */
 
 export const PIN_ROOM = {
-  /** A "?" pin's footprint, with a little air: two pins closer than this, east-west and north-south, overlap. */
-  px: 40,
-  /** A tapped dot zooms in at most this far: the map's closest fit (`fitMaxZoom`'s default). */
+  /** A "?" pin's drawn box around its point, in screen px (the web marker: 48 wide, 42 above the point, 6 below). */
+  w: 48,
+  up: 42,
+  below: 6,
+  /** A tapped dot or crowded "?" zooms in at most this far: the map's closest fit (`fitMaxZoom`'s default). */
   maxZoom: 17,
+  /** A dot's tap reach, in screen px, whatever the zoom (audit 2). */
+  dotReachPx: 44,
+  /** A selected town shows "?" from this zoom on (about a neighborhood's ring across the screen); below it, dots only (audit 14). */
+  townPinZoom: 14,
 } as const;
 
 /** Metres a screen pixel spans at a zoom (512 px tiles, as `pressRadiusM`). */
@@ -23,57 +31,114 @@ export const metresPerPx = (zoom: number, lat: number) => (40_075_016.686 * Math
 /** WT12: the zoom the split is decided at: half levels, so a pinch in progress regroups nothing. */
 export const halfZoom = (zoom: number) => Math.round(zoom * 2) / 2;
 
-/** How far apart two spots are east-west and north-south, in metres. */
-function apart(a: LngLat, b: LngLat): [number, number] {
+/** Metres east and north from a to b. */
+function offset(a: LngLat, b: LngLat): [number, number] {
   const lat = ((a[1] + b[1]) / 2) * (Math.PI / 180);
-  return [Math.abs(a[0] - b[0]) * 111_320 * Math.cos(lat), Math.abs(a[1] - b[1]) * 110_574];
+  return [(b[0] - a[0]) * 111_320 * Math.cos(lat), (b[1] - a[1]) * 110_574];
 }
-const overlaps = (a: LngLat, b: LngLat, gapM: number) => {
-  const [dx, dy] = apart(a, b);
-  return dx < gapM && dy < gapM;
+
+/** Two pins' boxes overlap (both stand the same way above their points). */
+function pinsOverlap(a: LngLat, b: LngLat, mpp: number): boolean {
+  const [dx, dy] = offset(a, b);
+  return Math.abs(dx) < PIN_ROOM.w * mpp && Math.abs(dy) < (PIN_ROOM.up + PIN_ROOM.below) * mpp;
+}
+
+/** Audit 4: a spot lies under a pin's drawn box (north is up the screen). */
+export function underPin(pin: LngLat, p: LngLat, mpp: number): boolean {
+  const [dx, dy] = offset(pin, p);
+  return Math.abs(dx) < (PIN_ROOM.w / 2) * mpp && dy > -PIN_ROOM.below * mpp && dy < PIN_ROOM.up * mpp;
+}
+
+/** What the camera shows, for the split: its middle and how far it reaches each way, in metres. */
+export interface InView {
+  centre: LngLat;
+  halfWm: number;
+  halfHm: number;
+}
+export const inView = (p: LngLat, v: InView | null): boolean => {
+  if (!v) return true;
+  const [dx, dy] = offset(v.centre, p);
+  return Math.abs(dx) <= v.halfWm && Math.abs(dy) <= v.halfHm;
+};
+/** The camera's reach from its middle, zoom and the map's size in px. */
+export const viewOf = (centre: LngLat, zoom: number, size: { width: number; height: number }): InView => {
+  const mpp = metresPerPx(zoom, centre[1]);
+  return { centre, halfWm: (size.width / 2) * mpp, halfHm: (size.height / 2) * mpp };
 };
 
-/** WT12: which waiting places are "?" pins and which are dots at this zoom; no two pins overlap. */
-export function waitingPins<T extends { key: string; at: LngLat }>(marks: readonly T[], centre: LngLat, zoom: number, lat: number): { pins: T[]; dots: T[] } {
-  const gapM = PIN_ROOM.px * metresPerPx(halfZoom(zoom), lat);
+export type Pinned<T> = T & { crowded?: boolean };
+
+/**
+ * WT12, audits 3 and 4: which places are "?" pins and which are dots at this zoom; no two pins overlap, a place out of
+ * view is never a pin, and a pin with a place under its drawn box is `crowded` (a tap on it zooms in).
+ */
+export function waitingPins<T extends { key: string; at: LngLat }>(
+  marks: readonly T[], centre: LngLat, zoom: number, lat: number, view: InView | null = null,
+): { pins: Pinned<T>[]; dots: T[] } {
+  const mpp = metresPerPx(halfZoom(zoom), lat);
   const order = [...marks].sort((a, b) => distanceM(a.at, centre) - distanceM(b.at, centre) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-  const pins: T[] = [];
+  const pins: Pinned<T>[] = [];
   const dots: T[] = [];
-  for (const m of order) (pins.some((p) => overlaps(p.at, m.at, gapM)) ? dots : pins).push(m);
+  for (const m of order) {
+    if (!inView(m.at, view) || pins.some((p) => pinsOverlap(p.at, m.at, mpp))) dots.push(m);
+    else pins.push({ ...m });
+  }
+  for (const p of pins) if (dots.some((d) => underPin(p.at, d.at, mpp))) p.crowded = true;
   return { pins, dots };
 }
 
-/** WT13: the lowest half zoom at which a dot has room to be a "?" (no other place within a pin of it), at most `maxZoom`. */
+/**
+ * WT13, audit 4: the lowest half zoom at which nothing else overlaps a place's pin (so a dot can be a "?", and a crowded
+ * "?" stands clear), at most `maxZoom`. Two places on one spot never part: `maxZoom`.
+ */
 export function roomZoom(target: { key: string; at: LngLat }, marks: readonly { key: string; at: LngLat }[], lat: number, maxZoom: number = PIN_ROOM.maxZoom): number {
-  let nearest = Infinity;
+  const k = (40_075_016.686 * Math.cos((lat * Math.PI) / 180)) / 512;
+  let need = -Infinity;
   for (const m of marks) {
     if (m.key === target.key) continue;
-    nearest = Math.min(nearest, Math.max(...apart(m.at, target.at)));
+    const [dx, dy] = offset(target.at, m.at);
+    // Clear of it once the box is narrower than the gap on either axis.
+    const zx = Math.abs(dx) > 0 ? Math.log2((PIN_ROOM.w * k) / Math.abs(dx)) : Infinity;
+    const zy = Math.abs(dy) > 0 ? Math.log2(((PIN_ROOM.up + PIN_ROOM.below) * k) / Math.abs(dy)) : Infinity;
+    need = Math.max(need, Math.min(zx, zy));
   }
-  if (nearest === Infinity) return maxZoom;
-  if (nearest <= 0) return maxZoom;
-  // metresPerPx(z) * px <= nearest  ⇔  z >= log2(C cos(lat) px / (512 nearest)); the next half level up, a hair over.
-  const z = Math.log2((40_075_016.686 * Math.cos((lat * Math.PI) / 180) * PIN_ROOM.px) / (512 * nearest));
-  return Math.min(maxZoom, Math.ceil((z + 1e-9) * 2) / 2);
+  if (need === -Infinity) return maxZoom;
+  return Math.min(maxZoom, Math.ceil((need + 1e-9) * 2) / 2);
 }
 
-/** WT13: the dot a press landed on, nearest within the press's reach, or null. */
-export function dotAt<T extends { at: LngLat }>(press: LngLat, radiusM: number, dots: readonly T[]): T | null {
+/** WT13, audit 2: the dot a press landed on, nearest within 44 px at the settled zoom, or null. */
+export function dotAt<T extends { at: LngLat }>(press: LngLat, zoom: number, dots: readonly T[]): T | null {
+  const reachM = PIN_ROOM.dotReachPx * metresPerPx(zoom, press[1]);
   let best: { d: T; m: number } | null = null;
   for (const d of dots) {
     const m = distanceM(press, d.at);
-    if (m <= radiusM && (!best || m < best.m)) best = { d, m };
+    if (m <= reachM && (!best || m < best.m)) best = { d, m };
   }
   return best?.d ?? null;
 }
 
-/** WT7, WT10: the selected area's map: every place still to find, of the kinds shown, split at this zoom; never a find. */
-export function areaMapMarks(marks: readonly AtlasMark[], found: Set<string>, hidden: Set<Kind>, centre: LngLat, zoom: number, lat: number) {
-  return waitingPins(waitingMarks([...marks], found, centre, hidden, { all: true }), centre, zoom, lat);
+/**
+ * WT7, WT10, audit 14: the selected area's map. A town under `townPinZoom`: every findable place of the kinds shown as
+ * a dot, found or not, and no "?". Otherwise every place still to find, split at this zoom; a find is not drawn.
+ */
+export function areaMapMarks(
+  level: 'neighborhood' | 'town', marks: readonly AtlasMark[], found: Set<string>, hidden: Set<Kind>, centre: LngLat, zoom: number, lat: number, view: InView | null = null,
+): { pins: Pinned<AtlasMark>[]; dots: AtlasMark[] } {
+  if (level === 'town' && halfZoom(zoom) < PIN_ROOM.townPinZoom) {
+    return { pins: [], dots: waitingMarks([...marks], new Set(), centre, hidden, { all: true }) };
+  }
+  return waitingPins(waitingMarks([...marks], found, centre, hidden, { all: true }), centre, zoom, lat, view);
 }
 
-/** WT11: what a screen reader hears for the selected area's "?" and dots: the area and the kinds, never how many. */
+/** WT11, audit 15: what a screen reader hears for the selected area's places: the area and the kinds, never how many. */
 export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'category'>[]): string {
   const kinds = ATLAS_ORDER.filter((c) => marks.some((m) => m.category === c)).map((c) => ATLAS_LABEL[c].toLowerCase());
-  return kinds.length ? `Places to find in ${area}: ${kinds.join(', ')}` : '';
+  return kinds.length ? `Waiting in ${area}: ${kinds.join(', ')}` : '';
+}
+
+/** Whole-towns audit 9: what a tap on Explore's map does: close the Layers panel, clear the long press, zoom to a dot, or nothing. One thing a tap. */
+export function tapDoes(o: { panelOpen: boolean; spot: boolean; dot: boolean }): 'close-panel' | 'clear-spot' | 'zoom' | 'none' {
+  if (o.panelOpen) return 'close-panel';
+  if (o.spot) return 'clear-spot';
+  return o.dot ? 'zoom' : 'none';
 }

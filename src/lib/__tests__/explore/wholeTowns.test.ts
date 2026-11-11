@@ -119,20 +119,22 @@ test('WT6: wards are not neighborhoods, on a town\'s page or near you; Wardsvill
 });
 test('WT7: every place still to find in the selected area is on the map, a town\'s too', () => {
   for (const zoom of [11, 14, 17]) {
-    const { pins, dots } = areaMapMarks(MARKS, new Set(), new Set(), O, zoom, O[1]);
-    assert.deepEqual(new Set([...pins, ...dots].map((m) => m.key)), new Set(MARKS.map((m) => m.key)), `every place still to find is on the map at zoom ${zoom}, a town's too`);
+    const { pins, dots } = areaMapMarks('neighborhood', MARKS, new Set(), new Set(), O, zoom, O[1]);
+    assert.deepEqual(new Set([...pins, ...dots].map((m) => m.key)), new Set(MARKS.map((m) => m.key)), `every place still to find is on the map at zoom ${zoom}`);
+    const town = areaMapMarks('town', MARKS, new Set(), new Set(), O, zoom, O[1]);
+    assert.deepEqual(new Set([...town.pins, ...town.dots].map((m) => m.key)), new Set(MARKS.map((m) => m.key)), `a town's too, at zoom ${zoom}`);
   }
   assert.equal(waitingMarks(MARKS, new Set(), O, new Set(), { all: true }).length, MARKS.length);
   // Of the kinds shown: a kind switched off in "What I'm into" is not drawn.
   const kinds = [mark('k1', 'art', O, 'public_art'), mark('k2', 'parks', east(400), 'parks')];
-  const shown = areaMapMarks(kinds, new Set(), new Set(['public_art'] as const), O, 15, O[1]);
+  const shown = areaMapMarks('neighborhood', kinds, new Set(), new Set(['public_art'] as const), O, 15, O[1]);
   assert.deepEqual([...shown.pins, ...shown.dots].map((m) => m.key), ['k2']);
 });
 test('WT8: the card\'s waiting is one per kind and no "?" carries a name', () => {
   const card = waitingMarks(MARKS, new Set(), O);
   assert.deepEqual(card.map((m) => m.category), ['history', 'art', 'parks'], 'the card: one per kind');
-  const { pins, dots } = areaMapMarks(MARKS, new Set(), new Set(), O, 13, O[1]);
-  for (const m of [...pins, ...dots]) assert.deepEqual(Object.keys(m).sort(), ['at', 'category', 'key'], 'a mark carries no name');
+  const { pins, dots } = areaMapMarks('neighborhood', MARKS, new Set(), new Set(), O, 13, O[1]);
+  for (const m of [...pins, ...dots]) assert.deepEqual(Object.keys(m).filter((k) => k !== 'crowded').sort(), ['at', 'category', 'key'], 'a mark carries no name');
   const said = waitingLabel('Downtown', [...pins, ...dots]);
   assert.ok(!/\d/.test(said) && !/\b(one|two|three|four|five|six|seven|eight|nine|ten|dozens?|many|several)\b/i.test(said), `no count in digits or words: "${said}"`);
 });
@@ -142,26 +144,25 @@ test('WT9: a town\'s page is listed once per build; a read by reach alone is lis
   const whole: NearRead = { ...byReach, town: BIG.key };
   assert.equal(needsNear([whole], O, 'b1', 5000, BIG.key), false, 'once per build');
   assert.equal(needsNear([{ ...whole, build: 'b0' }], O, 'b1', 5000, BIG.key), true, 'a new build lists again');
-  assert.equal(needsNear([whole], O, 'b1', 2500), false, 'a town\'s read still counts near you');
   const step = atlasStep({ build: 'b1', latest: 'b1', list: [], now: 0, nears: [{ level: 'neighborhood', at: O, radiusM: 5000, reads: [byReach], town: BIG.key }] });
   assert.deepEqual(step, { kind: 'near', level: 'neighborhood', at: O, radiusM: 5000, town: BIG.key });
 });
 test('WT10: Explore\'s map draws no found place', () => {
   const found = new Set(['art0', 'park1']);
-  const { pins, dots } = areaMapMarks(MARKS, found, new Set(), O, 14, O[1]);
+  const { pins, dots } = areaMapMarks('neighborhood', MARKS, found, new Set(), O, 14, O[1]);
   const drawn = [...pins, ...dots].map((m) => m.key);
   assert.ok(!drawn.includes('art0') && !drawn.includes('park1'), 'a find is not drawn');
   assert.equal(drawn.length, MARKS.length - 2);
   // Every place found: nothing drawn, as for an area with nothing mapped.
-  const all = areaMapMarks(MARKS, new Set(MARKS.map((m) => m.key)), new Set(), O, 14, O[1]);
-  const none = areaMapMarks([], new Set(), new Set(), O, 14, O[1]);
+  const all = areaMapMarks('neighborhood', MARKS, new Set(MARKS.map((m) => m.key)), new Set(), O, 14, O[1]);
+  const none = areaMapMarks('neighborhood', [], new Set(), new Set(), O, 14, O[1]);
   assert.deepEqual(all, none);
 });
 test('WT11: the "?" are one label naming the area and the kinds, the same for one or many', () => {
   const one = waitingLabel('Downtown', [MARKS[0]]);
   const many = waitingLabel('Downtown', MARKS.filter((m) => m.category === 'art'));
-  assert.equal(one, 'Places to find in Downtown: art');
+  assert.equal(one, 'Waiting in Downtown: art');
   assert.equal(many, one, 'the same for one or many');
-  assert.equal(waitingLabel('Downtown', MARKS), 'Places to find in Downtown: history, art, green', 'the kinds in the card\'s order');
+  assert.equal(waitingLabel('Downtown', MARKS), 'Waiting in Downtown: history, art, green', 'the kinds in the card\'s order');
   assert.equal(waitingLabel('Downtown', []), '', 'nothing waiting, nothing said');
 });
