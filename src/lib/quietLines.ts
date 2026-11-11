@@ -26,3 +26,8 @@ export function walkRowSpoken(title: string, meta: string, epilogue: string | nu
   const line = epilogue?.trim();
   return [`Replay ${title}`, meta.split(' · ').join(', '), line ? `“${line}”` : null].filter(Boolean).join('. ');
 }
+
+/** A day's timeline entry for a walk as a screen reader says it (tend chronicle 3): its time, the title it shows, its line. */
+export function timelineWalkSpoken(clock: string, title: string, line: string): string {
+  return `${[clock, title, ...line.split(' · ')].join(', ')}. Replay it`;
+}

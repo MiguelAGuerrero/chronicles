@@ -10,7 +10,7 @@ import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
-import { walkRowMeta, walkRowSpoken } from '../lib/quietLines';
+import { timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
@@ -475,7 +475,8 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
       <Pressable
         testID="timeline-walk"
         accessibilityRole="button"
-        accessibilityLabel={`${clock(e.t)}, ${line}. Replay it`}
+        // The title it shows, too (tend chronicle 3).
+        accessibilityLabel={timelineWalkSpoken(clock(e.t), title, line)}
         disabled={disabled}
         onPress={() => router.push(`/replay/${e.walk.id}?ceremony=0`)}
         style={({ pressed }) => [styles.entry, styles.flex, (pressed || disabled) && { opacity: 0.6 }]}
