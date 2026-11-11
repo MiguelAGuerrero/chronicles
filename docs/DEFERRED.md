@@ -3,6 +3,8 @@
 Everything AGENTS.md marks deferred, open or not yet done, in one ledger, grouped by area; the source section is in parentheses.
 An item leaves only when it ships, or when it is rejected with a decision record in `docs/decisions/`.
 
+Tags at the start of an item say who may take it (decision 0128; `/tend triage` adds them): `[loop]` the tending loop may ship it; `[owner]` an addition or a product question; `[arch]` an architectural decision; `[phone]` needs a device; `[kept]` a limit recorded on purpose. An untagged item has not been triaged.
+
 ## Product (open in the concept doc)
 
 - Two things are named Explore: the tab and the walk's mode (Positioning, open in the doc)

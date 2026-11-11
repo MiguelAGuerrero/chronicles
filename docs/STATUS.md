@@ -117,6 +117,20 @@ first.
 
 ## Needs the owner
 
+This section is the owner's inbox (decision 0128). `/tend` files here what it may not ship: additions, phone-only
+findings, opinions and architectural calls, each numbered `T<n>` with a recommended shape. Answer with
+`/tend inbox T3 yes, T4 no: <reason>`.
+
+### From /tend
+
+Nothing filed yet. The first runs to make: `/tend triage` (tags `docs/DEFERRED.md`), then `/tend <area>`.
+
+### Last tend
+
+No run yet.
+
+### Open before the loop
+
 - **Explore, a neighborhood past its town's reach** (fix explore-town-scope audit 3, decision 0126): near you the row is the towns, and a town's page lists only neighborhoods within 5 km of its point, so in a large city the neighborhood you stand in can be listed nowhere. Recorded in `docs/DEFERRED.md`; the next step, if wanted, is a town's page that takes every neighborhood inside its outline.
 
 - **VISION.md and the Explore carousel:** decision 0124 (the row of cards; it supersedes 0066's grid and 0092's swipe and amends 0034's names on the map only) is not yet in the page's Precedents, and 0034's row does not mention the amendment. The page is yours to edit.

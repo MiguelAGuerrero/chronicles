@@ -47,7 +47,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 
 Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, kind-walk, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, ui-patterns, walk-screen, walkability.
 
-Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree; deploys by default, `--deploy=branch` stops at a pushed branch; decision 0081).
+Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree, deployed by default; 0081), `/tend` (loop: ships what conforms, files the rest; 0128).
 
 ## Rules that hold everywhere
 
