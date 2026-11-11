@@ -94,3 +94,29 @@ test('presence-readers audit 4: a near read under a carried code needs no re-lis
   }
   assert.equal(needsNear([{ at, build: 'b', code: 'a7', radiusM: 2500 }], at, 'b', 2500), true, 'an older code is listed again');
 });
+
+test('presence-readers audit 5: a poi or Overture place named for an Object.prototype key is no place, and nothing throws', async () => {
+  const p = await presence();
+  const { placesFromTilePois, transitFromTilePois } = await import('../../discovery/tilePois');
+  const { placesFromArchive } = await import('../../discovery/archivePois');
+  const { osmWeight, overtureWeight } = await import('../../activity/weights');
+  const keys = ['constructor', 'toString', 'hasOwnProperty', '__proto__', 'valueOf'];
+  for (const k of keys) {
+    for (const [cls, sub] of [['shop', k], [k, k], [k, ''], ['museum', k], ['art_gallery', k]]) {
+      assert.deepEqual(p.classesOfOsm(cls, sub).filter((c: unknown) => typeof c !== 'string'), [], `${cls}/${sub}`);
+      assert.doesNotThrow(() => osmWeight(cls, sub), `${cls}/${sub} weight`);
+      const pt = { geometry: { type: 'Point', coordinates: [-75.47, 40.6] }, properties: { class: cls, subclass: sub, name: '' }, zoom: 14 } as never;
+      assert.doesNotThrow(() => placesFromTilePois([pt], 'b'), `${cls}/${sub} as a place`);
+      assert.doesNotThrow(() => transitFromTilePois([pt]), `${cls}/${sub} as transit`);
+    }
+    assert.deepEqual(p.classesOfOsm(k, k), [], k);
+    assert.deepEqual(p.classesOfOverture([k]), [], `Overture ${k}`);
+    assert.doesNotThrow(() => overtureWeight(['shopping', k]), `Overture shopping/${k}`);
+    assert.equal(overtureWeight([k]), 0);
+    assert.deepEqual(p.classesOfArchive(k), [], `archive ${k}`);
+    assert.deepEqual(placesFromArchive([{ geometry: { type: 'Point', coordinates: [-75.47, 40.6] }, properties: { name: 'A place', class: k } } as never], 'v'), []);
+    assert.deepEqual(p.classesOfLandcover({ class: k, subclass: k }), []);
+    assert.equal(p.unnamedLabel(k), null);
+    assert.equal(p.isTransitStop(k, k), false);
+  }
+});

@@ -89,6 +89,13 @@ export type PresenceClass = keyof typeof DEFS;
 export const CLASSES: Readonly<Record<PresenceClass, ClassDef>> = DEFS;
 export const classDef = (c: PresenceClass): ClassDef => CLASSES[c];
 
+/**
+ * A table's own entry for a key, never one Object.prototype lends it (presence-readers audit 5: a poi subclass `constructor` was a
+ * function, and every reader threw).
+ */
+const own = <T>(table: Readonly<Record<string, T>>, key: string): T | undefined =>
+  Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
+
 /** A class's tags under one poi class: listed subclasses, or every subclass ('*'). The first rule that holds wins. */
 type Rule = [subclasses: readonly string[] | '*', cls: PresenceClass];
 
@@ -178,10 +185,10 @@ const OSM_DEFAULT: Record<string, PresenceClass> = {
 
 /** PR1: what an OpenMapTiles poi is: its class's own rules, else its subclass's, else its class's default. */
 export function classesOfOsm(cls: string, sub: string): PresenceClass[] {
-  for (const [subs, c] of OSM[cls] ?? []) if (subs === '*' || subs.includes(sub)) return [c];
-  const bySub = OSM_SUBCLASS[sub];
+  for (const [subs, c] of own(OSM, cls) ?? []) if (subs === '*' || subs.includes(sub)) return [c];
+  const bySub = own(OSM_SUBCLASS, sub);
   if (bySub) return [bySub];
-  const byClass = OSM_DEFAULT[cls];
+  const byClass = own(OSM_DEFAULT, cls);
   return byClass ? [byClass] : [];
 }
 
@@ -213,8 +220,11 @@ const OVERTURE_NEVER = new Set(['atm', 'parking', 'parking_lot', 'parking_garage
 /** PR1: what an Overture place is, from its taxonomy hierarchy (root first): the deepest level with a rule of its own, else the root. */
 export function classesOfOverture(hierarchy: readonly string[]): PresenceClass[] {
   if (!hierarchy.length || hierarchy.some((h) => OVERTURE_NEVER.has(h))) return [];
-  for (let i = hierarchy.length - 1; i >= 1; i--) if (hierarchy[i] in OVERTURE_DEEPER) return [OVERTURE_DEEPER[hierarchy[i]]];
-  const root = OVERTURE_ROOT[hierarchy[0]];
+  for (let i = hierarchy.length - 1; i >= 1; i--) {
+    const deeper = own(OVERTURE_DEEPER, hierarchy[i]);
+    if (deeper) return [deeper];
+  }
+  const root = own(OVERTURE_ROOT, hierarchy[0]);
   return root ? [root] : [];
 }
 
@@ -237,7 +247,7 @@ export const ARCHIVE_CLASS_NAMES: readonly string[] = Object.keys(ARCHIVE);
 
 /** PS1: what a places-archive feature is, from its class. */
 export function classesOfArchive(cls: string): PresenceClass[] {
-  const c = Object.prototype.hasOwnProperty.call(ARCHIVE, cls) ? ARCHIVE[cls] : undefined;
+  const c = own(ARCHIVE, cls);
   return c ? [c, 'recorded'] : [];
 }
 
@@ -248,7 +258,7 @@ const LANDCOVER: Record<string, Rule[]> = { wood: [['*', 'woodland']], grass: [[
 export function classesOfLandcover(props: Readonly<Record<string, unknown>> | null): PresenceClass[] {
   const cls = String(props?.class ?? '');
   const sub = String(props?.subclass ?? '');
-  for (const [subs, c] of LANDCOVER[cls] ?? []) if (subs === '*' || subs.includes(sub)) return [c];
+  for (const [subs, c] of own(LANDCOVER, cls) ?? []) if (subs === '*' || subs.includes(sub)) return [c];
   return [];
 }
 
@@ -256,7 +266,7 @@ export function classesOfLandcover(props: Readonly<Record<string, unknown>> | nu
 const UNNAMED: Record<string, string> = { artwork: 'Public art', viewpoint: 'A viewpoint' };
 
 /** D4: the words an unnamed poi of this subclass shows, or null where an unnamed one is no place. */
-export const unnamedLabel = (sub: string): string | null => UNNAMED[sub] ?? null;
+export const unnamedLabel = (sub: string): string | null => own(UNNAMED, sub) ?? null;
 
 /** L7: transit the landing prefers to start from: railway stations and halts, bus stations, ferry terminals (moved from `tilePois.ts`). */
 const TRANSIT: Record<string, readonly string[]> = {
@@ -266,7 +276,7 @@ const TRANSIT: Record<string, readonly string[]> = {
 };
 
 /** L7: whether an OpenMapTiles poi is a stop the landing may start from. Transit is not a place to go: no class. */
-export const isTransitStop = (cls: string, sub: string): boolean => !!TRANSIT[cls]?.includes(sub);
+export const isTransitStop = (cls: string, sub: string): boolean => !!own(TRANSIT, cls)?.includes(sub);
 
 /**
  * PR2, PS7 (presence-readers audit 1): every source tag presence's tables are keyed by or list, so a guard can hold that no
