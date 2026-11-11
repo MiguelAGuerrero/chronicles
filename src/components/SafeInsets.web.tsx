@@ -44,12 +44,14 @@ export function SafeInsets({ children }: { children: ReactNode }) {
       const next = read(el);
       setInsets((prev) => (sameInsets(prev, next) ? prev : next));
     };
-    update();
+    // A frame later, in case env() moved between the first render and now; never setState in the effect body.
+    const frame = requestAnimationFrame(update);
     const vv = window.visualViewport;
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
     vv?.addEventListener('resize', update);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
       vv?.removeEventListener('resize', update);

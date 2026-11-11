@@ -1,13 +1,14 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { insetsFromPaddings, sameInsets } from '../../safeInsets';
 
-test('fix memories-weird-state 1: the web insets are the env() paddings alone, never clamped to the visual viewport', () => {
-  // On iOS Safari, window.innerWidth/innerHeight are the visual viewport: a pinch to 2x halves them, and the
-  // library's clamp read that as bottom and right insets of half the screen, ballooning the tab bar and
-  // squeezing its three tabs into one point until a reload (Memories, Nov 11). The rule takes no viewport.
-  assert.equal(insetsFromPaddings.length, 1);
+test('fix memories-weird-state 1: the web insets are read from the env() paddings alone', () => {
+  // The rule takes no viewport: on iOS Safari, window.innerWidth/innerHeight are the visual viewport, halved under
+  // a 2x pinch, and the library's clamp read that as insets of half the screen (Memories, Nov 11). That the app
+  // reads these insets, and not the library's, only the tabs journey's "fix memories-weird-state" step can show.
   assert.deepEqual(
     insetsFromPaddings({ paddingTop: '47px', paddingRight: '0px', paddingBottom: '34px', paddingLeft: '0px' }),
     { top: 47, right: 0, bottom: 34, left: 0 },
@@ -26,4 +27,12 @@ test('fix memories-weird-state 3: the same insets are not a change, so a resize 
   const a = { top: 47, right: 0, bottom: 34, left: 0 };
   assert.equal(sameInsets(a, { ...a }), true);
   assert.equal(sameInsets(a, { ...a, bottom: 0 }), false);
+});
+
+test('fix memories-weird-state audit 3: a change to lib/safeInsets names the tabs journey, which replays the pinch', () => {
+  const ROOT = join(__dirname, '..', '..', '..', '..');
+  const { e2eFor } = createRequire(__filename)(join(ROOT, 'scripts', 'affected.js')) as { e2eFor(changed: string[]): { scenarios: { name: string }[] } };
+  for (const file of ['src/lib/safeInsets.ts', 'src/components/SafeInsets.web.tsx']) {
+    assert.ok(e2eFor([file]).scenarios.some((s) => s.name === 'tabs'), `${file} names the tabs journey`);
+  }
 });
