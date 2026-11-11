@@ -85,6 +85,17 @@ async function run(h) {
     const quiet = (await buzzes()).slice(before);
     check(quiet.length === 0, `PA3: a quiet walk with the pocket alert on never buzzes (${JSON.stringify(quiet)})`);
     await c.close();
+    {
+      // iPhone Safari: a touch screen with no navigator.vibrate is not offered the switch (decision 0138).
+      const { c: ci, pg: pi } = await freshPage('nudge-iphone', { touch: true, noVibrate: true });
+      await ci.addInitScript(() => { delete Navigator.prototype.vibrate; delete navigator.vibrate; });
+      await pi.goto(navUrl);
+      await pi.waitForSelector('[data-testid=start]');
+      await drawerTo(pi, 'half');
+      await pi.waitForSelector('[data-testid=start-settings]');
+      check((await pi.locator('[data-testid=pocket-alert]').count()) === 0, 'PA6: a touch screen with no navigator.vibrate (iPhone Safari) is not offered the pocket alert (0138)');
+      await ci.close();
+    }
 }
 
 module.exports = {

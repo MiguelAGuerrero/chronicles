@@ -3,7 +3,7 @@ import { buzzOffered } from './motionTokens';
 
 /**
  * Whether this browser can give the pocket alert (PA6): reads the pointer and
- * `navigator.vibrate`; `buzzOffered` decides. expo-haptics has no availability
+ * `navigator.vibrate` and the pointer; `buzzOffered` decides. expo-haptics has no availability
  * call (a web exception, `docs/ARCHITECTURE.md`).
  */
 export const canBuzz = (): boolean => {

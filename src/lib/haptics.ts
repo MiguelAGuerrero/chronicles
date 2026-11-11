@@ -13,8 +13,8 @@ const playStep = (s: HapticStep) => {
 
 /**
  * Feedback for an app used with the phone half in a pocket. On the web only the
- * pocket alert plays (PA6), through expo-haptics' web build (`navigator.vibrate`,
- * or iPhone Safari's switch haptic); a button press gives nothing there.
+ * pocket alert plays (PA6), through expo-haptics' web build (`navigator.vibrate`;
+ * iPhone Safari is not offered it, decision 0138); a button press gives nothing there.
  */
 let lastNudge: number | null = null;
 

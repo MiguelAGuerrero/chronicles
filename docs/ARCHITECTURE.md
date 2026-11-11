@@ -477,9 +477,9 @@ own code only where no Expo module covers the feature on web:
   `visualViewport`. react-native-web's `Keyboard` reports nothing and its `KeyboardAvoidingView` does nothing, and
   `#root` is pinned, so a field near the foot was left under the keyboard.
 - **Can it buzz** (the pocket alert's switch): `canBuzz.web.ts` asks
-  whether the pointer is coarse. expo-haptics' web build vibrates where
-  `navigator.vibrate` exists and tries iPhone Safari's switch haptic on a touch
-  screen, but desktop Chrome has `navigator.vibrate` and no motor (audit 4);
+  whether the pointer is coarse and `navigator.vibrate` exists. iPhone Safari has no
+  vibrate and its switch haptic needs a tap, not a location update, so it is not offered (decision 0138);
+  desktop Chrome has `navigator.vibrate` and no motor (audit 4);
   expo-haptics has no availability call. The buzz itself goes through expo-haptics, as on a
   phone (decision 0079).
 - **The room left** (storage awareness, SA1, SA10, decision 0107): `space/probe.web.ts` reads

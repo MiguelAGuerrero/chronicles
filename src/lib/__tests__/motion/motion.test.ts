@@ -72,7 +72,7 @@ test('pocket-alert-nudge audit 4: a desktop browser with navigator.vibrate and a
   assert.equal(buzzOffered({ vibrate: true, coarse: false }), false, 'desktop Chrome: vibrate exists, no motor');
   assert.equal(buzzOffered({ vibrate: false, coarse: false }), false, 'desktop Safari');
   assert.equal(buzzOffered({ vibrate: true, coarse: true }), true, 'Android Chrome');
-  assert.equal(buzzOffered({ vibrate: false, coarse: true }), true, 'iPhone Safari: the switch haptic');
+  assert.equal(buzzOffered({ vibrate: false, coarse: true }), false, 'iPhone Safari: no vibrate, and its switch haptic needs a tap, so a location update never reaches it (fix pocket-alert-hide)');
 });
 
 test('pocket-alert-nudge audit 6: a nudge within the last one is dropped, so two never run together', () => {
