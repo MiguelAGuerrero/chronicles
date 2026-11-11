@@ -1,5 +1,5 @@
 {
-  "lastT": 3,
+  "lastT": 5,
   "lastG": 1,
   "balance": {
     "date": "2026-11-11",
@@ -117,6 +117,12 @@
       "swept": "2026-11-11",
       "main": "83a3f257b6c64c9aad10c3ce6e2ef5c5501ce9c2",
       "note": "First sweep. Found two medium loop findings (the @ picker and Escape, the walks row unspoken on the web) and shipped eight; three low or test-bound loop items wait in DEFERRED Quality of life 12-14; T1-T3 open. Lens 2 not whole: 320 px, 200% text, offline and an interrupted rename were not pictured."
+    },
+    "explore": {
+      "state": "rough",
+      "swept": "2026-11-11",
+      "main": "8bdca997c78fd333be7403e7e456a468a4d5511e",
+      "note": "First sweep, not whole. One loop finding shipped (the notice and the Towns pill over the scale bar); T4, T5 filed. Lens 2 beyond the pictures, lens 3, lens 4 and the grading, snap and curiosities journeys did not run."
     }
   },
   "declined": []

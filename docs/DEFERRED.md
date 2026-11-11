@@ -66,6 +66,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - A reload mid-walk forgets which places alerted, so they nudge again; on Android Chrome that nudge comes before any tap and is blocked, and the places count as alerted (pocket-alert-nudge audit 3)
 - The pocket alert's second tap still plays up to 120 ms after a hold-to-stop or the switch going off on the same fix (pocket-alert-nudge audit 6)
 - The home preview ignores the kind switches and doesn't restore the view after (v1 Explore)
+- [loop] `cacheTilesAround` (`discovery/tileFetch.ts:63`) and `atlasBusy` (`atlas/read.ts:236`) have no caller anywhere: dead code. `cacheTilesAround` also returns the in-flight read of another tile and never re-caches a tile after a purge without a build change, so wiring it in again needs both fixed first. Removal waits for a test that names it (`/tend explore`, Nov 11, low)
+- [loop] `exploreSlots` (`atlas/overlaySlots.ts`) repeats numbers the screen also holds: the long press's choices' 68 (`SPOT_H`), the Towns pill's `bottom: 12` and `minHeight: 44`, the scale bar's 32; its test repeats them again, so a change to one does not fail it. Take the pill's and the choices' places from `exploreSlots` too (`/tend explore` review, Nov 11, low)
+- [loop] A tall overlay is unmeasured: a two-line error banner with an action at 320 px or 200% text, or the long press's choices wrapping taller than 68, may reach the top chips or cover the slots `exploreSlots` assumes; no journey pictures either (`/tend explore` review, Nov 11, low, unconfirmed)
+- [kept] `new Date(c.t)` in `discovery/recall.ts:106` names a month and day in the device's timezone: the same item as functional-core audit 10 (`/tend explore`, Nov 11)
+- [owner] The Explore toast's 3000 ms dwell (`explore.tsx:176`) is a literal, not a `motionTokens` value; no token names a dwell, so whether the rule applies is the owner's (`/tend explore`, Nov 11, low, opinion)
+- [owner] Explore's map labels collide: a busy street's name prints over the town's name and a neighbour's (pictures `11b-explore`, `11d-atlas-town`); the UX review's opinion, no source found (`/tend explore`, Nov 11, medium)
+- [owner] The Remind editor's chip rows wrap with a lone chip on the second row, and "Reminder set" has no Undo (pictures `03a-remind`, `03c-reminder-set`; UX review, opinion, low; `/tend explore`, Nov 11)
+- [owner] On a town's neighborhood page the title reads the parent town ("Allentown · You're here") while the selected card is another area, and the card's footer "You're in Fox Point" is link-coloured but only a status (pictures `whole-towns-4-dot-tapped`, `11c-atlas-card`; UX review, opinion, low; `/tend explore`, Nov 11)
 
 ## Activity density (AD1-AD16, decision 0080)
 

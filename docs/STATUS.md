@@ -131,6 +131,11 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   your own words"; the first replay keeps its own. /vision: aligned (Return). Otherwise: leave it.
   Answered yes Nov 11; waits for the next `/tend inbox T2 yes` (one build per run, and T1 was built first).
 
+- **T4 [owner] Explore: an area's busy streets are listed busiest first, and its walk starts on "its busiest street"** (2026-11-11)
+  Area: explore. Seen: `src/components/atlas/AtlasCard.tsx:236` ("each busy street once, busiest first") and `:355` ("Starts you at {via}, its busiest street"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best of', rankings of places"; the steward calls it drift, not a breach: decisions 0034, 0080 and 0127 make busy streets information, and no rank number shows. Recommended: list the busy streets by distance from you, and say "Starts you on {via}"; the words "busy streets" stay. /vision: not run as a gate this time; the steward's reading stands in, so the answer is yours. Otherwise: leave it; the order is the information.
+- **T5 [owner] Explore: "How the marks work" is always open on an area's card, about a third of the sheet** (2026-11-11)
+  Area: explore. Seen: picture `11c-atlas-card`: the explainer pushes the Views row below the fold, above four equal "Suggest a walk" pills. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; the UX review's opinion, no cited source. Recommended: the explainer opens from its own "How the marks work" link and stays shut on the next visit. Otherwise: leave it; it is the one place that says no mark is a score.
+
 ### Next evolutions
 
 The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.
@@ -152,17 +157,14 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox T1 yes, T2 yes, T3 yes`** (from `08995af`). One build: `tend chronicle T1`, a suggested title
-kept as it was stores no title (`renamePatch` returns none when the words equal the suggestion, and the first replay's
-Keep it writes through it), so a walk named before its area was read takes the area's name later; walks saved before
-keep theirs until a save whose words equal the suggestion then (the rule as asked). The review (one round): audit 1
-(the suggestion Name it was filled with, after a kept gap moved the walk, stores no title) and audit 2 (a suggestion
-over 60 characters kept unchanged) fixed; F3 rejected (the rule as asked), F4 kept and F5 filed (DEFERRED Quality of
-life 17, 18). Journeys: `qol`, `replay`, `gaps`, `tabs`, `walk` green; `chronicle` failed twice at timing steps (M9's
-bounce, a sheet drag) and passed twice unchanged, as `main` did once: filed under Map and motion polish. T2 (Rename's label) answered yes and waits for the next `/tend inbox T2 yes`. T3 [arch] answered yes:
-decision 0136 (the section bar names what is shown) and G1 [S] to build it. QL23's spec line still reads "an empty title
-becomes the suggested one"; the loop edits no spec, so the owner's doc wants the T1 wording (below). No sweep, so no
-lens ran and the balance was not read again. Nothing here has run on a phone.
+**Nov 11, `/tend explore`** (a sweep, from `8bdca99`). One loop commit: `tend explore 1` Explore's notice and the Towns back pill no
+longer sit over the scale bar (`lib/atlas/overlaySlots`, pictured before and after); the review's one accepted finding is `tend explore audit 1` (the long press's choices covered it too), two low ones deferred. Filed: T4 (busy streets listed busiest first), T5 (the
+marks explainer always open); `docs/DEFERRED.md` Explore and discovery, six items. The balance: in step; explore is rough, the sweep was
+not whole. Lenses run: 1 (the `atlas`, `carousel` and `marks` journeys, 21 pictures, both reviewers), 5 (the auditor, static only),
+6 (`check:vision` clean). Not run: lens 2 beyond what the pictures showed (320 px, 200% text, offline, interrupted, done twice), 3 (siblings),
+4 (the shipped criteria beyond their tests), 7 only for the DEFERRED items read; the `grading`, `snap` and `curiosities` journeys were not run.
+The reviewers read some pictures only partly, and several pictures the UX review was given are walk screens, not Explore. Nothing here has run
+on a phone.
 
 ### Open before the loop
 
