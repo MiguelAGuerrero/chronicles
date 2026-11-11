@@ -93,8 +93,12 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
     20 faint ones within range of the route ahead; the route's areas are read
     first (`routeProbes`, every 500 m).
-  - **Finding:** a capture within 60 m of an unfound place, any kind, any walk
-    (`findFor`); the first find of a place stands. Walking past only names it.
+  - **Finding:** a capture with exactly one unfound place within 60 m, any kind, any walk,
+    finds it (`findFor`); with two or more in reach (`findCandidates`) nothing is found until the
+    reader picks on the walk's "Which place is this moment about?" chip (`useExplore().choice`/`choose`,
+    `find-choice`; only on an exploring walk, a quiet one asks nothing and finds nothing; the newest
+    capture's question replaces an older one; "Neither" tags nothing). A loose moment with two in
+    reach finds nothing yet (DEFERRED). The first find of a place stands. Walking past only names it.
     Captures that already found a place are handled before any other is
     looked at, so a reload never finds a second place for them. A found pin is
     small, nameless and lets taps through to the capture beside it.
