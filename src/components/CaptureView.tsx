@@ -329,10 +329,17 @@ export function CaptureViewer(props: {
   autoPlay?: boolean;
   /** The owner's thread this viewer was opened from: Respond answers into it, and only here is its name said (OT3, OT11). */
   thread?: { id: string; name: string | null } | null;
+  /** Opens on this moment, at this piece, rather than the first (the media gallery's tile, MG8). */
+  startAt?: { id: string; piece?: string } | null;
+  /** False: no "i of n" over the moments (the media gallery, MG7). */
+  position?: boolean;
+  /** Told each moment the viewer comes to, so its caller can read its context line (MG8). */
+  onShown?: (id: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const [index, setIndex] = useState(0);
+  // A gallery's tile opens the viewer at its own moment and piece (MG8); every other caller starts at the first.
+  const [index, setIndex] = useState(() => Math.max(0, props.startAt ? (props.captures ?? []).findIndex((c) => c.id === props.startAt?.id) : 0));
   const [openedStack, setOpenedStack] = useState<Faced[]>([]);
   const [mentionPick, setMentionPick] = useState(false);
   // Every kept moment, for the notes that mention the one shown (RF7), read when the viewer opens.
@@ -340,7 +347,11 @@ export function CaptureViewer(props: {
   const { data: owned } = useThreads();
   const pool = useMomentPool(props.captures, owned.links.length);
   // The piece shown of a moment holding more than one (MS10); back to its first when the moment changes.
-  const [pieceAt, setPieceAt] = useState<{ moment: string; i: number }>({ moment: '', i: 0 });
+  const [pieceAt, setPieceAt] = useState<{ moment: string; i: number }>(() => {
+    const at = props.startAt;
+    const m = at ? props.captures?.find((c) => c.id === at.id) : undefined;
+    return { moment: at?.id ?? '', i: m && at?.piece ? Math.max(0, m.pieces.findIndex((x) => x.id === at.piece)) : 0 };
+  });
   const hidden = useHidden();
   const openForAdd = useStore(momentPill.store, (s) => s.id);
   const [editing, setEditing] = useState<Faced | null>(null);
@@ -454,6 +465,15 @@ export function CaptureViewer(props: {
   const shownList = openedStack.length ? opened : list;
   const i = openedStack.length ? 0 : Math.min(index, Math.max(0, list.length - 1));
   const moment = shownList[i];
+  // The moment shown, told to the caller (MG8); the callback is kept in a ref (React Compiler).
+  const onShown = useRef(props.onShown);
+  useEffect(() => {
+    onShown.current = props.onShown;
+  });
+  const momentId = moment?.id;
+  useEffect(() => {
+    if (momentId) onShown.current?.(momentId);
+  }, [momentId]);
   // Its pieces, less any waiting in the Undo window (MS13).
   const pieces = moment ? moment.pieces.filter((p) => !hidden.has(pieceKey(p.id))) : [];
   const stacked = pieces.length > 1;
@@ -608,7 +628,7 @@ export function CaptureViewer(props: {
             parts={[
               props.context?.get(current.id),
               // No position over a moment's pieces (MS9): the pager's "i of n" stays for one-piece moments only.
-              shownList.length > 1 && !stacked ? `${i + 1} of ${shownList.length}` : null,
+              props.position !== false && shownList.length > 1 && !stacked ? `${i + 1} of ${shownList.length}` : null,
               inThread,
               mentionedBy.length ? MENTIONED : null,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,

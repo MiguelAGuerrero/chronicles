@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/gallery/**"
+  - "src/components/gallery/**"
   - "src/lib/__tests__/gallery/**"
 ---
 # Media gallery (Chronicle's Media)

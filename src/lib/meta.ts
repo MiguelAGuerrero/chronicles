@@ -8,6 +8,8 @@ import type { Prefs } from './resurface/types';
 import type { Units } from './units';
 import { isPendingJobs } from './deletion/saved';
 import type { PendingJob } from './deletion/pending';
+import { isGalleryView } from './gallery/view';
+import type { GalleryView } from './gallery/types';
 
 /**
  * Every key in the meta store, with its owner and how its value is encoded.
@@ -137,6 +139,8 @@ export const META = {
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
+  // Media gallery (MG22): Sort, tile size and grid shape, kept as they change.
+  gallery_view: { owner: 'gallery', codec: json<GalleryView>(isGalleryView) },
   // Moment stacks (lib/momentPill): Group captures into one moment, off until switched on (MS18, decision 0123)
   group_captures: { owner: 'captures', codec: onOff },
   // Settings

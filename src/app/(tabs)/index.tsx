@@ -6,6 +6,7 @@ import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensio
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
+import { MediaScreen } from '../../components/gallery/MediaScreen';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { useStore } from '../../lib/useStore';
 import { CaptureViewer } from '../../components/CaptureView';
@@ -467,6 +468,8 @@ export default function Chronicle() {
       <View style={styles.body}>
         {section === 'memories' ? (
           <MemoriesScreen />
+        ) : section === 'media' ? (
+          <MediaScreen />
         ) : (
           // The bar above has taken the safe area's top: the map's own offsets start below it.
           <SafeAreaInsetsContext.Provider value={{ ...insets, top: 0 }}>

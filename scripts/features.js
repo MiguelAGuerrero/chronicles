@@ -247,7 +247,7 @@ const FEATURES = [
     name: 'gallery',
     about: "Chronicle's Media: every photo, video and memo in an edge-to-edge grid under day headers; Years, Months, Days; Sort, a kind filter, pinch, square or aspect",
     rule: 'gallery',
-    source: ['src/lib/gallery/**'],
+    source: ['src/lib/gallery/**', 'src/components/gallery/**'],
     journeys: ['gallery'],
     specs: ['media-gallery'],
   },

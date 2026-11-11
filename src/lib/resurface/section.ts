@@ -1,5 +1,5 @@
 // @layer core
-export type Section = 'memories' | 'walks' | 'days' | 'map';
+export type Section = 'memories' | 'walks' | 'days' | 'map' | 'media';
 
 /**
  * Which Chronicle section to be on after the app moved to `path` (RM1).

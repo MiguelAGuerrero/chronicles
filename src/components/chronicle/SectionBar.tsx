@@ -7,9 +7,13 @@ const SECTIONS: { key: Section; label: string }[] = [
   { key: 'walks', label: 'Walks' },
   { key: 'days', label: 'Days' },
   { key: 'map', label: 'Map' },
+  { key: 'media', label: 'Media' },
 ];
 
-/** Chronicle's sections (RM1): Memories first, then the walks list, the days list and the map. */
+/**
+ * Chronicle's sections (RM1): Memories first, then the walks list, the days list, the map and the media gallery (MG1).
+ * The five pills share the row, so all fit on a 320 px phone on one line (MG2).
+ */
 export function SectionBar(props: { section: Section; onChange: (s: Section) => void }) {
   return (
     <View style={styles.bar} accessibilityRole="tablist" testID="chronicle-sections">
@@ -25,7 +29,7 @@ export function SectionBar(props: { section: Section; onChange: (s: Section) => 
             onPress={() => props.onChange(s.key)}
             style={[styles.tab, on && styles.on]}
           >
-            <Text style={[styles.label, on && styles.labelOn]}>{s.label}</Text>
+            <Text style={[styles.label, on && styles.labelOn]} numberOfLines={1}>{s.label}</Text>
           </Pressable>
         );
       })}
@@ -34,8 +38,8 @@ export function SectionBar(props: { section: Section; onChange: (s: Section) => 
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.bg },
-  tab: { minHeight: 44, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center', borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface },
+  bar: { flexDirection: 'row', gap: 4, paddingHorizontal: 8, paddingVertical: 8, backgroundColor: theme.bg, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  tab: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', minHeight: 44, paddingHorizontal: 6, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface },
   on: { backgroundColor: theme.ink, borderColor: theme.ink },
   label: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   labelOn: { color: theme.bg },
