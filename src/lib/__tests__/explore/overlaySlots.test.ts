@@ -32,9 +32,15 @@ test('tend explore 1: the scale bar clears the Towns back pill on a town\'s page
   }
 });
 
-test('tend explore 1: nothing else moved: with no town the scale bar keeps its place, and the overlay keeps clear of the long press\'s choices', () => {
+test('tend explore audit 1: the scale bar clears the long press\'s choices, which span the map\'s width over its bottom', () => {
+  for (const town of [false, true]) {
+    const s = exploreSlots({ spot: true, town });
+    assert.ok(s.scaleBottom >= SPOT_BOTTOM, `scale bar ${s.scaleBottom} under the choices' top ${SPOT_BOTTOM} (town ${town})`);
+  }
+});
+
+test('tend explore 1: nothing else moved: with no spot the scale bar keeps its place without a town, and the overlay keeps clear of the long press\'s choices', () => {
   assert.equal(exploreSlots({ spot: false, town: false }).scaleBottom, 6);
-  assert.equal(exploreSlots({ spot: true, town: false }).scaleBottom, 6);
   assert.ok(exploreSlots({ spot: true, town: false }).overlayBottom >= SPOT_BOTTOM);
   assert.equal(SCALE_LEFT, 8);
 });

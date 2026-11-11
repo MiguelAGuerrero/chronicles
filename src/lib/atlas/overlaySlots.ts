@@ -17,7 +17,8 @@ const SPOT_TOP = 10 + 68 + GAP;
 
 export function exploreSlots(o: { spot: boolean; town: boolean }): { scaleBottom: number; overlayBottom: number } {
   const pillBottom = o.spot ? SPOT_TOP : PILL_BOTTOM;
-  const scaleBottom = o.town ? pillBottom + PILL_H + GAP : SCALE_BOTTOM;
+  // The long press's choices span the map's width, so the bar rises above them as well as above the pill.
+  const scaleBottom = o.town ? pillBottom + PILL_H + GAP : o.spot ? SPOT_TOP : SCALE_BOTTOM;
   const clearOfBelow = (o.spot ? SPOT_TOP : PILL_BOTTOM) + (o.town ? PILL_H + GAP : 0);
   return { scaleBottom, overlayBottom: Math.max(clearOfBelow, scaleBottom + SCALE_H + GAP) };
 }
