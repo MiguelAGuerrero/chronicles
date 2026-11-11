@@ -404,6 +404,276 @@
       "set": "calibration",
       "pointNote": "chosen by hand",
       "folded": "2026-11-11"
+    },
+    {
+      "id": "lebanon",
+      "name": "Lebanon, PA",
+      "at": [
+        -76.42339,
+        40.34295
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "pottsville",
+      "name": "Pottsville, PA",
+      "at": [
+        -76.19534,
+        40.68513
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "scranton",
+      "name": "Scranton, PA (downtown)",
+      "at": [
+        -75.66216,
+        41.40868
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "york",
+      "name": "York, PA",
+      "at": [
+        -76.72766,
+        39.96252
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "harrisburg",
+      "name": "Harrisburg, PA (centre)",
+      "at": [
+        -76.8861,
+        40.2663
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point, sits a few hundred metres south of the Capitol (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "lewisburg",
+      "name": "Lewisburg, PA",
+      "at": [
+        -76.88473,
+        40.96454
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "manheim",
+      "name": "Manheim, PA",
+      "at": [
+        -76.39524,
+        40.16372
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "mountJoy",
+      "name": "Mount Joy, PA",
+      "at": [
+        -76.50338,
+        40.10985
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "orwigsburg",
+      "name": "Orwigsburg, PA",
+      "at": [
+        -76.10075,
+        40.65486
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "bloomsburg",
+      "name": "Bloomsburg, PA",
+      "at": [
+        -76.45377,
+        41.00452
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (not the other Bloomsburg near Reading) (blind label, proposed by an independent agent)",
+      "accept": "grid"
+    },
+    {
+      "id": "bowmansville",
+      "name": "Bowmansville, PA",
+      "at": [
+        -76.01741,
+        40.19677
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "blueBall",
+      "name": "Blue Ball, PA",
+      "at": [
+        -76.04762,
+        40.11838
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "churchtown",
+      "name": "Churchtown, PA",
+      "at": [
+        -75.96462,
+        40.13315
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "intercourse",
+      "name": "Intercourse, PA",
+      "at": [
+        -76.10762,
+        40.03859
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)",
+      "accept": "mainStreet"
+    },
+    {
+      "id": "lickdale",
+      "name": "Lickdale, PA (I-81 exit 90)",
+      "at": [
+        -76.51583,
+        40.45301
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "hand-chosen: midpoint of an I-81 interchange link, 466 m from the Lickdale locality; hwShare .45 within 800 m, 11.6 km of street (measured) (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "pineGrove",
+      "name": "I-81 at PA 443 (Pine Grove exit)",
+      "at": [
+        -76.42825,
+        40.53344
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "hand-chosen: interchange link midpoint, 898 m from Irving; hwShare .52 (measured) (blind label, proposed by an independent agent)",
+      "accept": null
+    },
+    {
+      "id": "bedford",
+      "name": "Bedford interchange, PA Turnpike exit 146",
+      "at": [
+        -78.48807,
+        40.02849
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "hand-chosen: interchange link midpoint; hwShare .38, 33 raw place hits (measured) (blind label, proposed by an independent agent)",
+      "accept": null
+    },
+    {
+      "id": "newville",
+      "name": "I-81 near Newville (Plainfield Twp exit)",
+      "at": [
+        -77.28366,
+        40.20571
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "hand-chosen: interchange link midpoint, 611 m from Plainfield; hwShare .35 (measured) (blind label, proposed by an independent agent)",
+      "accept": null
+    },
+    {
+      "id": "limerickOutlets",
+      "name": "Philadelphia Premium Outlets, Limerick",
+      "at": [
+        -75.5707,
+        40.2366
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "hand-chosen: the mall centre from Overture place names; 245 raw place hits, hwShare .41 (measured) (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "humboldt",
+      "name": "Humboldt Industrial Park, Hazle Twp",
+      "at": [
+        -76.04,
+        40.935
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "hand-chosen from place names (warehouses/logistics); 5.3 km of street (measured) (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "swarthmore",
+      "name": "Swarthmore College campus",
+      "at": [
+        -75.3547,
+        39.9066
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "hand-chosen campus centre (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "knoebels",
+      "name": "Knoebels Amusement Resort, Elysburg",
+      "at": [
+        -76.5028,
+        40.8788
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "hand-chosen from place names; 7.5 km of street, 81 raw place hits (measured) (blind label, proposed by an independent agent)",
+      "accept": "village"
+    },
+    {
+      "id": "hampden",
+      "name": "Hampden Township, Cumberland Co.",
+      "at": [
+        -76.97974,
+        40.26178
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent)"
+    },
+    {
+      "id": "amishFarm",
+      "name": "Amish farmland, Lancaster Co. (between Gordonville and Intercourse)",
+      "at": [
+        -76.07,
+        40.06
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "hand-chosen, 5.2 km of street, 9 raw place hits (measured) (blind label, proposed by an independent agent)"
     }
   ]
 }
