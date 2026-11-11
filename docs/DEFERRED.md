@@ -565,3 +565,13 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   real geometry (layout about 660, keyboard and accessory bar about 320) the visible strip is about 170 px, so
   centring the card between the page's top and the visible foot still leaves Save under the keyboard, and the card
   slides at half the speed of a pan. A real fix places the card inside the visible band and is checked on an iPhone.
+
+## Community parks (PC1-PC17, decision 0142)
+
+- **The real Allentown park's tiles** are not recorded as a fixture: `tiles.openfreemap.org` is blocked from cloud sessions. The cases are synthetic (PC14); a script (like `scripts/fixture-town-hoods.mjs`) that records one park's tiles (never a walk) from a machine that reaches them would hold "Franklin Memorial Park" and a plain playground.
+- **The planner and scenic routes do not read "What I'm into"**, for any kind; a community park counts as a park there. Making them honour the switches is a change of its own.
+- **Colouring green spaces on the map** from the park outlines (the owner's next idea) is its own slice and its own gate; the Green bar still counts park places, not area.
+- **Subsets for other categories and a parent switch** over a group of kinds (the owner: parks only now).
+- **A checklist built before keeps `parks`** until its area is read again; a park is shown, never hidden, meanwhile.
+- **Trails** (named paths inside a park) as a signal of a notable park.
+

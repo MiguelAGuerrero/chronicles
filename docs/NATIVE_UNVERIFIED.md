@@ -472,3 +472,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on Android, open Days, a day, then its walk's replay, and press Back once. **Expect:** the replay closes and Chronicle shows Days and the day as they were; the sheet beneath never took the Back (section-bar audit 1).
 - [ ] **Do:** on an iPhone, press the bar's selected Map with a place's walks open. **Expect:** the sheet lowers to rest at once, with no flicker or second jump (the press handled while rendering, SB2).
 - [ ] **Do:** on Chronicle's Map, pan until your places are off screen, then press the section bar's Walks. **Expect:** the map zooms out once, framing every place walked above the half-height sheet, below the section bar (`capFitBounds` on MapLibre RN; T6, decision 0141).
+
+## Community parks (PC1-PC17, decision 0142)
+
+- [ ] **Do:** on a phone, switch Community parks off in "What I'm into", then walk (Explore on) past a playground and a park with a monument or sculpture. **Expect:** the playground is no "?" and no alert; the park with the monument is; switching the kind back on shows the playground at once (PC8; the explore read decodes the tiles' `landcover` in code on every platform, so the outline is known; whether the native map view's own read carries it is unknown, in which case a park is judged by its name and what lies within 60 m of its point).

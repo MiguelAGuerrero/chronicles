@@ -139,7 +139,10 @@ recording, and a recording bar brings a minimized walk back.
   "Buildings and structures", on by default, holds the archive's listed
   buildings and structures. "Community spaces" (decision 0127), on by default
   unless Museums and galleries was switched off, holds arts centres, libraries
-  and community centres whose names say they are historic. A place to find with no street or path within 60 m
+  and community centres whose names say they are historic. "Community parks" (decision 0142), on by default, is a
+  subset of Parks the reader can switch off: a park whose name says playground, playfield, tot lot, ball field or courts,
+  with nothing notable in or near it (a place to find inside it, a notable word in the name, a large outline, an archive
+  place near). Every other park stays; nothing says what a park holds. A place to find with no street or path within 60 m
   says "No street or path close by" on its card; nothing is hidden for it. The
   replay whispers one or two passed places by name, more as "a few places". A
   place in both the map and the archive, of the same name and kind within
