@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/discovery/**"
+  - "src/lib/presence/**"
   - "src/lib/explore/**"
   - "src/lib/db/{exploreRow,placeRow,stores}.ts"
   - "src/app/(tabs)/explore.tsx"
