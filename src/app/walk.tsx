@@ -54,6 +54,7 @@ import { ensureTileBuild } from '../lib/tiles';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
+import { formatRange } from '../lib/format';
 import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
@@ -1570,7 +1571,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <>
                 <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>
                 <Text style={styles.markSub}>
-                  A “?” shows for places within {settings.rangeM} m of you, {walkNote(settings.rangeM)}.
+                  A “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
                   {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
                 </Text>
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
