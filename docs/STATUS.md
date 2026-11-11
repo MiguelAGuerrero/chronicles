@@ -150,13 +150,20 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox`** (from `0193552`; the owner chose T2 of the two waiting yeses). One build: `tend chronicle T2`,
-Rename's line reads "One line, in your own words", shown and spoken; the first replay keeps "while the feeling is fresh"
-(`qol` pictures `qol-04b-rename-editor` before and after). G1 (the section bar) waits for the next `/tend inbox G1 yes`;
-T4 and T5 left unanswered by the owner's choice. The review (one round): two low findings, both fixed in the journeys:
-`audit 1` the first replay's line is checked to keep its words; `audit 2` T2's check is its own step and closes the
-editor whatever it finds. Journeys `qol`, `deletion`, `walk` green on the change. No sweep, so no lens ran and the balance was not read again. Nothing
-here has run on a phone.
+**Nov 11, `/tend explore`** (a second sweep, from `0193552`, for the lenses the first left out). Five loop commits:
+`tend explore 2` a cancelled "What's good here?" stays stopped when a newer one starts (`lib/atlas/look`); `5` a town's spoken
+"Waiting in" names only kinds still waiting (WT11); `4` one Escape closes the planner over a card, and the card stays; `6` on a
+town's page Escape closes the long press's choices or Layers before the page; `7` one tap on a town's dot eases in far enough
+for it to be a "?" (WT13). The review (one round): `audit 1` Back with Layers open on a town's page closes the panel (Android
+lost it in `6`), `audit 3` a found place's dot is not sent to where finds vanish (`7`); and `audit 4` the Escape that closes Layers stops there
+(the town page's journey step caught Escape leaving the page too: React re-adds the page's handler mid-event); one deferred (a look cancelled during its
+write can still speak), one rejected (an all-found town keeps its keyboard way in: the selected tile opens its card). A sixth (a look left running when the tab is left) was dropped: its journey step passed on the build
+before the fix, so it is filed unconfirmed. Filed: `docs/DEFERRED.md` Explore and discovery, twelve `[loop]` items (two retry and
+centre bugs in shells no unit test reaches, a capture missed during a read, focus on the web, low ones); no inbox entry. The
+balance: in step; explore stays rough (medium findings). Lenses run: 1 (`grading`, `snap`, `curiosities` new; `atlas`, `carousel`
+again), 2 (read in the code; 320 px pictured for the carousel's town screens through a scratch preload, the atlas journey's Explore
+pages stayed 390), 3, 4 (EC, WT, AT, DN, TP, AG and the rule file), 5 (races, cost, truth vs cache), 6 (`check:vision`).
+Not run: 200% text, offline pictured, the reviewers on this run's pictures. Nothing here has run on a phone.
 
 ### Open before the loop
 
