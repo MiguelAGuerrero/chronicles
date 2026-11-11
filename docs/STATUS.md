@@ -153,7 +153,9 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 **Nov 11, `/tend inbox`** (from `0193552`; the owner chose T2 of the two waiting yeses). One build: `tend chronicle T2`,
 Rename's line reads "One line, in your own words", shown and spoken; the first replay keeps "while the feeling is fresh"
 (`qol` pictures `qol-04b-rename-editor` before and after). G1 (the section bar) waits for the next `/tend inbox G1 yes`;
-T4 and T5 left unanswered by the owner's choice. No sweep, so no lens ran and the balance was not read again. Nothing
+T4 and T5 left unanswered by the owner's choice. The review (one round): two low findings, both fixed in the journeys:
+`audit 1` the first replay's line is checked to keep its words; `audit 2` T2's check is its own step and closes the
+editor whatever it finds. Journeys `qol`, `deletion`, `walk` green on the change. No sweep, so no lens ran and the balance was not read again. Nothing
 here has run on a phone.
 
 ### Open before the loop
