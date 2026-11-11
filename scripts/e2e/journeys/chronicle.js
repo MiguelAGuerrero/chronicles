@@ -203,6 +203,19 @@ async function checks(h) {
       await page.waitForTimeout(700);
       const away = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
       const offScreen = !away || away.x > box.x + box.width || away.x + away.width < box.x;
+      // tend chronicle audit 3: from the days list the bar's Walks moves nothing, as the sheet's switch from Days does.
+      const fitsDays = await page.evaluate(() => window.__perf.fit ?? 0);
+      await page.click('[data-testid=section-days]');
+      await page.waitForSelector('[data-testid=day-row]', { timeout: 10000 });
+      await page.click('[data-testid=section-walks]');
+      await page.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
+      await page.waitForTimeout(1200);
+      const fitsFromDays = (await page.evaluate(() => window.__perf.fit ?? 0)) - fitsDays;
+      const stillAway = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      check(fitsFromDays === 0 && (!stillAway || stillAway.x > box.x + box.width),
+        `tend chronicle audit 3: the bar's Walks from Days zooms out nothing, as the sheet's switch from Days (${fitsFromDays} fits)`);
+      await page.click('[data-testid=section-map]');
+      await settle();
       const fits0 = await page.evaluate(() => window.__perf.fit ?? 0);
       await page.click('[data-testid=section-walks]');
       await page.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
