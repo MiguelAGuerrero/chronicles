@@ -95,6 +95,15 @@ async function run(h) {
       await shot(pg, 'marks-what-im-into');
       check(!!th && !!cm && !!mo && cm.y > th.y && mo.y > cm.y && cOn === 'true' && /Community spaces/.test(cLabel),
         `PK11: "What I'm into" lists Community spaces after Theatres and before Monuments and memorials, on by default (${JSON.stringify({ th: th?.y, at: cm?.y, mo: mo?.y, on: cOn, label: cLabel })})`);
+      // PC6 (Community parks): the kind sits right after Parks and gardens, on by default, with its own label.
+      await pg.locator('[data-testid=kind-community_parks]').scrollIntoViewIfNeeded().catch(() => {});
+      const pk = await pg.locator('[data-testid=kind-parks]').boundingBox().catch(() => null);
+      const cp = await pg.locator('[data-testid=kind-community_parks]').boundingBox().catch(() => null);
+      const vw = await pg.locator('[data-testid=kind-viewpoints]').boundingBox().catch(() => null);
+      const cpOn = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-checked').catch(() => null);
+      const cpLabel = await pg.locator('[data-testid=kind-community_parks]').innerText().catch(() => '');
+      check(!!pk && !!cp && !!vw && cp.y > pk.y && vw.y > cp.y && cpOn === 'true' && /Community parks/.test(cpLabel),
+        `PC6: "What I'm into" lists Community parks after Parks and gardens and before Viewpoints, on by default (${JSON.stringify({ pk: pk?.y, at: cp?.y, vw: vw?.y, on: cpOn, label: cpLabel })})`);
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
     }
