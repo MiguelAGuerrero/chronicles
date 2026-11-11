@@ -16,7 +16,7 @@ Verb: return (the corpus given back at a glance, and a quick way into any moment
 Touches: Always "A moment carries its context ... It never appears as a bare thumbnail, filename or count"; Never "Tallies" and Always "Counts are words" (Apple Photos heads a day with "124 Photos"); **[proposed]** "A row that could appear unchanged in a generic journal app is wrong" (cited as a reason, not a rule); precedent 0098 (Lately leaves out an open walk; strictly newest first, MC13), 0123 (a moment holds pieces); `ui-patterns.md` (a segmented control of at most five nouns, matrix 13).
 Verdict: aligned if reshaped
 Shape: A fifth section, Media. Bare square tiles, one per photo, video or memo piece, under a header per day that carries the context: the day, and where (its walks by time of day and area, or "Not on a walk"). No count anywhere: no "N photos", no total, no "i of n" in the viewer opened from it. A tile opens the moment whole in the viewer, with its place, time and walk. A memo tile is a mic and its length, never a filename. With nothing kept, one line in words.
-Criteria: MG6, MG7, MG8, MG10 below come from the gate.
+Criteria: MG6, MG7, MG8, MG10 below come from the gate; MG6, MG7, MG8, MG15-MG17 were sharpened by the steward (plan, "Steward").
 Open: none (answered Nov 11, see Decisions).
 
 ## Decisions (the owner's calls, Nov 11)
@@ -41,9 +41,9 @@ Open: none (answered Nov 11, see Decisions).
 
 ### Context
 
-6. **MG6 · A header for each day.** Tiles sit under a header for each local day, newest day first. Its title is "Today", "Yesterday", else "Tue, Nov 3", with the year added when it is not this year. Its line says where, from what is under it: the day's walks in time order by time of day and area ("A morning walk in Alfama", "A morning walk in Alfama, an evening one in Baixa"; two named, then "and others"), "and outside a walk" when loose moments are there too, and "Not on a walk" when only loose ones are. Under a filter, the line names only the walks whose pieces are shown.
-7. **MG7 · No counts.** Nothing on the gallery counts: no "N photos", no total, no number in a header or the filter. The only digits are dates and a memo's or a video's length. The viewer opened from the gallery shows no "i of n".
-8. **MG8 · A tile opens the moment whole.** A tap opens the viewer on the tile's moment at that piece, its info line carrying its kind, date and time and the place and walk line Memories' cards give it (MC1-MC5). Stepping on in the viewer goes through the gallery's moments in the gallery's order and under its filter; Close returns to the gallery where it was scrolled.
+6. **MG6 · A header for each day.** Tiles sit under a header for each local day (midnight to midnight, as the Days list), newest day first. Its title is "Today", "Yesterday", else "Tue, Nov 3", with the year added when it is not this year. Its line says where, from what is under it, in the order its tiles appear (newest first): each walk by its own title, or, untitled, by time of day and area ("A morning walk in Alfama"; with no area, "A morning walk", never a guessed place); up to three walks named, and with more the two latest named and the rest in words ("and another walk", "and two other walks"); moments outside a walk by their street once it is read ("Not on a walk, on Hope Street"; two streets named, then "and other streets"), and "Not on a walk" alone only when no street is known. Under a filter, the line names only the walks and streets whose pieces are shown. Every phrase is in `gallery/copy.ts` and asserted verbatim.
+7. **MG7 · No counts.** Nothing on the gallery counts: no "N photos", no total, no number in a header, a tile's spoken label or the filter, and no list size announced. The only digits are dates, times of day and a memo's or a video's length; the journey scans every visible text and accessibility label on Media and on the viewer opened from it (no " of ", no "items"). The viewer opened from the gallery shows no "i of n".
+8. **MG8 · A tile opens the moment whole.** A tap opens the viewer on the tile's moment at that piece, its info line carrying its kind, date and time and the place and walk line Memories' cards give it (MC1-MC5). The viewer shows every piece of the moment, its note and its caption, whatever the filter: "without the captions" is the grid's alone, and the filter chooses the tiles and which moments the viewer steps to, never what a moment shows. Stepping on goes through the gallery's moments in the gallery's order; Close returns to the gallery where it was scrolled.
 
 ### The filter
 
@@ -56,7 +56,9 @@ Open: none (answered Nov 11, see Decisions).
 12. **MG12 · Any point at once.** The gallery's layout gives every row's offset and height before it is drawn, so a jump or a fling to any point lays out only what is on screen; over 5,000 pieces it is worked out in one pass.
 13. **MG13 · Deletes leave at once.** A moment or a piece deleted, from the viewer opened here or anywhere else, leaves the gallery at once, while Undo waits and after (D5, D8, MS13); Undo brings it back.
 14. **MG14 · What is new arrives.** A moment kept, or a walk finished, while the gallery was not in front is in it when Media is next shown; an edit saved in the viewer (a crop, a filter) shows on its tile at once.
-15. **MG15 · Spoken tiles.** A tile is a button spoken by its kind, time and the day's place ("Photo, 9:41 AM, a morning walk in Alfama"), since it shows no words; a header is a header to a screen reader, and the filter is a set of tabs with the chosen one selected.
+15. **MG15 · Spoken tiles.** A tile is a button spoken by its kind, its time and its own moment's walk (its title, or its time of day and area), or its street, or "Not on a walk" ("Photo, 9:41 AM, a morning walk in Alfama"); never the day's whole line and never another walk's name. A header is a header to a screen reader, and the filter is a set of tabs with the chosen one selected.
+16. **MG16 · The day stays on screen.** The header of the day whose tiles are at the top stays pinned under the filter while its tiles scroll, so a day and its place line are on screen whenever a tile is, after a jump too.
+17. **MG17 · Not a capture screen.** Media shows no capture stack (0112); with a walk minimized, the recording bar keeps its camera on Media, and a photo taken there files into that walk.
 
 ## Record
 
