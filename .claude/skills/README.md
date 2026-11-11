@@ -28,7 +28,7 @@ a slice lands ─► its area is rough ─► the next /tend sweeps it
 | `/e2e` | anyone | a journey name | a pass or failure; pictures with `E2E_SHOTS` | never | nothing |
 | `/docs-gc` | anyone, at the end of a slice | the tree | docs brought back in line | never | nothing |
 
-Subagents (`.claude/agents/`): `auditor`, `steward`, `ux-reviewer`. All report-only by configuration (decision 0131): the `ux-reviewer` has no
+Subagents (`.claude/agents/`): `auditor`, `steward`, `ux-reviewer`. All report-only by configuration (decision 0133): the `ux-reviewer` has no
 shell, and the other two a shell that `.claude/hooks/readonly-bash.sh` keeps to reads and test runs; each expects pictures for any screen it judges, and says so first when it has none.
 
 ## Rules of the system

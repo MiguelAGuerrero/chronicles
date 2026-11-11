@@ -39,3 +39,19 @@ export function placesFromTiles(features: TileFeature[]): PlaceCandidate[] {
   }
   return [...out.values()];
 }
+
+/**
+ * Whole towns (WT5, decision 0132): the tiles' hamlet points, as neighborhood candidates, only inside a town's border:
+ * a town's page (`townHoods`), and since whole-towns audit 7 a walk's placement (`hoodAllowed`, `AREA_RULES` 4).
+ * `placesFromTiles` has no hamlet, so nothing else takes them.
+ */
+export function hamletsFromTiles(features: TileFeature[]): PlaceCandidate[] {
+  const out = new Map<string, PlaceCandidate>();
+  for (const f of features) {
+    const name = f.properties?.name;
+    if (f.properties?.class !== 'hamlet' || typeof name !== 'string' || !name || f.geometry.type !== 'Point') continue;
+    const at = f.geometry.coordinates as LngLat;
+    out.set(`${name}|${at[0].toFixed(5)}|${at[1].toFixed(5)}`, { level: 'neighborhood', name, at, reachM: AREA_REACH_M.neighborhood, kind: 'hamlet' });
+  }
+  return [...out.values()];
+}

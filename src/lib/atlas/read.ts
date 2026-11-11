@@ -5,8 +5,8 @@ import { activityFromTilePois, mergeSources, type ActivityPoint } from '../activ
 import { outlineOf } from '../areas/borders';
 import { outlines } from '../areas/outlineReader';
 import { listable, withOutlines } from '../areas/outlines';
-import type { TownOutline } from '../areas/types';
-import { placesFromTiles } from '../areas/tilePlaces';
+import type { PlaceCandidate, TownOutline } from '../areas/types';
+import { hamletsFromTiles, placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
 import { placesFromTilePois, transitFromTilePois } from '../discovery/tilePois';
@@ -21,6 +21,7 @@ import {
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead, type Within,
 } from './atlas';
 import { extentTiles, inExtent } from './extent';
+import { borderReach, isWard, listingBy, townHoods } from './hoods';
 import { findPockets, type Pocket } from './pockets';
 import { placesArchive } from '../discovery/archive';
 import type { ArchiveRead } from '../discovery/archive/shell';
@@ -58,24 +59,56 @@ function one<T>(task: () => Promise<T>): Promise<T | null> {
   return p;
 }
 
-/** AT1, AT14: lists the areas of a level around you. Resolves whether it read. */
-export function readNear(at: LngLat, level: AtlasLevel, build: string, reach: number, shouldStop: () => boolean): Promise<boolean | null> {
+/** A town's whole border (z10), read across the tile edges it is cut at (whole-towns audit 1). */
+async function wholeBorder(town: { name: string; at: LngLat }, shouldStop: () => boolean) {
+  const first = await outlines.borders([town.at], shouldStop).catch(() => null);
+  const beyond = first ? borderReach(town, first.set) : [];
+  if (!first || !beyond.length || shouldStop()) return first;
+  const all = await outlines.borders([town.at, ...beyond], shouldStop).catch(() => null);
+  return all && (all.complete || !first.complete) ? all : first;
+}
+
+/**
+ * AT1, AT14: lists the areas of a level around you. Resolves whether it read.
+ * WT1-WT6, WT9: with `town`, a town's own neighborhoods: across its whole border (the z14 tiles it touches, as the
+ * town's ring read takes them), hamlets inside it too and never a ward; by its reach where it has no border; nothing
+ * yet (false, tried again) where the border read failed.
+ */
+export function readNear(
+  at: LngLat, level: AtlasLevel, build: string, reach: number, shouldStop: () => boolean,
+  town: { key: string; name: string; at: LngLat } | null = null,
+): Promise<boolean | null> {
   return one(async () => {
     const url = await db.getMeta('tile_url');
     if (!url || build === 'unknown' || shouldStop()) return false;
-    const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop).catch(() => null);
-    if (!f || shouldStop()) return false;
-    let candidates = placesFromTiles(f.places);
-    // Towns known only by their outline (Whitehall) are listed too (TO4, TO10); without the outlines, by points.
-    if (level === 'town') {
-      const read = await outlines.read([at], shouldStop).catch(() => null);
+    let candidates: PlaceCandidate[] | null = null;
+    if (level === 'neighborhood' && town) {
+      const border = await wholeBorder(town, shouldStop);
       if (shouldStop()) return false;
-      if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
+      const outline = border ? outlineOf(town, border.set) : null;
+      const by = listingBy(border, outline);
+      if (by === 'retry') return false;
+      if (outline && border) {
+        const f = await fetchTiles(url, extentTiles(outline, town.at).tiles, ZOOM.neighborhood, shouldStop).catch(() => null);
+        if (!f || shouldStop()) return false;
+        candidates = townHoods({ hoods: placesFromTiles(f.places), hamlets: hamletsFromTiles(f.places), outline, set: border.set });
+      }
     }
-    candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach);
+    if (!candidates) {
+      const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop).catch(() => null);
+      if (!f || shouldStop()) return false;
+      candidates = placesFromTiles(f.places);
+      // Towns known only by their outline (Whitehall) are listed too (TO4, TO10); without the outlines, by points.
+      if (level === 'town') {
+        const read = await outlines.read([at], shouldStop).catch(() => null);
+        if (shouldStop()) return false;
+        if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
+      }
+      candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach && !(level === 'neighborhood' && isWard(c.name)));
+    }
     const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, Date.now());
     await db.putAtlasAreas(rows);
-    const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach };
+    const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach, ...(town && level === 'neighborhood' ? { town: town.key } : {}) };
     await db.setMeta(nearKey(level), JSON.stringify(withNear(await nearReads(level), near)));
     return true;
   });
@@ -161,7 +194,7 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     let extent: Extent | null = null;
     let outlineRetry = false;
     if (area.level === 'town') {
-      const read = await outlines.borders([area.at], shouldStop).catch(() => null);
+      const read = await wholeBorder(area, shouldStop);
       if (shouldStop()) return null;
       const outline = read ? outlineOf(area, read.set) : null;
       // No outline because the read failed is not a town with none (TP12): the ring for now, asked again after the retry wait.

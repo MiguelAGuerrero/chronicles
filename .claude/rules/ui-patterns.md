@@ -44,6 +44,7 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 - **Labels or icons, consistently within a bar** (T5): never mix labelled and icon-only items in one bar. Our
   toolbars are labelled (NN/g: "text labels are necessary"; M3 cautions against unlabelled icons; only the HIG
   prefers symbols); icon-only buttons carry a spoken name (X4).
+- **A moment's responses sheet** (decision 0131) departs from matrix 11 and 24 on the owner's call: a full-height sheet whose entries open a moment on the viewer's stack, Back returning to the sheet, as iMessage's reply view.
 - **A bottom toolbar and the tab bar never show together** (T8): a toolbar belongs to a screen that covers the tabs.
 - **Targets 44 pt on iOS, 48 dp on Android** (X0); WCAG 2.5.8's minimum is 24 px, so the platform sizes govern.
   Controls used while walking are bigger than the minimum (X0d).

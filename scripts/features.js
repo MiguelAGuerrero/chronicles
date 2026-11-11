@@ -139,7 +139,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns'],
   },
   {
     name: 'kind-walk',
@@ -248,8 +248,8 @@ const FEATURES = [
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
     source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
-    journeys: ['threads'],
-    specs: ['owner-threads', 'moment-references'],
+    journeys: ['threads', 'responses'],
+    specs: ['owner-threads', 'moment-references', 'response-thread'],
   },
   {
     name: 'motion',

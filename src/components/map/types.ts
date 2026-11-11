@@ -118,6 +118,8 @@ export interface WalkMapProps {
   /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
   onDiscoveryPress?: (id: string) => void;
+  /** Explore's places still to find where a "?" would crowd (WT12, WT14): small dots in the kind's colour, no name. */
+  waitingDots?: WaitingDot[];
   /** Remembered hotspots: pockets shaded, strips drawn and named, as information (v1.5). */
   landing?: LandingView | null;
   /** Spots to mark: where a route goes, or where a long press landed. */
@@ -466,6 +468,29 @@ export function walkabilityGeoJSON(t: WalkTint | null | undefined): GeoJSON.Feat
   const f = (band: 'foot' | 'car', rings: LngLat[][]): GeoJSON.Feature[] => rings.map((r) => ({ type: 'Feature', properties: { band }, geometry: { type: 'Polygon', coordinates: [r] } }));
   return { type: 'FeatureCollection', features: [...f('foot', t.foot), ...f('car', t.car)] };
 }
+
+/** A place still to find drawn as a dot (WT14): where it is and its kind's colour, nothing else. */
+export interface WaitingDot {
+  id: string;
+  at: LngLat;
+  color: string;
+}
+
+/** WT14: the dots as one layer's features: the colour is the only property, so a dot carries no name, number or icon. */
+export function waitingDotsGeoJSON(dots: WaitingDot[] | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (dots ?? []).map((d) => ({ type: 'Feature', properties: { color: d.color }, geometry: { type: 'Point', coordinates: d.at } })),
+  };
+}
+
+/**
+ * WT14: a dot: smaller than a "?" pin, in its kind's colour. Whole-towns audit 18 (the owner's call): a dark outline,
+ * 3:1 or more on every ground the map has (the base map, a neighborhood's ring, a town's tint), so a dot never hangs on
+ * its colour alone; the "?" pins' own ink.
+ */
+export const WAITING_DOT_EDGE = '#1d2733';
+export const WAITING_DOT_PAINT = { 'circle-color': ['get', 'color'], 'circle-radius': 4.5, 'circle-stroke-color': WAITING_DOT_EDGE, 'circle-stroke-width': 1.5 } as const;
 
 /** Points to mark (a destination, a pressed spot), as circles. */
 export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollection {

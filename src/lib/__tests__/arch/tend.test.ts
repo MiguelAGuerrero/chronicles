@@ -206,7 +206,7 @@ test('tend: the ledger is JSON the script can read, and the skills name the shar
   assert.match(read('package.json'), /"check:tend"/);
 });
 
-test('tend 0131: a reviewer\'s shell runs tests and reads, and nothing that writes', () => {
+test('tend 0133: a reviewer\'s shell runs tests and reads, and nothing that writes', () => {
   const hook = join(ROOT, '.claude', 'hooks', 'readonly-bash.sh');
   const run = (command: string) => spawnSync('bash', [hook], { input: JSON.stringify({ tool_input: { command } }), encoding: 'utf8' }).status;
   for (const ok of [
@@ -221,7 +221,7 @@ test('tend 0131: a reviewer\'s shell runs tests and reads, and nothing that writ
   assert.equal(spawnSync('bash', [hook], { input: '{}', encoding: 'utf8' }).status, 0, 'no command, nothing to judge');
 });
 
-test('tend 0131: the reviewers are read-only by their definitions, and CI holds the loop\'s commits', () => {
+test('tend 0133: the reviewers are read-only by their definitions, and CI holds the loop\'s commits', () => {
   for (const agent of ['auditor', 'steward']) {
     const text = read(`.claude/agents/${agent}.md`);
     assert.match(text, /^hooks:\n  PreToolUse:\n    - matcher: "Bash"/m, `${agent} guards its shell`);

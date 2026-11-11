@@ -59,7 +59,7 @@ and is filed; the half-made change is dropped, not shipped smaller.
 The loop never edits `docs/VISION.md`, a spec, a `vision-ok:` or
 `scripts/vision.allow.json`, a baseline, a hook, a skill, a script, CI or
 `package.json`; `npm run check:tend` fails a run that does, and CI runs the
-same check on every `tend …` commit pushed to `main` (decision 0131).
+same check on every `tend …` commit pushed to `main` (decision 0133).
 
 ## 2. Sweep: deduce, do not wait to be told
 

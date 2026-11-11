@@ -61,6 +61,14 @@ export function threadPool(feed: MomentView[], inOpenWalk: MomentView[], hidden:
   return pool;
 }
 
+/**
+ * Every kept moment a responses sheet can list (response thread RT13): the feed's, and those of a walk still open,
+ * so a response made mid-walk is there at once.
+ */
+export function poolWithOpenWalks(captures: Faced[], walks: Walk[], transcript?: (c: Faced) => string | null): MomentView[] {
+  return [...toMomentViews(captures, walks, transcript), ...openWalkViews(captures, walks, transcript)];
+}
+
 /** The walks a card may link to: a walk still being recorded has no replay yet. */
 export function closedWalks(walks: Record<string, Walk>): Record<string, Walk> {
   return Object.fromEntries(Object.entries(walks).filter(([, w]) => !w.open && w.ended_at != null));

@@ -16,6 +16,24 @@ export function sizeWord(moments: number): string {
   return 'many moments';
 }
 
+/** How many responses a moment has, in words (response thread RT9): its own fixed set, never a digit. */
+export function responsesWord(responses: number): string {
+  if (responses <= 1) return 'a response';
+  if (responses === 2) return 'a couple of responses';
+  if (responses <= 5) return 'a few responses';
+  if (responses <= 11) return 'several responses';
+  return 'many responses';
+}
+
+/**
+ * A responses sheet entry's line (RT5): its date and time, its place or that none was kept, and its walk's line or
+ * that it was not on a walk. Never a blank (steward S1, S3).
+ */
+export function entryLine(o: { t: number; time: string; place: string | null; hasFix: boolean; walkLine: string | null; now: number }): string {
+  const place = o.place ?? (o.hasFix ? null : 'No place kept');
+  return [`${dateLine(o.t, o.now)}, ${o.time}`, place, o.walkLine ?? 'not on a walk'].filter(Boolean).join(' · ');
+}
+
 /** "since March", with the year when it is not this one. */
 export function sinceLine(firstT: number, now: number): string {
   const d = new Date(firstT);

@@ -11,7 +11,7 @@ import { assignAreas, placesRead, snapDone } from './areas/assign';
 import { outlines } from './areas/outlineReader';
 import { placesFromTilePois } from './discovery/tilePois';
 import { appBoundaries } from './areas/boundaries';
-import { placesFromTiles } from './areas/tilePlaces';
+import { hamletsFromTiles, placesFromTiles } from './areas/tilePlaces';
 import type { Area, WalkArea } from './areas/types';
 import { fillsOf, walkStretches } from './gaps';
 import { ensureTileBuild } from './tiles';
@@ -103,7 +103,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
     // A walk too wide to read is placed by points for good (TO12), not again on every launch.
     outlinesRead = !!read && (read.complete || read.tooMany);
     if (wide) {
-      const candidates = placesFromTiles([...(features?.places ?? []), ...wide]);
+      // Whole-towns audit 7: hamlets too, which count only inside the walk's town border (`hoodAllowed`).
+      const candidates = [...placesFromTiles([...(features?.places ?? []), ...wide]), ...hamletsFromTiles(features?.places ?? [])];
       const placement = assignAreas(walk.id, points, pauses, candidates, appBoundaries(), walk.started_at, stills, fills, read?.set ?? null);
       placed = { areas: [...placement.areas.values()], rows: placement.rows };
       // No neighborhood or town: the nearest named place (pickArea above) stays the title.

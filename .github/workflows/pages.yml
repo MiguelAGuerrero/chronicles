@@ -31,7 +31,7 @@ jobs:
       - run: npm run check:docs
       # The vision's mechanical half: score words, tallies, hosts, dependencies, spec verdicts (decision 0094).
       - run: npm run check:vision
-      # The tending loop's limits, held outside the loop (decision 0131): every `tend …` commit in this push
+      # The tending loop's limits, held outside the loop (decision 0133): every `tend …` commit in this push
       # carries its own named test and a Source line and touches nothing the loop may not.
       - name: Loop commits keep to the loop's limits
         if: github.event_name == 'push'

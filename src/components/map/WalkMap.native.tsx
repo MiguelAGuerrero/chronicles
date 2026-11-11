@@ -28,7 +28,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -149,6 +149,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
+  const waitingDots = useMemo(() => waitingDotsGeoJSON(props.waitingDots), [props.waitingDots]);
   // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
   // of the trace (MapLibre RN serializes a source's data on each change).
   const endPoints = traceEnds(props.trace, !!props.ended);
@@ -471,6 +472,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="found-pins" data={foundPins}>
           <Layer id="found-pins" type="circle" paint={{ 'circle-color': HOTSPOT, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 }} />
         </GeoJSONSource>
+        {/* Explore's places still to find where a "?" would crowd (WT12, WT14). */}
+        <GeoJSONSource id="waiting-dots" data={waitingDots}>
+          <Layer id="waiting-dots" type="circle" paint={WAITING_DOT_PAINT as never} />
+        </GeoJSONSource>
         <GeoJSONSource id="marks" data={marks}>
           <Layer id="marks" type="circle" paint={{ 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 }} />
         </GeoJSONSource>
@@ -532,7 +537,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             anchor="bottom"
             onPress={props.onDiscoveryPress && !pin.found ? () => props.onDiscoveryPress?.(pin.id) : undefined}
           >
-            <View accessible accessibilityRole={pin.found ? 'image' : 'button'} accessibilityLabel={markLabel(pin)} style={pin.found ? undefined : styles.pinHit}>
+            <View
+              // WT11: Explore's "?" are one summary for a screen reader, never announced one by one.
+              accessible={!pin.quiet}
+              accessibilityElementsHidden={pin.quiet}
+              importantForAccessibility={pin.quiet ? 'no-hide-descendants' : 'auto'}
+              accessibilityRole={pin.found ? 'image' : 'button'}
+              accessibilityLabel={markLabel(pin)}
+              style={pin.found ? undefined : styles.pinHit}
+            >
               <MarkPinView pin={pin} enter={seenMarks.size ? markEnter(markFrom(seenMarks.get(pin.id)), pin) : null} />
             </View>
           </Marker>

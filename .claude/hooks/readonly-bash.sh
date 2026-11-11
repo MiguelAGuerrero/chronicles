@@ -1,5 +1,5 @@
 #!/bin/bash
-# PreToolUse guard for Bash inside the report-only subagents (auditor, steward; decision 0131).
+# PreToolUse guard for Bash inside the report-only subagents (auditor, steward; decision 0133).
 # Their "edits nothing" is enforced here, not asked for: every part of the command must be a read or
 # a test run from the list below. Exit 2 blocks the call; stderr is the reason the subagent sees.
 INPUT=$(cat)

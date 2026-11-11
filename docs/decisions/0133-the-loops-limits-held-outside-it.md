@@ -1,4 +1,4 @@
-# 0131. The loop's limits are held outside the loop: CI reads loop commits, and reviewers cannot write
+# 0133. The loop's limits are held outside the loop: CI reads loop commits, and reviewers cannot write
 
 Date: 2026-11-11 · Status: accepted · Area: process · Extends: 0128, 0130 · Supersedes in part: 0130 ("`check:tend` runs when `/tend` runs it, not in CI")
 
