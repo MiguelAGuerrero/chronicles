@@ -11,6 +11,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Whether the replay keeps its "Passed …" low, now in words since U13 (Positioning, open in the doc)
 - What the Explore tab lists in a city where AllTrails lists trails (Positioning, open in the doc)
 - The Explore tab's "interesting ways through an area", listed as later (Positioning, three tabs)
+- [owner] A quiet hint on Explore that every kind is switched off: no shape yet; for now it is an ordinary state (explore-settings ES9, the owner, Nov 11)
 
 ## Navigation and routes
 

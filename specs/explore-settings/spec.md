@@ -30,6 +30,8 @@ What a person is into is chosen in the walk's settings drawer, one screen away f
 - **Kinds only** (the owner, Nov 11): the "?" range and the pocket alert are about a walk, not about what Explore shows, and stay in the walk's drawer.
 - **A button beside Layers** (the owner, Nov 11): the edge column's second round button, opening a panel as Layers does.
 
+- **Everything off is just a state** (the owner, Nov 11): no empty-state line and no switch to Quiet. Whether to hint that the filters are all off is left for later; the owner has no shape for it yet.
+
 ## Acceptance criteria
 
 ### The store
@@ -45,4 +47,4 @@ What a person is into is chosen in the walk's settings drawer, one screen away f
 6. **ES6 · Quiet.** A kind that is off shows only in its switch. No line says how many places or kinds are hidden, and nothing is added to the Explore tab's own content.
 7. **ES7 · Kept clear.** On a 320 x 568 phone and in landscape, the open panel overlaps neither the Layers button, the tab bar nor the bottom strip, and its list scrolls to the last kind (the same `clearBottom` as Layers).
 8. **ES8 · A view filter only.** A kind that is off changes what Explore shows, never what exists: a moment at a place of that kind, the Chronicle, a replay and a walk's "passed ... without stopping" line are unchanged.
-9. **ES9 · Every kind off.** With every kind off the atlas says so in one quiet line of words that points back to the button, with no number (owner's call 1, below).
+9. **ES9 · Every kind off is an ordinary state.** Switching every kind off is allowed and is nothing special: no line, notice or prompt appears on Explore, nothing else changes (a walk's mode stays as it was), and the switches work as ever. (The owner, Nov 11: "just let it be a single state with nothing special about it"; a blank atlas is the person's own doing.)
