@@ -113,3 +113,30 @@ test('fix background-placing audit 1: a second pass waits for the one under way,
   assert.deepEqual(attempts, ['y', 'z']);
   assert.deepEqual(status.get(), { at: null, placed: 3 });
 });
+
+// Audit 10: each section switch queued a pass for a screen already gone, and two queued passes placed the same walk.
+test('fix background-placing audit 10: a pass whose screen left before it began places nothing, and no walk is placed twice', async () => {
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  const snapped: string[] = [];
+  const { placeBacklog } = createBacklog({
+    tileBuild: async () => 'b1',
+    collector: tiles,
+    still: async () => true,
+    snap: async (w) => {
+      if (w.id === 'x') await gate;
+      snapped.push(w.id);
+    },
+  });
+  let leftA = false;
+  const a = placeBacklog([walk('x'), walk('y'), walk('z')], { stopped: () => leftA });
+  await new Promise((r) => setTimeout(r, 0));
+  // A's screen goes mid-walk, B's screen comes and goes while x is read, and C is in front.
+  leftA = true;
+  const b = placeBacklog([walk('y'), walk('z')], { stopped: () => true });
+  const c = placeBacklog([walk('x'), walk('y'), walk('z')], {});
+  release();
+  await Promise.all([a, b]);
+  assert.deepEqual(await c, { placed: ['y', 'z'], failed: [] });
+  assert.deepEqual(snapped, ['x', 'y', 'z']);
+});

@@ -45,13 +45,17 @@ export function createBacklog(d: BacklogDeps): { placeBacklog: PlaceBacklog; sta
   // Kept here, not in a screen: Chronicle remounts on a section switch, and the new screen still shows the
   // walk at hand and its star (fix background-placing audit 1).
   const status = createStore<BacklogStatus>({ at: null, placed: 0 });
-  const run: PlaceBacklog = async (walks, opts) => {
+  // Every walk any pass has begun: two queued passes never place the same walk (audit 10).
+  const begun = new Set<string>();
+  const run: PlaceBacklog = async (all, opts) => {
+    const walks = all.filter((w) => !begun.has(w.id));
     if ((await d.tileBuild().catch(() => 'unknown')) === 'unknown') return { placed: [], failed: walks.map((w) => w.id) };
     const byId = new Map(walks.map((w) => [w.id, w]));
     return placeAll(
       walks.map((w) => w.id),
       async (id) => {
         // A delete waits on Undo with the walk's rows still stored: placing it would write them back (deletion audit 2).
+        begun.add(id);
         if (!(await d.still(id))) throw new Error('The walk is gone');
         status.set((s) => ({ ...s, at: id }));
         const c = d.collector();
@@ -71,7 +75,8 @@ export function createBacklog(d: BacklogDeps): { placeBacklog: PlaceBacklog; sta
   // the first's (whose screen may be gone and whose pass stops after the walk at hand).
   let last: Promise<unknown> = Promise.resolve();
   const placeBacklog: PlaceBacklog = (walks, opts) => {
-    const pass = last.catch(() => {}).then(() => run(walks, opts));
+    // A pass whose screen left while it waited places nothing (audit 10).
+    const pass = last.catch(() => {}).then(() => (opts.stopped?.() ? { placed: [], failed: [] } : run(walks, opts)));
     last = pass;
     return pass;
   };

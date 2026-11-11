@@ -126,10 +126,14 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     placed count), never the screen's: Chronicle remounts on a section switch
     (keyed by section), and a screen-held "Placing…" and refresh were lost
     mid-pass (audit 1). A second pass waits for the one under way, then
-    places what is left, never joining its callbacks (`placeAll`'s join).
+    places what is left, never joining its callbacks (`placeAll`'s join); a
+    queued pass whose screen left meanwhile places nothing, and no walk is
+    begun twice in a launch (audit 10).
   - Each walk placed reads the rows again (`load(false)`): its star comes,
     and the map moves only if nothing was framed yet; otherwise the new
     places count as framed, so a return from a replay keeps the view (audit 2).
+    A walk placed while the map was away is read quietly on return too
+    (`fitsOnRead`, core; `placedSeen` outlives a remount; audit 9).
   - Only the walk at hand waits ("Placing…" on its row and its Days
     timeline row, their More off; audit 4): a
     delete mid-read would write its rows back (deletion audit 2). A walk

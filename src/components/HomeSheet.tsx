@@ -436,7 +436,7 @@ export function HomeSheet(props: {
             <>
               <Text style={styles.section} accessibilityRole="header">Not placed yet</Text>
               <Text style={styles.note}>
-                {props.placingId && unplacedIds.has(props.placingId) ? 'Being placed now, one after another.' : 'Placed when you’re online. Open one to place it now.'}
+                {props.placingId && unplacedIds.has(props.placingId) ? 'Being placed now.' : 'Placed when you’re online. Open one to place it now.'}
               </Text>
               {props.unplaced.map((w) => (
                 <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy || w.id === props.placingId} placing={w.id === props.placingId} onMore={props.onWalkActions} />
