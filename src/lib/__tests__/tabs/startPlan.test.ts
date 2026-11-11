@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { EXPLORE_KEY, exploredKey } from '../../explore/explore';
 import { destLine, NAV_KEY, navValue, parseStartMode, pendingDest, START_MODE_KEY, startPlan, tabFor } from '../../startPlan';
 import type { Waypoint } from '../../nav/types';
+import { setUnits } from '../../units';
 
 const spot: Waypoint = { at: [-71.4, 41.812], label: 'Your spot', kind: 'point' };
 
@@ -58,4 +59,20 @@ test('NV1, NV2, NV5: three tabs in order, each with its own web path, Chronicle 
   assert.deepEqual(['chronicle', 'explore', 'navigate'].map((t) => tabFor(t as 'explore').path), ['/', '/explore', '/navigate']);
   assert.deepEqual(['chronicle', 'explore', 'navigate'].map((t) => tabFor(t as 'explore').route), ['index', 'explore', 'navigate']);
   assert.deepEqual(['chronicle', 'explore', 'navigate'].map((t) => tabFor(t as 'explore').label), ['Chronicle', 'Explore', 'Navigate']);
+});
+
+test('tend tabs 6: the destination’s distance follows the units setting, as every other distance does (QL14)', () => {
+  const near: [number, number] = [-71.4, 41.812 + 320 / 111320];
+  const far: [number, number] = [-71.4, 41.812 + 2400 / 111320];
+  try {
+    setUnits('mi');
+    assert.equal(destLine(spot, near), 'Your spot · 0.2 mi away');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 100 / 111320]), 'Your spot · 328 ft away');
+    assert.equal(destLine(spot, far), 'Your spot · 1.5 mi away');
+    setUnits('km');
+    assert.equal(destLine(spot, near), 'Your spot · 320 m away', 'metres still round to ten');
+    assert.equal(destLine(spot, far), 'Your spot · 2.4 km away');
+  } finally {
+    setUnits('km');
+  }
 });

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { kindSwitch } from '../lib/discovery/refinements';
 import { EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
+import { formatDistance } from '../lib/format';
+import { useUnits } from '../lib/useUnits';
 import { Icon, type IconName } from './icons';
 import { SwitchRow } from './SwitchRow';
 import { theme } from './ui';
@@ -29,6 +31,8 @@ const STEPS = (EXPLORE_RULES.rangeMax - EXPLORE_RULES.rangeMin) / EXPLORE_RULES.
 
 /** A stepped slider for the range (E20): drag, tap the track, or use − and +; adjustable for screen readers. */
 export function RangeSlider({ value, onChange }: { value: number; onChange: (m: number) => void }) {
+  // The range in the units setting's terms (QL14); redrawn when it changes.
+  useUnits();
   const [width, setWidth] = useState(0);
   const latest = useRef({ width, onChange });
   useEffect(() => {
@@ -59,7 +63,7 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel="Question mark range"
-        accessibilityValue={{ min: EXPLORE_RULES.rangeMin, max: EXPLORE_RULES.rangeMax, now: value, text: `${value} metres` }}
+        accessibilityValue={{ min: EXPLORE_RULES.rangeMin, max: EXPLORE_RULES.rangeMax, now: value, text: formatDistance(value) }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => onChange(value + (e.nativeEvent.actionName === 'increment' ? step : -step))}
       >
@@ -70,7 +74,7 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
       <Pressable testID="range-plus" accessibilityRole="button" accessibilityLabel="Larger range" onPress={() => onChange(value + step)} style={styles.stepBtn} hitSlop={6}>
         <Icon name="add" size={20} color={theme.ink} />
       </Pressable>
-      <Text testID="range-value" style={styles.value}>{value} m</Text>
+      <Text testID="range-value" style={styles.value}>{formatDistance(value)}</Text>
     </View>
   );
 }
