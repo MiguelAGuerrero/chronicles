@@ -224,10 +224,10 @@ async function run(h) {
   const has = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const label = () => pg.locator('[data-testid=resurfaced-label]').textContent();
 
-  // RM1: it opens on Memories, with four sections and no map.
-  check((await pg.locator('[data-testid=chronicle-sections] [role=tab]').count()) === 4
+  // RM1: it opens on Memories, with its sections (Media the fifth since MG1) and no map.
+  check((await pg.locator('[data-testid=chronicle-sections] [role=tab]').count()) === 5
     && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1
-    && !(await has('[data-testid=home-sheet]')), 'RM1: Chronicle opens on Memories, with Memories, Walks, Days and Map, and no map');
+    && !(await has('[data-testid=home-sheet]')), 'RM1: Chronicle opens on Memories, with Memories, Walks, Days, Map and Media (MG1), and no map');
 
   // RM5, RM6: the resurfaced moment leads with the user's own words, and says why it is here.
   check((await label()) === 'A year ago today' && /waiting for someone/.test(await pg.locator('[data-testid=resurfaced]').innerText()),
