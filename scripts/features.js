@@ -133,7 +133,7 @@ const FEATURES = [
       'src/lib/explore/**',
       'src/lib/atlas/**',
       'src/lib/useReminded.ts',
-      'src/lib/db/{exploreRow,placeRow,stores}.ts',
+      'src/lib/db/{exploreRow,placeRow,stores}.ts', 'src/lib/markNames.ts',
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
