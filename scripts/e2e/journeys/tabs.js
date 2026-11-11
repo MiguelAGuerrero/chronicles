@@ -125,6 +125,7 @@ async function run(h) {
       const said = (await pg.locator('[data-testid=home-sheet]').innerText()).includes('Walk somewhere and it is starred here');
       check(said && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
         `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${said}, ${nav && Math.round(nav.y)})`);
+      await h.shot(pg, `tabs-2-chronicle-peek-${when.replace(/\W+/g, '-')}`);
       if (await pg.locator('[data-testid=sheet-navigate]').count()) await pg.click('[data-testid=sheet-navigate]');
       else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);
@@ -213,6 +214,25 @@ async function run(h) {
       await pg.waitForTimeout(800);
       check(canvases === 1 && !/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)),
         `tabs audit 1: a double tap on the recording bar opens one walk screen, and one Minimize goes back to the tabs (${canvases} maps)`);
+      // tend tabs 2: the recording bar and the tab bar are pictured, and at 320 px the bar's row (its way back, the
+      // camera, Stop) stays on one line with its word from a tap on Stop, the page never scrolling sideways.
+      await h.shot(pg, 'tabs-2-recording-bar');
+      await pg.setViewportSize({ width: 320, height: 700 });
+      await pg.waitForTimeout(600);
+      await pg.click('[data-testid=bar-stop]');
+      await pg.waitForSelector('[data-testid=recording-said]', { timeout: 5000 });
+      await h.shot(pg, 'tabs-2-recording-bar-320');
+      const row = await pg.evaluate(() => {
+        const mid = (id) => {
+          const r = document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`)?.getBoundingClientRect();
+          return r ? Math.round(r.y + r.height / 2) : null;
+        };
+        return { mids: ['recording-return', 'bar-photo', 'bar-stop'].map(mid), wide: document.documentElement.scrollWidth };
+      });
+      check(row.mids.every((y) => y != null && Math.abs(y - row.mids[0]) <= 2) && row.wide <= 320,
+        `tend tabs 2: at 320 px the recording bar's way back, camera and Stop share one line, and nothing scrolls sideways (${JSON.stringify(row)})`);
+      await pg.setViewportSize({ width: 390, height: 844 });
+      await pg.waitForTimeout(600);
 
     });
     await step('tabs audit 2: a reminder tapped minimized', async () => {
@@ -292,6 +312,7 @@ async function run(h) {
       const pausedGlyph = await pg.locator('[data-testid=recording-bar] [data-testid=recording-paused]').innerText().catch(() => '');
       const go = await pg.locator('[data-testid=recording-bar] [data-testid=recording-go]').innerText().catch(() => '');
       const all = await pg.locator('[data-testid=recording-return]').innerText();
+      await h.shot(pg, 'tabs-2-recording-paused');
       check(pausedGlyph === glyph('pause'), `tabs audit U10: paused, the recording bar shows a pause glyph, not only a grey dot (${iconOf(pausedGlyph)})`);
       check(go && go !== glyph('chevron-up') && !all.includes(glyph('chevron-up')) && (await pg.locator('[data-testid=recording-return]').count()) === 1,
         `tabs audit U10: the bar's way back to the walk isn't an expand chevron (${iconOf(go)})`);
