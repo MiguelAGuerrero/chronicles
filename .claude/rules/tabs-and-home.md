@@ -210,3 +210,8 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   pure) writes only the title and the line. Chronicle and the replay patch the walk in
   place through `onRenamed`, so the row and the card show it at once. `suggestTitle`
   lives in the pure `lib/walkTitle.ts` (`summary.ts` re-exports it).
+- **A title is stored only when its words differ from the suggestion at save** (the owner's yes to inbox T1,
+  Nov 11): `renamePatch` returns `title: null` for an empty title, the suggestion, or the suggestion the field was
+  filled with (a gap kept on the first replay's card can move the walk's area meanwhile, tend chronicle audit 1),
+  compared as cut to 60 characters (audit 2). The first replay's Keep it writes through `renamePatch` too. Every
+  reader shows `walk.title ?? suggestTitle(walk)`, so a kept suggestion follows the walk's area.

@@ -137,6 +137,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Map layer order on native: no `beforeId` yet (v1.5 landing, native)
 - No sounds yet (Polish: motion)
 - [loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)
+- [loop] The `chronicle` journey's M9 check reads `window.__enters` as soon as `place-title` shows, before the harness's `requestAnimationFrame` has recorded the bounce, and its sheet-drag step can read the sheet before it settles: each failed once in four runs of `/tend inbox`, Nov 11, on code that leaves those screens as they were; wait for the entry (`waitForFunction`) and the settle (low)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -156,6 +157,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 14. [loop] A figure breaks from its unit or noun at a line's end: "589 / m" in a place's header, "1 / video" in a walks row (pictures `09-home-place`, `10-home-walks`). A no-break space inside each figure fixes it, but `walkRowMeta`'s test pins the plain space, so it waits for that test to be restated (ui-patterns, "content must not be lost"; `/tend chronicle`, Nov 11, medium)
 15. [owner] Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first (NN/g H4; A1; `/tend chronicle`, Nov 11, low)
 16. [owner] One walk, described three ways: a walks row says date, distance, time and kinds; a day's timeline "Walk · distance · N moments"; the card's More "More for this walk", the row's "More for <title>" (NN/g H4; `/tend chronicle`, Nov 11, low)
+17. [loop] A backup bundle of a walk with no stored title is named by its area, not by the title it shows (`bundleName` reads `walk.title ?? walk.area`, `export/bundle/shell.ts`): since T1, a walk kept with its suggestion is such a walk (`/tend inbox` review F5, Nov 11, low)
+18. [kept] A walk kept with its suggestion shows the suggestion as the device reads it now, so a walk started at 01:00 in Lisbon reads "Tuesday evening" back in New York; walks left unnamed with Not now did already. The timezone item under Functional core is its fix (`/tend inbox` review F4, Nov 11, low)
 
 ## Town outlines (TO1-TO12, decision 0083)
 

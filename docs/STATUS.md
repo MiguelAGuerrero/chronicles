@@ -155,8 +155,12 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 **Nov 11, `/tend inbox T1 yes, T2 yes, T3 yes`** (from `08995af`). One build: `tend chronicle T1`, a suggested title
 kept as it was stores no title (`renamePatch` returns none when the words equal the suggestion, and the first replay's
 Keep it writes through it), so a walk named before its area was read takes the area's name later; walks saved before
-keep theirs. T2 (Rename's label) answered yes and waits for the next `/tend inbox T2 yes`. T3 [arch] answered yes:
-decision 0134 (the section bar names what is shown) and G1 [S] to build it. QL23's spec line still reads "an empty title
+keep theirs until a save whose words equal the suggestion then (the rule as asked). The review (one round): audit 1
+(the suggestion Name it was filled with, after a kept gap moved the walk, stores no title) and audit 2 (a suggestion
+over 60 characters kept unchanged) fixed; F3 rejected (the rule as asked), F4 kept and F5 filed (DEFERRED Quality of
+life 17, 18). Journeys: `qol`, `replay`, `gaps`, `tabs`, `walk` green; `chronicle` failed twice at timing steps (M9's
+bounce, a sheet drag) and passed twice unchanged, as `main` did once: filed under Map and motion polish. T2 (Rename's label) answered yes and waits for the next `/tend inbox T2 yes`. T3 [arch] answered yes:
+decision 0136 (the section bar names what is shown) and G1 [S] to build it. QL23's spec line still reads "an empty title
 becomes the suggested one"; the loop edits no spec, so the owner's doc wants the T1 wording (below). No sweep, so no
 lens ran and the balance was not read again. Nothing here has run on a phone.
 
