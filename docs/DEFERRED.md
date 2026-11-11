@@ -529,3 +529,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The note editor's keyboard height reads `window.innerHeight`** (fix memories-weird-state audit 5): under an iOS
   pinch-zoom `innerHeight` is the visual viewport, so `threads/useKeyboardHeight.web.ts` reads 0 and the note field
   sits under the keyboard until the zoom ends. Same trap as the safe-area insets, an older code path; a fix of its own.
+
+## Place form (specs/place-form, decision 0139)
+- **Other descriptions** (era, use, economy, campus, industrial area, pedestrian centre): each its own `/vision` gate; the precedent is decision 0139.
+- **A fifth word, "places set back from the street"** (a mall, an outlet centre, an attractions park) from low frontage with a few dozen places: three places in the data, too few to certify.
+- **A town's word across its whole outline:** the line reads the 800 m ring around the area's point only.
+- **Outside the northeastern United States:** the rule is unmeasured there, so the line says nothing; fixtures from elsewhere first.
+- **Owner confirmation of the labels:** the 65 places added after the first 59 were labelled blind by independent agents; the owner has not yet confirmed them.
+- **Recall ceiling:** leave-one-out recall is about 0.73 at 88 places; more confirmed places (above all exits and villages) widen the territories.
+- **A port or warehouse district reads as a main street** (Elizabeth Port, NJ): the one false positive on the third held-out set; PF7's zero tolerance fails on it. A fix is a rule change and needs a fresh held-out set.
+- **Release drift:** a newer Overture release is not yet checked against the fixtures (a test that each word survives it).
+- **A read budget:** the card's buildings read has a 20 s deadline; no measured time or size budget yet.

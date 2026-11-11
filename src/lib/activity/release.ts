@@ -16,6 +16,9 @@ export const overtureUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${rele
 export const transportationUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/transportation.pmtiles`;
 
 /** Town outlines (TO1): the same release's divisions, read by byte range like its places. */
+/** Overture's buildings, read for a count only (specs/place-form PF3). */
+export const buildingsUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/buildings.pmtiles`;
+
 export const overtureDivisionsUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/divisions.pmtiles`;
 
 /** The bucket's listing of releases. */

@@ -1,10 +1,11 @@
 // @layer shell
 import { PMTiles } from 'pmtiles';
 import { ensureOvertureRelease, readOverture } from '../activity/overture';
-import { transportationUrl } from '../activity/release';
+import { buildingsUrl, transportationUrl } from '../activity/release';
 import { ports } from '../ports';
 import { createAheadWatch } from './aheadWatch';
 import type { PlacePoint } from './cells';
+import { createBuildingsReader } from './buildings';
 import { chain } from './chain';
 import { createOverpassSource } from './overpassSource';
 import { createOvertureSource } from './overtureSource';
@@ -33,3 +34,10 @@ export async function walkPlaces(tiles: [number, number][], shouldStop?: () => b
 
 /** The heads-up ahead (WK15): what has been said on this route, and what shows now. */
 export const aheadWatch = createAheadWatch(ports);
+
+/**
+ * PF3: the buildings of the same tiles (Overture's, by byte range, held in memory only), for the place-form line's count; null when they cannot be read,
+ * and the line then says nothing.
+ */
+const buildings = createBuildingsReader({ release: ensureOvertureRelease, open: (r) => new PMTiles(net.source(buildingsUrl(r))) });
+export const walkBuildings = (tiles: [number, number][], shouldStop?: () => boolean) => buildings.read(tiles, shouldStop);

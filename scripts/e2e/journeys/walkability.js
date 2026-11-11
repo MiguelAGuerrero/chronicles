@@ -101,12 +101,13 @@ async function run(h) {
   const words = await pg.locator('[data-testid=atlas-onfoot-words]').innerText().catch(() => '');
   check(words === 'Streets close together, with crossings', `WK11, UF13, UF14: the area card for the neighborhood around the dense grid says what its ground is, in words (${JSON.stringify(words)})`);
   check(!/\d|%/.test(await pg.locator('[data-testid=atlas-onfoot]').innerText().catch(() => '1')), 'UF12: the card\'s line has no number or percentage');
-  // Place form (specs/place-form): the card's one extra line, text only, from the same read. Test first: the fake world has no buildings archive yet.
+  // Place form (specs/place-form): the card's one extra line, text only, from the same read plus the buildings. The fake world's buildings archive is empty, so the card has no word: nothing shows.
   const form = await pg.locator('[data-testid=atlas-place-form]').innerText().catch(() => '');
-  check.todo(/^Around its middle: [a-z]/.test(form) && !/\d|%/.test(form), `PF12, PF18: the card says one line about how the ground around its middle is laid out, worded as the ring's (${JSON.stringify(form)})`);
-  check.todo((await pg.locator('[data-testid=atlas-place-form]').count()) <= 1 && (await pg.locator('[data-testid=atlas-onfoot-words]').count()) === 1, 'PF12: one description line at most, and the walkability line is as before');
-  // PF13's with-and-without comparison is the card render test (placeFormLayers, PF20); here only the words themselves.
-  check.todo(!/avoid|should|expect|try|best|worth/i.test(form), 'PF19: the card\'s line says nothing about what to do');
+  check((await pg.locator('[data-testid=atlas-place-form]').count()) === 0 && form === '', 'PF12, PF17: with no buildings in the tiles the card says nothing about the layout: no line, no placeholder');
+  check((await pg.locator('[data-testid=atlas-onfoot-words]').count()) === 1, 'PF12: the walkability line is as before');
+  const builds = overtureAsked.filter((q) => /buildings\.pmtiles/.test(q.url));
+  check(builds.length > 0 && builds.every((q) => q.range && new URL(q.url).search === ''), `PF3: the buildings are read by byte range from the same bucket, with nothing but the tile (${builds.length} requests)`);
+  check.todo(/^Around its middle: [a-z]/.test(form) && !/\d|%/.test(form), `PF12, PF18: with real buildings in the fake world the card says one line, worded as the ring's (${JSON.stringify(form)}): needs a calibrated fake buildings archive`);
   await shot(pg, 'walk-card');
   await c.close();
 

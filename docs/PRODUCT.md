@@ -275,6 +275,7 @@ recording, and a recording bar brings a minimized walk back.
   remembered reads the area once.
 - An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
   "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
+- **Place form** (decision 0139): the area card of a neighbourhood or a town, in the northeastern United States, can say in one line how the ground around its middle is laid out, "Around its middle: a street grid", "a town along a main street", "a village along one road" or "services at a highway exit". It is given only when obvious (the ground's measures lie inside one learned territory and the ring read from 150 m around it agrees), and is silent otherwise; it never grades, advises or counts, and Explore shows every place as before. It rests on the streets, the places, Overture's buildings and the busy streets and storefronts the app already finds.
 - While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
   as the route enters one, 200 m ahead, once, with no sound; it never changes the route.
 

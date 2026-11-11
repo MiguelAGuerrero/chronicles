@@ -23,6 +23,7 @@ import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
 import { KindRow } from './KindStrip';
+import { PlaceFormLine } from './PlaceFormLine';
 import { MiniMap } from './MiniMap';
 
 const fmt = (m: number) => formatDistance(m);
@@ -199,6 +200,9 @@ export function AtlasCard(props: {
           <View style={styles.bigMap}>
             <MiniMap area={area} walked={props.walked} waiting={props.waiting} finds={props.finds} here={props.here ? props.you : null} />
           </View>
+
+          {/* PF12: how the ground around its middle is laid out, one line, and only when it is obvious (PF29). */}
+          <PlaceFormLine form={onFoot.form} style={styles.onFoot} />
 
           {/* UF13: what the ground is like for someone on foot, in words. Shown only once there are words (never a "Reading" that
               vanishes, layers audit 9), and for a town said of the ground around its centre, as "What's here" is. */}

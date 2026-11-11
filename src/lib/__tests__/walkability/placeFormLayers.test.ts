@@ -11,12 +11,12 @@ const walk = (dir: string): string[] => readdirSync(dir).flatMap((n) => (statSyn
 const read = (f: string) => readFileSync(f, 'utf8');
 const MODULES = /walk\/(placeForm|placeSignals|placeFormReport|buildings)|useAreaWords/;
 
-test('PF3, PF13: nothing in explore, discovery, atlas or activity reaches the place-form modules', { todo: 'test first' }, () => {
+test('PF3, PF13: nothing in explore, discovery, atlas or activity reaches the place-form modules', () => {
   for (const dir of ['lib/explore', 'lib/discovery', 'lib/atlas', 'lib/activity']) for (const f of walk(join(root, dir)).filter((f) => /\.tsx?$/.test(f))) assert.doesNotMatch(read(f), MODULES, f);
   assert.ok(read(join(root, 'lib/walk/placeSignals.ts')), 'the module exists');
 });
 
-test('PF13, PF20: only the card\'s one line component takes the word; the card passes it nothing else', { todo: 'test first' }, () => {
+test('PF13, PF20: only the card\'s one line component takes the word; the card passes it nothing else', () => {
   const users = walk(join(root, 'components')).filter((f) => /\.tsx$/.test(f) && /\bform\b|placeForm|cardLine/.test(read(f)));
   assert.deepEqual(users.map((f) => f.split('/').pop()).sort(), ['AtlasCard.tsx', 'PlaceFormLine.tsx']);
   const card = read(join(root, 'components/atlas/AtlasCard.tsx'));
@@ -24,7 +24,7 @@ test('PF13, PF20: only the card\'s one line component takes the word; the card p
   assert.match(card, /<PlaceFormLine[^>]*form=\{[^}]*\.form\}/, 'and hands it to the one line');
 });
 
-test('PF14: the word adds no layer, pin, icon, colour or setting', { todo: 'test first' }, () => {
+test('PF14: the word adds no layer, pin, icon, colour or setting', () => {
   for (const f of [...walk(join(root, 'lib/layers')), ...walk(join(root, 'components')).filter((f) => /Layers|MapPin|AreaPoint|WalkBandIcon/.test(f))].filter((f) => /\.tsx?$/.test(f))) assert.doesNotMatch(read(f), /placeForm|cardLine|PlaceFormLine/, f);
   const line = read(join(root, 'components/atlas/PlaceFormLine.tsx'));
   assert.doesNotMatch(line, /Icon|color|backgroundColor|Pressable|onPress/, 'text only: no icon, colour or control');
