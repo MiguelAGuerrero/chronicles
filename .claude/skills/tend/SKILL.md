@@ -328,7 +328,28 @@ The owner picks; the loop never starts a `G` entry unasked.
    `docs/STATUS.md`, "Last tend", replaced with this run's digest (area,
    commits with one line each, entries filed, the balance in a sentence,
    lenses not run). Commit it with the inbox and `docs/DEFERRED.md` edits as
-   `tend <area>: the run's record`. It holds documents and the ledger only.
+   `tend <area>: the run's record`. It holds documents, the ledger and the
+   run log only.
+
+   **The run log** (decision 0134) is `.claude/skills/tend/runs.jsonl`, one
+   line a run, never edited afterwards. Every mode writes one, in its last
+   record commit:
+
+   ```
+   npm run tend:log -- origin/main..HEAD '{"mode":"sweep","area":"memories","deploy":"main","base":"<the worktree's base>",
+     "lenses":{"whole":false,"skipped":["2: offline not pictured"]},
+     "found":{"loop":{"high":0,"medium":2,"low":5},"owner":2,"arch":0,"phone":1,"out":1},
+     "filed":{"T":["T4","T5","T6"],"G":[]},"answers":[],"state":{"from":"rough","to":"settling"}}'
+   ```
+
+   The script adds the date and what the commits say (findings shipped, the
+   review's fixes, entries built, reverts) and refuses a line that leaves a
+   count out. `found` counts everything the sweep found, shipped or not,
+   zeros included; `answers` is each entry the owner answered this run, as
+   `yes`, `no` or `reshape`; `review` is the auditor's findings
+   (`accepted`, `rejected`, `deferred`). The line is written once: when the
+   review of step 2 leads to a second record commit, write it there.
+   Write facts, never a judgment of the run: no lesson, no rating, no advice.
 2. **Checks:** `npm run check:docs`. A run that changed code (a sweep, a `T`
    build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
    a loop commit with its own named, real test and its source, and none

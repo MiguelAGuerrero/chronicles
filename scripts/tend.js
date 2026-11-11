@@ -6,6 +6,9 @@
 //                                                       area changed since its sweep is rough), the
 //                                                       open entries, and a reading (shallow-clone
 //                                                       boundary commits are left out)
+//   node scripts/tend.js log <range> '<json>'          append this run's line to the run log: what the
+//                                                       range holds (shipped, audit fixes, reverts) with
+//                                                       what only the run knows (found, filed, answers)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
 //                                                       real test and its source, and none touches what
@@ -21,6 +24,8 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const LEDGER = path.join(ROOT, '.claude', 'skills', 'tend', 'ledger.json');
+const RUNS = path.join(ROOT, '.claude', 'skills', 'tend', 'runs.jsonl');
+const RUNS_REL = '.claude/skills/tend/runs.jsonl';
 const STATES = ['rough', 'settling', 'polished', 'resting'];
 const LIMITS = { days: 14, rough: 3, inbox: 10, proposals: 3 };
 
@@ -141,7 +146,7 @@ const FORBIDDEN = [
   /^scripts\/(?!e2e\/journeys\/)/,
   /^\.claude\/(hooks|agents)\//,
   /^\.claude\/settings/,
-  /^\.claude\/skills\/(?!tend\/ledger\.json$)/,
+  /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl)$)/,
   /^\.github\//,
   /^specs\//,
   /^(AGENTS|CLAUDE)\.md$/,
@@ -151,7 +156,7 @@ const FORBIDDEN = [
   /^src\/lib\/db\/migrations\.ts$/,
 ];
 // The run's record and the notes: no test asked of these.
-const RECORD = [/^docs\//, /^\.claude\/rules\//, /^\.claude\/skills\/tend\/ledger\.json$/, /^README\.md$/];
+const RECORD = [/^docs\//, /^\.claude\/rules\//, /^\.claude\/skills\/tend\/(ledger\.json|runs\.jsonl)$/, /^README\.md$/];
 const TEST_FILE = /(^src\/lib\/__tests__\/.+\.test\.tsx?$|^scripts\/e2e\/journeys\/.+\.js$)/;
 const UNREAL_TEST = /(\{\s*todo\b|\btodo:|\.todo\(|\.skip\(|\bskip:|\bx(test|it)\()/;
 
@@ -165,9 +170,10 @@ function testName(subject) {
  * What a commit in a loop's range lacks. `files` are `{ status, path, from? }` (git's A, M, D, R;
  * `from` is a rename's old path); `added` is the text of the lines the commit adds to its test files.
  */
-function tendCommitProblems({ subject, body, files, added = '' }) {
+function tendCommitProblems({ subject, body, files, added = '', rewritesLog = false }) {
   const problems = [];
   if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
+  if (rewritesLog) problems.push('rewrites the run log: a run adds its line and changes no other');
   for (const f of files) {
     for (const p of [f.path, f.from].filter(Boolean)) if (FORBIDDEN.some((re) => re.test(p))) problems.push(`touches ${p}, which the loop never edits`);
     if (/^docs\//.test(f.from ?? f.path) && (f.status === 'D' || f.status === 'R')) problems.push(`removes ${f.from ?? f.path}: the loop deletes no document`);
@@ -185,6 +191,50 @@ function tendCommitProblems({ subject, body, files, added = '' }) {
   const audit = /^tend \S+ audit \d/.test(subject);
   if (code.length && !audit && !/^\s*Source:\s*\S/m.test(body)) problems.push('no "Source:" line naming the rule it conforms to');
   return problems;
+}
+
+const MODES = ['sweep', 'triage', 'evolve', 'inbox'];
+const DEPLOYS = ['main', 'branch', 'none'];
+const ANSWERS = ['yes', 'no', 'reshape'];
+const count = (v) => Number.isInteger(v) && v >= 0;
+
+/** What is wrong with the half of a run's line only the run knows. A backfilled line may leave `found` out. */
+function logProblems(given) {
+  const p = [];
+  const g = given ?? {};
+  if (!MODES.includes(g.mode)) p.push(`mode is one of ${MODES.join(', ')}`);
+  if (g.mode === 'sweep' && (typeof g.area !== 'string' || !g.area)) p.push('a sweep names its area');
+  if (!DEPLOYS.includes(g.deploy)) p.push(`deploy is one of ${DEPLOYS.join(', ')}`);
+  if (typeof g.base !== 'string' || !/^[0-9a-f]{7,40}$/.test(g.base)) p.push('base is the commit the worktree was opened from');
+  if (g.mode === 'sweep' && !g.backfilled) {
+    const f = g.found ?? {};
+    const l = f.loop ?? {};
+    if (![l.high, l.medium, l.low, f.owner, f.arch, f.phone, f.out].every(count)) p.push('found counts what the sweep found: loop { high, medium, low }, owner, arch, phone, out');
+    if (typeof g.lenses?.whole !== 'boolean' || !Array.isArray(g.lenses?.skipped)) p.push('lenses says whether the sweep was whole and which lenses were skipped');
+    if (g.lenses?.whole === true && g.lenses.skipped?.length) p.push('a whole sweep skipped no lens');
+  }
+  for (const e of [...(g.filed?.T ?? []), ...(g.filed?.G ?? [])]) if (!/^[TG]\d+$/.test(e)) p.push(`filed entry "${e}" is a T or G number`);
+  for (const a of g.answers ?? []) if (!/^[TG]\d+$/.test(a?.entry ?? '') || !ANSWERS.includes(a?.answer)) p.push(`an answer is { entry: "T3", answer: ${ANSWERS.join(' | ')} }`);
+  if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
+  if (g.state && ![g.state.from, g.state.to].every((x) => x === null || STATES.includes(x))) p.push(`state moves between ${STATES.join(', ')}`);
+  return p;
+}
+
+/**
+ * One run's line: what its commits say (which findings shipped, which were the review's, which were
+ * builds of an answered entry, which were reverted) with what only the run knows. Facts, never a
+ * verdict on the run: reading them is `/tend reflect`'s job and the owner's (decision 0134).
+ */
+function runLine({ date, subjects, given }) {
+  const ids = (re) => subjects.map((s) => re.exec(s)?.[1]).filter(Boolean);
+  return {
+    date,
+    ...given,
+    shipped: ids(/^tend \S+ (\d+)\b/).map(Number).sort((a, b) => a - b),
+    auditFixes: ids(/^tend \S+ audit (\d+)\b/).map(Number).sort((a, b) => a - b),
+    built: ids(/^tend \S+ (T\d+)\b/),
+    reverted: subjects.filter((s) => /^Revert "tend /.test(s)).map((s) => testName(s.replace(/^Revert "/, '')) ?? s),
+  };
 }
 
 function git(...args) {
@@ -287,6 +337,26 @@ function mainLedger() {
   }
 }
 
+function appendLog(argv) {
+  const [range, json] = argv;
+  let given;
+  try {
+    given = JSON.parse(json ?? '');
+  } catch {
+    console.error("usage: node scripts/tend.js log <range> '<json>'; the json is the run's own half (see .claude/skills/tend/SKILL.md, section 10)");
+    process.exit(2);
+  }
+  const problems = logProblems(given);
+  if (problems.length) {
+    console.error(`tend log: ${problems.join('; ')}`);
+    process.exit(1);
+  }
+  const subjects = range ? git('log', '--no-merges', '--reverse', '--format=%s', range).split('\n').filter(Boolean) : [];
+  const line = runLine({ date: new Date().toISOString().slice(0, 10), subjects, given });
+  fs.appendFileSync(RUNS, JSON.stringify(line) + '\n');
+  console.log(JSON.stringify(line));
+}
+
 function next() {
   const ledger = mainLedger();
   const area = nextArea(changesByArea(sweptAt(ledger)), ledger.areas);
@@ -314,7 +384,8 @@ function commits(argv) {
     const added = tests.length
       ? git('show', '--format=', '-U0', sha, '--', ...tests).split('\n').filter((l) => /^\+(?!\+\+)/.test(l)).join('\n')
       : '';
-    for (const p of tendCommitProblems({ subject, body: rest.join('\n'), files, added })) {
+    const rewritesLog = files.some((f) => f.path === RUNS_REL) && git('show', '--format=', '-U0', sha, '--', RUNS_REL).split('\n').some((l) => /^-(?!--)/.test(l));
+    for (const p of tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog })) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
     }
@@ -327,11 +398,12 @@ if (require.main === module) {
   const [cmd, ...argv] = process.argv.slice(2);
   if (cmd === 'balance') balance(argv);
   else if (cmd === 'next') next();
+  else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | commits [--loop-only] <range>');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> '<json>' | commits [--loop-only] <range>');
     process.exit(2);
   }
 }
 
-module.exports = { LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems };
+module.exports = { LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, logProblems, runLine };

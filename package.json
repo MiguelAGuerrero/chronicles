@@ -72,6 +72,7 @@
     "check:vision": "node scripts/check-vision.js",
     "check:tend": "node scripts/tend.js commits",
     "tend:balance": "node scripts/tend.js balance",
+    "tend:log": "node scripts/tend.js log",
     "e2e:baseline": "node scripts/e2e-baseline.js",
     "check:e2e": "node scripts/affected.js e2e",
     "places:coverage": "tsx scripts/places-coverage.ts"
