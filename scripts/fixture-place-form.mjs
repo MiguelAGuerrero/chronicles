@@ -4,6 +4,7 @@
 //
 //   npx tsx scripts/fixture-place-form.mjs calibration|heldOut      (needs the network; writes src/lib/__tests__/walkability/placeForm<Set>.json)
 
+import { Buffer } from 'node:buffer';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { VectorTile } from '@mapbox/vector-tile';
