@@ -124,11 +124,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T4 [owner] Explore: an area's busy streets are listed busiest first, and its walk starts on "its busiest street"** (2026-11-11)
-  Area: explore. Seen: `src/components/atlas/AtlasCard.tsx:236` ("each busy street once, busiest first") and `:355` ("Starts you at {via}, its busiest street"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best of', rankings of places"; the steward calls it drift, not a breach: decisions 0034, 0080 and 0127 make busy streets information, and no rank number shows. Recommended: list the busy streets by distance from you, and say "Starts you on {via}"; the words "busy streets" stay. /vision: not run as a gate this time; the steward's reading stands in, so the answer is yours. Otherwise: leave it; the order is the information.
-- **T5 [owner] Explore: "How the marks work" is always open on an area's card, about a third of the sheet** (2026-11-11)
-  Area: explore. Seen: picture `11c-atlas-card`: the explainer pushes the Views row below the fold, above four equal "Suggest a walk" pills. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; the UX review's opinion, no cited source. Recommended: the explainer opens from its own "How the marks work" link and stays shut on the next visit. Otherwise: leave it; it is the one place that says no mark is a score.
-
 ### Next evolutions
 
 The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.
@@ -148,22 +143,30 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   (`(tabs)/index.tsx`, `HomeSheet`), no native code. Reopens: chronicle (rough). After it: the sheet's switch could be
   reconsidered once the bar is trusted. Instead: hide the sheet's switch while the bar shows (a removal).
 
+- **G2 [M] Explore: "busy" becomes "storefronts", listed nearest first** (2026-11-11) · Earn · aligned
+  Area: explore (and layers, landing, the route leaning). From: T4, reshaped by the owner Nov 11: "busy" implies traffic,
+  which depends on the time of day; the concept is the density of non-residential places you can walk into, for a downtown
+  strip and a small corner pocket alike. The owner chose the word, the order and the reach.
+  Touches: VISION.md Never, "Popularity, trending, foot traffic, other people's activity" (nearest fit "Presence of places
+  from open data") and "rankings of places"; decisions 0034 (information only), 0080, 0127, 0109 (the source stays
+  Overture and OpenStreetMap; only the word changes).
+  The slice: 1. The map layer "Busy streets" is "Storefronts". 2. An area's card says "Storefronts" for its areas and
+  streets, listed nearest you first. 3. The walk line reads "Starts you on {street}", with no superlative. 4. "What's good
+  here?" names the street or pocket where storefronts gather, never "Busiest area". 5. "A busy pocket" becomes a pocket
+  of storefronts. 6. The walk's help line and the route leaning ("Along the busy streets") say storefronts. 7. No line or
+  label for this concept says busy, busiest or most, and none counts storefronts. 8. Walkability's "Streets far apart and
+  busy" (traffic) is unchanged. 9. Decisions 0080 and 0127 and the specs that pin the old words are amended in the slice.
+  Payoff: every visit to Explore, and every route that leans; the word stops promising people the data cannot see.
+  Cost: M, copy across about eight screens and modules plus the specs and tests that pin it, no native code, no data
+  change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
+  say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
+
 ### Last tend
 
-**Nov 11, `/tend explore`** (a second sweep, from `0193552`, for the lenses the first left out). Five loop commits:
-`tend explore 2` a cancelled "What's good here?" stays stopped when a newer one starts (`lib/atlas/look`); `5` a town's spoken
-"Waiting in" names only kinds still waiting (WT11); `4` one Escape closes the planner over a card, and the card stays; `6` on a
-town's page Escape closes the long press's choices or Layers before the page; `7` one tap on a town's dot eases in far enough
-for it to be a "?" (WT13). The review (one round): `audit 1` Back with Layers open on a town's page closes the panel (Android
-lost it in `6`), `audit 3` a found place's dot is not sent to where finds vanish (`7`); and `audit 4` the Escape that closes Layers stops there
-(the town page's journey step caught Escape leaving the page too: React re-adds the page's handler mid-event); one deferred (a look cancelled during its
-write can still speak), one rejected (an all-found town keeps its keyboard way in: the selected tile opens its card). A sixth (a look left running when the tab is left) was dropped: its journey step passed on the build
-before the fix, so it is filed unconfirmed. Filed: `docs/DEFERRED.md` Explore and discovery, twelve `[loop]` items (two retry and
-centre bugs in shells no unit test reaches, a capture missed during a read, focus on the web, low ones); no inbox entry. The
-balance: in step; explore stays rough (medium findings). Lenses run: 1 (`grading`, `snap`, `curiosities` new; `atlas`, `carousel`
-again), 2 (read in the code; 320 px pictured for the carousel's town screens through a scratch preload, the atlas journey's Explore
-pages stayed 390), 3, 4 (EC, WT, AT, DN, TP, AG and the rule file), 5 (races, cost, truth vs cache), 6 (`check:vision`).
-Not run: 200% text, offline pictured, the reviewers on this run's pictures. Nothing here has run on a phone.
+**Nov 11, `/tend inbox T4 reshape`** (from `8e227dd`). No build. The owner reshaped T4 (busy streets listed busiest first)
+in conversation: "busy" implies traffic that depends on the hour, while the concept is the density of non-residential
+places you can walk into, a downtown strip or a corner pocket. Chosen: the word "storefronts", nearest first, everywhere
+the concept shows. Too large for one commit, it is filed as G2 [M] (the gate: aligned, Earn) and T4 leaves the inbox.
 
 ### Open before the loop
 
