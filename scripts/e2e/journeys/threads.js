@@ -366,11 +366,10 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=note-edit-input]');
   await pg.click('[data-testid=note-edit-input]');
   await pg.keyboard.type('Like the ');
-  await pg.keyboard.type('@');
+  await pg.keyboard.type('@dusk');
   const picker = await there('[data-testid=ref-palette]', 5000);
   await pg.waitForTimeout(800);
   await shot(pg, '76-mention-picker');
-  await pg.fill('[data-testid=moment-picker-search]', 'harbor at dusk');
   await pg.waitForTimeout(300);
   await pg.locator('[data-testid=moment-picker-row]').first().click();
   await gone('[data-testid=ref-palette]');
@@ -419,10 +418,13 @@ async function run(h) {
   await pg.waitForTimeout(800);
   await shot(pg, '79-ref-palette');
   const chips = await pg.locator('[data-testid^=ref-time-]').count();
-  check(palette && (await has('[data-testid=ref-key-there]')) && chips >= 8 && (await has('[data-testid=moment-picker-search]')) && (await pg.locator('[data-testid=moment-picker-row]').count()) > 0,
-    `RK1: @ in a note opens one palette: where, when and the moments (${chips} time words)`);
+  const rkField = await pg.locator('[data-testid=note-edit-input]').boundingBox();
+  const rkMenu = await pg.locator('[data-testid=ref-palette]').boundingBox();
+  check(palette && (await has('[data-testid=ref-key-there]')) && chips >= 8 && (await pg.locator('[data-testid=moment-picker-row]').count()) > 0,
+    `RK1: @ in a note opens one menu: where, when and the moments (${chips} time words)`);
+  check(!!rkField && !!rkMenu && rkMenu.y >= rkField.y + rkField.height - 1, 'RK21: the menu sits beside the field, never over it');
   const rowText = await pg.locator('[data-testid=moment-picker-row]').first().innerText();
-  check(/[A-Z][a-z]{2} \d{1,2}/.test(rowText), `RK8: a moment row in the palette carries its date (${rowText.replace(/\n/g, ' · ')})`);
+  check(/[A-Z][a-z]{2} \d{1,2}/.test(rowText), `RK8: a moment row in the menu carries its date (${rowText.replace(/\n/g, ' · ')})`);
   await pg.click('[data-testid=ref-key-there]');
   const resolve = await there('[data-testid=ref-resolve]', 3000);
   const mapOffered = await has('[data-testid=ref-choose-map]');
@@ -433,16 +435,38 @@ async function run(h) {
   check(resolve && mapOffered && !/\d/.test(rowsText) && !/closest|nearest|best|top/i.test(rowsText), `RK18: over there lists places by distance in words and always offers Choose on the map (${rows} places)`);
   await pg.click('[data-testid=ref-resolve-close]');
   await gone('[data-testid=ref-resolve]');
-  const stillTyping = (await pg.locator('[data-testid=note-edit-input]').inputValue()) === 'Back @';
-  await pg.click('[data-testid=ref-palette-close]');
-  await gone('[data-testid=ref-palette]');
-  check(stillTyping && (await pg.locator('[data-testid=note-edit-input]').inputValue()) === 'Back @', 'RK1, RK14: dismissing the palette leaves the @ as typed, and typing was never held up');
-  await pg.keyboard.type(' @');
-  await there('[data-testid=ref-palette]', 5000);
-  await pg.click('[data-testid=ref-time-tomorrow]');
+  await pg.keyboard.press('End');
+  // Typing on narrows the menu (RK21); a query nothing matches closes it, and deleting brings it back.
+  await pg.keyboard.type('to');
+  await pg.waitForTimeout(300);
+  const narrowed = await pg.locator('[data-testid^=ref-time-]').allInnerTexts();
+  check(narrowed.length >= 3 && narrowed.length < chips && narrowed.every((t) => /to/i.test(t)) && (await has('[data-testid=ref-time-tomorrow]')) && !(await has('[data-testid=ref-time-now]')), `RK21: @to keeps the words with a "to" and drops the rest (${narrowed.map((t) => t.split('\n')[0]).join(', ')})`);
+  await pg.keyboard.type('zz');
+  await pg.waitForTimeout(300);
+  const closedNoMatch = !(await has('[data-testid=ref-palette]'));
+  await pg.keyboard.press('Backspace');
+  await pg.keyboard.press('Backspace');
+  await pg.waitForTimeout(300);
+  check(closedNoMatch && (await has('[data-testid=ref-palette]')), 'RK21: a query nothing matches closes the menu, and deleting back brings it again');
+  // The keyboard drives it (RK22): the arrows move the highlight, Enter picks it.
+  const lit = async () => (await pg.locator('[data-testid=ref-palette] [data-selected="1"]').first().innerText().catch(() => '')).split('\n')[0];
+  const first = await lit();
+  await pg.keyboard.press('ArrowDown');
+  await pg.keyboard.press('ArrowDown');
+  const third = await lit();
+  check(first === 'today' && third === 'tomorrow', `RK22: the arrows move the highlight (${first} to ${third})`);
+  await pg.keyboard.press('Enter');
   await gone('[data-testid=ref-palette]');
   const withKey = await pg.locator('[data-testid=note-edit-input]').inputValue();
-  check(/^Back @ @tomorrow \([A-Z][a-z]{2} \d{1,2}\) $/.test(withKey), `RK2: the chosen keyword is in the note and the other words are as typed ("${withKey}")`);
+  check(/^Back @tomorrow \([A-Z][a-z]{2} \d{1,2}\) $/.test(withKey), `RK2, RK22: Enter picks the highlight, replacing the @ and the letters typed, and the other words are as typed ("${withKey}")`);
+  // A space ends the menu and leaves what was typed (RK1, RK14).
+  await pg.keyboard.type('@');
+  await there('[data-testid=ref-palette]', 5000);
+  await pg.keyboard.type(' ');
+  await pg.waitForTimeout(300);
+  check(!(await has('[data-testid=ref-palette]')) && (await pg.locator('[data-testid=note-edit-input]').inputValue()).endsWith('@ '), 'RK1, RK14: a space dismisses the menu and leaves the @ as typed; typing was never held up');
+  await pg.keyboard.press('Backspace');
+  await pg.keyboard.press('Backspace');
   // Over there: a spot picked on the map and named (RK18).
   await pg.keyboard.type('@');
   await there('[data-testid=ref-palette]', 5000);
@@ -463,7 +487,7 @@ async function run(h) {
   await closeViewer();
   await pg.waitForTimeout(800);
   db = await stored(pg);
-  const keyNote = db.captures.find((m) => (m.pieces[0].body ?? '').startsWith('Back @ @{time|tomorrow|'));
+  const keyNote = db.captures.find((m) => (m.pieces[0].body ?? '').startsWith('Back @{time|tomorrow|'));
   const kb = keyNote?.pieces[0].body ?? '';
   check(!!keyNote && /@\{there\|over there\|the old pier\|-?\d+\.\d+,-?\d+\.\d+\}/.test(kb) && !/@\[/.test(kb), `RK3: each keyword is a token with its value and payload in the note's own text (${kb})`);
   await openCard('is when');
@@ -471,6 +495,8 @@ async function run(h) {
   await pg.waitForTimeout(500);
   await shot(pg, '81-ref-keyword');
   check(kws.length === 2 && /^tomorrow \([A-Z][a-z]{2} \d{1,2}\)$/.test(kws[0]) && kws[1] === 'over there (the old pier)', `RK9: the viewer shows each word with its value in parentheses by default (${kws.join(' | ')})`);
+  const pill = await pg.locator('[data-testid=ref-keyword]').first().evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, word: getComputedStyle(el.firstElementChild ?? el).fontWeight, whole: getComputedStyle(el).fontWeight }));
+  check(/rgba\(127, 127, 127/.test(pill.bg) && Number(pill.word) > Number(pill.whole), `RK23: the viewer draws a keyword as a pill, the word heavier than its value (${pill.bg}, ${pill.word} over ${pill.whole})`);
   await pg.locator('[data-testid=ref-keyword]').nth(1).click();
   const fixing = await there('[data-testid=ref-resolve]', 3000);
   await pg.click('[data-testid=ref-choose-map]');
@@ -485,9 +511,6 @@ async function run(h) {
   db = await stored(pg);
   const fixed = db.captures.find((m) => /@\{there\|over there\|the old mill\|/.test(m.pieces[0].body ?? '') && /@\{time\|tomorrow\|/.test(m.pieces[0].body ?? ''));
   check(fixing && mapUp && kw2 === 'over there (the old mill)' && !!fixed, `RK10: a tap on a place reference opens the resolution picker, and a pick replaces its value and keeps its word and the rest of the note ("${kw2}")`);
-  check.todo(false, 'RK21: the menu opens beside the field and filters as the owner types');
-  check.todo(false, 'RK22: on the web the arrows, Enter and Escape drive the menu');
-  check.todo(false, 'RK23: the viewer draws a keyword as a pill: the word, then its value quieter');
   await closeViewer();
   await c.close();
 }

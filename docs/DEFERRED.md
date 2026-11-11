@@ -124,6 +124,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - "N minutes in" is built (`timeEntries`) but not offered: the viewer does not know how far into its walk a note is when it edits it (RK16)
 - A new reply resolves from the last fix the app already knows (`lib/lastFix`), not from the capture's own stamp, which the editor cannot reach (RK4, RK15); an edit of a saved note uses the moment's own fix and no stamp
 - Keywords in the capture stack's quick note and in captions (0125's deferral stands); weather and temperature (needs a decision on what the network is for); relative time words that move with when a note is read
+- Tinted words for a reference inside the editor's field (RK23 draws the pill where a note is read): a native text field cannot style spans and stay controlled, and the web's is a plain text box; a rich field, markdown shortcuts and a block editor are later (the owner, Nov 11)
 - A search by a reference's value ("notes that say here at the science center"); the value is in the note's text, so a words search finds it, but nothing is built for it
 
 ## Moments and days

@@ -138,3 +138,21 @@ export const paletteOrder = (entries: KeywordEntry[]): KeywordEntry[] => {
   const rank = (e: KeywordEntry) => KEYWORD_KINDS.indexOf(e.key);
   return [...entries].sort((a, b) => rank(a) - rank(b));
 };
+
+/**
+ * The entries a typed query keeps (RK21): none typed keeps all; else those whose word, or one of its words, starts with
+ * it, then those whose value holds it. Case never matters, and the order is the palette's own within each group.
+ */
+export function matchEntries<T extends { word: string; value?: string | null }>(entries: readonly T[], query: string): T[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...entries];
+  const starts = (e: T) => e.word.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)) || e.word.toLowerCase().startsWith(q);
+  const holds = (e: T) => !!e.value && e.value.toLowerCase().includes(q);
+  return [...entries.filter(starts), ...entries.filter((e) => !starts(e) && holds(e))];
+}
+
+/** The menu's highlight after an arrow (RK22): it stays in the list, and a list of none has none. */
+export function moveHighlight(index: number, delta: number, count: number): number {
+  if (count <= 0) return -1;
+  return Math.min(count - 1, Math.max(0, index + delta));
+}

@@ -2,12 +2,13 @@ import { forwardRef, useImperativeHandle, useRef, useState, type ComponentRef } 
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NOTE_MAX, noteText } from '../lib/noteEdit';
-import { editRefs, type EditorRef, fromEditor, insertKeyword, insertRef, type KeywordRef, toEditor, typedAt } from '../lib/refs';
+import { editRefs, type EditorRef, fromEditor, insertKeyword, insertRef, type KeywordRef, menuQuery, toEditor, typedAt } from '../lib/refs';
 import type { LngLat } from '../lib/types';
 import { refLabel } from '../lib/threads/lines';
 import { useKeyboardHeight } from '../lib/threads/useKeyboardHeight';
 import { useMomentPool } from './threads/useMomentPool';
-import { RefPalette } from './threads/RefPalette';
+import { RefPalette, type RefMenuHandle } from './threads/RefPalette';
+import { RefResolve } from './threads/RefResolve';
 import { Button, theme } from './ui';
 
 /**
@@ -38,33 +39,59 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
   };
   // A reference reads as "@" and its words, and goes whole (RF3); what is saved puts its token back.
   const [state, setState] = useState<{ text: string; refs: EditorRef[] }>(() => toEditor(props.body, () => null));
+  // Where the "@" was typed, the cursor, and whether "Over there" is being resolved (RK21): the menu is open from the "@" to
+  // the cursor, until a space.
   const [picking, setPicking] = useState<number | null>(null);
+  const [cursor, setCursor] = useState(0);
+  const [resolving, setResolving] = useState(false);
+  const menu = useRef<RefMenuHandle>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   // Dismissed, the @ stays as typed (RF1), and the words with it.
-  useImperativeHandle(ref, () => ({ requestClose: () => (picking != null ? setPicking(null) : props.onClose()) }));
+  useImperativeHandle(ref, () => ({ requestClose: () => (resolving ? setResolving(false) : picking != null ? setPicking(null) : props.onClose()) }));
+  const query = picking != null ? menuQuery(state.text, picking, cursor) : null;
   const onChange = (next: string) => {
     const edited = editRefs(state.text, next, state.refs);
     setState(edited);
     setSelection(undefined);
     const at = props.mention ? typedAt(state.text, next) : null;
-    if (at != null && edited.text === next) setPicking(at);
+    if (at != null && edited.text === next) {
+      setPicking(at);
+      setCursor(at + 1);
+      return;
+    }
+    // Typing on: the cursor moves with the text, and a space or a delete past the "@" closes the menu.
+    const moved = Math.max(0, cursor + (next.length - state.text.length));
+    setCursor(moved);
+    if (picking != null && menuQuery(edited.text, picking, moved) == null) setPicking(null);
+  };
+  // Web: the arrows move the menu's highlight and Enter picks it; with no menu, the field's own keys (RK22).
+  const onKeyPress = (e: { nativeEvent: { key: string }; preventDefault?: () => void }) => {
+    if (query == null || !menu.current?.hasItems()) return;
+    const k = e.nativeEvent.key;
+    if (k === 'ArrowDown' || k === 'ArrowUp') {
+      e.preventDefault?.();
+      menu.current.move(k === 'ArrowDown' ? 1 : -1);
+    } else if ((k === 'Enter' || k === 'Tab') && menu.current.pickHighlighted()) e.preventDefault?.();
   };
   const [opened] = useState(() => Date.now());
   const putKeyword = (k: KeywordRef) => {
     if (picking == null) return;
-    const r = insertKeyword(state.text, picking, state.refs, k);
+    const r = insertKeyword(state.text, picking, state.refs, k, query ?? '');
     setState({ text: r.text, refs: r.refs });
     setSelection({ start: r.cursor, end: r.cursor });
     setPicking(null);
+    setResolving(false);
+    setCursor(r.cursor);
     input.current?.focus();
   };
   const pick = (id: string) => {
     if (picking == null) return;
-    const r = insertRef(state.text, picking, state.refs, id, wordsOf(id));
+    const r = insertRef(state.text, picking, state.refs, id, wordsOf(id), query ?? '');
     setState({ text: r.text, refs: r.refs });
     setSelection({ start: r.cursor, end: r.cursor });
     setPicking(null);
+    setCursor(r.cursor);
     input.current?.focus();
   };
   // The 500 characters count what is shown; a reference's token is never cut in two.
@@ -86,6 +113,12 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
           ref={input}
           value={state.text}
           onChangeText={onChange}
+          onKeyPress={onKeyPress}
+          onSelectionChange={(e) => {
+            const end = e.nativeEvent.selection.end;
+            setCursor(end);
+            if (picking != null && menuQuery(state.text, picking, end) == null) setPicking(null);
+          }}
           selection={selection}
           placeholder={props.mention ? 'What’s worth remembering? Type @ to mention a place, a time or a moment' : 'What’s worth remembering?'}
           placeholderTextColor={theme.muted}
@@ -98,19 +131,28 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
           <Button testID="note-edit-save" label="Save" onPress={save} disabled={!kept} />
         </View>
       </View>
-      {picking != null && (
-        // Dismissed, the @ stays as typed (RF1).
+      {query != null && (
+        // Beside the field, never over it; dismissed, the @ stays as typed (RF1, RK21).
         <RefPalette
+          ref={menu}
           pool={pool}
           self={props.mention?.self ?? null}
           fix={props.mention?.fix ?? { saved: null, stamp: null }}
           t={props.mention?.t ?? opened}
           minutesIn={props.mention?.minutesIn ?? null}
+          query={query}
           onKeyword={putKeyword}
+          onResolve={() => setResolving(true)}
           onMoment={(v) => pick(v.id)}
-          // Dismissed, the @ stays as typed and the field takes the keyboard back (RK1).
+        />
+      )}
+      {resolving && (
+        <RefResolve
+          fix={props.mention?.fix ?? { saved: null, stamp: null }}
+          title="Over there"
+          onPick={(r) => putKeyword({ key: 'there', word: 'over there', value: r.value, payload: r.payload })}
           onClose={() => {
-            setPicking(null);
+            setResolving(false);
             input.current?.focus();
           }}
         />

@@ -186,17 +186,28 @@ export function editRefs(prev: string, next: string, refs: EditorRef[]): { text:
  * A pick from the picker (RF1): the "@" typed at `at` becomes the reference, shown as `@` and its words, followed by a
  * space, and the cursor goes after it.
  */
-export function insertRef(text: string, at: number, refs: EditorRef[], id: string, words: string | null): { text: string; refs: EditorRef[]; cursor: number } {
-  return insertAt(text, at, refs, `@${words ?? GONE}`, { id, label: words });
+export function insertRef(text: string, at: number, refs: EditorRef[], id: string, words: string | null, query = ''): { text: string; refs: EditorRef[]; cursor: number } {
+  return insertAt(text, at, refs, `@${words ?? GONE}`, { id, label: words }, query);
 }
 
 /** A keyword picked from the palette (RK2): put in at the "@" typed at `at`, shown as its word and value, every other character as it was. */
-export function insertKeyword(text: string, at: number, refs: EditorRef[], k: KeywordRef): { text: string; refs: EditorRef[]; cursor: number } {
-  return insertAt(text, at, refs, `@${keywordPlain(k)}`, { id: `key:${k.key}`, label: k.word, token: keywordToken(k) });
+export function insertKeyword(text: string, at: number, refs: EditorRef[], k: KeywordRef, query = ''): { text: string; refs: EditorRef[]; cursor: number } {
+  return insertAt(text, at, refs, `@${keywordPlain(k)}`, { id: `key:${k.key}`, label: k.word, token: keywordToken(k) }, query);
 }
 
-function insertAt(text: string, at: number, refs: EditorRef[], shown: string, ref: Omit<EditorRef, 'start' | 'end'>): { text: string; refs: EditorRef[]; cursor: number } {
-  const typedAt = text[at] === '@' ? 1 : 0;
+/**
+ * What was typed after an "@" at `at`, up to the cursor (RK21): the menu's query, "" right after the "@", or null when
+ * the menu is not open: no "@" there, the cursor before it, or a space between (the owner is typing on).
+ */
+export function menuQuery(text: string, at: number, cursor: number): string | null {
+  if (text[at] !== '@' || cursor < at + 1) return null;
+  const typed = text.slice(at + 1, cursor);
+  return /\s/.test(typed) ? null : typed;
+}
+
+function insertAt(text: string, at: number, refs: EditorRef[], shown: string, ref: Omit<EditorRef, 'start' | 'end'>, query = ''): { text: string; refs: EditorRef[]; cursor: number } {
+  // The "@" and the letters typed after it (RK21) are what the pick replaces, and nothing else.
+  const typedAt = (text[at] === '@' ? 1 : 0) + (text[at] === '@' ? query.length : 0);
   const rest = text.slice(at + typedAt);
   const space = rest.startsWith(' ') ? '' : ' ';
   const added = shown.length + space.length - typedAt;

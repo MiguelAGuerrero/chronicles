@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { formatElapsed } from '../../lib/format';
-import { GONE, keywordPlain, parseRefs } from '../../lib/refs';
+import { GONE, parseRefs } from '../../lib/refs';
 import { useRefValues } from '../../lib/refValues/useRefValues';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
@@ -57,7 +57,8 @@ export function NoteText(props: {
           accessibilityRole={props.onKeyword && p.key !== 'time' ? 'button' : undefined}
           onPress={props.onKeyword && p.key !== 'time' ? () => props.onKeyword?.(index) : undefined}
         >
-          {keywordPlain(p, showValues)}
+          <Text style={styles.word}>{p.word}</Text>
+          {showValues && p.value && p.value !== p.word ? ` (${p.value})` : ''}
         </Text>,
       );
     } else {
@@ -114,7 +115,10 @@ const styles = StyleSheet.create({
   col: { gap: 8 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, padding: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.bg },
   gone: { justifyContent: 'center' },
-  keyword: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  // A pill inline in the words (RK23), as a mention reads in Notion: a soft tint that reads on any ground, the word
+  // heavier than its value. Padding and the radius are the web's; a phone shows the tint.
+  keyword: { backgroundColor: 'rgba(127,127,127,0.26)', borderRadius: 6, paddingHorizontal: 5 },
+  word: { fontWeight: '700' },
   pic: { width: 48, height: 48, borderRadius: 8, overflow: 'hidden' },
   icon: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface },
   text: { flex: 1, gap: 2 },

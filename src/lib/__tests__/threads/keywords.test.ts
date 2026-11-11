@@ -3,9 +3,9 @@ import { test } from 'node:test';
 import { createDeleteRunner } from '../../deletion/runner';
 import { facedOf, momentOf } from '../../moment';
 import {
-  distanceWords, entryRef, KEYWORD_KINDS, nearbyPlaces, paletteOrder, placeEntries, pointPayload, REF_RULES, resolveTime, timeEntries, TIME_WORDS, type NearPlace,
+  distanceWords, entryRef, KEYWORD_KINDS, matchEntries, moveHighlight, nearbyPlaces, paletteOrder, placeEntries, pointPayload, REF_RULES, resolveTime, timeEntries, TIME_WORDS, type NearPlace,
 } from '../../refKeywords';
-import { fromEditor, GONE, insertKeyword, keywordPlain, keywordToken, parseRefs, plainNote, plainRefs, refToken, replaceKeywordValue, toEditor, typedAt } from '../../refs';
+import { fromEditor, GONE, insertKeyword, keywordPlain, keywordToken, menuQuery, parseRefs, plainNote, plainRefs, refToken, replaceKeywordValue, toEditor, typedAt } from '../../refs';
 import { refCardLine } from '../../threads/lines';
 import { fakePorts } from '../fakes';
 
@@ -190,5 +190,33 @@ test('RK20: a pointer to a deleted moment goes alone: the word and value stay; t
   assert.deepEqual(await p.db.getMomentsByIds(['n']), []);
 });
 
-test('RK21: the menu filters as the owner keeps typing, and a pick replaces the @ and the letters typed after it', { todo: 'test first' }, () => {});
-test('RK22: the keyboard moves a highlight, Enter picks it, and the highlight never leaves the list', { todo: 'test first' }, () => {});
+test('RK21: the menu filters as the owner keeps typing, and a pick replaces the @ and the letters typed after it', () => {
+  const all = [...timeEntries(T, 0), ...placeEntries({ fix: FIX, places: [place('Science Center', 10)], street: null })];
+  assert.equal(matchEntries(all, '').length, all.length, 'no letters: everything');
+  assert.deepEqual(matchEntries(all, 'to').map((e) => e.word), ['today', 'tonight', 'tomorrow', 'next to me']);
+  assert.deepEqual(matchEntries(all, 'TO').map((e) => e.word), ['today', 'tonight', 'tomorrow', 'next to me'], 'case never matters');
+  assert.deepEqual(matchEntries(all, 'there').map((e) => e.word), ['over there'], 'a later word of the entry counts');
+  assert.ok(matchEntries(all, 'science').some((e) => e.word === 'here'), 'a place by its name');
+  assert.deepEqual(matchEntries(all, 'zzz'), [], 'nothing matches: the menu closes');
+  // The menu is open from the @ to the cursor, until a space.
+  assert.equal(menuQuery('Back @', 5, 6), '');
+  assert.equal(menuQuery('Back @to', 5, 8), 'to');
+  assert.equal(menuQuery('Back @to ', 5, 9), null, 'a space ends it');
+  assert.equal(menuQuery('Back to', 5, 7), null, 'no @ there');
+  assert.equal(menuQuery('Back @to', 5, 5), null, 'cursor before the @');
+  // A pick replaces the @ and the letters, and nothing else.
+  const typed = 'Back @to later';
+  const k = { key: 'time' as const, word: 'tomorrow', value: 'Oct 21', payload: '1' };
+  const r = insertKeyword(typed, 5, [], k, 'to');
+  assert.equal(r.text, 'Back @tomorrow (Oct 21) later');
+  assert.equal(fromEditor(r.text, r.refs), `Back ${keywordToken(k)} later`);
+  assert.equal(insertKeyword('Back @', 5, [], k).text, 'Back @tomorrow (Oct 21) ', 'no letters: the @ alone');
+});
+
+test('RK22: the keyboard moves a highlight, Enter picks it, and the highlight never leaves the list', () => {
+  assert.equal(moveHighlight(0, 1, 3), 1);
+  assert.equal(moveHighlight(2, 1, 3), 2, 'the end holds');
+  assert.equal(moveHighlight(0, -1, 3), 0, 'the start holds');
+  assert.equal(moveHighlight(-1, 1, 3), 0, 'from nothing, the first');
+  assert.equal(moveHighlight(0, 1, 0), -1, 'an empty list has none');
+});

@@ -22,22 +22,36 @@ function rowOf(v: MomentView, pool: MomentPool, now: number) {
 }
 
 /**
+ * The moments a query keeps (RF1, RK21): by words, place or date, a page at a time, never the moment itself and nothing
+ * waiting in Undo. The picker's list and the "@" menu both read it.
+ */
+export function useMomentMatches(pool: MomentPool, self: string | null, query: string, limit: number, only?: string[]): { shown: MomentView[]; more: boolean } {
+  const hidden = useHidden();
+  const [now] = useState(() => Date.now());
+  const onlyKey = only?.join('|');
+  return useMemo(() => {
+    const keep = onlyKey != null ? new Set(onlyKey.split('|')) : null;
+    const items = pool.views
+      .filter((v) => !keep || keep.has(v.id))
+      .map((v) => ({ id: v.id, t: v.t, words: v.words, context: rowOf(v, pool, now).context }));
+    const found = filterPicker(items, { hidden, self: self ?? '', query, limit });
+    return { shown: found.shown.map((i) => pool.byId.get(i.id)).filter((v): v is MomentView => !!v), more: found.more };
+  }, [pool, onlyKey, self, hidden, query, limit, now]);
+}
+
+/** A moment's row as the menus list it: its own first words, then its place and date (RK8). */
+export const momentRow = rowOf;
+
+/**
  * The moment list a picker and the reference palette share (RF1, RK1): search by words, place or date, a page at a time,
  * every row with its place and date (RK8), never the moment itself and nothing waiting in Undo.
  */
 export function MomentList(props: { pool: MomentPool; self: string | null; only?: string[]; onPick: (v: MomentView) => void }) {
-  const hidden = useHidden();
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
   const [now] = useState(() => Date.now());
-  const found = useMemo(() => {
-    const only = props.only ? new Set(props.only) : null;
-    const items = props.pool.views
-      .filter((v) => !only || only.has(v.id))
-      .map((v) => ({ id: v.id, t: v.t, words: v.words, context: rowOf(v, props.pool, now).context }));
-    return filterPicker(items, { hidden, self: props.self ?? '', query, limit });
-  }, [props.pool, props.only, props.self, hidden, query, limit, now]);
-  const shown = found.shown.map((i) => props.pool.byId.get(i.id)).filter((v): v is MomentView => !!v);
+  const found = useMomentMatches(props.pool, props.self, query, limit, props.only);
+  const shown = found.shown;
   return (
     <>
       {!props.only && (
