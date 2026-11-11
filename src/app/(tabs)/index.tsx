@@ -28,7 +28,7 @@ import type { Bounds } from '../../lib/geo';
 import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
-import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
+import { fitsOnRead, levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
 import type { LngLat, Walk, WalkSummary } from '../../lib/types';
 import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
@@ -48,6 +48,11 @@ const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Walks a pass began this session; one that failed waits for the next launch (criterion 25). */
 const tried = new Set<string>();
+/**
+ * How many walks the background passes had placed when Chronicle last read its rows. Kept across remounts (a
+ * section switch, a replay): a walk placed while the map was away is followed quietly on return (audit 9).
+ */
+const placedSeen = { n: 0 };
 const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(',') : '');
 /** The closest any of Chronicle's fits may zoom (tabs audit U15). */
 const FIT_MAX_ZOOM = 15;
@@ -108,7 +113,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
   // the pass itself, so a remount mid-pass (a section switch) still shows it (fix background-placing audit 1).
   const placingId = useStore(backlogStatus, (s) => s.at);
   const placedCount = useStore(backlogStatus, (s) => s.placed);
-  const placedSeen = useRef(placedCount);
   // Reads the rows again without moving the map, while in front; set by the focus effect below.
   const quietLoad = useRef<(() => void) | null>(null);
   const [selected, setSelected] = useState<Star | null>(null);
@@ -175,10 +179,11 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
         const bounds = fitWithMoments(placesIndex(areas, rows, walks).bounds, caps.filter((c) => !gone.has(c.id)));
         // A walk placed in the background (refit false) moves the map only when nothing was framed yet; otherwise
         // its places count as framed, so coming back from a replay keeps the view you left (H5; audit 2).
-        if (boundsKey(bounds) !== fittedTo.current) {
-          const first = fittedTo.current === '';
-          fittedTo.current = boundsKey(bounds);
-          if (refit || first) setFit((f) => ({ bounds, key: f.key + 1 }));
+        const key = boundsKey(bounds);
+        if (key !== fittedTo.current) {
+          const fit = fitsOnRead(fittedTo.current, key, !refit);
+          fittedTo.current = key;
+          if (fit) setFit((f) => ({ bounds, key: f.key + 1 }));
         }
         return { walks, rows };
       };
@@ -188,7 +193,10 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
       quietLoad.current = () => {
         load(false).catch(() => {});
       };
-      load()
+      // Walks placed while Chronicle was away are followed quietly too: the map stays where it was left (audit 9).
+      const away = backlogStatus.get().placed !== placedSeen.n;
+      placedSeen.n = backlogStatus.get().placed;
+      load(!away)
         .then(async (d) => {
           if (!d) return;
           // Walks with no places yet are placed in the background, one after another, from the tiles (the
@@ -210,9 +218,10 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
 
   // Each walk placed, by this screen's pass or one started before a remount: its star comes at once.
   useEffect(() => {
-    if (placedCount === placedSeen.current) return;
-    placedSeen.current = placedCount;
-    quietLoad.current?.();
+    // Away (no quiet load set), the change waits for the focus effect's read.
+    if (placedCount === placedSeen.n || !quietLoad.current) return;
+    placedSeen.n = placedCount;
+    quietLoad.current();
   }, [placedCount]);
 
   const days = useMemo(() => buildDays(data?.walks ?? [], captures), [data, captures]);
