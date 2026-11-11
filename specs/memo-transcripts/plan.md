@@ -1,6 +1,6 @@
 # Plan: memo transcripts
 
-Spec: `specs/memo-transcripts/spec.md` (MX1-MX27). Gate: aligned if reshaped, Nov 11.
+Spec: `specs/memo-transcripts/spec.md` (MX1-MX32). Gate: aligned if reshaped, Nov 11.
 
 Read this, then say go (or what to change). No code has been written.
 
@@ -21,7 +21,9 @@ phone: memo (AAC .m4a) ─► decode module ─► 16 kHz PCM (temp) ─► whis
 
 - **core** `transcribe/core.ts`: what to read next (`nextToRead`: memos with no transcript, or one with another tag, oldest first, minus those tried twice), whether a run may start (`mayRun`: switch, model, foreground, no recording), the model's state and the words said for it, the room check, the tag. No clock, no I/O.
 - **shell** `transcribe/model.ts` (`createModelStore`: download, verify, install, remove, state), `transcribe/run.ts` (`createTranscriber`: the queue, load, release, the retry count) and `transcribe/words.ts` (the `transcript(c)` source for the resurface shell: a read-through of the table). Factories over `{ db, clock, files, net, engine, decoder }`; tests use fakes.
-- **adapter** `transcribe/engine.native.ts` (`whisper.rn`: `initWhisper({ filePath })`, `transcribe`, `release`), `transcribe/engine.web.ts` (starts the Worker, posts the samples, terminates it), `transcribe/worker.web.ts` (the Worker: `import('@huggingface/transformers')`, `pipeline('automatic-speech-recognition', …)`), `transcribe/files.native.ts` (`expo-file-system`: `File.downloadFileAsync` into `Paths.cache`, `exists`, `size`, `delete`, `Paths.availableDiskSpace`), `transcribe/files.web.ts` (`fetch` into Cache Storage, `caches.match`, `caches.delete`; `navigator.storage.estimate()` for the room, as `space` does), `transcribe/decoder.native.ts` (the local module), `transcribe/decoder.web.ts` (`AudioContext.decodeAudioData`, then an `OfflineAudioContext` at 16 kHz mono).
+- **the contract** `transcribe/engine.ts` (core, types only plus the pure helpers): `Engine { id; model: ModelSpec; offline: true; inputs: AudioKind[]; available(): Promise<boolean>; load(path|cache): Promise<void>; transcribe(audio: Audio, signal): Promise<string>; release(): Promise<void> }`, `ModelSpec { url; sha256; size: Words; tag }`, `Audio = { kind: 'container'; uri } | { kind: 'wav16k'; path } | { kind: 'samples16k'; data: Float32Array }`. The shells depend on this and on `Decoder` and `Files` ports, and on nothing else (MX29).
+- **engines (adapters)** `transcribe/engines/whisperRn.native.ts` (`whisper.rn`: `initWhisper({ filePath })`, `transcribe`, `release`; inputs `['wav16k']`), `transcribe/engines/transformersJs.web.ts` (starts the Worker, posts samples, terminates it; inputs `['samples16k']`), `transcribe/engines/worker.web.ts` (the Worker: `import('@huggingface/transformers')`, `pipeline('automatic-speech-recognition', …)`), `transcribe/engines/index.native.ts` and `index.web.ts` (the **registry**: the one line that names the engine in use, MX30). A future optimized native engine is one file here and one line in the registry.
+- **ports (adapters)** `transcribe/files.native.ts` (`expo-file-system`: `File.downloadFileAsync` into `Paths.cache`, `exists`, `size`, `delete`, `Paths.availableDiskSpace`), `transcribe/files.web.ts` (`fetch` into Cache Storage, `caches.match`, `caches.delete`; `navigator.storage.estimate()` for the room), `transcribe/decoder.native.ts` (the local module; asked only for `wav16k`), `transcribe/decoder.web.ts` (`AudioContext.decodeAudioData`, then an `OfflineAudioContext` at 16 kHz mono; asked only for `samples16k`).
 - **instance** `transcribe/index.ts`: the app's transcriber, started at launch and on a memo kept; views read `useStore`.
 - **local module** `modules/chronicles-audio-decode/`: `decodeToPcm(inputUri, outputPath)` writes 16 kHz mono 16-bit PCM WAV: iOS `AVAssetReader` with linear-PCM output settings; Android `MediaExtractor` and `MediaCodec` with a resample. `isAvailable()`. Same layout as `modules/chronicles-video-edit`.
 
@@ -32,7 +34,8 @@ phone: memo (AAC .m4a) ─► decode module ─► 16 kHz PCM (temp) ─► whis
 | `package.json` | `whisper.rn` 0.7.4 and `@huggingface/transformers` 4.3.2, the versions read in this session, through `npx expo install` (never npm add; `EXPO_OFFLINE=1` may resolve neither, as neither is an Expo module). No other dependency. |
 | `public/ort/**`, a copy step in `package.json`'s `export:web` | the engine's WebAssembly files, copied from `node_modules` into the export and referenced with `env.backends.onnx.wasm.wasmPaths` prefixed by `EXPO_BASE_URL`, so no request goes to `cdn.jsdelivr.net` and the `/chronicles` sub-path works (MX26) |
 | `modules/chronicles-audio-decode/**` | the local module (native, never run on a device) |
-| `src/lib/transcribe/**` | core, three shells, adapters, instance, `useTranscribe` hook |
+| `src/lib/transcribe/**` | the contract, core, three shells, the engines and their registry, the ports' adapters, instance, `useTranscribe` hook |
+| `eslint.config.js` | `whisper.rn`, `@huggingface/transformers` and `modules/chronicles-audio-decode` as restricted paths with the fix message, off only in `src/lib/transcribe/engines/**` (MX28) |
 | `src/lib/db/migrations.ts` | migration **23**: `transcript (piece_id TEXT PRIMARY KEY, text TEXT NOT NULL, engine TEXT NOT NULL, tag TEXT NOT NULL, made_at INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 0)` |
 | `src/lib/db/index.web.ts` | `VERSION` 19, an `oldVersion < 19` step creating the `transcript` store (web never writes it, but the stores stay equal) |
 | `src/lib/db/types.ts`, `sqliteStore.ts`, `stores.ts`, fake db | `getTranscripts(pieceIds)`, `putTranscript(row)`, `bumpTries(pieceId, tag)`; `deletePieces`, `deleteMoments` and `deleteWalk` take the rows in the same transaction (as threads, OT16-OT17) |
@@ -70,6 +73,10 @@ Folder `src/lib/__tests__/transcripts/` (a new feature in `scripts/features.js`)
 | MX11, MX12, MX14 | `model.test.ts` (shell over a fake net and files): no fetch before the tap, and a fake net that fails on any call proves a launch, a run, a retry and a removed model fetch nothing; checksum match installs atomically; mismatch and partial are deleted and said; not enough room fetches nothing |
 | MX13, MX15 | `model.test.ts`: a missing file reads as not installed, and the path is resolved at use and never stored; remove deletes the file and keeps transcripts; `settings.test.ts`: the state words show only with the switch on |
 | MX10, MX3 | journey `transcripts`: the switch row has a screen reader label and is shown on web; the viewer has no edit control for a transcript |
+| MX28 | `engineBoundary.test.ts`: no file outside `transcribe/engines/` imports the libraries or the module (read from the syntax tree, like `meta.test.ts`), no engine or library name in user-facing copy, meta keys or the table's columns; `npm run lint` carries the same rule, checked by a deliberate violation in the test |
+| MX29, MX30 | `engineContract.ts` run over the fake engine and the testable half of each adapter (`whisperRn` argument building, the Worker's message protocol): `MX29: every Engine member has a contract case`; `run.test.ts` and `model.test.ts` parameterised over two fake engines (`MX30`) |
+| MX31 | `run.test.ts`: the run asks the decoder only for the engine's first accepted kind the platform has; a `container` engine never calls the decoder |
+| MX32 | `model.test.ts`: a new engine's tag reads stale and transcripts stay shown; the old model file is deleted on the new install; nothing is fetched until the Download tap |
 | MX25, MX26, MX27 | `engine.web.test.ts` over a fake `Worker`: the Worker is started for a run and terminated at its end; the page's calls return while it runs. Journey `transcripts`: the stub run on the sub-path build served with no COOP or COEP header; a browser with no `AudioContext` says so in words and fetches nothing. |
 | MX24 | `words.test.ts`: the words reach the viewer, the card and thread rows and no notification, share, reel, title or day line (`transcript` is read only by those three) |
 | MX16, MX17 | `run.test.ts`: the engine is loaded for a run and released on empty, background and memory warning; no run while recording, in the background, with the switch off or no model; one memo at a time, oldest first; a memo saved during a run is saved at once, never awaits the run, and nothing is said |
@@ -106,6 +113,10 @@ Precedent: the settings drawers (`docs/PRODUCT.md`, "Settings and notifications"
 ## Web
 
 Web is built and checked in this slice, not deferred: `transformers.js` has no native code, so the e2e (headless Chromium) runs the whole path with a stub engine, and the real engine is timed by hand once in a real browser (Chromium and Safari, the sub-path build, no COOP/COEP) before the web model's size is settled. What stays unrun here: Safari's and Firefox's own decoding of the browser's recordings, WebGPU, and the run's real speed on a phone's browser. Each becomes a line in `docs/NATIVE_UNVERIFIED.md`'s web section (named with its MX id), because they need a real device or browser.
+
+## The engine is replaceable
+
+The owner asked (Nov 11) that no library be coded to explicitly. Three seams carry it: the `Engine` contract (what an engine is), the `Decoder` and `Files` ports (what an engine's inputs and model files need) and one registry line per platform (which engine is in use). Nothing else names a library, and lint, a syntax-tree test and a contract suite hold that. Candidates a later swap could use, named so the contract is shaped to fit them and not to build them now: `react-native-executorch`, `react-native-sherpa-onnx`, or an OS recognizer forced on-device (which would take the memo's own container, so its `inputs` is `['container']` and the decode module is skipped).
 
 Two risks to settle in the first build, not assumed: Metro's web export must split the engine into an async chunk (MX22), checked by building the export; and `transformers.js` must run with `allowRemoteModels` off and its model fetched from our own cache (`customCache`), checked by the request log (MX23).
 

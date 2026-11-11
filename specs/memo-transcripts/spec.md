@@ -15,7 +15,7 @@ Verb: return (a memo gets its words, so it can come back with its thread; Honour
 Touches: Open question 2 ("Searchable voice memos need on-device transcription, a phone-only feature: acceptable?"), answered by the owner, Nov 11: an offline model. Never "Data leaving the device without a tap" (0005): the only thing that crosses the network is the model file, on a tap, and nothing of the owner's goes the other way. Never "Writing the owner's words for them": a transcript is the owner's own speech read back, kept apart from the memo, never edited, never a title or a summary. Always "Moments and the trace are truth": the audio is the moment, a transcript is derived and recomputed. Always "A moment carries its context": the words are shown with their moment, never as a snippet. Always "Counts are words" (0052): no progress number. Precedents 0098 (memos join threads once something transcribes them), 0107 (storage in words), 0104 (threads follow the moments).
 Verdict: aligned if reshaped
 Shape: A switch in the walk settings, off, "Transcribe memos on this phone". On, it says in words what comes down and how big, and asks. The model is one pinned file on the chronicles-data host. Transcripts are a cache with the model's tag, shown under their memo in its moment, and joined to threads and resurfacing through the existing seam. Phones and web. No count, no progress bar, no search screen of its own. The web app does the same with its own engine (the owner, Nov 11).
-Criteria: MX1-MX27 below carry the Never and Always lines above.
+Criteria: MX1-MX32 below carry the Never and Always lines above.
 Open: none left from the gate; the plan's three open questions (the model's host path, the walk-settings row, the copy) are the owner's to settle with the plan.
 
 ## Decisions (the owner's calls, Nov 10-11)
@@ -30,6 +30,7 @@ Open: none left from the gate; the plan's three open questions (the model's host
 - **Transcripts are a `transcript` table keyed by the piece's id**, with the engine, the model's tag and the time, so a model change reads as stale and deleting a moment takes its words with it (Nov 11).
 - Library on phones: `whisper.rn`, from the owner's "offline model" and the recommendation in this session (Nov 11); recorded as decision 0127.
 - **It works on the web too** (the owner, Nov 11): `@huggingface/transformers` with an ONNX Whisper model, single-threaded WebAssembly (GitHub Pages sends no cross-origin isolation headers, so no `SharedArrayBuffer`), in a Web Worker that is terminated after a run. A web exception in `docs/ARCHITECTURE.md`: no Expo module transcribes on web and `whisper.rn` has no web build.
+- **The engine is replaceable** (the owner, Nov 11): the app depends on one `Engine` contract, never on a library. `whisper.rn` and `transformers.js` are two adapters behind it, so a more optimized native engine later is one new adapter and one registry line, with no change to the shells, the views, the table or the settings.
 - **The web model starts at `tiny.en`**, measured in a real browser before the slice settles on it; the tag names the engine and model, so the size can change later (the owner, Nov 11).
 
 ## Criteria
@@ -77,6 +78,12 @@ Open: none left from the gate; the plan's three open questions (the model's host
 25. **MX25** On the web the engine runs in a Web Worker, so the page, the capture buttons and a memo's recording are never blocked by a run, and the Worker is terminated when the run ends (MX16).
 26. **MX26** The web engine needs no cross-origin isolation: it runs on a page served without COOP and COEP headers (GitHub Pages), single-threaded, with WebGPU used only where the browser offers it and the run falls back to WebAssembly otherwise. It also runs from the sub-path build (`/chronicles`).
 27. **MX27** Where the browser cannot run the engine (no WebAssembly, no `AudioContext`, the Worker fails to start) the switch says so in words and the memos are untouched; nothing is fetched. A browser that evicts the model reads as not installed (MX13).
+
+28. **MX28** No code outside `src/lib/transcribe/engines/**` imports `whisper.rn`, `@huggingface/transformers` or the decode module: a lint error says so and names the fix ("Transcribe through `lib/transcribe`; an engine is an adapter in `transcribe/engines/`"), as for `expo-haptics`. No user-facing copy, meta key, table column or view names an engine or a library.
+29. **MX29** Every engine is one `Engine` value: an `id`, the `ModelSpec` it needs (its pinned URL, SHA-256, size said in words, and tag), `offline: true` (an engine that cannot say so is refused at registration), `available()`, `load(model)`, `transcribe(audio, signal)` returning words, and `release()`. One contract suite (`engineContract.ts`) holds a fake and every adapter's testable part to it, and a test fails when an `Engine` member has no contract case (as `FC7` does for the Db).
+30. **MX30** Swapping the engine changes the registry and nothing else: the shell suites run over two fake engines with different model specs and input kinds and give the same results, and a test counts the files a swap touches (the registry and the new adapter).
+31. **MX31** An engine declares the audio it accepts, in order of preference: its own file container, 16 kHz mono WAV, or 16 kHz samples in memory. The run asks the decoder port for the first one the platform can give, and an engine that reads the memo's own container skips the decoder, so the decode module can be removed without touching a shell.
+32. **MX32** A swapped engine reads as a new tag (MX5): transcripts already made stay shown and are re-read quietly once the new model is installed. The old engine's model file is deleted as cache hygiene when the new one installs. The new model is never fetched except by the Download tap (MX12), so after an update that changes the engine the row says the model is not installed until the owner taps.
 
 ## Record
 
