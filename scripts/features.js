@@ -118,8 +118,8 @@ const FEATURES = [
     source: [
       'src/app/(tabs)/**',
       'src/app/{_layout,chronicle}.tsx',
-      'src/components/{StartSettings,HomeSheet,RecordingBar,SwitchRow,OpenWalk,Modal,ScreenError}.tsx',
-      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus,captureBand}.ts',
+      'src/components/{StartSettings,HomeSheet,RecordingBar,SwitchRow,OpenWalk,Modal,ScreenError,SafeInsets,SafeInsets.web}.tsx',
+      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus,captureBand,safeInsets}.ts',
     ],
     journeys: ['tabs', 'reload', 'launch', 'capturehome'],
     specs: ['navigation-and-tabs', 'capture-from-chronicle'],

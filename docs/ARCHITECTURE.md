@@ -486,6 +486,11 @@ own code only where no Expo module covers the feature on web:
   `navigator.storage.estimate()` (the quota minus what the app uses) and asks `navigator.storage.persist()`.
   expo-file-system's web build reports `availableDiskSpace` as 0, and no Expo module asks a browser to
   keep an app's data. Phones read `Paths.availableDiskSpace` (`space/probe.native.ts`).
+- **The safe area's insets** (fix memories-weird-state): `SafeInsets.web.tsx`, under the root layout's
+  `SafeAreaProvider`, gives the insets as the `env(safe-area-inset-*)` paddings alone (`lib/safeInsets`).
+  react-native-safe-area-context's web provider clamps them against `window.innerWidth/innerHeight`, which
+  iOS Safari reports as the visual viewport: a resize during a pinch-zoom left the tab bar half the screen
+  tall, its tabs squeezed into one point, until a reload. Phones keep the library's insets (`SafeInsets.tsx`).
 - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
   viewport, long-press guards) and the muted-autoplay fallback.
 
