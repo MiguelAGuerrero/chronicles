@@ -1,10 +1,11 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { EXPLORE_KEY, exploredKey } from '../../explore/explore';
+import { EXPLORE_KEY, EXPLORE_RULES, exploredKey } from '../../explore/explore';
 import { destLine, NAV_KEY, navValue, parseStartMode, pendingDest, START_MODE_KEY, startPlan, tabFor } from '../../startPlan';
 import type { Waypoint } from '../../nav/types';
 import { setUnits } from '../../units';
+import { formatRange } from '../../format';
 
 const spot: Waypoint = { at: [-71.4, 41.812], label: 'Your spot', kind: 'point' };
 
@@ -88,4 +89,15 @@ test('tend tabs audit 7: in miles the destination is converted from its own dist
   } finally {
     setUnits('km');
   }
+});
+
+test('tend tabs audit 6: every step of the "?" range reads a distinct value, in miles as in metres', () => {
+  const steps: number[] = [];
+  for (let m = EXPLORE_RULES.rangeMin; m <= EXPLORE_RULES.rangeMax; m += EXPLORE_RULES.rangeStep) steps.push(m);
+  const mi = steps.map((m) => formatRange(m, 'mi'));
+  assert.equal(new Set(mi).size, steps.length, `each step its own value: ${mi.join(', ')}`);
+  assert.ok(mi.every((t) => / ft$/.test(t)), 'a range this short is said in feet');
+  assert.equal(formatRange(100, 'mi'), '328 ft');
+  assert.equal(formatRange(100, 'km'), '100 m');
+  assert.equal(new Set(steps.map((m) => formatRange(m, 'km'))).size, steps.length);
 });

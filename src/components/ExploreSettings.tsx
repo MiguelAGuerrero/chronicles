@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { kindSwitch } from '../lib/discovery/refinements';
 import { EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
-import { formatDistance } from '../lib/format';
+import { formatRange } from '../lib/format';
 import { useUnits } from '../lib/useUnits';
 import { Icon, type IconName } from './icons';
 import { SwitchRow } from './SwitchRow';
@@ -63,7 +63,7 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel="Question mark range"
-        accessibilityValue={{ min: EXPLORE_RULES.rangeMin, max: EXPLORE_RULES.rangeMax, now: value, text: formatDistance(value) }}
+        accessibilityValue={{ min: EXPLORE_RULES.rangeMin, max: EXPLORE_RULES.rangeMax, now: value, text: formatRange(value) }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => onChange(value + (e.nativeEvent.actionName === 'increment' ? step : -step))}
       >
@@ -74,7 +74,7 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
       <Pressable testID="range-plus" accessibilityRole="button" accessibilityLabel="Larger range" onPress={() => onChange(value + step)} style={styles.stepBtn} hitSlop={6}>
         <Icon name="add" size={20} color={theme.ink} />
       </Pressable>
-      <Text testID="range-value" style={styles.value}>{formatDistance(value)}</Text>
+      <Text testID="range-value" style={styles.value}>{formatRange(value)}</Text>
     </View>
   );
 }
