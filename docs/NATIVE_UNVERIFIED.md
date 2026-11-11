@@ -463,6 +463,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** pinch out, then in, on the grid with two fingers. **Expect:** three across becomes five then seven, or back; the day at the top stays at the top; the page itself never zooms (MG20).
 - [ ] **Do:** with TalkBack (Android) and VoiceOver (iPhone), swipe through the grid. **Expect:** each tile is read as its kind, its time and its walk or street; no list size or item count is spoken (MG7, MG15).
 - [ ] **Do:** choose Months, tap a month of last year. **Expect:** Days opens at that month's first day (MG19).
+- [ ] **Do:** set the phone's text size to its largest (iOS Larger Text, Android Font size) and open Media, then Months. **Expect:** every day's title and two-line place line, and every month's title and line, show whole, never cut or overlapping; rows taller to suit (fix gallery-header).
 - [ ] **Do:** open an older photo (taken before small copies existed) in the grid. **Expect:** its tile shows a glyph, then its small copy; the full photo is never decoded for the tile (MG11).
 - [ ] **Do:** with VoiceOver (iPhone) and TalkBack (Android), go here to a spot with a scenic route and swipe across the route preview. **Expect:** each row is read, then its Go as "Go: Direct", "Go: Through green", with no second hint spoken (`tend navigation 1`).
 

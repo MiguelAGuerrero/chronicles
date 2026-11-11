@@ -189,3 +189,14 @@ test('MG19: exactly one more place than three is "another place"', () => {
   const tiles = galleryTiles(['A', 'B', 'C', 'D'].map((a, i) => mo(a, [['photo', at(2026, 11, 2 + i, 9)]], a)), [...walks.values()], 'all', 'newest');
   assert.equal(galleryBlocks(tiles, walks, {}, 'month', NOW)[0].line, 'D, C, B and another place');
 });
+
+test('fix gallery-header: a day header holds its title and two lines of place, at any text size', async () => {
+  const { HEADER_TYPE, headerHeight, BLOCK_TYPE, blockTextHeight } = await import('../../gallery/layout');
+  const need = (s: number) => HEADER_TYPE.padTop + HEADER_TYPE.padBottom + (HEADER_TYPE.titleLine + HEADER_TYPE.lines * HEADER_TYPE.lineLine) * s;
+  for (const s of [1, 1.3, 2]) assert.ok(headerHeight(s) >= need(s), `${s}: ${headerHeight(s)} holds ${need(s)}`);
+  assert.ok(HEADER_TYPE.titleLine >= HEADER_TYPE.titleSize * 1.2 && HEADER_TYPE.lineLine >= HEADER_TYPE.lineSize * 1.2, 'line heights hold their glyphs');
+  for (const s of [1, 2]) assert.ok(blockTextHeight(s) >= BLOCK_TYPE.padTop + BLOCK_TYPE.padBottom + (BLOCK_TYPE.titleLine + BLOCK_TYPE.lineLine) * s);
+  const days = galleryDays(galleryTiles([mo('a', [['photo', at(2026, 11, 10, 9)]])], [], 'all', 'newest'), new Map(), {}, NOW);
+  assert.equal(dayRows(days, 390, 0, 1.5).rows[0].height, headerHeight(1.5), "the row is the header's own height");
+  assert.equal(blockRows(galleryBlocks(galleryTiles([mo('a', [['photo', at(2026, 11, 10, 9)]])], [], 'all', 'newest'), new Map(), {}, 'month', NOW), 390, 2)[0].height, blockTextHeight(2) + 260 + 12);
+});
