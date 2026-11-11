@@ -267,6 +267,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Busy streets and Town
   borders. Each draws something over the base map and shows its own legend while on. All three start off, so a fresh map is clear; the button is outlined, and its glyph
   and a firmer edge say a layer is on. One setting for every map, kept across launches.
+- **What I'm into on Explore** (ES1-ES9). A round button under Layers on Explore's map opens a panel with the walk settings' switch per kind of place (public art, museums, parks...). It is the same setting as the walk's drawer: one change reaches both at once and survives a reload. It filters what Explore and an exploring walk show, never what was captured. It shows no count, its button looks the same however many kinds are off, and switching every kind off is an ordinary state with no line about it.
 - **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
   built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with

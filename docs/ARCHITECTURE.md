@@ -114,6 +114,7 @@ Home / tabs
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
+  ExploreKindsControl.tsx    Explore's What I'm into button and panel under Layers (ES3-ES5); mapPanel.ts the button and card styles it shares with Layers
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
@@ -244,7 +245,7 @@ Discovery and Explore (v1)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
   atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Busy names kept near the selection
-  explore/settings.ts        what I'm into, range, pocket alert (meta)
+  explore/settings/          what I'm into, range, pocket alert (meta): shell.ts the factory, index.ts the instance (the walk's drawer and Explore's panel are two doors to it); useKindSwitches.ts the panel's hook
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
   explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)

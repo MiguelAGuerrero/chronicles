@@ -13,7 +13,9 @@ import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
 import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
+import { ExploreKindsControl } from '../../components/ExploreKindsControl';
 import { LayersControl } from '../../components/LayersControl';
+import { useKindSwitches } from '../../lib/explore/useKindSwitches';
 import { layerNotes } from '../../lib/layers/notes';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
@@ -33,7 +35,7 @@ import { nearReads } from '../../lib/atlas/read';
 import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
-import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
+import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, panelsAfter, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -287,6 +289,15 @@ export default function Explore() {
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
   const { open: layersOpen, closePanel: closeLayers } = layers;
+  // What I'm into (ES3-ES5): the walk's kind switches, under Layers; the two panels are never open together.
+  const kinds = useKindSwitches();
+  const [kindsOpen, setKindsOpen] = useState(false);
+  const closeKinds = useCallback(() => setKindsOpen(false), []);
+  const pressKinds = () => {
+    const next = panelsAfter({ layers: layersOpen, kinds: kindsOpen }, 'kinds');
+    setKindsOpen(next.kinds);
+    if (!next.layers) closeLayers();
+  };
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
@@ -333,8 +344,9 @@ export default function Explore() {
     // tend explore 6, audit 1: one Back or Escape steps out of one thing: the Layers panel, the long press's choices, the page.
     if (!townSeen || open || !focused) return;
     const out = () => {
-      const does = pageBack({ layersOpen: layersOpen, spot: !!spot });
-      if (does === 'layers') closeLayers();
+      const does = pageBack({ layersOpen: layersOpen, kindsOpen, spot: !!spot });
+      if (does === 'kinds') closeKinds();
+      else if (does === 'layers') closeLayers();
       else if (does === 'spot') setSpot(null);
       else leave();
     };
@@ -348,7 +360,7 @@ export default function Explore() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
+  }, [townSeen, open, focused, leave, layersOpen, closeLayers, kindsOpen, closeKinds, spot]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
@@ -542,8 +554,11 @@ export default function Explore() {
             // One thing a tap (whole-towns audit 9): close the Layers panel, else the long press's choices, else zoom
             // to a dot; the selection stays: something is always selected (EC1).
             const dot = dotAt(at, camZoom, split.dots);
-            const does = tapDoes({ panelOpen: layers.open, spot: !!spot, dot: !!dot });
-            if (does === 'close-panel') layers.closePanel();
+            const does = tapDoes({ panelOpen: layers.open, kindsOpen, spot: !!spot, dot: !!dot });
+            if (does === 'close-panel') {
+              layers.closePanel();
+              closeKinds();
+            }
             else if (does === 'clear-spot') setSpot(null);
             else if (does === 'zoom' && dot) zoomTo(dot.at, dot.key);
           }}
@@ -619,7 +634,10 @@ export default function Explore() {
         <LocateButton busy={locating} onPress={locate} bottom={8} />
       )}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} onToggle={closeKinds} />}
+      {focused && !spot && (
+        <ExploreKindsControl open={kindsOpen} onToggle={pressKinds} onClose={closeKinds} hidden={kinds.hidden} onKind={kinds.toggle} top={insets.top + 8 + 44 + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />
+      )}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.

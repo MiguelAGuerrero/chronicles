@@ -2,6 +2,7 @@
 paths:
   - "src/lib/layers/**"
   - "src/components/LayersControl.tsx"
+  - "src/components/mapPanel.ts"
   - "src/lib/__tests__/layers/**"
 ---
 # Map layers

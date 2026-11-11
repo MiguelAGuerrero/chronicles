@@ -5,6 +5,7 @@ import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { LAYERS, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
+import { BUTTON, mapPanel } from './mapPanel';
 import { BORDER, HOTSPOT, WALK_STYLE } from './map/types';
 import { SwitchRow } from './SwitchRow';
 import { Tooltip } from './Tooltip';
@@ -20,7 +21,6 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
 };
 
-const BUTTON = 44;
 /** In the walk's corner the button and panel sit under the walk's cards (2) and drawer (3), over the map (fix layers-corner audit 1, 2). */
 const CORNER_Z = 1;
 /** The button's width and the gap to the panel beside it. */
@@ -100,6 +100,8 @@ export function LayersControl(props: {
   /** In the corner, what the panel keeps clear on the right (the capture column), and above (the top overlay). */
   rightClear?: number;
   clearTop?: number;
+  /** Called after the button is pressed: the Explore tab closes What I'm into when Layers opens (ES4). */
+  onToggle?: () => void;
 }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const right = props.right ?? Math.max(12, (winW - 640) / 2 + 12);
@@ -134,13 +136,16 @@ export function LayersControl(props: {
         accessibilityLabel="Layers"
         accessibilityState={{ expanded: layers.open }}
         aria-expanded={layers.open}
-        onPress={layers.togglePanel}
-        style={({ pressed }) => [styles.btn, fromLeft ? { left: props.left, top: buttonTop, zIndex: CORNER_Z } : { right, top: buttonTop }, anyOn && styles.btnOn, pressed && styles.pressed]}
+        onPress={() => {
+          layers.togglePanel();
+          props.onToggle?.();
+        }}
+        style={({ pressed }) => [mapPanel.btn, fromLeft ? { left: props.left, top: buttonTop, zIndex: CORNER_Z } : { right, top: buttonTop }, anyOn && styles.btnOn, pressed && mapPanel.pressed]}
       >
         <Icon name={anyOn ? 'layers' : 'layers-outline'} size={24} color={theme.ink} />
       </Pressable>
       {layers.open ? (
-        <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[styles.card, fromLeft ? { left: props.left! + BESIDE, bottom, zIndex: CORNER_Z } : { right: right + BESIDE, top: buttonTop }, { width: box.width, maxHeight: box.maxHeight }]}>
+        <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[mapPanel.card, fromLeft ? { left: props.left! + BESIDE, bottom, zIndex: CORNER_Z } : { right: right + BESIDE, top: buttonTop }, { width: box.width, maxHeight: box.maxHeight }]}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {LAYERS.map((l) => {
               const on = !!layers.on[l.id];
@@ -165,17 +170,7 @@ export function LayersControl(props: {
 }
 
 const styles = StyleSheet.create({
-  btn: {
-    position: 'absolute', zIndex: 3, width: BUTTON, height: BUTTON, borderRadius: BUTTON / 2, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
-  },
   btnOn: { borderWidth: 2, borderColor: theme.ink },
-  pressed: { opacity: 0.8 },
-  card: {
-    position: 'absolute', zIndex: 3, paddingVertical: 4, borderRadius: theme.radius, backgroundColor: theme.glass, borderWidth: 1, borderColor: theme.line,
-    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
-  },
   /** The rows keep off the card's edges (fix layers-pad). */
   rowPad: { paddingHorizontal: 8 },
   /** A status note lines up with the row's icon above it. */

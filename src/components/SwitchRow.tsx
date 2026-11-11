@@ -15,6 +15,8 @@ export function SwitchRow(props: {
   icon?: IconName;
   value: boolean;
   onChange: (on: boolean) => void;
+  /** Waits for what it shows to load (ES4): not pressable, and said so to a screen reader. */
+  disabled?: boolean;
 }) {
   return (
     <Pressable
@@ -22,7 +24,8 @@ export function SwitchRow(props: {
       accessibilityRole="switch"
       accessibilityLabel={props.label}
       accessibilityHint={props.hint ?? props.note}
-      accessibilityState={{ checked: props.value }}
+      accessibilityState={{ checked: props.value, disabled: !!props.disabled }}
+      disabled={props.disabled}
       aria-checked={props.value}
       onPress={() => props.onChange(!props.value)}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -33,7 +36,7 @@ export function SwitchRow(props: {
         {props.note ? <Text style={styles.sub}>{props.note}</Text> : null}
       </View>
       <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Switch value={props.value} tabIndex={-1} />
+        <Switch value={props.value} tabIndex={-1} disabled={props.disabled} />
       </View>
     </Pressable>
   );

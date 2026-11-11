@@ -35,7 +35,7 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, setKind, type Kind } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -508,10 +508,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     saveSettings(next).catch(() => {});
   };
   const toggleKind = (k: Kind, on: boolean) => {
-    const hidden = new Set(settings.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    changeSettings({ ...settings, hidden });
+    changeSettings({ ...settings, hidden: setKind(settings.hidden, k, on) });
   };
   async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;

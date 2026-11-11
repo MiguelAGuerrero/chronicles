@@ -310,6 +310,7 @@ module.exports = {
     'src/lib/layers/**',
     'src/components/LayersControl.tsx',
     'src/components/ExploreKindsControl.tsx',
+    'src/components/mapPanel.ts',
     'src/lib/explore/settings/**',
     'src/lib/explore/useKindSwitches.ts',
     'src/components/map/{types,WalkMap.web,WalkMap.native}.ts*',

@@ -23,6 +23,12 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Not yet on presence** (its second slice): the archive's classes (`archivePois.ts`), `barsOf`, notable names, scenic routes' greens (`greenKind`), the planner. "Busy" is not presence: traffic, if ever, is a signal of its own (0140).
 - **Golden table:** `__tests__/presence/golden.json` holds what the two old tables answered for every realistic pair; PR8 holds every pair outside PR5's list to it. A deliberate reclassification adds the pair to the test's `CHANGED` with its new answer and to the spec's PR5 table.
 
+## What I'm into (ES1-ES9)
+
+- **One store, two doors.** `explore/settings/` (`shell.ts` the factory over ports, `index.ts` the instance) holds the kinds switched off, the "?" range and the pocket alert. The walk's drawer and the ready bar save all of it (`saveSettings`); Explore's panel calls `toggleKind(kind, on)`, which reads the saved settings first and writes only `explore_hidden` and `explore_kinds_known`, so the range and the pocket alert are never written back as defaults. Toggles queue, so two in one tick both land; a save that fails is not heard, so the switch stays as saved. `setKind` (core, `explore.ts`) is the one rule the three screens share.
+- **The panel** (`ExploreKindsControl`, `useKindSwitches`): its switches are disabled until the saved choice has loaded (`hidden` is null). `pageBack`, `tapDoes` and `panelsAfter` (`atlas/waitingPins.ts`) decide Back, Escape and a tap with `kindsOpen`; the two panels are never open together. A trap: a test must use one store instance for both doors, as the app does, since each factory call has its own listeners.
+- **Every kind off is just a state** (the owner, Nov 11): no empty-state line, no switch to Quiet. A hint is in `docs/DEFERRED.md`.
+
 ## Places of interest and marks
 
 - **Places of interest** come from the tiles' `poi` layer, read in the same z14

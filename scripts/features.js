@@ -147,7 +147,7 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ExploreKindsControl,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'layers'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'explore-settings'],
   },
   {
@@ -170,9 +170,9 @@ const FEATURES = [
     name: 'layers',
     about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
     rule: 'layers',
-    source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
+    source: ['src/lib/layers/**', 'src/components/LayersControl.tsx', 'src/components/mapPanel.ts'],
     journeys: ['layers'],
-    specs: ['map-layers'],
+    specs: ['map-layers', 'explore-settings'],
   },
   {
     name: 'walkability',

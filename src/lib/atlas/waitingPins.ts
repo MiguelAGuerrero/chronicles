@@ -154,14 +154,20 @@ export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'cate
  * Back or Escape on a town's page steps out of one thing (tend explore 6, audit 1): the Layers panel, then the long press's
  * choices, then the page. The panel is the page's to close too, since it listens for Escape only on the web.
  */
-export function pageBack(o: { layersOpen: boolean; spot: boolean }): 'layers' | 'spot' | 'leave' {
+export function pageBack(o: { layersOpen: boolean; kindsOpen?: boolean; spot: boolean }): 'kinds' | 'layers' | 'spot' | 'leave' {
+  if (o.kindsOpen) return 'kinds';
   if (o.layersOpen) return 'layers';
   return o.spot ? 'spot' : 'leave';
 }
 
+/** ES4, ES5: the two map panels, Layers and What I'm into, are never open together; pressing a button opens its panel or, if open, closes it. */
+export function panelsAfter(open: { layers: boolean; kinds: boolean }, pressed: 'layers' | 'kinds'): { layers: boolean; kinds: boolean } {
+  return pressed === 'kinds' ? { layers: false, kinds: !open.kinds } : { layers: !open.layers, kinds: false };
+}
+
 /** Whole-towns audit 9: what a tap on Explore's map does: close the Layers panel, clear the long press, zoom to a dot, or nothing. One thing a tap. */
-export function tapDoes(o: { panelOpen: boolean; spot: boolean; dot: boolean }): 'close-panel' | 'clear-spot' | 'zoom' | 'none' {
-  if (o.panelOpen) return 'close-panel';
+export function tapDoes(o: { panelOpen: boolean; kindsOpen?: boolean; spot: boolean; dot: boolean }): 'close-panel' | 'clear-spot' | 'zoom' | 'none' {
+  if (o.panelOpen || o.kindsOpen) return 'close-panel';
   if (o.spot) return 'clear-spot';
   return o.dot ? 'zoom' : 'none';
 }

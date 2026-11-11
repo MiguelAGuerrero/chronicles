@@ -523,6 +523,14 @@ const kindsIn = (raw: string | null): Kind[] => {
   }
 };
 
+/** One kind switched off or on (ES2): that kind alone, as a new set; the others keep their state. */
+export function setKind(hidden: ReadonlySet<Kind>, kind: Kind, on: boolean): Set<Kind> {
+  const next = new Set(hidden);
+  if (on) next.delete(kind);
+  else next.add(kind);
+  return next;
+}
+
 /**
  * The "What I'm into" filter as stored (meta `explore_hidden`): the kinds switched off. `known` is the kinds there were
  * when it was saved (meta `explore_kinds_known`). PK18: a choice saved before Community spaces existed keeps hiding the

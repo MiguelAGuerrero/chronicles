@@ -12,11 +12,11 @@ export const walkNote = (m: number) => {
 };
 
 /** What I'm into (E16): a switch per kind, on unless hidden. Shared with Navigate's drawer (NV21). */
-export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {
+export function KindSwitches({ hidden, onToggle, disabled }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void; disabled?: boolean }) {
   return (
     <>
       {KINDS.map((k) => (
-        <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={!hidden.has(k.id)} onChange={(v) => onToggle(k.id, v)} />
+        <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={!hidden.has(k.id)} onChange={(v) => onToggle(k.id, v)} disabled={disabled} />
       ))}
     </>
   );
