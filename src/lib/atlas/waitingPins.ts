@@ -130,9 +130,13 @@ export function areaMapMarks(
   return waitingPins(waitingMarks([...marks], found, centre, hidden, { all: true }), centre, zoom, lat, view);
 }
 
-/** WT11, audit 15: what a screen reader hears for the selected area's places: the area and the kinds, never how many. */
-export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'category'>[]): string {
-  const kinds = ATLAS_ORDER.filter((c) => marks.some((m) => m.category === c)).map((c) => ATLAS_LABEL[c].toLowerCase());
+/**
+ * WT11, audit 15: what a screen reader hears for the selected area's places: the area and the kinds, never how many. Only the
+ * kinds still waiting: a town at its own scale draws its found places as dots too (audit 14), which wait for nothing (tend explore 5).
+ */
+export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'category' | 'key'>[], found: ReadonlySet<string> = new Set()): string {
+  const waiting = marks.filter((m) => !found.has(m.key));
+  const kinds = ATLAS_ORDER.filter((c) => waiting.some((m) => m.category === c)).map((c) => ATLAS_LABEL[c].toLowerCase());
   return kinds.length ? `Waiting in ${area}: ${kinds.join(', ')}` : '';
 }
 

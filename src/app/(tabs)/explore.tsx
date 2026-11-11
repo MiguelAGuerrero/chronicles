@@ -270,7 +270,7 @@ export default function Explore() {
   }, [split]);
   const waitingDots = useMemo<WaitingDot[]>(() => split.dots.map((m) => ({ id: m.key, at: m.at, color: KIND_COLOR[m.category] })), [split]);
   // WT11, audit 15: the "?" and dots are one thing to a screen reader: the area and the kinds, never how many.
-  const waitingSaid = sel ? waitingLabel(sel.area.name, [...split.pins, ...split.dots]) : '';
+  const waitingSaid = sel ? waitingLabel(sel.area.name, [...split.pins, ...split.dots], found) : '';
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open or selected town); yours tinted, the rest lined.
   // A town selected in the row is the one tinted (EC5).
   const litKey = town ? town.key : sel?.area.level === 'town' ? sel.area.key : null;
