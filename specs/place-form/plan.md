@@ -225,6 +225,48 @@ rule ever sees them; the owner still confirms the words). My experiments on the 
 The rule as retuned is fitted, not shown. The next step is **not** the held-out look. It is a rule that passes PF22 and PF24 on the calibration set (few thresholds, anchored on
 the best-mapped signals), measured by leave-one-out before the look is spent. If no simple rule passes them, the honest answer is a smaller set of words (the owner's third option).
 
+## Proposal: only positive classifications, ambiguity is silence (the owner's policy, 2026-11-11, after the second held-out look)
+
+The owner's call: give a word only when the case is obvious; where a place is ambiguous or falls between the heuristics, say nothing; limit false positives above all. The
+rule that follows replaces the street-first rule (which stays as the thing it is compared with).
+
+**The rule.** A place has a word only when all of these hold; otherwise it has none:
+
+1. **Evidence:** the ring is measured (tiles read, 300 m of street, places and buildings read) as before.
+2. **Territory:** its measures (junctions, places, buildings per km², motorway share) lie inside exactly one word's territory. A territory is a box around the confirmed places of that word,
+   widened by a margin of 0.3 in log space (a factor of about 1.35 on a count), then cut back so that **no confirmed place of any other word, and no place the owner gave no word, lies inside it**.
+   A place inside two territories has no word.
+3. **Stability:** the same word is read from the centre and from the four rings shifted 150 m north, east, south and west. Any disagreement is silence. (An edge place flips; an obvious
+   one does not.)
+
+The territories are numbers in one table in `placeForm.ts`, produced by a script (`scripts/learn-place-form.mjs`) from the fixtures, so they are reproducible and not tuned by hand:
+the procedure and its two settings (the margin, the stability) are the whole of what is tuned, and no reference place is carried into the app.
+
+**Measured, leave-one-out on all 58 measured places (each place judged by territories learned without it).** These are development data: the second held-out set was looked at, so this is
+not a held-out result, and the two settings were chosen among eight looked at.
+
+| Margin | Stability | Words spoken | Right | False positives on no-word places | Wrong word | Recall |
+|---|---|---|---|---|---|---|
+| 0.1 | none | 20 | 20 | 0 | 0 | 0.45 |
+| 0.2 | none | 23 | 22 | 1 (Park City) | 0 | 0.50 |
+| 0.3 | none | 29 | 26 | 3 | 0 | 0.60 |
+| **0.3** | **all five** | **22** | **22** | **0** | **0** | **0.50** |
+| 0.45 | all five | 19 | 18 | 0 | 1 (Jonestown read as a village) | 0.40 |
+| 0.6 | all five | 25 | 24 | 0 | 1 | 0.55 |
+
+The chosen setting: 22 of 22 words right, none given to a no-word place, and a word for about half the places that deserve one. By word: grid 9 of 9, main street 6 of 6, village 5 of 5, exit 2 of 2.
+**The honest weakness:** the exit word rarely fires in leave-one-out (6 confirmed exits is too few to learn a territory without one of them: Bethel, Breezewood and Lickdale stay silent when left out). On all
+places the territory covers them. The exit word's evidence is the thinnest in the set.
+
+**What it stays silent on, leaving one out:** Lancaster, Hamburg, Jonestown, Bethel, Breezewood, Steelton, Emmaus, Strausstown, Shartlesville, Morgantown, Lebanon, Lewisburg, Manheim, Bloomsburg, Bowmansville, Churchtown, Intercourse, Lickdale.
+
+**Territories on all 58 (counts per km², motorway share):** exit: junctions 5 to 16, places 11 to 43, buildings 42 to 215, motorway 0.32 to 0.55. Grid: 35 to 143, 130 to 729, 318 to 2196, 0 to 0.34.
+Main street: 22 to 86, 17 to 175, 303 to 1389, 0 to 0.19. Village: 4 to 27, 5 to 31, 72 to 452, 0 to 0.21.
+
+**What changes in the spec if the owner agrees:** a decision (positive classifications only; ambiguity is silence); PF5 (each calibration place is right or silent, never a wrong word; recall is reported); PF6 (precision of the spoken words and the
+rate of words given to no-word places are the floors, with recall reported: proposed at least 0.90 right of at least 12 spoken words, and none of the owner's no-word places given a word beyond 5%); PF7 (zero tolerance, as now); PF22 and PF24 (the stability gate is the
+mechanism; a moved or thinned place may go silent, never gain a word); a third held-out set of at least 30 places with at least 10 no-word places (to measure false positives) cut blind after the territories are pinned.
+
 ## Answered (the owner, 2026-11-11)
 
 Question 1: **four words now**, no new read (answered on a wrong premise, see above; reopened). Question 3: **United States only**. Question 5: **80% and within 10 points**. Question 6: **"Around its middle: …"**.
