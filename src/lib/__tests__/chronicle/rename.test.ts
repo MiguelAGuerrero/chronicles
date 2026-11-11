@@ -67,6 +67,17 @@ test('QL23: the patch holds only the title and the line', () => {
   assert.deepEqual(Object.keys(renamePatch(walk(), 'T', 'L')).sort(), ['epilogue', 'title']);
 });
 
+test('tend chronicle audit 1: the suggestion the field was filled with stores no title after the area changed', () => {
+  // The first replay filled Name it before a kept gap placed the walk in Fox Point.
+  const filled = walk({ title: null, area: null });
+  const offered = suggestTitle(filled);
+  const placed = { ...filled, area: 'Fox Point' };
+  assert.notEqual(suggestTitle(placed), offered);
+  assert.equal(renamePatch(placed, offered, '', offered).title, null);
+  // Words of the person's own are kept whatever was offered.
+  assert.equal(renamePatch(placed, 'Down to the river', '', offered).title, 'Down to the river');
+});
+
 test('tend chronicle audit 2: a suggestion longer than the title field, kept unchanged, stores no title', () => {
   const w = walk({ title: null, area: 'Royal Borough of Kensington and Chelsea and Somewhere Else' });
   assert.ok(suggestTitle(w).length > TITLE_MAX);

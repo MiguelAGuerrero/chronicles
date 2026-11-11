@@ -89,6 +89,8 @@ export default function Replay() {
   const [fitKey, setFitKey] = useState(0);
   const [sheetH, setSheetH] = useState(0);
   const [title, setTitle] = useState('');
+  // The suggestion Name it was filled with, if it was one: kept as it was, it stores no title (tend chronicle audit 1).
+  const [offered, setOffered] = useState<string | null>(null);
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -248,6 +250,7 @@ export default function Replay() {
       }
       setData(d);
       setTitle(d.walk.title ?? suggestTitle(d.walk));
+      setOffered(d.walk.title ? null : suggestTitle(d.walk));
       setEpilogue(d.walk.epilogue ?? '');
       setStatus('ready');
       // A new tile build drops the street cache and marks walks for re-snapping.
@@ -273,6 +276,7 @@ export default function Replay() {
         if (!alive) return;
         setData(d);
         setTitle(d.walk.title ?? suggestTitle(d.walk));
+        setOffered(d.walk.title ? null : suggestTitle(d.walk));
       }
       // With a screen reader the animation says nothing: it goes straight to
       // the captures, one after another, then the card. (react-native-web
@@ -410,7 +414,7 @@ export default function Replay() {
     setSaveError(null);
     try {
       // The suggestion kept as it was stores no title, so it follows the walk's area (tend chronicle T1).
-      await db.updateWalk(data.walk.id, renamePatch(data.walk, title, epilogue));
+      await db.updateWalk(data.walk.id, renamePatch(data.walk, title, epilogue, offered));
       toChronicle();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
@@ -685,6 +689,7 @@ export default function Replay() {
         onRenamed={(walkId, patch) => {
           setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));
           setTitle(patch.title ?? suggestTitle(data.walk));
+          setOffered(patch.title ? null : suggestTitle(data.walk));
           setEpilogue(patch.epilogue ?? '');
         }}
       />
