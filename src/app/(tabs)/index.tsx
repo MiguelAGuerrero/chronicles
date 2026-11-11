@@ -294,6 +294,8 @@ function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; p
     <View style={styles.screen}>
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
         <HomeSheet
+          // Back and Escape lower the sheet only while Chronicle is in front with nothing over it (section-bar audit 1).
+          ownKeys={focused && !viewing && !recalled && !actionsFor}
           index={index}
           summaries={summaries}
           unplaced={unplaced}

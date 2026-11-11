@@ -101,7 +101,20 @@ async function checks(h) {
     const vh = (await page.locator('[data-testid=tab-navigate]').boundingBox()).y;
     const sheetH = (await page.locator('[data-testid=home-sheet]').boundingBox()).height;
     check([Math.round(vh * 0.5), vh - 56].some((h) => Math.abs(sheetH - h) < 30), `a dragged sheet settles at a step (${Math.round(sheetH)} px)`);
-    await page.click('[data-testid=sheet-map]');
+    // section-bar audit 3: a drag up names the list it opens on the bar, and a drag down to rest names Map (SB1).
+    const barAfterDrag = await page.locator('[data-testid^=section-][aria-selected=true]').getAttribute('data-testid');
+    const listAfterDrag = (await page.locator('[data-testid=walk-row]').count()) ? 'section-walks' : 'section-days';
+    const headUp = await page.locator('[data-testid=sheet-drag]').boundingBox();
+    await page.mouse.move(headUp.x + headUp.width / 2, headUp.y + headUp.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(headUp.x + headUp.width / 2, vh - 40, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(700);
+    const barAfterDown = await page.locator('[data-testid^=section-][aria-selected=true]').getAttribute('data-testid');
+    const restAfterDown = (await page.locator('[data-testid=walk-row], [data-testid=day-row]').count()) === 0;
+    check(barAfterDrag === listAfterDrag && barAfterDown === 'section-map' && restAfterDown,
+      `section-bar audit 3: a drag up moves the bar to its list, a drag down to rest moves it to Map (${barAfterDrag} for ${listAfterDrag}, then ${barAfterDown}, at rest ${restAfterDown})`);
+    if (await page.locator('[data-testid=sheet-map]').count()) await page.click('[data-testid=sheet-map]');
     await page.waitForTimeout(400);
     // The section bar names what the sheet shows, and the sheet follows the bar, with one map up (specs/section-bar).
     {
@@ -110,7 +123,9 @@ async function checks(h) {
         : (await page.locator('[data-testid=day-row]').count()) ? 'days'
           : (await page.locator('[data-testid=place-title]').count()) ? 'place' : 'rest');
       const camera = () => page.locator('[data-zoom]').first().evaluate((e) => `${e.getAttribute('data-zoom')} ${e.getAttribute('data-center')}`);
-      const canvases = () => page.locator('canvas.maplibregl-canvas').count();
+      // The map's own canvas, marked: a remount would bring a new, unmarked one (section-bar audit 2).
+      await page.locator('canvas.maplibregl-canvas').first().evaluate((e) => { e.dataset.sbMark = '1'; });
+      const canvases = () => page.evaluate(() => `${document.querySelectorAll('canvas.maplibregl-canvas').length}/${document.querySelectorAll('canvas.maplibregl-canvas[data-sb-mark]').length}`);
       const settle = () => page.waitForTimeout(700);
       const cam0 = await camera();
       const seen = [];
@@ -119,10 +134,11 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=day-row]', { timeout: 10000 });
       await settle();
       seen.push(['sheet Days', await selectedSection(), await shows(), await canvases(), await camera()]);
-      await shot(page, 'chronicle-sb-sheet-to-bar');
       await page.click('[data-testid=sheet-map]');
       await settle();
       seen.push(['sheet Map', await selectedSection(), await shows(), await canvases(), await camera()]);
+      // section-bar audit 5: the sheet's Map, pictured with the bar on Map and the sheet at rest.
+      await shot(page, 'chronicle-sb-sheet-to-bar');
       const sheetToBar = seen.slice(0, 2);
       check(sheetToBar[0][1] === 'section-days' && sheetToBar[0][2] === 'days' && sheetToBar[1][1] === 'section-map' && sheetToBar[1][2] === 'rest',
         `SB1: the sheet's Days and Map move the section bar with them (${JSON.stringify(sheetToBar.map((x) => x.slice(0, 3)))})`);
@@ -150,10 +166,29 @@ async function checks(h) {
       check(barToSheet[0].slice(1, 3).join() === 'section-days,days' && barToSheet[1].slice(1, 3).join() === 'section-walks,walks'
         && barToSheet[2].slice(1, 3).join() === 'section-map,rest' && placeSection === 'section-map' && afterSame.join() === 'section-map,rest',
         `SB2: the bar's Days, Walks and Map change the sheet, and its selected Map returns a place's walks to rest (${JSON.stringify(barToSheet.map((x) => x.slice(0, 3)))}, place ${placeSection}, then ${afterSame})`);
-      check(seen.every((x) => x[3] === 1) && seen.every((x) => x[4] === cam0),
-        `SB3: one canvas stands and the camera holds across the moves (${JSON.stringify(seen.map((x) => [x[0], x[3], x[4]]))}, from ${cam0})`);
+      check(seen.every((x) => x[3] === '1/1') && seen.every((x) => x[4] === cam0),
+        `SB3, section-bar audit 2: the same canvas stands (canvases/marked) and the camera holds across the moves (${JSON.stringify(seen.map((x) => [x[0], x[3], x[4]]))}, from ${cam0})`);
       check(sheetToBar.every((x) => x[1] === `section-${x[2] === 'rest' ? 'map' : x[2]}`) && barToSheet.every((x) => x[1] === `section-${x[2] === 'rest' ? 'map' : x[2]}`),
         'SB5: the bar and the sheet agree each way, pictured (chronicle-sb-sheet-to-bar, chronicle-sb-bar-to-sheet)');
+      // section-bar audit 1: Escape on a replay opened from a day's timeline leaves Chronicle as it was: the sheet
+      // beneath, out of sight, never takes the key, so Back returns to Days and the day (SB4).
+      await page.click('[data-testid=section-days]');
+      await page.waitForSelector('[data-testid=day-row]', { timeout: 10000 });
+      await page.click('[data-testid=day-row]');
+      await page.waitForSelector('[data-testid=day-title]');
+      await page.locator('[data-testid=timeline-walk]').first().click();
+      await page.waitForURL(/\/replay\//, { timeout: 15000 });
+      await page.waitForTimeout(1500);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(400);
+      await page.goBack();
+      await page.waitForSelector('[data-testid=home-sheet]', { timeout: 15000 });
+      await settle();
+      const back = [await selectedSection(), (await page.locator('[data-testid=day-title]').count()) === 1];
+      check(back[0] === 'section-days' && back[1] === true,
+        `section-bar audit 1: Escape on a replay opened from a day leaves Chronicle on Days and the day (${JSON.stringify(back)})`);
+      await page.click('[data-testid=section-map]');
+      await settle();
     }
     // The map view survives a replay (H5): pan, note the star, replay, come back.
     const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();

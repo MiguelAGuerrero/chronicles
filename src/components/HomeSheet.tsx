@@ -221,6 +221,9 @@ export function HomeSheet(props: {
   now: number;
   /** With no walk finished yet, the peek's way to Navigate (tabs audit U7). */
   onNavigate?: () => void;
+  /** False while the sheet is out of sight or covered (another route, a viewer, a menu): Back and Escape are then
+   *  the cover's, never the sheet's, and never move Chronicle's section (section-bar audit 1). */
+  ownKeys?: boolean;
 }) {
   const expanded = props.mode.kind !== 'summary';
   // Opening a list starts at half height; the drag can take it to full.
@@ -253,6 +256,7 @@ export function HomeSheet(props: {
     <SheetFrame
       testID="home-sheet"
       dragTestID="sheet-drag"
+      ownKeys={props.ownKeys}
       size={size}
       onSize={setSize}
       onHeight={props.onHeight}
