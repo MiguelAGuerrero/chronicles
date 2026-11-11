@@ -23,7 +23,7 @@ import { buildDays } from '../../lib/days';
 import { placeFinds, type ChecklistArea, type Find } from '../../lib/explore/explore';
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
 import { zoomOutFor } from '../../lib/zoomOut';
-import { placeBacklog } from '../../lib/backlog';
+import { backlogStatus, placeBacklog } from '../../lib/backlog';
 import type { Bounds } from '../../lib/geo';
 import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
@@ -104,8 +104,13 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     [cameraNow],
   );
   const screenH = areaH;
-  // The walk being placed in the background, if any: its row waits, the rest of the screen doesn't.
-  const [placingId, setPlacingId] = useState<string | null>(null);
+  // The walk being placed in the background, if any: its row waits, the rest of the screen doesn't. Read from
+  // the pass itself, so a remount mid-pass (a section switch) still shows it (fix background-placing audit 1).
+  const placingId = useStore(backlogStatus, (s) => s.at);
+  const placedCount = useStore(backlogStatus, (s) => s.placed);
+  const placedSeen = useRef(placedCount);
+  // Reads the rows again without moving the map, while in front; set by the focus effect below.
+  const quietLoad = useRef<(() => void) | null>(null);
   const [selected, setSelected] = useState<Star | null>(null);
   // A long press at street zoom: Walk here, a one-tap start (NV12).
   const [spot, setSpot] = useState<LngLat | null>(null);
@@ -168,52 +173,47 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
         // one made before any walk, is framed too, so its pin is in view. A moment being deleted isn't.
         const gone = deletions.hidden();
         const bounds = fitWithMoments(placesIndex(areas, rows, walks).bounds, caps.filter((c) => !gone.has(c.id)));
-        if (refit && boundsKey(bounds) !== fittedTo.current) {
+        // A walk placed in the background (refit false) moves the map only when nothing was framed yet; otherwise
+        // its places count as framed, so coming back from a replay keeps the view you left (H5; audit 2).
+        if (boundsKey(bounds) !== fittedTo.current) {
+          const first = fittedTo.current === '';
           fittedTo.current = boundsKey(bounds);
-          setFit((f) => ({ bounds, key: f.key + 1 }));
+          if (refit || first) setFit((f) => ({ bounds, key: f.key + 1 }));
         }
         return { walks, rows };
       };
       reload.current = () => {
         load().catch(() => {});
       };
-      // A walk placed in the background: its star comes at once, and the map stays where you have it.
-      const refresh = async () => {
-        const [walks, summaries, areas, rows] = await Promise.all([db.listWalks(), db.listSummaries(), db.listAreas(), db.listWalkAreas()]);
-        if (live) setData({ walks, summaries, areas, rows });
+      quietLoad.current = () => {
+        load(false).catch(() => {});
       };
       load()
         .then(async (d) => {
           if (!d) return;
           // Walks with no places yet are placed in the background, one after another, from the tiles (the
           // owner, Nov 11): the map and the places already walked show at once, with no cover, and each walk's
-          // star comes as it is placed. Leaving the screen stops the pass after the walk at hand.
+          // star comes as it is placed (the effect on `placedCount`). Leaving the screen stops the pass after the
+          // walk at hand; a pass asked for meanwhile waits for it, then places what is left.
           const todo = unplacedWalks(d.walks, d.rows).filter((w) => !tried.has(w.id));
           if (!todo.length) return;
-          const framed = fittedTo.current !== '';
-          await placeBacklog(todo, {
-            onAttempt: (id) => {
-              tried.add(id);
-              if (live) setPlacingId(id);
-            },
-            onProgress: () => {
-              if (live) refresh().catch(() => {});
-            },
-            stopped: () => !live,
-          });
-          // The map is framed at the end only if it had nothing to frame before; otherwise it stays where you
-          // may have moved it, and the next opening frames the new places.
-          if (live) await load(!framed);
+          await placeBacklog(todo, { onAttempt: (id) => tried.add(id), stopped: () => !live });
         })
-        .catch((e) => live && setLoadError({ message: e instanceof Error ? e.message : String(e) }))
-        .finally(() => live && setPlacingId(null));
+        .catch((e) => live && setLoadError({ message: e instanceof Error ? e.message : String(e) }));
       return () => {
         live = false;
         reload.current = null;
-        setPlacingId(null);
+        quietLoad.current = null;
       };
     }, []),
   );
+
+  // Each walk placed, by this screen's pass or one started before a remount: its star comes at once.
+  useEffect(() => {
+    if (placedCount === placedSeen.current) return;
+    placedSeen.current = placedCount;
+    quietLoad.current?.();
+  }, [placedCount]);
 
   const days = useMemo(() => buildDays(data?.walks ?? [], captures), [data, captures]);
   // Recomputed when crossing the pin zoom, not on every camera step (audit).

@@ -1,7 +1,8 @@
 ---
 paths:
   - "src/lib/areas/**"
-  - "src/lib/{places,backlog}.ts"
+  - "src/lib/places.ts"
+  - "src/lib/backlog/**"
   - "src/components/StarView.tsx"
   - "scripts/build-boundaries.js"
   - "assets/boundaries/**"
@@ -121,9 +122,16 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     owner read the count as their walks. No cover, no count, no Skip.
   - It runs in one pass, and every tile read in it times out.
   - It needs a known tile build to start.
-  - Each walk's star comes as it is placed (the screen reads the rows again);
-    the map is framed at the end only if it had nothing to frame before.
-  - Only the walk at hand waits ("Placing…" on its row, its More off): a
+  - The pass's state is the shell's (`backlogStatus`: the walk at hand and a
+    placed count), never the screen's: Chronicle remounts on a section switch
+    (keyed by section), and a screen-held "Placing…" and refresh were lost
+    mid-pass (audit 1). A second pass waits for the one under way, then
+    places what is left, never joining its callbacks (`placeAll`'s join).
+  - Each walk placed reads the rows again (`load(false)`): its star comes,
+    and the map moves only if nothing was framed yet; otherwise the new
+    places count as framed, so a return from a replay keeps the view (audit 2).
+  - Only the walk at hand waits ("Placing…" on its row and its Days
+    timeline row, their More off; audit 4): a
     delete mid-read would write its rows back (deletion audit 2). A walk
     deleted or in Undo since the pass began is skipped.
   - A walk counts as tried only once its placing begins. Leaving the screen

@@ -7,7 +7,7 @@ import { tileCollector } from '../tileCollector';
 import { ensureTileBuild } from '../tiles';
 import { createBacklog } from './shell';
 
-export const placeBacklog = createBacklog({
+export const { placeBacklog, status: backlogStatus } = createBacklog({
   tileBuild: ensureTileBuild,
   snap: snapWalk,
   collector: tileCollector,
