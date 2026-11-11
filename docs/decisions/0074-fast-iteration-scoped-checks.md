@@ -1,6 +1,6 @@
 # 0074. Fast iteration: scoped checks per slice; the full e2e and the audit on request
 
-Date: 2026-11-03 · Status: accepted · Area: process, testing · Supersedes in part: 0018 (the audit on every slice) · Amended by: 0142 (a UI review on every screen change)
+Date: 2026-11-03 · Status: accepted · Area: process, testing · Supersedes in part: 0018 (the audit on every slice) · Amended by: 0143 (a UI review on every screen change)
 
 ## Context
 Seven or eight agents at a time were each running the full e2e (one sequential flow through every screen, about 15 minutes), because `AGENTS.md`, `/slice`, `/audit` and `/deploy` all required it before work counted as done, even for a slice that touched one screen or none. Every slice also got an adversarial audit (decision 0018). The owner is iterating fast on features and wants each change checked by what it can break: unit and shell tests, regression tests, and an e2e journey scoped to the change.

@@ -59,7 +59,7 @@ the change: inputs that still fail, neighbours it could regress, the web and nat
 failing input or a file and line with each finding; a finding with neither is opinion.
 
 **A screen changed** (the diff touches `src/app/` or `src/components/`, or a module a screen draws from): the review
-also looks at the screens (decision 0142). Run the journeys that cover the changed files with
+also looks at the screens (decision 0143). Run the journeys that cover the changed files with
 `E2E_SHOTS=<scratchpad>/shots` (390 x 844) so every changed state is a picture, after making sure the journey seeds
 the longest text the screen can meet (a title, a place line, a label that wraps); a journey with only short text gets a
 long case first, and a changed state with no `shot()` gets one. Give the auditor the pictures too, and run the

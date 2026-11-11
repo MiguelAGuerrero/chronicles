@@ -30,14 +30,14 @@ import type { Bounds } from '../../lib/geo';
 import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
-import { fitsOnRead, levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
+import { fitsOnRead, levelForZoom, placesIndex, shownPlaces, starsFor, unplacedWalks, type Star } from '../../lib/places';
 import type { LngLat, Walk, WalkSummary } from '../../lib/types';
 import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { fitWithMoments, MOMENT_PIN_ZOOM, placedMoments } from '../../lib/momentPins';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { showWalk } from '../../lib/walkNav';
-import { useTabMap } from '../../lib/useTabMap';
+import { useTabMap, type Camera } from '../../lib/useTabMap';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
@@ -137,6 +137,10 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   // Kept while the app is open, so the section comes back where it was (audit 8): the framed places, and the camera below.
   const kept = chronicleSection.keptMap();
   const fittedTo = useRef(kept?.fittedTo ?? '');
+  // A map that mounts on Walks (the bar's Walks from Memories or Media) zooms out once, by the walks list's rule, when a
+  // place walked is out of the kept view (T7); a read that frames the places itself needs none.
+  const zoomOnMount = useRef(section === 'walks');
+  const mountZoom = useRef<((places: Bounds) => void) | null>(null);
   // The place view's found places (E10).
   const [checklists, setChecklists] = useState<ChecklistArea[]>([]);
   const [finds, setFinds] = useState<Find[]>([]);
@@ -194,10 +198,17 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         // A walk placed in the background (refit false) moves the map only when nothing was framed yet; otherwise
         // its places count as framed, so coming back from a replay keeps the view you left (H5; audit 2).
         const key = boundsKey(bounds);
+        let framed = false;
         if (key !== fittedTo.current) {
           const fit = fitsOnRead(fittedTo.current, key, !refit);
           fittedTo.current = key;
           if (fit) setFit((f) => ({ bounds, key: f.key + 1 }));
+          framed = fit;
+        }
+        if (zoomOnMount.current) {
+          zoomOnMount.current = false;
+          const shown = framed ? null : shownPlaces(areas, rows, walks, gone);
+          if (shown) mountZoom.current?.(shown);
         }
         return { walks, rows };
       };
@@ -249,14 +260,22 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   // Opening the walks list zooms out to every place walked (M6), at once, framed above the half-height sheet it opens
   // to; only from the sheet at rest, only when they aren't all in view already, and never closer than now (audit 7).
   // The sheet's Walks, a drag up and the bar's Walks all come here, so the same word moves the map the same way (T6).
+  const walksZoomOut = (places: Bounds, camera: Camera | null) => {
+    const padding = { top: insets.top + 60, right: 48, bottom: Math.round(screenH * 0.5) + 96, left: 48 };
+    const z = zoomOutFor({ camera, size: { width: screenW, height: screenH }, padding, places });
+    if (z) setFit((f) => ({ bounds: z.bounds, key: f.key + 1, padding, maxZoom: z.maxZoom }));
+  };
   const openSheet = (m: SheetMode) => {
-    if (m.kind === 'walks' && mode.kind === 'summary' && index.bounds) {
-      const padding = { top: insets.top + 60, right: 48, bottom: Math.round(screenH * 0.5) + 96, left: 48 };
-      const z = zoomOutFor({ camera: cameraNow.current, size: { width: screenW, height: screenH }, padding, places: index.bounds });
-      if (z) setFit((f) => ({ bounds: z.bounds, key: f.key + 1, padding, maxZoom: z.maxZoom }));
-    }
+    if (m.kind === 'walks' && mode.kind === 'summary' && index.bounds) walksZoomOut(index.bounds, cameraNow.current);
     showSheet(m);
   };
+  // The mount's zoom-out (T7) reads the view the map stands on: the camera it reported, else the kept one it opened
+  // with; only while the walks list is still what the sheet shows.
+  useEffect(() => {
+    mountZoom.current = (places) => {
+      if (mode.kind === 'walks') walksZoomOut(places, cameraNow.current ?? savedCamera ?? kept?.camera ?? null);
+    };
+  });
   // The bar's press, the selected section's too, reaches the sheet with no new map (SB2, SB3).
   useImperativeHandle(ref, () => ({ show: (s) => openSheet({ kind: sheetForSection(s) }) }));
   // TB3: the towns your walks were in, as regions in one tint behind the stars (from z8, BORDER.minZoom).

@@ -51,6 +51,16 @@ jobs:
         run: npx expo export --platform web
         env:
           CHRONICLES_BASE_URL: /chronicles
+      # fix stale-chunk audit 1: one JS file. A deploy replaces every file, so a page left open across it
+      # loses any file it hasn't loaded yet: a split route or import() showed "Loading module ... failed".
+      - name: The web export is one bundle
+        run: |
+          n=$(find dist/_expo/static/js/web -name '*.js' | wc -l)
+          if [ "$n" -ne 1 ]; then
+            echo "::error::the web export wrote $n JS files; an open page loses all but the one it loaded to the next deploy (fix stale-chunk)"
+            find dist/_expo/static/js/web -name '*.js'
+            exit 1
+          fi
       # Pages has no fallback for app routes: serve the app for unknown paths,
       # so a reload on /chronicles/walk resumes the walk instead of a 404.
       - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
