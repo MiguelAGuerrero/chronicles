@@ -176,8 +176,8 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 ### Last tend
 
 **Nov 11, `/tend inbox G3 yes`** (from `bc41449`). G3 built as one slice, `specs/presence` (PR1-PR8, decision 0140): tests first
-`0e10bf2`; the code `bf5d3c4` (`src/lib/presence`: one table from poi classes and Overture's taxonomy to classes, read by density and
-marks; curation apart in `discovery/curation.ts`; `PRESENCE_CODE` in the atlas and landing codes); the docs `90c3c4e`. Every tag outside
+`4b39add`; the code `84ed6b2` (`src/lib/presence`: one table from poi classes and Overture's taxonomy to classes, read by density and
+marks; curation apart in `discovery/curation.ts`; `PRESENCE_CODE` in the atlas and landing codes); the docs `ec25ea0`. Every tag outside
 PR5's list answers as before (a golden table; 5,913 real places compared). The review: `presence audit 1` (remembered areas keep their
 busy streets: rows from just before presence are carried), `presence audit 2` (PR2's guard widened); F3 deferred; four rule lines put
 right. Filed: G4 (presence's second slice); G3 leaves "Next evolutions"; G2 can now build on presence. Not pictured: none of PR5's tags
