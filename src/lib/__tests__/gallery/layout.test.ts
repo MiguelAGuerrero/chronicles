@@ -216,3 +216,24 @@ test('fix gallery-header audit 5: BLOCK_TYPE line heights hold their glyphs', as
   const { BLOCK_TYPE } = await import('../../gallery/layout');
   assert.ok(BLOCK_TYPE.titleLine >= BLOCK_TYPE.titleSize * 1.2 && BLOCK_TYPE.lineLine >= BLOCK_TYPE.lineSize * 1.2);
 });
+
+test('fix gallery-header audit 8: a text-size change in Months keeps the block at the top', async () => {
+  const { anchorAfter } = await import('../../gallery/view');
+  const blocks = galleryBlocks(galleryTiles(Array.from({ length: 12 }, (_, i) => mo(`m${i}`, [['photo', at(2026, 1 + i, 3)]])), [], 'all', 'newest'), new Map(), {}, 'month', NOW);
+  const before = blockRows(blocks, 390, 1);
+  const after = blockRows(blocks, 390, 1.353);
+  assert.equal(anchorAfter(before, before[4].offset + 10, after), after[4].offset);
+  assert.notEqual(after[4].offset, before[4].offset);
+});
+
+test('fix gallery-header audit 9: a fontScale change asks for the anchored offset', async () => {
+  const { rescaleScroll } = await import('../../gallery/view');
+  const days = galleryDays(galleryTiles(Array.from({ length: 60 }, (_, i) => mo(`m${i}`, [['photo', at(2026, 9, 1 + Math.floor(i / 3), 9, i)]])), [], 'all', 'newest'), new Map(), {}, NOW);
+  const small = dayRows(days, 390, 0, 1).rows;
+  const large = dayRows(days, 390, 0, 2).rows;
+  const top = small.filter((r) => r.kind === 'header')[10];
+  assert.equal(rescaleScroll(null, 0, small, 1), null, 'first mount: nothing to keep');
+  assert.equal(rescaleScroll({ rows: small, scale: 1 }, top.offset, large, 1), null, 'same scale: the size and sort changes do their own');
+  const to = rescaleScroll({ rows: small, scale: 1 }, top.offset, large, 2);
+  assert.equal(to, large.find((r) => r.kind === 'header' && top.kind === 'header' && r.day.key === top.day.key)!.offset);
+});

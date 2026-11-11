@@ -7,7 +7,7 @@ import { gallery } from '../../lib/gallery';
 import { capFirst, emptyLine } from '../../lib/gallery/copy';
 import { blockRows, blockTextHeight, coverHeight, dayRows, HEADER_TYPE, galleryBlocks, galleryDays, galleryTiles, tileLabel, tilePlace, type Block, type Row, type Tile } from '../../lib/gallery/layout';
 import type { Zoom } from '../../lib/gallery/types';
-import { anchorAfter, fitFor, zoomed } from '../../lib/gallery/view';
+import { anchorAfter, fitFor, rescaleScroll, zoomed } from '../../lib/gallery/view';
 import { pieceKey, type Faced } from '../../lib/moment';
 import { resurface } from '../../lib/resurface';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
@@ -92,10 +92,9 @@ export function MediaScreen() {
   // was at the top is found again in the new rows, as a size change does.
   const lastRows = useRef<{ rows: Row[]; scale: number } | null>(null);
   useEffect(() => {
-    const last = lastRows.current;
+    const to = rescaleScroll(lastRows.current, offset.current, rows, fontScale);
     lastRows.current = { rows, scale: fontScale };
-    if (!last || last.scale === fontScale) return;
-    const to = anchorAfter(last.rows, offset.current, rows);
+    if (to == null) return;
     requestAnimationFrame(() => list.current?.scrollToOffset({ offset: to, animated: false }));
   }, [rows, fontScale]);
 

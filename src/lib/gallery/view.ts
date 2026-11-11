@@ -27,12 +27,26 @@ export function pinchStep(startDistance: number, distance: number): 'in' | 'out'
   return r >= 1.25 ? 'in' : r <= 0.8 ? 'out' : null;
 }
 
-/** Where to scroll after the size changed (MG20): the header of the day that was at the top. */
+/**
+ * Where to scroll after the rows changed height (MG20, fix gallery-header): the header of the day that was at the top,
+ * or in Months and Years the block that was (audit 8).
+ */
 export function anchorAfter(before: Row[], offset: number, after: Row[]): number {
   if (!before.length) return 0;
-  const day = dayOfRow(before[rowAt(before, offset)]);
+  const top = before[rowAt(before, offset)];
+  if (top.kind === 'block') return after.find((r) => r.kind === 'block' && r.block.key === top.block.key)?.offset ?? 0;
+  const day = dayOfRow(top);
   const h = after.find((r) => r.kind === 'header' && r.day.key === day);
   return h ? h.offset : 0;
+}
+
+/**
+ * The text size changed while the rows were up (fix gallery-header audit 2, 9): the offset that keeps the same day or
+ * block at the top; null on the first rows, or when the scale is unchanged (a size, sort or filter change scrolls itself).
+ */
+export function rescaleScroll(last: { rows: Row[]; scale: number } | null, offset: number, rows: Row[], scale: number): number | null {
+  if (!last || last.scale === scale) return null;
+  return anchorAfter(last.rows, offset, rows);
 }
 
 /** How a photo sits in its square cell (MG21): cropped to fill it, or whole inside it. The cell's size never changes. */
