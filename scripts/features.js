@@ -129,7 +129,8 @@ const FEATURES = [
     about: 'what a place is: one vocabulary of classes from every source\'s tags, read by density, marks and bars (decision 0140)',
     rule: 'explore-and-discovery',
     source: ['src/lib/presence/**'],
-    journeys: ['marks', 'atlas', 'grading'],
+    // Its consumers own the journeys that show it: explore's marks, atlas and grading.
+    journeys: [],
     specs: ['presence'],
   },
   {
