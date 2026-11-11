@@ -145,9 +145,9 @@ const FEATURES = [
       'src/lib/db/{exploreRow,placeRow,stores}.ts', 'src/lib/markNames.ts',
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
+      'src/components/{MarkPinView,ExploreSettings,ExploreKindsControl,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'layers'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'explore-settings'],
   },
   {

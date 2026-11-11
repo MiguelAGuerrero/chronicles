@@ -8,7 +8,7 @@ paths:
   - "src/app/(tabs)/explore.tsx"
   - "src/lib/atlas/**"
   - "src/components/atlas/**"
-  - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
+  - "src/components/{MarkPinView,ExploreSettings,ExploreKindsControl,ReminderCard,RemindEditor}.tsx"
   - "src/lib/__tests__/explore/**"
 ---
 # Explore and discovery
