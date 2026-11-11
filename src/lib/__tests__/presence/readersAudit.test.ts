@@ -46,6 +46,10 @@ const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
   wood: ['discovery/green.ts'],
   // a style's or a component's bar (a scale bar, a section bar), in views only
   bar: ['../components/'],
+  // complexes (decision 0147): `shopping` is the name of a kind of complex, and `parking` an Overture building class (not a place's
+  // taxonomy): neither is a source tag read for what a place is
+  shopping: ['complexes/'],
+  parking: ['complexes/rule.ts'],
 };
 const plainIn = (w: string, rel: string) => !!PLAIN_IN[w]?.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p));
 
