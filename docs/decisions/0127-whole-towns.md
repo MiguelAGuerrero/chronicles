@@ -17,20 +17,24 @@ The owner's calls, Nov 11 (each the recommended option but the third):
 - **Hamlets inside a town's border are its neighborhoods**; outside every border they stay unlisted (rural
   places are Places out of town, 0115). Walk placement is unchanged.
 - **Wards are not neighborhoods** ("1st Ward", "Eighth Ward"): voting districts. Historic districts stay.
-- **A selected neighborhood shows every place still to find as a "?"**; a selected town keeps one per kind.
+- **Every place still to find is on the map, for a neighborhood and for a town** ("All for the town").
+- **A dot where a "?" would crowd**: a place is a "?" where its pin has room on screen, a small dot in its kind's
+  colour where it would overlap another pin; a tap on a dot zooms in toward it (the owner, Nov 11: "not putting a
+  whole bunch of question marks overlaid on top of the map ... maybe like a dot instead"; the options recommended).
 - **Presence, not completion** (the owner's answer to the steward's S1, which warned that a neighborhood's
   map of every "?" beside its finds reads as a checklist): "this is not for completion. This is for
-  presence", and the remedy is to take found places off the view. Explore's map draws no found place;
-  the "?" are not merged. The card keeps its "Found" list.
+  presence", and the remedy is to take found places off the view. Explore's map draws no found place,
+  whatever is selected. The card keeps its "Found" list.
 
 ## Vision
-Idea: list a whole town's neighborhoods wherever you stand, and show a neighborhood's places where they wait.
+Idea: list a whole town's neighborhoods wherever you stand, and show the selected area's places where they wait.
 Verb: earn. Touches: Never "completion" and 0031 ("discoveries in the moment, not a planned list"),
 answered by taking found places off the map; Never "Tallies" (no count in digits or words; the "?" are one
 accessible element naming the kinds, WT11); 0115 (countless unnamed "?"). Verdict: aligned. Spec:
-`specs/whole-towns/spec.md` (WT1-WT11).
+`specs/whole-towns/spec.md` (WT1-WT14).
 
 ## Consequences
 - `townNeighborhoods` takes the town's z10 border; the near read records the town it covered, so each town
   is listed again once, across its border.
 - Explore's map loses the found pins that fix area-marks added; the area's card still names its finds.
+- WalkMap gains a dots layer on both platforms; which places are "?" is decided at the settled zoom, as capture pins are.
