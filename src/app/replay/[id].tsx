@@ -3,7 +3,7 @@ import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
@@ -61,6 +61,8 @@ export default function Replay() {
   const { id, ceremony, style } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
+  // The name's Next goes on to the line, as in Rename (tend chronicle 5).
+  const lineInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [stored, setData] = useState<ReplayData | null>(null);
   // Town borders (TB5): the towns this walk was in tinted, read again once the walk is placed.
   const borders = useWalkBorders(id ? [id] : [], stored?.walk.snapped_build ?? '');
@@ -645,11 +647,14 @@ export default function Replay() {
                   accessibilityLabel="Name this walk"
                   accessibilityLabelledBy="title-label"
                   returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => lineInput.current?.focus()}
                   maxLength={60}
                   style={styles.input}
                 />
                 <Text style={styles.label} nativeID="epilogue-label">One line, while the feeling is fresh</Text>
                 <TextInput
+                  ref={lineInput}
                   testID="epilogue-input"
                   value={epilogue}
                   onChangeText={setEpilogue}

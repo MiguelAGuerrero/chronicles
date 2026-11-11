@@ -58,6 +58,11 @@ async function checks(h) {
     await page.click('[aria-label="Close"]');
 
     await page.click('[data-testid=to-name]');
+    // tend chronicle 5: the name's return key (Next) goes on to the line.
+    await page.locator('[data-testid=title-input]').press('Enter');
+    await page.waitForTimeout(300);
+    const nextFocus = await page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? null);
+    check(nextFocus === 'epilogue-input', `tend chronicle 5: Next in the first replay's name goes on to the line (focus on ${nextFocus})`);
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');
     await page.click('[data-testid=save]');
     // Back on Chronicle: the walk is a star where it was walked (H1, H7, NV27).

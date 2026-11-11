@@ -577,6 +577,21 @@ async function run(h) {
         `tend chronicle 4: Escape steps out of the Rename editor to the walk's menu, then closes the menu (${JSON.stringify({ once, twice })})`);
       if (twice.menu) await pg.click('[data-testid=actions-cancel]');
     });
+
+    // tend chronicle 5: the title's return key (Next) goes on to the line, in Rename as in the first replay's name.
+    await qstep('tend chronicle 5', async () => {
+      await pg.locator('[data-testid=walk-more]').first().click();
+      await pg.click('[data-testid=action-rename]');
+      await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+      await pg.waitForTimeout(800);
+      await pg.locator('[data-testid=rename-title]').press('Enter');
+      await pg.waitForTimeout(300);
+      const focused = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? null);
+      check(focused === 'rename-epilogue', `tend chronicle 5: Next in Rename's title goes on to the line (focus on ${focused})`);
+      await pg.click('[data-testid=rename-cancel]');
+      await pg.click('[data-testid=actions-cancel]');
+      await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
+    });
     await c.close();
 
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { db } from '../lib/db';
 import { deleteWalk, planWalk, removeWalkMedia, type WalkPlan } from '../lib/deletion';
@@ -35,6 +35,8 @@ export function WalkActions(props: {
   const [saveError, setSaveError] = useState(false);
   // The GPS log, read when the sheet opens: a browser opens the share sheet only straight from a tap.
   const logText = useRef<string | null>(null);
+  // The title's Next goes on to the line (tend chronicle 5).
+  const lineInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [logNote, setLogNote] = useState<string | null>(null);
   const { walkId } = props;
 
@@ -199,6 +201,8 @@ export function WalkActions(props: {
               accessibilityLabel="Name this walk"
               accessibilityLabelledBy="rename-title-label"
               returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => lineInput.current?.focus()}
               maxLength={TITLE_MAX}
               autoFocus
               selectTextOnFocus
@@ -206,6 +210,7 @@ export function WalkActions(props: {
             />
             <Text style={styles.label} nativeID="rename-epilogue-label">One line, while the feeling is fresh</Text>
             <TextInput
+              ref={lineInput}
               testID="rename-epilogue"
               value={epilogue}
               onChangeText={setEpilogue}
