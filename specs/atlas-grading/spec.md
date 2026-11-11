@@ -50,6 +50,10 @@ Never a mark:
   courthouse, cemetery or library, unless its name says it is historic or notable
   (`notable.json`);
 - a cinema, dog park or picnic site;
+- a memorial, a nature reserve or a community centre, unless its name says it is historic or notable (presence, PR5,
+  Nov 11: memorials and reserves joined the notable classes when one classification took over from two tables;
+  arts centres and viewpoints are marks under their own class as they were under `art_gallery` and `attraction`).
+  The classes are presence's (`src/lib/presence`, decision 0140); what makes a mark is `discovery/curation.ts`;
 - private homes, schools, temporary or seasonal things, and places without safe
   access on foot. The map data the app reads has none of these as places of
   interest; any adapter that brings them must leave them out.

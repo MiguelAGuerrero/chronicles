@@ -24,4 +24,5 @@ The owner's calls, Nov 3:
 - The spec is `specs/activity-density/spec.md` (AD1-AD16); the plan is `specs/activity-density/plan.md`. The owner took the plan's defaults (Nov 3): the `pmtiles` library, and following Overture's newest release automatically.
 - **Network:** a second network host, Overture's public S3 bucket, is read by tile like the map.
 - **Marks and bars unchanged:** marks, finds and the atlas's presence bars stay on OpenStreetMap.
+- **Amended by 0140** (Nov 11): the density table is presence's (`src/lib/presence`), one classification read by density and marks alike; the weights did not change.
 - **Supersedes:** the v1.5 landing rules for strips and pockets (L4, L5) once built.
