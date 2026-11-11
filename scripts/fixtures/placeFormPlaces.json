@@ -698,6 +698,328 @@
       "set": "calibration",
       "pointNote": "hand-chosen, 5.2 km of street, 9 raw place hits (measured) (blind label, proposed by an independent agent)",
       "folded": "2026-11-11 (second held-out look)"
+    },
+    {
+      "id": "philadelphiaCenterCity",
+      "name": "Philadelphia (Center City)",
+      "at": [
+        -75.16356,
+        39.95271
+      ],
+      "word": "grid",
+      "set": "calibration",
+      "pointNote": "Overture locality point (city) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "alexandriaVa",
+      "name": "Alexandria (Old Town)",
+      "at": [
+        -77.04703,
+        38.80514
+      ],
+      "word": "grid",
+      "set": "calibration",
+      "pointNote": "Overture locality point (city) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "worcesterMa",
+      "name": "Worcester",
+      "at": [
+        -71.80192,
+        42.26257
+      ],
+      "word": "grid",
+      "set": "calibration",
+      "pointNote": "Overture locality point (city) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "portlandMe",
+      "name": "Portland",
+      "at": [
+        -70.25868,
+        43.65738
+      ],
+      "word": "grid",
+      "set": "calibration",
+      "pointNote": "Overture locality point (city) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "cooperstownNy",
+      "name": "Cooperstown",
+      "at": [
+        -74.92435,
+        42.7006
+      ],
+      "word": "mainStreet",
+      "set": "calibration",
+      "pointNote": "Overture locality point (town/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "litchfieldCt",
+      "name": "Litchfield",
+      "at": [
+        -73.18869,
+        41.7473
+      ],
+      "word": "mainStreet",
+      "set": "calibration",
+      "pointNote": "Overture locality point (town/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "peterboroughNh",
+      "name": "Peterborough",
+      "at": [
+        -71.94938,
+        42.8776
+      ],
+      "word": "mainStreet",
+      "set": "calibration",
+      "pointNote": "Overture locality point (town/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "frenchtownNj",
+      "name": "Frenchtown",
+      "at": [
+        -75.0616,
+        40.52639
+      ],
+      "word": "mainStreet",
+      "set": "calibration",
+      "pointNote": "Overture locality point (town/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "lenoxMa",
+      "name": "Lenox",
+      "at": [
+        -73.28507,
+        42.35683
+      ],
+      "word": "mainStreet",
+      "set": "calibration",
+      "pointNote": "Overture locality point (town/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "strafford",
+      "name": "Strafford",
+      "at": [
+        -72.37759,
+        43.86628
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "harrisville",
+      "name": "Harrisville",
+      "at": [
+        -72.09649,
+        42.94505
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "westCornwall",
+      "name": "West Cornwall",
+      "at": [
+        -73.36181,
+        41.87148
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "burkittsville",
+      "name": "Burkittsville",
+      "at": [
+        -77.62888,
+        39.39369
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "rohrersville",
+      "name": "Rohrersville",
+      "at": [
+        -77.66313,
+        39.43394
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "oldtown",
+      "name": "Oldtown",
+      "at": [
+        -78.61138,
+        39.54145
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "parisVa",
+      "name": "Paris",
+      "at": [
+        -77.95135,
+        39.00458
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "arkville",
+      "name": "Arkville",
+      "at": [
+        -74.61931,
+        42.14788
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": "mainStreet"
+    },
+    {
+      "id": "forksville",
+      "name": "Forksville",
+      "at": [
+        -76.60217,
+        41.48749
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "erwinna",
+      "name": "Erwinna",
+      "at": [
+        -75.07267,
+        40.50068
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "carversville",
+      "name": "Carversville",
+      "at": [
+        -75.06263,
+        40.38663
+      ],
+      "word": "village",
+      "set": "calibration",
+      "pointNote": "Overture locality point (hamlet/village) (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "fortLittleton",
+      "name": "Fort Littleton, PA Turnpike exit 180",
+      "at": [
+        -77.95978,
+        40.05047
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "Ramp midpoint; fuel, restaurant and motel at the end of the ramps, no town (11 places). (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "strattanvilleI80",
+      "name": "I-80 exit 62 (PA 66), Clarion",
+      "at": [
+        -79.24575,
+        41.1814
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "Ramp cluster; fuel, fast food, dealers; Strattanville/Clarion are 2-5 km off (16 places). (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "quakerCityI70",
+      "name": "I-70 exit 186, Quaker City OH",
+      "at": [
+        -81.32062,
+        40.05397
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "Ramp midpoint; fuel, pizza, truck repair, no town centre (10 places). (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "barnesvilleI70",
+      "name": "I-70 exit 202, Barnesville OH",
+      "at": [
+        -81.15976,
+        40.059
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "Ramp midpoint; three fuel stops about 440 m off, town 4 km away (7 places). (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "westGardinerMe",
+      "name": "Maine Turnpike exit 102, West Gardiner",
+      "at": [
+        -69.83544,
+        44.20605
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "Ramp midpoint; travel plaza, fast food and fuel 600 m from the point (13 places). (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "bearCreekI81",
+      "name": "I-81 at PA 115, Bear Creek Twp",
+      "at": [
+        -75.79065,
+        41.20428
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "Ramp midpoint; fuel and a coffee shop at the ramp, township buildings (21 places). (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": null
+    },
+    {
+      "id": "milfordI84",
+      "name": "I-84 exit 53 at US 6, Milford PA",
+      "at": [
+        -74.83975,
+        41.33686
+      ],
+      "word": "exit",
+      "set": "calibration",
+      "pointNote": "Ramp midpoint; motels, fuel and small shops 350 m off; Milford is a few km east (32 places, trunk share 0.34). (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": null
+    },
+    {
+      "id": "woodburyCommon",
+      "name": "Woodbury Common Premium Outlets",
+      "at": [
+        -74.105,
+        41.3195
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "Outlet centre centre. (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "plainsboroNj",
+      "name": "Plainsboro (suburban subdivisions)",
+      "at": [
+        -74.62,
+        40.3
+      ],
+      "word": null,
+      "set": "calibration",
+      "pointNote": "Point in a residential subdivision. (blind label, proposed by an independent agent, owner to confirm)"
     }
   ]
 }

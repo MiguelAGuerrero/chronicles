@@ -5,7 +5,7 @@
 //   npx tsx scripts/fixture-place-form.mjs calibration|heldOut      (needs the network; writes src/lib/__tests__/walkability/placeForm<Set>.json)
 
 import { Buffer } from 'node:buffer';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
@@ -36,7 +36,11 @@ const bytesOf = async (a, x, y) => {
   return b;
 };
 const out = { release: list.release, confirmed: list.confirmed, ringM: RING_M, dataM: DATA_M, places: {} };
-for (const place of list.places.filter((p) => p.set === set)) {
+// --missing cuts only the places not already in the file and merges them in (so adding places does not recut the rest).
+const file = new URL(`../src/lib/__tests__/walkability/placeForm${set === 'heldOut' ? 'HeldOut' : 'Calibration'}.json`, import.meta.url);
+const merge = process.argv.includes('--missing') && existsSync(file);
+const have = merge ? JSON.parse(readFileSync(file, 'utf8')) : null;
+for (const place of list.places.filter((p) => p.set === set && !(have && have.places[p.id]))) {
   const tiles = tilesAround(place.at, DATA_M);
   const kx = 111320 * Math.cos((place.at[1] * Math.PI) / 180);
   const off = (q) => [Math.round((q[0] - place.at[0]) * kx), Math.round((q[1] - place.at[1]) * 110540)];
@@ -87,4 +91,5 @@ for (const place of list.places.filter((p) => p.set === set)) {
   out.places[place.id] = rec;
   console.log(`${place.id}: ${tiles.length} tiles, ${rec.ways.length} ways, ${rec.junctions.length} junctions, ${rec.places.length} places, ${rec.buildings.length / 2} buildings`);
 }
-writeFileSync(new URL(`../src/lib/__tests__/walkability/placeForm${set === 'heldOut' ? 'HeldOut' : 'Calibration'}.json`, import.meta.url), JSON.stringify(out));
+if (have) out.places = { ...have.places, ...out.places };
+writeFileSync(file, JSON.stringify(out));
