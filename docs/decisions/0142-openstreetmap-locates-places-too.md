@@ -28,8 +28,9 @@ The owner's calls, Nov 11:
 - **Unnamed places enter, under the same filter.** The obelisk may have no name tag, and the owner wants it there. The
   excluded values, the access and lifecycle tags and the merge rule apply to an unnamed place exactly as to a named
   one. The pack's schema then allows a place with no name for this source, which is a contract change (version 3).
-  The app calls it "Monument", because "unnamed" doesn't match standing in front of one, which often has a plaque
-  (the owner, Nov 11); never a count.
+  The app calls it "A monument", the words of "A viewpoint", because "unnamed" doesn't match standing in front of
+  one, which often has a plaque (the owner, Nov 11; "A monument" rather than "Monument" so a replay reads "Passed a
+  monument"); never a count. Only a monument, memorial or statue may be unnamed.
 - **The same place in both sources is one place** (the 50 m rule, 0111); the gate stays blind to sources and counts
   (PP6, PP7). Nothing is ranked by how many sources name a place.
 - **Noise is reviewed before publishing** (0109): the build reports what it added, by area and class, and the owner
@@ -40,6 +41,9 @@ The owner's calls, Nov 11:
 - Supersedes 0110's line "OpenStreetMap only corroborates" and its license reasoning, which the Nov 10 ODbL call
   already answered. 0108's "a nomination never changes a pack" holds: OpenStreetMap here is a source that locates,
   never a community nomination.
+- **The pack is ODbL.** A locating source of another license family makes the region's one pack that family's (RD11), so
+  the US pack is ODbL from the first build with the new adapter. An earlier test (PP9) expected such a source in a
+  separate pack; the app reads only the region's own pack, so those places would never have appeared.
 - chronicles-data gets an OpenStreetMap locating adapter (the filter pass reuses `adapters/osm/extract.ts`, so the
   week's extracts are downloaded once) and contract version 3. The app pins the new contract (PP17) and reads an
   unnamed archive place as a mark.

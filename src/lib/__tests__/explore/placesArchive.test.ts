@@ -95,7 +95,7 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
   assert.deepEqual([got[0].category, got[0].kind, got[0].markable, got[0].build], ['viewpoints', 'curiosities', true, 'v20261108']);
 });
 
-test('PW9: an unnamed archive place is never kept', () => {
+test('PW9: an unnamed archive place is kept only for a monument, memorial or statue (OL11); any other class is left out', () => {
   assert.deepEqual(placesFromArchive([pt(-75.19, 40.69, { class: 'folly', src: 'wd', id: 'Q1' }), pt(-75.19, 40.69, { name: '  ', class: 'folly', src: 'wd', id: 'Q2' })], 'v'), []);
 });
 

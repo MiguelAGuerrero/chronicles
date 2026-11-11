@@ -17,8 +17,9 @@ test('obelisk: a Wikidata obelisk reaches the app as an archive monument and is 
   assert.equal(isMarkable(p), true);
 });
 
-test('obelisk: an unnamed archive place is left out', () => {
-  assert.equal(archivePlace('', 'monument', AT, 'v1'), null);
+test('obelisk: an unnamed monument is kept as A monument (decision 0142), while an unnamed place of a class that needs a name is left out', () => {
+  assert.equal(archivePlace('', 'monument', AT, 'v1')?.name, 'A monument');
+  assert.equal(archivePlace('', 'folly', AT, 'v1'), null);
 });
 
 test('obelisk: an OpenStreetMap historic=monument is a mark whatever its name', () => {

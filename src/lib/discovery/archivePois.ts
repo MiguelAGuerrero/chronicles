@@ -44,17 +44,29 @@ export const ARCHIVE_CLASSES: Record<string, readonly [CategoryId, Kind]> = {
  */
 export const ARCHIVE_ALSO: Partial<Record<string, readonly CategoryId[]>> = { museum: ['history'] };
 
-/** One archive place as the app's `Place`: a mark of its class's kind, tagged with the archive's version. */
+/**
+ * OL11 (decision 0142, contract v3): the classes whose places may have no name, because OpenStreetMap's monuments and
+ * memorials often carry none. Any other class still needs a name.
+ */
+export const UNNAMED_CLASSES: ReadonlySet<string> = new Set(['monument', 'memorial', 'statue']);
+/** What an unnamed monument is called (the owner, Nov 11): the words, as with "A viewpoint"; never "unnamed", never a count. */
+export const UNNAMED_LABEL = 'A monument';
+
+/**
+ * One archive place as the app's `Place`: a mark of its class's kind, tagged with the archive's version. A place with
+ * no name is a generic one (like an unnamed viewpoint): keyed by its position and called "A monument".
+ */
 export function archivePlace(name: string, cls: string, at: LngLat, version: string): Place | null {
   const mapped = ARCHIVE_CLASSES[cls];
   const n = name.trim();
-  if (!mapped || !n || !Number.isFinite(at[0]) || !Number.isFinite(at[1])) return null;
+  const generic = !n;
+  if (!mapped || (generic && !UNNAMED_CLASSES.has(cls)) || !Number.isFinite(at[0]) || !Number.isFinite(at[1])) return null;
   const [category, kind] = mapped;
   const also = ARCHIVE_ALSO[cls];
-  return { key: placeKey(category, n, at), name: n, category, at: [at[0], at[1]], generic: false, build: version, markable: true, kind, ...(also ? { alsoBars: [...also] } : {}) };
+  return { key: placeKey(category, generic ? null : n, at), name: generic ? UNNAMED_LABEL : n, category, at: [at[0], at[1]], generic, build: version, markable: true, kind, ...(also ? { alsoBars: [...also] } : {}) };
 }
 
-/** PW5, PW9: an archive tile's points as places; an unnamed place or an unknown class is left out. */
+/** PW5, PW9, OL11: an archive tile's points as places; an unknown class, or an unnamed place of a class that needs a name, is left out. */
 export function placesFromArchive(features: TileFeature[], version: string): Place[] {
   const out = new Map<string, Place>();
   for (const f of features) {

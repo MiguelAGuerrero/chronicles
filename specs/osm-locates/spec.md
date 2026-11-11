@@ -11,7 +11,7 @@ Touches: 0110 "OpenStreetMap only corroborates" (superseded by 0142); 0108 "a no
 Verdict: aligned if reshaped
 Shape: named or unnamed monuments and memorials by a pinned table; plaques, benches and the like stay out; the build reports what it added for the owner to strike.
 Criteria: OL1-OL12 below.
-Open: none. The owner's calls, Nov 11: an unnamed place is called "Monument" (a name that says "unnamed" does not match standing in front of one, which often has a plaque); a memorial with no `memorial=*` value or no name enters; the refinements below apply to unnamed places as to named ones.
+Open: none. The owner's calls, Nov 11: an unnamed place is called "A monument", in the words of "A viewpoint" (a name that says "unnamed" does not match standing in front of one, which often has a plaque); a memorial with no `memorial=*` value or no name enters; the refinements below apply to unnamed places as to named ones.
 
 ## Criteria
 - **OL1** A `historic=monument` element with no `wikidata` tag is in the pack as class `monument`, named or not.
@@ -22,9 +22,9 @@ Open: none. The owner's calls, Nov 11: an unnamed place is called "Monument" (a 
 - **OL6** The same place in OpenStreetMap and Wikidata is one place: the same class within 50 m, or the same name within 50 m (0111); an unnamed OpenStreetMap place within 50 m of a named Wikidata one of the same class is that place.
 - **OL7** The gate reads no source name and no count. A pack's feature keeps name (when it has one), class, src and id (PW7, PP9); no number says how many sources name a place, and nothing is ordered by it.
 - **OL8** The build's report lists what OpenStreetMap added, by area and class, before a pack is published; the owner strikes a type or a place with `edits.json`.
-- **OL9** A place only OpenStreetMap knows enters the pack with no second source confirming it (corroboration deferred); the confirming adapter is unchanged and still removes a place it finds closed or gone.
+- **OL9** A place only OpenStreetMap knows enters the pack with no second source confirming it (corroboration deferred); the confirming adapter is unchanged and still removes a place it finds closed or gone. A locating source of another license family makes the region's one pack that family's (RD11): the US pack is ODbL, as 0142 accepts.
 - **OL10** The contract is version 3 (a place may have no name); the app pins the copy and `placesContract.test.ts` (PP17) holds its class table and reader to it.
-- **OL11** In the app an unnamed archive place is a mark of its class's kind; its card calls it "Monument" (the kind's own word, never "unnamed", never a count), and the replay and the home use that word where a name would go.
+- **OL11** In the app an unnamed archive place is a mark of its class's kind; its card calls it "A monument" (the words of "A viewpoint", never "unnamed", never a count), and the replay and the home use that name where a name would go ("Passed a monument without stopping"). Only a monument, memorial or statue may be unnamed; another class still needs a name.
 - **OL12** The Harrisburg case, end to end in the app's tests: an OpenStreetMap-only obelisk (`historic=memorial`, `memorial=obelisk`, no `wikidata`) in an archive tile is a mark within 60 m of a capture, and finds it.
 
 ## Plan (for the owner to read)

@@ -391,6 +391,18 @@ const UNTESTED = {
     OP19: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
     OP20: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
   },
+  // OpenStreetMap locates places (decision 0142): the build is chronicles-data's, tested there under the same ids.
+  'osm-locates': {
+    OL1: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL2: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL3: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL4: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL5: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL6: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL7: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL8: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+    OL9: 'deferred: the build is chronicles-data\'s; proven in its test/osmLocates.test.ts under the same id (decision 0142)',
+  },
   // Remarkable and public: the archive's rule moves with the pipeline to chronicles-data; RP9 waits on its contract v2.
   'remarkable-and-public': {
     RP1: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
