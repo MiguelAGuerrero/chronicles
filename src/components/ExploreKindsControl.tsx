@@ -19,6 +19,8 @@ export function ExploreKindsControl(props: {
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
+  /** Layers is open: it closed this panel, so focus stays on it (explore-settings audit 2). */
+  layersOpen: boolean;
   hidden: Set<Kind> | null;
   onKind: (k: Kind, on: boolean) => void;
   top: number;
@@ -30,12 +32,16 @@ export function ExploreKindsControl(props: {
   const { height: winH } = useWindowDimensions();
   const button = useRef<ComponentRef<typeof Pressable>>(null);
   const wasOpen = useRef(false);
+  const layersOpen = useRef(props.layersOpen);
+  useEffect(() => {
+    layersOpen.current = props.layersOpen;
+  });
   const box = panelBox({ windowW: 0, windowH: winH, buttonTop: props.top, right: props.right, paneWidth: props.paneWidth ?? 640, clearBottom: props.clearBottom });
   // A panel left open never follows the person to another screen: it closes when its button goes.
   useEffect(() => onClose, [onClose]);
   // Focus goes back to the button when the panel closes (ES5).
   useEffect(() => {
-    if (wasOpen.current && !open) focusOn(button);
+    if (wasOpen.current && !open && !layersOpen.current) focusOn(button);
     wasOpen.current = open;
   }, [open]);
   useEffect(() => {
@@ -77,7 +83,8 @@ export function ExploreKindsControl(props: {
 }
 
 const styles = StyleSheet.create({
-  card: {},
+  // Solid, never Layers' glass: the card beneath must not show through the rows (explore-settings audit 9).
+  card: { backgroundColor: theme.surface },
   /** The rows keep off the card's edges, as Layers' do. */
   rows: { paddingHorizontal: 8 },
 });

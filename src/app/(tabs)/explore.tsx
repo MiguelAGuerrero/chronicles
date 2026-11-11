@@ -35,7 +35,7 @@ import { nearReads } from '../../lib/atlas/read';
 import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
-import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, panelsAfter, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
+import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, claimsBack, pageBack, panelsAfter, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -342,7 +342,7 @@ export default function Explore() {
   }, [townSeen]);
   useEffect(() => {
     // tend explore 6, audit 1: one Back or Escape steps out of one thing: the Layers panel, the long press's choices, the page.
-    if (!townSeen || open || !focused) return;
+    if (!claimsBack({ townPage: !!townSeen, kindsOpen }) || open || !focused) return;
     const out = () => {
       const does = pageBack({ layersOpen: layersOpen, kindsOpen, spot: !!spot });
       if (does === 'kinds') closeKinds();
@@ -636,7 +636,7 @@ export default function Explore() {
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
       {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} onToggle={closeKinds} />}
       {focused && !spot && (
-        <ExploreKindsControl open={kindsOpen} onToggle={pressKinds} onClose={closeKinds} hidden={kinds.hidden} onKind={kinds.toggle} top={insets.top + 8 + 44 + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />
+        <ExploreKindsControl open={kindsOpen} layersOpen={layersOpen} onToggle={pressKinds} onClose={closeKinds} hidden={kinds.hidden} onKind={kinds.toggle} top={insets.top + 8 + 44 + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />
       )}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}

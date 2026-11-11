@@ -7,4 +7,4 @@ export { DEFAULT_SETTINGS, HAPTIC_KEY, HIDDEN_KEY, KNOWN_KEY, RANGE_KEY, type Ex
 
 /** The app's settings: the walk's drawer, the ready bar and Explore's panel are all doors to this one store. */
 export const exploreSettings = createExploreSettings(ports);
-export const { load: loadSettings, save: saveSettings, onSettings, toggleKind } = exploreSettings;
+export const { load: loadSettings, loadOrDefault: loadSettingsOrDefault, save: saveSettings, onSettings, toggleKind } = exploreSettings;

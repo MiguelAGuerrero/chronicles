@@ -27,3 +27,10 @@ test('ES4: opening one panel closes the other', async () => {
   assert.deepEqual(panelsAfter({ layers: false, kinds: true }, 'layers'), { layers: true, kinds: false });
   assert.deepEqual(panelsAfter({ layers: false, kinds: true }, 'kinds'), { layers: false, kinds: false }, 'the button again closes it');
 });
+
+test('explore-settings audit 1: Back belongs to Explore while the kinds panel is open, on the page near you too', async () => {
+  const { claimsBack } = await load('../../atlas/waitingPins');
+  assert.equal(claimsBack({ townPage: false, kindsOpen: true }), true, 'near you, a panel open: Back closes it');
+  assert.equal(claimsBack({ townPage: false, kindsOpen: false }), false, 'near you, nothing open: Back leaves the tab as before');
+  assert.equal(claimsBack({ townPage: true, kindsOpen: false }), true, 'a town\'s page claims it, as before');
+});

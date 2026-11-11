@@ -1,7 +1,7 @@
 // @layer view
 import { useCallback, useEffect, useState } from 'react';
 import type { Kind } from './explore';
-import { loadSettings, onSettings, toggleKind } from './settings';
+import { loadSettingsOrDefault, onSettings, toggleKind } from './settings';
 
 /**
  * What I'm into on Explore's panel (ES1, ES4): the kinds switched off, read from the walk's one store and heard when either door
@@ -11,7 +11,7 @@ export function useKindSwitches(): { hidden: Set<Kind> | null; toggle: (k: Kind,
   const [hidden, setHidden] = useState<Set<Kind> | null>(null);
   useEffect(() => {
     let alive = true;
-    loadSettings().then((s) => alive && setHidden((cur) => cur ?? s.hidden), () => {});
+    loadSettingsOrDefault().then((s) => alive && setHidden((cur) => cur ?? s.hidden));
     const off = onSettings((s) => setHidden(s.hidden));
     return () => {
       alive = false;

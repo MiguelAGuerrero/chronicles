@@ -243,6 +243,11 @@ async function run(h) {
     await p5.click('[data-testid=kind-parks]');
     await p5.waitForTimeout(300);
     check(!(await kindsOn('parks')) && (await kindsOn('museums')), 'ES4: a switch saves as it changes and moves no other');
+    const sw = p5.locator('[data-testid=kind-parks]');
+    check((await sw.getAttribute('role')) === 'switch' && (await sw.getAttribute('aria-label')) === 'Parks and gardens' && (await sw.getAttribute('aria-checked')) === 'false',
+      'explore-settings audit 12: a switch is named by its kind and says on or off to a screen reader');
+    const bg = await p5.locator('[data-testid=kinds-panel]').evaluate((el) => getComputedStyle(el).backgroundColor);
+    check(!/rgba\(.*,\s*0?\.\d+\)/.test(bg), `explore-settings audit 9: the card is opaque, so the card beneath never shows through (${bg})`);
     await shot(p5, 'kinds-panel');
     // ES5: the button, Escape and a tap on the map close it; Layers and this panel are never open together.
     await p5.keyboard.press('Escape');
@@ -250,6 +255,7 @@ async function run(h) {
     await openKinds();
     await p5.click('[data-testid=layers]');
     check((await p5.locator('[data-testid=kinds-panel]').count()) === 0 && (await p5.locator('[data-testid=layers-panel]').count()) === 1, 'ES4: opening Layers closes this panel');
+    check(await p5.evaluate(() => document.activeElement?.getAttribute('data-testid') !== 'kinds'), 'explore-settings audit 2: focus is not taken to the kinds button when Layers closes the panel');
     await p5.click('[data-testid=kinds]');
     check((await p5.locator('[data-testid=layers-panel]').count()) === 0 && (await p5.locator('[data-testid=kinds-panel]').count()) === 1, 'ES4: opening this panel closes Layers');
     await p5.click('[data-testid=kinds]');
@@ -295,6 +301,7 @@ async function run(h) {
     const lb = await box(p6, '[data-testid=layers]');
     const tb = await box(p6, '[data-testid=tab-navigate]');
     const hit = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    await shot(p6, 'kinds-small-top');
     await p6.locator('[data-testid=kind-curiosities]').scrollIntoViewIfNeeded();
     const last = await box(p6, '[data-testid=kind-curiosities]');
     check(!hit(pb, lb) && !hit(pb, tb) && pb.y + pb.height <= tb.y && last.y >= pb.y && last.y + last.height <= pb.y + pb.height + 1,

@@ -160,6 +160,11 @@ export function pageBack(o: { layersOpen: boolean; kindsOpen?: boolean; spot: bo
   return o.spot ? 'spot' : 'leave';
 }
 
+/** Explore takes the hardware Back while a town's page is up or the kinds panel is open, on the page near you too (explore-settings audit 1). */
+export function claimsBack(o: { townPage: boolean; kindsOpen: boolean }): boolean {
+  return o.townPage || o.kindsOpen;
+}
+
 /** ES4, ES5: the two map panels, Layers and What I'm into, are never open together; pressing a button opens its panel or, if open, closes it. */
 export function panelsAfter(open: { layers: boolean; kinds: boolean }, pressed: 'layers' | 'kinds'): { layers: boolean; kinds: boolean } {
   return pressed === 'kinds' ? { layers: false, kinds: !open.kinds } : { layers: !open.layers, kinds: false };
