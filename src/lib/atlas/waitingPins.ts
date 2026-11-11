@@ -106,6 +106,15 @@ export function roomZoom(target: { key: string; at: LngLat }, marks: readonly { 
   return Math.min(maxZoom, Math.ceil((need + 1e-9) * 2) / 2);
 }
 
+/**
+ * WT13: the zoom a tap on a dot eases to: where it has room to be a "?", a half level in at least, at most `maxZoom`. A town
+ * is all dots under `townPinZoom`, so a town's dot goes at least that far (tend explore 7).
+ */
+export function tapZoom(level: 'neighborhood' | 'town', room: number, zoom: number): number {
+  const floor = level === 'town' ? PIN_ROOM.townPinZoom : -Infinity;
+  return Math.min(PIN_ROOM.maxZoom, Math.max(room, zoom + 1, floor));
+}
+
 /** WT13, audit 2: the dot a press landed on, nearest within 44 px at the settled zoom, or null. */
 export function dotAt<T extends { at: LngLat }>(press: LngLat, zoom: number, dots: readonly T[]): T | null {
   const reachM = PIN_ROOM.dotReachPx * metresPerPx(zoom, press[1]);

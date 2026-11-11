@@ -33,7 +33,7 @@ import { nearReads } from '../../lib/atlas/read';
 import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
-import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, roomZoom, tapDoes, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
+import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -390,11 +390,11 @@ export default function Explore() {
   // WT13, audits 2 and 4: a tap on a dot, or on a "?" with places under it, eases the map in around it until it has
   // room; a "?" with nothing under it, or at the closest zoom, opens the selected area's card.
   const zoomTo = useCallback((at: LngLat, key: string) => {
-    const z = Math.max(roomZoom({ key, at }, [...split.pins, ...split.dots], at[1]), zoomHalf + 1);
+    const z = tapZoom(sel?.area.level ?? 'neighborhood', roomZoom({ key, at }, [...split.pins, ...split.dots], at[1]), zoomHalf);
     const size = mapSize ?? { width: 360, height: 360 };
     const px = Math.max(120, Math.min(size.width - mapPad.left - mapPad.right, size.height - mapPad.top - mapPad.bottom));
     frame([at], (px / 2) * metresPerPx(Math.min(z, PIN_ROOM.maxZoom), at[1]));
-  }, [split, zoomHalf, frame, mapPad, mapSize]);
+  }, [split, zoomHalf, frame, mapPad, mapSize, sel?.area.level]);
   const openSelected = useCallback(() => {
     if (!sel) return;
     setSpot(null);
