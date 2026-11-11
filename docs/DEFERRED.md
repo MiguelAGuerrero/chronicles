@@ -101,6 +101,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [owner] Explore's map labels collide: a busy street's name prints over the town's name and a neighbour's (pictures `11b-explore`, `11d-atlas-town`); the UX review's opinion, no source found (`/tend explore`, Nov 11, medium)
 - [owner] The Remind editor's chip rows wrap with a lone chip on the second row, and "Reminder set" has no Undo (pictures `03a-remind`, `03c-reminder-set`; UX review, opinion, low; `/tend explore`, Nov 11)
 - [owner] On a town's neighborhood page the title reads the parent town ("Allentown · You're here") while the selected card is another area, and the card's footer "You're in Fox Point" is link-coloured but only a status (pictures `whole-towns-4-dot-tapped`, `11c-atlas-card`; UX review, opinion, low; `/tend explore`, Nov 11)
+- [loop] `.claude/rules/explore-and-discovery.md` is within about 50 characters of its 40,000-character budget (`check:docs`) after presence readers landed beside community parks; the next line added there fails the check. Split it into two rule files with narrower `paths:` (`/tend inbox T8`, Nov 11, low)
 
 ## Activity density (AD1-AD16, decision 0080)
 

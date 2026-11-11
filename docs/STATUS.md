@@ -71,7 +71,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Whole towns (a town's page lists every neighborhood inside its border, hamlets in, wards out, nearest you first; the selected area's places still to find as "?" where they have room and kind-coloured dots where not, a tap on a dot zooms in; found places off the map; WT1-WT14, decision 0132) | shipped 2026-11-11 (web verified by the e2e `carousel`, `atlas`, `marks`, `snap`, `outlines`, `grading`, `chronicle` on the /chronicles build; native unverified); Allentown lists 36 neighborhoods where it listed 24 | branch `claude/cool-shannon-p9gph3`, merged and deployed 2026-11-11 (`83a3f25`, Pages run 180) | `specs/whole-towns/spec.md` (repo first) | yes, at the owner's request (23 findings: 16 fixed, 2 of them in part; 2 deferred; 5 rejected; the owner's calls in 0132) |
 | The section bar names what Chronicle shows (the sheet's Walks, Days, Map, a drag and a long press move the bar; the bar's press, even on the selected section, moves the sheet; one map across Walks, Days and Map; SB1-SB5, decision 0136, from G1) | shipped 2026-11-11 by `/tend inbox G1 yes` (web verified by `resurface/section.test.ts` and the e2e `chronicle`, `capturehome`, `qol`, `resurface`, `tabs`) | `eb40c5c` | `specs/section-bar/spec.md` | the run's review (see Last tend) |
 | Presence: one system says what a place is (one table from poi classes and Overture's taxonomy to classes; density and marks read them; curation apart; PRESENCE_CODE in the atlas and landing codes; PR1-PR8, decision 0140; the first of two slices) | shipped | from G3 (`/tend inbox G3 yes`), Nov 11 | `specs/presence/spec.md` | review in the `/tend` run |
-| Presence readers: the archive, bars, notable names, greens and the planner read presence's classes (a place carries its classes, never stored; `recorded` and `historic_name` judged by curation; History beside a category only from `historic`; nothing a person sees changes, held by golden tables; PS1-PS11, decision 0140; the second of two slices) | shipped 2026-11-11 by `/tend inbox G4 yes`, parked beside community parks, resumed on main by `/tend inbox T8 yes` (decision 0146: greens and community parks read presence, the carry a9.p1 under a9.p2; golden tables captured again on main; 1912 unit tests, typecheck, lint; e2e `marks`, `atlas`, `grading`, `curiosities`, `outlines`, `planner`, `upgrade`; native untouched) | from G4; parked as `slice/presence-readers-parked`, landed from `tend/inbox-t8-20261111-2103` | `specs/presence-readers/spec.md` (repo first) | review in the `/tend` runs (audits 1-6, then one round over the resolution) |
+| Presence readers: the archive, bars, notable names, greens and the planner read presence's classes (a place carries its classes, never stored; `recorded` and `historic_name` judged by curation; History beside a category only from `historic`; nothing a person sees changes, held by golden tables; PS1-PS11, decision 0140; the second of two slices) | shipped 2026-11-11 by `/tend inbox G4 yes`, parked beside community parks, resumed on main by `/tend inbox T8 yes` (decision 0146: greens and community parks read presence, the carry a9.p1 under a9.p2; golden tables captured again on main; 1918 unit tests, typecheck, lint; e2e `marks`, `atlas`, `grading`, `curiosities`, `outlines`, `planner`, `upgrade`; native untouched) | from G4; parked as `slice/presence-readers-parked`, landed from `tend/inbox-t8-20261111-2103` | `specs/presence-readers/spec.md` (repo first) | review in the `/tend` runs (`presence-readers audit 1-6`, then one round over the resolution, `audit 7-12`, one filed as T9) |
 
 Not a tab, but tracked: **suggested routes** shipped as scenic routes (decision 0095);
 Explore's route preview and "Walk this way" stay deferred.
@@ -127,21 +127,21 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T8 [arch] Presence readers (G4) is parked: main's kind pipeline and community parks landed beside it** (2026-11-11)
-  Area: explore. Seen: `slice/presence-readers-parked` (G4 built as `specs/presence-readers`, PS1-PS11; the steward and one
-  auditor round done, every check green on its base `0d03c4b`) conflicts with main in `atlas/atlas.ts`,
-  `nav/scenicSignals.ts` and two test pins. Main's community parks (PC1-PC23) added, meanwhile, a kind pipeline that decides
-  a kind over places (`discovery/refine.ts`, `refinements.ts`), a second name-word list (`parkNotable.json`, with
-  `communityWords.json`, in `discovery/parkKind.ts`, beside `notable.json`), greens read from raw landcover tags
-  (`discovery/green.ts`), and `ATLAS_CODE` a9. Rests on: decision 0140, "consumers read its classes, never source tags";
-  G4's criterion 3, "Whether a name is notable is decided once, for marks and bars alike".
-  Recommended: resume the parked branch on main as it stands. `green.ts` reads presence's `classesOfLandcover` (PS4); the
-  carry becomes `a9.p1` under `a9.p2`; `parkKind.ts` reads `notableName` from presence and keeps its park words as the
-  community-parks judgement (curation of a refinement, named so in PS3), not a second notable rule; the guard (PS7,
-  `presence-readers audit 1`) reads main's new modules; the golden tables are captured again on main before any code. /vision:
-  no surface (nothing a person sees changes).
-  Otherwise: fold `parkNotable.json` into `notable.json`, so one list (a church or town hall named "national" or "arboretum"
-  would then be a mark by its name), or drop G4 and delete the parked branch.
+- **T9 [owner] Community parks reads the whole name where presence reads past a neighbourhood** (2026-11-11)
+  Area: explore. Seen: `src/lib/discovery/parkKind.ts:43` (`notablePark`: a word of `parkNotable.json`, or `notableName`
+  over the whole name); the presence-readers review of Nov 11 (F5): "Old Town Playground", "Old City Tot Lot", "Old and New
+  Ball Field" and "Heritage Hills Playground", with nothing notable in or near them, stay Parks, so with Community parks off
+  they still show as "?". Rests on: presence-and-kinds audit 5 ("Old" in a neighbourhood's name says nothing of the place;
+  presence's `notableBeyondNeighbourhood`); `notable.json`'s note, "Generic words that also name neighbourhoods (mission,
+  heritage, landmark, colonial, capitol) are left out"; decisions 0143 (a demotion needs a community word and nothing
+  notable) and 0146 (one notable rule, presence's). Inherited from main; PS8 kept it unchanged.
+  Recommended: community parks judges a name by presence's reading with audit 5's read-past of a neighbourhood ("Old
+  Town", "Old City", "old and new"), not by re-reading the whole name, and "heritage" leaves `parkNotable.json`. Those four
+  become community parks and hide when Community parks is off; nothing else changes; `ATLAS_CODE`'s own part moves on.
+  One commit, its test `tend explore T9: parkNotable.json holds no word notable.json leaves out as a neighbourhood's`.
+  /vision: aligned (earn; "Guidance is structural: where there is a lot, and what makes a place itself"; the same name
+  reads the same for a museum and a park).
+  Otherwise: leave the two readings apart (a neighbourhood's "Old" or "Heritage" keeps a playground a park), or leave it.
 
 ### Next evolutions
 
@@ -167,32 +167,21 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
   say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
 
-- **G4 [M] Presence, its second slice: the archive, bars, notable names, greens and the planner read classes** (2026-11-11) · Earn · aligned · decision 0140
-  Area: explore, places, scenic routes, walk planner. From: G3, whose first slice shipped Nov 11 (specs/presence, PR1-PR8); decision 0140's
-  "consumers read its classes, never source tags".
-  Touches: decisions 0127 (a place may light two bars: from its classes), 0103 and 0108 (the archive's classes are chronicles-data's
-  contract; the app maps them into presence, the contract is unchanged), 0109 (Overture never makes a mark).
-  The slice: 1. The places archive's classes map into presence classes; `archivePois.ts` holds no category or kind of its own.
-  2. A place may carry several classes (a museum the data calls historic: museum and history), and `barsOf` reads them, so a second bar
-  comes from classes, not from `alsoBars` and a name. 3. Whether a name is notable is decided once, for marks and bars alike. 4. Scenic
-  routes' greens read presence classes from landcover features, not raw tags. 5. The planner reads classes. 6. The same place is a mark
-  or not alike from the tiles and the archive (a plain-named memorial, presence review F3). 7. PR2's guard holds with no exception left.
-  8. Nothing else a person sees changes, held by golden tables of the archive's classes and the bars, captured first.
-  Payoff: one place to refine what a street holds, and Storefronts (G2) then reads one answer everywhere. Cost: M, about eight modules and
-  their tests, no native code, no stored field. Reopens: explore, places, scenic routes, walk planner. After it: G2, then new kinds of
-  presence (institutions, rural activity) as classes.
-  Instead: build G2 now on what shipped (density already reads presence's classes) and leave the rest.
-
 ### Last tend
 
-**Nov 11, `/tend inbox G4 yes`** (from `0d03c4b`). G4 built as the slice `specs/presence-readers` (PS1-PS11, decision
-0140): the places archive, the bars, notable names, scenic greens and the planner read presence's classes, nothing a person
-sees changing (golden tables captured first). The steward read the plan (S1-S4 accepted); one auditor round (an old/new
-differential over 18,129 archive places, 2,482,980 poi pairs and 907 rings, matched) found six, all fixed as
-`presence-readers audit 1-6`. Not published: while it ran, main gained community parks and the kind pipeline (PC1-PC23), and
-the rebase conflicts in source (`atlas.ts`, `scenicSignals.ts`, two test pins) over a question for the owner, filed as T8.
-The slice is on `slice/presence-readers-parked` (`7a4c28e`); G4 stays in "Next evolutions". The balance: unchanged by an
-inbox run (outgrowing its base: four areas rough). Nothing here touched native code or has run on a phone.
+**Nov 11, `/tend inbox T8 yes`** (from `6b099ea`). The owner answered T8 [arch] with its recommended shape (decision 0146):
+the parked slice `specs/presence-readers` (G4, PS1-PS11) resumed on main beside community parks and the kind pipeline.
+The golden tables captured again on main before any code (equal to the first capture); the thirteen parked commits brought
+over with five conflicts resolved by the answer: `discovery/green.ts` reads `classesOfLandcover` (PS4), `parkKind.ts` asks
+presence's `notableName` and keeps its park words as the refinement's curation (PS3), the carry `a9.p1` under `a9.p2`
+(`ATLAS_OWN`, `PRESENCE_CARRIED`, `codeCurrent`), the guard over the pipeline's modules (PS7). The old/new differential
+against main matched: 18,129 archive places, 2,482,980 tag and name pairs, 907 rings (only audit 5's four names apart),
+and the pipeline's 413,270 park cases, 484 green inputs and 3,628 rings with outlines: no difference. One auditor round
+over the resolution (its `readAround` differential, 10,360 reads, matched too): seven findings, six fixed as
+`presence-readers audit 7-12`, one filed as T9. Unit tests 1918, typecheck, lint, check:docs; journeys marks, atlas,
+grading, curiosities, outlines, planner and upgrade green (marks, atlas, grading, outlines again after the review). T8
+leaves the inbox and G4 "Next evolutions"; the parked branch is deleted once this is on main. The balance: unchanged by an
+inbox run. Nothing here touched native code or has run on a phone.
 
 ### Open before the loop
 
