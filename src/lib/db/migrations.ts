@@ -238,4 +238,13 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX moment_t ON moment (t);
   CREATE INDEX capture_moment ON capture (moment_id, t);
   `,
+  // 23: memo transcripts (MX4, MX21): a cache by piece id, recomputed from the memo's audio and the engine's tag. It
+  // goes with its piece, moment or walk in the same transaction. `text` is null for a failed read, empty for silence.
+  `
+  CREATE TABLE transcript (
+    piece_id TEXT PRIMARY KEY, moment_id TEXT NOT NULL, text TEXT, engine TEXT NOT NULL, tag TEXT NOT NULL,
+    made_at INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX transcript_moment ON transcript (moment_id);
+  `,
 ];

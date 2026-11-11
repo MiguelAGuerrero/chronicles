@@ -5,6 +5,7 @@ import type { Pick } from '../../lib/resurface/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { contextText, momentSpoken } from './MomentCard';
+import { HeardWords } from './HeardWords';
 import { MomentPicture } from './MomentPicture';
 import { hasMore } from '../../lib/moment';
 import { StackMark } from '../StackMark';
@@ -38,7 +39,7 @@ export function Resurfaced(props: {
         {hasMore(m.capture) && <StackMark style={styles.mark} light={!hasPicture} />}
         <View style={styles.body}>
           <Text style={styles.eyebrow} testID="resurfaced-label">{label}</Text>
-          {m.words ? <Text style={[styles.quote, styles.owner]} numberOfLines={8}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
+          {m.words && m.kind === 'voice' ? <HeardWords words={m.words} lines={8} testID="card-transcript" /> : m.words ? <Text style={[styles.quote, styles.owner]} numberOfLines={8}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
           <Text style={styles.meta} numberOfLines={2} testID="resurfaced-context">{contextText(props.context, m, props.now)}</Text>
         </View>
       </Pressable>

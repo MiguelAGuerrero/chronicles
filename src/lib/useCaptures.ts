@@ -13,6 +13,7 @@ import { newId } from './id';
 import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
+import { memoKept } from './transcribe/nudge';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
@@ -233,6 +234,8 @@ export function useCaptures(
     placeMoment(c, stamp);
     // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
     if (kind !== 'text') void space.afterKept({ recording: walkId != null });
+    // A memo's words are read when a run may start; the save never waits for it (MX17).
+    if (kind === 'voice') memoKept();
     return c.id;
   }
 

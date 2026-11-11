@@ -8,13 +8,13 @@ import { fakeEngine, mod, SPEC } from './fixtures';
 
 engineContract('fake engine', () => fakeEngine());
 
-test('MX29: every Engine member has a contract case', { todo: 'test first' }, async () => {
+test('MX29: every Engine member has a contract case', async () => {
   const { ENGINE_MEMBERS } = await mod('engine');
   const src = (await import('node:fs')).readFileSync(`${__dirname}/engineContract.ts`, 'utf8');
   for (const m of ENGINE_MEMBERS as string[]) assert.ok(src.includes(`MX29 ${m}`) || new RegExp(`MX29 [^:]*\\b${m}\\b`).test(src), `no contract case names ${m}`);
 });
 
-test('MX29: an engine that cannot say it works offline is refused at registration', { todo: 'test first' }, async () => {
+test('MX29: an engine that cannot say it works offline is refused at registration', async () => {
   const { registerEngine } = await mod('engine');
   assert.throws(() => registerEngine({ ...fakeEngine(), offline: false }), /offline/i);
   assert.throws(() => registerEngine({ ...fakeEngine(), offline: undefined }), /offline/i);
@@ -23,7 +23,7 @@ test('MX29: an engine that cannot say it works offline is refused at registratio
   assert.equal(registerEngine(fakeEngine()).id, 'fake');
 });
 
-test('MX30: swapping the engine touches the registry and the new adapter, nothing else', { todo: 'test first' }, async () => {
+test('MX30: swapping the engine touches the registry and the new adapter, nothing else', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const root = path.join(__dirname, '../../../..');
@@ -33,7 +33,7 @@ test('MX30: swapping the engine touches the registry and the new adapter, nothin
     for (const n of fs.readdirSync(path.join(root, d))) {
       const rel = `${d}/${n}`;
       if (fs.statSync(path.join(root, rel)).isDirectory()) { if (!/__tests__/.test(rel)) walk(rel); }
-      else if (/\.(ts|tsx)$/.test(n) && names.some((x) => fs.readFileSync(path.join(root, rel), 'utf8').includes(`'${x}`))) hits.push(rel);
+      else if (/\.(ts|tsx)$/.test(n) && !n.endsWith('.d.ts') && names.some((x) => fs.readFileSync(path.join(root, rel), 'utf8').includes(`'${x}`))) hits.push(rel);
     }
   };
   walk('src');

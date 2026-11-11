@@ -9,7 +9,7 @@ import { mod, memo, row, SPEC } from './fixtures';
 // Memo transcripts: where the words go (`transcribe/words`) and where they do not. Written before the module.
 const ROOT = join(__dirname, '../../../..');
 
-test('MX7: the words store is read by piece id and feeds the resurface seam; no row, no words', { todo: 'test first' }, async () => {
+test('MX7: the words store is read by piece id and feeds the resurface seam; no row, no words', async () => {
   const { createWords } = await mod('words');
   const ports = fakePorts();
   await ports.db.addMoment(memo('m1', 10));
@@ -24,7 +24,7 @@ test('MX7: the words store is read by piece id and feeds the resurface seam; no 
   assert.equal(words.transcript({ ...faced, piece_id: 'zz' }), null);
 });
 
-test('MX7: a memo\'s words become signals through the existing extractor (weight 0.8); notes and captions are unchanged', { todo: 'test first' }, async () => {
+test('MX7: a memo\'s words become signals through the existing extractor (weight 0.8); notes and captions are unchanged', async () => {
   const { signalsOf, DEFAULT_EXTRACTORS } = await import('../../resurface/extractors');
   const view = (kind: string, words: string | null) => ({ id: 'x', kind, words, t: 1, walkId: null });
   const memoSignals = signalsOf(view('voice', 'the old bakery on the corner') as any, DEFAULT_EXTRACTORS);
@@ -37,9 +37,10 @@ test('MX7: a memo\'s words become signals through the existing extractor (weight
   assert.equal(wordsOf({ kind: 'voice', body: '4000' } as any), null, 'the seam is unchanged without a source');
 });
 
-test('MX6: deleting a transcript row leaves everything else deriving from notes and captions', { todo: 'test first' }, async () => {
+test('MX6: deleting a transcript row leaves everything else deriving from notes and captions', async () => {
   const { createWords } = await mod('words');
   const ports = fakePorts();
+  await ports.db.addMoment(memo('m1', 10));
   await (ports.db as any).putTranscript(row('m1', 'some words', SPEC.tag));
   const words = createWords(ports);
   await words.load();
@@ -49,7 +50,7 @@ test('MX6: deleting a transcript row leaves everything else deriving from notes 
   assert.equal(words.transcript({ piece_id: 'm1' } as any), null);
 });
 
-test('MX3: the words store has no way to edit, rename or write a transcript', { todo: 'test first' }, async () => {
+test('MX3: the words store has no way to edit, rename or write a transcript', async () => {
   const { createWords } = await mod('words');
   const api = Object.keys(createWords(fakePorts())).sort();
   assert.deepEqual(api.filter((k) => /^(set|edit|update|write|rename|put|save)/i.test(k)), [], api.join(','));
@@ -65,8 +66,8 @@ function files(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-test('MX24: a transcript\'s words are read only by the viewer, the resurface seam and the thread and card components', { todo: 'test first' }, async () => {
-  const allowed = [/^src\/lib\/transcribe\//, /^src\/lib\/resurface\/index\.ts$/, /^src\/components\/CaptureView\.tsx$/, /^src\/components\/chronicle\//, /^src\/lib\/__tests__\//];
+test('MX24: a transcript\'s words are read only by the viewer, the resurface seam and the thread and card components (and the settings row, which reads the model)', async () => {
+  const allowed = [/^src\/lib\/transcribe\//, /^src\/lib\/resurface\/index\.ts$/, /^src\/components\/CaptureView\.tsx$/, /^src\/components\/chronicle\//, /^src\/components\/TranscribeSettings\.tsx$/, /^src\/lib\/__tests__\//];
   const readers = [...files('src/lib'), ...files('src/components'), ...files('src/app')].filter((f) => /transcribe\/(words|index)['"]|from '[^']*transcribe'/.test(readFileSync(join(ROOT, f), 'utf8')));
   const stray = readers.filter((f) => !allowed.some((a) => a.test(f)));
   assert.deepEqual(stray, [], 'a notification, share, reel, title, day line or quiet line must never read a transcript');

@@ -4,6 +4,7 @@
   "main": "index.js",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@huggingface/transformers": "4.3.2",
     "@mapbox/vector-tile": "3.0.0",
     "@maplibre/maplibre-react-native": "^11.5.1",
     "expo": "~58.0.21",
@@ -36,7 +37,8 @@
     "react-native-screens": "~4.30.0",
     "react-native-svg": "15.16.0",
     "react-native-view-shot": "6.1.1",
-    "react-native-web": "~0.21.4"
+    "react-native-web": "~0.21.4",
+    "whisper.rn": "0.7.4"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
@@ -53,7 +55,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "export:web": "EXPO_PUBLIC_PLACES_BASE=/places-e2e/ expo export --platform web",
+    "export:web": "node scripts/copy-engine-assets.js && EXPO_PUBLIC_PLACES_BASE=/places-e2e/ expo export --platform web",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test 'src/lib/__tests__/**/*.test.ts'",
     "test:affected": "node scripts/affected.js test",

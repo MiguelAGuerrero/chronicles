@@ -19,7 +19,7 @@ const walk = (dir: string, out: { rel: string; size: number }[] = []) => {
   return out;
 };
 
-test('MX22: no model file over 1 MB in assets/ or public/, and no bundled-asset model in the code', { todo: 'test first' }, async () => {
+test('MX22: no model file over 1 MB in assets/ or public/, and no bundled-asset model in the code', async () => {
   const big = [...walk('assets'), ...walk('public')].filter((f) => MODEL_EXT.test(f.rel) && f.size > 1024 * 1024);
   assert.deepEqual(big, []);
   const adapter = join(ROOT, 'src/lib/transcribe/engines/whisperRn.native.ts');
@@ -27,23 +27,26 @@ test('MX22: no model file over 1 MB in assets/ or public/, and no bundled-asset 
   assert.doesNotMatch(readFileSync(adapter, 'utf8'), /isBundleAsset\s*:\s*true|require\(['"][^'"]+\.(bin|gguf)['"]\)/);
 });
 
-test('MX22: the web engine\'s WebAssembly is copied into the export and served from the app, not a CDN', { todo: 'test first' }, async () => {
+test('MX22: the web engine\'s code and WebAssembly are copied into the export and served from the app, not a CDN', async () => {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-  assert.match(pkg.scripts['export:web'], /ort/, 'the export copies the engine\'s .wasm files');
-  const web = readFileSync(join(ROOT, 'src/lib/transcribe/engines/worker.web.ts'), 'utf8');
-  assert.match(web, /wasmPaths/);
-  assert.match(web, /EXPO_BASE_URL/);
-  assert.doesNotMatch(web, /cdn\.jsdelivr\.net|huggingface\.co/);
-  assert.match(web, /allowRemoteModels\s*=\s*false/);
+  assert.match(pkg.scripts['export:web'], /copy-engine-assets/, 'the export copies the engine\'s files');
+  assert.match(readFileSync(join(ROOT, '.github/workflows/pages.yml'), 'utf8'), /copy-engine-assets/, 'so does the deploy');
+  assert.match(readFileSync(join(ROOT, '.gitignore'), 'utf8'), /public\/engine/, 'the copy is generated, not committed');
+  const worker = readFileSync(join(ROOT, 'public/transcribe-worker.mjs'), 'utf8');
+  assert.match(worker, /wasmPaths/);
+  assert.match(worker, /allowRemoteModels\s*=\s*false/);
+  assert.doesNotMatch(worker, /cdn\.jsdelivr\.net|huggingface\.co/);
+  assert.match(readFileSync(join(ROOT, 'src/lib/transcribe/engines/worker.web.ts'), 'utf8'), /EXPO_BASE_URL/, 'the sub-path build finds the Worker');
 });
 
-test('MX22: the web engine is a dynamic import, never in the entry bundle', { todo: 'test first' }, async () => {
-  const src = readFileSync(join(ROOT, 'src/lib/transcribe/engines/worker.web.ts'), 'utf8');
-  assert.match(src, /import\(\s*['"]@huggingface\/transformers['"]\s*\)/);
-  assert.doesNotMatch(src, /^import .* from ['"]@huggingface\/transformers['"]/m);
+test('MX22: the web engine is loaded by the Worker when told to, and no source file imports it into the bundle', async () => {
+  const worker = readFileSync(join(ROOT, 'public/transcribe-worker.mjs'), 'utf8');
+  assert.match(worker, /await import\(/);
+  const bad = walk('src').filter((f) => /\.(ts|tsx)$/.test(f.rel) && !f.rel.includes('__tests__') && /['"]@huggingface\/transformers['"]/.test(readFileSync(join(ROOT, f.rel), 'utf8')) && !/\.d\.ts$/.test(f.rel));
+  assert.deepEqual(bad, []);
 });
 
-test('MX23: no new host: the models come from the Pages host, whose reason now names them; the dependency list adds only the two engines', { todo: 'test first' }, async () => {
+test('MX23: no new host: the models come from the Pages host, whose reason now names them; the dependency list adds only the two engines', async () => {
   const vision = readFileSync(join(ROOT, 'scripts/check-vision.js'), 'utf8');
   const hosts = [...vision.matchAll(/^\s+'([a-z0-9.-]+)': /gm)].map((m) => m[1]);
   assert.deepEqual(hosts.sort(), [
@@ -54,9 +57,9 @@ test('MX23: no new host: the models come from the Pages host, whose reason now n
   assert.ok(pkg.dependencies['whisper.rn'] && pkg.dependencies['@huggingface/transformers'], 'both engines are dependencies');
 });
 
-test('MX23: the models are pinned, with a checksum, on the Pages host', { todo: 'test first' }, async () => {
+test('MX23: the models are pinned, with a checksum, on the Pages host', async () => {
   const src = readFileSync(join(ROOT, 'src/lib/transcribe/engines/whisperRn.native.ts'), 'utf8') + readFileSync(join(ROOT, 'src/lib/transcribe/engines/transformersJs.web.ts'), 'utf8');
   const urls = [...src.matchAll(/https:\/\/[^'"`\s]+/g)].map((m) => new URL(m[0]).host);
   assert.ok(urls.length >= 2 && urls.every((h) => h === 'miguelaguerrero.github.io'), urls.join(','));
-  assert.equal([...src.matchAll(/sha256:\s*'[0-9a-f]{64}'/g)].length, 2);
+  assert.equal([...src.matchAll(/const SHA256 = '[0-9a-f]{64}'/g)].length, 2);
 });

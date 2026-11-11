@@ -21,7 +21,7 @@ async function make(o: { engine?: any; decoder?: any; world?: any; on?: boolean;
 }
 const rows = async (ports: any) => (await (ports.db as any).listTranscripts()).sort((a: any, b: any) => a.piece_id.localeCompare(b.piece_id));
 
-test('MX4, MX6: a run stores each memo\'s words with the engine, the tag and the time, and never touches the memo', { todo: 'test first' }, async () => {
+test('MX4, MX6: a run stores each memo\'s words with the engine, the tag and the time, and never touches the memo', async () => {
   const { t, ports, engine } = await make();
   const before = JSON.stringify(await ports.db.getMomentsByIds(['m1', 'm2', 'm3']));
   await t.run();
@@ -34,7 +34,7 @@ test('MX4, MX6: a run stores each memo\'s words with the engine, the tag and the
   assert.equal(engine.seen.length, 3);
 });
 
-test('MX3: a run writes transcripts and nothing else: no caption, title, note or summary', { todo: 'test first' }, async () => {
+test('MX3: a run writes transcripts and nothing else: no caption, title, note or summary', async () => {
   const { t, ports } = await make();
   const writes: string[] = [];
   for (const k of Object.keys(ports.db)) {
@@ -47,7 +47,7 @@ test('MX3: a run writes transcripts and nothing else: no caption, title, note or
   assert.deepEqual([...new Set(writes)], ['putTranscript']);
 });
 
-test('MX5: a stale transcript is read again and replaced in one write; its words show until then', { todo: 'test first' }, async () => {
+test('MX5: a stale transcript is read again and replaced in one write; its words show until then', async () => {
   const seenDuring: string[] = [];
   const engine = fakeEngine();
   const { t, ports } = await make({ rows: [row('m1', 'old words', SPEC_B.tag)], memos: [memo('m1', 10)], engine });
@@ -60,7 +60,7 @@ test('MX5: a stale transcript is read again and replaced in one write; its words
   assert.deepEqual((await rows(ports)).map((r: any) => [r.text, r.tag]), [['new words', SPEC.tag]]);
 });
 
-test('MX16: the engine is loaded for a run and released when the queue is empty; idle holds nothing', { todo: 'test first' }, async () => {
+test('MX16: the engine is loaded for a run and released when the queue is empty; idle holds nothing', async () => {
   const { t, engine } = await make();
   assert.equal(engine.live, false);
   await t.run();
@@ -69,7 +69,7 @@ test('MX16: the engine is loaded for a run and released when the queue is empty;
   assert.equal(engine.loads, 1, 'nothing left to read: not even loaded');
 });
 
-test('MX16: going to the background or a memory warning stops the run and releases the engine', { todo: 'test first' }, async () => {
+test('MX16: going to the background or a memory warning stops the run and releases the engine', async () => {
   for (const stop of ['onBackground', 'onMemoryWarning']) {
     const engine = fakeEngine();
     let open!: () => void;
@@ -86,7 +86,7 @@ test('MX16: going to the background or a memory warning stops the run and releas
   }
 });
 
-test('MX17: no run without the switch, the model, the engine, the foreground, or while a walk records', { todo: 'test first' }, async () => {
+test('MX17: no run without the switch, the model, the engine, the foreground, or while a walk records', async () => {
   const cases: [string, Parameters<typeof make>[0]][] = [
     ['switch off', { on: false }],
     ['no model', { ref: null }],
@@ -102,14 +102,14 @@ test('MX17: no run without the switch, the model, the engine, the foreground, or
   }
 });
 
-test('MX17: one memo at a time, the oldest first', { todo: 'test first' }, async () => {
+test('MX17: one memo at a time, the oldest first', async () => {
   const { t, engine, decoder } = await make({ memos: [memo('m3', 30), memo('m1', 10), memo('m2', 20)] });
   await t.run();
   assert.equal(engine.maxActive, 1);
   assert.deepEqual(decoder.calls.map((c: any) => c.uri), ['memo-m1.m4a', 'memo-m2.m4a', 'memo-m3.m4a']);
 });
 
-test('MX17: a memo kept while a run is going is saved at once and nothing is said', { todo: 'test first' }, async () => {
+test('MX17: a memo kept while a run is going is saved at once and nothing is said', async () => {
   const engine = fakeEngine();
   let open!: () => void;
   engine.gate = new Promise<void>((r) => (open = r));
@@ -124,7 +124,7 @@ test('MX17: a memo kept while a run is going is saved at once and nothing is sai
   await run;
 });
 
-test('MX18: a memo that cannot be read does not stop the queue, is tried at most twice, and says nothing', { todo: 'test first' }, async () => {
+test('MX18: a memo that cannot be read does not stop the queue, is tried at most twice, and says nothing', async () => {
   const decoder = fakeDecoder(['wav16k'], { failFor: 'm2' });
   const { t, ports, engine } = await make({ decoder });
   await t.run();
@@ -136,7 +136,7 @@ test('MX18: a memo that cannot be read does not stop the queue, is tried at most
   assert.equal(engine.seen.length, 2);
 });
 
-test('MX19: silence stores an empty transcript and is not read again', { todo: 'test first' }, async () => {
+test('MX19: silence stores an empty transcript and is not read again', async () => {
   const engine = fakeEngine({ say: () => '' });
   const { t, ports } = await make({ engine, memos: [memo('m1', 10)] });
   await t.run();
@@ -145,7 +145,7 @@ test('MX19: silence stores an empty transcript and is not read again', { todo: '
   assert.equal(engine.seen.length, 1);
 });
 
-test('MX20: the decoder\'s temporary audio is let go after each memo and the memo file is never changed', { todo: 'test first' }, async () => {
+test('MX20: the decoder\'s temporary audio is let go after each memo and the memo file is never changed', async () => {
   const { t, decoder, ports } = await make();
   await t.run();
   assert.equal(decoder.disposed, 3);
@@ -153,7 +153,7 @@ test('MX20: the decoder\'s temporary audio is let go after each memo and the mem
   assert.equal(m.pieces[0].file_path, 'memo-m1.m4a');
 });
 
-test('MX31: the run asks the decoder only for the first accepted kind the platform has; a container engine skips it', { todo: 'test first' }, async () => {
+test('MX31: the run asks the decoder only for the first accepted kind the platform has; a container engine skips it', async () => {
   const a = await make({ engine: fakeEngine({ inputs: ['container', 'wav16k'] }), decoder: fakeDecoder(['wav16k']) });
   await a.t.run();
   assert.equal(a.engine.seen[0].kind, 'container', 'the engine reads the memo\'s own container');
@@ -166,7 +166,7 @@ test('MX31: the run asks the decoder only for the first accepted kind the platfo
   assert.equal((await (c.ports.db as any).listTranscripts()).length, 0, 'an input the platform cannot give leaves the memo alone');
 });
 
-test('MX30: the same run over two engines with different models and inputs gives the same results', { todo: 'test first' }, async () => {
+test('MX30: the same run over two engines with different models and inputs gives the same results', async () => {
   const outcome = async (engine: any, can: string[]) => {
     const { t, ports } = await make({ engine, decoder: fakeDecoder(can) });
     await t.run();
@@ -177,7 +177,7 @@ test('MX30: the same run over two engines with different models and inputs gives
   assert.deepEqual(a, b);
 });
 
-test('MX32: a swapped engine re-reads quietly; the old words stay shown until each is replaced', { todo: 'test first' }, async () => {
+test('MX32: a swapped engine re-reads quietly; the old words stay shown until each is replaced', async () => {
   const { t, ports } = await make({ rows: [row('m1', 'old one', SPEC_B.tag), row('m2', 'old two', SPEC_B.tag)], memos: [memo('m1', 10), memo('m2', 20)] });
   assert.deepEqual((await rows(ports)).map((r: any) => r.text), ['old one', 'old two']);
   await t.run();

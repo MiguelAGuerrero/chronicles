@@ -32,6 +32,8 @@ jobs:
       - run: npm test
       # Lint holds the import boundaries and the functional core's layers (FC3, FC5).
       - run: npm run lint
+      # The web transcription engine's code and WebAssembly, served from the app's own origin (MX22, MX23).
+      - run: node scripts/copy-engine-assets.js
       - name: Export for /chronicles
         run: npx expo export --platform web
         env:

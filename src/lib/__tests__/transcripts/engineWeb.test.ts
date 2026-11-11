@@ -41,7 +41,7 @@ async function make(o: { supported?: boolean; worker?: any } = {}) {
   return { engine, spawned };
 }
 
-test('MX25: a run starts a Worker, the page\'s calls return while it works, and the Worker is terminated when the run ends', { todo: 'test first' }, async () => {
+test('MX25: a run starts a Worker, the page\'s calls return while it works, and the Worker is terminated when the run ends', async () => {
   const { engine, spawned } = await make();
   assert.equal(spawned.length, 0, 'nothing exists while idle (MX16)');
   await engine.load({ ref: 'https://x/model' });
@@ -54,7 +54,7 @@ test('MX25: a run starts a Worker, the page\'s calls return while it works, and 
   assert.equal(spawned[0].terminated, true);
 });
 
-test('MX16: release with no run does nothing and a second load starts a fresh Worker', { todo: 'test first' }, async () => {
+test('MX16: release with no run does nothing and a second load starts a fresh Worker', async () => {
   const { engine, spawned } = await make();
   await engine.release();
   await engine.load({ ref: 'r' });
@@ -64,21 +64,23 @@ test('MX16: release with no run does nothing and a second load starts a fresh Wo
   assert.equal(spawned[0].terminated, true);
 });
 
-test('MX26: the engine\'s Worker needs no cross-origin isolation: nothing asks for SharedArrayBuffer or threads', { todo: 'test first' }, async () => {
+test('MX26: the engine\'s Worker needs no cross-origin isolation: one thread, nothing asks for shared memory, the sub-path build finds it', async () => {
   const fs = await import('node:fs');
-  const src = fs.readFileSync(`${__dirname}/../../transcribe/engines/worker.web.ts`, 'utf8');
-  assert.match(src, /numThreads\s*=\s*1/);
-  assert.doesNotMatch(src, /SharedArrayBuffer/);
-  assert.match(src, /EXPO_BASE_URL/, 'the sub-path build finds its wasm');
+  const worker = fs.readFileSync(`${__dirname}/../../../../public/transcribe-worker.mjs`, 'utf8');
+  assert.match(worker, /numThreads\s*=\s*1/);
+  assert.doesNotMatch(worker, /SharedArrayBuffer/);
+  const face = fs.readFileSync(`${__dirname}/../../transcribe/engines/worker.web.ts`, 'utf8');
+  assert.match(face, /EXPO_BASE_URL/);
+  assert.doesNotMatch(face, /SharedArrayBuffer/);
 });
 
-test('MX27: where the browser cannot run it the engine says so and no Worker starts', { todo: 'test first' }, async () => {
+test('MX27: where the browser cannot run it the engine says so and no Worker starts', async () => {
   const { engine, spawned } = await make({ supported: false });
   assert.equal(await engine.available(), false);
   assert.equal(spawned.length, 0);
 });
 
-test('MX27: a Worker that fails to load rejects the run and is terminated', { todo: 'test first' }, async () => {
+test('MX27: a Worker that fails to load rejects the run and is terminated', async () => {
   const worker = fakeWorker({ failLoad: true });
   const { engine } = await make({ worker });
   await assert.rejects(() => engine.load({ ref: 'r' }), /no wasm/);

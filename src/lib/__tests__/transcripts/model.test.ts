@@ -17,14 +17,14 @@ async function make(o: { files?: any; engine?: any; on?: boolean; installed?: bo
   return { model, ports, files, engine };
 }
 
-test('MX10: the switch is off by default and nothing is read from the network at launch', { todo: 'test first' }, async () => {
+test('MX10: the switch is off by default and nothing is read from the network at launch', async () => {
   const { model, files } = await make();
   await model.init();
   assert.equal(model.store.get().on, false);
   assert.equal(files.downloads, 0);
 });
 
-test('MX11: turning it on asks, in words, and fetches nothing until Download', { todo: 'test first' }, async () => {
+test('MX11: turning it on asks, in words, and fetches nothing until Download', async () => {
   const { model, files } = await make();
   await model.init();
   model.ask();
@@ -36,7 +36,7 @@ test('MX11: turning it on asks, in words, and fetches nothing until Download', {
   assert.deepEqual([model.store.get().asking, model.store.get().on, files.downloads], [false, false, 0], 'Not now leaves the switch off');
 });
 
-test('MX11, MX12: Download fetches once, installs and turns the switch on; it is kept across a launch', { todo: 'test first' }, async () => {
+test('MX11, MX12: Download fetches once, installs and turns the switch on; it is kept across a launch', async () => {
   const { model, files, ports } = await make();
   await model.init();
   model.ask();
@@ -45,7 +45,7 @@ test('MX11, MX12: Download fetches once, installs and turns the switch on; it is
   assert.equal(await ports.db.getMeta('transcribe_on'), '1');
 });
 
-test('MX12: a wrong hash and a failed download install nothing, are said in words and leave the switch off', { todo: 'test first' }, async () => {
+test('MX12: a wrong hash and a failed download install nothing, are said in words and leave the switch off', async () => {
   for (const files of [fakeFiles({ hash: 'f'.repeat(64) }), fakeFiles({ failDownload: true })]) {
     const { model } = await make({ files });
     await model.init();
@@ -63,7 +63,7 @@ test('MX12: a wrong hash and a failed download install nothing, are said in word
   assert.equal(bad.discarded, 1, 'a file that is not the pinned one is deleted, never moved into place');
 });
 
-test('MX13: an evicted model reads as not installed, is said only while the switch is on, and nothing is fetched', { todo: 'test first' }, async () => {
+test('MX13: an evicted model reads as not installed, is said only while the switch is on, and nothing is fetched', async () => {
   const on = await make({ on: true });
   await on.model.init();
   assert.equal(on.model.store.get().installed, false);
@@ -76,7 +76,7 @@ test('MX13: an evicted model reads as not installed, is said only while the swit
   assert.equal(on.model.store.get().asking, true, 'the download is offered again');
 });
 
-test('MX14: with less room than the model needs nothing is fetched and the owner is told in words', { todo: 'test first' }, async () => {
+test('MX14: with less room than the model needs nothing is fetched and the owner is told in words', async () => {
   const files = fakeFiles({ free: 1024 });
   const { model } = await make({ files });
   await model.init();
@@ -87,7 +87,7 @@ test('MX14: with less room than the model needs nothing is fetched and the owner
   assert.doesNotMatch(model.store.get().line, /[0-9]/);
 });
 
-test('MX15: turning it off offers Remove, only on the owner\'s tap; Remove deletes the file and keeps every transcript', { todo: 'test first' }, async () => {
+test('MX15: turning it off offers Remove, only on the owner\'s tap; Remove deletes the file and keeps every transcript', async () => {
   const { model, files, ports } = await make({ on: true, installed: true });
   await (ports.db as any).putTranscript(row('m1', 'still here'));
   await model.init();
@@ -102,7 +102,7 @@ test('MX15: turning it off offers Remove, only on the owner\'s tap; Remove delet
   assert.deepEqual((await (ports.db as any).listTranscripts()).map((r: any) => r.text), ['still here']);
 });
 
-test('MX27: an engine that cannot run here says so in words and nothing is fetched', { todo: 'test first' }, async () => {
+test('MX27: an engine that cannot run here says so in words and nothing is fetched', async () => {
   const engine = fakeEngine({ available: async () => false });
   const { model, files } = await make({ engine, on: true });
   await model.init();
@@ -113,7 +113,7 @@ test('MX27: an engine that cannot run here says so in words and nothing is fetch
   assert.equal(files.downloads, 0);
 });
 
-test('MX32: a new engine\'s model is not installed until the owner taps Download; the old file goes when the new one installs', { todo: 'test first' }, async () => {
+test('MX32: a new engine\'s model is not installed until the owner taps Download; the old file goes when the new one installs', async () => {
   const files = fakeFiles();
   files.installed.set(SPEC.tag, SPEC.tag); // the old engine's file
   const engine = fakeEngine({ model: SPEC_B });

@@ -17,7 +17,7 @@ import type { Mark, Recall } from '../discovery/types';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
-import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment, TracePoint, TranscriptRow, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
@@ -193,6 +193,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         const hit = await t.getAllAsync<{ moment_id: string; walk_id: string | null }>(
           `SELECT DISTINCT c.moment_id, m.walk_id FROM capture c JOIN moment m ON c.moment_id = m.id WHERE c.id IN (${marks})`, ...ids,
         );
+        await t.runAsync(`DELETE FROM transcript WHERE piece_id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
         for (const h of hit) {
           if (!(await t.getFirstAsync('SELECT 1 FROM capture WHERE moment_id = ?', h.moment_id))) {
@@ -218,6 +219,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
           nm.id, nm.walk_id, nm.t, nm.lat, nm.lon, nm.segment_id,
         );
         await t.runAsync('UPDATE capture SET moment_id = ? WHERE id = ?', nm.id, pieceId);
+        await t.runAsync('UPDATE transcript SET moment_id = ? WHERE piece_id = ?', nm.id, pieceId);
       });
     },
     async getMoments(walkId) {
@@ -237,6 +239,14 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       ));
     },
 
+    async putTranscript(r) {
+      await write((t) =>
+        t.runAsync('INSERT OR REPLACE INTO transcript (piece_id, moment_id, text, engine, tag, made_at, tries) VALUES (?, ?, ?, ?, ?, ?, ?)', r.piece_id, r.moment_id, r.text, r.engine, r.tag, r.made_at, r.tries).then(() => {}),
+      );
+    },
+    async listTranscripts() {
+      return (await conn()).getAllAsync<TranscriptRow>('SELECT * FROM transcript');
+    },
     async listThreads() {
       const c = await conn();
       const [threads, members, links] = await Promise.all([
@@ -267,6 +277,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
 
     deleteWalk(walkId) {
       return write(async (t) => {
+        await t.runAsync('DELETE FROM transcript WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
         await dropMoments(t, (await t.getAllAsync<{ id: string }>('SELECT id FROM moment WHERE walk_id = ?', walkId)).map((r) => r.id));
         await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
         await t.runAsync('DELETE FROM capture WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
@@ -291,6 +302,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       const marks = ids.map(() => '?').join(',');
       return write(async (t) => {
         const got = await t.getAllAsync<Omit<Moment, 'pieces'>>(`SELECT * FROM moment WHERE id IN (${marks})`, ...ids);
+        await t.runAsync(`DELETE FROM transcript WHERE moment_id IN (${marks})`, ...ids);
         await dropMoments(t, got.map((c) => c.id));
         await t.runAsync(`DELETE FROM capture WHERE moment_id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM moment WHERE id IN (${marks})`, ...ids);

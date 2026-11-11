@@ -5,7 +5,9 @@ import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
 import type { ContextEntry } from '../../lib/resurface/shell';
+import { LABEL } from '../../lib/transcribe/core';
 import { Icon } from '../icons';
+import { HeardWords } from './HeardWords';
 import { theme } from '../ui';
 import { MomentPicture } from './MomentPicture';
 import { hasMore } from '../../lib/moment';
@@ -21,7 +23,7 @@ export function contextText(context: ContextEntry | undefined, m: MomentView, no
 /** What a moment says about itself in one line, for a screen reader (RM25). */
 export function momentSpoken(m: MomentView, now: number, context?: ContextEntry): string {
   // A moment with more than one piece says so in words (MS8), never how many (MS9).
-  return [KIND_WORD[m.kind], hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
+  return [KIND_WORD[m.kind], hasMore(m.capture) ? STACK_SPOKEN : null, m.kind === 'voice' && m.words ? `${LABEL}: ${m.words}` : m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**
@@ -55,7 +57,8 @@ export function MomentCard(props: {
               <Text style={styles.memoText}>{Number.isFinite(memo) && memo > 0 ? `Voice memo, ${formatElapsed(memo)}` : 'Voice memo'}</Text>
             </View>
           )}
-          {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
+          {m.words && m.kind === 'voice' ? <HeardWords words={m.words} lines={10} testID="card-transcript" /> : null}
+          {m.words && m.kind !== 'voice' ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
           {props.answering ? <Text style={styles.meta} testID="moment-answering">{props.answering}</Text> : null}
           <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>
         </View>

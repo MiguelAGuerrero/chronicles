@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["ChroniclesAudioDecodeModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.chroniclesaudiodecode.ChroniclesAudioDecodeModule"]
+  }
+}

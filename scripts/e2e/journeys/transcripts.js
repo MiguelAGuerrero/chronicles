@@ -48,6 +48,6 @@ async function run(h) {
 
 module.exports = {
   name: 'transcripts',
-  covers: ['src/lib/transcribe/**', 'src/components/StartSettings.tsx', 'src/components/CaptureView.tsx', 'src/components/chronicle/**'],
+  covers: ['src/lib/transcribe/**', 'src/components/TranscribeSettings.tsx', 'src/components/StartSettings.tsx', 'src/components/CaptureView.tsx', 'src/components/chronicle/**'],
   run,
 };

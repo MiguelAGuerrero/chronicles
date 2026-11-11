@@ -7,7 +7,7 @@ import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { ThreadsChange, ThreadsData } from '../threads/types';
-import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary, TranscriptRow } from '../types';
 
 /**
  * Local-only storage, mirroring the concept doc's tables. Native uses
@@ -84,6 +84,14 @@ export interface Db {
    * `deleteMoments` and `deleteWalk` take the memberships and links of the moments they delete the same way (OT16, OT17).
    */
   applyThreads(change: ThreadsChange): Promise<void>;
+
+  /**
+   * Memo transcripts (MX4, MX21): a cache by piece id. A put replaces the piece's row; a list is every row. A row goes
+   * with its piece (`deletePieces`), its moment (`deleteMoments`) or its walk (`deleteWalk`) in the same transaction,
+   * and follows a piece that `splitPiece` moves to a moment of its own.
+   */
+  putTranscript(row: TranscriptRow): Promise<void>;
+  listTranscripts(): Promise<TranscriptRow[]>;
 
   /** Starts a pause; at most one pause is open per walk. */
   startPause(walkId: string, at: number): Promise<void>;

@@ -27,12 +27,25 @@ const restrictedPaths = [
     message:
       "Haptics go through feedback(kind) in 'lib/motion' (built on lib/haptics), so reduce motion and the web no-op are honoured.",
   },
+  // The engine is an adapter behind one contract (specs/memo-transcripts, MX28): nothing else names a library.
+  {
+    name: 'whisper.rn',
+    message: "Transcribe through 'lib/transcribe'; an engine is an adapter in 'src/lib/transcribe/engines/' behind the Engine contract, so a faster one is a swap (MX28).",
+  },
+  {
+    name: '@huggingface/transformers',
+    message: "Transcribe through 'lib/transcribe'; an engine is an adapter in 'src/lib/transcribe/engines/' behind the Engine contract, so a faster one is a swap (MX28).",
+  },
 ];
 // lib/haptics is feedback()'s implementation; only lib/motion imports it (PA4, pocket-alert-nudge audit 7).
 const restrictedPatterns = [
   {
     group: ['**/haptics', './haptics'],
     message: "Call feedback(kind) from 'lib/motion'; lib/haptics is its implementation (PA4, pocket-alert-nudge audit 7).",
+  },
+  {
+    group: ['**/modules/chronicles-audio-decode', '**/modules/chronicles-audio-decode/*'],
+    message: "Transcribe through 'lib/transcribe'; the decode module is an adapter in 'src/lib/transcribe/engines/' (MX28).",
   },
 ];
 const restricted = { 'no-restricted-imports': ['error', { paths: restrictedPaths, patterns: restrictedPatterns }] };
@@ -68,4 +81,6 @@ module.exports = defineConfig([
   { files: ['src/lib/audioMode.native.ts'], rules: { 'no-restricted-imports': 'off' } },
   { files: ['src/lib/haptics.ts'], rules: { 'no-restricted-imports': 'off' } },
   { files: ['src/lib/motion.ts'], rules: restrictedForMotion },
+  // The engines' own files are the one place the libraries and the decode module are imported (MX28).
+  { files: ['src/lib/transcribe/engines/**'], rules: { 'no-restricted-imports': 'off' } },
 ]);

@@ -23,7 +23,7 @@ function nativeParts(o: { available?: boolean; fail?: boolean } = {}) {
   };
 }
 
-test('MX20: the native decoder writes 16 kHz mono PCM to a temporary file and removes it when let go; the memo is only read', { todo: 'test first' }, async () => {
+test('MX20: the native decoder writes 16 kHz mono PCM to a temporary file and removes it when let go; the memo is only read', async () => {
   const { createDecoder } = await mod('decoder');
   const { native, fs, log } = nativeParts();
   const d = createDecoder(native, fs);
@@ -36,20 +36,20 @@ test('MX20: the native decoder writes 16 kHz mono PCM to a temporary file and re
   assert.deepEqual(log.removed, ['/cache/transcribe/1.wav']);
 });
 
-test('MX20: a decode that fails leaves no temporary file behind and rejects', { todo: 'test first' }, async () => {
+test('MX20: a decode that fails leaves no temporary file behind and rejects', async () => {
   const { createDecoder } = await mod('decoder');
   const { native, fs, log } = nativeParts({ fail: true });
   await assert.rejects(() => createDecoder(native, fs).decode('memo-m1.m4a', 'wav16k'), /decode failed/);
   assert.deepEqual(log.removed, ['/cache/transcribe/1.wav']);
 });
 
-test('MX20, MX27: where the module is not linked (Expo Go) the decoder gives nothing', { todo: 'test first' }, async () => {
+test('MX20, MX27: where the module is not linked (Expo Go) the decoder gives nothing', async () => {
   const { createDecoder } = await mod('decoder');
   const { native, fs } = nativeParts({ available: false });
   assert.equal(createDecoder(native, fs).can('wav16k'), false);
 });
 
-test('MX20: on the web the browser decodes in memory to 16 kHz samples and writes nothing; no AudioContext, no samples', { todo: 'test first' }, async () => {
+test('MX20: on the web the browser decodes in memory to 16 kHz samples and writes nothing; no AudioContext, no samples', async () => {
   const { createWebDecoder } = await mod('decoder.web');
   const bytes = async () => new ArrayBuffer(8);
   const ok = createWebDecoder({ hasAudio: () => true, read: bytes, toSamples: async () => new Float32Array([0.1, 0.2]) });

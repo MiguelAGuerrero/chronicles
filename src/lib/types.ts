@@ -32,6 +32,21 @@ export interface TracePoint {
   course: number | null;
 }
 
+/**
+ * A voice memo's words as the phone read them (specs/memo-transcripts, MX4): a cache by piece id, recomputed when the
+ * engine's `tag` changes, never edited. `text` is null for a memo whose read failed (`tries` counts them), empty for
+ * one with no speech.
+ */
+export interface TranscriptRow {
+  piece_id: string;
+  moment_id: string;
+  text: string | null;
+  engine: string;
+  tag: string;
+  made_at: number;
+  tries: number;
+}
+
 export type CaptureKind = 'photo' | 'video' | 'voice' | 'text';
 
 /**

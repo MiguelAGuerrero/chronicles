@@ -65,7 +65,7 @@ test('MT1: a version-17 IndexedDB upgrades to one-piece moments under the same i
   assert.deepEqual(await db.getMoments('w1'), [asMoment(OLD_CAPTURES[0]), asMoment(OLD_CAPTURES[1])]);
   assert.deepEqual(await db.momentsBetween(0, 100), OLD_CAPTURES.map(asMoment));
   const d = await req(indexedDB.open('chronicles'));
-  assert.equal(d.version, 18);
+  assert.equal(d.version, 19);
   assert.ok(!d.objectStoreNames.contains('capture'), 'the capture store is folded into the moment store');
   d.close();
 });
@@ -110,7 +110,7 @@ test('MT1: SQLite migration 22 turns every capture into a one-piece moment (node
     OLD_CAPTURES.map(({ id, walk_id, t, lat, lon, segment_id }) => ({ id, walk_id, t, lat, lon, segment_id })),
   );
   assert.deepEqual(d.prepare('SELECT id, moment_id FROM capture ORDER BY t').all().map((r) => [r.id, r.moment_id]), OLD_CAPTURES.map((c) => [c.id, c.id]));
-  assert.equal(MIGRATIONS.length, 23);
+  assert.equal(MIGRATIONS.length, 24);
 });
 
 test('MT1: no earlier SQLite migration changed', async () => {

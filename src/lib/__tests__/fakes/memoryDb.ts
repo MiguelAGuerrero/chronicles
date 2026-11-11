@@ -13,7 +13,7 @@ import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
 import { thinThreads } from '../../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../../threads/types';
-import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../../types';
+import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, TranscriptRow, VisitedSegment, Walk, WalkSummary } from '../../types';
 
 /** The `Db` methods that only read: left out of a fake's `effects()` log. */
 export const DB_READS = [
@@ -151,6 +151,8 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const threads = new Table<Thread>((t) => t.id);
   const members = new Table<Member>((m) => [m.thread_id, m.moment_id]);
   const links = new Table<Link>((l) => [l.from_id, l.to_id]);
+  // Memo transcripts (MX4, MX21): by piece id, deleted with the piece, the moment or the walk.
+  const transcripts = new Table<TranscriptRow>((r) => r.piece_id);
   // A thread left with fewer than two members is gone with its memberships (OT15).
   const dissolve = (ids: Iterable<string>) => {
     for (const id of thinThreads(ids, members.all())) {
@@ -232,6 +234,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       const hit = moments.all().filter((m) => m.pieces.some((p) => gone.has(p.id)));
       if (hit.some((m) => m.pieces.every((p) => gone.has(p.id)))) throw new Error('a moment would be left with no piece');
       for (const m of hit) moments.put({ ...m, pieces: m.pieces.filter((p) => !gone.has(p.id)) });
+      for (const id of gone) transcripts.delete(id);
       for (const w of new Set(hit.map((m) => m.walk_id))) {
         if (w == null) continue;
         const s = summaries.get(w);
@@ -246,6 +249,8 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       const p = m.pieces.find((x) => x.id === pieceId)!;
       moments.put({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) });
       moments.put(copy({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+      const tr = transcripts.get(pieceId);
+      if (tr) transcripts.put({ ...tr, moment_id: nm.id });
     },
     async getMoments(walkId) {
       return moments.where(walkOf, walkId).map(readMoment).sort(byT);
@@ -269,6 +274,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
 
     async deleteWalk(walkId) {
       dropMoments(moments.where(walkOf, walkId).map((c) => c.id));
+      for (const c of moments.where(walkOf, walkId)) transcripts.dropWhere((r) => r.moment_id, c.id);
       for (const c of moments.where(walkOf, walkId)) {
         moments.delete(c.id);
         recalls.delete(c.id);
@@ -300,6 +306,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
         return c ? [c] : [];
       });
       dropMoments(got.map((c) => c.id));
+      for (const c of got) transcripts.dropWhere((r) => r.moment_id, c.id);
       for (const c of got) {
         moments.delete(c.id);
         recalls.delete(c.id);
@@ -320,6 +327,12 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       }
     },
 
+    async putTranscript(r) {
+      transcripts.put(copy(r));
+    },
+    async listTranscripts() {
+      return out(transcripts.all());
+    },
     async listThreads() {
       return { threads: out(threads.all()), members: out(members.all()), links: out(links.all()) };
     },

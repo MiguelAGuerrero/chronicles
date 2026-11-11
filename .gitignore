@@ -46,3 +46,6 @@ yarn-error.*
 
 # the e2e runner's record of journeys that passed (scripts/e2e/economy.js)
 /.e2e-green.json
+
+# The web transcription engine, copied at export time (scripts/copy-engine-assets.js)
+/public/engine/

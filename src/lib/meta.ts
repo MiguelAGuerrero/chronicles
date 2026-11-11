@@ -143,6 +143,8 @@ export const META = {
   // Storage awareness (lib/space, SA4, SA10).
   space_said: { owner: 'space', codec: oneOf<'low' | 'very-low'>('low', 'very-low') },
   space_persist: { owner: 'space', codec: oneOf<'due' | 'refused' | 'asked'>('due', 'refused', 'asked') },
+  /** Memo transcripts (MX10): on once the model is installed by the owner's Download tap; '0' or absent is off. */
+  transcribe_on: { owner: 'transcribe', codec: flag },
   notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },
   // Clearing (lib/deletion): the delete waiting in the Undo window, so a killed app stores it at the next launch (UC13, decision 0113)
   pending_delete: { owner: 'deletion', codec: json<PendingJob[]>(isPendingJobs) },

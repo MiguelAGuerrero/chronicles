@@ -43,6 +43,8 @@ import { IN_A_THREAD, MENTIONED } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
+import { words as transcripts } from '../lib/transcribe';
+import { HeardWords } from './chronicle/HeardWords';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -168,6 +170,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
   const [now] = useState(() => Date.now());
+  // A memo's words as the phone read them, with the label and under the memo; none when there are none (MX1, MX2).
+  const heard = useStore(transcripts.store, (st) => st.words[capture.piece_id] ?? null);
   const meta = viewerLine({ kind: KIND_LABEL[capture.kind], t: capture.t, time: timeOf(capture), now, parts: props.parts ?? [props.footer] });
   const actions = (onDark: boolean) => (
     <>
@@ -262,6 +266,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
           )}
+          {capture.kind === 'voice' && heard ? <HeardWords words={heard} testID="transcript" /> : null}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
             <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}</Text>

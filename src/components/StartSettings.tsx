@@ -13,6 +13,7 @@ import { LayersKey } from './LayersControl';
 import type { useLayers } from '../lib/layers/useLayers';
 import { NotificationSettings } from './NotificationSettings';
 import { RouteLeaningSettings } from './RouteLeaningSettings';
+import { TranscribeSettings } from './TranscribeSettings';
 import { SwitchRow } from './SwitchRow';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
@@ -124,6 +125,8 @@ export function StartSettings(props: {
       />
       {/* Each switch saves as it changes, and turning one on asks permission from that tap (NV24). */}
       <NotificationSettings heading={false} />
+      {/* Memo transcripts (MX10): the model comes down only on a tap; nothing joins the capture stack. */}
+      <TranscribeSettings />
 
       <View style={styles.rule} />
       <Text style={styles.title} accessibilityRole="header">Distances</Text>

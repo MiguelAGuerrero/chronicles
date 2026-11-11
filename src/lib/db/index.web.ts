@@ -9,7 +9,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
-import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, TranscriptRow, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
@@ -19,7 +19,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 18;
+const VERSION = 19;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -154,6 +154,11 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
       c.continue();
     };
   }
+  if (oldVersion < 19 && upTo >= 19) {
+    // Memo transcripts (MX4, MX21): a cache by piece id, deleted with its piece, moment or walk.
+    const transcripts = d.createObjectStore('transcript', { keyPath: 'piece_id' });
+    transcripts.createIndex('moment_id', 'moment_id');
+  }
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -254,6 +259,11 @@ async function dropMoments(tx: IDBTransaction, ids: string[]) {
   }
   await dissolveThin(tx, affected);
 }
+/** A moment's transcripts go with it (MX21). */
+async function dropTranscripts(tx: IDBTransaction, momentIds: string[]) {
+  const st = tx.objectStore('transcript');
+  for (const id of momentIds) await dropBy(st, 'moment_id', id);
+}
 async function dropBy(st: IDBObjectStore, index: string, key: IDBValidKey) {
   for (const k of (await done(st.index(index).getAllKeys(key))) as IDBValidKey[]) st.delete(k);
 }
@@ -333,10 +343,11 @@ export const db: Db = {
   },
   async deletePieces(ids) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['moment', 'walk_summary'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'walk_summary', 'transcript'], 'readwrite');
     return atomically(tx, async () => {
       const st = tx.objectStore('moment');
       const gone = new Set(ids);
+      for (const id of gone) tx.objectStore('transcript').delete(id);
       const hit = new Map<string, MomentRecord>();
       for (const id of ids) {
         const m = (await done(st.index('piece_ids').get(id))) as MomentRecord | undefined;
@@ -357,7 +368,7 @@ export const db: Db = {
     });
   },
   async splitPiece(pieceId, nm) {
-    const tx = (await conn()).transaction('moment', 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'transcript'], 'readwrite');
     return atomically(tx, async () => {
       const st = tx.objectStore('moment');
       const m = (await done(st.index('piece_ids').get(pieceId))) as MomentRecord | undefined;
@@ -367,6 +378,9 @@ export const db: Db = {
       const p = m.pieces.find((x) => x.id === pieceId)!;
       st.put(toRecord({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) }));
       st.add(toRecord({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+      const ts = tx.objectStore('transcript');
+      const t = (await done(ts.get(pieceId))) as TranscriptRow | undefined;
+      if (t) ts.put({ ...t, moment_id: nm.id });
     });
   },
   async getMoments(walkId) {
@@ -391,6 +405,15 @@ export const db: Db = {
       .sort(byT);
   },
 
+  async putTranscript(r) {
+    const tx = (await conn()).transaction('transcript', 'readwrite');
+    return atomically(tx, async () => {
+      tx.objectStore('transcript').put(r);
+    });
+  },
+  async listTranscripts() {
+    return (await done((await store('transcript')).getAll())) as TranscriptRow[];
+  },
   async listThreads() {
     const tx = (await conn()).transaction(['thread', 'thread_member', 'moment_link'], 'readonly');
     const all = <T>(n: string) => done(tx.objectStore(n).getAll()) as Promise<T[]>;
@@ -421,12 +444,13 @@ export const db: Db = {
   },
 
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link'];
+    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link', 'transcript'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
       const caps = (await done(os('moment').index('walk_id').getAll(walkId))) as MomentRecord[];
       await dropMoments(tx, caps.map((c) => c.id));
+      await dropTranscripts(tx, caps.map((c) => c.id));
       for (const c of caps) {
         os('moment').delete(c.id);
         os('recall').delete(c.id);
@@ -457,11 +481,12 @@ export const db: Db = {
   },
   async deleteMoments(ids, opts = {}) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link', 'transcript'], 'readwrite');
     return atomically(tx, async () => {
       const capStore = tx.objectStore('moment');
       const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<MomentRecord | undefined>))).filter((c): c is MomentRecord => !!c);
       await dropMoments(tx, got.map((c) => c.id));
+      await dropTranscripts(tx, got.map((c) => c.id));
       for (const c of got) {
         capStore.delete(c.id);
         tx.objectStore('recall').delete(c.id);

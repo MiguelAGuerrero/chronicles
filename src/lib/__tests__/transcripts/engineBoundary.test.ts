@@ -17,7 +17,7 @@ const walk = (dir: string, out: string[] = []): string[] => {
   return out;
 };
 
-test('MX28: only src/lib/transcribe/engines and the decoder adapter import the libraries or the decode module', { todo: 'test first' }, async () => {
+test('MX28: only src/lib/transcribe/engines and the decoder adapter import the libraries or the decode module', async () => {
   const bad: string[] = [];
   for (const f of walk('src')) {
     const src = readFileSync(join(ROOT, f), 'utf8');
@@ -27,14 +27,14 @@ test('MX28: only src/lib/transcribe/engines and the decoder adapter import the l
   assert.deepEqual(bad, []);
 });
 
-test('MX28: lint says so, with the fix in the message, and is off only in the adapters', { todo: 'test first' }, async () => {
+test('MX28: lint says so, with the fix in the message, and is off only in the adapters', async () => {
   const cfg = readFileSync(join(ROOT, 'eslint.config.js'), 'utf8');
   for (const l of LIBS) assert.ok(cfg.includes(`'${l}'`) || cfg.includes(l), `eslint.config.js restricts ${l}`);
   assert.match(cfg, /Transcribe through .lib\/transcribe./);
   assert.match(cfg, /src\/lib\/transcribe\/engines\/\*\*/);
 });
 
-test('MX28: no user-facing copy, meta key or table column names an engine or a library', { todo: 'test first' }, async () => {
+test('MX28: no user-facing copy, meta key or table column names an engine or a library', async () => {
   const names = /whisper|transformers\.js|onnx|ggml|huggingface/i;
   const offenders: string[] = [];
   for (const f of [...walk('src/components'), ...walk('src/app'), 'src/lib/transcribe/core.ts', 'src/lib/transcribe/model.ts', 'src/lib/transcribe/run.ts', 'src/lib/transcribe/words.ts', 'src/lib/meta.ts', 'src/lib/db/migrations.ts']) {
