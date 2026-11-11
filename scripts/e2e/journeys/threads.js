@@ -440,6 +440,7 @@ async function run(h) {
   await pg.keyboard.type('to');
   await pg.waitForTimeout(300);
   const narrowed = await pg.locator('[data-testid^=ref-time-]').allInnerTexts();
+  await shot(pg, '82-ref-menu-narrowed');
   check(narrowed.length >= 3 && narrowed.length < chips && narrowed.every((t) => /to/i.test(t)) && (await has('[data-testid=ref-time-tomorrow]')) && !(await has('[data-testid=ref-time-now]')), `RK21: @to keeps the words with a "to" and drops the rest (${narrowed.map((t) => t.split('\n')[0]).join(', ')})`);
   await pg.keyboard.type('zz');
   await pg.waitForTimeout(300);
@@ -476,6 +477,8 @@ async function run(h) {
   const mapIn = await there('[data-testid=ref-map]', 5000);
   await pg.waitForTimeout(1500);
   await pg.locator('[data-testid=ref-map]').click();
+  await pg.waitForTimeout(600);
+  await shot(pg, '83-ref-map-pick');
   await pg.fill('[data-testid=ref-map-name]', 'the old pier');
   await pg.click('[data-testid=ref-map-use]');
   await gone('[data-testid=ref-palette]');
