@@ -189,8 +189,11 @@ test('PS9: the presence code moves on; atlas and landing rows from the last code
   const { LANDING_RULES } = await import('../../landing/analyze');
   assert.notEqual(PRESENCE_CODE, 'p1');
   assert.ok(ATLAS_CODE.endsWith(PRESENCE_CODE));
-  for (const level of ['neighborhood', 'town'] as const) assert.equal(rowCurrent({ build: 'b', code: 'a8.p1', level }, 'b'), true, `${level} a8.p1 stands`);
-  assert.equal(rulesCurrent(`${LANDING_CODE}:p1:${JSON.stringify(LANDING_RULES)}`), true, 'a p1 landing row stands');
+  // presence-readers audit 2: p1's rows stand only while the code is p2; the next bump decides its carry afresh.
+  if (PRESENCE_CODE === 'p2') {
+    for (const level of ['neighborhood', 'town'] as const) assert.equal(rowCurrent({ build: 'b', code: 'a8.p1', level }, 'b'), true, `${level} a8.p1 stands`);
+    assert.equal(rulesCurrent(`${LANDING_CODE}:p1:${JSON.stringify(LANDING_RULES)}`), true, 'a p1 landing row stands');
+  }
 });
 
 test('PS10: recorded, historic_name and historic weigh nothing, and no consumer sorts or ranks by them', async () => {

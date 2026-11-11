@@ -1,5 +1,5 @@
 // @layer core
-import { PRESENCE_CODE, type PresenceClass } from '../presence/presence';
+import { PRESENCE_CARRIED, PRESENCE_CODE, type PresenceClass } from '../presence/presence';
 import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
@@ -34,10 +34,11 @@ export const ATLAS_CODE = `a8.${PRESENCE_CODE}`;
 
 /**
  * TP10: the older rules a level's rows still stand under, because the change did not touch that level. None of a8's
- * elders (PK7: the bars changed at every level); a8.p1 stands, since presence p2 read the archive, names and greens with
- * nothing derived changed (specs/presence-readers PS9).
+ * elders (PK7: the bars changed at every level); the presence codes presence carries stand at every level
+ * (`PRESENCE_CARRIED`, specs/presence-readers PS9).
  */
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a8.p1'], town: ['a8.p1'] };
+const CARRIED_PRESENCE = PRESENCE_CARRIED.map((c) => `a8.${c}`);
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: CARRIED_PRESENCE };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
