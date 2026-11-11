@@ -6,6 +6,9 @@ if (typeof document !== 'undefined' && !document.getElementById('chronicles-focu
     /* Two tones (WCAG technique C40), so the ring shows on light grounds and on the ink ones alike (the
        recording bar, the toasts, a selected pill): white fills the gap inside the ink outline. */
     :focus-visible { outline: 2px solid #1d2430 !important; outline-offset: 2px; box-shadow: 0 0 0 2px #ffffff !important; }
+    /* On the recording bar's ink ground the tones swap: a white outline outside an ink band, so the ring shows
+       around its white buttons as around its ink line (tend tabs audit 13). */
+    [data-testid="recording-bar"] :focus-visible { outline-color: #ffffff !important; box-shadow: 0 0 0 2px #1d2430 !important; }
     /* The hold-to-stop button: a long press must not select text or open a menu. */
     [data-testid="stop"], [data-testid="stop"] * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

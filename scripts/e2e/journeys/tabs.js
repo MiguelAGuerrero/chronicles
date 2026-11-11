@@ -270,26 +270,44 @@ async function run(h) {
         check(name === 'Add to your walk: take a photo or video', `tend tabs 3: the bar's camera is spoken as the band's camera with a walk open ("${name}")`);
       }
       // tend tabs 1: keyboard focus on the bar shows a ring that stands out from the bar's dark ground, 3:1 or more.
+      // tend tabs audit 13: and on the bar's white buttons, and on a light ground (a tab): white on ink, ink on ink, ink on white.
       {
-        let id = null;
-        for (let k = 0; k < 60 && id !== 'recording-return'; k++) {
-          await pg.keyboard.press('Tab');
-          id = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
-        }
-        const ring = await pg.evaluate(() => {
-          const cs = getComputedStyle(document.activeElement);
-          return { outline: cs.outlineColor, style: cs.outlineStyle, shadow: cs.boxShadow, ground: getComputedStyle(document.querySelector('[data-testid=recording-bar]')).backgroundColor };
-        });
-        await h.shot(pg, 'tabs-1-bar-focus');
         const rgb = (s) => (s.match(/\d+(\.\d+)?/g) || []).slice(0, 3).map(Number);
+        const alpha = (s) => { const m = /rgba\([^)]*,\s*([\d.]+)\)/.exec(s); return m ? Number(m[1]) : 1; };
         const lum = (c) => {
           const [r, g, b] = c.map((v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
           return 0.2126 * r + 0.7152 * g + 0.0722 * b;
         };
-        const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-        const colours = [...(ring.style !== 'none' ? [ring.outline] : []), ...(ring.shadow.match(/rgba?\([^)]*\)/g) || [])];
-        const best = Math.max(0, ...colours.map((c) => ratio(rgb(c), rgb(ring.ground))));
-        check(id === 'recording-return' && best >= 3, `tend tabs 1: keyboard focus on the bar's way back shows a ring at 3:1 or more against the bar (${best.toFixed(1)}:1, ${JSON.stringify(ring)})`);
+        const ratio = (a, b) => { const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+        // The ring is seen when its outer edge (the outline) stands 3:1 from the ground around it, or its inner band
+        // (the shadow) stands 3:1 from both the ground and the control's own fill.
+        const ringOn = async (target) => {
+          let id = null;
+          for (let k = 0; k < 60 && id !== target; k++) {
+            await pg.keyboard.press('Tab');
+            id = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
+          }
+          const r = await pg.evaluate(() => {
+            const e = document.activeElement;
+            const cs = getComputedStyle(e);
+            const fill = (el) => { const c = getComputedStyle(el).backgroundColor; return /rgba\([^)]*,\s*0\)/.test(c) || c === 'transparent' ? null : c; };
+            let p = e.parentElement;
+            while (p && !fill(p)) p = p.parentElement;
+            const ground = p ? fill(p) : 'rgb(255, 255, 255)';
+            return { outline: cs.outlineStyle !== 'none' ? cs.outlineColor : null, shadow: (cs.boxShadow.match(/rgba?\([^)]*\)/) || [null])[0], own: fill(e) || ground, ground };
+          });
+          const outer = r.outline && alpha(r.outline) > 0 ? ratio(r.outline, r.ground) : 0;
+          const inner = r.shadow && alpha(r.shadow) > 0 ? Math.min(ratio(r.shadow, r.ground), ratio(r.shadow, r.own)) : 0;
+          return { id, seen: Math.max(outer, inner), r };
+        };
+        const way = await ringOn('recording-return');
+        await h.shot(pg, 'tabs-1-bar-focus');
+        check(way.id === 'recording-return' && way.seen >= 3, `tend tabs 1: keyboard focus on the bar's way back shows a ring at 3:1 or more against the bar (${way.seen.toFixed(1)}:1, ${JSON.stringify(way.r)})`);
+        for (const target of ['bar-photo', 'bar-stop', 'tab-chronicle']) {
+          const f = await ringOn(target);
+          await h.shot(pg, `tabs-audit-13-focus-${target}`);
+          check(f.id === target && f.seen >= 3, `tend tabs audit 13: keyboard focus on ${target} shows a ring at 3:1 or more against what is around it (${f.seen.toFixed(1)}:1, ${JSON.stringify(f.r)})`);
+        }
         await pg.evaluate(() => document.activeElement?.blur());
       }
 
