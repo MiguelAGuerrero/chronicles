@@ -39,7 +39,9 @@ import { chronicleSection } from '../lib/resurface/sectionStore';
 import { threads } from '../lib/threads';
 import { AddToThread } from './threads/AddToThread';
 import { ReplyDock, DOCK_H, type ReplyStage } from './threads/ReplyDock';
-import { IN_A_THREAD, MENTIONED } from '../lib/threads/lines';
+import { ResponsesSheet } from './threads/ResponsesSheet';
+import { responseRows, responsesOf } from '../lib/threads/responses';
+import { IN_A_THREAD, MENTIONED, responsesWord } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
@@ -47,6 +49,17 @@ import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
 export { useMediaUri };
+
+/**
+ * Where a touch is, on phones and the web: react-native-web hands over the browser's own TouchEvent, which has no page
+ * point of its own, so it is read from the touch lists (a lifted finger is only in changedTouches).
+ */
+function touchPoint(e: { pageX?: number; pageY?: number; touches?: ArrayLike<{ pageX: number; pageY: number }>; changedTouches?: ArrayLike<{ pageX: number; pageY: number }> }): { x: number; y: number } | null {
+  const t = e.touches?.[0] ?? e.changedTouches?.[0];
+  const x = t?.pageX ?? e.pageX;
+  const y = t?.pageY ?? e.pageY;
+  return x == null || y == null ? null : { x, y };
+}
 
 const timeOf = (c: Faced) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
@@ -161,6 +174,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   onMediaTap?: () => void;
   /** A note's mentions are drawn as cards that open their moments (moment references RF4); else they read as words (RF6). */
   onOpenRef?: (v: MomentView) => void;
+  /** A moment's responses, named in words at the end of the info line, a button that opens them (response thread RT1). */
+  responses?: { text: string; onPress: () => void } | null;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -169,6 +184,16 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const [box, setBox] = useState<LayoutRectangle | null>(null);
   const [now] = useState(() => Date.now());
   const meta = viewerLine({ kind: KIND_LABEL[capture.kind], t: capture.t, time: timeOf(capture), now, parts: props.parts ?? [props.footer] });
+  // The responses' words come last, inside the info line: the viewer's only control for them (RT1, RT11).
+  const responsesLink = (onDark: boolean) =>
+    props.responses ? (
+      <Text>
+        {' · '}
+        <Text testID="viewer-responses-link" accessibilityRole="button" accessibilityHint="Opens the responses" onPress={props.responses.onPress} style={[styles.responsesLink, onDark && styles.responsesLinkDark]}>
+          {props.responses.text}
+        </Text>
+      </Text>
+    ) : null;
   const actions = (onDark: boolean) => (
     <>
       {props.action && (
@@ -244,7 +269,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
         {props.bare ? null : (
         <View style={[styles.strip, props.dock !== undefined && styles.stripOver, { paddingBottom: (props.dock ? props.dock : 0) + insets.bottom + 10 }]}>
           <View style={styles.stripInner}>
-            <Text style={styles.stripMeta} numberOfLines={2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}</Text>
+            <Text style={styles.stripMeta} numberOfLines={props.responses ? 3 : 2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(true)}</Text>
             {actions(true)}
           </View>
         </View>
@@ -264,7 +289,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
-            <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}</Text>
+            <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
             {actions(false)}
           </View>
         </View>
@@ -311,7 +336,9 @@ export function CaptureViewer(props: {
   const [openedStack, setOpenedStack] = useState<Faced[]>([]);
   const [mentionPick, setMentionPick] = useState(false);
   // Every kept moment, for the notes that mention the one shown (RF7), read when the viewer opens.
-  const pool = useMomentPool(props.captures);
+  // The owner's threads, so the info line can say a moment is in one (OT11) and has responses (RT1).
+  const { data: owned } = useThreads();
+  const pool = useMomentPool(props.captures, owned.links.length);
   // The piece shown of a moment holding more than one (MS10); back to its first when the moment changes.
   const [pieceAt, setPieceAt] = useState<{ moment: string; i: number }>({ moment: '', i: 0 });
   const hidden = useHidden();
@@ -358,8 +385,10 @@ export function CaptureViewer(props: {
   const [adding, setAdding] = useState<Faced | null>(null);
   // Respond's sheet or its note, open: Back closes it before the viewer (owner-threads audit 9).
   const [replyStage, setReplyStage] = useState<ReplyStage>(null);
-  // The owner's threads, so the info line can say a moment is in one (OT11).
-  const { data: owned } = useThreads();
+  // A moment's responses sheet (response thread, decision 0128): the moment it was opened for, at which depth of the
+  // viewer's stack, and its height. A response opened from it goes on the stack, and Back returns to the sheet (RT6).
+  const [sheet, setSheet] = useState<{ root: string; depth: number; size: 'half' | 'full' } | null>(null);
+  const [sheetNow] = useState(() => Date.now());
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
   const [reminding, setReminding] = useState<Faced | null>(null);
@@ -457,7 +486,7 @@ export function CaptureViewer(props: {
     return () => window.removeEventListener('keydown', onKey);
   }, [stacked]);
   // A horizontal swipe does the same on a phone (MS10).
-  const swipeFrom = useRef<number | null>(null);
+  const swipeFrom = useRef<{ x: number; y: number } | null>(null);
   // Back to the note a mentioned moment was opened from (RF4).
   const back = () => setOpenedStack((s) => s.slice(0, -1));
   const close = () => {
@@ -471,6 +500,7 @@ export function CaptureViewer(props: {
     setChrome(true);
     setReplyStage(null);
     setMenu(false);
+    setSheet(null);
     props.onClose();
   };
   // One piece of a stacked moment (MS13), named by its kind: at once, with Undo, as a moment is (UC4).
@@ -505,6 +535,18 @@ export function CaptureViewer(props: {
   const here = props.thread ? mine.find((t) => t.id === props.thread!.id) : undefined;
   const inThreadWords = here?.name ? `${IN_A_THREAD}: ${here.name}` : IN_A_THREAD;
   const inThread = mine.length ? inThreadWords[0].toUpperCase() + inThreadWords.slice(1) : null;
+  // The moment's responses (RT1): every kept moment that answers it, or answers one of its responses; links touching
+  // what waits in Undo are already gone (RT8).
+  const responseIds = current && pool.ready ? responsesOf(current.id, owned.links).filter((id) => pool.every.has(id)) : [];
+  const rootView = current ? pool.every.get(current.id) : undefined;
+  const sheetUp = !!sheet && !!current && !!rootView && sheet.root === current.id && sheet.depth === openedStack.length && responseIds.length > 0 && docked;
+  const openResponses = () => {
+    if (!current || !responseIds.length) return;
+    setMenu(false);
+    setChrome(true);
+    setSheet({ root: current.id, depth: openedStack.length, size: 'half' });
+  };
+  const fromSheet = !!sheet && openedStack.length > 0 && sheet.depth === openedStack.length - 1;
   const openThread = (id: string) => {
     close();
     // Already on that thread's screen: closing the viewer is opening it.
@@ -523,20 +565,26 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage ? () => setReplyStage(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : openedStack.length ? back : close}
+      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
         testID="capture-viewer"
         onTouchStart={(e) => {
-          swipeFrom.current = stacked ? e.nativeEvent.pageX : null;
+          // The sheet's own drags are its own (RT3); under it, a swipe across steps a stack's pieces (MS10) and a swipe up
+          // opens the responses, as in iOS Photos (RT2, decision 0128).
+          swipeFrom.current = sheetUp ? null : touchPoint(e.nativeEvent);
         }}
         onTouchEnd={(e) => {
           const from = swipeFrom.current;
           swipeFrom.current = null;
           if (from == null) return;
-          const dx = e.nativeEvent.pageX - from;
-          if (Math.abs(dx) > 60) stepPiece(dx < 0 ? 1 : -1);
+          const end = touchPoint(e.nativeEvent);
+          if (!end) return;
+          const dx = end.x - from.x;
+          const dy = end.y - from.y;
+          if (dy < -60 && Math.abs(dy) > Math.abs(dx)) openResponses();
+          else if (stacked && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) stepPiece(dx < 0 ? 1 : -1);
         }}
       >
         {/* The baker draws behind everything; the cover hides it. */}
@@ -565,6 +613,7 @@ export function CaptureViewer(props: {
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
+            responses={responseIds.length && !sheetUp ? { text: responsesWord(responseIds.length), onPress: openResponses } : null}
             nav={
               shownList.length > 1
                 ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < shownList.length - 1 ? () => setIndex(i + 1) : undefined }
@@ -630,10 +679,24 @@ export function CaptureViewer(props: {
               <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
             </Pressable>
           )}
-          <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel={openedStack.length ? 'Back to the note' : 'Close'} onPress={openedStack.length ? back : close} style={styles.roundBtn} hitSlop={8}>
+          <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel={fromSheet ? 'Back to the responses' : openedStack.length ? 'Back to the note' : 'Close'} onPress={openedStack.length ? back : close} style={styles.roundBtn} hitSlop={8}>
             <Icon name={openedStack.length ? 'arrow-back' : 'close'} size={26} color={theme.ink} />
           </Pressable>
         </View>
+        )}
+        {sheetUp && sheet && rootView && (
+          // Over everything but the docked toolbar, whose Respond answers the sheet's moment (RT7); never a Modal (RT3).
+          <View style={[StyleSheet.absoluteFill, { bottom: DOCK_H + insets.bottom }]} pointerEvents="box-none">
+            <ResponsesSheet
+              rows={responseRows(rootView, pool.every, owned.links)}
+              walks={pool.walks}
+              now={sheetNow}
+              size={sheet.size}
+              onSize={(s) => setSheet((cur) => (cur && s ? { ...cur, size: s } : null))}
+              areaHeight={height - DOCK_H - insets.bottom}
+              onOpen={(m) => setOpenedStack((st) => [...st, m.capture])}
+            />
+          </View>
         )}
         {current && openForAdd !== current.id && !editing && !noting && !reminding && !adding && (
           // Kept mounted while the bars are hidden, so a voice reply being recorded goes on (UC7).
@@ -648,7 +711,7 @@ export function CaptureViewer(props: {
             say={(text, openSettings) => setSaveState({ id: current.id, text, openSettings: openSettings && Platform.OS !== 'web' })}
             kept={(id, text) => tell(id, text)}
             onRecording={setRecordingReply}
-            edit={editAction}
+            edit={sheetUp ? null : editAction}
           />
         )}
         {adding && (
@@ -840,6 +903,17 @@ export function CaptureViewer(props: {
                   <Text style={styles.menuText}>{mentionedBy.length === 1 ? 'Open the note' : 'Open the notes'}</Text>
                 </Pressable>
               )}
+              {responseIds.length > 0 && (
+                <Pressable
+                  testID="viewer-responses"
+                  accessibilityRole="button"
+                  onPress={openResponses}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="chatbubbles-outline" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Responses</Text>
+                </Pressable>
+              )}
               {mine.length > 0 && (
                 <Pressable
                   testID="viewer-open-thread"
@@ -938,6 +1012,8 @@ const styles = StyleSheet.create({
   strip: { backgroundColor: '#14181f', paddingTop: 10, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.15)' },
   stripInner: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center', minHeight: 48 },
   stripMeta: { flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: 14 },
+  responsesLink: { color: theme.ink, textDecorationLine: 'underline', fontWeight: '600' },
+  responsesLinkDark: { color: '#ffffff' },
   navBtnDark: { borderColor: 'rgba(255,255,255,0.5)' },
   metaText: { flex: 1 },
   card: {
