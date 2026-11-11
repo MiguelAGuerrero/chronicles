@@ -6,6 +6,7 @@ import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
+import { cancelLook, endLook, IDLE, isLive, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
@@ -169,7 +170,8 @@ export default function Explore() {
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
-  const cancelled = useRef(false);
+  // tend explore 2: each look has its own token, so a cancelled one never speaks for a newer one.
+  const look = useRef<Look>(IDLE);
   const [screen, setScreen] = useState({ w: width, h: height });
 
   useEffect(() => {
@@ -352,24 +354,30 @@ export default function Explore() {
   }, [townSeen, fresh.build, townBox, points, from]);
 
   const lookHere = async (at: LngLat) => {
-    if (looking) return;
-    cancelled.current = false;
+    const started = startLook(look.current);
+    if (!started) return;
+    look.current = started.state;
+    const stopped = () => !isLive(look.current, started.token);
     setLooking(true);
     try {
-      const r = await readArea(at, () => cancelled.current);
-      if (cancelled.current) return;
+      const r = await readArea(at, stopped);
+      if (stopped()) return;
       if (!r.ok) {
         if (r.reason === 'failed') setNotice({ message: 'Couldn’t read the map here', tone: 'error' });
         return;
       }
       const tile = await db.getMeta('tile_build').catch(() => null);
+      if (stopped()) return;
       await rememberArea(r.centre, r.analysis, tile ?? 'unknown', r.overture);
       const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
       const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
       setNotice({ message });
       AccessibilityInfo.announceForAccessibility(message);
     } finally {
-      if (!cancelled.current) setLooking(false);
+      if (!stopped()) {
+        look.current = endLook(look.current, started.token);
+        setLooking(false);
+      }
     }
   };
 
@@ -471,7 +479,7 @@ export default function Explore() {
         accessibilityRole="button"
         accessibilityLabel="Stop looking around"
         onPress={() => {
-          cancelled.current = true;
+          look.current = cancelLook(look.current);
           setLooking(false);
         }}
         style={styles.scanCancel}
