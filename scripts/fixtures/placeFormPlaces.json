@@ -7,7 +7,7 @@
     "village",
     "exit"
   ],
-  "note": "A place's `word` is the owner's confirmed word, or null for no word. `accept` lists a second word the owner accepts for a place marked '?'. The point is the one the atlas would pass the card: an Overture locality point, or the point named in `pointNote`. `set` is calibration (the rule is tuned on it) or heldOut (never tuned on, PF6).",
+  "note": "A place's `word` is the owner's confirmed word, or null for no word. `accept` lists a second word the owner accepts for a place marked '?'. The point is the one the atlas would pass the card: an Overture locality point, or the point named in `pointNote`. `set` is calibration (the rule is tuned on it) or heldOut (never tuned on, PF6). The first held-out set (17 places) scored 0.71 accuracy and 0.62 recall against the 0.80 floor on 2026-11-11 and was folded into the calibration set (`folded`) at the owner's call; a fresh held-out set is cut after the retune.",
   "places": [
     {
       "id": "allentownDowntown",
@@ -207,7 +207,8 @@
         40.6916
       ],
       "word": "grid",
-      "set": "heldOut"
+      "set": "calibration",
+      "folded": "2026-11-11"
     },
     {
       "id": "bethlehem",
@@ -217,7 +218,8 @@
         40.6179
       ],
       "word": "grid",
-      "set": "heldOut"
+      "set": "calibration",
+      "folded": "2026-11-11"
     },
     {
       "id": "steelton",
@@ -228,8 +230,9 @@
       ],
       "word": "grid",
       "accept": "mainStreet",
-      "set": "heldOut",
-      "pointNote": "marked ?"
+      "set": "calibration",
+      "pointNote": "marked ?",
+      "folded": "2026-11-11"
     },
     {
       "id": "lititz",
@@ -239,7 +242,8 @@
         40.1572
       ],
       "word": "mainStreet",
-      "set": "heldOut"
+      "set": "calibration",
+      "folded": "2026-11-11"
     },
     {
       "id": "boyertown",
@@ -249,7 +253,8 @@
         40.3337
       ],
       "word": "mainStreet",
-      "set": "heldOut"
+      "set": "calibration",
+      "folded": "2026-11-11"
     },
     {
       "id": "womelsdorf",
@@ -260,8 +265,9 @@
       ],
       "word": "mainStreet",
       "accept": "village",
-      "set": "heldOut",
-      "pointNote": "marked ?"
+      "set": "calibration",
+      "pointNote": "marked ?",
+      "folded": "2026-11-11"
     },
     {
       "id": "emmaus",
@@ -272,8 +278,9 @@
       ],
       "word": "mainStreet",
       "accept": "grid",
-      "set": "heldOut",
-      "pointNote": "marked ?"
+      "set": "calibration",
+      "pointNote": "marked ?",
+      "folded": "2026-11-11"
     },
     {
       "id": "rehrersburg",
@@ -283,7 +290,8 @@
         40.4576
       ],
       "word": "village",
-      "set": "heldOut"
+      "set": "calibration",
+      "folded": "2026-11-11"
     },
     {
       "id": "strausstown",
@@ -293,7 +301,8 @@
         40.4919
       ],
       "word": "village",
-      "set": "heldOut"
+      "set": "calibration",
+      "folded": "2026-11-11"
     },
     {
       "id": "shartlesville",
@@ -304,8 +313,9 @@
       ],
       "word": "village",
       "accept": "exit",
-      "set": "heldOut",
-      "pointNote": "marked ?"
+      "set": "calibration",
+      "pointNote": "marked ?",
+      "folded": "2026-11-11"
     },
     {
       "id": "grantville",
@@ -316,8 +326,9 @@
       ],
       "word": "exit",
       "accept": null,
-      "set": "heldOut",
-      "pointNote": "marked ?"
+      "set": "calibration",
+      "pointNote": "marked ?",
+      "folded": "2026-11-11"
     },
     {
       "id": "fogelsville",
@@ -328,8 +339,9 @@
       ],
       "word": "exit",
       "accept": null,
-      "set": "heldOut",
-      "pointNote": "marked ?"
+      "set": "calibration",
+      "pointNote": "marked ?",
+      "folded": "2026-11-11"
     },
     {
       "id": "morgantown",
@@ -340,8 +352,9 @@
       ],
       "word": "exit",
       "accept": "mainStreet",
-      "set": "heldOut",
-      "pointNote": "marked ?; the village's point, not the exit"
+      "set": "calibration",
+      "pointNote": "marked ?; the village's point, not the exit",
+      "folded": "2026-11-11"
     },
     {
       "id": "pennState",
@@ -351,8 +364,9 @@
         40.7982
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "a campus: no word yet"
+      "set": "calibration",
+      "pointNote": "a campus: no word yet",
+      "folded": "2026-11-11"
     },
     {
       "id": "hershey",
@@ -363,8 +377,9 @@
       ],
       "word": null,
       "accept": "mainStreet",
-      "set": "heldOut",
-      "pointNote": "marked ?"
+      "set": "calibration",
+      "pointNote": "marked ?",
+      "folded": "2026-11-11"
     },
     {
       "id": "farmB",
@@ -374,8 +389,9 @@
         40.53
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "chosen by hand"
+      "set": "calibration",
+      "pointNote": "chosen by hand",
+      "folded": "2026-11-11"
     },
     {
       "id": "hawkMountain",
@@ -385,8 +401,9 @@
         40.638
       ],
       "word": null,
-      "set": "heldOut",
-      "pointNote": "chosen by hand"
+      "set": "calibration",
+      "pointNote": "chosen by hand",
+      "folded": "2026-11-11"
     }
   ]
 }
