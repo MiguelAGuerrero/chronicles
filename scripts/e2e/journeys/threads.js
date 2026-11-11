@@ -425,6 +425,12 @@ async function run(h) {
   check(!!rkField && !!rkMenu && rkMenu.y >= rkField.y + rkField.height - 1, 'RK21: the menu sits beside the field, never over it');
   const rowText = await pg.locator('[data-testid=moment-picker-row]').first().innerText();
   check(/[A-Z][a-z]{2} \d{1,2}/.test(rowText), `RK8: a moment row in the menu carries its date (${rowText.replace(/\n/g, ' · ')})`);
+  check(/not on a walk/.test(rowText), `reference-keywords audit 14: a menu moment row says its walk, or that it has none (${rowText.replace(/\n/g, ' · ')})`);
+  const litStyle = await pg.locator('[data-testid=ref-palette] [data-selected="1"]').first().evaluate((el) => ({ bar: getComputedStyle(el).borderLeftWidth, h: el.getBoundingClientRect().height })).catch(() => null);
+  check(!!litStyle && parseFloat(litStyle.bar) >= 3, `reference-keywords audit 21: the highlighted row has a bar, not a tint alone (${litStyle && litStyle.bar})`);
+  const rowHeights = await pg.locator('[data-testid=ref-palette] [data-testid^=ref-time-]').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+  check(rowHeights.length > 0 && rowHeights.every((h) => h >= 47.5), `reference-keywords audit 30: menu rows are 48 high (${Math.min(...rowHeights)})`);
+  const cardY0 = (await pg.locator('[data-testid=note-editor]').boundingBox())?.y;
   await pg.click('[data-testid=ref-key-there]');
   const resolve = await there('[data-testid=ref-resolve]', 3000);
   const mapOffered = await has('[data-testid=ref-choose-map]');
@@ -433,6 +439,8 @@ async function run(h) {
   const rows = await pg.locator('[data-testid=ref-resolve-row]').count();
   const rowsText = rows ? (await pg.locator('[data-testid=ref-resolve-row]').allInnerTexts()).join(' ') : '';
   check(resolve && mapOffered && !/\d/.test(rowsText) && !/closest|nearest|best|top/i.test(rowsText), `RK18: over there lists places by distance in words and always offers Choose on the map (${rows} places)`);
+  const emptyLine = (await pg.locator('[data-testid=ref-resolve]').innerText()).replace(/\n/g, ' ');
+  check(!rows ? /No named place near this spot\./.test(emptyLine) : true, `reference-keywords audit 18: the resolver's empty line reads quietly (${emptyLine})`);
   await pg.click('[data-testid=ref-resolve-close]');
   await gone('[data-testid=ref-resolve]');
   await pg.keyboard.press('End');
@@ -442,6 +450,8 @@ async function run(h) {
   const narrowed = await pg.locator('[data-testid^=ref-time-]').allInnerTexts();
   await shot(pg, '82-ref-menu-narrowed');
   check(narrowed.length >= 3 && narrowed.length < chips && narrowed.every((t) => /to/i.test(t)) && (await has('[data-testid=ref-time-tomorrow]')) && !(await has('[data-testid=ref-time-now]')), `RK21: @to keeps the words with a "to" and drops the rest (${narrowed.map((t) => t.split('\n')[0]).join(', ')})`);
+  const cardY1 = (await pg.locator('[data-testid=note-editor]').boundingBox())?.y;
+  check(cardY0 != null && cardY1 != null && Math.abs(cardY0 - cardY1) < 1, `reference-keywords audit 22: the note card does not move while the menu narrows (${cardY0} to ${cardY1})`);
   await pg.keyboard.type('zz');
   await pg.waitForTimeout(300);
   const closedNoMatch = !(await has('[data-testid=ref-palette]'));
@@ -479,6 +489,8 @@ async function run(h) {
   await pg.locator('[data-testid=ref-map]').click();
   await pg.waitForTimeout(600);
   await shot(pg, '83-ref-map-pick');
+  const mapHint = await pg.locator('[data-testid=ref-map-hint]').innerText().catch(() => '');
+  check(/Tap the map/.test(mapHint), `reference-keywords audit 24: the map pick says to tap the map (${mapHint})`);
   await pg.fill('[data-testid=ref-map-name]', 'the old pier');
   await pg.click('[data-testid=ref-map-use]');
   await gone('[data-testid=ref-palette]');
@@ -498,8 +510,11 @@ async function run(h) {
   await pg.waitForTimeout(500);
   await shot(pg, '81-ref-keyword');
   check(kws.length === 2 && /^tomorrow \([A-Z][a-z]{2} \d{1,2}\)$/.test(kws[0]) && kws[1] === 'over there (the old pier)', `RK9: the viewer shows each word with its value in parentheses by default (${kws.join(' | ')})`);
-  const pill = await pg.locator('[data-testid=ref-keyword]').first().evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, word: getComputedStyle(el.firstElementChild ?? el).fontWeight, whole: getComputedStyle(el).fontWeight }));
-  check(/rgba\(127, 127, 127/.test(pill.bg) && Number(pill.word) > Number(pill.whole), `RK23: the viewer draws a keyword as a pill, the word heavier than its value (${pill.bg}, ${pill.word} over ${pill.whole})`);
+  const pill = await pg.locator('[data-testid=ref-keyword]').first().evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, word: getComputedStyle(el).fontWeight, wordColor: getComputedStyle(el).color, valueColor: getComputedStyle(el.firstElementChild ?? el).color }));
+  check(/rgba\(127, 127, 127/.test(pill.bg), `RK23: the viewer draws a keyword as a pill (${pill.bg})`);
+  check(Number(pill.word) <= 500 && pill.valueColor !== pill.wordColor, `reference-keywords audit 25: a pill's word is not bold and its value is quieter (${pill.word}, ${pill.wordColor} then ${pill.valueColor})`);
+  const hint = await pg.locator('[data-testid=ref-keyword]').nth(1).getAttribute('aria-label');
+  check(/Opens a list of places/.test(hint ?? ''), `reference-keywords audit 11: a place pill has a spoken hint (${hint})`);
   await pg.locator('[data-testid=ref-keyword]').nth(1).click();
   const fixing = await there('[data-testid=ref-resolve]', 3000);
   await pg.click('[data-testid=ref-choose-map]');
@@ -530,14 +545,6 @@ async function run(h) {
   await openCard('is when');
   const bare = await pg.locator('[data-testid=ref-keyword]').allInnerTexts();
   check(bare.join('|') === 'tomorrow|over there', `RK19: with the setting off the viewer shows each word alone (${bare.join(' | ')})`);
-  check.todo(false, 'reference-keywords audit 11: a place pill has a spoken hint');
-  check.todo(false, 'reference-keywords audit 14: a menu moment row says its walk, or that it has none');
-  check.todo(false, 'reference-keywords audit 18: the resolver\'s empty line and the correction read quietly');
-  check.todo(false, 'reference-keywords audit 21: the highlighted row has a bar, not a tint alone');
-  check.todo(false, 'reference-keywords audit 22: the note card does not move while the menu narrows');
-  check.todo(false, 'reference-keywords audit 24: the map pick says to tap the map');
-  check.todo(false, 'reference-keywords audit 25: a pill\'s word is not bold and its value is quieter');
-  check.todo(false, 'reference-keywords audit 30: menu rows are 48 high');
   await closeViewer();
   await c.close();
 }

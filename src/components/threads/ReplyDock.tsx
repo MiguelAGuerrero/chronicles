@@ -118,8 +118,8 @@ export const ReplyDock = forwardRef<NoteEditorHandle, {
           key={props.answeredId}
           title="Reply"
           body=""
-          // A new reply takes the last fix the app already knows, the one its capture will be stamped with (RK15).
-          mention={{ self: props.answeredId, fix: { saved: null, stamp: getLastFix()?.at ?? null } }}
+          // A new reply offers place keywords only from the last fix the app knows while it is as fresh as the reply's own stamp (RK15, audit 13).
+          mention={{ self: props.answeredId, lastFix: getLastFix() }}
           onClose={() => props.setStage(null)}
           onSave={(text) => {
             props.setStage(null);

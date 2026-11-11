@@ -1,4 +1,5 @@
 // @layer core
+import { plainNote } from '../refs';
 import { termsOf } from './terms';
 import type { MomentView, Signal, SignalExtractor } from './types';
 
@@ -9,7 +10,8 @@ import type { MomentView, Signal, SignalExtractor } from './types';
  */
 const fromWords = (m: MomentView, source: string, weight: number): Signal[] => termsOf(m.words).map((t) => ({ term: t.term, shown: t.shown, weight, source }));
 
-export const noteExtractor: SignalExtractor = { id: 'note', extract: (m) => (m.kind === 'text' ? fromWords(m, 'note', 1) : []) };
+// A note's own words only: a keyword's value (a date, a street) is the app's, never a thread's term (audit 8).
+export const noteExtractor: SignalExtractor = { id: 'note', extract: (m) => (m.kind === 'text' ? fromWords({ ...m, words: plainNote(m.capture.body, false) }, 'note', 1) : []) };
 export const captionExtractor: SignalExtractor = { id: 'caption', extract: (m) => (m.kind === 'photo' || m.kind === 'video' ? fromWords(m, 'caption', 1) : []) };
 export const transcriptExtractor: SignalExtractor = { id: 'transcript', extract: (m) => (m.kind === 'voice' ? fromWords(m, 'transcript', 0.8) : []) };
 

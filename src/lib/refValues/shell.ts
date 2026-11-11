@@ -11,15 +11,18 @@ export const REF_VALUES_KEY = 'ref_values';
 
 export function createRefValues(p: Pick<Ports, 'db'>) {
   const store = createStore<boolean>(true);
+  // A save made while the launch's read is out wins over it (audit 9).
+  let saved = false;
   return {
     store,
     /** At launch: the saved choice, else on; an unreadable value is on too. */
     async load(): Promise<void> {
       const v = await p.db.getMeta(REF_VALUES_KEY).catch(() => null);
-      store.set(v !== 'off');
+      if (!saved) store.set(v !== 'off');
     },
     /** Sets it first, so every screen redraws at once, then keeps it; a failed write leaves it changed on screen. */
     async save(show: boolean): Promise<void> {
+      saved = true;
       store.set(show);
       await p.db.setMeta(REF_VALUES_KEY, show ? 'on' : 'off');
     },

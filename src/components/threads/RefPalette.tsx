@@ -1,6 +1,6 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { entryRef, matchEntries, moveHighlight, type KeywordEntry } from '../../lib/refKeywords';
+import { entryRef, matchEntries, moveHighlight, orderPlaces, type KeywordEntry } from '../../lib/refKeywords';
 import { refResolver } from '../../lib/refPlaces';
 import type { KeywordRef } from '../../lib/refs';
 import type { MomentView } from '../../lib/resurface/types';
@@ -20,6 +20,8 @@ export type RefMenuHandle = {
   pickHighlighted(): boolean;
   /** Whether the menu has anything to show: with nothing it is not drawn, and Enter is the field's own (RK21). */
   hasItems(): boolean;
+  /** Whether an arrow has been pressed: Enter picks only after a letter or an arrow (audit 6). */
+  touched(): boolean;
 };
 
 type Item = { id: string; entry: KeywordEntry } | { id: string; moment: MomentView };
@@ -62,13 +64,14 @@ export const RefPalette = forwardRef<
   const [now] = useState(() => Date.now());
   const items = useMemo<Item[]>(
     () => [
-      ...matchEntries([...places, ...times], props.query).map((entry) => ({ id: `${entry.key}:${entry.word}`, entry })),
+      ...matchEntries([...orderPlaces(places), ...times], props.query).map((entry) => ({ id: `${entry.key}:${entry.word}`, entry })),
       // The keywords first, then the latest moments, as Notion's menu lists its pages.
       ...moments.shown.map((moment) => ({ id: `moment:${moment.id}`, moment })),
     ],
     [places, times, moments.shown, props.query],
   );
   const [at, setAt] = useState(0);
+  const arrowed = useRef(false);
   // The highlight starts at the first item and stays inside the list as it narrows.
   const lit = items.length ? Math.min(at, items.length - 1) : -1;
   const choose = (item: Item) => {
@@ -81,7 +84,11 @@ export const RefPalette = forwardRef<
   useImperativeHandle(
     ref,
     () => ({
-      move: (d) => setAt((i) => moveHighlight(Math.min(i, items.length - 1), d, items.length)),
+      move: (d) => {
+        arrowed.current = true;
+        setAt((i) => moveHighlight(Math.min(i, items.length - 1), d, items.length));
+      },
+      touched: () => arrowed.current,
       pickHighlighted: () => {
         const item = items[lit];
         if (!item) return false;
@@ -115,7 +122,7 @@ export const RefPalette = forwardRef<
                 style={[styles.row, on && styles.on]}
               >
                 <Text style={styles.name} numberOfLines={1}>{r.words}</Text>
-                <Text style={styles.sub} numberOfLines={1}>{r.context}</Text>
+                <Text style={styles.sub} numberOfLines={2}>{r.context}</Text>
               </Pressable>
             );
           }
@@ -147,8 +154,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.line, overflow: 'hidden',
   },
   scroll: { flexGrow: 0 },
-  row: { flexDirection: 'row', alignItems: 'baseline', gap: 8, minHeight: 44, paddingHorizontal: 12, paddingVertical: 10 },
-  on: { backgroundColor: theme.bg },
+  row: { flexDirection: 'row', alignItems: 'baseline', gap: 8, minHeight: 48, paddingHorizontal: 12, paddingVertical: 12, borderLeftWidth: 4, borderLeftColor: 'transparent' },
+  // The highlight is a bar and a tint, never a tint alone (WCAG 1.4.11, X3; audit 21).
+  on: { backgroundColor: '#ebe7df', borderLeftColor: theme.ink },
   name: { color: theme.ink, fontSize: 16, fontWeight: '600', flexShrink: 0, maxWidth: '55%' },
   sub: { color: theme.muted, fontSize: 14, flex: 1 },
 });

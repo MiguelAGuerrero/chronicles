@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { refIds } from '../../lib/refs';
+import { hasRefs } from '../../lib/refs';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
@@ -25,7 +25,7 @@ export function NoteBubble(props: {
   const from = fromLine(walk);
   const body = m.capture.body ?? '';
   // Only a note that mentions a moment reads the moment pool (audit 1): a thread of plain notes reads nothing more.
-  const mentions = refIds(body).length > 0;
+  const mentions = hasRefs(body);
   return (
     <View testID="note-bubble">
       <View style={styles.foot}>

@@ -53,8 +53,8 @@ test('RK4: a keyword resolves from the fix and time it is given, never the prese
   const elsewhere = placeEntries({ fix: [FIX[0] + 0.01, FIX[1]], places, street: null }).find((e) => e.key === 'here');
   assert.equal(elsewhere, undefined);
   // Another time, another answer; the same time, the same.
-  assert.equal(resolveTime('now', T, 0), '14:20');
-  assert.equal(resolveTime('now', T + 3_600_000, 0), '15:20');
+  assert.equal(resolveTime('now', T, 0), '2:20 PM');
+  assert.equal(resolveTime('now', T + 3_600_000, 0), '3:20 PM');
   assert.equal(resolveTime('now', T, 0), resolveTime('now', T, 0));
 });
 
@@ -146,9 +146,9 @@ test('RK16: time words resolve against the moment\'s time, as absolute values, a
   const v = (w: (typeof TIME_WORDS)[number]) => resolveTime(w, T, 0);
   assert.deepEqual(
     { now: v('now'), today: v('today'), yesterday: v('yesterday'), tomorrow: v('tomorrow'), morning: v('this morning'), tonight: v('tonight'), soon: v('soon'), later: v('later') },
-    { now: '14:20', today: 'Oct 20', yesterday: 'Oct 19', tomorrow: 'Oct 21', morning: 'Oct 20, morning', tonight: 'Oct 20, evening', soon: 'after 14:20', later: 'after 14:20' },
+    { now: '2:20 PM', today: 'Oct 20', yesterday: 'Oct 19', tomorrow: 'Oct 21', morning: 'Oct 20, morning', tonight: 'Oct 20, evening', soon: 'after 2:20 PM', later: 'after 2:20 PM' },
   );
-  assert.equal(resolveTime('now', T, -300), '09:20', 'the device\'s offset is an argument');
+  assert.equal(resolveTime('now', T, -300), '9:20 AM', 'the device\'s offset is an argument');
   assert.ok(TIME_WORDS.every((w) => !/quiet|lovely|great|good|bad|perfect|beautiful|nice|golden/i.test(`${w} ${v(w)}`)));
   assert.equal(timeEntries(T, 0).length, TIME_WORDS.length, 'no "minutes in" off a walk');
   assert.ok(timeEntries(T, 0, 40).some((e) => e.word === '40 minutes in'), 'on a walk, minutes in is offered');

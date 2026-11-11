@@ -1,8 +1,10 @@
-import { forwardRef, useImperativeHandle, useRef, useState, type ComponentRef } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NOTE_MAX, noteText } from '../lib/noteEdit';
-import { editRefs, type EditorRef, fromEditor, insertKeyword, insertRef, type KeywordRef, menuQuery, toEditor, typedAt } from '../lib/refs';
+import { freshFix, enterPicks } from '../lib/refKeywords';
+import { FRESH_FIX_MS } from '../lib/pieceStamp';
+import { editRefs, type EditorRef, fromEditor, insertKeyword, insertRef, type KeywordRef, menuQuery, menuStaysOpen, toEditor, typedAt, wordAfterAt } from '../lib/refs';
 import type { LngLat } from '../lib/types';
 import { refLabel } from '../lib/threads/lines';
 import { useKeyboardHeight } from '../lib/threads/useKeyboardHeight';
@@ -26,7 +28,14 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
   onClose: () => void;
   title?: string;
   /** The note being written or edited, so @ can mention other moments but never itself (moment references RF1). */
-  mention?: { self: string | null; fix?: { saved: LngLat | null; stamp: LngLat | null }; t?: number; minutesIn?: number | null };
+  mention?: {
+    self: string | null;
+    fix?: { saved: LngLat | null; stamp: LngLat | null };
+    /** The last fix the app knows, with when: a new reply may offer place keywords from it only while it is fresh (audit 13). */
+    lastFix?: { at: LngLat; t: number } | null;
+    t?: number;
+    minutesIn?: number | null;
+  };
 }>(function NoteEditor(props, ref) {
   const insets = useSafeAreaInsets();
   // The web's keyboard is not avoided by KeyboardAvoidingView: rise above it by its height (fix respond-bottom audit 3).
@@ -63,21 +72,27 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
     // Typing on: the cursor moves with the text, and a space or a delete past the "@" closes the menu.
     const moved = Math.max(0, cursor + (next.length - state.text.length));
     setCursor(moved);
-    if (picking != null && menuQuery(edited.text, picking, moved) == null) setPicking(null);
+    if (picking != null && !menuStaysOpen(edited.text, picking, moved, resolving)) setPicking(null);
   };
   // Web: the arrows move the menu's highlight and Enter picks it; with no menu, the field's own keys (RK22).
   const onKeyPress = (e: { nativeEvent: { key: string }; preventDefault?: () => void }) => {
     if (query == null || !menu.current?.hasItems()) return;
     const k = e.nativeEvent.key;
+    const composing = !!(e.nativeEvent as { isComposing?: boolean }).isComposing;
     if (k === 'ArrowDown' || k === 'ArrowUp') {
       e.preventDefault?.();
       menu.current.move(k === 'ArrowDown' ? 1 : -1);
-    } else if ((k === 'Enter' || k === 'Tab') && menu.current.pickHighlighted()) e.preventDefault?.();
+    } else if ((k === 'Enter' || k === 'Tab') && enterPicks(query, menu.current.touched(), composing) && menu.current.pickHighlighted()) e.preventDefault?.();
   };
   const [opened] = useState(() => Date.now());
+  // The moment's own fix, else the last known one while it is as fresh as the reply's stamp (RK4, RK13, audit 13).
+  const savedFix = props.mention?.fix?.saved ?? null;
+  const stampFix = props.mention?.fix?.stamp ?? null;
+  const lastFix = props.mention?.lastFix ?? null;
+  const fix = useMemo(() => ({ saved: savedFix, stamp: stampFix ?? freshFix(lastFix, opened, FRESH_FIX_MS) }), [savedFix, stampFix, lastFix, opened]);
   const putKeyword = (k: KeywordRef) => {
     if (picking == null) return;
-    const r = insertKeyword(state.text, picking, state.refs, k, query ?? '');
+    const r = insertKeyword(state.text, picking, state.refs, k, wordAfterAt(state.text, picking));
     setState({ text: r.text, refs: r.refs });
     setSelection({ start: r.cursor, end: r.cursor });
     setPicking(null);
@@ -87,7 +102,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
   };
   const pick = (id: string) => {
     if (picking == null) return;
-    const r = insertRef(state.text, picking, state.refs, id, wordsOf(id), query ?? '');
+    const r = insertRef(state.text, picking, state.refs, id, wordsOf(id), wordAfterAt(state.text, picking));
     setState({ text: r.text, refs: r.refs });
     setSelection({ start: r.cursor, end: r.cursor });
     setPicking(null);
@@ -102,7 +117,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56, paddingBottom: Platform.OS === 'web' ? keyboard + 16 : 16 }]}
+      style={[StyleSheet.absoluteFill, styles.back, props.mention && styles.backTop, { paddingTop: insets.top + 56, paddingBottom: Platform.OS === 'web' ? keyboard + 16 : 16 }]}
     >
       <View testID="note-editor" style={styles.card} accessibilityViewIsModal>
         <Text style={styles.title} accessibilityRole="header">{props.title ?? 'Edit note'}</Text>
@@ -117,7 +132,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
           onSelectionChange={(e) => {
             const end = e.nativeEvent.selection.end;
             setCursor(end);
-            if (picking != null && menuQuery(state.text, picking, end) == null) setPicking(null);
+            if (picking != null && !menuStaysOpen(state.text, picking, end, resolving)) setPicking(null);
           }}
           selection={selection}
           placeholder={props.mention ? 'What’s worth remembering? Type @ to mention a place, a time or a moment' : 'What’s worth remembering?'}
@@ -137,7 +152,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
           ref={menu}
           pool={pool}
           self={props.mention?.self ?? null}
-          fix={props.mention?.fix ?? { saved: null, stamp: null }}
+          fix={fix}
           t={props.mention?.t ?? opened}
           minutesIn={props.mention?.minutesIn ?? null}
           query={query}
@@ -148,7 +163,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
       )}
       {resolving && (
         <RefResolve
-          fix={props.mention?.fix ?? { saved: null, stamp: null }}
+          fix={fix}
           title="Over there"
           onPick={(r) => putKeyword({ key: 'there', word: 'over there', value: r.value, payload: r.payload })}
           onClose={() => {
@@ -163,6 +178,8 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
 
 const styles = StyleSheet.create({
   back: { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 },
+  // With the @ menu the card is pinned near the top, so it never moves as the menu changes size (audit 22).
+  backTop: { justifyContent: 'flex-start' },
   card: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },
   title: { fontSize: 17, fontWeight: '600', color: theme.ink },
   input: {

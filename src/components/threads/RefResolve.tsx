@@ -4,15 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { boundsOf } from '../../lib/geo';
 import { getLastFix } from '../../lib/lastFix';
 import { refResolver } from '../../lib/refPlaces';
-import { pointPayload } from '../../lib/refKeywords';
+import { mapPickValue, pointPayload } from '../../lib/refKeywords';
 import type { LngLat } from '../../lib/types';
 import { Icon } from '../icons';
 import { WalkMap } from '../map/WalkMap';
 import { Button, theme } from '../ui';
 
 const NONE: never[] = [];
-/** What a spot picked on the map is called when the owner gives it no name. */
-const UNNAMED_SPOT = 'a spot on the map';
 
 /**
  * The resolution picker (specs/reference-keywords RK10, RK18): the notable places near the moment's fix, nearest first,
@@ -63,19 +61,19 @@ export function RefResolve(props: {
                 onPress={(at) => setPoint(at)}
               />
             </View>
-            <Text style={styles.sub}>{point ? 'Name it if you like, then use it.' : 'Tap the spot you meant.'}</Text>
+            <Text style={styles.sub} testID="ref-map-hint">Tap the map to place the spot. Name it if you like.</Text>
             <TextInput
               testID="ref-map-name"
               value={name}
               onChangeText={setName}
-              placeholder={UNNAMED_SPOT}
+              placeholder="Name this spot (optional)"
               placeholderTextColor={theme.muted}
               accessibilityLabel="Name this spot"
               style={styles.input}
             />
             <View style={styles.actions}>
               <Button variant="ghost" label="Back" onPress={() => setMapping(false)} />
-              <Button testID="ref-map-use" label="Use this spot" disabled={!point} onPress={() => point && props.onPick({ value: name.trim() || UNNAMED_SPOT, payload: pointPayload(point) })} />
+              <Button testID="ref-map-use" label="Use this spot" disabled={!point} onPress={() => point && props.onPick({ value: mapPickValue(name, 'over there'), payload: pointPayload(point) })} />
             </View>
           </>
         ) : (
@@ -93,7 +91,7 @@ export function RefResolve(props: {
                 <Text style={styles.sub}>{p.how}</Text>
               </Pressable>
             ))}
-            {places && places.length === 0 ? <Text style={styles.sub}>No place close by.</Text> : null}
+            {places && places.length === 0 ? <Text style={styles.empty}>No named place near this spot.</Text> : null}
             <Pressable testID="ref-choose-map" accessibilityRole="button" onPress={() => setMapping(true)} style={styles.row}>
               <Text style={styles.name}>Choose on the map</Text>
             </Pressable>
@@ -115,6 +113,7 @@ const styles = StyleSheet.create({
   row: { minHeight: 56, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.line, gap: 2 },
   name: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   sub: { color: theme.muted, fontSize: 13 },
+  empty: { color: theme.muted, fontSize: 15 },
   map: { flex: 1, borderRadius: 12, overflow: 'hidden', minHeight: 240 },
   input: { backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.edge, borderRadius: 12, paddingHorizontal: 12, minHeight: 48, color: theme.ink, fontSize: 16 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },

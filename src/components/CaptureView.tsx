@@ -822,7 +822,7 @@ export function CaptureViewer(props: {
           // A keyword reference's value, corrected from the places near the moment's own fix (RK10, RK18).
           <RefResolve
             fix={{ saved: correcting.capture.lat != null && correcting.capture.lon != null ? [correcting.capture.lon, correcting.capture.lat] : null, stamp: null }}
-            title="What did you mean?"
+            title="Which place?"
             onClose={() => setCorrecting(null)}
             onPick={(r) => {
               const c = correcting.capture;

@@ -32,7 +32,12 @@ const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
 const pad = (n: number) => String(n).padStart(2, '0');
 // The device's offset from UTC, in minutes, is an argument (the shell reads it for the moment's own time): core reads no timezone.
 const local = (t: number, offsetMin: number) => new Date(t + offsetMin * 60_000);
-const clock = (t: number, offsetMin: number) => `${pad(local(t, offsetMin).getUTCHours())}:${pad(local(t, offsetMin).getUTCMinutes())}`;
+// The default clock reads like the viewer's ("2:20 PM", audit 17); the shell passes the device's own formatter.
+const clock12 = (t: number, offsetMin: number) => {
+  const d = local(t, offsetMin);
+  const h = d.getUTCHours();
+  return `${h % 12 === 0 ? 12 : h % 12}:${pad(d.getUTCMinutes())} ${h < 12 ? 'AM' : 'PM'}`;
+};
 const day = (t: number, offsetMin: number, plus = 0) => {
   const d = local(t + plus * 86_400_000, offsetMin);
   return `${SHORT[d.getUTCMonth()]} ${d.getUTCDate()}`;
@@ -42,13 +47,13 @@ const day = (t: number, offsetMin: number, plus = 0) => {
  * A time word resolved against the moment's own time (RK16), stored as an absolute value so it never moves with when
  * the note is read: "now" is its clock time, "yesterday" its date, "soon" and "later" are "after" it.
  */
-export function resolveTime(word: TimeWord, t: number, offsetMin: number): string {
+export function resolveTime(word: TimeWord, t: number, offsetMin: number, clockOf: (t: number) => string = (x) => clock12(x, offsetMin)): string {
   switch (word) {
     case 'now':
-      return clock(t, offsetMin);
+      return clockOf(t);
     case 'soon':
     case 'later':
-      return `after ${clock(t, offsetMin)}`;
+      return `after ${clockOf(t)}`;
     case 'today':
       return day(t, offsetMin);
     case 'tonight':
@@ -120,8 +125,8 @@ export function placeEntries(o: { fix: LngLat | null; places: NearPlace[]; stree
 }
 
 /** The time entries, always resolvable: "N minutes in" is offered only on a walk (RK16, with `minutesIn`). */
-export function timeEntries(t: number, offsetMin: number, minutesIn: number | null = null): KeywordEntry[] {
-  const out: KeywordEntry[] = TIME_WORDS.map((w) => ({ key: 'time' as const, word: w, value: resolveTime(w, t, offsetMin), payload: String(t) }));
+export function timeEntries(t: number, offsetMin: number, minutesIn: number | null = null, clockOf?: (t: number) => string): KeywordEntry[] {
+  const out: KeywordEntry[] = TIME_WORDS.map((w) => ({ key: 'time' as const, word: w, value: resolveTime(w, t, offsetMin, clockOf), payload: String(t) }));
   if (minutesIn != null && minutesIn >= 1) {
     const n = Math.round(minutesIn);
     out.push({ key: 'time', word: `${n} minutes in`, value: `${n} minutes in`, payload: String(t) });
@@ -156,3 +161,19 @@ export function moveHighlight(index: number, delta: number, count: number): numb
   if (count <= 0) return -1;
   return Math.min(count - 1, Math.max(0, index + delta));
 }
+
+/** "Over there" first, then the rest as given, so a late "here" never moves the first row (audit 3). */
+export function orderPlaces<T extends { key: string }>(entries: readonly T[]): T[] {
+  return [...entries.filter((e) => e.key === 'there'), ...entries.filter((e) => e.key !== 'there')];
+}
+
+/** Whether Enter picks the highlight (RK22, audit 6): after a letter or an arrow, and never while an IME composes. */
+export const enterPicks = (query: string, touched: boolean, composing: boolean): boolean => !composing && (query.length > 0 || touched);
+
+/** The fix a new reply may offer place keywords from (audit 13): the last known one only while it is as fresh as the reply's own stamp. */
+export function freshFix(last: { at: LngLat; t: number } | null, now: number, maxAgeMs: number): LngLat | null {
+  return last && now - last.t >= 0 && now - last.t <= maxAgeMs ? last.at : null;
+}
+
+/** What a spot picked on the map is called (RK18, audit 15): the name the owner gave, else only the word, never one made up. */
+export const mapPickValue = (name: string, word: string): string => name.trim() || word;

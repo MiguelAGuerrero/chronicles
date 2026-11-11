@@ -19,7 +19,7 @@ test('RK4: the moment\'s saved fix wins over the editor\'s when they differ', as
   const p = fakePorts();
   const far: LngLat = [-71.3, 41.8];
   await p.db.putPlaces([place('Science Center', east(10)), place('Old Mill', far)]);
-  const r = createRefResolver(p, { offsetOf: () => 0 });
+  const r = createRefResolver(p, { offsetOf: () => 0, clockOf: () => '14:20' });
   const names = async (f: { saved: LngLat | null; stamp: LngLat | null }) => (await r.placeEntries(f)).filter((e) => e.key === 'here').map((e) => e.value);
   assert.deepEqual(await names({ saved: FIX, stamp: far }), ['Science Center'], 'the saved fix, not the editor\'s stamp');
   assert.deepEqual(await names({ saved: far, stamp: FIX }), ['Old Mill']);

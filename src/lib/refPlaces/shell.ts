@@ -15,9 +15,11 @@ const offsetAt = (t: number) => -new Date(t).getTimezoneOffset();
  * one; it reads only the places and streets the app already cached (`db.placesIn`, `db.getSegmentsIn`), so nothing
  * leaves the device; and a slow or failed read leaves the palette with what it has, never blocking typing.
  */
-export function createRefResolver(p: Pick<Ports, 'db'>, o: { readMs?: number; offsetOf?: (t: number) => number } = {}) {
+export function createRefResolver(p: Pick<Ports, 'db'>, o: { readMs?: number; offsetOf?: (t: number) => number; clockOf?: (t: number) => string } = {}) {
   const readMs = o.readMs ?? REF_READ_MS;
   const offsetOf = o.offsetOf ?? offsetAt;
+  // The device's own clock style, the viewer's (audit 17).
+  const clockOf = o.clockOf ?? ((t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }));
 
   /** A read that gives up after `readMs` and answers `none` on a failure: nothing here ever rejects. */
   const within = <T,>(read: Promise<T>, none: T): Promise<T> =>
@@ -59,7 +61,7 @@ export function createRefResolver(p: Pick<Ports, 'db'>, o: { readMs?: number; of
 
   return {
     /** The time words at once (RK14); they need only the moment's time. */
-    timeEntries: (t: number, minutesIn: number | null = null): KeywordEntry[] => timeEntries(t, offsetOf(t), minutesIn),
+    timeEntries: (t: number, minutesIn: number | null = null): KeywordEntry[] => timeEntries(t, offsetOf(t), minutesIn, clockOf),
     /** The place entries once the read answers; with no fix, or a failed read, only "over there" (RK6). */
     async placeEntries(f: { saved: LngLat | null; stamp: LngLat | null }): Promise<KeywordEntry[]> {
       const fix = fixOf(f);

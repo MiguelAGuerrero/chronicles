@@ -62,6 +62,24 @@ export function parseRefs(body: string): RefPart[] {
   return out;
 }
 
+/** Whether a note holds any reference, a moment's or a keyword's (audit 1): such a note is never shown as its raw body. */
+export const hasRefs = (body: string | null | undefined): boolean => !!body && parseRefs(body).some((p) => !('text' in p));
+
+/**
+ * The letters after an "@" at `at`, up to the next space, whole (audit 5): what a pick replaces even when the cursor sits
+ * inside the word, so "@to|morrow" never leaves "morrow" behind.
+ */
+export function wordAfterAt(text: string, at: number): string {
+  if (text[at] !== '@') return '';
+  return /^[^\s@]*/.exec(text.slice(at + 1))?.[0] ?? '';
+}
+
+/**
+ * Whether the menu stays open after the selection moved (RK21, audit 4): while "Over there" is being resolved the field
+ * has lost focus and the cursor may be anywhere, so it stays; else it is the cursor being inside the typed query.
+ */
+export const menuStaysOpen = (text: string, at: number, cursor: number, resolving: boolean): boolean => resolving || menuQuery(text, at, cursor) != null;
+
 /** The moments a note references, each once, in the order it first names them. */
 export function refIds(body: string | null | undefined): string[] {
   if (!body) return [];

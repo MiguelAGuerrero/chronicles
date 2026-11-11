@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
-import { contextLine } from '../../lib/threads/lines';
+import { refCardLine } from '../../lib/threads/lines';
 import { filterPicker } from '../../lib/threads/picker';
 import type { MomentPool } from './useMomentPool';
 import { Icon } from '../icons';
@@ -16,7 +16,8 @@ const PAGE = 40;
 /** A moment as the pickers list it (OT5, OT9): its place and date, its walk, and its own first words. Never bare. */
 function rowOf(v: MomentView, pool: MomentPool, now: number) {
   return {
-    context: contextLine({ place: v.place, t: v.t, walkLine: fromLine(v.walkId ? pool.walks.get(v.walkId) : undefined), now }),
+    // Its place and date and its walk, or that it was on none, in words (RK8, audit 14).
+    context: refCardLine({ place: v.place, t: v.t, walkLine: fromLine(v.walkId ? pool.walks.get(v.walkId) : undefined) }, now),
     words: v.words ? v.words.trim().slice(0, 90) : KIND_WORD[v.kind],
   };
 }

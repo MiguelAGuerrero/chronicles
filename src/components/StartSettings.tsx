@@ -152,8 +152,8 @@ export function StartSettings(props: {
       {/* A reference's value in parentheses beside its word, on unless turned off (RK19). */}
       <SwitchRow
         testID="ref-values-switch"
-        label="Show what a reference meant"
-        note="here (the science center), beside the word you picked"
+        label="Show the place or time beside a pick"
+        note="here (the science center). Notifications and the Chronicle's feed always show it."
         value={showRefValues}
         onChange={(on) => void refValues.save(on)}
       />
