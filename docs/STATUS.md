@@ -125,13 +125,12 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T6 [owner] Chronicle: the bar's Walks and the sheet's Walks move the map differently** (2026-11-11)
-  Area: chronicle. Seen: `src/app/(tabs)/index.tsx`, the sheet's `onMode` (the walks list's zoom-out, decision 0054)
-  runs for the sheet's Walks and a drag up, never for the bar's Walks; the steward's S3 on `section-bar`. Rests on:
-  NN/g H4, "Users should not have to wonder whether different words, situations, or actions mean the same thing";
-  decision 0136, the bar and the sheet name the same thing. Recommended: the bar's Walks zooms out as the sheet's does,
-  when some places walked are out of view (0054's rule, one fit). Gate: aligned (Return), read against G1's Touches;
-  `/vision` not run on its own. Otherwise: neither zooms out (0054 retired), or leave it.
+- **T7 [owner] Chronicle: the bar's Walks from Memories or Media opens over the map's kept view, with no zoom-out** (2026-11-11)
+  Area: chronicle. Seen: `src/app/(tabs)/index.tsx`, `Chronicle`'s `choose` (no map is up to ask) and `ChronicleMap`'s
+  first mode; the T6 review's F2. Chronicle opens on Memories (RM1), so Memories then Walks is likely the bar's usual way
+  to the walks list. Rests on: NN/g H4; decision 0141, "the same word moves the map the same way". Recommended: a map
+  that mounts on Walks zooms out once, by 0054's rule, when a place walked is out of the kept view. Gate: aligned
+  (Return), read against 0141; `/vision` not run on its own. Otherwise: leave it (the kept view, NV3, wins).
 
 ### Next evolutions
 
@@ -178,19 +177,18 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox G1 yes`** (from `911bc42`; rebased twice as `main` moved, the second time over the media gallery's
-fifth section). G1 built as the slice `section-bar` (decision 0130): `d684ec7` tests first (SB1-SB5); `dcbccd1` the bar
-names what the sheet shows and one map stays up; a commit counting Media among the sections; `03d6374` the record; the
-review's `c720f34`, `section-bar audit 1, 2, 3, 5`. The steward (before the code): S1, S2, S4 accepted into SB1 and
-SB2, S3 kept as before and filed as T6. The auditor (one round): five findings, four fixed (audit 1, the sheet's
-Escape and Back on a replay or viewer moved the bar, seen failing first; 2, SB3 could not see a remount; 3, the drags;
-5, the pictures), one deferred (F4, the day labels' clock), and the rest of audit 3 deferred (the long press and a
-star cleared by the bar). Journeys `chronicle`, `capturehome`, `qol`, `resurface`, `tabs`. `chronicle`'s M9 failed on
-`main` 3 of 3 (`e2e:baseline`): not a flake; filed. Filed: T6. No sweep, so no lens ran and the balance was not read.
-Nothing here has run on a phone.
+**Nov 11, `/tend inbox T6 yes`** (from `bc41449`). One build: `tend chronicle T6`, the bar's Walks zooms out to every
+place walked as the sheet's does (one path, `openSheet`; the bar reaches the map through a handle, which replaces the
+counted press of the section-bar slice); pictured `chronicle-t6-bar-walks-framed`. The review (one round): F1 the
+docs (decision 0141, rule lines added, SB3's wording left for the owner), F3 and F4 fixed as `audit 3` (from Days no
+fit) and `audit 4` (the picture), F2 filed as T7. Journeys: `chronicle` (every check, M9 included), `capturehome`,
+`qol`, `resurface`, `tabs`. No sweep, so no lens ran and the balance was not read. Nothing here has run on a phone.
 
 ### Open before the loop
 
+- **SB3's wording after T6** (Nov 11): `specs/section-bar/spec.md` SB3 says "the bar's Walks still does not, as
+  before"; since T6 (decision 0141) it zooms out as the sheet's does. Amend SB3 to "the walks list's zoom-out (0054),
+  by either Walks, from the sheet at rest" and point it to `tend chronicle T6`; the loop may not edit a spec.
 - **QL23's wording after T1** (Nov 11): the quality-of-life doc (mirrored in `specs/quality-of-life/spec.md`) says "an
   empty title becomes the suggested one"; the build now stores no title for an empty one or the suggestion kept as it
   was, shown as the suggestion. Amend the doc to "an empty title, or the suggestion unchanged, is no title, shown as
