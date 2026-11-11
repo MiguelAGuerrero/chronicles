@@ -110,6 +110,39 @@ native map view's own read (`collectView` on native) carries `landcover` (it is 
 parks stay `parks` until a decoded read (every walk and every Explore read decodes in code), so the failure is safe.
 One `docs/NATIVE_UNVERIFIED.md` item: switch Community parks off and walk past a playground and a park with a monument.
 
+## Steward's findings (Nov 11), triaged
+
+1. **False negatives from invisible signals; size cut by tile edges** (vision): accepted. Sculptures and plaques are mostly not
+   in the tiles' poi layer or the archive, so a small ring "with nothing inside" is weak evidence, and `greenFromTiles`
+   builds one area per feature per tile, so a big park can show a fragment under 1 ha. PC17 added; the size rule is the
+   owner's call (Q1).
+2. **Demotion by size alone is absence of evidence** (vision): accepted as a question. Recommended: demote by name only now
+   (PC1a), keep size out until outlines are in use for the colouring, so every demotion rests on positive evidence.
+3. **The switch spoils by exclusion; kind named on a card or alert** (vision): accepted as PC16, pending Q3. The split
+   exists only in the settings list and on a found place.
+4. **The name "Community parks"** (vision/opinion): noted, kept for now because the owner chose it (Q2).
+5. **Cache flips a park's kind by read** (correctness): rejected as stated, narrowed. `Place.kind` is not kept in the place
+   cache (`types.ts`: "Not kept in the place cache: checklists are built from fresh reads only"; PC13 tests that a stored
+   row carries no kind), so no read overwrites another's kind. What holds: only reads that build checklists and marks need
+   `landcover`; the first test names them (`readAround`, the explore read), and the plan's list of seven call sites is cut
+   to them. Reads that do not set a kind for a park pass nothing.
+6. **The planner does not read `hidden`** (correctness): accepted, verified in `walkPlanner/service.ts` (it filters
+   `passesBy` with no hidden check). PC15 added: thread the hidden kinds into `densestCells` and the `passesBy` filter.
+7. **Wrong list of `KINDS` readers** (correctness): accepted. The readers of Explore's `KINDS`/`Kind` are `explore/settings.ts`,
+   `ExploreSettings.tsx`, `AtlasTile.tsx`, `NotificationSettings.tsx` and `ceremony/overlays.tsx`; `gallery/layout.ts`,
+   `deletion/saved.ts`, `landing/analyze.ts` and `notify/core.ts` have their own unrelated lists.
+8. **Smaller points** (correctness): accepted. `scripts/fixture-parks.mjs` does not exist yet; `waitingKinds` returns
+   categories, so the PC8 test says category; a second pass over the feature list is needed for the judgement.
+9. **Name-word demotion can hit a national recreation area** (vision/opinion): accepted. The community words keep only words
+   that name a facility (playground, playfield, tot lot, ball field, courts); "recreation" leaves the list; the notable
+   words gain "National", "Recreation Area", "Regional", "County" and "Metro".
+10. **Confirmations** (vision): accepted. PC7's check words gain "hidden gem", "just a" and "N parks"; the fixture script
+    records a park's tiles only, never a walk.
+
+Silent, for the owner: with the switch off, a Green bar lit only by community parks would show nothing waiting under it
+(the bars are presence, so unchanged, PC10; say if you would rather it dimmed); whether the switch is global (the only one
+that exists) or per walk (the plan's "this walk or for good" is the existing drawer switch, which is global).
+
 ## Open questions for the owner
 
 1. The size threshold: under 1 ha with no signal is a community park. A small park with an unmapped plaque would be

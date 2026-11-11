@@ -90,6 +90,17 @@ How it is derived:
     artwork is a park; a 12 ha "Riverside Park" is a park; "Liberty State Park" with no outline is a park; the Allentown
     park the owner visited (recorded, if reachable) is a park.
 
+From the steward's review (Nov 11, triaged in the plan):
+
+15. **PC15 The planner honours the switch.** With Community parks off, the walk planner's cells, its pass-by lean and its
+    grading ignore community parks; with it on they count as parks do.
+16. **PC16 A park is never named for its kind before it is found.** The area card's "Waiting to be found", a "?", the pocket
+    alert and a route's words say "Parks and gardens" for both kinds; "Community parks" is named only in "What I'm into"
+    and on a found place. (Pending the owner's call, plan Q3.)
+17. **PC17 Size never demotes a park cut by a tile.** A park whose outline touches a tile edge, or that adjoins another
+    park or garden outline, is judged by the joined area; one that cannot be judged whole is never demoted by size. (Only
+    if size stays a rule, plan Q1.)
+
 ## Not in this slice
 
 - Colouring green spaces on the map (its own slice and its own gate); park area in the Green bar (it still counts places).
