@@ -145,6 +145,8 @@ export const META = {
   group_captures: { owner: 'captures', codec: onOff },
   // Settings
   units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
+  // Reference keywords (RK19): a reference's value shown in parentheses beside its word; on unless 'off'.
+  ref_values: { owner: 'settings', codec: oneOf<'on' | 'off'>('on', 'off') },
   // Storage awareness (lib/space, SA4, SA10).
   space_said: { owner: 'space', codec: oneOf<'low' | 'very-low'>('low', 'very-low') },
   space_persist: { owner: 'space', codec: oneOf<'due' | 'refused' | 'asked'>('due', 'refused', 'asked') },

@@ -9,13 +9,41 @@
 // `@[<id>|<words>]`: the moment's id, and the words it read as when written, so plain text needs no lookup (RF6).
 const TOKEN = /@\[([A-Za-z0-9_-]+)(?:\|([^\]|\n]*))?\]/g;
 
+// `@{<kind>|<word>|<value>|<payload>}`: a reference keyword (specs/reference-keywords, RK3): the word the owner picked,
+// the value it resolved to at the moment, and its coordinates or time. Like a markdown link: a shown word, an actual value.
+const KEY_SOURCE = String.raw`@\{(here|near|there|time)\|([^}|\n]*)\|([^}|\n]*)(?:\|([^}\n]*))?\}`;
+const KEY = new RegExp(KEY_SOURCE, 'g');
+const ANY = new RegExp(`${TOKEN.source}|${KEY_SOURCE}`, 'g');
+
+/** The reserved keywords: where (here, next to me, over there) and when (a time word). Never the weather (RK12). */
+export type KeywordKind = 'here' | 'near' | 'there' | 'time';
+
+/** A keyword reference as stored: its word, its resolved value, and the coordinates (`lng,lat`) or time behind it. */
+export interface KeywordRef {
+  key: KeywordKind;
+  word: string;
+  value: string;
+  payload: string;
+}
+
 /** What a note's body holds: runs of its own words, and references in between (with the words they were written with). */
-export type RefPart = { text: string } | { ref: string; label: string | null };
+export type RefPart = { text: string } | { ref: string; label: string | null } | KeywordRef;
 
 /** The words a token carries: never a bracket, a bar or a line break, which would end it. */
-const cleanLabel = (s: string) => s.replace(/[\]|\n]/g, ' ').trim();
+const cleanLabel = (s: string) => s.replace(/[\]}|\n]/g, ' ').trim();
 
 export const refToken = (id: string, label?: string | null): string => (label ? `@[${id}|${cleanLabel(label)}]` : `@[${id}]`);
+
+/** A keyword reference's token (RK3): never a brace, bar or line break inside a field. */
+export const keywordToken = (r: KeywordRef): string =>
+  `@{${r.key}|${cleanLabel(r.word)}|${cleanLabel(r.value)}${r.payload ? `|${cleanLabel(r.payload)}` : ''}}`;
+
+/**
+ * A keyword reference as plain words (RK9): its word and, by default, its value in parentheses ("here (the science
+ * center)"); the word alone when the values are off. Nothing is added to what is stored (steward S6).
+ */
+export const keywordPlain = (r: Pick<KeywordRef, 'word' | 'value'>, showValues = true): string =>
+  showValues && r.value && r.value !== r.word ? `${r.word} (${r.value})` : r.word;
 
 /** What a reference to a moment that is gone, or waiting in Undo, reads (RF5, RF6). */
 export const GONE = 'a moment no longer kept';
@@ -24,9 +52,10 @@ export const GONE = 'a moment no longer kept';
 export function parseRefs(body: string): RefPart[] {
   const out: RefPart[] = [];
   let at = 0;
-  for (const m of body.matchAll(TOKEN)) {
+  for (const m of body.matchAll(ANY)) {
     if (m.index > at) out.push({ text: body.slice(at, m.index) });
-    out.push({ ref: m[1], label: m[2]?.trim() || null });
+    if (m[1] != null) out.push({ ref: m[1], label: m[2]?.trim() || null });
+    else out.push({ key: m[3] as KeywordKind, word: m[4].trim(), value: m[5].trim(), payload: m[6]?.trim() ?? '' });
     at = m.index + m[0].length;
   }
   if (at < body.length) out.push({ text: body.slice(at) });
@@ -44,14 +73,25 @@ export function refIds(body: string | null | undefined): string[] {
  * reader knows them, else the words it was written with, else `GONE`. One form, the same the editor shows after its
  * "@" (steward S3).
  */
-export function plainRefs(body: string, words: (id: string) => string | null = () => null): string {
+export function plainRefs(body: string, words: (id: string) => string | null = () => null, showValues = true): string {
   return parseRefs(body)
-    .map((p) => ('text' in p ? p.text : (words(p.ref) ?? p.label ?? GONE)))
+    .map((p) => ('text' in p ? p.text : 'key' in p ? keywordPlain(p, showValues) : (words(p.ref) ?? p.label ?? GONE)))
     .join('');
 }
 
 /** A note's words for a plain-text reader with no lookup (rows, Lately, a reminder, the replay): never a raw token. */
-export const plainNote = (body: string | null | undefined): string | null => (body == null ? null : plainRefs(body));
+export const plainNote = (body: string | null | undefined, showValues = true): string | null => (body == null ? null : plainRefs(body, () => null, showValues));
+
+/** A keyword reference changed to another value, its word kept (RK10): the `index`-th keyword in the body. */
+export function replaceKeywordValue(body: string, index: number, value: string, payload: string): string {
+  let n = -1;
+  return body.replace(KEY, (whole) => {
+    n++;
+    if (n !== index) return whole;
+    const k = parseRefs(whole)[0] as KeywordRef;
+    return keywordToken({ ...k, value, payload });
+  });
+}
 
 /**
  * The notes that mention a moment (RF7), read from their bodies when shown: oldest first, by date, never by how often
@@ -66,6 +106,8 @@ export interface EditorRef {
   id: string;
   /** The words saved with it. */
   label: string | null;
+  /** A keyword reference's whole stored token (RK3); a moment's is made from `id` and `label`. */
+  token?: string;
   start: number;
   end: number;
 }
@@ -77,6 +119,12 @@ export function toEditor(body: string, words: (id: string) => string | null): { 
   for (const p of parseRefs(body)) {
     if ('text' in p) {
       text += p.text;
+      continue;
+    }
+    if ('key' in p) {
+      const shown = `@${keywordPlain(p)}`;
+      refs.push({ id: `key:${p.key}`, label: p.word, token: keywordToken(p), start: text.length, end: text.length + shown.length });
+      text += shown;
       continue;
     }
     const now = words(p.ref);
@@ -92,7 +140,7 @@ export function fromEditor(text: string, refs: EditorRef[]): string {
   let out = '';
   let at = 0;
   for (const r of [...refs].sort((a, b) => a.start - b.start)) {
-    out += text.slice(at, r.start) + refToken(r.id, r.label);
+    out += text.slice(at, r.start) + (r.token ?? refToken(r.id, r.label));
     at = r.end;
   }
   return out + text.slice(at);
@@ -139,7 +187,15 @@ export function editRefs(prev: string, next: string, refs: EditorRef[]): { text:
  * space, and the cursor goes after it.
  */
 export function insertRef(text: string, at: number, refs: EditorRef[], id: string, words: string | null): { text: string; refs: EditorRef[]; cursor: number } {
-  const shown = `@${words ?? GONE}`;
+  return insertAt(text, at, refs, `@${words ?? GONE}`, { id, label: words });
+}
+
+/** A keyword picked from the palette (RK2): put in at the "@" typed at `at`, shown as its word and value, every other character as it was. */
+export function insertKeyword(text: string, at: number, refs: EditorRef[], k: KeywordRef): { text: string; refs: EditorRef[]; cursor: number } {
+  return insertAt(text, at, refs, `@${keywordPlain(k)}`, { id: `key:${k.key}`, label: k.word, token: keywordToken(k) });
+}
+
+function insertAt(text: string, at: number, refs: EditorRef[], shown: string, ref: Omit<EditorRef, 'start' | 'end'>): { text: string; refs: EditorRef[]; cursor: number } {
   const typedAt = text[at] === '@' ? 1 : 0;
   const rest = text.slice(at + typedAt);
   const space = rest.startsWith(' ') ? '' : ' ';
@@ -147,7 +203,7 @@ export function insertRef(text: string, at: number, refs: EditorRef[], id: strin
   const moved = refs.map((r) => (r.start >= at + typedAt ? { ...r, start: r.start + added, end: r.end + added } : r));
   return {
     text: text.slice(0, at) + shown + space + rest,
-    refs: [...moved, { id, label: words, start: at, end: at + shown.length }].sort((x, y) => x.start - y.start),
+    refs: [...moved, { ...ref, start: at, end: at + shown.length }].sort((x, y) => x.start - y.start),
     cursor: at + shown.length + 1,
   };
 }
