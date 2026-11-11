@@ -405,7 +405,8 @@ export default function Explore() {
     ? { kind: 'side', width: 400, height: screen.h }
     : { kind: 'sheet', screenH: screen.h };
 
-  const noteText = town && ownTown && !neighborhoods.length ? townNote(town.name, listing) : null;
+  // Never after a failed read: that is no claim about the map (the row then holds the town's card, as before).
+  const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
   const overlay = error ? (
     <Banner
       tone="error"
