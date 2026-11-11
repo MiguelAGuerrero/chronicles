@@ -34,8 +34,9 @@ export function ComplexKindSwitches({ sectionStyle }: { sectionStyle: StyleProp<
   return (
     <>
       <Text style={sectionStyle} accessibilityRole="header">Complexes</Text>
+      <Text style={styles.complexNote}>Shown on area cards and the map</Text>
       {COMPLEX_KINDS.map((k) => (
-        <SwitchRow key={k} testID={`complex-kind-${k}`} icon="business-outline" label={switchLabel(k)} value={!hidden.includes(k)} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
+        <SwitchRow key={k} testID={`complex-kind-${k}`} label={switchLabel(k)} value={!hidden.includes(k)} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
       ))}
     </>
   );
@@ -92,6 +93,7 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
 }
 
 const styles = StyleSheet.create({
+  complexNote: { fontSize: 13, color: theme.muted, marginBottom: 4 },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // 44 pt, not hit slop: react-native-web has none (U4).
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },

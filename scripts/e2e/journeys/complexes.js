@@ -58,6 +58,9 @@ async function run(h) {
     await row.click();
     await pg.waitForTimeout(500);
     await shot(pg, 'complexes-settings');
+    await pg.locator('[data-testid=complex-kind-civic]').scrollIntoViewIfNeeded().catch(() => {});
+    await pg.waitForTimeout(300);
+    await shot(pg, 'complexes-settings-all');
     await openFoxPoint();
     await pg.waitForTimeout(8000);
     check((await pg.locator('[data-testid=atlas-complexes]').count()) === 0 && (await pg.locator('[data-testid=atlas-card]').count()) === 1,

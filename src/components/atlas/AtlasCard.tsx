@@ -273,7 +273,7 @@ export function AtlasCard(props: {
                 <Text style={styles.secTitle} accessibilityRole="header">{cx.title}</Text>
                 <View testID="atlas-complexes">
                   {cx.rows.map((r) => (
-                    <View key={r.id} style={styles.pocket} testID="atlas-complex" accessibilityLabel={r.label}>
+                    <View key={r.id} style={styles.complexRow} testID="atlas-complex" accessibilityLabel={r.label}>
                       <View style={styles.complexText}>
                         <Text style={styles.pocketName}>{r.name}</Text>
                         <Text style={styles.muted}>{r.word}</Text>
@@ -286,7 +286,7 @@ export function AtlasCard(props: {
                     </View>
                   ))}
                   {cx.more ? (
-                    <Pressable testID="atlas-complexes-more" accessibilityRole="button" accessibilityState={{ expanded: false }} onPress={() => setMoreComplexes(true)} style={styles.pocketWalk}>
+                    <Pressable testID="atlas-complexes-more" accessibilityRole="button" onPress={() => setMoreComplexes(true)} style={styles.complexMore}>
                       <Text style={styles.howText}>{SEE_MORE}</Text>
                     </Pressable>
                   ) : null}
@@ -503,6 +503,9 @@ const styles = StyleSheet.create({
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pocket: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
+  // Room for a wrapped name, Walk to level with its first line; "See more" lines up with the names (the UI review, decision 0145).
+  complexRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: 44, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
+  complexMore: { minHeight: 44, justifyContent: 'center' },
   complexText: { flexShrink: 1, flex: 1 },
   pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
   pocketWalk: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },

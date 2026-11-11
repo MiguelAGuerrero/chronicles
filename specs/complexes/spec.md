@@ -181,3 +181,22 @@ Deferred: the Capitol Complex and other outlines Overture does not carry; Naviga
 a title suggestion, search and the share reel naming one; tuning the minimums beyond Harrisburg and Whitehall. The map outline
 and name labels are checked by unit tests and the journey's "no label at far zoom"; their drawn state at close zoom is not in a
 journey (the web map's canvas exposes no layer data to the e2e) and is on the device list.
+
+## UI review (decision 0145, 2026-11-11)
+
+The `ux-reviewer` read the card with its longest name and the settings, at 390 x 844 on the /chronicles build. Triage:
+
+1. U1 Walk to is bare text and the row is cramped: accept. The row has vertical padding and Walk to sits level with the first line;
+   the plain text link stays, as in Busy areas (an outline would be a different control for the same job).
+2. U2 "See more" says it is collapsed and then vanishes: accept in part. The false `expanded` state is gone and its label lines up
+   with the names; moving a screen reader's focus to the first new row is deferred (docs/DEFERRED.md).
+3. U3 nothing says what the Complexes switches govern: accept. A line under the heading: "Shown on area cards and the map".
+4. U4 one icon repeated five times: accept. The icons are gone; the labels carry the meaning.
+5. U5 Civic below the fold in the picture; track contrast: accept the picture (the journey scrolls to Civic and takes a second
+   shot); the switches' track contrast is the app's own and is filed apart, not changed here.
+6. U6 "Shopping" beside the "Shops" bar: reject. The kind word matches the switch's label, which the owner chose.
+7. The map label: judged from code only (12 px, dark brown on a white halo, as the strip labels); no picture exists because the
+   web map's canvas gives the e2e no layer to look at. On the device list.
+
+4 fixed, 1 in part, 1 rejected, 1 deferred.
+
