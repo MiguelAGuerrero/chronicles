@@ -708,6 +708,7 @@ export default function Explore() {
             walkStart.start({ at, label, kind: 'point' });
           }}
           onPlan={(k) => setPlan(k)}
+          covered={plan != null}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
