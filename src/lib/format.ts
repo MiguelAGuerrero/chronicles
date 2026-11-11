@@ -20,6 +20,15 @@ export function formatDistance(m: number, units: Units = getUnits()): string {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
+/**
+ * A straight-line distance to somewhere (the destination, NV20): as `formatDistance`, but metres under a kilometre
+ * to the nearest ten. Miles are converted from the distance itself, so the rounding never crosses the step from feet
+ * to miles (tend tabs audit 7).
+ */
+export function formatDistanceNear(m: number, units: Units = getUnits()): string {
+  return formatDistance(units === 'km' && m < 1000 ? Math.round(m / 10) * 10 : m, units);
+}
+
 /** m:ss under ten minutes, so a just-started walk visibly counts; minutes after. */
 export function formatElapsed(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));

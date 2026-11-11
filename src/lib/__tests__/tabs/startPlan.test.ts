@@ -76,3 +76,16 @@ test('tend tabs 6: the destination’s distance follows the units setting, as ev
     setUnits('km');
   }
 });
+
+test('tend tabs audit 7: in miles the destination is converted from its own distance, never from metres rounded to ten', () => {
+  try {
+    setUnits('mi');
+    // 162 m is 531 ft, past the 528 ft where miles take over; rounded to 160 m first it read "525 ft".
+    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 0.1 mi away');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 101 / 111320]), 'Your spot · 331 ft away');
+    setUnits('km');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 160 m away', 'metres still round to ten');
+  } finally {
+    setUnits('km');
+  }
+});
