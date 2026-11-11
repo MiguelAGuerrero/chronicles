@@ -453,7 +453,7 @@ recording, and a recording bar brings a minimized walk back.
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14) | Built 2026-11-11 (web verified by the e2e `responses`; native unverified) |
 | Moment references (a note mentions moments with @) | Built on `claude/ui-conformance` (web verified by the e2e `threads`; native unverified) |
-| Reference keywords (a note's @ opens a palette: here, next to me, over there and time anchors resolve from the moment's fix and time into the note's text as a word and its value; a setting for the values in parentheses; RK1-RK20, decision 0141) | Built 2026-11-11 (web verified by the e2e `threads`; native unverified) |
+| Reference keywords (a note's @ opens a menu beside the field: here, next to me, over there and time anchors resolve from the moment's fix and time into the note's text as a word and its value; a setting for the values in parentheses; RK1-RK23, decision 0141) | Built 2026-11-11 (web verified by the e2e `threads`; native unverified) |
 | Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
