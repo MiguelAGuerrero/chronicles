@@ -99,7 +99,7 @@ test('PS4: scenic greens read presence classes from landcover, not raw tags', as
 
 test('PS5: the planner reads classes and curation\'s one counting rule, with no list of categories of its own', async () => {
   const text = src('walkPlanner/service.ts');
-  assert.ok(!/MARK_KINDS|new Set<CategoryId>|CategoryId\[\] = \[/.test(text), 'the planner holds a list of categories');
+  assert.ok(!/MARK_KINDS|new Set<CategoryId>|CategoryId\[\] = \[|as (readonly )?CategoryId\[\]|\['(history|art|culture|parks|viewpoints)'/.test(text), 'the planner holds a list of categories');
   assert.ok(text.includes('countsToward'), 'the planner counts by curation\'s rule');
   const { createPlanner } = await import('../../walkPlanner/service');
   const { placesFromTilePois } = await import('../../discovery/tilePois');
