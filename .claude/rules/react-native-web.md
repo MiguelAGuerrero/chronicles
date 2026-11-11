@@ -39,6 +39,9 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   100%` of its parent. A label wider than its parent (a star's name) needs an
   explicit `maxWidth`, or it truncates to the parent's width.
 
+- **A touch handler gets the browser's own TouchEvent on the web**: `e.nativeEvent.pageX` is undefined, and a
+  lifted finger is only in `changedTouches`. Read the point with `touchPoint` (`components/CaptureView.tsx`); the
+  viewer's swipe across a stack's pieces never worked on the web until it did (response thread, Nov 11).
 - `findNodeHandle` doesn't exist on web. Use `focusOn(ref)` in `src/lib/focus.ts`.
 - React Compiler lint treats a ref passed inside a props object (`props.x.ref`) as
   a ref read during render. Use `forwardRef` instead.

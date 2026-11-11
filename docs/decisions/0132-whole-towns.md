@@ -1,4 +1,4 @@
-# 0128. Whole towns: a town's page holds every neighborhood inside its border, and Explore's map shows presence, not completion
+# 0132. Whole towns: a town's page holds every neighborhood inside its border, and Explore's map shows presence, not completion
 
 Date: 2026-11-11 · Status: accepted · Area: explore, vision · Amends AT2 ([0066](0066-explore-is-an-atlas.md)), EC3 ([0124](0124-explore-carousel.md)) and the fix area-marks (finds named over the map)
 

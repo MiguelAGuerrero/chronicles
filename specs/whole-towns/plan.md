@@ -60,7 +60,7 @@ the cluster is dots zoomed out and "?" once a dot is tapped. Journeys to run at 
 
 ## The steward (Nov 11): triage
 
-- **S1 [drift] a neighborhood's map becomes its checklist** (every "?" beside its finds by name): put to the owner. Their answer: it is for presence, not completion; take found places off the view. Accepted as WT10, decision 0128; the "?" are not merged.
+- **S1 [drift] a neighborhood's map becomes its checklist** (every "?" beside its finds by name): put to the owner. Their answer: it is for presence, not completion; take found places off the view. Accepted as WT10, decision 0132; the "?" are not merged.
 - **S2 [drift] a screen reader counts the "?" out loud**: accepted as WT11.
 - **S3 [tone] WT8 tested for digits only**: accepted into WT8 and its test.
 - Silent, noted: whether a "?" pinned at a place's own spot gives too much away before you walk there. The owner chose every "?" at its place; the stacking of close pins stays DEFERRED (fix area-marks audit 2).

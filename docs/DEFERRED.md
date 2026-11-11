@@ -3,6 +3,8 @@
 Everything AGENTS.md marks deferred, open or not yet done, in one ledger, grouped by area; the source section is in parentheses.
 An item leaves only when it ships, or when it is rejected with a decision record in `docs/decisions/`.
 
+Tags at the start of an item say who may take it (decision 0128; `/tend triage` adds them): `[loop]` the tending loop may ship it; `[owner]` an addition or a product question; `[arch]` an architectural decision; `[phone]` needs a device; `[kept]` a limit recorded on purpose. An untagged item has not been triaged.
+
 ## Product (open in the concept doc)
 
 - Two things are named Explore: the tab and the walk's mode (Positioning, open in the doc)
@@ -435,11 +437,11 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Explore's map shows the selected area's places (fix area-marks, Nov 10)
 
 - **A town's finds past 800 m of its busiest pocket** (audit 1): finds are kept by `findsIn` within the ring around `sketchAt`, while a graded town's "?" come from its whole outline, so a find inside the border but far from the pocket shows on neither the map nor the card (the card had it before).
-- ~~**The "?" pins sit together** (audit 2)~~ **Done by Whole towns (WT12, decision 0128):** every place is drawn, a "?" only where it has room at the settled zoom and a dot where it would crowd, so no two "?" overlap.
+- ~~**The "?" pins sit together** (audit 2)~~ **Done by Whole towns (WT12, decision 0132):** every place is drawn, a "?" only where it has room at the settled zoom and a dot where it would crowd, so no two "?" overlap.
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
 
-## Whole towns (WT1-WT14, decision 0128)
+## Whole towns (WT1-WT14, decision 0132)
 
 - **Wards in walk placement:** hamlets inside a town are placed (audit 7, `AREA_RULES` 4); a ward point can still be a
   walk's neighborhood on the home's stars. Dropping it there re-places every walk.
@@ -459,7 +461,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
   looks within `townReachM` (capped at 5 km) of the town's point. A neighborhood past every town's reach is shown nowhere,
   even the one you stand in, deep inside a large city's outline far from its point (audit 3). The neighborhoods stand in
   only when no town is named around you. Next, if wanted: a town's page takes the neighborhoods inside its outline,
-  whatever their distance from its point. **Done by Whole towns (WT1, decision 0128)** for a town with a border; a town
+  whatever their distance from its point. **Done by Whole towns (WT1, decision 0132)** for a town with a border; a town
   with none keeps the reach.
 - **Deferred (audit 5):** outside every town, the nearest town leads and is framed whole on arrival, so the page titled
   "Near you" may open on a town some kilometres off; and when an outline arrives that marks another town as yours, the
@@ -484,3 +486,4 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **`saveSettings` writing `explore_kinds_known` has no test** (presence-and-kinds audit 6): `explore/settings.ts` imports the db singleton, which a Node test cannot load. It moves to a shell factory with SH5's pattern. The reading rule (`parseHidden`) and the scenic read are tested.
 - **"What I'm into" has eleven switches with no visible groups** (presence-and-kinds audit 11, an opinion): headings matching the card's groups would make the order readable.
 - **The drawer's handle sits over the first visible switch** (presence-and-kinds audit 12): this predates the slice and is the drawer's layout, not the kinds'.
+- **Deferred (response thread, decision 0131):** a tree of responses (a response to a response is listed in time order and says what it answers, one level); the sheet from Lately's card or a thread's row (the viewer is the only way in); a response's own responses inside the sheet (its viewer opens its own sheet); a response made mid-walk is listed but names no place until its walk stops and is placed (its time, walk line and content are there); no e2e step for a response on a walk still open (RT13 is a unit test of the pool).

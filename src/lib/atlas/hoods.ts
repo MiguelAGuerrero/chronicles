@@ -5,7 +5,7 @@ import type { PlaceCandidate, TownOutline } from '../areas/types';
 import type { LngLat } from '../types';
 
 /*
- * Whole towns (WT1-WT6, decision 0128): which neighborhoods a town's page holds. With the town's border known,
+ * Whole towns (WT1-WT6, decision 0132): which neighborhoods a town's page holds. With the town's border known,
  * every neighborhood point inside it that no smaller town inside it owns, the hamlets inside it too, never a ward;
  * without one, the page lists by the town's reach as before (`townNeighborhoods`).
  */

@@ -69,6 +69,9 @@ export function SheetFrame(props: {
   height?: Animated.Value;
   testID?: string;
   dragTestID?: string;
+  /** False when a Modal around the sheet already lowers it on Back and Escape (a responses sheet in the viewer), so
+   *  one key press is never read twice. */
+  ownKeys?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
@@ -113,8 +116,9 @@ export function SheetFrame(props: {
   useEffect(() => {
     onSizeRef.current = props.onSize;
   });
+  const ownKeys = props.ownKeys !== false;
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded || !ownKeys) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       onSizeRef.current('peek');
       return true;
@@ -125,7 +129,7 @@ export function SheetFrame(props: {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [expanded]);
+  }, [expanded, ownKeys]);
 
   // Dragging the handle or header: it settles at the nearest of the three
   // heights, however the gesture ends (released, or taken by something else).

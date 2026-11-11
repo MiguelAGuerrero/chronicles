@@ -177,7 +177,7 @@ const snapFeatures = [
   { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
 ];
 const snapWorld = { serve: false };
-// Whole towns (WT5-WT14, decision 0128), with snapWorld and its Allentown border: a hamlet and a ward inside the border,
+// Whole towns (WT5-WT14, decision 0132), with snapWorld and its Allentown border: a hamlet and a ward inside the border,
 // and six murals 30 m apart beside Wickenden, so its map has more places than room. Only in the carousel's wholeTowns.
 const wholeFeatures = [
   { type: 'Feature', properties: { class: 'hamlet', name: 'Quarry Hill' }, geometry: { type: 'Point', coordinates: at(-20, 15) } },

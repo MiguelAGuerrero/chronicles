@@ -16,7 +16,7 @@ const overlap = (a: LngLat, b: LngLat, zoom: number) => {
   return Math.abs(a[0] - b[0]) * 111320 * Math.cos((O[1] * Math.PI) / 180) < PIN_ROOM.w * mpp && Math.abs(a[1] - b[1]) * 110574 < (PIN_ROOM.up + PIN_ROOM.below) * mpp;
 };
 
-// Whole towns (specs/whole-towns, decision 0128): a "?" where it has room on screen, a dot where it would crowd.
+// Whole towns (specs/whole-towns, decision 0132): a "?" where it has room on screen, a dot where it would crowd.
 
 test('WT12: a "?" where it has room, a dot where it would overlap; no two "?" overlap; the same view gives the same split', () => {
   const out = waitingPins(BLOCK, O, 13, O[1]);

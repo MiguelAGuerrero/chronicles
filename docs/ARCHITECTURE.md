@@ -88,11 +88,12 @@ Owner threads (decision 0104)
   threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
   threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
   threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
+  threads/responses.ts       responsesOf (every moment that answers a moment or its responses, from moment_link only), responseRows (the sheet's entries, RT4)
   threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
   threads/useKeyboardHeight(.web).ts  how far the keyboard reaches up: Keyboard events on phones, visualViewport on web (the note editor rises above it)
   threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
   threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook
-  threads/                   (components/) ReplyDock (the viewer's toolbar: Respond, Edit, the Respond menu), AddToThread, MyThreads, OwnThreadScreen (a note as a NoteBubble, read in place), ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
+  threads/                   (components/) ReplyDock (the viewer's toolbar: Respond, Edit, the Respond menu), AddToThread, MyThreads, OwnThreadScreen (a note as a NoteBubble, read in place), ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105), ResponsesSheet and ResponseEntry (a moment's responses in a SheetFrame inside the viewer, decision 0131), useMomentPool (every kept moment; `every` adds a walk still open)
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
@@ -225,7 +226,7 @@ Discovery and Explore (v1)
   explore/useExplore.ts      Explore on the walk screen
   atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
-  atlas/hoods.ts             a town's page: every neighborhood inside its border, hamlets in, wards out (WT1-WT6, 0128)
+  atlas/hoods.ts             a town's page: every neighborhood inside its border, hamlets in, wards out (WT1-WT6, 0132)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
   atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
   atlas/waitingPins.ts       the selected area's places on the map: a "?" where it has room, a dot where not (WT7, WT12-WT14)

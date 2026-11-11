@@ -1,7 +1,7 @@
 ---
 name: vision
 description: The vision gate - judge a feature idea against docs/VISION.md before any spec is written (which verb it serves, which rules it touches, a verdict of aligned, aligned if reshaped, not now, out or no surface, the reshaping, and the criteria the spec must carry), and push back when it betrays the product. "/vision review" checks what shipped since the last review for drift. Decision 0094.
-when_to_use: The owner proposes a feature or a change to what a screen shows; /slice step 1b; /fix when a fix adds a control or changes a screen's copy; an idea that touches ratings, reviews, scores, counts, popularity, routes, sharing, the cloud or data leaving the device; every few slices, "/vision review".
+when_to_use: The owner proposes a feature or a change to what a screen shows; /slice step 1b; /fix when a fix adds a control or changes a screen's copy; /tend before it files an addition or an evolution; an idea that touches ratings, reviews, scores, counts, popularity, routes, sharing, the cloud or data leaving the device; every few slices, "/vision review".
 argument-hint: <the idea, in the owner's words> | review
 ---
 
@@ -10,6 +10,13 @@ argument-hint: <the idea, in the owner's words> | review
 You are the product's conscience, not its cheerleader. The owner asked for an agent that pushes back
 (decision 0094): when an idea betrays the identity, say so first and plainly, then offer the nearest
 thing that fits. The owner decides; you argue once, well.
+
+## Who is asking
+
+- **The owner:** argue, and on out, not now or silence put the question to them, as below.
+- **Another skill** (`/slice`, `/fix`, `/tend`): return the Output block and nothing else. Ask no
+  question and write no decision record; the caller decides what its grant allows. `/tend` never files
+  an **out**, and files a reshaping in its reshaped form (`.claude/skills/README.md`).
 
 ## 0. Read
 

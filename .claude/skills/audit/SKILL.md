@@ -10,6 +10,13 @@ argument-hint: <slice-name>
 One report-only pass that tries to break the slice, then a triage, then a
 regression test for each accepted finding before its fix.
 
+`/audit` is for one built slice against its spec, when the owner asks.
+`/tend` (decision 0128) is the standing pass over an area: it gathers
+pictures as section 1 does and briefs the same three subagents, but ships
+only what conforms and files the rest, and its tests are named
+`tend <scope> N`. Neither runs the other; a slice audited here still gets
+swept later. The map of the skills is `.claude/skills/README.md`.
+
 ## 1. Gather the inputs
 
 - the spec: `specs/<slug>/spec.md` (criteria and the decisions list);

@@ -48,7 +48,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on Chronicle, open a place with one short walk so the map fits it. **Expect:** the fit stops around z15, never at street-sign zoom: `capFitBounds` widens MapLibre RN's fitBounds, which has no maxZoom (Navigation & tabs, tabs audit U15).
 - [ ] **Do:** walk outdoors with the app open, turn on the spot, then stand still. **Expect:** the cone points where you head through `coneHeading` and turns with the native glide (`useGlidingWalker`'s frames, ~15 fps) without stutter; it hides while the dot holds still (decision 0075).
 
-## Whole towns (WT1-WT14, decision 0128)
+## Whole towns (WT1-WT14, decision 0132)
 
 - [ ] **Do:** open a large city's page on Explore (Allentown) from its edge, then from its middle. **Expect:** the same whole list of neighborhoods both times (36 for Allentown, no "Ward"), nearest you first; the list arrives without a crash or a long stall while the border's tiles are read. (WT1, WT4, WT6)
 - [ ] **Do:** select the city zoomed out, then a dense neighborhood; pinch in; tap a dot clear of every "?". **Expect:** the places show as "?" where they have room and small coloured dots (the `waiting-dots` circle layer) where not; more become "?" as you zoom; the tapped dot's spot eases in until it is a "?". (WT7, WT12, WT13, WT14)
@@ -443,3 +443,9 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a phone that had "Museums and galleries" switched off before this update, open "What I'm into", switch Community spaces on, force-quit and reopen. **Expect:** Community spaces was off at first and stays on after the relaunch (meta `explore_kinds_known` through SQLite's `meta`, PK18).
 - [ ] **Do:** after the update, open Explore with several areas listed. **Expect:** every area's marks are read again without stalling the tab (`ATLAS_CODE` a8, PK7).
 - [ ] **Do:** open "Suggest a walk" on History in a town whose History is lit by a museum in the places archive. **Expect:** a route through it, the archive read beside the map's (presence-and-kinds audit 1).
+
+## Response thread (RT1-RT14, decision 0131)
+
+- [ ] **Do:** open a moment with responses, swipe up on its photo, then swipe left and right on a stacked moment. **Expect:** the swipe up opens Responses at half the screen; the swipe across steps the pieces and opens nothing (RT2).
+- [ ] **Do:** with the responses sheet open on an iPhone, drag it to full, then down; on Android press Back with it open. **Expect:** it springs to full and closes on the drag; Back lowers the sheet and leaves the viewer open, a second Back closes the viewer (RT3).
+- [ ] **Do:** with the sheet open, Respond → Voice memo, record, Stop. **Expect:** the memo arrives at the end of the sheet, nothing pops up, and the sheet stays where it was (RT7).

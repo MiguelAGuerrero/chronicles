@@ -5,7 +5,7 @@ import { ATLAS_LABEL, ATLAS_ORDER, waitingMarks, type AtlasMark } from './atlas'
 import type { Kind } from '../discovery/types';
 
 /*
- * Whole towns (WT7, WT12-WT14, decision 0128; whole-towns audit): the selected area's places on Explore's map.
+ * Whole towns (WT7, WT12-WT14, decision 0132; whole-towns audit): the selected area's places on Explore's map.
  * A neighborhood (or a town zoomed in to a neighborhood's scale): every place still to find, a "?" where its pin has
  * room on screen, a dot in its kind's colour where it would overlap a pin, and only places in view can be "?" (audit 3).
  * A town at its own scale: every findable place as the same dot, found or not, so the field never thins as you find

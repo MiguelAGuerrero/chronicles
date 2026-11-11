@@ -304,7 +304,7 @@ async function townFramedOnce(h) {
   }
 }
 
-// Whole towns (WT1-WT14, decision 0128): Allentown's page lists every neighborhood inside its border, a hamlet in it,
+// Whole towns (WT1-WT14, decision 0132): Allentown's page lists every neighborhood inside its border, a hamlet in it,
 // no ward; the selected area's places are "?" where they have room and dots where not; a tapped dot zooms in.
 async function wholeTowns(h) {
   const { exploreUrl, check, freshPage, snapWorld, wholeWorld, divisions, areaTile, shot } = h;

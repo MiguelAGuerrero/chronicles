@@ -2,13 +2,41 @@
 name: slice
 description: Build a vertical slice the owner's way, spec-first and test-first - numbered acceptance criteria in specs/<slug>/spec.md, a plan the owner reviews before code, one failing test per criterion, the code, the docs, the full suite. Use for any new feature or a continued slice ("build X", "next slice", "start on the spec's Y tab").
 when_to_use: Starting or resuming a feature slice; the owner names a tab of the concept doc or a feature to build; any change bigger than a local fix.
-argument-hint: <slice-name>
+argument-hint: <slice-name> [--from=G<n>]
 ---
 
 # Slice: $ARGUMENTS
 
 Spec first, tests first, then code. The slice is done when every criterion's
 test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
+
+## Run by the owner, or from an approved proposal
+
+- **`/slice <name>`**, typed by the owner: as written below, with the plan
+  reviewed before any code, and nothing pushed to `main`.
+- **`/slice <name> --from=G<n>`**, run only by `/tend inbox G<n> yes`
+  (decision 0130), in the worktree `/tend` opened: the owner's yes to that
+  entry in `docs/STATUS.md`, "Next evolutions", is the go-ahead for its
+  numbered criteria and no more. Typed by anyone else, or with an entry that
+  is not there or has no numbered criteria, it is plain `/slice`. Then:
+  - step 1b: the entry's verdict, shape, Touches and criteria are the gate's
+    answer; write them as the spec's "## Vision" section (with its `Verdict:`
+    line) and do not gate again;
+  - step 2: the entry's criteria are the spec's, numbered with the slice's
+    prefix. Add only the states those criteria imply (empty, failed, undone);
+    anything else a person could see or do is a new proposal: note it for
+    `/tend` to file, and do not build it;
+  - step 3: write the plan and run the steward, then **go on without
+    stopping**, unless `.claude/skills/ship.md`, "Hard stops", is met or an
+    accepted steward finding changes what a person sees beyond the approved
+    shape. Then stop building and return "Stopped on" with the question and
+    your recommended answer; ask nothing yourself;
+  - step 9: when everything is green, commit and return the result block.
+    Do not push and do not clean up: `/tend` runs the review, publishes and
+    removes the entry (its section 10).
+
+Either way the report ends with the result block (`.claude/skills/ship.md`).
+The map of the skills is `.claude/skills/README.md`.
 
 ## Standing rules
 
@@ -82,7 +110,7 @@ Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept
 into a criterion, or reject with the reason), so the owner reviews both at once.
 
-Stop and show the owner the plan. Continue only on their go-ahead.
+Stop and show the owner the plan. Continue only on their go-ahead (`--from=G<n>`: see the top of this file).
 
 ## 4. Track
 
@@ -194,7 +222,7 @@ screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 3. Run `/docs-gc`.
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is
-   `/deploy`.
+   `/deploy` (or, under `--from=G<n>`, the `/tend` run that called this).
 
 ## Report
 
