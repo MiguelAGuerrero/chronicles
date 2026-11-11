@@ -307,7 +307,7 @@ async function townFramedOnce(h) {
 // Whole towns (WT1-WT14, decision 0127): Allentown's page lists every neighborhood inside its border, a hamlet in it,
 // no ward; the selected area's places are "?" where they have room and dots where not; a tapped dot zooms in.
 async function wholeTowns(h) {
-  const { exploreUrl, check, freshPage, snapWorld, wholeWorld, divisions, areaTile } = h;
+  const { exploreUrl, check, freshPage, snapWorld, wholeWorld, divisions, areaTile, shot } = h;
   snapWorld.serve = true;
   divisions.serve = true;
   wholeWorld.serve = true;
@@ -316,11 +316,14 @@ async function wholeTowns(h) {
   try {
     await pg.goto(exploreUrl);
     await pg.waitForFunction(() => !!document.querySelector('[data-testid=atlas-tile][data-name="Allentown"][data-selected="1"]'), null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(4000);
+    await shot(pg, 'whole-towns-0-town-selected');
     // WT5, WT6: on Allentown's page, the hamlet inside its border has a card; the ward has none.
     const hamlet = await areaTile(pg, 'Quarry Hill');
     const cards = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.name));
     check((await hamlet.count()) === 1, `WT5: a hamlet inside the town's border has a card on its page (${JSON.stringify(cards)})`);
     check(!cards.includes('3rd Ward') && cards.includes('Wickenden'), `WT6: a ward inside the border has no card (${JSON.stringify(cards)})`);
+    await shot(pg, 'whole-towns-1-town-page');
     // WT8: no text on the page or the row counts places or neighborhoods, in digits or words.
     const COUNT = /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozens?|several|many)\s+(neighbou?rhoods?|places?)\b/i;
     const pageText = await pg.locator('body').innerText().catch(() => '');
@@ -337,6 +340,7 @@ async function wholeTowns(h) {
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=mark-pin]').length > 0, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(1500);
     const out = await drawn();
+    await shot(pg, 'whole-towns-2-neighborhood-dots');
     // The murals (6) and Fox Point's art and memorial in Wickenden's 800 m ring: more than one per kind.
     check(out.pins.length + out.dots.length >= 6, `WT7: the selected neighborhood's map holds every place still to find, as "?" and dots (${out.pins.length} "?", ${out.dots.length} dots at zoom ${out.zoom})`);
     check(out.dots.length >= 1, `WT12: zoomed out, the murals 30 m apart are dots where a "?" would crowd (${out.dots.length} dots at zoom ${out.zoom})`);
@@ -354,6 +358,7 @@ async function wholeTowns(h) {
     await pg.keyboard.press('+');
     await pg.waitForTimeout(2000);
     const before = await drawn();
+    await shot(pg, 'whole-towns-3-zoomed-in');
     const free = await pg.evaluate((dots) => {
       const rects = [...document.querySelectorAll('[data-testid=mark-pin], [data-testid=area-point]')].map((e) => e.getBoundingClientRect());
       return dots.find((d) => {
@@ -366,6 +371,7 @@ async function wholeTowns(h) {
       await pg.mouse.click(x, y);
       await pg.waitForTimeout(3000);
       const after = await drawn();
+      await shot(pg, 'whole-towns-4-dot-tapped');
       const isPin = await pg.evaluate((q) => [...document.querySelectorAll('[data-testid=mark-pin]')].some((e) => {
         const r = e.getBoundingClientRect();
         const [px, py] = window.__project(q);
@@ -381,6 +387,7 @@ async function wholeTowns(h) {
     await (await areaTile(pg, 'Hope Village')).click().catch(() => {});
     await pg.waitForTimeout(2500);
     const other = await drawn();
+    await shot(pg, 'whole-towns-5-other-neighborhood');
     const near = (a, b) => Math.abs(a[0] - b[0]) < 1e-7 && Math.abs(a[1] - b[1]) < 1e-7;
     check(!other.dots.some((d) => out.dots.some((w) => near(d, w))), `WT14: dots are drawn for the selected area only (${other.dots.length} dots for Hope Village)`);
   } finally {
