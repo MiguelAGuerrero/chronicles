@@ -8,7 +8,7 @@ import { loadSet, readOf } from './placeFormFixtures';
 
 // The report the owner reads (specs/place-form PF16), written from the spec before the code.
 
-test('PF16: the report names every place, its confirmed word, the rule\'s word and its measures, then each set\'s accuracy and recall', { todo: 'test first' }, () => {
+test('PF16: the report names every place, its confirmed word, the rule\'s word and its measures, then each set\'s accuracy and recall', () => {
   const set = loadSet('Calibration')!;
   const rows: ReportRow[] = set.places.map((p) => {
     const measures = measureRing(readOf(p));
