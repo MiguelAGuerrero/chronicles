@@ -134,6 +134,8 @@ export function MemoriesScreen() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const byId = useMemo(() => new Map(feed.moments.map((m) => [m.id, m])), [feed.moments]);
+  // The owner's threads also show a moment of a walk still open (a reply made mid-walk); the feed never does (RM17).
+  const inThreadById = useMemo(() => new Map([...byId, ...state.inOpenWalk.map((m) => [m.id, m] as const)]), [byId, state.inOpenWalk]);
   const pick = feed.order.length ? feed.order[index % feed.order.length] : null;
   const heroId = pick?.moment.id ?? null;
   // The top card showed this moment: kept, so the next open starts elsewhere (RM8).
@@ -153,7 +155,7 @@ export function MemoriesScreen() {
   // The owner's threads, over the moments Memories knows (OT12): the latest moment first, no rank or count shown.
   const myRows = useMemo(() => {
     const rows = mine.threads.flatMap((t) => {
-      const ms = mine.members.filter((m) => m.thread_id === t.id).map((m) => byId.get(m.moment_id)).filter((m): m is MomentView => !!m);
+      const ms = mine.members.filter((m) => m.thread_id === t.id).map((m) => inThreadById.get(m.moment_id)).filter((m): m is MomentView => !!m);
       if (ms.length < 2) return [];
       const oldest = ms.reduce((o, m) => (m.t < o.t ? m : o));
       const latest = ms.reduce((o, m) => Math.max(o, m.t), 0);
@@ -161,10 +163,10 @@ export function MemoriesScreen() {
       return [{ latest, row: { id: t.id, title: h.title, sub: h.sub, line: ownThreadLine(ms.length, oldest.t, now) } satisfies MyThreadRow }];
     });
     return rows.sort((a, b) => b.latest - a.latest).map((r) => r.row);
-  }, [mine, byId, now]);
+  }, [mine, inThreadById, now]);
   const own = ownId ? mine.threads.find((t) => t.id === ownId) ?? null : null;
-  const ownMoments = own ? mine.members.filter((m) => m.thread_id === own.id).map((m) => byId.get(m.moment_id)).filter((m): m is MomentView => !!m) : [];
-  const ownMenuMoment = ownMenuFor ? byId.get(ownMenuFor) ?? null : null;
+  const ownMoments = own ? mine.members.filter((m) => m.thread_id === own.id).map((m) => inThreadById.get(m.moment_id)).filter((m): m is MomentView => !!m) : [];
+  const ownMenuMoment = ownMenuFor ? inThreadById.get(ownMenuFor) ?? null : null;
   const thread = threadTerm ? feed.threads.find((t) => t.term === threadTerm) ?? null : null;
   // An open thread's moments are on screen: read their context too (MC6).
   const threadIds = thread ? thread.momentIds : NO_IDS;
@@ -267,7 +269,7 @@ export function MemoriesScreen() {
             setOwnId(null);
             threads.deleteThread(own.id);
           }}
-          momentById={(id) => byId.get(id)}
+          momentById={(id) => inThreadById.get(id)}
           suggestion={suggested}
         />
       </ScrollView>

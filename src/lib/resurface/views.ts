@@ -39,6 +39,19 @@ export function toMomentViews(captures: Faced[], walks: Walk[], transcript?: (c:
 }
 
 /**
+ * The moments of a walk still open, which the feed leaves out (RM17) but a thread must show: a reply made during a
+ * walk joins its thread at once, and a thread that cannot show it reads as one that is not there.
+ */
+export function openWalkViews(captures: Faced[], walks: Walk[], transcript?: (c: Faced) => string | null): MomentView[] {
+  const open = new Set(walks.filter((w) => w.open || w.ended_at == null).map((w) => w.id));
+  return toMomentViews(
+    captures.filter((c) => c.walk_id && open.has(c.walk_id)),
+    walks.map((w) => (open.has(w.id) ? { ...w, open: false, ended_at: w.ended_at ?? w.started_at } : w)),
+    transcript,
+  );
+}
+
+/**
  * The small "From ..." line under a card: the walk's own name, else its day and part of the day. No town: the
  * arrival line carries the place, and says none until it is read (audit 3).
  */

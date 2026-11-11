@@ -9,7 +9,7 @@ import { pausedMs } from '../geo';
 import { arrivalLine, previousCapture, streetAt } from './context';
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
-import { toMomentViews, wordsOf } from './views';
+import { openWalkViews, toMomentViews, wordsOf } from './views';
 
 /** Meta: what the user chose (RM21), one JSON value; ids and terms only. */
 export const PREFS_KEY = 'resurface_prefs';
@@ -18,6 +18,8 @@ export interface ResurfaceState {
   status: 'loading' | 'ready' | 'failed';
   /** Every moment of a stopped walk, and loose ones, oldest first. Deletes are applied by the view (RM19). */
   moments: MomentView[];
+  /** Moments of a walk still open: never in the feed (RM17), only here, so an owner's thread can show a reply made mid-walk. */
+  inOpenWalk: MomentView[];
   walks: Record<string, Walk>;
   prefs: Prefs;
   /** Orders equals among the resurfaced; new on every open (RM8). */
@@ -52,7 +54,7 @@ export interface ResurfaceOptions {
  */
 export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceOptions = {}) {
   const extractors = opts.extractors ?? DEFAULT_EXTRACTORS;
-  const store: Store<ResurfaceState> = createStore<ResurfaceState>({ status: 'loading', moments: [], walks: {}, prefs: EMPTY_PREFS, seed: '0', index: 0, lastShownAtOpen: null, context: {}, version: 0 });
+  const store: Store<ResurfaceState> = createStore<ResurfaceState>({ status: 'loading', moments: [], inOpenWalk: [], walks: {}, prefs: EMPTY_PREFS, seed: '0', index: 0, lastShownAtOpen: null, context: {}, version: 0 });
 
   /** The saved choices; damage or nothing reads as none (RM21). */
   async function readPrefs(): Promise<Prefs> {
@@ -120,6 +122,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       store.set((s) => ({
         status: 'ready',
         moments: toMomentViews(captures, walks, opts.transcript),
+        inOpenWalk: openWalkViews(captures, walks, opts.transcript),
         walks: Object.fromEntries(walks.map((w) => [w.id, w])),
         // A choice made while this read was running is newer than what it read (audit 6).
         prefs: choices === choicesThen ? { ...EMPTY_PREFS, ...prefs } : s.prefs,
