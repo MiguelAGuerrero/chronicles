@@ -32,6 +32,6 @@ export function sectionOfSheet(kind: SheetKind, current: Section): Section {
 }
 
 /** The sheet a section opens (SB2): Walks and Days that list, Map the sheet at rest. */
-export function sheetForSection(section: Exclude<Section, 'memories'>): 'summary' | 'walks' | 'days' {
+export function sheetForSection(section: 'walks' | 'days' | 'map'): 'summary' | 'walks' | 'days' {
   return section === 'map' ? 'summary' : section;
 }

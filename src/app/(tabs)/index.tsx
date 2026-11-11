@@ -8,7 +8,7 @@ import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
 import { MediaScreen } from '../../components/gallery/MediaScreen';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
-import { sectionOfSheet, sheetForSection } from '../../lib/resurface/section';
+import { sectionOfSheet, sheetForSection, type Section } from '../../lib/resurface/section';
 import { useStore } from '../../lib/useStore';
 import { CaptureViewer } from '../../components/CaptureView';
 import { HomeSheet, SHEET_PEEK, type SheetMode } from '../../components/HomeSheet';
@@ -69,7 +69,7 @@ const allCaptures = () => db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(fac
  * (which reads their traces) lives in lib/backlog.
  */
 /** A press on the section bar, counted, so a press on the section already selected still reaches the sheet (SB2). */
-type BarPress = { section: 'memories' | 'walks' | 'days' | 'map'; n: number };
+type BarPress = { section: Section; n: number };
 
 function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; press: BarPress }) {
   perfCount('render:home');
@@ -135,7 +135,7 @@ function ChronicleMap({ section, press }: { section: 'walks' | 'days' | 'map'; p
   // A press on the bar while the map is up changes the sheet without a new map (SB2, SB3): adjusted while rendering,
   // as React has a prop change adjust state, never in an effect.
   const [seenPress, setSeenPress] = useState(press.n);
-  if (press.n !== seenPress && press.section !== 'memories') {
+  if (press.n !== seenPress && (press.section === 'walks' || press.section === 'days' || press.section === 'map')) {
     setSeenPress(press.n);
     setSelected(null);
     setSpot(null);
