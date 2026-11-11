@@ -89,4 +89,26 @@ Open: none left from the gate; the plan's three open questions were settled by t
 
 ## Record
 
-Not yet built. See `plan.md`.
+Built Nov 11, 2026, tests first (the todos landed at `2325d61`, the code after). Every criterion has a test that runs in
+`npm test` or the e2e journey `transcripts`:
+
+- **Pure decisions, shells over fakes:** MX1, MX3, MX5, MX6, MX13, MX14, MX17-MX19 (`core.test.ts`, `run.test.ts`,
+  `model.test.ts`), MX11, MX12, MX15, MX27, MX32 (`model.test.ts`), MX4, MX16, MX20, MX30, MX31 (`run.test.ts`,
+  `decoder.test.ts`), MX7, MX24 (`words.test.ts`), MX29 (`engine.test.ts`, `engineContract.ts`), MX28
+  (`engineBoundary.test.ts`, lint), MX22, MX23 (`bundle.test.ts`), MX25-MX27 (`engineWeb.test.ts`).
+- **The Db, over the fake, IndexedDB and SQLite:** MX4, MX18, MX19, MX21 (`dbContract.ts`).
+- **The whole web path in headless Chromium** (`transcripts`, a stub engine and a real browser decode): MX1-MX4, MX8-MX13,
+  MX15-MX17, MX20, MX23, MX27.
+
+What passes here is the logic and the web path with a stub. **Native code has never run on a device:** `whisper.rn`,
+the decode module and the download to the cache directory; nor has the real web engine run in a browser. Each has an
+item in `docs/NATIVE_UNVERIFIED.md`. The two model files are not published yet (`handoff.md`), so nothing downloads.
+
+Deviations from the plan, and why:
+- The web Worker is `public/transcribe-worker.mjs`, plain module JavaScript beside `maplibre-gl-worker.mjs`, not a
+  Metro-bundled TypeScript Worker: Metro has no dependable Worker bundling, and this keeps the engine out of the
+  bundle entirely (MX22). The tests for MX22, MX26 read it. The web model is one zip pack, unpacked into Cache Storage.
+- Search over a memo's words, WebGPU, other languages, a resumable download, a cellular warning and background runs are
+  deferred (`docs/DEFERRED.md`); a stale memo whose new read keeps failing is retried at every run, not twice (MX18 bounds
+  a memo with no words).
+- The audit has not been run (decision 0074: the owner asks).

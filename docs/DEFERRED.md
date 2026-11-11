@@ -284,7 +284,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **Resurfaced moments, round 2** (`specs/resurfaced-moments/spec.md`, Deferred):
   - **Search** and the map as a lens on its results: the next slice, on the same signals.
-  - **Memo transcripts**: the seam is built (`ResurfaceOptions.transcript`, `transcriptExtractor`); the transcriber is not. It needs a native speech module and a development build, so threads read memos only once that exists.
+  - **Memo transcripts**: built (specs/memo-transcripts, decision 0127); a memo's words reach threads and the card through `ResurfaceOptions.transcript`.
   - **Photo and audio features** (what is in a picture): another `SignalExtractor`, no feed change.
   - **Replay this thread**: a thread played as one ceremony. The replay is a view of one walk's story (0086); a thread spans days and places.
   - **Finds and the lows** ("Passed ... without stopping") in the feed: they are derived rows, not captures.
@@ -371,7 +371,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **`applyThreads` does not check that a member's moment still exists** (owner-threads audit 7): the shell checks just before the write; a delete in that one round trip leaves a member row for a moment that is gone, which the screens ignore and the next `deleteMoments` cannot clear. A check inside the transaction is the fix.
 - **A thread cannot be kept quiet from the resurfaced card** (OT23, the owner's call, Nov 6: it resurfaces like any moment, with no thread name). A per-thread "keep quiet" switch is the cheap way to add one if a thread turns out to be one the owner does not want brought back.
 - **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
-- **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
+- **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); a memo's transcript is not searched yet (memo-transcripts, below).
 - **A place-rooted journal**: a thread with no moments, started top-down and rooted in a place. Out of the owner-made threads slice by the owner's call (a thread comes only from connecting moments that have their own time and place). It would be its own feature and goes through `/vision` first.
 - **A failed resume drops the paused reminder** (fix pause-banner audit 2, Nov 9): the error notice replaces the "Paused for N min" one, and `remindedFor` keeps it from coming back, so the walk stays paused with no banner. Predates the fix; low.
 
@@ -443,3 +443,19 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Deferred (audit 5):** outside every town, the nearest town leads and is framed whole on arrival, so the page titled
   "Near you" may open on a town some kilometres off; and when an outline arrives that marks another town as yours, the
   selection and the frame move to it. Framing the selected town is the row's rule (EC5).
+
+- **Memo transcripts** (`specs/memo-transcripts/spec.md`, decision 0127), left out of the first slice:
+  - **Search over a memo's words**: the picker and any search read notes and captions only. The words are stored and
+    `MomentView.words` carries them; the search slice reads them with no change to this one.
+  - **WebGPU on the web**: the engine runs single-threaded WebAssembly. The `jsep` build copied into the export
+    would take WebGPU where a browser offers it; it is not asked for yet, so MX26's "where it is offered" is vacuous.
+  - **Other languages**: English only (the `.en` models); another language is another model and another tag.
+  - **A multithreaded web engine** (a service worker adding COOP and COEP): out; it risks the map tiles and a second
+    service worker beside `public/sw.js`.
+  - **A resumable download** and a **cellular warning**: `File.downloadFileAsync` has no resume that was checked, and no
+    network-type module is installed; the dialog says the size in words.
+  - **Background transcription** (while charging, `expo-task-manager`): iOS gives too little time. A run only happens
+    with the app open.
+  - **A stale memo whose new read fails is tried at every run** (MX18 bounds a memo with no words at two tries a
+    model; one that has an older model's words is left until the next run, and so on). Low: its old words stay shown.
+

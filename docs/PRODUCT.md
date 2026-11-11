@@ -293,7 +293,7 @@ recording, and a recording bar brings a minimized walk back.
     **Forget my choices**.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
-  - Memos show here but join threads only once they have a transcript (not yet).
+  - Memos show here and join threads once the phone has read them (memo transcripts, below).
 - **A note mentions moments** (decision 0125): typing @ in a note (Respond → Note, Edit on a note) picks
   another moment; the viewer draws it as a card of that moment (its picture or kind, date, place and walk) that
   opens it, with Back to the note; elsewhere it reads as words. The moment mentioned says "Mentioned in a note",
@@ -366,6 +366,19 @@ recording, and a recording bar brings a minimized walk back.
   is Close and More (Remind me here and Go here are in More), and what you just
   did to a moment (a reply kept, added to a thread, a reminder set) is said in its
   info line rather than in a pill.
+
+## Memo transcripts (decision 0127)
+
+- A voice memo's words, read on the device by an offline model: a switch in the walk settings, **Transcribe memos on
+  this phone**, off by default. Turning it on says in words what comes down ("about sixty megabytes, once") and asks;
+  only the Download tap fetches it. The model is not in the app: it lives in the cache, is loaded for a run and
+  released after, and can be removed from the same row. Phones and the web.
+- After a memo is kept, and only with the app open and no walk recording, each memo with no words is read, oldest
+  first, quietly: no progress, no count. The words are stored beside the memo, never in place of it, never edited.
+- A memo's words show under it in the viewer and on its card in Memories and in a thread, always with its place and
+  time and the label **Heard by this phone**; they join threads and resurfacing as a note's words do.
+- Where the model is missing (cleared by the system) or the browser cannot run it, the row says so in words, only
+  while the switch is on; memos are untouched.
 
 ## Settings and notifications
 

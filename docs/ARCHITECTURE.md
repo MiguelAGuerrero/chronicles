@@ -74,6 +74,16 @@ Chronicle's Memories (decision 0098)
   resurface/types.ts         MomentView, Signal, SignalExtractor (the extension point), Thread, Prefs, Pick
   resurface/terms.ts         the user's words folded into terms (case, accents, plurals, common words, aliases)
   resurface/extractors.ts    noteExtractor, captionExtractor, transcriptExtractor; signalsOf
+  transcribe/engine.ts       the Engine contract (id, model, offline, inputs, available, load, transcribe, release), registerEngine, firstInput (MX29-MX31)
+  transcribe/core.ts         nextToRead, mayRun, wordsOf, stateLine, roomEnough; every line of copy, the label "Heard by this phone"
+  transcribe/types.ts        ModelFiles, StagedModel, Decoder, RunEnv: the ports an engine's files and audio come through
+  transcribe/model.ts        createModelStore: the switch, the dialog, Download (the only fetch), the hash check, Remove (meta `transcribe_on`)
+  transcribe/run.ts          createTranscriber: a run loads the engine once, reads each memo, stores the words, releases it
+  transcribe/words.ts        createWords: a memo's words by piece id, the seam `ResurfaceOptions.transcript` reads
+  transcribe/decoder.ts      createDecoder (phone: the local module to a temporary WAV); decoder.web.ts createWebDecoder (decodeAudioData, in memory)
+  transcribe/nudge.ts        memoKept(): the capture path tells the transcriber without importing it
+  transcribe/index.ts        the app instance: words, model, transcriber, started at launch (read by the viewer, the seam, the card and thread rows)
+  transcribe/engines/        the adapters and the registry: whisperRn.native.ts, transformersJs.web.ts + worker.web.ts (+ public/transcribe-worker.mjs), modelFiles.{native,web}.ts, decodeBindings.{native,web}.ts, index.{native,web}.ts (the one line that names the engine); the only importers of the libraries (lint, MX28)
   resurface/threads.ts       deriveThreads: a term in three moments on two days; THREAD_RULES
   resurface/pick.ts          resurfaceOrder / pickResurfaced: anniversary, thread, same month, older; seeded
   resurface/feed.ts          compose (deletes applied) and lately (newest first, a thread's moments lead within a week)
@@ -454,6 +464,12 @@ own code only where no Expo module covers the feature on web:
   `modules/chronicles-video-edit`. The web player's video size comes from a
   detached `<video>`'s metadata (`probeVideoSize`): expo-video's web player has
   no video track.
+- **Memo transcripts** (`transcribe/engines/*.web.ts`, `public/transcribe-worker.mjs`, `decoder.web.ts`): transformers.js
+  with an ONNX Whisper model in a Web Worker, the model in Cache Storage, the memo decoded by `decodeAudioData`.
+  No Expo module transcribes on web and `whisper.rn` has no web build; whisper.cpp's WebAssembly needs
+  cross-origin isolation, which GitHub Pages cannot send (as for SQLite), so the engine runs one thread. Its code
+  and WebAssembly are copied into the export by `scripts/copy-engine-assets.js` and served from the app's own
+  origin, never a CDN; the Worker loads them only when told to, and is terminated after each run.
 - **Notifications:** a service worker (`public/sw.js`, through
   `notify/transport.web.ts`). expo-notifications has no web build. Local
   only; scheduled notices are page timers.
@@ -543,8 +559,10 @@ Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
 `explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
 `recall_open`, `day_watched:<key>`.
 
-Migrations: SQLite has 23 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
-18. SQLite 22 (the 23rd entry) and IndexedDB 18 are the moment table (MT1): a
+Migrations: SQLite has 24 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
+19. SQLite 23 (the 24th entry) and IndexedDB 19 add the `transcript` cache by piece id (memo transcripts, MX4): the
+words of a memo, the engine and its tag, `tries`; an index on `moment_id`, and a row goes with its piece, moment or
+walk in the same transaction (`deletePieces`, `deleteMoments`, `deleteWalk`) and follows a split piece. SQLite 22 (the 23rd entry) and IndexedDB 18 are the moment table (MT1): a
 `moment` table beside `capture` with `capture.moment_id` (SQLite; the capture
 table's old walk_id, lat, lon and segment_id are left unread), and on the web a
 `moment` store whose records hold their pieces (indexes `walk_id`, `t`, `lat`,
