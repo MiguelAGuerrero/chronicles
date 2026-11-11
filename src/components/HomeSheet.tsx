@@ -18,6 +18,7 @@ import type { Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
 import { theme } from './ui';
 import { plainNote } from '../lib/refs';
+import { useRefValues } from '../lib/refValues/useRefValues';
 
 /** What the sheet shows: the summary, every walk, one place's walks, every day, or one day's timeline. */
 export type SheetMode =
@@ -477,6 +478,7 @@ function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: stri
 }
 
 function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Faced[]) => void; onMore?: (walkId: string) => void }) {
+  const showValues = useRefValues();
   if (e.kind === 'walk') {
     const n = e.captures.length;
     const line = ['Walk', s ? formatDistance(s.distance_m) : null, `${n} ${n === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');
@@ -504,7 +506,7 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
     );
   }
   const c = e.capture;
-  const what = c.kind === 'text' ? (plainNote(c.body) ?? '') : KIND_LABEL[c.kind];
+  const what = c.kind === 'text' ? (plainNote(c.body, showValues) ?? '') : KIND_LABEL[c.kind];
   return (
     <Pressable
       testID="timeline-moment"

@@ -118,6 +118,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The Android channel's importance is DEFAULT, so the test may not pop up as a banner (Notifications)
 - Unit tests of the web transport, `notify/transport.web.ts`; the e2e drives the real service worker (Notifications)
 
+## Reference keywords (RK1-RK20, decision 0141)
+
+- The "show values" setting reaches the screens that draw a note (the viewer, the day list, the replay's bubbles and steps, the responses); the strings the core modules build (the resurfaced feed's words, Memories rows, a notification) always show the value (RK19)
+- "N minutes in" is built (`timeEntries`) but not offered: the viewer does not know how far into its walk a note is when it edits it (RK16)
+- A new reply resolves from the last fix the app already knows (`lib/lastFix`), not from the capture's own stamp, which the editor cannot reach (RK4, RK15); an edit of a saved note uses the moment's own fix and no stamp
+- Keywords in the capture stack's quick note and in captions (0125's deferral stands); weather and temperature (needs a decision on what the network is for); relative time words that move with when a note is read
+- A search by a reference's value ("notes that say here at the science center"); the value is in the note's text, so a words search finds it, but nothing is built for it
+
 ## Moments and days
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)

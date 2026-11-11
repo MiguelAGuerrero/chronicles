@@ -55,3 +55,22 @@ Open: see "Open" below.
 
 1. **0125's `@`:** the palette sits in front of its picker, so this slice's decision record says it amends 0125 (and RF5, RF6, per RK20) and keeps its "the reference lives in the text" call. Assumed yes.
 2. **Is a nearest-place label "calculated for you"** (vision open question 5)? Read as the owner's own pick from a list shown before it is stored; yes unless you say otherwise.
+
+## Record (Nov 11)
+
+Built on `claude/clever-darwin-ptb8ig`, tests first (`Reference keywords: tests first (RK1-RK20, failing)`), then the code.
+
+- **Built as written:** RK1-RK20, with the notes below.
+- **Unit tests:** `threads/keywords.test.ts` (RK2-RK10, RK12, RK13, RK16-RK18, RK20), `threads/keywordsShell.test.ts` (RK4, RK11, RK14, RK15, RK19).
+- **Journey:** `threads` (RK1, RK2, RK3, RK8, RK9, RK10, RK14, RK18; pictures `79-ref-palette`, `80-ref-resolve`, `81-ref-keyword`).
+- **Code:** `lib/refs.ts` (extended), `lib/refKeywords.ts`, `lib/refPlaces/`, `lib/refValues/`, `components/threads/RefPalette.tsx` and `RefResolve.tsx`, `MomentList` (extracted from `MomentPicker`), `NoteEditor`, `NoteText`, `CaptureView` (the correction), and the readers that pass the setting.
+- **Changed while building:**
+  - A new reply resolves from `getLastFix()`, the last fix the app already knows, not the capture's own stamp, which the editor cannot reach. A saved note takes the moment's own fix and no stamp (RK4, RK15).
+  - RK19's setting reaches the screens that draw a note; the strings core modules build (feed words, Memories rows, a notification) always show the value (`docs/DEFERRED.md`).
+  - RK20's first clause is vacuous in the app: nothing detaches a moment from its walk, and deleting a walk deletes its moments, so a keyword goes only with its moment.
+  - "N minutes in" is built and not offered (the viewer does not know the walk's start).
+  - A time keyword is never corrected from the viewer; a place keyword is.
+  - A spot picked on the map is called "a spot on the map" when the owner gives it no name.
+  - The map pick shows the app's own map, whose tiles come over the network as everywhere; resolution reads only the cache (RK11, the journey's "nothing is sent anywhere but the map tiles").
+- **Decision:** 0141 (amends 0125).
+- **Native unverified:** `docs/NATIVE_UNVERIFIED.md`, "Reference keywords".

@@ -97,6 +97,11 @@ Owner threads (decision 0104)
   threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
   threads/responses.ts       responsesOf (every moment that answers a moment or its responses, from moment_link only), responseRows (the sheet's entries, RT4)
   threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
+  refs.ts                    a note's references as text (core, neutral): `@[id|words]` for a moment, `@{kind|word|value|payload}` for a keyword (decisions 0125, 0141); parse, plain, editor mapping, insert, replaceKeywordValue
+  refKeywords.ts             the palette's entries (core): REF_RULES, placeEntries, timeEntries, resolveTime (the offset is an argument), nearbyPlaces, distanceWords
+  refPlaces/                 the keywords' resolver (shell, over db.placesIn and getSegmentsIn only; a read gives up after 2.5 s); index.ts is the app instance
+  refValues/                 the "show what a reference meant" setting (shell, meta `ref_values`); useRefValues is its hook
+  components/threads/RefPalette.tsx, RefResolve.tsx   the @ palette and the resolution picker (with a map pick), views inside the editor's or viewer's Modal
   threads/useKeyboardHeight(.web).ts  how far the keyboard reaches up: Keyboard events on phones, visualViewport on web (the note editor rises above it)
   threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
   threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook

@@ -22,12 +22,10 @@ function rowOf(v: MomentView, pool: MomentPool, now: number) {
 }
 
 /**
- * A moment picker (moment references RF1, RF7): the one Add to a thread uses, by words, place or date, a page at a
- * time, never the moment itself and nothing waiting in Undo. `only` keeps it to some moments (the notes that mention
- * one). Drawn inside the editor's or the viewer's Modal, never as a second one.
+ * The moment list a picker and the reference palette share (RF1, RK1): search by words, place or date, a page at a time,
+ * every row with its place and date (RK8), never the moment itself and nothing waiting in Undo.
  */
-export function MomentPicker(props: { pool: MomentPool; self: string | null; title: string; only?: string[]; onPick: (v: MomentView) => void; onClose: () => void }) {
-  const insets = useSafeAreaInsets();
+export function MomentList(props: { pool: MomentPool; self: string | null; only?: string[]; onPick: (v: MomentView) => void }) {
   const hidden = useHidden();
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
@@ -41,6 +39,50 @@ export function MomentPicker(props: { pool: MomentPool; self: string | null; tit
   }, [props.pool, props.only, props.self, hidden, query, limit, now]);
   const shown = found.shown.map((i) => props.pool.byId.get(i.id)).filter((v): v is MomentView => !!v);
   return (
+    <>
+      {!props.only && (
+        <TextInput
+          testID="moment-picker-search"
+          value={query}
+          onChangeText={(t) => {
+            setQuery(t);
+            setLimit(PAGE);
+          }}
+          placeholder="Search words, places or dates"
+          placeholderTextColor={theme.muted}
+          accessibilityLabel="Search words, places or dates"
+          style={styles.input}
+        />
+      )}
+      <ScrollView style={styles.list} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
+        {props.pool.ready && shown.length === 0 ? <Text style={styles.sub}>No other moment matches.</Text> : null}
+        {shown.map((v) => {
+          const r = rowOf(v, props.pool, now);
+          return (
+            <Pressable key={v.id} testID="moment-picker-row" accessibilityRole="button" accessibilityLabel={`${r.words}. ${r.context}`} onPress={() => props.onPick(v)} style={styles.row}>
+              <Text style={styles.name} numberOfLines={2}>{r.words}</Text>
+              <Text style={styles.sub} numberOfLines={1}>{r.context}</Text>
+            </Pressable>
+          );
+        })}
+        {found.more ? (
+          <Pressable testID="moment-picker-more" accessibilityRole="button" onPress={() => setLimit((l) => l + PAGE)} style={styles.row}>
+            <Text style={styles.name}>Show more</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+    </>
+  );
+}
+
+/**
+ * A moment picker (moment references RF1, RF7): the one Add to a thread uses, by words, place or date, a page at a
+ * time, never the moment itself and nothing waiting in Undo. `only` keeps it to some moments (the notes that mention
+ * one). Drawn inside the editor's or the viewer's Modal, never as a second one.
+ */
+export function MomentPicker(props: { pool: MomentPool; self: string | null; title: string; only?: string[]; onPick: (v: MomentView) => void; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  return (
     <View style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.card} testID="moment-picker" accessibilityViewIsModal>
         <View style={styles.head}>
@@ -49,37 +91,7 @@ export function MomentPicker(props: { pool: MomentPool; self: string | null; tit
             <Icon name="close" size={22} color={theme.ink} />
           </Pressable>
         </View>
-        {!props.only && (
-          <TextInput
-            testID="moment-picker-search"
-            value={query}
-            onChangeText={(t) => {
-              setQuery(t);
-              setLimit(PAGE);
-            }}
-            placeholder="Search words, places or dates"
-            placeholderTextColor={theme.muted}
-            accessibilityLabel="Search words, places or dates"
-            style={styles.input}
-          />
-        )}
-        <ScrollView style={styles.list} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-          {props.pool.ready && shown.length === 0 ? <Text style={styles.sub}>No other moment matches.</Text> : null}
-          {shown.map((v) => {
-            const r = rowOf(v, props.pool, now);
-            return (
-              <Pressable key={v.id} testID="moment-picker-row" accessibilityRole="button" accessibilityLabel={`${r.words}. ${r.context}`} onPress={() => props.onPick(v)} style={styles.row}>
-                <Text style={styles.name} numberOfLines={2}>{r.words}</Text>
-                <Text style={styles.sub} numberOfLines={1}>{r.context}</Text>
-              </Pressable>
-            );
-          })}
-          {found.more ? (
-            <Pressable testID="moment-picker-more" accessibilityRole="button" onPress={() => setLimit((l) => l + PAGE)} style={styles.row}>
-              <Text style={styles.name}>Show more</Text>
-            </Pressable>
-          ) : null}
-        </ScrollView>
+        <MomentList pool={props.pool} self={props.self} only={props.only} onPick={props.onPick} />
       </View>
     </View>
   );

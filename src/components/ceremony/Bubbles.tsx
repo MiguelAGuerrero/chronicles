@@ -10,6 +10,7 @@ import { cornerHeight, STAGE_BOTTOM, timeOf, type StageCtx } from './layout';
 import { Skeleton } from './Skeleton';
 import { useMediaWait } from './useMediaWait';
 import { plainNote } from '../../lib/refs';
+import { useRefValues } from '../../lib/refValues/useRefValues';
 
 const BARS = 22;
 /** A waveform's bar heights, fixed per memo: a picture of a voice, not a measurement. */
@@ -82,6 +83,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
 }
 
 function Bubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
+  const showValues = useRefValues();
   const shown = o.exit > 0 ? 1 - o.exit : o.enter;
   const memo = o.capture.kind === 'voice';
   return (
@@ -100,11 +102,11 @@ function Bubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
           <Pressable
             testID="replay-note"
             accessibilityRole="button"
-            accessibilityLabel={`Note, ${timeOf(o.capture.t)}: ${plainNote(o.capture.body) ?? ''}`}
+            accessibilityLabel={`Note, ${timeOf(o.capture.t)}: ${plainNote(o.capture.body, showValues) ?? ''}`}
             accessibilityHint="Opens the note"
             onPress={() => ctx.open([o.capture])}
           >
-            <Text style={styles.text} numberOfLines={6}>{plainNote(o.capture.body)}</Text>
+            <Text style={styles.text} numberOfLines={6}>{plainNote(o.capture.body, showValues)}</Text>
             <Text style={styles.when}>{timeOf(o.capture.t)}</Text>
           </Pressable>
         )}

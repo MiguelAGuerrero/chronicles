@@ -29,11 +29,13 @@ import { NoteEditor, type NoteEditorHandle } from './NoteEditor';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
-import { mentioning, plainNote } from '../lib/refs';
+import { mentioning, plainNote, replaceKeywordValue } from '../lib/refs';
+import { useRefValues } from '../lib/refValues/useRefValues';
 import type { MomentView } from '../lib/resurface/types';
 import { useMomentPool } from './threads/useMomentPool';
 import { MomentPicker } from './threads/MomentPicker';
 import { NoteText } from './threads/NoteText';
+import { RefResolve } from './threads/RefResolve';
 import { router } from 'expo-router';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { threads } from '../lib/threads';
@@ -174,11 +176,14 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   onMediaTap?: () => void;
   /** A note's mentions are drawn as cards that open their moments (moment references RF4); else they read as words (RF6). */
   onOpenRef?: (v: MomentView) => void;
+  /** A tap on a keyword reference in a note, by its place among the note's keywords: the viewer corrects it (RK10). */
+  onKeyword?: (index: number) => void;
   /** A moment's responses, named in words at the end of the info line, a button that opens them (response thread RT1). */
   responses?: { text: string; onPress: () => void } | null;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
+  const showValues = useRefValues();
   const uri = useMediaUri(capture);
   const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
@@ -283,7 +288,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
           {capture.kind === 'text' &&
-            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body)}</Text>)}
+            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} onKeyword={props.onKeyword} /> : <Text style={styles.note}>{plainNote(capture.body, showValues)}</Text>)}
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
           )}
@@ -362,6 +367,8 @@ export function CaptureViewer(props: {
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Faced | null>(null);
+  // A keyword reference being corrected (RK10): the note, and which of its keywords.
+  const [correcting, setCorrecting] = useState<{ capture: Faced; index: number } | null>(null);
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
@@ -420,6 +427,22 @@ export function CaptureViewer(props: {
   // the web. A captioned photo is saved with its caption baked in.
   const [baker, bakers] = useBaker();
   const [saveState, setSaveState] = useState<{ id: string; text: string; busy?: boolean; openSettings?: boolean } | null>(null);
+  // A note's new text, shown at once and kept; a failed save puts the old text back and says so (QL24).
+  const saveNoteBody = async (c: Faced, body: string) => {
+    const before = edited.get(c.piece_id);
+    setEdited((m) => new Map(m).set(c.piece_id, body));
+    try {
+      await props.onSaveNote?.(c, body);
+    } catch {
+      setEdited((m) => {
+        const n = new Map(m);
+        if (before == null) n.delete(c.piece_id);
+        else n.set(c.piece_id, before);
+        return n;
+      });
+      setSaveState({ id: c.id, text: 'The note could not be saved' });
+    }
+  };
   useEffect(() => {
     if (!saveState || saveState.busy || saveState.openSettings) return;
     const t = setTimeout(() => setSaveState(null), 3000);
@@ -636,6 +659,7 @@ export function CaptureViewer(props: {
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
+            onKeyword={props.onSaveNote ? (index) => setCorrecting({ capture: current, index }) : undefined}
             responses={responseIds.length && !sheetUp ? { text: responsesWord(responseIds.length), onPress: openResponses } : null}
             nav={
               shownList.length > 1
@@ -784,24 +808,26 @@ export function CaptureViewer(props: {
             ref={noteEditor}
             key={noting.id}
             body={noting.body ?? ''}
-            mention={{ self: noting.id }}
+            // A saved note resolves from its own moment's fix and time, never from where the owner stands now (RK4).
+            mention={{ self: noting.id, fix: { saved: noting.lat != null && noting.lon != null ? [noting.lon, noting.lat] : null, stamp: null }, t: noting.t }}
             onClose={() => setNoting(null)}
-            onSave={async (body) => {
+            onSave={(body) => {
               const c = noting;
               setNoting(null);
-              const before = edited.get(c.piece_id);
-              setEdited((m) => new Map(m).set(c.piece_id, body));
-              try {
-                await props.onSaveNote?.(c, body);
-              } catch {
-                setEdited((m) => {
-                  const n = new Map(m);
-                  if (before == null) n.delete(c.piece_id);
-                  else n.set(c.piece_id, before);
-                  return n;
-                });
-                setSaveState({ id: c.id, text: 'The note could not be saved' });
-              }
+              return saveNoteBody(c, body);
+            }}
+          />
+        )}
+        {correcting && (
+          // A keyword reference's value, corrected from the places near the moment's own fix (RK10, RK18).
+          <RefResolve
+            fix={{ saved: correcting.capture.lat != null && correcting.capture.lon != null ? [correcting.capture.lon, correcting.capture.lat] : null, stamp: null }}
+            title="What did you mean?"
+            onClose={() => setCorrecting(null)}
+            onPick={(r) => {
+              const c = correcting.capture;
+              setCorrecting(null);
+              void saveNoteBody(c, replaceKeywordValue(edited.get(c.piece_id) ?? c.body ?? '', correcting.index, r.value, r.payload));
             }}
           />
         )}

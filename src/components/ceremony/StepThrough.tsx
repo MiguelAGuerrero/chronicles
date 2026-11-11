@@ -9,6 +9,7 @@ import { KIND_LABEL } from '../icons';
 import { theme } from '../ui';
 import { timeOf } from './layout';
 import { plainNote } from '../../lib/refs';
+import { useRefValues } from '../../lib/refValues/useRefValues';
 
 /** Taps this soon after a moment appears are ignored, so a double tap skips nothing. */
 const TAP_GUARD_MS = 600;
@@ -29,6 +30,7 @@ export function StepThrough(props: {
   testID: string;
   topInset: number;
 }) {
+  const showValues = useRefValues();
   const [at, setAt] = useState(() => ({ step: 0, item: 0, shownAt: Date.now() }));
   // A moment deleted while it showed moves on to the next, or ends the steps (audit 18).
   const pos = stepAt(props.steps, at);
@@ -73,7 +75,7 @@ export function StepThrough(props: {
   }, [key]);
   useEffect(() => {
     if (!capture) return;
-    const what = capture.kind === 'text' ? `Note: ${plainNote(capture.body) ?? ''}` : `${KIND_LABEL[capture.kind]}, ${timeOf(capture.t)}`;
+    const what = capture.kind === 'text' ? `Note: ${plainNote(capture.body, showValues) ?? ''}` : `${KIND_LABEL[capture.kind]}, ${timeOf(capture.t)}`;
     AccessibilityInfo.announceForAccessibility(`${what}. ${props.auto ? '' : 'Continue when ready.'}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

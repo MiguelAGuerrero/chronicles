@@ -5,6 +5,8 @@ import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { destLine, type StartMode } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
+import { refValues } from '../lib/refValues';
+import { useRefValues } from '../lib/refValues/useRefValues';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
@@ -45,6 +47,7 @@ export function StartSettings(props: {
   const grouping = useStore(momentPill.store, (st) => st.grouping);
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
   const units = useUnits();
+  const showRefValues = useRefValues();
   return (
     <View testID="start-settings" style={styles.content}>
       <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
@@ -143,6 +146,17 @@ export function StartSettings(props: {
           </Pressable>
         ))}
       </View>
+
+      <View style={styles.rule} />
+      <Text style={styles.title} accessibilityRole="header">Notes</Text>
+      {/* A reference's value in parentheses beside its word, on unless turned off (RK19). */}
+      <SwitchRow
+        testID="ref-values-switch"
+        label="Show what a reference meant"
+        note="here (the science center), beside the word you picked"
+        value={showRefValues}
+        onChange={(on) => void refValues.save(on)}
+      />
     </View>
   );
 }

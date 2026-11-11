@@ -379,6 +379,13 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open a note that mentions a photo, tap its card, then Back. **Expect:** the photo opens in the same viewer with "Back to the note", and Back (the button or Android's back) returns to the note. (RF4)
 - [ ] **Do:** on Android, Edit note on a note (and, separately, Respond → Note), type a few words and @, then press Back with the picker open; press Back again. **Expect:** the first Back closes only the picker, the words and the @ stay; the second closes the editor (`NoteEditor`'s `requestClose`, tend chronicle 1).
 
+## Reference keywords (RK1-RK20, decision 0141)
+
+- [ ] **Do:** on a phone, Respond → Note, type a few words and @; with the keyboard up, choose "tomorrow", then @ again and "over there". **Expect:** the palette opens over the editor inside the viewer (no second Modal), typing is never held up, and the keyword reads as its word and value after an @, going whole on one backspace; the keyboard returns to the field when the palette is dismissed. (RK1, RK2, RK14)
+- [ ] **Do:** with a place cached near you (walk or Explore there first), write a note, type @ and look at "here" and "next to me". **Expect:** each appears only when exactly one place is in range, else "here" names the street or is absent; nothing asks for your location. (RK6, RK13, RK15)
+- [ ] **Do:** in "Over there", Choose on the map, tap a spot, name it, Use this spot. **Expect:** the map opens at the moment's place, the tap marks the spot, the value reads the name and the note keeps the rest of its words (MapLibre RN's press, `ring`, `fitBounds` inside the editor's Modal). (RK10, RK18)
+- [ ] **Do:** open a note with "over there", tap it, pick another place, then turn off "Show what a reference meant" in the ready bar's settings and look at the note and the replay. **Expect:** the word changes its value and nothing else; with the setting off the viewer, the day list and the replay show the word alone. (RK9, RK10, RK19)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.

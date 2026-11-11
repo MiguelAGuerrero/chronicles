@@ -16,6 +16,7 @@ import { chronicleSection } from '../lib/resurface/sectionStore';
 import { openWalkAtLaunch } from '../lib/launchWalk';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
+import { refValues } from '../lib/refValues';
 import { loadUnits } from '../lib/unitsStore';
 import { routeLeanings } from '../lib/routeLeanings';
 
@@ -55,6 +56,7 @@ export default function RootLayout() {
     ensureTileBuild().catch(() => {});
     // The km or miles setting (QL13); until it loads, the locale's default shows.
     loadUnits().catch(() => {});
+    refValues.load().catch(() => {});
     // The scenic routes' leanings (SR1); until they load, all three are on.
     routeLeanings.load().catch(() => {});
     openWalkAtLaunch({

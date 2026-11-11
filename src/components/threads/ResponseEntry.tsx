@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { formatElapsed } from '../../lib/format';
 import { plainNote } from '../../lib/refs';
+import { useRefValues } from '../../lib/refValues/useRefValues';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import { answeringLine, entryLine } from '../../lib/threads/lines';
@@ -26,10 +27,11 @@ export function ResponseEntry(props: {
   onPress: () => void;
 }) {
   const { moment: m, now } = props;
+  const showValues = useRefValues();
   const walk = m.walkId ? props.walks.get(m.walkId) : undefined;
   const line = entryLine({ t: m.t, time: timeOf(m.t), place: m.place, hasFix: m.capture.lat != null, walkLine: fromLine(walk), now });
   const memo = m.kind === 'voice' ? Number(m.capture.body) : NaN;
-  const words = m.kind === 'text' ? plainNote(m.capture.body) : m.words;
+  const words = m.kind === 'text' ? plainNote(m.capture.body, showValues) : m.words;
   const parent = props.answering;
   const answering = parent ? answeringLine({ place: parent.place, t: parent.t, walkLine: fromLine(parent.walkId ? props.walks.get(parent.walkId) : undefined) }, now) : null;
   return (

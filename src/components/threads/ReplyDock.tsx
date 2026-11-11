@@ -1,3 +1,4 @@
+import { getLastFix } from '../../lib/lastFix';
 import { forwardRef, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCaptures } from '../../lib/useCaptures';
@@ -117,7 +118,8 @@ export const ReplyDock = forwardRef<NoteEditorHandle, {
           key={props.answeredId}
           title="Reply"
           body=""
-          mention={{ self: props.answeredId }}
+          // A new reply takes the last fix the app already knows, the one its capture will be stamped with (RK15).
+          mention={{ self: props.answeredId, fix: { saved: null, stamp: getLastFix()?.at ?? null } }}
           onClose={() => props.setStage(null)}
           onSave={(text) => {
             props.setStage(null);
