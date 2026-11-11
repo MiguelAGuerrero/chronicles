@@ -124,8 +124,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T4 [owner] Explore: an area's busy streets are listed busiest first, and its walk starts on "its busiest street"** (2026-11-11)
-  Area: explore. Seen: `src/components/atlas/AtlasCard.tsx:236` ("each busy street once, busiest first") and `:355` ("Starts you at {via}, its busiest street"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best of', rankings of places"; the steward calls it drift, not a breach: decisions 0034, 0080 and 0127 make busy streets information, and no rank number shows. Recommended: list the busy streets by distance from you, and say "Starts you on {via}"; the words "busy streets" stay. /vision: not run as a gate this time; the steward's reading stands in, so the answer is yours. Otherwise: leave it; the order is the information.
 ### Next evolutions
 
 The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.
@@ -145,13 +143,30 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   (`(tabs)/index.tsx`, `HomeSheet`), no native code. Reopens: chronicle (rough). After it: the sheet's switch could be
   reconsidered once the bar is trusted. Instead: hide the sheet's switch while the bar shows (a removal).
 
+- **G2 [M] Explore: "busy" becomes "storefronts", listed nearest first** (2026-11-11) · Earn · aligned
+  Area: explore (and layers, landing, the route leaning). From: T4, reshaped by the owner Nov 11: "busy" implies traffic,
+  which depends on the time of day; the concept is the density of non-residential places you can walk into, for a downtown
+  strip and a small corner pocket alike. The owner chose the word, the order and the reach.
+  Touches: VISION.md Never, "Popularity, trending, foot traffic, other people's activity" (nearest fit "Presence of places
+  from open data") and "rankings of places"; decisions 0034 (information only), 0080, 0127, 0109 (the source stays
+  Overture and OpenStreetMap; only the word changes).
+  The slice: 1. The map layer "Busy streets" is "Storefronts". 2. An area's card says "Storefronts" for its areas and
+  streets, listed nearest you first. 3. The walk line reads "Starts you on {street}", with no superlative. 4. "What's good
+  here?" names the street or pocket where storefronts gather, never "Busiest area". 5. "A busy pocket" becomes a pocket
+  of storefronts. 6. The walk's help line and the route leaning ("Along the busy streets") say storefronts. 7. No line or
+  label for this concept says busy, busiest or most, and none counts storefronts. 8. Walkability's "Streets far apart and
+  busy" (traffic) is unchanged. 9. Decisions 0080 and 0127 and the specs that pin the old words are amended in the slice.
+  Payoff: every visit to Explore, and every route that leans; the word stops promising people the data cannot see.
+  Cost: M, copy across about eight screens and modules plus the specs and tests that pin it, no native code, no data
+  change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
+  say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
+
 ### Last tend
 
-**Nov 11, `/tend inbox T5 yes`** (from `6645d4c`). No build: T5 ("How the marks work" is always open on an area's card) rested on a
-misread picture. The explainer already starts shut and opens only from its own link (`AtlasCard.tsx`, `how` is `false`), and the card
-is keyed by its area and unmounted when closed, so it is shut again on every visit: the recommended shape was already the build. The
-`11c-atlas-card` picture is taken just after the `atlas` journey taps the link, which is what the first explore sweep read as
-"always open". T5 leaves the inbox. T4 (busy streets listed busiest first) waits for the owner's reshaped wording.
+**Nov 11, `/tend inbox T4 reshape`** (from `8e227dd`). No build. The owner reshaped T4 (busy streets listed busiest first)
+in conversation: "busy" implies traffic that depends on the hour, while the concept is the density of non-residential
+places you can walk into, a downtown strip or a corner pocket. Chosen: the word "storefronts", nearest first, everywhere
+the concept shows. Too large for one commit, it is filed as G2 [M] (the gate: aligned, Earn) and T4 leaves the inbox.
 
 ### Open before the loop
 
