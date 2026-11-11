@@ -30,7 +30,7 @@ import { MomentCard } from './MomentCard';
 import { Resurfaced } from './Resurfaced';
 import { ThreadScreen } from './ThreadScreen';
 import { ThreadsRail } from './ThreadsRail';
-import { fromLine } from '../../lib/resurface/views';
+import { closedWalks, fromLine, threadPool } from '../../lib/resurface/views';
 import { threads } from '../../lib/threads';
 import { answeringLine, headingOf, threadLine as ownThreadLine } from '../../lib/threads/lines';
 import { removalDissolves } from '../../lib/threads/rules';
@@ -135,7 +135,8 @@ export function MemoriesScreen() {
 
   const byId = useMemo(() => new Map(feed.moments.map((m) => [m.id, m])), [feed.moments]);
   // The owner's threads also show a moment of a walk still open (a reply made mid-walk); the feed never does (RM17).
-  const inThreadById = useMemo(() => new Map([...byId, ...state.inOpenWalk.map((m) => [m.id, m] as const)]), [byId, state.inOpenWalk]);
+  const inThreadById = useMemo(() => threadPool(state.moments, state.inOpenWalk, deletedIds), [state.moments, state.inOpenWalk, deletedIds]);
+  const threadWalks = useMemo(() => closedWalks(state.walks), [state.walks]);
   const pick = feed.order.length ? feed.order[index % feed.order.length] : null;
   const heroId = pick?.moment.id ?? null;
   // The top card showed this moment: kept, so the next open starts elsewhere (RM8).
@@ -257,7 +258,7 @@ export function MemoriesScreen() {
           thread={own}
           moments={ownMoments}
           links={mine.links}
-          walks={state.walks}
+          walks={threadWalks}
           now={now}
           onBack={() => setOwnId(null)}
           onOpen={open}

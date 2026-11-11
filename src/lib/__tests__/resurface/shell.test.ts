@@ -163,3 +163,13 @@ test('fix thread-in-walk: a moment of a walk still open is held for the threads 
   assert.deepEqual(r.store.get().moments.map((m) => m.id), ['old']);
   assert.deepEqual(r.store.get().inOpenWalk.map((m) => m.id), ['reply']);
 });
+
+test('fix thread-in-walk audit 2: a note edited in the viewer shows at once on a moment held from an open walk', async () => {
+  const p = fakePorts({ now: NOW });
+  await p.db.createWalk({ ...walk, id: 'w2', ended_at: null, open: true });
+  await p.db.addMoment(momentOf(note('reply', at(2026, 3, 2), 'harbor again', 'w2')));
+  const r = createResurface(p);
+  await r.load();
+  r.patch('reply', { body: 'orchard now' });
+  assert.equal(r.store.get().inOpenWalk[0].words, 'orchard now');
+});

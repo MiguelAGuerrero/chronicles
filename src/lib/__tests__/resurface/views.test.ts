@@ -2,7 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fromLine, openWalkViews, toMomentViews, wordsOf } from '../../resurface/views';
+import { closedWalks, fromLine, openWalkViews, threadPool, toMomentViews, wordsOf } from '../../resurface/views';
 import type { Walk } from '../../types';
 
 const cap = (o: Partial<Faced>): Faced => facedOf({ id: 'c', walk_id: null, t: 1, lat: null, lon: null, kind: 'text', file_path: null, body: null, segment_id: null, ...o });
@@ -37,4 +37,17 @@ test('fix thread-in-walk: the moments of a walk still open are kept apart, for a
   const walks = [walk({}), walk({ id: 'open', open: true, ended_at: null })];
   assert.deepEqual(openWalkViews(caps, walks).map((m) => [m.id, m.walkId, m.words]), [['b', 'open', 'a reply']]);
   assert.deepEqual(toMomentViews(caps, walks).map((m) => m.id), ['a'], 'Lately and the feed still leave it out (RM17)');
+});
+
+test('fix thread-in-walk audit 1: a deleted moment, or a deleted open walk, leaves the owner threads at once', () => {
+  const feed = toMomentViews([cap({ id: 'a', walk_id: 'w' })], [walk({})]);
+  const open = openWalkViews([cap({ id: 'r', walk_id: 'open' }), cap({ id: 's', walk_id: 'open' })], [walk({ id: 'open', open: true, ended_at: null })]);
+  assert.deepEqual([...threadPool(feed, open, new Set()).keys()].sort(), ['a', 'r', 's']);
+  assert.deepEqual([...threadPool(feed, open, new Set(['r'])).keys()].sort(), ['a', 's']);
+  assert.deepEqual([...threadPool(feed, open, new Set(['open'])).keys()], ['a']);
+});
+
+test('fix thread-in-walk audit 3: a walk still open is not offered to a card (no replay of a walk being recorded)', () => {
+  const w = closedWalks({ w: walk({}), open: walk({ id: 'open', open: true, ended_at: null }) });
+  assert.deepEqual(Object.keys(w), ['w']);
 });

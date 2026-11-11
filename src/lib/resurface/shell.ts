@@ -241,14 +241,12 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     removeThread: (term: string) => setPrefs(removeThread(store.get().prefs, term)),
     /** A change made in the viewer (a note, a caption, an edit) shows here at once (RM18). */
     patch(id: string, change: CapturePatch): void {
-      store.set((s) => ({
-        ...s,
-        moments: s.moments.map((m) => {
-          if (m.id !== id) return m;
-          const capture = { ...m.capture, ...change } as Faced;
-          return { ...m, capture, words: wordsOf(capture, opts.transcript) };
-        }),
-      }));
+      const patched = (m: MomentView): MomentView => {
+        if (m.id !== id) return m;
+        const capture = { ...m.capture, ...change } as Faced;
+        return { ...m, capture, words: wordsOf(capture, opts.transcript) };
+      };
+      store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
     async saveNote(c: Faced, body: string): Promise<void> {
