@@ -275,7 +275,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [walked, setWalked] = useState<StreetSegment[]>([]);
   // The memo whose save failed at Stop; holding Stop again ends the walk without it.
   const giveUpMemo = useRef(false);
-  const giveUpHeld = useRef(false);
+  // How many held shots Stop has already warned about; a photo held beyond that is warned about too (SA8).
+  const giveUpHeld = useRef(0);
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
@@ -362,7 +363,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // Nothing held any more: a photo that fails later is warned about again at Stop, not ended without (SA8).
   const heldCount = cap.held.length;
   useEffect(() => {
-    if (heldCount === 0) giveUpHeld.current = false;
+    if (heldCount === 0) giveUpHeld.current = 0;
   }, [heldCount]);
   // A walk started or stopped closes the pill (MS4); on a walk, the trace walked counts toward its 100 m.
   const pillWalkId = walk?.id ?? null;
@@ -964,8 +965,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         return;
       }
       // A photo or video still held is said before the walk ends without it (SA8).
-      if (cap.held.length > 0 && !giveUpHeld.current) {
-        giveUpHeld.current = true;
+      if (cap.held.length > giveUpHeld.current) {
+        giveUpHeld.current = cap.held.length;
         setNotice({ message: `${heldLabel(cap.held)} yet. Retry, or hold Stop again to end the walk without it.`, tone: 'error', sticky: true });
         return;
       }

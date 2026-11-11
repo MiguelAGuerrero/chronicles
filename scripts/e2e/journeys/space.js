@@ -117,6 +117,17 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=held-captures]', { timeout: 10000 }).catch(() => {});
   await holdStop();
   check((await warned()) > 0 && /\/walk/.test(pg.url()), `SA8: Stop with a held photo warns first and the walk goes on (${await warned()}, ${pg.url().slice(-12)})`);
+  // tend walk-screen audit 1: a second photo held while the first still is, after the warning, is warned about too.
+  const dismissBanners = () => pg.evaluate(() => document.querySelectorAll('[data-testid=banner-dismiss]').forEach((b) => b.click()));
+  await dismissBanners();
+  await pg.waitForTimeout(2500);
+  await pg.evaluate(() => { window.__failMedia = 1; });
+  await shoot('cap-photo');
+  await pg.waitForFunction(() => /Photos not saved/.test(document.querySelector('[data-testid=held-captures]')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
+  await dismissBanners();
+  await pg.waitForTimeout(300);
+  await holdStop();
+  check(/\/walk/.test(pg.url()) && (await warned()) > 0, `tend walk-screen audit 1: a photo that fails while another is held, after the warning, is warned about too (${await warned()}, ${pg.url().slice(-12)})`);
   await pg.click('[data-testid=held-retry]').catch(() => {});
   await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(2500);
@@ -126,7 +137,7 @@ async function run(h) {
   await pg.evaluate(() => document.querySelectorAll('[data-testid=banner-dismiss]').forEach((b) => b.click()));
   await pg.waitForTimeout(300);
   await holdStop();
-  check(/\/walk/.test(pg.url()) && (await pg.locator('[data-testid=held-captures]').count()) > 0, `tend walk-screen 1: a photo held after the first warning is warned about too; the walk does not end without it (${pg.url().slice(-12)})`);
+  check(/\/walk/.test(pg.url()) && (await warned()) > 0 && (await pg.locator('[data-testid=held-captures]').count()) > 0, `tend walk-screen 1: a photo held after the first warning is warned about too; the walk does not end without it (${pg.url().slice(-12)})`);
   if (/\/walk/.test(pg.url())) {
     await pg.click('[data-testid=held-retry]').catch(() => {});
     await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
