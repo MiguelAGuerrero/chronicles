@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OpenWalkProvider } from '../components/OpenWalk';
+import { SafeInsets } from '../components/SafeInsets';
 import { theme } from '../components/ui';
 import '../components/webStyles';
 import '../components/pwa';
@@ -72,34 +73,37 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      {/* The open walk is kept above the walk screen and the tabs, so a minimized walk keeps its trace,
-          its recording bar and Remind me here going (NV8, NV9). */}
-      <OpenWalkProvider>
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: theme.bg },
-            headerTintColor: theme.ink,
-            headerTitleAlign: 'center',
-            headerShadowVisible: false,
-            contentStyle: { backgroundColor: theme.bg },
-          }}
-        >
-          {/* The three tabs (Chronicle, Explore, Navigate), edge to edge: no header. The walk and the
-              replays sit over them, full screen, so the tab bar is hidden while they are up (NV6). */}
-          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Chronicles' }} />
-          {/* No header: the growing trace says a walk is on. Its way out is Minimize, to the bar above the
-              tabs (NV7), or Stop; a swipe would only minimize it unasked. */}
-          {/* One walk screen at most, however it is reached (tabs audit 1). */}
-          <Stack.Screen name="walk" dangerouslySingular options={{ headerShown: false, gestureEnabled: false }} />
-          <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-          {/* The day's replay (M10): moments and walks in time order. */}
-          <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-          {/* The old Chronicle path, sent on to / (HC5). */}
-          <Stack.Screen name="chronicle" options={{ headerShown: false }} />
-        </Stack>
-        {covered && <View testID="launch-cover" style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg }]} />}
-      </OpenWalkProvider>
+      {/* On the web, the insets are env()'s alone: the library's are wrong while iOS is pinch-zoomed (fix memories-weird-state). */}
+      <SafeInsets>
+        <StatusBar style="dark" />
+        {/* The open walk is kept above the walk screen and the tabs, so a minimized walk keeps its trace,
+            its recording bar and Remind me here going (NV8, NV9). */}
+        <OpenWalkProvider>
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: theme.bg },
+              headerTintColor: theme.ink,
+              headerTitleAlign: 'center',
+              headerShadowVisible: false,
+              contentStyle: { backgroundColor: theme.bg },
+            }}
+          >
+            {/* The three tabs (Chronicle, Explore, Navigate), edge to edge: no header. The walk and the
+                replays sit over them, full screen, so the tab bar is hidden while they are up (NV6). */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Chronicles' }} />
+            {/* No header: the growing trace says a walk is on. Its way out is Minimize, to the bar above the
+                tabs (NV7), or Stop; a swipe would only minimize it unasked. */}
+            {/* One walk screen at most, however it is reached (tabs audit 1). */}
+            <Stack.Screen name="walk" dangerouslySingular options={{ headerShown: false, gestureEnabled: false }} />
+            <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+            {/* The day's replay (M10): moments and walks in time order. */}
+            <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+            {/* The old Chronicle path, sent on to / (HC5). */}
+            <Stack.Screen name="chronicle" options={{ headerShown: false }} />
+          </Stack>
+          {covered && <View testID="launch-cover" style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg }]} />}
+        </OpenWalkProvider>
+      </SafeInsets>
     </SafeAreaProvider>
   );
 }

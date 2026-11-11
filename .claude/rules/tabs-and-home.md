@@ -47,6 +47,13 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   the browser's first fix, up to 10 s, which is how long Explore used to show.
   Each wait is capped at 3 s, so a stuck read never leaves the app covered.
   The reload e2e opens `/` with a walk open and samples every frame (HC2: no frame of Chronicle).
+- **The web's safe-area insets are `env()`'s alone** (`components/SafeInsets.web.tsx`, fix
+  memories-weird-state, the owner's iPhone on Memories, Nov 11). The library's web provider clamps them
+  against `window.innerWidth/innerHeight`, the visual viewport on iOS Safari: a resize while a photo was
+  pinch-zoomed made the bottom and right insets half the screen, so the tab bar ballooned
+  (`paddingHorizontal: max(left, right)` squeezed its three tabs into one point) and Memories' list shrank
+  to nothing until a reload. Never read `useSafeAreaInsets` from above `SafeInsets` in the root layout.
+  The tabs journey replays it by halving `innerWidth/innerHeight` and firing a resize.
 - **e2e:** `url` opens Chronicle's Memories; `exploreUrl` (`${url}explore`) opens the
   scenarios that begin on Explore, and `navUrl` (`${url}navigate`) those on Navigate.
 
