@@ -22,7 +22,7 @@ The owner's calls, Nov 11:
 - **Phone-only findings are filed, never shipped:** the loop verifies in a browser, and native code has never run
   on a device.
 - **The inbox is "Needs the owner"**, one numbered entry per finding with a recommended shape already through
-  `/vision`, so the owner's answer can be a yes or a no. A no is remembered (`.claude/skills/tend/ledger.md`).
+  `/vision`, so the owner's answer can be a yes or a no. A no is remembered (`.claude/skills/tend/ledger.json`).
 - **`docs/DEFERRED.md` is tagged** `[loop]`, `[owner]`, `[arch]`, `[phone]` or `[kept]` by `/tend triage`.
 
 ## Why

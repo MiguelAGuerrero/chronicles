@@ -11,15 +11,16 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent, Skill, AskUserQuestio
 
 The owner shapes the product; this loop finds what they did not think to look
 for. Typing `/tend` is the owner's go-ahead to push this run's **loop**
-findings to `main` (decision 0128), under the same terms as `/fix` (decision
-0081): no force push, no rewritten history, no skipped or loosened test, a red
-deploy reverted. It grants nothing for an addition: those wait in the inbox.
+findings to `main` (decision 0128), on the terms in `.claude/skills/ship.md`: no
+force push, no rewritten history, no skipped or loosened test, a red deploy
+reverted. It grants nothing for an addition: those wait in the inbox. The
+map of the skills this one routes through is `.claude/skills/README.md`.
 
 Echo the resolved mode, scope and flags in your first line.
 
 | Argument | The run |
 |---|---|
-| none | the area whose files changed most on `main` since it was last tended (`ledger.md` beside this file) |
+| none | the area whose files changed most on `main` since it was last tended (`.claude/skills/tend/ledger.json`) |
 | an area or feature (`scripts/features.js`, `.claude/rules/`) | that scope only |
 | `triage` | section 6 only: tag `docs/DEFERRED.md` |
 | `evolve [<area>]` | sections 8 and 9 only: the balance, then proposals for that area, or for the app if none is named |
@@ -88,40 +89,42 @@ missing feature into a "gap": restraint is part of the product
 One line per finding, in the report and nowhere else until it ships or is filed:
 `N. [loop|owner|architecture|phone] <title>: <evidence>; <source>; <the change>`.
 
-- Drop what `ledger.md` lists as declined, and what the inbox or
+- Drop what the ledger lists under `declined`, and what the inbox or
   `docs/DEFERRED.md` already holds (tag it there instead).
 - Order the loop findings by severity, then by how many screens share the cause.
 - A finding without a source is opinion: class **owner**, marked so.
 
 ## 4. Ship the loop findings
 
-Follow `.claude/skills/fix/SKILL.md` (read it; the Skill tool cannot run it),
-with these differences:
+The shared steps are in `.claude/skills/ship.md`; name them by heading.
 
-- **One worktree for the run**, `tend/<scope>` from `origin/main` (its section 0).
-- **One commit per finding**, each with its failing-first regression test
-  (`tend <scope> N`) or journey step, and a message that names the finding, its
-  source and its test. No finding shares a commit; none rides along untested.
-- **Tests:** `scoped`; `e2e` for storage, the recorder, the walk screen and the
-  replay, and for any change to what a screen shows (its journey, with a
-  before and after picture kept for the report).
-- **Review:** `self` per commit. Before the push, one `auditor` pass over the
-  run's whole diff; accepted findings are fixed first, as in `/fix` section 5.
-- Its section 2 hard stops hold. A hard stop reclassifies the finding; it
-  never ends the run.
-- **Push once**, at the end (or at `--cap`): `git fetch origin main`, rebase,
-  re-run `npm run check:affected` and `npm test`, then
-  `git push origin tend/<scope>:main`. Watch the one Pages run.
-- **Red run:** find the commit that owns the failure, `git revert` it alone,
-  push, confirm green, and file the finding as `[owner]` with the log's cause.
-  Never leave `main` red; never revert a commit that is not this run's.
-- Clean up as its section 9.
+1. **One worktree for the run**, `tend/<scope>` ("Open the worktree").
+2. **One commit per finding.** Reproduce it first as a failing regression test
+   (`tend <scope> N`, in the feature's folder under `src/lib/__tests__/`) or a
+   journey step, then the smallest change that removes its cause; no
+   refactors beside it. The message names the finding and its test, and
+   carries a line `Source: <the rule it conforms to, quoted or cited>`. No
+   finding shares a commit; none rides along untested.
+3. **Checks per commit:** `npm run check:affected`. For storage, the
+   recorder, the walk screen, the replay, and any change to what a screen
+   shows: `npm test` and the journey that covers it, once, with a before and
+   after picture kept for the report.
+4. **A "Hard stop"** reclassifies the finding as `[arch]` or `[owner]` and
+   drops the half-made change; it never ends the run.
+5. **Before the push:** `npm run check:tend -- origin/main..HEAD` (every loop
+   commit has its test and its source), `npm run typecheck && npm run lint &&
+   npm test`, then "Review": one `auditor` pass over the run's whole diff,
+   one round, tests named `tend <scope> audit N`.
+6. **"Publish to main"**, once, at the end or at `--cap`. On a red run the
+   commit that owns the failure is reverted alone and its finding filed as
+   `[owner]` with the log's cause.
+7. **"Clean up".**
 
 ## 5. File the rest
 
 **The inbox** is `docs/STATUS.md`, "Needs the owner", under "From /tend". One
 entry per finding, numbered on from the last `T` number ever used
-(`ledger.md` holds it), written so a yes or no is enough:
+(the ledger's `lastT`), written so a yes or no is enough:
 
 ```
 - **T12 [owner] Threads: no way back to the moment a reply answers** (2026-11-11)
@@ -130,7 +133,7 @@ entry per finding, numbered on from the last `T` number ever used
   Otherwise: <the next shape>, or leave it.
 ```
 
-Run `/vision` on each `[owner]` entry first; an **out** is not filed at all
+Run `/vision` on each `[owner]` entry first (it returns its block and asks nothing); an **out** is not filed at all
 (say so in the report, with the rule), and a reshaping is filed in its
 reshaped form. `[phone]` entries carry **Do** and **Expect** instead of a
 recommendation. Findings that are real but not worth the owner's time now go
@@ -159,13 +162,19 @@ place. Commit as docs only; nothing else ships in a triage run.
 
 ## 7. Act on the owner's answers (`/tend inbox …`)
 
-- **Yes** to a small addition (inside `/fix`'s size limits): build it as
+- **Yes** to a small addition (inside the "Hard stops" size): build it as
   section 4, one commit, its entry removed from the inbox.
-- **Yes** to more than that, or to a `G` entry: it is a slice. Write its line under "Queued" in
-  `docs/STATUS.md` with the approved shape and stop; `/slice` builds it.
+- **Yes** to a `G` entry, or to an addition larger than that: one slice, and
+  the whole of this run (decision 0130). Run the `slice` skill with
+  `<slug> --from=G<n>` (or `--from=T<n>`): the entry's criteria and verdict
+  are its start, the plan is written and reviewed by the steward but not
+  held for the owner, and it publishes by `.claude/skills/ship.md`. It stops
+  only on a hard stop or a steward finding that changes the approved shape;
+  put that question to the owner. Several yeses are built one run each, in
+  the order given; say which wait.
 - **Reshape:** rewrite the entry as told and build that.
-- **No:** remove the entry and add one line to `ledger.md`, "Declined", with
-  the date and the owner's reason, so no sweep proposes it again. A no that
+- **No:** remove the entry and add an item to the ledger's `declined` (the
+  entry's title, the date, the owner's reason), so no sweep proposes it again. A no that
   states a rule ("never a count there") is a decision record too.
 - An answer that changes `docs/VISION.md` is the owner's edit; propose the
   wording and leave the page.
@@ -175,7 +184,8 @@ place. Commit as docs only; nothing else ships in a triage run.
 Every run that ships or sweeps ends with this check, before the close. It is
 for the owner and the ledger; none of it ever appears in the app.
 
-**Each area has a state**, kept in `ledger.md` and moved only by a sweep:
+**Each area has a state**, kept in the ledger's `areas` and moved only by a sweep
+(or to `rough` by a slice landing):
 
 | State | It means | What the loop does there |
 |---|---|---|
@@ -184,15 +194,17 @@ for the owner and the ledger; none of it ever appears in the app.
 | `polished` | A whole sweep (every lens run) shipped nothing above low, its screens all have journeys, and its inbox is empty | **Owes an evolution:** section 9, in the same run |
 | `resting` | Polished, and the owner said no to its evolutions for now (the ledger says until when or what) | Left alone; a slice landing there makes it rough again |
 
-**Then read the last 14 days of `main`** (`git log --since='14 days ago' --format='%h %s' origin/main`)
-and sort each commit by its subject: **growth** (a slice's criteria, a new
-spec), **refinement** (`fix`, `tend`, an audit, a revert), **other** (docs,
-tooling). Write the three shares and the areas by state in the ledger's
-"Balance" line, and judge:
+**Then run `npm run tend:balance -- --write`** (`scripts/tend.js`). It sorts
+the last 14 days of `origin/main` by commit subject into **growth** (a
+slice's criteria), **refinement** (`fix`, `tend`, an audit, a revert) and
+**other**, counts the areas by state, the open `T` and `G` entries and the
+rows in flight in `docs/STATUS.md`, and writes its reading to the ledger.
+The reading is the script's; the two signs it cannot see (a red `main` in
+the window, a slice whose area was never swept) are yours to add:
 
 | Sign | Reading | The run ends by |
 |---|---|---|
-| No growth commit in 14 days, or nothing under "Queued" in `docs/STATUS.md` and no open `G` entry | **Settling.** Polish is outrunning the product. | Running section 9 for the app (not only this area) and saying so first in the report |
+| No growth commit in 14 days, or nothing in flight in `docs/STATUS.md` and no open `G` entry | **Settling.** Polish is outrunning the product. | Running section 9 for the app (not only this area) and saying so first in the report |
 | More than three `rough` areas, or more than ten unanswered inbox entries, or a red `main` in the window | **Outgrowing its base.** | Filing no new `G` entry; the report names the areas to tend and the entries to answer first |
 | A slice shipped and its area has not been swept since | **Unpaid polish.** | Naming that area as the next `/tend` |
 | Otherwise | **In step.** | Section 9 only if this area is polished |
@@ -264,8 +276,9 @@ The owner picks; the loop never starts a `G` entry unasked.
 
 ## 10. Close the run
 
-1. `ledger.md`: the scope's row (date, `main`'s head after the push, its
-   state), the Balance line, the last `T` and `G` numbers, any declined lines.
+1. The ledger: the scope's entry in `areas` (`state`, `swept`, `main` after
+   the push, a note), `lastT` and `lastG`, anything declined. Keep it valid
+   JSON and change only those fields; the balance is written by the script.
 2. `docs/STATUS.md`, "Last tend": replace it with this run's digest (scope,
    commits with one line each, entries filed, the balance in a sentence, what
    was not looked at). Git holds the earlier ones.

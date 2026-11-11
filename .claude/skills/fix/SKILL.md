@@ -17,7 +17,7 @@ force push, or any "Hard stops" below.
 
 **Do not stop to ask before pushing.** Running `/fix` is the authorization for
 every push this skill describes: the fix branch, `main` (the default), and a
-revert on a red run. The general rule against pushing without being asked is
+revert on a red run (the shared steps are in `.claude/skills/ship.md`; the map of the skills is `.claude/skills/README.md`). The general rule against pushing without being asked is
 satisfied by the owner having typed `/fix`. The only reasons to stop short of
 the push are the "Hard stops", a failed gate, open accepted findings, a
 rebase conflict, or `--deploy=branch|none`; say which one if you stop.
@@ -54,32 +54,8 @@ raise the level to `e2e`. An explicit `--tests` always wins.
 
 ## 0. Open the worktree
 
-1. `git worktree prune`, then `git worktree list`. Report any other `fix/*`
-   worktree you find (a dead run's leftover); do not remove it.
-2. Create the worktree and its branch `fix/<short-name>` from `origin/main`
-   with `EnterWorktree`, or `git worktree add .claude/worktrees/fix-<short-name>
-   -b fix/<short-name> origin/main`. Never work in the primary checkout and
-   never on `main`.
-3. Note the worktree path and branch: they are the only things this run may
-   remove at the end.
-4. A new worktree has no `node_modules`, and the Stop hook skips the typecheck
-   without one. Give it a real directory, never a symlink: Metro bakes a
-   symlinked package's absolute path into the web build's asset URLs
-   (`/chronicles/assets/______home/...`), so the icon font and the map's
-   assets 404 and the e2e fails in ways that look like the app's bugs (the
-   walker never shows, a long press reads "1995.8 km away"; fix ios-video,
-   Nov 5). Either:
-   - `cp -al <primary>/node_modules node_modules`: a hard-linked copy, about
-     a second, no extra disk. Only when the branch's `package-lock.json`
-     matches what the primary checkout installed
-     (`git diff --quiet <primary's HEAD> -- package-lock.json`); or
-   - `npm ci`: about 20 s, always right, and the only choice when the lock differs.
-
-   It is gitignored; never commit it.
-
-   A new worktree also lacks the map's worker file (`public/maplibre-gl-worker.mjs`, copied by `npm ci`'s postinstall and gitignored):
-   without it the web map never loads and the e2e dies at `window.__project is not a function`. Run
-   `node scripts/copy-maplibre-worker.js` in the worktree.
+Follow `.claude/skills/ship.md`, "Open the worktree", with the branch
+`fix/<short-name>`. Never work in the primary checkout and never on `main`.
 
 ## 1. Understand and reproduce
 
@@ -94,13 +70,10 @@ raise the level to `e2e`. An explicit `--tests` always wins.
 ## 2. Size check - hard stops
 
 Stop before editing, report, and ask with AskUserQuestion (recommended option
-first) when the fix needs any of:
+first) on any of the "Hard stops" in `.claude/skills/ship.md` (architecture, a
+derivation rule, data off the device, more than about 8 files or a new
+feature's worth of behaviour: that is `/slice`), and on:
 
-- a new dependency, a data-model or migration change, a navigation-flow change,
-  a platform-strategy change (the AGENTS.md "ask before architectural decisions");
-- a change to derivation rules (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`);
-- more than about 8 files or a new feature's worth of behaviour: use `/slice`;
-- anything that sends data off the device;
 - a fix that adds a control or changes what a screen shows or says, when `/vision`
   on it says **out** or **aligned if reshaped** and the issue asked for the
   unreshaped version (decision 0094). Run `/vision` on any such fix first; a
@@ -131,17 +104,13 @@ do not keep trying variations.
 - `self`: re-read your own diff against the covering rule files and the
   AGENTS.md invariants (truth vs cache, raw fixes, nothing is a score, local
   only); run `/simplify` on it.
-- `adversarial`: spawn the `auditor` subagent. It has no spec for a fix, so
-  give it the issue, the root cause, the diff and the rule files, and ask it to
-  break the fix: inputs that still fail, neighbours the change could regress,
-  the web/native split. Triage each finding accept, defer or reject with a
-  reason (as `/audit` does); an accepted one gets a regression test named
-  `fix <name> audit N` before its fix. Architectural findings are a hard stop.
+- `adversarial`: `.claude/skills/ship.md`, "Review". The auditor has no spec
+  for a fix, so give it the issue, the root cause, the diff and the rule
+  files. Regression tests are named `fix <name> audit N`; the round limit is
+  `--loops`.
 
-Each round is: review, fix what was accepted, re-run the level's verify. Stop
-at `--loops` rounds or at the first round with no new accepted finding. If the
-cap is reached with accepted findings still open, do not deploy: push the
-branch so the owner can look, and list the open findings in the report.
+If the limit is reached with accepted findings still open, do not deploy: push
+the branch so the owner can look, and list the open findings in the report.
 
 ## 6. Docs
 
@@ -164,61 +133,16 @@ branch so the owner can look, and list the open findings in the report.
 
 ## 8. Deploy to main (the default)
 
-Follow `/deploy` steps 1-3 without asking again, with these limits:
-
-- the worktree has only this fix's changes;
-- `git fetch origin main`; if `main` moved, rebase the branch, re-run the
-  level's verify, and only then continue; on a conflict, stop and keep the branch;
-- `main` is checked out elsewhere, so publish with
-  `git push origin fix/<short-name>:main` (a fast-forward; no force, no history
-  rewrite, no empty commits), once;
-- watch the Pages run with the GitHub MCP tools until it completes.
-
-Then:
-
-- Green run: load https://miguelaguerrero.github.io/chronicles/ (Playwright is
-  installed) and check the fix's visible effect. If the page cannot be reached
-  from the session, say the live check was not done.
-- Red run: one fix-forward attempt following `/deploy` section 4, only when
-  the log names a cause the fix plainly owns. Otherwise, or if that run is also
-  red, or the live site is broken: `git revert` the fix commit in the worktree,
-  push it to `main` the same way (the revert is covered by the grant), and
-  confirm the Pages run for the revert is green. Never leave `main` red, and
-  never revert past the commit before yours.
-- After a revert, diagnose: reproduce the failure locally with the same
-  command as the job, name the cause, and put a corrected fix on a new branch
-  `fix/<short-name>-retry` with the failing check passing. Push that branch,
-  not `main`; the grant is spent. Report the cause, the branch, and what you
-  would change.
+`.claude/skills/ship.md`, "Publish to main", from `fix/<short-name>`, without
+asking again: the rebase, the one fast-forward push, the Pages run, the live
+check of the fix's visible effect, and on a red run one fix-forward at most,
+else the revert and a diagnosis on `fix/<short-name>-retry`.
 
 ## 9. Clean up the worktree
 
-Every run ends here, whatever happened. Remove only the worktree and branches
-this run created (section 0).
-
-1. Look first: `git -C <worktree> status --short` and
-   `git -C <worktree> log --oneline origin/main..HEAD`.
-2. Anything unpushed or uncommitted that is worth keeping: save it as a patch
-   (`git -C <worktree> diff HEAD > <scratchpad>/fix-<short-name>.patch`, plus
-   `git format-patch` for commits) before removing, and name the patch in the
-   report. Never remove a worktree holding work that is neither pushed nor saved.
-3. Leave the worktree directory first (`ExitWorktree`, or `cd` to the primary
-   checkout), then `git worktree remove <path>`. Use `--force` only after step 2
-   saved what mattered (removing a hard-linked or `npm ci` copy of
-   `node_modules` does not touch the primary's).
-4. By outcome:
-
-| Outcome | Local branch | Remote branch |
-|---|---|---|
-| Pushed with `--deploy=branch` (or deployed work parked by an open finding) | delete (it lives on the remote; `git fetch origin fix/<name>` brings it back) | keep: it is what the owner reviews |
-| Deployed, Pages green, live check done | delete | delete (`git push origin --delete fix/<name>`): it is merged and carries nothing |
-| Reverted, diagnosis pushed | delete | keep `fix/<name>-retry`; delete `fix/<name>` |
-| Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
-| `--deploy=none` | delete after the patch is saved | none |
-
-5. `git worktree prune`, then `git worktree list` to confirm nothing of this
-   run remains, and `git branch --list 'fix/*'` the same. If a removal failed,
-   say what is left and its path.
+Every run ends with `.claude/skills/ship.md`, "Clean up", whatever happened.
+`--deploy=branch` is "pushed for review"; `--deploy=none` is "nothing pushed
+by choice".
 
 ## Report
 
@@ -228,3 +152,4 @@ pushed (and how to resume it) or the commit, Pages run and live check if
 deployed; any patch saved; what cleanup removed and what it kept; anything
 deferred or unverified on native. State plainly what was not run because of the
 chosen level.
+End with the result block (`.claude/skills/ship.md`).

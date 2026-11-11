@@ -8,7 +8,9 @@ allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__a
 
 # Deploy
 
-`/fix` (decision 0081) runs steps 1-3 itself from its worktree; typing it is the owner's go-ahead.
+`/fix` (decision 0081), `/tend` (0128) and a slice built from an approved proposal (0130) publish from a
+worktree by `.claude/skills/ship.md`, "Publish to main", which holds to this file's preconditions and its
+sections 3 and 4; typing those commands is the owner's go-ahead. Everything else reaches `main` here.
 
 A push to `main` runs `.github/workflows/pages.yml`: `npm ci`, `check:docs`,
 typecheck, `npm test`, lint, `expo export --platform web` with `CHRONICLES_BASE_URL=/chronicles`
