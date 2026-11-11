@@ -152,11 +152,10 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 12. [loop] A reference picked at the end of a note can take it past 500 characters: `insertRef` has no length check and what is saved is `fromEditor(...)`, so `noteText`'s cut never reaches it (QL24, QL25; `/tend chronicle`, Nov 11, low)
-13. [loop] The arrow keys in a note being edited also step the stacked moment behind the editor (`CaptureView.tsx`, MS10's keydown has no guard for an open editor or a field; `/tend chronicle`, Nov 11, low)
-14. [loop] The open walks list sorts and groups every walk (`byMonth`, two `toLocaleDateString` per row) on each 0.05 zoom step of the map behind it; unmeasured (`HomeSheet`; `/tend chronicle`, Nov 11, low)
-15. [loop] A figure breaks from its unit or noun at a line's end: "589 / m" in a place's header, "1 / video" in a walks row (pictures `09-home-place`, `10-home-walks`). A no-break space inside each figure fixes it, but `walkRowMeta`'s test pins the plain space, so it waits for that test to be restated (ui-patterns, "content must not be lost"; `/tend chronicle`, Nov 11, medium)
-16. [owner] Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first (NN/g H4; A1; `/tend chronicle`, Nov 11, low)
-17. [owner] One walk, described three ways: a walks row says date, distance, time and kinds; a day's timeline "Walk · distance · N moments"; the card's More "More for this walk", the row's "More for <title>" (NN/g H4; `/tend chronicle`, Nov 11, low)
+13. [loop] The open walks list sorts and groups every walk (`byMonth`, two `toLocaleDateString` per row) on each 0.05 zoom step of the map behind it; unmeasured (`HomeSheet`; `/tend chronicle`, Nov 11, low)
+14. [loop] A figure breaks from its unit or noun at a line's end: "589 / m" in a place's header, "1 / video" in a walks row (pictures `09-home-place`, `10-home-walks`). A no-break space inside each figure fixes it, but `walkRowMeta`'s test pins the plain space, so it waits for that test to be restated (ui-patterns, "content must not be lost"; `/tend chronicle`, Nov 11, medium)
+15. [owner] Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first (NN/g H4; A1; `/tend chronicle`, Nov 11, low)
+16. [owner] One walk, described three ways: a walks row says date, distance, time and kinds; a day's timeline "Walk · distance · N moments"; the card's More "More for this walk", the row's "More for <title>" (NN/g H4; `/tend chronicle`, Nov 11, low)
 
 ## Town outlines (TO1-TO12, decision 0083)
 

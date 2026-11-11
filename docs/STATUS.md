@@ -161,8 +161,10 @@ Escape steps out of Rename, not out of the menu too; `5` the title's Next goes o
 replay's name); `6` the More menu and Rename editor are pictured in `qol`; `7` `qol` covers `WalkActions` and
 `NoteEditor`; `8` the sheet's Walks and Days are 44 px. Filed: T1 (a kept suggested title freezes), T2 (Rename's
 "while the feeling is fresh"), T3 [arch] (the section bar and the sheet's switch disagree); `docs/DEFERRED.md`
-Quality of life 12-17 and a map item. The balance: in step, no evolution proposed; chronicle is rough (medium
+Quality of life 12-16 and a map item. The balance: in step, no evolution proposed; chronicle is rough (medium
 findings found). Lenses not whole: lens 2 did not picture 320 px, 200% text, offline or an interrupted rename.
+The review (one round): audit 2 fixed (an Escape during the menu's fade-in), audit 1 rejected (an arrow key typed in a
+field never reaches the viewer: react-native-web's TextInput stops keydown), and with it a deferred item it rested on.
 Nothing here has run on a phone.
 
 ### Open before the loop
