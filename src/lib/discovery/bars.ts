@@ -1,29 +1,22 @@
 // @layer core
-import { notableName } from './noise';
+import { classDef } from '../presence/presence';
 import type { CategoryId, Kind, Place } from './types';
 
 /*
  * Presence and kinds (PK1-PK3, PK8-PK10, decision 0127): which presence bars a place lights, and which places a route
- * passes rather than goes into. Kinds are the switches; the bars are a grouping over them, and a place may light two.
+ * passes rather than goes into. Kinds are the switches; the bars are a grouping over presence's classes (specs/presence-readers).
  */
 
-/**
- * presence-and-kinds audit 5: a name word that says the place itself is historic. "Old" in a neighbourhood's name (Old
- * Town, Old City) or in "old and new" says nothing of the place, so those phrases are read past.
- */
-const historicName = (name: string): boolean =>
-  notableName(name.replace(/\bold\s+(town|city|quarter|village)\b/gi, ' ').replace(/\bold\s+(and|&)\s+new\b/gi, ' '));
+const HISTORY = classDef('historic').category!;
 
 /**
- * PK1-PK3: the bars a place lights: its own category, plus History for a museum or gallery the data already calls
- * historic: an archive class that says so (`alsoBars`, the archive's museum) or a word from `notable.json` in its name.
- * A plain museum stays in Culture alone, so History and Culture are not one bar twice (PK5).
+ * PK1-PK3, PS2, PS11: the bars a place lights, read from its classes: its own category, and History beside it only from the
+ * class `historic` (a museum the archive records, or whose name says historic, `presence.named`). A plain museum stays in
+ * Culture alone, so History and Culture are not one bar twice (PK5). A place without classes (a row read before them) lights
+ * its category alone.
  */
-export function barsOf(p: Pick<Place, 'category' | 'name'> & Partial<Pick<Place, 'kind' | 'alsoBars'>>): CategoryId[] {
-  const out: CategoryId[] = [p.category];
-  const historic = p.kind === 'museums' && (p.alsoBars?.includes('history') || historicName(p.name));
-  for (const b of [...(p.alsoBars ?? []), ...(historic ? (['history'] as const) : [])]) if (!out.includes(b)) out.push(b);
-  return out;
+export function barsOf(p: Pick<Place, 'category'> & Partial<Pick<Place, 'classes'>>): CategoryId[] {
+  return p.classes?.includes('historic') && p.category !== HISTORY ? [p.category, HISTORY] : [p.category];
 }
 
 /** PK9: the kinds a walk passes and sees from the street; museums, theatres and community spaces are gone into instead. */

@@ -1,5 +1,6 @@
 // @layer core
 import { isMarkable } from '../discovery/noise';
+import { classesOfLandcover } from '../presence/presence';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, projector, type Bounds } from '../geo';
 import type { RoadFeature } from '../streets';
@@ -40,13 +41,10 @@ export interface Signals {
   busy: BusyLine[];
 }
 
-/** OpenMapTiles' landcover classes that count as green (SR15): parks and gardens, and woods. */
+/** SR15, PS4: what is green, from presence's reading of a landcover feature: parks and gardens, and woods. */
 function greenKind(props: Record<string, unknown> | null): GreenArea['kind'] | null {
-  const cls = String(props?.class ?? '');
-  const sub = String(props?.subclass ?? '');
-  if (cls === 'wood') return 'wood';
-  if (cls === 'grass' && (sub === 'park' || sub === 'garden')) return 'park';
-  return null;
+  const c = classesOfLandcover(props);
+  return c.includes('woodland') ? 'wood' : c.includes('park') ? 'park' : null;
 }
 
 const inRings = (p: LngLat, rings: LngLat[][]): boolean => {

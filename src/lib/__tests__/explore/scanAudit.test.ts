@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { placeFromRow, placeToRow } from '../../db/placeRow';
-import { isChain, isMarkable, notableName } from '../../discovery/noise';
+import { isChain, isMarkable } from '../../discovery/noise';
+import { notableName } from '../../presence/notable';
 import { placeKey } from '../../discovery/places';
 import type { CategoryId, Place } from '../../discovery/types';
 import { LANDING_VERSION, nearAreas, sweepCovered, type LandingRow } from '../../landing/view';

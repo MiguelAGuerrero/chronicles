@@ -15,9 +15,10 @@ export const LANDING_CODE = 'l4';
 export const LANDING_VERSION = `${LANDING_CODE}:${PRESENCE_CODE}:${JSON.stringify(LANDING_RULES)}`;
 /**
  * Versions whose rows stand under the current one (presence audit 1): presence p1 moved density's table and changed no
- * weight, so a row from just before it reads the same. Empty it when a weight or a landing rule changes.
+ * weight, so a row from just before it reads the same; p2 read the archive, names and greens and changed no weight either
+ * (specs/presence-readers PS9). Empty it when a weight or a landing rule changes.
  */
-const LANDING_CARRIED: readonly string[] = [`${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`];
+const LANDING_CARRIED: readonly string[] = [`${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`, `${LANDING_CODE}:p1:${JSON.stringify(LANDING_RULES)}`];
 /** Whether a row's rules are the current ones, or carried by them. */
 export const rulesCurrent = (rules: string): boolean => rules === LANDING_VERSION || LANDING_CARRIED.includes(rules);
 

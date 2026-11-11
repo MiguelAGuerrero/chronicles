@@ -8,7 +8,7 @@ folder (README aside), run the test, and change the app where it fails.
 
 **What the app reads into a class beyond its name** (revisit each when taking a new version):
 
-- `museum` lights History as well as Culture (Presence and kinds, PK1, PK19; `ARCHIVE_ALSO` in
-  `discovery/archivePois.ts`): under contract v2 a museum enters only through its listing (chronicles-data's
+- `museum` lights History as well as Culture (Presence and kinds, PK1, PK19; presence's archive table makes every
+  archive place `recorded`, and `named` makes a recorded museum `historic`, `presence/presence.ts`): under contract v2 a museum enters only through its listing (chronicles-data's
   `listing()`, RD8). If a new version lets a museum enter another way (an OpenStreetMap tag, the owner's edits), PK1's
   rule is decided again with the owner.

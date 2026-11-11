@@ -39,7 +39,7 @@ function libFiles(): string[] {
   return out;
 }
 
-test('PS1: the archive\'s classes map into presence; archivePois.ts holds no category or kind of its own', { todo: 'test first' }, async () => {
+test('PS1: the archive\'s classes map into presence; archivePois.ts holds no category or kind of its own', async () => {
   const p = await presence();
   const { ARCHIVE_CLASSES } = await import('../../discovery/archivePois');
   assert.equal(typeof p.classesOfArchive, 'function', 'presence holds the archive\'s table');
@@ -52,7 +52,7 @@ test('PS1: the archive\'s classes map into presence; archivePois.ts holds no cat
   for (const w of [...CATEGORY_IDS, ...KIND_IDS]) assert.ok(!quoted(text, w), `archivePois.ts spells "${w}"`);
 });
 
-test('PS2: a place carries its classes; a museum the data calls historic is museum and historic, and lights Culture and History', { todo: 'test first' }, async () => {
+test('PS2: a place carries its classes; a museum the data calls historic is museum and historic, and lights Culture and History', async () => {
   const { placesFromArchive } = await import('../../discovery/archivePois');
   const { placesFromTilePois } = await import('../../discovery/tilePois');
   const { barsOf } = await import('../../discovery/bars');
@@ -70,7 +70,7 @@ test('PS2: a place carries its classes; a museum the data calls historic is muse
   for (const f of ['discovery/bars.ts', 'discovery/types.ts', 'discovery/archivePois.ts', 'atlas/atlas.ts']) assert.ok(!src(f).includes('alsoBars'), `${f} still names alsoBars`);
 });
 
-test('PS3: one word list and one name rule, for marks and bars alike; only the museum step reads past a neighbourhood', { todo: 'test first' }, async () => {
+test('PS3: one word list and one name rule, for marks and bars alike; only the museum step reads past a neighbourhood', async () => {
   const p = await presence();
   assert.ok(existsSync(join(lib, 'presence/notable.json')) && !existsSync(join(lib, 'discovery/notable.json')), 'the word list lives in presence');
   const { notableName } = (await import('../../presence/notable' as string)) as { notableName: (n: string) => boolean };
@@ -84,7 +84,7 @@ test('PS3: one word list and one name rule, for marks and bars alike; only the m
   assert.ok(p.named(['museum', 'recorded'], 'Kiln Museum').includes('historic'), 'the archive records it');
 });
 
-test('PS4: scenic greens read presence classes from landcover, not raw tags', { todo: 'test first' }, async () => {
+test('PS4: scenic greens read presence classes from landcover, not raw tags', async () => {
   const p = await presence();
   assert.equal(typeof p.classesOfLandcover, 'function');
   const text = src('nav/scenicSignals.ts');
@@ -97,7 +97,7 @@ test('PS4: scenic greens read presence classes from landcover, not raw tags', { 
   }
 });
 
-test('PS5: the planner reads classes and curation\'s one counting rule, with no list of categories of its own', { todo: 'test first' }, async () => {
+test('PS5: the planner reads classes and curation\'s one counting rule, with no list of categories of its own', async () => {
   const text = src('walkPlanner/service.ts');
   assert.ok(!/MARK_KINDS|new Set<CategoryId>|CategoryId\[\] = \[/.test(text), 'the planner holds a list of categories');
   assert.ok(text.includes('countsToward'), 'the planner counts by curation\'s rule');
@@ -110,7 +110,7 @@ test('PS5: the planner reads classes and curation\'s one counting rule, with no 
   assert.ok(r.routes.length > 0, `map museums with a historic name light History for the planner: ${r.reasons.join(', ')}`);
 });
 
-test('PS6: a plain-named memorial is a mark where the archive records it, from the map only by a notable name; one place where both hold it', { todo: 'test first' }, async () => {
+test('PS6: a plain-named memorial is a mark where the archive records it, from the map only by a notable name; one place where both hold it', async () => {
   const { placesFromArchive } = await import('../../discovery/archivePois');
   const { placesFromTilePois } = await import('../../discovery/tilePois');
   const { mergePlaces } = await import('../../discovery/archiveMerge');
@@ -126,14 +126,15 @@ test('PS6: a plain-named memorial is a mark where the archive records it, from t
   assert.equal(merged[0].markable, true, 'the archive\'s');
 });
 
-test('PS7: PR2\'s guard holds with no exception: no module outside presence spells a source\'s class', { todo: 'test first' }, () => {
+test('PS7: PR2\'s guard holds with no exception: no module outside presence spells a source\'s class', () => {
   const words = [
     // OpenMapTiles poi classes and Overture roots (presence audit 2's list).
     'restaurant', 'fast_food', 'art_gallery', 'theme_park', 'dog_park', 'picnic_site', 'town_hall', 'community_centre', 'nature_reserve',
     'place_of_worship', 'ice_cream', 'alcohol_shop', 'clothing_store', 'department_store', 'arts_and_entertainment', 'cultural_and_historic',
     'lifestyle_services', 'services_and_business', 'food_and_drink', 'memorial', 'cemetery', 'museum',
-    // The places archive's own classes (contract v2) and OpenMapTiles' landcover.
-    'folly', 'novelty_building', 'roadside_giant', 'natural_oddity', 'odd_engineering', 'marks_a_fact', 'art_environment', 'ruin', 'statue', 'marker',
+    // The places archive's own classes (contract v2; not `marker` or `statue`, which are other modules' plain words) and
+    // OpenMapTiles' landcover.
+    'folly', 'novelty_building', 'roadside_giant', 'natural_oddity', 'odd_engineering', 'marks_a_fact', 'art_environment', 'ruin',
     'mural', 'sculpture', 'overlook', 'historic_site', 'building_structure', 'grass',
   ];
   const spells = (text: string, w: string) => new RegExp(`(['"]${w}['"]|\\b${w}:)`).test(text);
@@ -146,7 +147,7 @@ test('PS7: PR2\'s guard holds with no exception: no module outside presence spel
   assert.ok(!/ALLOWED: Record<string, \(w: string\) => boolean> = \{\s*'/.test(readFileSync(join(__dirname, 'presenceAudit.test.ts'), 'utf8')), 'presence audit 2 allows nothing');
 });
 
-test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change', { todo: 'test first' }, async () => {
+test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change', async () => {
   const { placesFromArchive } = await import('../../discovery/archivePois');
   const { placesFromTilePois } = await import('../../discovery/tilePois');
   const { barsOf } = await import('../../discovery/bars');
@@ -181,7 +182,7 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
     assert.equal(placesFromTilePois([pt({ class: cls, subclass: sub, name })], 'b')[0]?.markable, true, name);
 });
 
-test('PS9: the presence code moves on; atlas and landing rows from the last code stand', { todo: 'test first' }, async () => {
+test('PS9: the presence code moves on; atlas and landing rows from the last code stand', async () => {
   const { PRESENCE_CODE } = await import('../../presence/presence');
   const { ATLAS_CODE, rowCurrent } = await import('../../atlas/atlas');
   const { LANDING_CODE, rulesCurrent } = await import('../../landing/view');
@@ -192,7 +193,7 @@ test('PS9: the presence code moves on; atlas and landing rows from the last code
   assert.equal(rulesCurrent(`${LANDING_CODE}:p1:${JSON.stringify(LANDING_RULES)}`), true, 'a p1 landing row stands');
 });
 
-test('PS10: recorded, historic_name and historic weigh nothing, and no consumer sorts or ranks by them', { todo: 'test first' }, async () => {
+test('PS10: recorded, historic_name and historic weigh nothing, and no consumer sorts or ranks by them', async () => {
   const p = await presence();
   for (const c of ['recorded', 'historic_name', 'historic']) {
     assert.ok(c in p.CLASSES, `${c} is a class`);
@@ -203,7 +204,7 @@ test('PS10: recorded, historic_name and historic weigh nothing, and no consumer 
   for (const f of readers) assert.ok(!/\.sort\(|rank/i.test(src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')), `${f} sorts or ranks`);
 });
 
-test('PS11: a place lights a second bar only from historic', { todo: 'test first' }, async () => {
+test('PS11: a place lights a second bar only from historic', async () => {
   const { barsOf } = await import('../../discovery/bars');
   const b = barsOf as unknown as (p: { category: string; classes?: string[] }) => string[];
   assert.deepEqual(b({ category: 'culture', classes: ['museum', 'park'] }), ['culture'], 'another categorised class lights nothing beside');

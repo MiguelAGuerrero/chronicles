@@ -1,5 +1,5 @@
 {
-  "_note": "Words that mark a place of worship, a civic building, a cemetery or a library as historic or notable (S20). Matched as whole words or phrases after normalizeBrand. Data, not code: edit freely. Generic words that also name neighbourhoods (mission, heritage, landmark, colonial, capitol) are left out (audit).",
+  "_note": "Words that mark a place's name as historic or notable (S20; presence's historic_name, specs/presence-readers PS3): read by marks for places of worship, civic buildings, cemeteries, community spaces, memorials and reserves, and by a museum's History. Matched as whole words or phrases after normalizeBrand. Data, not code: edit freely. Generic words that also name neighbourhoods (mission, heritage, landmark, colonial, capitol) are left out (audit).",
   "words": [
     "old",
     "historic",

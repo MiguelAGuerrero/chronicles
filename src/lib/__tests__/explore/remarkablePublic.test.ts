@@ -53,7 +53,11 @@ test('RP11: no copy names a listing; an archive place carries its name, class an
   const listing = said.filter((s) => /\b(National Register|listed building|listed place|heritage[- ]listed|landmark|NRHP)\b/i.test(s));
   assert.deepEqual(listing, [], 'no screen names a listing or a register');
   const p = archivePlace('Bethlehem Silk Mill', 'building_structure', [-75.37, 40.61], 'v1')!;
-  assert.deepEqual(Object.keys(p).sort(), ['at', 'build', 'category', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing about a listing on the place');
+  // specs/presence-readers: presence's classes (never stored): the type and `recorded`, which every archive place carries
+  // alike, listed or not, so they say nothing about a listing.
+  assert.deepEqual(Object.keys(p).sort(), ['at', 'build', 'category', 'classes', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing about a listing on the place');
+  assert.deepEqual(p.classes, ['structure', 'recorded']);
+  assert.deepEqual(archivePlace('Bushkill Folly', 'folly', [-75.37, 40.61], 'v1')!.classes!.slice(1), p.classes!.slice(1), 'a curiosity is recorded alike');
   assert.equal(p.kind, 'structures');
 });
 
