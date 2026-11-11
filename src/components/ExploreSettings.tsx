@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { kindSwitch } from '../lib/discovery/refinements';
 import { EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
 import { Icon, type IconName } from './icons';
 import { SwitchRow } from './SwitchRow';
@@ -15,9 +16,11 @@ export const walkNote = (m: number) => {
 export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {
   return (
     <>
-      {KINDS.map((k) => (
-        <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={!hidden.has(k.id)} onChange={(v) => onToggle(k.id, v)} />
-      ))}
+      {KINDS.map((k) => {
+        // PC23: a subset reads off and cannot be switched on while its parent is off.
+        const sw = kindSwitch(hidden, k.id);
+        return <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={sw.on} disabled={sw.locked} onChange={(v) => onToggle(k.id, v)} />;
+      })}
     </>
   );
 }

@@ -56,10 +56,10 @@ const item = (name: string, at: LngLat, kind: Kind = 'museums', area_key = 'A'):
 
 // ——— Kinds (E16) ———
 
-test('E16, PW4, RP8, PK11: eleven kinds, in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds)', () => {
+test('E16, PW4, RP8, PK11, PC6: twelve kinds, in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds, Community parks with Community parks)', () => {
   assert.deepEqual(
     KINDS.map((k) => k.id),
-    ['public_art', 'museums', 'theatres', 'community', 'monuments', 'structures', 'churches', 'cemeteries', 'parks', 'viewpoints', 'curiosities'],
+    ['public_art', 'museums', 'theatres', 'community', 'monuments', 'structures', 'churches', 'cemeteries', 'parks', 'community_parks', 'viewpoints', 'curiosities'],
   );
 });
 

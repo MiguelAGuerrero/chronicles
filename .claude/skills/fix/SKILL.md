@@ -105,7 +105,7 @@ do not keep trying variations.
   AGENTS.md invariants (truth vs cache, raw fixes, nothing is a score, local
   only); run `/simplify` on it.
 - `adversarial`: `.claude/skills/ship.md`, "Review", which adds the screenshots and the `ux-reviewer`
-  whenever the fix changes a screen (decision 0143). The auditor has no spec
+  whenever the fix changes a screen (decision 0145). The auditor has no spec
   for a fix, so give it the issue, the root cause, the diff and the rule
   files. Regression tests are named `fix <name> audit N`; the round limit is
   `--loops`.

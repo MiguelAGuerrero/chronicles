@@ -33,7 +33,12 @@ async function run(h) {
         const p = at(-0.5 + k * 0.05, -0.5);
         await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
         await pg.waitForTimeout(1000);
-        if (firstMark === null && (await marksNow()) > 0) firstMark = (await buzzes()).length;
+        if (firstMark === null && (await marksNow()) > 0) {
+          // A double-tap is two vibrations about 150 ms apart: counted at the instant the "?" is first seen, a poll that lands between
+          // them reads 1. Let the pair finish; the pair, its gap and its once-a-walk limit are checked below.
+          await pg.waitForTimeout(600);
+          firstMark = (await buzzes()).length;
+        }
       }
       return firstMark;
     };

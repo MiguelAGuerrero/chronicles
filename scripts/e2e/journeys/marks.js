@@ -95,6 +95,29 @@ async function run(h) {
       await shot(pg, 'marks-what-im-into');
       check(!!th && !!cm && !!mo && cm.y > th.y && mo.y > cm.y && cOn === 'true' && /Community spaces/.test(cLabel),
         `PK11: "What I'm into" lists Community spaces after Theatres and before Monuments and memorials, on by default (${JSON.stringify({ th: th?.y, at: cm?.y, mo: mo?.y, on: cOn, label: cLabel })})`);
+      // PC6 (Community parks): the kind sits right after Parks and gardens, on by default, with its own label.
+      await pg.locator('[data-testid=kind-community_parks]').scrollIntoViewIfNeeded().catch(() => {});
+      const pk = await pg.locator('[data-testid=kind-parks]').boundingBox().catch(() => null);
+      const cp = await pg.locator('[data-testid=kind-community_parks]').boundingBox().catch(() => null);
+      const vw = await pg.locator('[data-testid=kind-viewpoints]').boundingBox().catch(() => null);
+      const cpOn = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-checked').catch(() => null);
+      const cpLabel = await pg.locator('[data-testid=kind-community_parks]').innerText().catch(() => '');
+      check(!!pk && !!cp && !!vw && cp.y > pk.y && vw.y > cp.y && cpOn === 'true' && /Community parks/.test(cpLabel),
+        `PC6: "What I'm into" lists Community parks after Parks and gardens and before Viewpoints, on by default (${JSON.stringify({ pk: pk?.y, at: cp?.y, vw: vw?.y, on: cpOn, label: cpLabel })})`);
+      // PC23: with Parks off, the Community parks row reads off and is locked; switched back on, it follows its own switch.
+      await pg.click('[data-testid=kind-parks]');
+      await pg.waitForTimeout(400);
+      const lockedOff = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-checked').catch(() => null);
+      const locked = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-disabled').catch(() => null);
+      await pg.click('[data-testid=kind-community_parks]').catch(() => {});
+      await pg.waitForTimeout(300);
+      const stillOff = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-checked').catch(() => null);
+      await pg.click('[data-testid=kind-parks]');
+      await pg.waitForTimeout(400);
+      const backOn = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-checked').catch(() => null);
+      const unlocked = await pg.locator('[data-testid=kind-community_parks]').getAttribute('aria-disabled').catch(() => null);
+      check(lockedOff === 'false' && locked === 'true' && stillOff === 'false' && backOn === 'true' && unlocked !== 'true',
+        `PC23: with Parks off the Community parks row reads off and cannot be switched on; with Parks on it follows its own (${JSON.stringify({ lockedOff, locked, stillOff, backOn, unlocked })})`);
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
     }

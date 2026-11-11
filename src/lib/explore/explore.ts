@@ -5,6 +5,7 @@ import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
+import { isKindHidden } from '../discovery/refinements';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
@@ -63,6 +64,8 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
+  // PC6: a subset of Parks the reader can switch off; the rest stay. Named only here and on a found place (PC16).
+  { id: 'community_parks', label: 'Community parks', icon: 'people-outline' },
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
@@ -321,7 +324,7 @@ export function visibleMarks(o: {
       out.push({ item, state: 'found' });
       continue;
     }
-    if (!o.here || o.hidden.has(item.kind)) continue;
+    if (!o.here || isKindHidden(o.hidden, item.kind)) continue;
     const d = distanceM(o.here, item.at);
     if (d <= o.rangeM) near.push({ item, d });
   }
@@ -380,7 +383,7 @@ export function routeMarks(o: {
   for (let i = 1; i < pts.length; i++) starts.push(starts[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   const hits: { item: ChecklistItem; along: number }[] = [];
   for (const item of o.items) {
-    if (o.exclude.has(item.key) || o.found.has(item.key) || o.hidden.has(item.kind)) continue;
+    if (o.exclude.has(item.key) || o.found.has(item.key) || isKindHidden(o.hidden, item.kind)) continue;
     const p = proj(item.at);
     let best = Infinity;
     let along = 0;
@@ -482,7 +485,7 @@ export function foundList(names: string[]): string | null {
  * named by a fix after exploring began, not found on this walk.
  */
 export function passedPlaces(o: { items: ChecklistItem[]; fixes: { at: LngLat; t: number }[]; since: number; hidden: Set<Kind>; foundHere: Set<string> }): ChecklistItem[] {
-  const shown = o.items.filter((i) => !o.hidden.has(i.kind));
+  const shown = o.items.filter((i) => !isKindHidden(o.hidden, i.kind));
   const named = revealedKeys(shown, o.fixes.filter((f) => f.t >= o.since).map((f) => f.at));
   const seen = new Set<string>();
   return shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key));

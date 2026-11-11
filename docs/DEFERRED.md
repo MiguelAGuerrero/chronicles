@@ -577,3 +577,13 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] A change to `app.json` or `app.config.js` alone selects no test in `check:affected` (`scripts/affected.js` `HARNESS`), so `tabs/oneBundle.test.ts` runs only in the full `npm test`, which CI runs before every deploy (auditor, low)
 - [kept] A page opened before this fix still runs the split build: its next first visit to a screen after the deploy shows "Loading module … failed" once, and Try again can't mend it; reopen the app (in the Home Screen app, close it from the app switcher). `ScreenError` offers no page reload for it: the owner chose one bundle over reloading (auditor, low)
 - [owner] Pages serves `index.html` with `cache-control: max-age=600`, so for ten minutes after a deploy a reload may get the old page, which names the old bundle. That is harmless while the browser also holds the old bundle in its cache, and a blank page if it doesn't. Not reproduced (auditor's opinion; header checked live, Nov 11)
+
+## Community parks (PC1-PC17, decision 0143)
+
+- **The real Allentown park's tiles** are not recorded as a fixture: `tiles.openfreemap.org` is blocked from cloud sessions. The cases are synthetic (PC14); a script (like `scripts/fixture-town-hoods.mjs`) that records one park's tiles (never a walk) from a machine that reaches them would hold "Franklin Memorial Park" and a plain playground.
+- **The planner and scenic routes do not read "What I'm into"**, for any kind; a community park counts as a park there. Making them honour the switches is a change of its own.
+- **Colouring green spaces on the map** from the park outlines (the owner's next idea) is its own slice and its own gate; the Green bar still counts park places, not area.
+- **Subsets for other categories and a parent switch** over a group of kinds (the owner: parks only now).
+- **A checklist built before keeps `parks`** until its area is read again; a park is shown, never hidden, meanwhile.
+- **Trails** (named paths inside a park) as a signal of a notable park.
+
