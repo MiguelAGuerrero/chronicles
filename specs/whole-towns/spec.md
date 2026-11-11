@@ -12,7 +12,7 @@ Touches: Never, "Scores, streaks, completion, coverage" and decision 0031 ("disc
 Verdict: aligned
 Shape: as asked. The card's "Waiting to be found" stays one per kind; the map's "?" are unnamed positions; nothing on the page or the card counts places or neighborhoods.
 Criteria: WT8, WT9, WT10, WT11, WT12, WT14.
-Open: none (the owner's four answers, and the answer to the steward's S1, Nov 11; decision 0127).
+Open: none (the owner's four answers, and the answer to the steward's S1, Nov 11; decision 0128).
 
 ## What it is
 
@@ -52,7 +52,7 @@ What was already whole: a town's card counts places across its whole border (TP1
 
 - The explore atlas's AT2 (`specs/explore-atlas/spec.md`): a town's own neighborhoods were "within its reach (capped at 5 km), at most 24"; with a border they are those inside it (WT1), the reach and cap staying for a town without one (WT3).
 - The carousel's EC3 (`specs/explore-carousel/spec.md`): "not capped beyond what the atlas lists today" now lists a town's whole border.
-- **Fix area-marks** (`.claude/rules/explore-and-discovery.md`): one "?" per kind gives way to every place, as "?" or dot (WT7, WT12); the finds named over the map are gone (WT10, decision 0127).
+- **Fix area-marks** (`.claude/rules/explore-and-discovery.md`): one "?" per kind gives way to every place, as "?" or dot (WT7, WT12); the finds named over the map are gone (WT10, decision 0128).
 
 ## Routes and data
 
@@ -69,7 +69,7 @@ What was already whole: a town's card counts places across its whole border (TP1
 ## Audit (Nov 11, at the owner's request)
 
 The auditor (1-13), the steward (14-15) and the UX reviewer (16-23), with the journey's six pictures
-(`whole-towns-0` to `-5`). The owner's calls on 14, 17/18, 4/16 and 7 (AskUserQuestion, Nov 11; decision 0127).
+(`whole-towns-0` to `-5`). The owner's calls on 14, 17/18, 4/16 and 7 (AskUserQuestion, Nov 11; decision 0128).
 
 1. A neighborhood past the z10 tile edge of the town's point drops off (the border is clipped to the tile read): accept, the border is read across the tiles its clipped edges touch.
 2. A dot's tap reach is ~10 px at whole-town zoom (`pressRadiusM` caps at 150 m): accept, the dot's reach is 44 px at the settled zoom.
@@ -95,4 +95,4 @@ The auditor (1-13), the steward (14-15) and the UX reviewer (16-23), with the jo
 22. Three kinds of small circle (U7, opinion): reject, the dots' dark outline and the walker's ring keep them apart; the owner kept kind colours.
 23. The back pill covers the scale bar; a shape under Locate (U8): defer, it predates the slice.
 
-**Audit record (Nov 11):** 23 findings: 16 fixed (14 whole, 10 and 21 in part), 2 deferred (19, 23; and 21's 48 dp), 5 rejected (11, 12, 17, 20, 22; and 10's "7th Ward"). Regression tests, each failing on `8b48aab` and passing after: `whole-towns audit 1`, `2`, `3`, `4`, `7`, `8`, `9`, `10`, `13`, `14`, `15`, `18` in `src/lib/__tests__/explore/wholeTownsAudit.test.ts`; `whole-towns audit 4`, `5`, `6`, `14` in the `carousel` journey's `wholeTowns`. Finding 16 is held by audit 4's tests, 21's part by audit 4's. `TO9` now pins `AREA_RULES` 4. The owner's calls in this audit (14, 18, 4, 7) are in decision 0127.
+**Audit record (Nov 11):** 23 findings: 16 fixed (14 whole, 10 and 21 in part), 2 deferred (19, 23; and 21's 48 dp), 5 rejected (11, 12, 17, 20, 22; and 10's "7th Ward"). Regression tests, each failing on `8b48aab` and passing after: `whole-towns audit 1`, `2`, `3`, `4`, `7`, `8`, `9`, `10`, `13`, `14`, `15`, `18` in `src/lib/__tests__/explore/wholeTownsAudit.test.ts`; `whole-towns audit 4`, `5`, `6`, `14` in the `carousel` journey's `wholeTowns`. Finding 16 is held by audit 4's tests, 21's part by audit 4's. `TO9` now pins `AREA_RULES` 4. The owner's calls in this audit (14, 18, 4, 7) are in decision 0128.

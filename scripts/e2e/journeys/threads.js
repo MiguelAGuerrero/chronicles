@@ -53,6 +53,13 @@ async function run(h) {
     await pg.locator(`[data-testid=moment-card]:has-text("${text}") [data-testid=moment-open]`).first().click();
     await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
   };
+  // In the owner's thread a note is a bubble read in place (fix thread-log); More's "Open the moment" opens the viewer.
+  const bubble = (text) => `[data-testid=own-thread] [data-testid=note-bubble]:has-text("${text}")`;
+  const openInThread = async (text) => {
+    await pg.locator(`${bubble(text)} [data-testid=moment-more]`).first().click();
+    await pg.click('[data-testid=thread-menu-open]');
+    await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
+  };
   const meta = async () => (await pg.locator('[data-testid=capture-meta]').first().innerText()).replace(/[^\x20-\x7e]/g, '').trim();
   const replyNote = async (text) => {
     await pg.click('[data-testid=viewer-respond]');
@@ -182,10 +189,27 @@ async function run(h) {
   await row.first().click();
   await pg.waitForSelector('[data-testid=own-thread]');
   check((await pg.locator('[data-testid=own-thread] [data-testid=thread-mark-made]').count()) === 1, 'OT25: the thread\'s own screen carries the made mark');
-  const order = await pg.locator('[data-testid=own-thread] [data-testid=moment-card]').allInnerTexts();
+  const order = await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]').allInnerTexts();
   check(order.length === 3 && /pier/.test(order[0]) && /Same again/.test(order[1]) && /bakery/.test(order[2])
     && (await pg.locator('[data-testid=own-thread-reply]').count()) === 1 && /^answering /.test(await pg.locator('[data-testid=own-thread-answering]').innerText()),
     `OT9, OT4: oldest first, the reply under the moment it answers, saying so (${order.map((t) => t.slice(0, 18)).join(' | ')})`);
+  // fix thread-log: notes read in place as bubbles with their time; a tap on the words opens nothing.
+  check((await pg.locator('[data-testid=own-thread] [data-testid=moment-card]').count()) === 0
+    && (await pg.locator(`${bubble('looked strong at the pier')} [data-testid=moment-context]`).count()) === 1,
+    'fix thread-log: a note in the thread is a bubble with its time and More, not a card that opens full screen');
+  await pg.locator(bubble('looked strong at the pier')).locator('text=looked strong at the pier').click();
+  await pg.waitForTimeout(500);
+  check(!(await has('[data-testid=viewer-close]')), 'fix thread-log: a tap on a note in the thread opens no viewer');
+  {
+    const xs = await pg.locator('[data-testid=own-thread] [data-testid=note-bubble] [data-testid=moment-more]').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
+    const ownX = (await pg.locator('[data-testid=own-thread]').boundingBox()) ?? { x: 0, width: 0 };
+    check(xs.length === 3 && xs.every((x) => x === xs[0]) && Math.abs(xs[0] - (ownX.x + ownX.width)) <= 2, `fix thread-log audit 4: every note's More is at the row's end, in one column (${xs.join(', ')})`);
+    // Read from the accessibility tree, not an attribute (audit 7): the note's words and its time are inside one named group.
+    const tree = await pg.locator(bubble('looked strong at the pier')).ariaSnapshot();
+    check(/group "Note, Someone said I looked strong at the pier\., In September"/.test(tree) && !/- text: In September/.test(tree.split('group')[0]),
+      `fix thread-log audit 2, 7, 9: a plain note is one named group with its words and time, said once (${tree.split('\n')[0]})`);
+  }
+  await shot(pg, '79-thread-log');
   const line = await pg.locator('[data-testid=own-thread-line]').innerText();
   check(/a few moments, since /.test(line) && !/\b(three|four|five|six)\b/.test(line), `OT10: the size is a phrase from the fixed set (${line})`);
   check(!/^Compliments/.test(await pg.locator('[data-testid=own-thread-title]').innerText()), 'OT13: an unnamed thread is headed by its place and date, not a name made up for it');
@@ -196,8 +220,7 @@ async function run(h) {
   check((await pg.locator('[data-testid=own-thread-title]').innerText()) === 'Compliments', 'OT13: the name the owner types is the heading');
 
   // OT11, OT3: opened from the thread, the viewer names it and a reply goes into it.
-  await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("bakery") [data-testid=moment-open]').click();
-  await pg.waitForSelector('[data-testid=viewer-close]');
+  await openInThread('bakery');
   const line2 = await meta();
   check(/In a thread: Compliments$/.test(line2), `OT11, OT3: opened from its thread, the info line names the thread (${line2})`);
   await replyNote('And a third, on the bridge.');
@@ -208,7 +231,7 @@ async function run(h) {
   await closeViewer();
 
   // owner-threads audit 9: the note being written closes on its own, not the viewer.
-  await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("pier") [data-testid=moment-open]').first().click();
+  await openInThread('pier');
   await pg.waitForSelector('[data-testid=viewer-respond]');
   await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
@@ -236,7 +259,7 @@ async function run(h) {
   await closeViewer();
 
   // OT8: Remove from this thread keeps the moment.
-  await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("And a third") [data-testid=moment-more]').click();
+  await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]:has-text("And a third") [data-testid=moment-more]').click();
   await pg.click('[data-testid=thread-menu-remove]');
   check((await there('[data-testid=undo-toast]')) && /Removed from the thread/.test(await pg.locator('[data-testid=undo-toast]').innerText()), 'UC6: Remove acts at once, with Undo');
   await pg.waitForTimeout(800);
@@ -270,7 +293,7 @@ async function run(h) {
   await pg.click('[data-testid=own-thread-rename]');
   check(/Harbor/.test((await pg.locator('[data-testid=own-thread-name]').getAttribute('placeholder')) ?? ''), 'owner-threads audit 13: the Chronicle\'s name is only a suggestion in the name field');
   await pg.click('text=Cancel');
-  check(db.threads.length === 2 && (await pg.locator('[data-testid=own-thread] [data-testid=moment-card]').count()) === chronicleCards && chronicleCards === 3,
+  check(db.threads.length === 2 && (await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]').count()) === chronicleCards && chronicleCards === 3,
     'OT19: Keep as my thread makes a thread of the owner\'s with the same three moments');
   await pg.click('[data-testid=own-thread-back]');
   await pg.waitForSelector('[data-testid=thread-tile]');
@@ -317,7 +340,7 @@ async function run(h) {
   await pg.locator('[data-testid=my-thread-row]').first().click();
   await pg.waitForSelector('[data-testid=own-thread]');
   const kept = (await stored(pg)).captures.length;
-  await pg.locator('[data-testid=own-thread] [data-testid=moment-card] [data-testid=moment-more]').first().click();
+  await pg.locator('[data-testid=own-thread] [data-testid=note-bubble] [data-testid=moment-more]').first().click();
   await pg.click('[data-testid=thread-menu-remove]');
   await pg.waitForTimeout(300);
   check((await pg.locator('[data-testid=confirm-remove], [data-testid=confirm]').count()) === 0 && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
@@ -326,7 +349,7 @@ async function run(h) {
   await pg.waitForTimeout(300);
   check((await pg.locator('[data-testid=my-thread-row]').count()) === 1 && (await stored(pg)).threads.length === 1, 'UC6: Undo brings the thread back');
   await pg.locator('[data-testid=my-thread-row]').first().click();
-  await pg.locator('[data-testid=own-thread] [data-testid=moment-card] [data-testid=moment-more]').first().click();
+  await pg.locator('[data-testid=own-thread] [data-testid=note-bubble] [data-testid=moment-more]').first().click();
   await pg.click('[data-testid=thread-menu-remove]');
   await pg.waitForSelector('[data-testid=undo-toast]');
   // Leaving the screen stores what waits there (ui-conformance audit 6, the owner's call).

@@ -240,7 +240,7 @@ export default function Explore() {
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
-  // The selected area's places over the map (WT7, WT10, WT12, decision 0127; whole-towns audits 3, 6, 14): a
+  // The selected area's places over the map (WT7, WT10, WT12, decision 0128; whole-towns audits 3, 6, 14): a
   // neighborhood's places still to find (a town's once zoomed in), a "?" where it has room and a dot where it would
   // crowd, only places in view as "?"; a town at its own scale, every findable place as the same dot, found or not.
   // Never named (AT7). Decided at the settled camera (its exact zoom on both platforms), never per frame.

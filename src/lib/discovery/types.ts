@@ -10,7 +10,9 @@ export type Kind =
   /** Listed buildings and structures of the places archive: a bridge, a mill, a station, a courthouse (RP8, decision 0109). */
   | 'structures'
   /** Odd places of the Viewpoints & oddities category, from the places archive (PW4, decision 0103). */
-  | 'curiosities';
+  | 'curiosities'
+  /** Community centres (by a notable name), arts centres and libraries, in Culture (PK11-PK13). */
+  | 'community';
 
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */
 export interface Place {
@@ -33,6 +35,11 @@ export interface Place {
    * kept in the place cache: checklists are built from fresh reads only.
    */
   kind?: Kind;
+  /**
+   * Presence bars the place lights beside its own category (PK1, `barsOf`): set by an adapter from what it already reads,
+   * never stored (the places archive's places are never cached, PW1).
+   */
+  alsoBars?: CategoryId[];
 }
 
 /** Truth: a place the app has offered. Never cleared. */

@@ -116,6 +116,7 @@ export const META = {
   // Explore (lib/explore): the walk exploring, and what I'm into
   explore_walk: { owner: 'explore', codec: walkId },
   explore_hidden: { owner: 'explore', codec: json<string[]>(isStrings) },
+  explore_kinds_known: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_range: { owner: 'explore', codec: number },
   explore_haptic: { owner: 'explore', codec: onOff },
   // Explore tab: the long-press hint was seen once (AT, atlas round 2)

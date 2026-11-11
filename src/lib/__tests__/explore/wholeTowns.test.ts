@@ -12,7 +12,7 @@ import { areaMapMarks, waitingLabel } from '../../atlas/waitingPins';
 import { distanceM } from '../../geo';
 import type { LngLat } from '../../types';
 
-// Whole towns (specs/whole-towns, decision 0127): a town's page holds every neighborhood inside its border;
+// Whole towns (specs/whole-towns, decision 0128): a town's page holds every neighborhood inside its border;
 // the selected area's map shows every place still to find. Real cases run on Allentown
 // (allentownHoods.json, cut by scripts/fixture-town-hoods.mjs: Overture 2026-10-21.0, OpenFreeMap 20261101).
 

@@ -375,6 +375,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
 - **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
 - **A place-rooted journal**: a thread with no moments, started top-down and rooted in a place. Out of the owner-made threads slice by the owner's call (a thread comes only from connecting moments that have their own time and place). It would be its own feature and goes through `/vision` first.
+- **A note in the owner's thread shows no place or walk context line** (fix thread-log audit 6, older than the fix): Memories reads context lines only for the Chronicle's threads and Lately, so a bubble (and a card) in the owner's thread says only when and "From ..." its walk, short of OT9's context line. Reading `contextFor` for the owner's thread ids is its own change.
+- **A failed read of the moment pool shows every mention as "no longer kept"** (fix thread-log audit 1, older than the fix): `useMomentPool` takes a failure for an empty pool, so `NoteText` says a mention is gone when it could not be read (RF5).
+- **A web screen reader may still step into a note bubble's group** (fix thread-log audit 7): react-native-web ignores `accessible`, so the plain note is a named `group` holding its words and time; VoiceOver on Safari may read the group's name and then its children. A note that is only a mention is heard as its mention's card. A single focusable element would need a role the bubble isn't (it opens nothing).
+- **The thread journey's owner thread holds only notes** (fix thread-log): a thread mixing a photo or memo card with note bubbles, a bubble with a mention or a walk line, and a long note at 320 px have no check or picture yet.
 - **A failed resume drops the paused reminder** (fix pause-banner audit 2, Nov 9): the error notice replaces the "Paused for N min" one, and `remindedFor` keeps it from coming back, so the walk stays paused with no banner. Predates the fix; low.
 
 ## Storage awareness (SA1-SA10, decision 0107)
@@ -431,11 +435,11 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Explore's map shows the selected area's places (fix area-marks, Nov 10)
 
 - **A town's finds past 800 m of its busiest pocket** (audit 1): finds are kept by `findsIn` within the ring around `sketchAt`, while a graded town's "?" come from its whole outline, so a find inside the border but far from the pocket shows on neither the map nor the card (the card had it before).
-- ~~**The "?" pins sit together** (audit 2)~~ **Done by Whole towns (WT12, decision 0127):** every place is drawn, a "?" only where it has room at the settled zoom and a dot where it would crowd, so no two "?" overlap.
+- ~~**The "?" pins sit together** (audit 2)~~ **Done by Whole towns (WT12, decision 0128):** every place is drawn, a "?" only where it has room at the settled zoom and a dot where it would crowd, so no two "?" overlap.
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
 
-## Whole towns (WT1-WT14, decision 0127)
+## Whole towns (WT1-WT14, decision 0128)
 
 - **Wards in walk placement:** hamlets inside a town are placed (audit 7, `AREA_RULES` 4); a ward point can still be a
   walk's neighborhood on the home's stars. Dropping it there re-places every walk.
@@ -455,7 +459,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
   looks within `townReachM` (capped at 5 km) of the town's point. A neighborhood past every town's reach is shown nowhere,
   even the one you stand in, deep inside a large city's outline far from its point (audit 3). The neighborhoods stand in
   only when no town is named around you. Next, if wanted: a town's page takes the neighborhoods inside its outline,
-  whatever their distance from its point. **Done by Whole towns (WT1, decision 0127)** for a town with a border; a town
+  whatever their distance from its point. **Done by Whole towns (WT1, decision 0128)** for a town with a border; a town
   with none keeps the reach.
 - **Deferred (audit 5):** outside every town, the nearest town leads and is framed whole on arrival, so the page titled
   "Near you" may open on a town some kilometres off; and when an outline arrives that marks another town as yours, the
@@ -465,3 +469,18 @@ An item leaves only when it ships, or when it is rejected with a decision record
   capsule pills beside it. Next, if wanted: give the grouping pill the same stacked treatment once both are seen in a
   phone-size screenshot.
 - **Deferred (fix carousel-live-select audits 2, 4-7):** a programmatic `scrollTo` sets `intended`, and on web a wheel or trackpad scroll may not fire `onScrollBeginDrag`, so that scroll is read as the row's own until it settles (2); each card passed runs the whole `selectKey` (announcement, layer re-read, map easing), where a screen reader may want one announcement for the card the scroll ends on (4); the selected card's footer can change the row's height while the finger is down (5); the settle's ease onto a card also runs on a phone when a finger is held between cards for 120 ms, as before the fix (6); no e2e step yet asserts a card is selected before the scroll settles (7).
+- **Deferred (fix thread-in-walk audit 4, 5):** `resurface.contextFor`, `keepContext` and `dropContextOfWalks` read `moments` only, so an owner thread's card for a moment of a walk still open would read "failed" if the thread screen ever shows arrival lines (it takes no `context` today); and a walk never stopped (a killed app) keeps its moments in `inOpenWalk`, shown in a thread but never in Lately, as `toMomentViews` already treats it. No e2e step yet replies mid-walk and opens the thread.
+
+
+## Presence and kinds (PK1-PK19, decision 0127, Nov 10)
+
+- **Plazas and art walkways** (the owner's picture of Culture): no data the app reads holds them; a source that adds places is 0115's question, not a sorting one (0117).
+- **Food and Parks are lit in most areas**, and Food wherever nearly any other bar is: they say little when lit. For the owner.
+- **The planner ignores "What I'm into"** (before this slice too): a History route may pass a museum the walker switched off. Whether 0115's "kinds shape Explore, Navigate and the kind walk" covers the planner's cells is the owner's question.
+- **The live places archive is still v1** (its manifest unchanged since Nov 10, 05:35): the Kilns show on a phone only after a v2 archive publishes; PK1 and PK6 hold the rule with recorded fixtures.
+- **An arts centre or library already on a kept checklist** keeps its old kind (Museums and galleries) until its area is rebuilt: kept data is never patched.
+- **The gate itself** (chronicles-data's RD8, 343 of 425 listed buildings in the sample held back): measured by `npm run places:coverage -- --gate <checkout>` (PK15) once a v2 archive publishes; changing it is the owner's call on 0109.
+- **A museum that lights History is still a Culture "?" on the map** (presence-and-kinds audit 4): `waitingMarks` and `waitingKinds` work by category and kind. A found archive museum is also no found pin on a History route, because `found(kind)` reads the find's category. A find keeps only its category; storing the second bar is a data-model call for the owner (RP11 keeps listings off stored rows).
+- **`saveSettings` writing `explore_kinds_known` has no test** (presence-and-kinds audit 6): `explore/settings.ts` imports the db singleton, which a Node test cannot load. It moves to a shell factory with SH5's pattern. The reading rule (`parseHidden`) and the scenic read are tested.
+- **"What I'm into" has eleven switches with no visible groups** (presence-and-kinds audit 11, an opinion): headings matching the card's groups would make the order readable.
+- **The drawer's handle sits over the first visible switch** (presence-and-kinds audit 12): this predates the slice and is the drawer's layout, not the kinds'.

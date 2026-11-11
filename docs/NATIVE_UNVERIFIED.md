@@ -48,7 +48,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on Chronicle, open a place with one short walk so the map fits it. **Expect:** the fit stops around z15, never at street-sign zoom: `capFitBounds` widens MapLibre RN's fitBounds, which has no maxZoom (Navigation & tabs, tabs audit U15).
 - [ ] **Do:** walk outdoors with the app open, turn on the spot, then stand still. **Expect:** the cone points where you head through `coneHeading` and turns with the native glide (`useGlidingWalker`'s frames, ~15 fps) without stutter; it hides while the dot holds still (decision 0075).
 
-## Whole towns (WT1-WT14, decision 0127)
+## Whole towns (WT1-WT14, decision 0128)
 
 - [ ] **Do:** open a large city's page on Explore (Allentown) from its edge, then from its middle. **Expect:** the same whole list of neighborhoods both times (36 for Allentown, no "Ward"), nearest you first; the list arrives without a crash or a long stall while the border's tiles are read. (WT1, WT4, WT6)
 - [ ] **Do:** select the city zoomed out, then a dense neighborhood; pinch in; tap a dot clear of every "?". **Expect:** the places show as "?" where they have room and small coloured dots (the `waiting-dots` circle layer) where not; more become "?" as you zoom; the tapped dot's spot eases in until it is a "?". (WT7, WT12, WT13, WT14)
@@ -347,6 +347,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a moment in a thread, tap "In a thread" in the viewer, from Lately. **Expect:** the viewer closes and Chronicle's Memories opens on that thread (the navigation after a Modal's dismissal is not dropped). (OT11)
 - [ ] **Do:** on Android, open a moment, tap Respond (Back once closes the menu), then Respond, Note, type a few words, press Back; then press Back again. **Expect:** Back closes the menu, then the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
 - [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the viewer's toolbar and its Respond menu. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+- [ ] **Do:** open one of your threads that holds notes (one mentioning a moment, one long, one from a walk) on iOS and Android, with VoiceOver and TalkBack on and off. **Expect:** each note is a bubble read in place, wrapping inside the screen; a plain note is spoken as one item ("Note, ..., when"), its time not said again after it; a mention is its own button that opens its moment; More sits at the row's end, and its "Open the moment" opens the viewer with Respond and Edit; a tap on the words opens nothing. (fix thread-log)
 
 ## UI conformance (UC1-UC13, decisions 0114, 0113)
 
@@ -435,3 +436,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a native map, stand where two revealed marks sit within a few metres of each other, then pinch in and out. **Expect:** only one mark shows its name while their names would overlap; both names show once you zoom in enough to part them; no flicker of the pins at the 0.25 zoom steps. (fix mark-names)
 - [ ] **Do:** on a phone, start an exploring walk and take a photo within 60 m of two unfound places (a park and a statue in it). **Expect:** nothing is tagged yet; "Which place is this moment about?" offers both by name and Neither; tapping the park shows "Found: <park>" once and the replay names it; Neither dismisses it and tags nothing; its buttons are reachable by VoiceOver and TalkBack. (fix which-place)
 - [ ] **Do:** on Explore, drag the area cards slowly and then flick across several. **Expect:** each card becomes the selected one, and the map eases to it, as it passes the middle, without waiting for the scroll to stop; the row never jumps back to a card you scrolled past; it comes to rest on one card. (fix carousel-live-select)
+
+
+## Presence and kinds (PK1-PK19, decision 0127)
+
+- [ ] **Do:** on a phone that had "Museums and galleries" switched off before this update, open "What I'm into", switch Community spaces on, force-quit and reopen. **Expect:** Community spaces was off at first and stays on after the relaunch (meta `explore_kinds_known` through SQLite's `meta`, PK18).
+- [ ] **Do:** after the update, open Explore with several areas listed. **Expect:** every area's marks are read again without stalling the tab (`ATLAS_CODE` a8, PK7).
+- [ ] **Do:** open "Suggest a walk" on History in a town whose History is lit by a museum in the places archive. **Expect:** a route through it, the archive read beside the map's (presence-and-kinds audit 1).

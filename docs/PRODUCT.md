@@ -71,8 +71,13 @@ recording, and a recording bar brings a minimized walk back.
   turn up as a "?"), so a plain parish church counts toward nothing; food, shops
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
+- A place may light two bars (presence and kinds, decision 0127): a museum or
+  gallery lights History as well as Culture when the data already says it is
+  historic (a listed museum in the places archive, or a historic word in its
+  name), so the Coplay Cement Company Kilns light Coplay's History. A plain
+  museum lights Culture alone, so the two bars never say the same thing.
 - Rings are read by themselves while the tab is open, nearest first.
-- **Whole towns** (decision 0127): a town's page lists every neighborhood inside its border, wherever you stand, nearest
+- **Whole towns** (decision 0128): a town's page lists every neighborhood inside its border, wherever you stand, nearest
   you first: the hamlets inside it too (Hanover Acres in Allentown), never a ward ("1st Ward"). A town with no border
   keeps its 5 km reach and 24 nearest. On the map, a town at its own scale shows every findable place as a small dot in
   its kind's colour, found or not; a neighborhood (or the town zoomed in) shows the places still to find: a "?" where it
@@ -83,7 +88,9 @@ recording, and a recording bar brings a minimized walk back.
   you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. The first is selected when the page opens, as in Apple or Google Maps. Each says
   only its own distance in the displayed unit, how much of the kind it passes and where ("plenty along much of the way", "mostly near the
   end"), how much of it is only getting there, which other kinds it also passes (by kind, never by place), and whether it can be walked the whole way; a strip along each row and a shading of the
-  highlighted route show the same without a number. It never shows or names a place not yet found, so the "?" marks stay hidden until
+  highlighted route show the same without a number. A route leans on the places you pass (monuments, buildings,
+  churches, art, views) when there are enough of them to make one; museums and theatres, which you go into, still count
+  toward how much of the kind it passes (decision 0127). It never shows or names a place not yet found, so the "?" marks stay hidden until
   reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
   or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page
   says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
@@ -130,7 +137,9 @@ recording, and a recording bar brings a minimized walk back.
 - **Remarkable and public** (decisions 0109-0111): attractions in the map
   stay places to find, and the National Aviary joins them. A new kind,
   "Buildings and structures", on by default, holds the archive's listed
-  buildings and structures. A place to find with no street or path within 60 m
+  buildings and structures. "Community spaces" (decision 0127), on by default
+  unless Museums and galleries was switched off, holds arts centres, libraries
+  and community centres whose names say they are historic. A place to find with no street or path within 60 m
   says "No street or path close by" on its card; nothing is hidden for it. The
   replay whispers one or two passed places by name, more as "a few places". A
   place in both the map and the archive, of the same name and kind within
@@ -310,7 +319,8 @@ recording, and a recording bar brings a minimized walk back.
   thread or makes a new one with a second kept moment; **Respond**, in the viewer's toolbar under the moment
   (a menu: photo or video, voice memo, note), keeps a new moment linked to the one it
   answers, in its thread. A thread reads oldest first, a reply under what it
-  answers; its size is a phrase ("a few moments, since March"), its name is the
+  answers, like a conversation: a note is read in place, in a bubble with its time and
+  walk (its More opens it full screen, to respond or edit), while a photo, video or memo keeps its card; its size is a phrase ("a few moments, since March"), its name is the
   owner's and optional. **Remove from this thread** and **Delete this thread**
   (with Undo) never delete a moment; a thread left with fewer than two moments
   dissolves. **Keep as my thread** copies a Chronicle thread. The viewer says "In a

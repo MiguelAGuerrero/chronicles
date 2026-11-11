@@ -9,11 +9,14 @@ import type { Walk } from '../../lib/types';
 import { MomentCard } from '../chronicle/MomentCard';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { hasMore } from '../../lib/moment';
+import { NoteBubble } from './NoteBubble';
 import { ThreadMark } from './ThreadMark';
 
 /**
  * One of the owner's threads (OT9, OT13, OT14): a plain timeline, oldest first, read like a conversation with
- * yourself. A reply sits under what it answers, saying so. Every moment shows its place and time and the walk it came
+ * yourself. A note is read in place, in a bubble, never opened alone full screen (fix thread-log); a photo, video,
+ * memo or stacked moment keeps its card. A reply sits under what it answers, saying so. Every moment shows its place and time and the walk it came
  * from; the thread's size and span are in words. Naming is optional and the owner's; Delete asks once.
  */
 export function OwnThreadScreen(props: {
@@ -78,7 +81,11 @@ export function OwnThreadScreen(props: {
                   {answeringLine({ place: parent.place, t: parent.t, walkLine: fromLine(parent.walkId ? props.walks[parent.walkId] : undefined) }, props.now)}
                 </Text>
               ) : null}
-              <MomentCard moment={m} walk={m.walkId ? props.walks[m.walkId] : undefined} now={props.now} onOpen={() => props.onOpen(m)} onWalk={props.onWalk} onMore={() => props.onMore(m)} />
+              {m.kind === 'text' && !hasMore(m.capture) ? (
+                <NoteBubble moment={m} walk={m.walkId ? props.walks[m.walkId] : undefined} now={props.now} onWalk={props.onWalk} onMore={() => props.onMore(m)} onOpenRef={props.onOpen} />
+              ) : (
+                <MomentCard moment={m} walk={m.walkId ? props.walks[m.walkId] : undefined} now={props.now} onOpen={() => props.onOpen(m)} onWalk={props.onWalk} onMore={() => props.onMore(m)} />
+              )}
             </View>
           );
         })}

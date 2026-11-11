@@ -41,7 +41,7 @@ export function placesFromTiles(features: TileFeature[]): PlaceCandidate[] {
 }
 
 /**
- * Whole towns (WT5, decision 0127): the tiles' hamlet points, as neighborhood candidates, only inside a town's border:
+ * Whole towns (WT5, decision 0128): the tiles' hamlet points, as neighborhood candidates, only inside a town's border:
  * a town's page (`townHoods`), and since whole-towns audit 7 a walk's placement (`hoodAllowed`, `AREA_RULES` 4).
  * `placesFromTiles` has no hamlet, so nothing else takes them.
  */

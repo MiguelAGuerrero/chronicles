@@ -454,18 +454,17 @@ test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
   assert.equal(thinRing(marked('food', 3, east(9000), false), O, inTown), true, 'outside the outline');
 });
 
-test('TP10: a town row from the older rules is stale; a neighborhood row from them is current', () => {
-  assert.equal(ATLAS_CODE, 'a7', 'a7: the places archive (PW10); its rows stand as under a6');
-  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), true, 'a5 neighborhoods stand (fix ward-subdivision)');
+test('TP10: a town row from the older rules is stale; since a8 a neighborhood row from them is too (PK7)', () => {
+  assert.equal(ATLAS_CODE, 'a8', 'a8: presence by bars (PK1-PK7), at every level, so no older code is carried');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), false, 'PK7: a5 neighborhoods are read again');
   assert.equal(rowCurrent(row('Whitehall', O, { level: 'town', code: 'a4' }), 'b1'), false, 'towns are read again');
-  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a4' }), 'b1'), true, 'neighborhoods are not');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a3' }), 'b1'), false);
   assert.equal(rowCurrent(row('Whitehall', O, { level: 'town' }), 'b1'), true);
   assert.equal(rowCurrent(row('Whitehall', O, { level: 'town' }), null), false);
-  // A stale town is listed again, a carried neighborhood is not duplicated.
+  // Both stale rows are listed again.
   const rows = [row('Whitehall', O, { level: 'town', code: 'a4' }), row('Fox Point', east(500), { code: 'a4' })];
   const fresh = newRows(rows, [{ level: 'town', name: 'Whitehall', at: O, reachM: 3000 }, { level: 'neighborhood', name: 'Fox Point', at: east(500), reachM: 1000 }], 'b1', 2);
-  assert.deepEqual(fresh.map((r) => r.name), ['Whitehall']);
+  assert.deepEqual(fresh.map((r) => r.name), ['Whitehall', 'Fox Point']);
 });
 
 test('TP12: a town whose outline could not be read is graded by the ring for now and read again after the retry wait', () => {

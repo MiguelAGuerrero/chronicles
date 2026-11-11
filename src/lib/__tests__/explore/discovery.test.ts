@@ -155,10 +155,10 @@ test('AG5: every markable class is in a findable kind and off the never list', a
     [
       'aquarium:viewpoints', 'art_gallery:art', 'art_gallery:culture', 'attraction:viewpoints', 'castle:history',
       'cemetery:history (by name)', 'garden:parks', 'library:culture (by name)', 'monument:history', 'museum:culture',
-      'park:parks', 'place_of_worship:history (by name)', 'theatre:culture', 'theme_park:viewpoints', 'town_hall:history (by name)',
-      'zoo:viewpoints',
+      'park:parks', 'place_of_worship:history (by name)', 'theatre:culture', 'theme_park:viewpoints', 'town_hall:culture (by name)',
+      'town_hall:history (by name)', 'zoo:viewpoints',
     ],
-  );
+  ); // re-pinned by PK14: the community centre, a place of Culture by a notable name only
   // The list says what the adapter does: a plain church is no mark, a named old one is.
   const church = (name: string) => placesFromTilePois([poi('place_of_worship', 'christian', name, O) as never], 'b')[0];
   assert.equal(church('St. Mary Church').markable, false);

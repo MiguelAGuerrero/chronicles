@@ -56,10 +56,12 @@ async function run(h) {
   check(thread, 'MT9: the thread made before the upgrade is listed, by its name');
   if (thread) {
     await pg.locator('[data-testid=my-thread-row]:has-text("Before the upgrade")').first().click();
-    const both = await pg.waitForSelector('[data-testid=own-thread] [data-testid=moment-card]:has-text("answering the first")', { timeout: 10000 }).then(() => true, () => false);
-    check(both && (await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("A loose note from before")').count()) > 0,
+    const both = await pg.waitForSelector('[data-testid=own-thread] [data-testid=note-bubble]:has-text("answering the first")', { timeout: 10000 }).then(() => true, () => false);
+    check(both && (await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]:has-text("A loose note from before")').count()) > 0,
       'MT9: its two moments are in it, as before');
-    await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("A loose note from before") [data-testid=moment-open]').first().click();
+    // A note in a thread is a bubble read in place (fix thread-log): More's "Open the moment" opens it.
+    await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]:has-text("A loose note from before") [data-testid=moment-more]').first().click();
+    await pg.click('[data-testid=thread-menu-open]');
     const opened = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => true, () => false);
     check(opened && (await pg.locator('text=A loose note from before the upgrade.').count()) > 0, 'MT9: a moment from before the upgrade opens in the viewer with its words');
     await shot(pg, '90-upgrade-viewer');

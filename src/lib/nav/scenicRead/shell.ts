@@ -3,7 +3,7 @@ import type { CollectedFeatures } from '../../../components/map/types';
 import type { ActivityPoint } from '../../activity/points';
 import { activityFromTilePois, mergeSources } from '../../activity/points';
 import { placesFromTilePois } from '../../discovery/tilePois';
-import type { Kind } from '../../discovery/types';
+import { parseHidden } from '../../explore/explore';
 import { gradeStreets } from '../../landing/grade';
 import { metaStore } from '../../meta';
 import type { Ports } from '../../ports/types';
@@ -52,7 +52,9 @@ export function createScenicRead(p: Pick<Ports, 'db'>, io: ScenicIo) {
         const points = mergeSources(activityFromTilePois(features.pois), overture?.points ?? []);
         const centre: LngLat = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
         const busy = gradeStreets({ centre, points, segments }).graded.map((g) => ({ name: g.name, grade: g.grade, lines: g.lines }));
-        const hidden = new Set(((await meta.get('explore_hidden').catch(() => null)) ?? []) as Kind[]);
+        // PK18: read as the switches read it, so a choice saved before a kind existed hides what it hid.
+        const [off, known] = await Promise.all([meta.get('explore_hidden').catch(() => null), meta.get('explore_kinds_known').catch(() => null)]);
+        const hidden = parseHidden(off ? JSON.stringify(off) : null, known ? JSON.stringify(known) : null);
         const found = new Set((await p.db.listFinds().catch(() => [])).map((f) => f.key));
         const green = greenFromTiles(features.landcover ?? [], places.filter((x) => x.category === 'parks'));
         if (shouldStop()) return null;

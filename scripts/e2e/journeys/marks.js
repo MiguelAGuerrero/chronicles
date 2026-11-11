@@ -2,7 +2,7 @@
 // marks that an exploring walk passing them never drew. E2E_ONLY=marks runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, freshPage } = h;
+  const { navUrl, BASE, start, at, check, freshPage, shot } = h;
     const { c, pg } = await freshPage('marks');
     await c.addInitScript(() => { window.__perf = {}; });
     const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
@@ -85,6 +85,16 @@ async function run(h) {
       const label = await pg.locator('[data-testid=kind-structures]').innerText().catch(() => '');
       check(!!mon && !!box && box.y > mon.y && on === 'true' && /Buildings and structures/.test(label),
         `RP18: "What I'm into" lists Buildings and structures after Monuments and memorials, on by default (${JSON.stringify({ mon: mon?.y, at: box?.y, on, label })})`);
+      // PK11 (Presence and kinds): Community spaces sits after Theatres and before Monuments and memorials, on by default.
+      await pg.locator('[data-testid=kind-community]').scrollIntoViewIfNeeded().catch(() => {});
+      const th = await pg.locator('[data-testid=kind-theatres]').boundingBox().catch(() => null);
+      const cm = await pg.locator('[data-testid=kind-community]').boundingBox().catch(() => null);
+      const mo = await pg.locator('[data-testid=kind-monuments]').boundingBox().catch(() => null);
+      const cOn = await pg.locator('[data-testid=kind-community]').getAttribute('aria-checked').catch(() => null);
+      const cLabel = await pg.locator('[data-testid=kind-community]').innerText().catch(() => '');
+      await shot(pg, 'marks-what-im-into');
+      check(!!th && !!cm && !!mo && cm.y > th.y && mo.y > cm.y && cOn === 'true' && /Community spaces/.test(cLabel),
+        `PK11: "What I'm into" lists Community spaces after Theatres and before Monuments and memorials, on by default (${JSON.stringify({ th: th?.y, at: cm?.y, mo: mo?.y, on: cOn, label: cLabel })})`);
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
     }
