@@ -529,3 +529,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The note editor's keyboard height reads `window.innerHeight`** (fix memories-weird-state audit 5): under an iOS
   pinch-zoom `innerHeight` is the visual viewport, so `threads/useKeyboardHeight.web.ts` reads 0 and the note field
   sits under the keyboard until the zoom ends. Same trap as the safe-area insets, an older code path; a fix of its own.
+  Parked by the owner (Nov 11) until it is seen on a phone. A first fix (branch `fix/note-keyboard-zoom`: the zoomed
+  inset measured against `clientHeight`) failed its review: the card is about 244 px tall, and at 2x with Safari's
+  real geometry (layout about 660, keyboard and accessory bar about 320) the visible strip is about 170 px, so
+  centring the card between the page's top and the visible foot still leaves Save under the keyboard, and the card
+  slides at half the speed of a pan. A real fix places the card inside the visible band and is checked on an iPhone.
