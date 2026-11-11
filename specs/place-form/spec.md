@@ -196,3 +196,9 @@ plan's Deferred); the fixtures still hold them, so the rule is held not to call 
    - **Churchtown (village, no word):** 5 junctions, under the village floor of 8; a sparse Amish village.
    - **Limerick outlets (no word, got exit):** an outlet mall at an interchange: 0.39 motorway share, 10 junctions and 71 places; the exit rule has no cap on places.
    The set is not retuned on; the rule changes only with a fresh set (PF23).
+3. **2026-11-11, the third set (36 places, blind labels from an independent agent, 29 of them outside Pennsylvania; the territory rule pinned in `d695fd3` before the places were listed or cut).**
+   Accuracy 31 of 36 = 0.86 (Wilson interval 0.71 to 0.94), recall 22 of 26 = 0.85: **PF6 met** (0.80, a lower bound of 0.70, recall of 0.80). The rule spoke for 23 places: 22 were right, one was wrong
+   (**Elizabeth Port, NJ, a port and warehouse district the agent labelled no word, read "a town along a main street"**: a false positive on 1 of 10 no-word places, 4% of the words spoken; PF7 fails on it).
+   Both malls (King of Prussia, Garden State Plaza), the campuses (Cornell, West Point), the cul-de-sac suburbs and the amusement park stayed silent; Pittsburgh's downtown (0.33 motorway share), Gettysburg and
+   Harpers Ferry (owner-marked "?"), and Perryville's sparse interchange (1 place per km²) stayed silent though the agent gave them a word. No plainly wrong pair. The labels are the agent's, written blind;
+   the owner has not yet confirmed them (the agent flagged eight alternates, the two malls, and Cornell). The set is spent: the rule changes only with a fresh set (PF23).

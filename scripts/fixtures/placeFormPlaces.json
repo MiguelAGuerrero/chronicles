@@ -7,7 +7,7 @@
     "village",
     "exit"
   ],
-  "note": "A place's `word` is the owner's confirmed word, or null for no word. `accept` lists a second word the owner accepts for a place marked '?'. The point is the one the atlas would pass the card: an Overture locality point, or the point named in `pointNote`. `set` is calibration (the rule is tuned on it) or heldOut (never tuned on, PF6). The first held-out set (17 places) scored 0.71 accuracy and 0.62 recall against the 0.80 floor on 2026-11-11 and was folded into the calibration set (`folded`) at the owner's call; a fresh held-out set is cut after the retune. The second held-out set (24 places, blind labels) scored 0.79 accuracy, 0.60 lower bound and 0.72 recall on 2026-11-11 and was folded into the calibration set too.",
+  "note": "A place's `word` is the owner's confirmed word, or null for no word. `accept` lists a second word the owner accepts for a place marked '?'. The point is the one the atlas would pass the card: an Overture locality point, or the point named in `pointNote`. `set` is calibration (the rule is tuned on it) or heldOut (never tuned on, PF6). The first held-out set (17 places) scored 0.71 accuracy and 0.62 recall against the 0.80 floor on 2026-11-11 and was folded into the calibration set (`folded`) at the owner's call; a fresh held-out set is cut after the retune. The second held-out set (24 places, blind labels) scored 0.79 accuracy, 0.60 lower bound and 0.72 recall on 2026-11-11 and was folded into the calibration set too. The third held-out set (36 places, blind labels) was listed after the table was pinned (commit d695fd3).",
   "places": [
     {
       "id": "allentownDowntown",
@@ -1020,6 +1020,410 @@
       "word": null,
       "set": "calibration",
       "pointNote": "Point in a residential subdivision. (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "providenceRI",
+      "name": "Providence",
+      "at": [
+        -71.41285,
+        41.82397
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "albanyNY",
+      "name": "Albany",
+      "at": [
+        -73.755,
+        42.65119
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "baltimoreMtVernon",
+      "name": "Baltimore (Mount Vernon)",
+      "at": [
+        -76.61076,
+        39.29087
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "newHavenCT",
+      "name": "New Haven",
+      "at": [
+        -72.92501,
+        41.30824
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "hobokenNJ",
+      "name": "Hoboken",
+      "at": [
+        -74.0324,
+        40.74329
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "pittsburghDowntown",
+      "name": "Pittsburgh",
+      "at": [
+        -80.00253,
+        40.44068
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "wilmingtonDE",
+      "name": "Wilmington",
+      "at": [
+        -75.55272,
+        39.73835
+      ],
+      "word": "grid",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": "mainStreet"
+    },
+    {
+      "id": "brattleboroVT",
+      "name": "Brattleboro",
+      "at": [
+        -72.55732,
+        42.85074
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "skaneatelesNY",
+      "name": "Skaneateles",
+      "at": [
+        -76.42914,
+        42.947
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": "village"
+    },
+    {
+      "id": "camdenME",
+      "name": "Camden",
+      "at": [
+        -69.06555,
+        44.21026
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "gettysburgPA",
+      "name": "Gettysburg",
+      "at": [
+        -77.23105,
+        39.83088
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": "grid"
+    },
+    {
+      "id": "honesdalePA",
+      "name": "Honesdale",
+      "at": [
+        -75.25798,
+        41.57712
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "chestertownMD",
+      "name": "Chestertown",
+      "at": [
+        -76.06659,
+        39.20898
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "woodstockVT",
+      "name": "Woodstock",
+      "at": [
+        -72.51895,
+        43.62477
+      ],
+      "word": "mainStreet",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": "village"
+    },
+    {
+      "id": "graftonVT",
+      "name": "Grafton",
+      "at": [
+        -72.60658,
+        43.17151
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "peachamVT",
+      "name": "Peacham",
+      "at": [
+        -72.17039,
+        44.32845
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "waterfordVA",
+      "name": "Waterford",
+      "at": [
+        -77.61163,
+        39.18829
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "eaglesMerePA",
+      "name": "Eagles Mere",
+      "at": [
+        -76.58423,
+        41.411
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": "mainStreet"
+    },
+    {
+      "id": "cornwallBridgeCT",
+      "name": "Cornwall Bridge",
+      "at": [
+        -73.37073,
+        41.81866
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": null
+    },
+    {
+      "id": "harpersFerryWV",
+      "name": "Harpers Ferry",
+      "at": [
+        -77.73196,
+        39.32341
+      ],
+      "word": "village",
+      "set": "heldOut",
+      "pointNote": "Overture locality point (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": "mainStreet"
+    },
+    {
+      "id": "ashburnSubdivisionVA",
+      "name": "Ashburn subdivisions",
+      "at": [
+        -77.49,
+        39.03
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Hand-chosen point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "cornellNY",
+      "name": "Cornell University (Ho Plaza)",
+      "at": [
+        -76.48,
+        42.447
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Hand-chosen point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "westPointNY",
+      "name": "West Point",
+      "at": [
+        -73.96,
+        41.39
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Hand-chosen point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "elizabethPortNJ",
+      "name": "Elizabeth port and warehouses",
+      "at": [
+        -74.18,
+        40.65
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Hand-chosen point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "greatAdventureNJ",
+      "name": "Six Flags Great Adventure",
+      "at": [
+        -74.44,
+        40.137
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Hand-chosen point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "quabbinMA",
+      "name": "Quabbin Reservoir",
+      "at": [
+        -72.3,
+        42.38
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Hand-chosen point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "voorheesNJ",
+      "name": "Voorhees subdivisions",
+      "at": [
+        -74.95,
+        39.85
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Hand-chosen point (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "wellsExitME",
+      "name": "Wells I-95 exit 19",
+      "at": [
+        -70.6105,
+        43.3252
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "I-95 exit 19 ramp area (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "somersetExitPA",
+      "name": "Somerset I-76 US-219 exit",
+      "at": [
+        -79.0319,
+        39.9962
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "I-76/US-219 interchange (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "hancockExitMD",
+      "name": "Hancock I-70 US-522 exit",
+      "at": [
+        -78.1823,
+        39.7126
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "I-70/US-522 interchange (blind label, proposed by an independent agent, owner to confirm)",
+      "accept": null
+    },
+    {
+      "id": "perryvilleExitMD",
+      "name": "Perryville I-95 exit 93",
+      "at": [
+        -76.057,
+        39.5948
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "I-95 exit 93 ramps (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "palmerExitMA",
+      "name": "Palmer Mass Pike exit 8",
+      "at": [
+        -72.3864,
+        42.1538
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "Mass Pike exit 8 ramps (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "clarionExitPA",
+      "name": "Clarion I-80 exit 62",
+      "at": [
+        -79.4072,
+        41.191
+      ],
+      "word": "exit",
+      "set": "heldOut",
+      "pointNote": "I-80 exit 62 ramp midpoint (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "kingOfPrussiaMall",
+      "name": "King of Prussia Mall",
+      "at": [
+        -75.3917,
+        40.0888
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Mall centre (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "gardenStatePlazaNJ",
+      "name": "Garden State Plaza Paramus",
+      "at": [
+        -74.0754,
+        40.9178
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Mall centre (blind label, proposed by an independent agent, owner to confirm)"
+    },
+    {
+      "id": "cayugaFarmNY",
+      "name": "Cayuga County farmland",
+      "at": [
+        -76.7,
+        42.95
+      ],
+      "word": null,
+      "set": "heldOut",
+      "pointNote": "Open farmland between lakes (blind label, proposed by an independent agent, owner to confirm)"
     }
   ]
 }
