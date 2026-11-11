@@ -606,6 +606,18 @@ async function run(h) {
       if (twice.menu) await pg.click('[data-testid=actions-cancel]');
     });
 
+    // tend chronicle audit 2: Escape pressed while the walk's More is still fading in closes it, as it did before
+    // tend chronicle 4 (the Modal sends Escape only once its fade has ended).
+    await qstep('tend chronicle audit 2', async () => {
+      await pg.locator('[data-testid=walk-more]').first().click();
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 5000 });
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(800);
+      const left = { menu: await pg.locator('[data-testid=walk-actions]').count(), sheet: await pg.locator('[data-testid=walk-row]').count() };
+      check(left.menu === 0 && left.sheet > 0, `tend chronicle audit 2: Escape during the menu's fade-in closes it, and only it (${JSON.stringify(left)})`);
+      if (left.menu) await pg.click('[data-testid=actions-cancel]');
+    });
+
     // tend chronicle 8: the sheet's Walks and Days segments are 44 px targets (X0, docs/research/ui-references.md).
     await qstep('tend chronicle 8', async () => {
       const sizes = await Promise.all(['sheet-walks', 'sheet-days'].map((id) => shown(id).first().boundingBox().then((b) => b && Math.round(b.height))));

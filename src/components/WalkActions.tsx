@@ -109,14 +109,25 @@ export function WalkActions(props: {
   };
   // Escape on the web reaches `close` once, through the Modal's onRequestClose (react-native-web's ModalContent
   // listens on keyup). Closing on keydown as well stepped out of the editor and then, on the keyup, out of the
-  // sheet too (tend chronicle 4). The keydown is only kept from the sheet beneath, which lowers on it.
+  // sheet too (tend chronicle 4). The keydown is only kept from the sheet beneath, which lowers on it. Until the
+  // Modal has shown (its fade, 250 ms) it sends no Escape, so the keydown closes it then (tend chronicle audit 2).
+  const shown = useRef(false);
+  const closeRef = useRef(close);
+  useEffect(() => {
+    closeRef.current = close;
+  });
   useEffect(() => {
     if (!walkId || Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') e.stopImmediatePropagation();
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      if (!shown.current) closeRef.current();
     };
     window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      shown.current = false;
+    };
   }, [walkId]);
   const confirm = () => {
     if (!plan || !asking) return;
@@ -128,7 +139,9 @@ export function WalkActions(props: {
   };
 
   return (
-    <Modal visible={!!walkId} transparent animationType="fade" onRequestClose={close}>
+    <Modal visible={!!walkId} transparent animationType="fade" onRequestClose={close} onShow={() => {
+      shown.current = true;
+    }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.back}>
         <Pressable style={StyleSheet.absoluteFill} onPress={renaming ? close : props.onClose} accessible={false} />
         {!asking && !renaming && (
