@@ -49,7 +49,7 @@ export function formatReport(rows: readonly ReportRow[]): string {
     for (const a of words) out.push(`  ${a.padEnd(11)} ${words.map((b) => String(mine.filter((r) => name(r.expected) === a && name(r.got) === b).length).padStart(b.length)).join(' | ')}`);
     const asked = mine.filter((r) => r.expected !== null);
     const [lo, hi] = wilson(mine.filter(right).length, mine.length);
-    out.push('', `accuracy, ${set}: ${pct(mine.filter(right).length, mine.length)} (95% interval ${lo.toFixed(2)} to ${hi.toFixed(2)})`, `recall, ${set}: ${pct(asked.filter((r) => r.got !== null).length, asked.length)}`, '');
+    out.push('', `accuracy, ${set}: ${pct(mine.filter(right).length, mine.length)} (Wilson interval at 0.95: ${lo.toFixed(2)} to ${hi.toFixed(2)})`, `recall, ${set}: ${pct(asked.filter((r) => r.got !== null).length, asked.length)}`, '');
   }
   return out.join('\n');
 }
