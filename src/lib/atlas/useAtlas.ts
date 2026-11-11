@@ -2,7 +2,8 @@
 import { ensureOvertureRelease } from '../activity/overture';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { outlines } from '../areas/outlineReader';
-import { coveredBy, outlineTileKey, outlineTileOf, type OutlineSet } from '../areas/outlines';
+import { BORDER_ZOOM, coveredBy, outlineTileKey, outlineTileOf, type OutlineSet } from '../areas/outlines';
+import { useOutlineSet } from '../areas/useOutlineSet';
 import type { Area, WalkArea } from '../areas/types';
 import { db } from '../db';
 import type { Find, Kind } from '../explore/explore';
@@ -133,12 +134,14 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
   }, [focused, tileKey, townKey, rows.length]);
 
   const towns = useMemo(() => (from ? nearList(rows, from, 'town', build, borders) : []), [rows, from, build, borders]);
+  // WT1: the open town's whole border (the z10 read the borders use): its page lists every neighborhood inside it.
+  const townBorders = useOutlineSet(town ? [town.at] : [], BORDER_ZOOM, focused && !!town);
   const neighborhoods = useMemo(() => {
     if (!from) return [];
     if (!town) return nearList(rows, from, 'neighborhood', build);
     const all = rows.filter((r) => r.level === 'town' && rowCurrent(r, build));
-    return townNeighborhoods(rows, town, all, from, build, borders);
-  }, [rows, from, town, build, borders]);
+    return townNeighborhoods(rows, town, all, from, build, borders, townBorders);
+  }, [rows, from, town, build, borders, townBorders]);
   const home = useMemo(() => towns.find((l) => l.here) ?? null, [towns]);
   const own = useMemo(() => {
     const t = town ? rows.find((r) => r.key === town.key) ?? town : null;
@@ -168,7 +171,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       setTownsKnown((k) => ({ build, listed: townsListedAfter(k.build === build ? k.listed : false, { reads: tw, at: from, build }) }));
       const nears: NearTarget[] = [
         town
-          ? { level: 'neighborhood', at: town.at, radiusM: townReachM(town), reads: nb }
+          ? { level: 'neighborhood', at: town.at, radiusM: townReachM(town), reads: nb, town: town.key }
           : { level: 'neighborhood', at: from, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: nb },
         { level: 'town', at: from, radiusM: ATLAS_RULES.nearTownM, reads: tw },
       ];
@@ -186,7 +189,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       if (step.kind === 'idle') return setStatus('idle');
       if (step.kind === 'near') {
         setStatus('listing');
-        const ok = await readNear(step.at, step.level, build!, step.radiusM, () => stop);
+        const ok = await readNear(step.at, step.level, build!, step.radiusM, () => stop, step.town && town?.key === step.town ? town : null);
         if (stop) return;
         if (ok === null) return again(BUSY_MS);
         if (!ok) {

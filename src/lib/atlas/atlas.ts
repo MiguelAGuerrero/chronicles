@@ -8,6 +8,7 @@ import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
 import { NAV } from '../nav/rules';
 import type { LngLat } from '../types';
+import { insideTown, isWard, townBorder } from './hoods';
 import type { Pocket } from './pockets';
 
 /*
@@ -223,7 +224,7 @@ export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, bui
   const within = level === 'neighborhood' ? ATLAS_RULES.nearNeighborhoodM : ATLAS_RULES.nearTownM;
   const list: Listed[] = [];
   for (const area of rows) {
-    if (area.level !== level || !rowCurrent(area, build)) continue;
+    if (area.level !== level || !rowCurrent(area, build) || (level === 'neighborhood' && isWard(area.name))) continue;
     const d = distanceM(area.at, from);
     if (d > within || list.some((l) => sameArea(l.area, area))) continue;
     list.push({ area, distanceM: d, here: false });
@@ -284,6 +285,8 @@ export interface NearRead {
   code: string;
   /** Missing on reads made before the hierarchy: the level's own reach. */
   radiusM?: number;
+  /** WT9: the town whose page this read listed (its key); missing on reads around you and on those by reach alone. */
+  town?: string;
 }
 
 /** Near reads kept per level, newest first, so going into a town and back reads nothing twice. */
@@ -293,8 +296,10 @@ export const NEAR_KEPT = 12;
  * Whether to list a level's areas around a spot again (AT1, AT12, AT2): no read of this
  * build and these rules within 1 km of it reached as far.
  */
-export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build: string, radiusM?: number): boolean {
+export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build: string, radiusM?: number, town?: string | null): boolean {
   const list = !reads ? [] : Array.isArray(reads) ? reads : [reads];
+  // WT9: a town's page asks for a read of that town (across its border, or by its reach where it has none).
+  if (town) return !list.some((r) => r.build === build && r.code === ATLAS_CODE && r.town === town);
   return !list.some((r) => r.build === build && r.code === ATLAS_CODE && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
@@ -350,18 +355,29 @@ export const townReachM = (town: AtlasArea) => Math.min(town.reachM, ATLAS_RULES
  * AT2: a town's own neighborhoods, nearest you first: within its reach (capped),
  * and belonging to it rather than to a town beside it.
  */
-export function townNeighborhoods(rows: AtlasArea[], town: AtlasArea, towns: AtlasArea[], from: LngLat, build: string | null, outlines: OutlineSet | null = null): Listed[] {
+export function townNeighborhoods(
+  rows: AtlasArea[], town: AtlasArea, towns: AtlasArea[], from: LngLat, build: string | null, outlines: OutlineSet | null = null,
+  /** WT1: whole outlines around the town (the z10 read the borders use); with the town's own among them, its page is its border. */
+  border: OutlineSet | null = null,
+): Listed[] {
   const reach = townReachM(town);
+  const whole = townBorder(town, border);
   const list: Listed[] = [];
   for (const area of rows) {
-    if (area.level !== 'neighborhood' || !rowCurrent(area, build)) continue;
-    if (distanceM(area.at, town.at) > reach || list.some((l) => sameArea(l.area, area))) continue;
-    const owner = townOf(area, towns, outlines);
-    if (owner && !sameArea(owner, town)) continue;
+    if (area.level !== 'neighborhood' || !rowCurrent(area, build) || isWard(area.name) || list.some((l) => sameArea(l.area, area))) continue;
+    if (whole) {
+      // WT1, WT2: every neighborhood inside the border that no smaller town inside it owns, however far or many.
+      if (!insideTown(area.at, whole, border)) continue;
+    } else {
+      // WT3: no border: within the town's reach, and not the town beside it's.
+      if (distanceM(area.at, town.at) > reach) continue;
+      const owner = townOf(area, towns, outlines);
+      if (owner && !sameArea(owner, town)) continue;
+    }
     list.push({ area, distanceM: distanceM(area.at, from), here: false });
   }
   list.sort((a, b) => a.distanceM - b.distanceM);
-  const out = list.slice(0, ATLAS_RULES.townCap);
+  const out = whole ? list : list.slice(0, ATLAS_RULES.townCap);
   if (out[0] && out[0].distanceM <= AREA_REACH_M.neighborhood) out[0].here = true;
   return out;
 }
@@ -616,6 +632,8 @@ export interface NearTarget {
   at: LngLat;
   radiusM: number;
   reads: NearRead[];
+  /** WT9: a town's page: the town's key, listed once per build across its border. */
+  town?: string;
 }
 
 interface StepInput {
@@ -634,7 +652,7 @@ interface StepInput {
   archiveAt?: (at: LngLat) => string | null;
 }
 
-export type AtlasStepNear = { kind: 'near'; level: AtlasLevel; at: LngLat; radiusM: number };
+export type AtlasStepNear = { kind: 'near'; level: AtlasLevel; at: LngLat; radiusM: number; town?: string };
 
 export function atlasStep(o: StepInput): AtlasStep {
   // Checked before every step: a newer build is adopted, never chased by reading near again and again (audit 2).
@@ -644,8 +662,8 @@ export function atlasStep(o: StepInput): AtlasStep {
 }
 
 function afterBuild(o: StepInput, build: string): AtlasStep {
-  const near = o.nears.find((n) => needsNear(n.reads, n.at, build, n.radiusM));
-  if (near) return { kind: 'near', level: near.level, at: near.at, radiusM: near.radiusM };
+  const near = o.nears.find((n) => needsNear(n.reads, n.at, build, n.radiusM, n.town));
+  if (near) return { kind: 'near', level: near.level, at: near.at, radiusM: near.radiusM, ...(near.town ? { town: near.town } : {}) };
   const archiveAt = o.archiveAt ?? (() => null);
   const next = readQueue(o.list, o.now, o.release ?? null, archiveAt);
   if (next) return { kind: 'ring', area: next };
