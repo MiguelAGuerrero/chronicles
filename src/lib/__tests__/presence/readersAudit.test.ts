@@ -30,13 +30,38 @@ const PLAIN_WORDS: Readonly<Record<string, string>> = {
   library: 'the store\'s own library',
   marker: 'an edit\'s or a pin\'s marker',
   statue: 'a word of resurfacing\'s terms',
-  park: 'a scenic route\'s green kind',
-  wood: 'a scenic route\'s green kind',
   photo: 'a capture\'s kind',
   art: 'a category\'s id (Art)',
   station: 'the landing\'s nearest station, a local name',
   gallery: 'the media gallery (a meta key\'s owner)',
 };
+
+/**
+ * presence-readers audit 9: words plain only in the files (or folders, ending in /) listed, each in the sense noted, so a raw
+ * `'park'` or `'wood'` tag read anywhere else fails the guard. Paths are relative to src/lib.
+ */
+const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
+  // a green's kind (`GreenArea['kind']`), and the atlas sketch's park colour
+  park: ['discovery/green.ts', 'nav/scenic.ts', '../components/atlas/kinds.ts'],
+  wood: ['discovery/green.ts'],
+  // a style's or a component's bar (a scale bar, a section bar), in views only
+  bar: ['../components/'],
+};
+const plainIn = (w: string, rel: string) => !!PLAIN_IN[w]?.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p));
+
+/** Every module of the app outside presence and the tests: src/lib, and the views in src/app and src/components. */
+function appFiles(): string[] {
+  const out: string[] = [...libFiles()];
+  const walk = (d: string) => {
+    for (const f of readdirSync(d)) {
+      const p = join(d, f);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(f)) out.push(p);
+    }
+  };
+  for (const d of ['app', 'components']) walk(join(lib, '..', d));
+  return out;
+}
 
 test('presence-readers audit 1: the guard\'s words are every key of presence\'s tables, and no module outside presence spells one', async () => {
   const p = await presence();
@@ -44,11 +69,13 @@ test('presence-readers audit 1: the guard\'s words are every key of presence\'s 
   assert.ok(Array.isArray(words) && words.length > 100, 'presence lists every tag its tables are keyed by');
   for (const w of ['artwork', 'viewpoint', 'railway', 'bus', 'ferry_terminal', 'cinema', 'castle', 'theatre', 'zoo', 'attraction', 'grass', 'folly', 'food_and_drink'])
     assert.ok(words.includes(w), `${w} is a tag presence reads`);
-  const spells = (text: string, w: string) => new RegExp(`(['"]${w}['"]|\\b${w}:)`).test(text);
+  // presence-readers audit 9: template literals count as spelling a word too; park and wood are plain only where listed.
+  const spells = (text: string, w: string) => new RegExp(`(['"\`]${w}['"\`]|\\b${w}:)`).test(text);
   const bad: string[] = [];
-  for (const f of libFiles()) {
+  for (const f of appFiles()) {
     const text = readFileSync(f, 'utf8');
-    for (const w of words) if (!(w in PLAIN_WORDS) && spells(text, w)) bad.push(`${relative(lib, f)}: ${w}`);
+    const rel = relative(lib, f);
+    for (const w of words) if (!(w in PLAIN_WORDS) && !plainIn(w, rel) && spells(text, w)) bad.push(`${rel}: ${w}`);
   }
   assert.deepEqual(bad, [], 'a table keyed by a source\'s tags outside presence');
   const tilePois = readFileSync(join(lib, 'discovery/tilePois.ts'), 'utf8');
@@ -151,4 +178,20 @@ test('presence-readers audit 7: a park named with a notable.json word stays a pa
     if (!notableName(name) || parkWords.words.includes(w)) continue;
     assert.equal(kindOf(name), 'parks', name);
   }
+});
+
+test('presence-readers audit 9: park and wood are plain only where a green\'s kind is spelled; the guard reads views and template literals', async () => {
+  const p = await presence();
+  const words: string[] = p.SOURCE_TAGS;
+  for (const w of Object.keys(PLAIN_IN)) assert.ok(words.includes(w) && !(w in PLAIN_WORDS), `${w} is a tag, plain only per file`);
+  const files = appFiles().map((f) => relative(lib, f));
+  assert.ok(files.some((f) => f.startsWith('../app/')) && files.some((f) => f.startsWith('../components/')), 'the guard reads src/app and src/components');
+  // The auditor's inputs: a raw tag read in a module not listed, as a string, a template literal or destructured.
+  const spells = (text: string, w: string) => new RegExp(`(['"\`]${w}['"\`]|\\b${w}:)`).test(text);
+  assert.ok(spells("if (String(f.properties?.class) === 'wood') continue;", 'wood') && !plainIn('wood', 'atlas/read.ts'));
+  assert.ok(spells('if (sub === `park`) return 1;', 'park'));
+  const destructures = /\{[^}]*\bclass\s*:/;
+  assert.ok(destructures.test("const { class: c } = f.properties ?? {};"));
+  for (const f of ['discovery/refine.ts', 'discovery/refinements.ts', 'discovery/parkKind.ts', 'discovery/green.ts'])
+    assert.ok(!destructures.test(readFileSync(join(lib, f), 'utf8')), `${f} destructures a feature's class`);
 });

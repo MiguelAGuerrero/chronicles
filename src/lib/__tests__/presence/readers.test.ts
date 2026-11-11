@@ -164,7 +164,7 @@ test('PS7: PR2\'s guard holds with no exception: no module outside presence spel
   const pipeline = ['discovery/refine.ts', 'discovery/refinements.ts', 'discovery/parkKind.ts', 'discovery/green.ts'];
   for (const f of pipeline) {
     assert.ok(files.includes(f), `the guard reads ${f}`);
-    assert.ok(!/subclass|\.class\b|properties\??\.|\['class'\]/.test(src(f)), `${f} reads a feature's tags`);
+    assert.ok(!/subclass|\.class\b|properties\??\.|\['class'\]|\{[^}]*\bclass\s*:/.test(src(f)), `${f} reads a feature's tags`);
   }
   assert.ok(!/ALLOWED: Record<string, \(w: string\) => boolean> = \{\s*'/.test(readFileSync(join(__dirname, 'presenceAudit.test.ts'), 'utf8')), 'presence audit 2 allows nothing');
 });
