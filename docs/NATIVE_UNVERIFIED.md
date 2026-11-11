@@ -83,9 +83,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** turn on the pocket alert, start an exploring walk with the phone in a pocket, walk into range of a "?", out, and back in; force-quit and reopen. **Expect:** a double-tap when the "?" comes into range, once per place per walk, nothing on coming back; the switch is still on after the relaunch (`explore_haptic`) (v1 Explore). (PA1)
 - [ ] **Do:** with the pocket alert on and the phone in hand, walk into range of a "?" on an iPhone and on an Android phone. **Expect:** the double-tap (two `impactAsync(Medium)` 120 ms apart, `HAPTIC_PATTERNS.nudge`) reads as one nudge, two firm taps close together, firmer than a button's tap; Android's Vibrator doesn't merge them into one buzz (Pocket alert nudge). (PA1)
 - [ ] **Do:** on the web build in Android Chrome, turn the pocket alert on, tap Start, and walk into range of a "?". **Expect:** the phone vibrates the double-tap; it needs a tap on the page first, which Start gives (Pocket alert nudge, 0079). (PA6)
-- [ ] **Do:** on the web build in iPhone Safari, turn the pocket alert on, tap Start, and walk into range of a "?". **Expect:** the switch haptic is felt; it fires from a location update rather than a tap, so it may do nothing: record which (Pocket alert nudge, 0079). (PA6)
+- [ ] **Do:** open the web build in iPhone Safari and pull up the ready bar. **Expect:** no "Pocket alert" switch (no `navigator.vibrate`; its switch haptic needs a tap, decision 0138). (PA6)
 - [ ] **Do:** stop a walk, arrive at a destination, and find a place on an exploring walk. **Expect:** one success haptic each, after the refactor through `HAPTIC_PATTERNS` (`haptics.ts` `playStep` → `notificationAsync`); warning feedback goes the same way, but nothing in the app calls `feedback('warning')` today, so there is nothing to feel for it (pocket-alert-nudge audit).
-- [ ] **Do:** on an iPad, open the web build in Safari and pull up the ready bar. **Expect:** record whether the pocket alert is offered (a coarse pointer, no Taptic Engine) and whether turning it on does anything (pocket-alert-nudge audit). (PA6)
+- [ ] **Do:** on an iPad, open the web build in Safari and pull up the ready bar. **Expect:** expect no "Pocket alert" row (iPadOS Safari has no `navigator.vibrate`, decision 0138). (PA6)
+- [ ] **Do:** on Android Chrome, Samsung Internet and Firefox Android, with the pocket alert on, reload mid-walk without tapping, then walk into range of a "?". **Expect:** record whether the double-tap is felt; Chrome's vibrate needs a tap first, and a Windows tablet reports a coarse pointer with no motor (pocket-alert-hide audit 3).
 - [ ] **Do:** with the pocket alert on, press the side button the moment a "?" comes into range, so the app goes to the background mid-pattern. **Expect:** the 120 ms timer either plays the second tap or drops it; it never plays later, on coming back (pocket-alert-nudge audit).
 - [ ] **Do:** press and hold Start, Pause and the large buttons, lift a pill in (save a capture), and drag the sheet and let go. **Expect:** the native-driver press (`Button`) shrinks and springs back, the lift (`LiftIn`) rises smoothly, and the `HomeSheet` spring settles without a jump; all instant with reduce motion on (Polish: motion). (M2, M4, M5, M7)
 
@@ -134,6 +135,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Navigation and tabs
 
+- [ ] **Do:** on an iPhone with a notch and a home indicator, open Chronicle, Navigate, a replay and a day. **Expect:** the tab bar still sits above the home indicator (its height includes the bottom inset) and no screen draws under the notch: the root layout now nests `SafeInsets`, a passthrough on phones, inside `SafeAreaProvider` (fix memories-weird-state).
 - [ ] **Do:** on an iPhone, set a destination, then tap Open in Maps in the navigation bar. **Expect:** Apple Maps opens from the app (`nav/openInMaps.ts`) with walking directions to the destination; back in Chronicles the route and the walk are as they were (Open in Maps). (NH1, NH2, NH7)
 - [ ] **Do:** on Android, set a destination, then tap Open in Maps. **Expect:** the `geo:` chooser opens and the chosen maps app shows the destination; back in Chronicles nothing changed (Open in Maps). (NH1, NH2)
 - [ ] **Do:** add the web build to an iPhone's Home Screen, start a walk with a destination, and tap Open in Maps; then try it where Maps can't take the scheme (Maps removed). **Expect:** the Home Screen app opens the `maps://` scheme via `location.href` (it was `window.open`, which left a blank window to back out of): Maps opens with the walking route, no blank window, the page is intact on return, recording resumes; record what shows if Maps can't take the scheme (Open in Maps, fix pwa-maps).
@@ -415,6 +417,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 
 - [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.
 
+## Old walks placed in the background (fix background-placing, decision 0137)
+
+- [ ] **Do:** with a walk from before places (or one stopped offline, then back online), open Chronicle's Map. **Expect:** the map and the stars already placed show at once, with no grey cover and no "Placing your walks"; the walk's row under "Not placed yet" says "Placing…" while its tiles are fetched and decoded on the phone (`tileCollector`, `fetchTiles`), then its star comes, and the map never jumps to it by itself. Switch Map → Walks mid-pass: the row still says "Placing…". Tap Start mid-pass: the walk screen's first seconds stay smooth while the walk at hand finishes (audit 5).
+
 ## Captures while paused (fix paused-pins)
 
 - [ ] **Do:** on a phone, start a walk, pause it, walk two streets, take a photo and a note, then resume and stop. **Expect:** each moment sits where you took it (a pin on the walk map within a few seconds, and on the replay), not where the pause began. With location refused, the moment sits where the pause began.
@@ -451,7 +457,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with the responses sheet open on an iPhone, drag it to full, then down; on Android press Back with it open. **Expect:** it springs to full and closes on the drag; Back lowers the sheet and leaves the viewer open, a second Back closes the viewer (RT3).
 - [ ] **Do:** with the sheet open, Respond → Voice memo, record, Stop. **Expect:** the memo arrives at the end of the sheet, nothing pops up, and the sheet stays where it was (RT7).
 
-## Media gallery (MG1-MG22, decision 0134)
+## Media gallery (MG1-MG22, decision 0139)
 
 - [ ] **Do:** open Chronicle → Media on an iPhone with a few hundred photos and fling the grid to the bottom and back. **Expect:** it keeps up, tiles fill in with their small copies, and the day header at the top stays pinned under the bar (MG11, MG12, MG16).
 - [ ] **Do:** pinch out, then in, on the grid with two fingers. **Expect:** three across becomes five then seven, or back; the day at the top stays at the top; the page itself never zooms (MG20).

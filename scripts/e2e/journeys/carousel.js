@@ -218,8 +218,25 @@ async function townPage(h) {
     const spotBox = await pg.locator('[data-testid=atlas-spot]').boundingBox().catch(() => null);
     const pill2 = await pg.locator('[data-testid=atlas-back-pill]').boundingBox().catch(() => null);
     check(spotBox && pill2 && pill2.y + pill2.height <= spotBox.y + 1, `explore-carousel audit 11: on a town's page the back pill stays above the long press's choices (${pill2 && Math.round(pill2.y + pill2.height)} <= ${spotBox && Math.round(spotBox.y)})`);
-    await pg.locator('[data-testid=atlas-spot] [aria-label=Close]').click().catch(() => {});
-    await pg.waitForTimeout(500);
+    {
+      // tend explore 6: one Escape steps out of one thing: the long press's choices, then the Layers panel, and only then the page.
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(500);
+      const spotGone = (await pg.locator('[data-testid=atlas-spot]').count()) === 0;
+      const page1 = (await pg.locator('[data-testid=atlas-back-pill]').count()) === 1;
+      if (!spotGone) await pg.locator('[data-testid=atlas-spot] [aria-label=Close]').click().catch(() => {});
+      if (!page1) await pg.locator('[data-testid=atlas-tile][data-level="town"]').first().click().catch(() => {});
+      await pg.waitForSelector('[data-testid=layers]', { timeout: 5000 }).catch(() => {});
+      await pg.click('[data-testid=layers]').catch(() => {});
+      const panelShown = await pg.waitForSelector('[data-testid=layers-panel]', { timeout: 3000 }).then(() => true, () => false);
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(500);
+      const panelGone = (await pg.locator('[data-testid=layers-panel]').count()) === 0;
+      const page2 = (await pg.locator('[data-testid=atlas-back-pill]').count()) === 1;
+      check(spotGone && page1 && panelShown && panelGone && page2, `tend explore 6, tend explore audit 4: on a town's page, Escape closes the choices, then Layers, and keeps the page (choices closed ${spotGone}, page ${page1}; panel ${panelShown} → closed ${panelGone}, page ${page2})`);
+      if (!page2) await pg.locator('[data-testid=atlas-tile][data-level="town"]').first().click().catch(() => {});
+      await pg.waitForTimeout(500);
+    }
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(1500);
     check((await pg.locator('[data-testid=atlas-back-pill]').count()) === 0, 'EC12: Escape returns from the town\'s page');

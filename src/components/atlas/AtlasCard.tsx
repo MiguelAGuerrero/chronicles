@@ -77,6 +77,8 @@ export function AtlasCard(props: {
   onWalkAt: (at: LngLat, label: string) => void;
   /** WP1: a kind's "Suggest a walk" button opens the walk planner for it. */
   onPlan: (kind: CategoryId) => void;
+  /** The walk planner is open over the card: its Back and Escape are the planner's, and the card stays as it was (tend explore 4). */
+  covered?: boolean;
   onPick: (key: string) => void;
   onClose: () => void;
   /**
@@ -101,12 +103,17 @@ export function AtlasCard(props: {
     if (props.askFirst?.(at)) setAsking({ at, label, now });
     else now();
   };
+  const covered = useRef(!!props.covered);
+  useEffect(() => {
+    covered.current = !!props.covered;
+  }, [props.covered]);
   useEffect(() => {
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (covered.current) return false;
       close.current();
       return true;
     });
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close.current();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !covered.current && close.current();
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();

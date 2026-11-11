@@ -409,6 +409,48 @@ async function run(h) {
       check(new URL(pg.url()).pathname === `${BASE}/` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
         `tabs audit U14, RM3: Not now goes to Chronicle's Memories and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
+    await step('fix memories-weird-state: a pinch-zoom leaves the tab bar alone', async () => {
+      // iOS Safari reports the visual viewport as window.innerWidth/innerHeight, halved under a 2x pinch (a photo in
+      // the viewer). A resize measured then made the bottom and right insets half the screen: the tab bar grew to
+      // half its height, its three tabs squeezed into one point, and Memories' list into nothing, until a reload.
+      const bar = () => pg.evaluate(() => {
+        const wrap = document.querySelector('[data-testid=tab-bar-wrap]')?.getBoundingClientRect();
+        const tabs = ['chronicle', 'explore', 'navigate'].map((t) => document.querySelector(`[data-testid=tab-${t}]`)?.getBoundingClientRect().width ?? 0);
+        return { h: Math.round(wrap?.height ?? 0), tabs: tabs.map(Math.round) };
+      });
+      const before = await bar();
+      await pg.evaluate(() => {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        // Kept, so the zoom's end puts the real viewport back (audit 2: a bare delete left them undefined).
+        window.__realViewport = { w: Object.getOwnPropertyDescriptor(window, 'innerWidth'), h: Object.getOwnPropertyDescriptor(window, 'innerHeight') };
+        Object.defineProperty(window, 'innerWidth', { configurable: true, get: () => Math.round(w / 2) });
+        Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => Math.round(h / 2) });
+        window.dispatchEvent(new Event('resize'));
+        window.visualViewport?.dispatchEvent(new Event('resize'));
+      });
+      await pg.waitForTimeout(600);
+      const zoomed = await bar();
+      // The zoom ends as iOS ends it: the viewport is whole again, and only the visual viewport says so.
+      await pg.evaluate(() => {
+        Object.defineProperty(window, 'innerWidth', window.__realViewport.w);
+        Object.defineProperty(window, 'innerHeight', window.__realViewport.h);
+        window.visualViewport?.dispatchEvent(new Event('resize'));
+      });
+      await pg.waitForTimeout(300);
+      const after = await bar();
+      const whole = await pg.evaluate(() => window.innerWidth > 300 && window.innerHeight > 500);
+      check(whole && before.h > 0 && before.h < 120 && [zoomed, after].every((s) => s.h === before.h && s.tabs.every((t) => t >= 100)),
+        `fix memories-weird-state: a pinch-zoom's resize leaves the tab bar's height and its three tabs' widths as they were (${JSON.stringify({ whole, before, zoomed, after })})`);
+      // The same insets set Navigate's ready bar at rest (BAR_H + the bottom inset): the owner found it stuck
+      // half open after tapping the stacked icons (Nov 11). Measured after the zoom, where the old insets stayed.
+      await tabTo(pg, 'navigate');
+      await pg.waitForSelector('[data-testid=ready-bar]');
+      await pg.waitForTimeout(800);
+      const ready = await pg.evaluate(() => Math.round(document.querySelector('[data-testid=ready-bar]')?.getBoundingClientRect().height ?? 0));
+      check(ready > 0 && ready < 200,
+        `fix memories-weird-state: after a pinch-zoom's resize, Navigate's ready bar rests at its own height, never half the screen (${ready} px)`);
+    });
     await c.close();
 }
 
@@ -419,8 +461,8 @@ module.exports = {
     'src/app/_layout.tsx',
     'src/app/walk.tsx',
     'src/app/replay/**',
-    'src/components/{RecordingBar,OpenWalk,HomeSheet,MomentBar,StartSettings}.tsx',
-    'src/lib/{walkNav,walkGate,memoGate,recordingBar,startPlan,useStartWalk,launchRoute}.ts',
+    'src/components/{RecordingBar,OpenWalk,HomeSheet,MomentBar,StartSettings,SafeInsets,SafeInsets.web}.tsx',
+    'src/lib/{walkNav,walkGate,memoGate,recordingBar,startPlan,useStartWalk,launchRoute,safeInsets}.ts',
   ],
   run,
 };

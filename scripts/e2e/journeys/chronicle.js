@@ -63,6 +63,13 @@ async function checks(h) {
     await page.waitForTimeout(300);
     const nextFocus = await page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? null);
     check(nextFocus === 'epilogue-input', `tend chronicle 5: Next in the first replay's name goes on to the line (focus on ${nextFocus})`);
+    // tend chronicle audit 1: the first replay keeps its own line, said just after the walk; Rename's changed (inbox T2).
+    const replayLine = await page.evaluate(() => ({
+      shown: document.getElementById('epilogue-label')?.textContent ?? '',
+      spoken: document.querySelector('[data-testid=epilogue-input]')?.getAttribute('aria-label') ?? '',
+    }));
+    check(replayLine.shown === 'One line, while the feeling is fresh' && replayLine.spoken === 'One line, while the feeling is fresh',
+      `tend chronicle audit 1: the first replay's line still reads "One line, while the feeling is fresh", shown and spoken (${JSON.stringify(replayLine)})`);
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');
     await page.click('[data-testid=save]');
     // Back on Chronicle: the walk is a star where it was walked (H1, H7, NV27).
@@ -311,7 +318,8 @@ module.exports = {
     'src/components/{HomeSheet,StarView,AreaPoint,NoteEditor,SwitchRow,UndoToast}.tsx',
     'src/lib/{rename,noteEdit,months,walkTitle,rides}.ts',
     'src/lib/areas/**',
-    'src/lib/{places,placeAll,backlog}.ts',
+    'src/lib/{places,placeAll}.ts',
+    'src/lib/backlog/**',
   ],
   run,
   checks,

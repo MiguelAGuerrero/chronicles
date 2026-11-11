@@ -546,6 +546,8 @@ async function createHarness() {
       permissions: opts.permissions ?? ['geolocation'],
       geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
     });
+    // A touch screen is Android Chrome unless a journey says otherwise: headless Chromium has no navigator.vibrate (the pocket alert needs it, decision 0138).
+    if ((process.env.E2E_MOBILE || opts.touch) && !opts.noVibrate) await c.addInitScript(() => { if (!('vibrate' in navigator)) navigator.vibrate = () => true; });
     await metricRegion(c);
     await c.route('https://tiles.openfreemap.org/**', tileRoute);
     await c.route(`https://${OVERTURE_HOST}/**`, overtureRoute);

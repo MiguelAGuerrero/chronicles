@@ -19,7 +19,7 @@ Shape: A fifth section, Media. Bare square tiles, one per photo, video or memo p
 Criteria: MG6, MG7, MG8, MG10 below come from the gate; MG6, MG7, MG8, MG15-MG17 were sharpened by the steward (plan, "Steward").
 Open: none (answered Nov 11, see Decisions).
 
-## Decisions (the owner's calls, Nov 11, decision 0134)
+## Decisions (the owner's calls, Nov 11, decision 0139)
 
 - **A fifth section, Media**: Memories | Walks | Days | Map | Media, as Day One's views; one tap from anywhere in Chronicle. The pills tighten to fit a phone.
 - **Context lives in day headers**, never on the tiles: a tile is bare (no caption, no words); the header names the day and where; opening a tile shows the moment whole.

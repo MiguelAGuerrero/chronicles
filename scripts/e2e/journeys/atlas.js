@@ -172,6 +172,20 @@ async function checks(h) {
         check(/same marks mean the same anywhere/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
       }
       await shot(page, '11c-atlas-card');
+      {
+        // tend explore 4: with the planner open over the card, one Escape closes the planner only; the card is as it was.
+        const plan = page.locator('[data-testid^=atlas-kind-walk-]').first();
+        const has = (await plan.count()) === 1;
+        if (has) {
+          await plan.click();
+          await page.waitForSelector('[data-testid=planner]', { timeout: 10000 });
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(400);
+        }
+        const planner = await page.locator('[data-testid=planner]').count();
+        const card = await page.locator('[data-testid=atlas-card]').count();
+        check(has && planner === 0 && card === 1, `tend explore 4: one Escape closes the planner and leaves the card open (button ${has}, planner ${planner}, card ${card})`);
+      }
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'AT8: Escape closes the card');

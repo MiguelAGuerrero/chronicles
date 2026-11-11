@@ -184,6 +184,16 @@ export function placeWalks(index: PlacesIndex, key: string): { title: string; su
 }
 
 /**
+ * Whether a read of the places walked moves Chronicle's map (H5, decision 0137). `framed` and `next` are the
+ * bounds' keys ('' for nothing); `quiet` is a read that follows only walks placed in the background, on screen or
+ * while it was away: those never move a framed map, so the view the owner left stays (fix background-placing
+ * audit 9). Anything else that changes the places (a new walk, a delete) frames them again.
+ */
+export function fitsOnRead(framed: string, next: string, quiet: boolean): boolean {
+  return next !== framed && (!quiet || framed === '');
+}
+
+/**
  * Stopped walks with no places yet (offline at stop, or from before v0.5).
  * A walk snapped under the current rules counts as placed even with nothing
  * to show (no fixes, nowhere named), so it is not tried at every launch.

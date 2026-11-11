@@ -588,6 +588,28 @@ async function run(h) {
       check(true, 'tend chronicle 6: the walk\'s More and its Rename editor are pictured');
     });
 
+    // inbox T2: the editor opens weeks after the walk as often as just after it, so its line asks for words, not for a
+    // feeling still fresh; the first replay keeps its own (chronicle journey). Its own step, which closes the editor
+    // whatever it finds, so a failure is named for itself and leaves nothing open (tend chronicle audit 2).
+    await qstep('tend chronicle T2', async () => {
+      await pg.locator('[data-testid=walk-more]').first().click();
+      await pg.click('[data-testid=action-rename]');
+      await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+      try {
+        const lineLabel = await pg.evaluate(() => ({
+          shown: document.getElementById('rename-epilogue-label')?.textContent ?? '',
+          spoken: document.querySelector('[data-testid=rename-epilogue]')?.getAttribute('aria-label') ?? '',
+        }));
+        check(lineLabel.shown === 'One line, in your own words' && lineLabel.spoken === 'One line, in your own words',
+          `tend chronicle T2: Rename's line reads "One line, in your own words", shown and spoken (${JSON.stringify(lineLabel)})`);
+      } finally {
+        // tend chronicle audit 2: the editor and its menu close whatever the check found.
+        await pg.click('[data-testid=rename-cancel]').catch(() => {});
+        await pg.click('[data-testid=actions-cancel]').catch(() => {});
+        await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
+      }
+    });
+
     // tend chronicle 4: Escape steps out of the Rename editor to the walk's menu, and a second Escape closes the
     // menu, never one Escape for both (QL22: "Escape, Back and the backdrop step out of the editor before the sheet").
     await qstep('tend chronicle 4', async () => {

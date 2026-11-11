@@ -1051,7 +1051,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-graded={gradedKey} />
       {/* Beside the map's own DOM, not inside it, so React owns it. */}
       {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
-      {props.covered && <View style={styles.cover} pointerEvents="none" />}
+      {props.covered && <View testID="map-cover" style={styles.cover} pointerEvents="none" />}
     </View>
   );
 });

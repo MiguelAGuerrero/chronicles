@@ -84,7 +84,7 @@ Chronicle's Memories (decision 0098)
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen, MemoriesBand (the capture band, HC6-HC15), Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
-Media gallery (specs/media-gallery, MG1-MG22, decision 0134)
+Media gallery (specs/media-gallery, MG1-MG22, decision 0139)
   gallery/types.ts           Show, Order, Zoom, Size, Shape, GalleryView (what is kept)
   gallery/layout.ts          galleryTiles (one per photo, video and memo piece, in the Sort's order), galleryDays and dayLine (a header per day, where in words), galleryBlocks (months and years: the cover, the place line), dayRows and blockRows (every row's offset known, MG12), tileLabel, withPiecePatch
   gallery/copy.ts            every sentence: the empty lines, the View menu's words, the place line's phrases; numbers as words
@@ -175,7 +175,7 @@ Streets, snapping, fog
   ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
-  backlog.ts                 placeBacklog: places old walks in one pass through the home map
+  backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0137); shell.ts takes the snap and the reader
   mapReads.ts                one camera read at a time (mapReadLock)
 Places and areas (v0.5)
   areas/types.ts             PlaceCandidate, TownOutline, BoundarySource, Area, WalkArea: the whole contract
@@ -419,7 +419,7 @@ Layers (functional core, imperative shell)
   `explore_read`) are cleared by `purgeDerived`; `KEPT_STORES` (`offered`,
   `mark`, `recall`, `checklist_area`, `checklist_item`, `find`) never are.
 - **Screens read rows, never traces or media.** Chronicle reads walks,
-  summaries, Area, WalkArea and capture rows; `backlog.ts` is its one read of
+  summaries, Area, WalkArea and capture rows; `backlog/` is its one read of
   traces. Media is reached only through `resolveMedia`.
 - **The `npm test` rule.** Tests import only core modules, fakes and types, because `tsx --test`
   cannot load React Native. That is why `tileMath.ts` is split from
@@ -484,15 +484,20 @@ own code only where no Expo module covers the feature on web:
   `visualViewport`. react-native-web's `Keyboard` reports nothing and its `KeyboardAvoidingView` does nothing, and
   `#root` is pinned, so a field near the foot was left under the keyboard.
 - **Can it buzz** (the pocket alert's switch): `canBuzz.web.ts` asks
-  whether the pointer is coarse. expo-haptics' web build vibrates where
-  `navigator.vibrate` exists and tries iPhone Safari's switch haptic on a touch
-  screen, but desktop Chrome has `navigator.vibrate` and no motor (audit 4);
+  whether the pointer is coarse and `navigator.vibrate` exists. iPhone Safari has no
+  vibrate and its switch haptic needs a tap, not a location update, so it is not offered (decision 0138);
+  desktop Chrome has `navigator.vibrate` and no motor (audit 4);
   expo-haptics has no availability call. The buzz itself goes through expo-haptics, as on a
   phone (decision 0079).
 - **The room left** (storage awareness, SA1, SA10, decision 0107): `space/probe.web.ts` reads
   `navigator.storage.estimate()` (the quota minus what the app uses) and asks `navigator.storage.persist()`.
   expo-file-system's web build reports `availableDiskSpace` as 0, and no Expo module asks a browser to
   keep an app's data. Phones read `Paths.availableDiskSpace` (`space/probe.native.ts`).
+- **The safe area's insets** (fix memories-weird-state): `SafeInsets.web.tsx`, under the root layout's
+  `SafeAreaProvider`, gives the insets as the `env(safe-area-inset-*)` paddings alone (`lib/safeInsets`).
+  react-native-safe-area-context's web provider clamps them against `window.innerWidth/innerHeight`, which
+  iOS Safari reports as the visual viewport: a resize during a pinch-zoom left the tab bar half the screen
+  tall, its tabs squeezed into one point, until a reload. Phones keep the library's insets (`SafeInsets.tsx`).
 - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
   viewport, long-press guards) and the muted-autoplay fallback.
 

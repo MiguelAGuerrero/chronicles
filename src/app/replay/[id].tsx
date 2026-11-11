@@ -37,6 +37,7 @@ import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
 import { FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
+import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
 import { summaryLess } from '../../lib/deletion/core';
 import { useHidden } from '../../lib/deletion/useDeletions';
@@ -88,6 +89,8 @@ export default function Replay() {
   const [fitKey, setFitKey] = useState(0);
   const [sheetH, setSheetH] = useState(0);
   const [title, setTitle] = useState('');
+  // The suggestion Name it was filled with, if it was one: kept as it was, it stores no title (tend chronicle audit 1).
+  const [offered, setOffered] = useState<string | null>(null);
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -247,6 +250,7 @@ export default function Replay() {
       }
       setData(d);
       setTitle(d.walk.title ?? suggestTitle(d.walk));
+      setOffered(d.walk.title ? null : suggestTitle(d.walk));
       setEpilogue(d.walk.epilogue ?? '');
       setStatus('ready');
       // A new tile build drops the street cache and marks walks for re-snapping.
@@ -272,6 +276,7 @@ export default function Replay() {
         if (!alive) return;
         setData(d);
         setTitle(d.walk.title ?? suggestTitle(d.walk));
+        setOffered(d.walk.title ? null : suggestTitle(d.walk));
       }
       // With a screen reader the animation says nothing: it goes straight to
       // the captures, one after another, then the card. (react-native-web
@@ -408,7 +413,8 @@ export default function Replay() {
     setSaving(true);
     setSaveError(null);
     try {
-      await db.updateWalk(data.walk.id, { title: title.trim() || suggestTitle(data.walk), epilogue: epilogue.trim() || null });
+      // The suggestion kept as it was stores no title, so it follows the walk's area (tend chronicle T1).
+      await db.updateWalk(data.walk.id, renamePatch(data.walk, title, epilogue, offered));
       toChronicle();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
@@ -682,7 +688,8 @@ export default function Replay() {
         // The card shows the new name at once, and the name beat's fields with it (QL23).
         onRenamed={(walkId, patch) => {
           setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));
-          setTitle(patch.title);
+          setTitle(patch.title ?? suggestTitle(data.walk));
+          setOffered(patch.title ? null : suggestTitle(data.walk));
           setEpilogue(patch.epilogue ?? '');
         }}
       />

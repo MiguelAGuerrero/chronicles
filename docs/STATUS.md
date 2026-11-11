@@ -124,51 +124,53 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T1 [owner] Chronicle: a walk named without changing the suggested title keeps that suggestion for good** (2026-11-11)
-  Area: chronicle. Seen: `src/lib/rename.ts:17` stores `title || suggestTitle(walk)`, and the first replay's Keep it
-  (`src/app/replay/[id].tsx:409`) stores the suggestion too; a walk named before its area was read stays "Tuesday
-  evening walk" after `finish.ts` finds Fox Point, and memory cards then quote it as if typed (`resurface/views.ts`
-  `fromLine`). Rests on: VISION.md Never, "Writing the owner's words for them", nearest fit "A suggested title from
-  the data, always editable, never overwriting"; Always, "streets, areas and summaries are recomputed"; the steward
-  calls it drift, not a breach. Recommended: store a title only when the words differ from the suggestion at save
-  (`renamePatch` returns `title: null` otherwise, and Keep it calls `renamePatch`); walks saved before stay as they
-  are. QL23's "an empty title becomes the suggested one" becomes "becomes no title, shown as the suggestion". /vision:
-  aligned (Return). Otherwise: leave it; the suggestion, once kept, is the name.
-- **T2 [owner] Chronicle: Rename asks for a line "while the feeling is fresh", weeks later** (2026-11-11)
-  Area: chronicle. Seen: `src/components/WalkActions.tsx`, the Rename editor's label (picture `qol-04b-rename-editor`).
-  Rests on: VISION.md Always, "Restraint in motion, colour and copy"; the concept doc's epilogue is "one line in your
-  own words while the feeling is fresh", said of the first replay. Recommended: Rename's label reads "One line, in
-  your own words"; the first replay keeps its own. /vision: aligned (Return). Otherwise: leave it.
-- **T3 [arch] Chronicle: the section bar says Map while the sheet shows Walks** (2026-11-11)
-  Area: chronicle. Seen: pictures `10-home-walks`, `qol-04-chronicle-renamed`: the top bar (Memories, Walks, Days,
-  Map) has Map selected while the sheet's own Walks | Days switch has Walks, beside a second Map button
-  (`(tabs)/index.tsx:90, 465`; `HomeSheet` header). Rests on: NN/g H4 (docs/research/ui-references.md), "Users should
-  not have to wonder whether different words, situations, or actions mean the same thing"; decision 0098, "One
-  screen, four sections". Recommended: the sheet's Walks, Days and Map also move the section bar
-  (`chronicleSection.set`), so the bar always names what is shown; the sheet keeps its switch. /vision: aligned
-  (Return). Otherwise: hide the sheet's switch while the section bar shows (a removal), or leave it.
+- **T4 [owner] Explore: an area's busy streets are listed busiest first, and its walk starts on "its busiest street"** (2026-11-11)
+  Area: explore. Seen: `src/components/atlas/AtlasCard.tsx:236` ("each busy street once, busiest first") and `:355` ("Starts you at {via}, its busiest street"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best of', rankings of places"; the steward calls it drift, not a breach: decisions 0034, 0080 and 0127 make busy streets information, and no rank number shows. Recommended: list the busy streets by distance from you, and say "Starts you on {via}"; the words "busy streets" stay. /vision: not run as a gate this time; the steward's reading stands in, so the answer is yours. Otherwise: leave it; the order is the information.
+- **T5 [owner] Explore: "How the marks work" is always open on an area's card, about a third of the sheet** (2026-11-11)
+  Area: explore. Seen: picture `11c-atlas-card`: the explainer pushes the Views row below the fold, above four equal "Suggest a walk" pills. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; the UX review's opinion, no cited source. Recommended: the explainer opens from its own "How the marks work" link and stays shut on the next visit. Otherwise: leave it; it is the one place that says no mark is a score.
 
 ### Next evolutions
 
-The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). None yet; `/tend evolve` makes the first.
+The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.
+
+- **G1 [S] Chronicle: the section bar names what the sheet shows** (2026-11-11) · Return · aligned (T3's verdict)
+  Area: chronicle. From: T3, answered yes Nov 11 (decision 0136); NN/g H4, "Users should not have to wonder whether
+  different words, situations, or actions mean the same thing"; pictures `10-home-walks`, `qol-04-chronicle-renamed`.
+  Touches: decision 0098, "One screen, four sections" and "A replay or a day opened from a section returns to it";
+  RM2 (each section as it was); NV3 (the map keeps its view). No Never or Always line.
+  The slice: 1. The sheet's Walks | Days switch and its Map button set Chronicle's section, so the section bar selects
+  the one the sheet shows. 2. The bar's Walks, Days and Map change the sheet as today (Walks and Days open it on that
+  list, Map lowers it to rest). 3. Moving among Walks, Days and Map, by either control, keeps one map: no new canvas,
+  the camera where it was (`ChronicleMap` is no longer keyed by section). 4. A place's walks and a day's timeline keep
+  the section they were opened from, and a replay or a day opened from a section returns to it. 5. A journey step each
+  way checks the bar and the sheet agree and one canvas stands, with a picture of each.
+  Payoff: every visit to Chronicle past Memories; the bar stops contradicting the sheet. Cost: S, one screen
+  (`(tabs)/index.tsx`, `HomeSheet`), no native code. Reopens: chronicle (rough). After it: the sheet's switch could be
+  reconsidered once the bar is trusted. Instead: hide the sheet's switch while the bar shows (a removal).
 
 ### Last tend
 
-**Nov 11, `/tend chronicle`** (a sweep, from `83a3f25`; the first run of the loop). Eight loop commits:
-`tend chronicle 1` Escape or Back with the @ picker open closes the picker, not the note; `2` a walks row says its
-date, distance, time and one line (the web dropped the hint); `3` a day's timeline says its walk's title; `4` one
-Escape steps out of Rename, not out of the menu too; `5` the title's Next goes on to the line (Rename and the first
-replay's name); `6` the More menu and Rename editor are pictured in `qol`; `7` `qol` covers `WalkActions` and
-`NoteEditor`; `8` the sheet's Walks and Days are 44 px. Filed: T1 (a kept suggested title freezes), T2 (Rename's
-"while the feeling is fresh"), T3 [arch] (the section bar and the sheet's switch disagree); `docs/DEFERRED.md`
-Quality of life 12-16 and a map item. The balance: in step, no evolution proposed; chronicle is rough (medium
-findings found). Lenses not whole: lens 2 did not picture 320 px, 200% text, offline or an interrupted rename.
-The review (one round): audit 2 fixed (an Escape during the menu's fade-in), audit 1 rejected (an arrow key typed in a
-field never reaches the viewer: react-native-web's TextInput stops keydown), and with it a deferred item it rested on.
-Nothing here has run on a phone.
+**Nov 11, `/tend explore`** (a second sweep, from `0193552`, for the lenses the first left out). Five loop commits:
+`tend explore 2` a cancelled "What's good here?" stays stopped when a newer one starts (`lib/atlas/look`); `5` a town's spoken
+"Waiting in" names only kinds still waiting (WT11); `4` one Escape closes the planner over a card, and the card stays; `6` on a
+town's page Escape closes the long press's choices or Layers before the page; `7` one tap on a town's dot eases in far enough
+for it to be a "?" (WT13). The review (one round): `audit 1` Back with Layers open on a town's page closes the panel (Android
+lost it in `6`), `audit 3` a found place's dot is not sent to where finds vanish (`7`); and `audit 4` the Escape that closes Layers stops there
+(the town page's journey step caught Escape leaving the page too: React re-adds the page's handler mid-event); one deferred (a look cancelled during its
+write can still speak), one rejected (an all-found town keeps its keyboard way in: the selected tile opens its card). A sixth (a look left running when the tab is left) was dropped: its journey step passed on the build
+before the fix, so it is filed unconfirmed. Filed: `docs/DEFERRED.md` Explore and discovery, twelve `[loop]` items (two retry and
+centre bugs in shells no unit test reaches, a capture missed during a read, focus on the web, low ones); no inbox entry. The
+balance: in step; explore stays rough (medium findings). Lenses run: 1 (`grading`, `snap`, `curiosities` new; `atlas`, `carousel`
+again), 2 (read in the code; 320 px pictured for the carousel's town screens through a scratch preload, the atlas journey's Explore
+pages stayed 390), 3, 4 (EC, WT, AT, DN, TP, AG and the rule file), 5 (races, cost, truth vs cache), 6 (`check:vision`).
+Not run: 200% text, offline pictured, the reviewers on this run's pictures. Nothing here has run on a phone.
 
 ### Open before the loop
 
+- **QL23's wording after T1** (Nov 11): the quality-of-life doc (mirrored in `specs/quality-of-life/spec.md`) says "an
+  empty title becomes the suggested one"; the build now stores no title for an empty one or the suggestion kept as it
+  was, shown as the suggestion. Amend the doc to "an empty title, or the suggestion unchanged, is no title, shown as
+  the suggested one", and the mirror with it; the loop may not edit a spec.
 - **Explore, a neighborhood past its town's reach** (fix explore-town-scope audit 3, decision 0126): answered by Whole towns (decision 0132, shipped Nov 11): a town's page takes every neighborhood inside its border.
 - **History reads thin in a city** (Whole towns, Nov 11): Allentown's map has 122 history places and 2 count, because AG1 counts worship and memorials only with a notable word in their name. Keep the rule, or widen it?
 
@@ -184,8 +186,8 @@ Nothing here has run on a phone.
   4. **The accent at launch:** "A year ago today" and "Relive it" carry the accent on the screen the app opens on,
      while capture is plain ink (also the "Thread" labels and MomentCard's play button). Muted ink and a secondary
      button?
-  5. **"Placing your walks (N of M)"**, the one excused tally worth a look: keep the count, or "Placing your walks…"
-     with Skip?
+  5. ~~**"Placing your walks (N of M)"**~~: answered Nov 11 (decision 0137): no cover, no count; walks are placed in
+     the background and the walk at hand says "Placing…" on its row.
   6. **Open question 5**, "nothing is ever calculated for you", against resurfacing and suggested threads (0098):
      where is the line?
   - Note: the commits `2a00092` and `29dac68` cite decisions 0112 and 0121 for the plain labels; the record is 0122.
@@ -231,7 +233,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Media gallery (Chronicle's fifth section: every photo, video and memo in an edge-to-edge grid under pinned day headers; Years, Months, Days; Sort, Show, Zoom and pinch, Square or Aspect; MG1-MG22, decision 0134) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-11, test-first by history (22 of 22): unit tests (1814), typecheck, lint, docs and vision checks; the eleven journeys `check:affected` names (gallery, capturehome, chronicle, edit, qol, responses, resurface, stacks, tabs, threads, walk) pass on the /chronicles build, `resurface` run twice (its RM1 check counted four sections; now five); steward read twice (S1-S14 accepted); not audited (decision 0074); native unverified. Video thumbnails are the next slice (the owner, Nov 11); spec `specs/media-gallery/spec.md` |
+| Media gallery (Chronicle's fifth section: every photo, video and memo in an edge-to-edge grid under pinned day headers; Years, Months, Days; Sort, Show, Zoom and pinch, Square or Aspect; MG1-MG22, decision 0139) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-11, test-first by history (22 of 22): unit tests (1814), typecheck, lint, docs and vision checks; the eleven journeys `check:affected` names (gallery, capturehome, chronicle, edit, qol, responses, resurface, stacks, tabs, threads, walk) pass on the /chronicles build, `resurface` run twice (its RM1 check counted four sections; now five); steward read twice (S1-S14 accepted); not audited (decision 0074); native unverified. Video thumbnails are the next slice (the owner, Nov 11); spec `specs/media-gallery/spec.md` |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14, decision 0131) | `claude/elegant-cannon-gs9yrk` | built 2026-11-11: RT1-RT14 tested first (unit and the `responses` journey), typecheck, lint, 1741 unit tests; the nine journeys `check:affected` names pass on the /chronicles build; deployed 2026-11-11 (`9ed9a15`, Pages run 42957716629); not audited; native unverified; spec `specs/response-thread/spec.md` |
 | Presence and kinds (a museum the data calls historic lights History too, the bars kept apart; routes from a bar lean on places you pass; a Community spaces kind; the needsOpen gate measured; PK1-PK19, after the Coplay Kilns diagnosis) | `claude/dazzling-fermat-ws5c6a` | built 2026-11-10, test-first by history (19 of 19): PK1-PK19 pass (1715 unit tests with main's, merged at `0f3f216`); typecheck, lint, docs and vision checks clean; journeys atlas, curiosities, grading, marks, nudge, outlines, planner, replay pass, and scenic on the merged tree (its one failure before the merge was the old base's, passing 3 of 3 on main); audited 2026-11-11 at the owner's request (14 findings: 8 fixed, one in part, two at the owner's call (the icons); 3 deferred; 3 rejected, one at the owner's call (the label kept); tests `presence-and-kinds audit 1-3, 5, 6, 8, 10, 13`); nothing native new; not merged or deployed. For the owner: the live places archive is still v1, so the Kilns show only once a v2 archive publishes; decision 0127. Spec `specs/presence-and-kinds/spec.md` |
 | Explore carousel: a row of area cards under a full-height map; the selected area highlighted and the only one named; a map swipe steps the row (EC1-EC20, decision 0124) | `claude/keen-maxwell-5rxhkx` | built 2026-11-10, test-first by intent (the first commit's todos were in a form the history check does not read: 9 of 20 criteria report "real before todo"); EC1-EC20 tested (1503 unit tests; journeys carousel, snap, atlas, grading, marks, outlines, layers, walkability, qol, tabs, launch, planner pass; `chronicle` and `atlas` pass but the walk journey's video-pin check, a timing check, fails now and then); audited 2026-11-10 (16 findings: 9 fixed, 2 deferred, 3 rejected, 1 for the owner, 1 in part); not deployed; native unverified. Spec `specs/explore-carousel/spec.md` |

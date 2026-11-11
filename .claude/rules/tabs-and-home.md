@@ -47,6 +47,16 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   the browser's first fix, up to 10 s, which is how long Explore used to show.
   Each wait is capped at 3 s, so a stuck read never leaves the app covered.
   The reload e2e opens `/` with a walk open and samples every frame (HC2: no frame of Chronicle).
+- **The web's safe-area insets are `env()`'s alone** (`components/SafeInsets.web.tsx`, fix
+  memories-weird-state, the owner's iPhone on Memories, Nov 11). The library's web provider clamps them
+  against `window.innerWidth/innerHeight`, the visual viewport on iOS Safari: a resize while a photo was
+  pinch-zoomed made the bottom and right insets half the screen, so the tab bar ballooned
+  (`paddingHorizontal: max(left, right)` squeezed its three tabs into one point) and Memories' list shrank
+  to nothing until a reload. Never read `useSafeAreaInsets` from above `SafeInsets` in the root layout.
+  The tabs journey replays it: it halves `innerWidth/innerHeight` and fires a resize, then puts the real
+  viewport back with only a `visualViewport` resize, as iOS ends a zoom. `env()` is 0 today (no
+  `viewport-fit=cover`); adding it means `SafeInsets` must also hear an `env()` change that comes with no resize
+  (the library's `transitionend` probe), and a test with a non-zero inset (fix memories-weird-state audit 6).
 - **e2e:** `url` opens Chronicle's Memories; `exploreUrl` (`${url}explore`) opens the
   scenarios that begin on Explore, and `navUrl` (`${url}navigate`) those on Navigate.
 
@@ -200,3 +210,8 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   pure) writes only the title and the line. Chronicle and the replay patch the walk in
   place through `onRenamed`, so the row and the card show it at once. `suggestTitle`
   lives in the pure `lib/walkTitle.ts` (`summary.ts` re-exports it).
+- **A title is stored only when its words differ from the suggestion at save** (the owner's yes to inbox T1,
+  Nov 11): `renamePatch` returns `title: null` for an empty title, the suggestion, or the suggestion the field was
+  filled with (a gap kept on the first replay's card can move the walk's area meanwhile, tend chronicle audit 1),
+  compared as cut to 60 characters (audit 2). The first replay's Keep it writes through `renamePatch` too. Every
+  reader shows `walk.title ?? suggestTitle(walk)`, so a kept suggestion follows the walk's area.

@@ -6,6 +6,8 @@ import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
+import { cancelLook, endLook, IDLE, isLive, startLook, type Look } from '../../lib/atlas/look';
+import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
@@ -31,7 +33,7 @@ import { nearReads } from '../../lib/atlas/read';
 import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
-import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, roomZoom, tapDoes, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
+import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -168,7 +170,8 @@ export default function Explore() {
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
-  const cancelled = useRef(false);
+  // tend explore 2: each look has its own token, so a cancelled one never speaks for a newer one.
+  const look = useRef<Look>(IDLE);
   const [screen, setScreen] = useState({ w: width, h: height });
 
   useEffect(() => {
@@ -267,7 +270,7 @@ export default function Explore() {
   }, [split]);
   const waitingDots = useMemo<WaitingDot[]>(() => split.dots.map((m) => ({ id: m.key, at: m.at, color: KIND_COLOR[m.category] })), [split]);
   // WT11, audit 15: the "?" and dots are one thing to a screen reader: the area and the kinds, never how many.
-  const waitingSaid = sel ? waitingLabel(sel.area.name, [...split.pins, ...split.dots]) : '';
+  const waitingSaid = sel ? waitingLabel(sel.area.name, [...split.pins, ...split.dots], found) : '';
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open or selected town); yours tinted, the rest lined.
   // A town selected in the row is the one tinted (EC5).
   const litKey = town ? town.key : sel?.area.level === 'town' ? sel.area.key : null;
@@ -283,6 +286,7 @@ export default function Explore() {
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
+  const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
@@ -326,18 +330,25 @@ export default function Explore() {
     setTownSeen(null);
   }, [townSeen]);
   useEffect(() => {
+    // tend explore 6, audit 1: one Back or Escape steps out of one thing: the Layers panel, the long press's choices, the page.
     if (!townSeen || open || !focused) return;
+    const out = () => {
+      const does = pageBack({ layersOpen: layersOpen, spot: !!spot });
+      if (does === 'layers') closeLayers();
+      else if (does === 'spot') setSpot(null);
+      else leave();
+    };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      leave();
+      out();
       return true;
     });
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && leave();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && out();
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [townSeen, open, focused, leave]);
+  }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
@@ -351,24 +362,30 @@ export default function Explore() {
   }, [townSeen, fresh.build, townBox, points, from]);
 
   const lookHere = async (at: LngLat) => {
-    if (looking) return;
-    cancelled.current = false;
+    const started = startLook(look.current);
+    if (!started) return;
+    look.current = started.state;
+    const stopped = () => !isLive(look.current, started.token);
     setLooking(true);
     try {
-      const r = await readArea(at, () => cancelled.current);
-      if (cancelled.current) return;
+      const r = await readArea(at, stopped);
+      if (stopped()) return;
       if (!r.ok) {
         if (r.reason === 'failed') setNotice({ message: 'Couldn’t read the map here', tone: 'error' });
         return;
       }
       const tile = await db.getMeta('tile_build').catch(() => null);
+      if (stopped()) return;
       await rememberArea(r.centre, r.analysis, tile ?? 'unknown', r.overture);
       const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
       const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
       setNotice({ message });
       AccessibilityInfo.announceForAccessibility(message);
     } finally {
-      if (!cancelled.current) setLooking(false);
+      if (!stopped()) {
+        look.current = endLook(look.current, started.token);
+        setLooking(false);
+      }
     }
   };
 
@@ -378,11 +395,11 @@ export default function Explore() {
   // WT13, audits 2 and 4: a tap on a dot, or on a "?" with places under it, eases the map in around it until it has
   // room; a "?" with nothing under it, or at the closest zoom, opens the selected area's card.
   const zoomTo = useCallback((at: LngLat, key: string) => {
-    const z = Math.max(roomZoom({ key, at }, [...split.pins, ...split.dots], at[1]), zoomHalf + 1);
+    const z = tapZoom(sel?.area.level ?? 'neighborhood', roomZoom({ key, at }, [...split.pins, ...split.dots], at[1]), zoomHalf, !found.has(key));
     const size = mapSize ?? { width: 360, height: 360 };
     const px = Math.max(120, Math.min(size.width - mapPad.left - mapPad.right, size.height - mapPad.top - mapPad.bottom));
     frame([at], (px / 2) * metresPerPx(Math.min(z, PIN_ROOM.maxZoom), at[1]));
-  }, [split, zoomHalf, frame, mapPad, mapSize]);
+  }, [split, zoomHalf, frame, mapPad, mapSize, sel?.area.level, found]);
   const openSelected = useCallback(() => {
     if (!sel) return;
     setSpot(null);
@@ -470,7 +487,7 @@ export default function Explore() {
         accessibilityRole="button"
         accessibilityLabel="Stop looking around"
         onPress={() => {
-          cancelled.current = true;
+          look.current = cancelLook(look.current);
           setLooking(false);
         }}
         style={styles.scanCancel}
@@ -482,6 +499,8 @@ export default function Explore() {
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
 
+  // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.
+  const slots = exploreSlots({ spot: !!spot, town: !!town });
   const mapPane = (
     <View style={styles.map} onLayout={(e) => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
@@ -540,7 +559,7 @@ export default function Explore() {
             onCameraChange(c);
             setCam(c);
           }}
-          scaleInset={{ bottom: 6, left: 8 }}
+          scaleInset={{ bottom: slots.scaleBottom, left: SCALE_LEFT }}
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
@@ -608,7 +627,7 @@ export default function Explore() {
       {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
       {/* One of an error, a notice, "Looking around…", a town's note or the hint at a time, over the map above the row, clear of
           the back pill and the map's buttons (EC12, EC14). */}
-      {overlay ? <View style={[styles.overlay, { bottom: (spot ? 10 + SPOT_H + 8 : 12) + (town ? 44 + 8 : 0) }]} pointerEvents="box-none">{overlay}</View> : null}
+      {overlay ? <View style={[styles.overlay, { bottom: slots.overlayBottom }]} pointerEvents="box-none">{overlay}</View> : null}
       {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
       {town ? (
         <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel="Back to the towns" onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + 8 } : null]}>
@@ -697,6 +716,7 @@ export default function Explore() {
             walkStart.start({ at, label, kind: 'point' });
           }}
           onPlan={(k) => setPlan(k)}
+          covered={plan != null}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);

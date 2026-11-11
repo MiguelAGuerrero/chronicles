@@ -1,7 +1,8 @@
 // @layer adapter
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { HAPTIC_PATTERNS, nudgeAllowed, type FeedbackKind, type HapticStep } from './motionTokens';
+import { canBuzz } from './canBuzz';
+import { HAPTIC_PATTERNS, nudgeAllowed, webFeedbackPlays, type FeedbackKind, type HapticStep } from './motionTokens';
 
 const playStep = (s: HapticStep) => {
   const done =
@@ -13,13 +14,13 @@ const playStep = (s: HapticStep) => {
 
 /**
  * Feedback for an app used with the phone half in a pocket. On the web only the
- * pocket alert plays (PA6), through expo-haptics' web build (`navigator.vibrate`,
- * or iPhone Safari's switch haptic); a button press gives nothing there.
+ * pocket alert plays (PA6), through expo-haptics' web build (`navigator.vibrate`;
+ * iPhone Safari is not offered it, decision 0138); a button press gives nothing there.
  */
 let lastNudge: number | null = null;
 
 export function playFeedback(kind: FeedbackKind) {
-  if (Platform.OS === 'web' && kind !== 'nudge') return;
+  if (Platform.OS === 'web' && !webFeedbackPlays(kind, canBuzz())) return;
   if (kind === 'nudge') {
     const now = Date.now();
     if (!nudgeAllowed(lastNudge, now)) return;

@@ -106,6 +106,16 @@ export function roomZoom(target: { key: string; at: LngLat }, marks: readonly { 
   return Math.min(maxZoom, Math.ceil((need + 1e-9) * 2) / 2);
 }
 
+/**
+ * WT13: the zoom a tap on a dot eases to: where it has room to be a "?", a half level in at least, at most `maxZoom`. A town
+ * is all dots under `townPinZoom`, so a town's dot goes at least that far (tend explore 7); a find never becomes a "?" and is
+ * not drawn from there (WT10), so it eases to its room only (audit 3).
+ */
+export function tapZoom(level: 'neighborhood' | 'town', room: number, zoom: number, waiting: boolean = true): number {
+  const floor = level === 'town' && waiting ? PIN_ROOM.townPinZoom : -Infinity;
+  return Math.min(PIN_ROOM.maxZoom, Math.max(room, zoom + 1, floor));
+}
+
 /** WT13, audit 2: the dot a press landed on, nearest within 44 px at the settled zoom, or null. */
 export function dotAt<T extends { at: LngLat }>(press: LngLat, zoom: number, dots: readonly T[]): T | null {
   const reachM = PIN_ROOM.dotReachPx * metresPerPx(zoom, press[1]);
@@ -130,10 +140,23 @@ export function areaMapMarks(
   return waitingPins(waitingMarks([...marks], found, centre, hidden, { all: true }), centre, zoom, lat, view);
 }
 
-/** WT11, audit 15: what a screen reader hears for the selected area's places: the area and the kinds, never how many. */
-export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'category'>[]): string {
-  const kinds = ATLAS_ORDER.filter((c) => marks.some((m) => m.category === c)).map((c) => ATLAS_LABEL[c].toLowerCase());
+/**
+ * WT11, audit 15: what a screen reader hears for the selected area's places: the area and the kinds, never how many. Only the
+ * kinds still waiting: a town at its own scale draws its found places as dots too (audit 14), which wait for nothing (tend explore 5).
+ */
+export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'category' | 'key'>[], found: ReadonlySet<string> = new Set()): string {
+  const waiting = marks.filter((m) => !found.has(m.key));
+  const kinds = ATLAS_ORDER.filter((c) => waiting.some((m) => m.category === c)).map((c) => ATLAS_LABEL[c].toLowerCase());
   return kinds.length ? `Waiting in ${area}: ${kinds.join(', ')}` : '';
+}
+
+/**
+ * Back or Escape on a town's page steps out of one thing (tend explore 6, audit 1): the Layers panel, then the long press's
+ * choices, then the page. The panel is the page's to close too, since it listens for Escape only on the web.
+ */
+export function pageBack(o: { layersOpen: boolean; spot: boolean }): 'layers' | 'spot' | 'leave' {
+  if (o.layersOpen) return 'layers';
+  return o.spot ? 'spot' : 'leave';
 }
 
 /** Whole-towns audit 9: what a tap on Explore's map does: close the Layers panel, clear the long press, zoom to a dot, or nothing. One thing a tap. */

@@ -39,7 +39,8 @@ shell, and the other two a shell that `.claude/hooks/readonly-bash.sh` keeps to 
   owner typed holds a grant, and it passes on no more than it was given.
 - **State lives in files, not in a session:** `docs/STATUS.md` (slices, in flight, the inbox, next
   evolutions), `docs/DEFERRED.md` (tagged), `docs/NATIVE_UNVERIFIED.md`, `specs/<slug>/`,
-  `.claude/skills/tend/ledger.json` (area states, numbering, the balance, what was declined).
+  `.claude/skills/tend/ledger.json` (area states, numbering, the balance, what was declined),
+  `.claude/skills/tend/runs.jsonl` (one line a run: what it found, shipped, filed and was told).
   A new session reads these and `git log` first. The copies on `main` are the only ones that count:
   a run reads them from a worktree of `origin/main` and publishes its changes to them with its work.
 - **A stopped slice is parked, not lost:** its branch is pushed as `slice/<slug>-parked`, its question

@@ -1,6 +1,6 @@
 {
-  "lastT": 3,
-  "lastG": 0,
+  "lastT": 5,
+  "lastG": 1,
   "balance": {
     "date": "2026-11-11",
     "days": 14,
@@ -63,12 +63,13 @@
     ],
     "commits": {
       "growth": 115,
-      "refinement": 151,
-      "other": 407
+      "refinement": 188,
+      "other": 411
     },
     "areas": {
       "rough": [
-        "chronicle"
+        "chronicle",
+        "explore"
       ],
       "settling": [],
       "polished": [],
@@ -77,7 +78,6 @@
     "neverSwept": [
       "captures",
       "deletion",
-      "explore",
       "gaps",
       "kind-walk",
       "landing",
@@ -103,9 +103,9 @@
       "web"
     ],
     "open": {
-      "openT": 3,
+      "openT": 2,
       "phoneT": 0,
-      "openG": 0
+      "openG": 1
     },
     "reading": "in step",
     "propose": false,
@@ -117,6 +117,12 @@
       "swept": "2026-11-11",
       "main": "83a3f257b6c64c9aad10c3ce6e2ef5c5501ce9c2",
       "note": "First sweep. Found two medium loop findings (the @ picker and Escape, the walks row unspoken on the web) and shipped eight; three low or test-bound loop items wait in DEFERRED Quality of life 12-14; T1-T3 open. Lens 2 not whole: 320 px, 200% text, offline and an interrupted rename were not pictured."
+    },
+    "explore": {
+      "state": "rough",
+      "swept": "2026-11-11",
+      "main": "0193552f695b394b6965c8dc2127ce33f01cd90b",
+      "note": "Second sweep, for the lenses the first left out; not whole (200% text, offline pictures, reviewers on new pictures). Five loop findings shipped (look race, WT11 spoken kinds, two Escape layers, WT13 town tap zoom); twelve [loop] items deferred, four medium (readNear retry, exploreRead centre, capture during a read, web focus). T4 and T5 still open."
     }
   },
   "declined": []

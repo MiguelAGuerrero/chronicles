@@ -1,7 +1,8 @@
 ---
 paths:
   - "src/lib/areas/**"
-  - "src/lib/{places,backlog}.ts"
+  - "src/lib/places.ts"
+  - "src/lib/backlog/**"
   - "src/components/StarView.tsx"
   - "scripts/build-boundaries.js"
   - "assets/boundaries/**"
@@ -108,17 +109,37 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
   responders, no library) peeks with a Walks | Days switch (no counts, U8,
   U13) and opens to the
   walks list or a place's walks. Start floats above it.
-  - Walks with no places are placed in one pass behind a cover
-    (`placeAll`); a failure waits for the next launch.
+  - Walks with no places are placed in the background (`placeAll`, decision
+    0137); a failure waits for the next launch.
   - It reads only walks, summaries, `Area` and `WalkArea` (`places.ts`), never
     traces or media. Keep it that way.
 
-- **Placing old walks** happens in `lib/backlog.ts`, the home's one read of
-  traces.
-  - It runs in one pass, and every map read in it times out.
+- **Placing old walks** happens in `lib/backlog/`, the home's one read of
+  traces (decision 0137).
+  - It reads tiles in code (`tileCollector`), never through the home map: the
+    map once jumped from walk to walk at street zoom, so it sat behind a grey
+    cover with "Placing your walks (1 of 1)" for up to 80 s a walk, and the
+    owner read the count as their walks. No cover, no count, no Skip.
+  - It runs in one pass, and every tile read in it times out.
   - It needs a known tile build to start.
+  - The pass's state is the shell's (`backlogStatus`: the walk at hand and a
+    placed count), never the screen's: Chronicle remounts on a section switch
+    (keyed by section), and a screen-held "Placing…" and refresh were lost
+    mid-pass (audit 1). A second pass waits for the one under way, then
+    places what is left, never joining its callbacks (`placeAll`'s join); a
+    queued pass whose screen left meanwhile places nothing, and no walk is
+    begun twice in a launch (audit 10).
+  - Each walk placed reads the rows again (`load(false)`): its star comes,
+    and the map moves only if nothing was framed yet; otherwise the new
+    places count as framed, so a return from a replay keeps the view (audit 2).
+    A walk placed while the map was away is read quietly on return too
+    (`fitsOnRead`, core; `placedSeen` outlives a remount; audit 9).
+  - Only the walk at hand waits ("Placing…" on its row and its Days
+    timeline row, their More off; audit 4): a
+    delete mid-read would write its rows back (deletion audit 2). A walk
+    deleted or in Undo since the pass began is skipped.
   - A walk counts as tried only once its placing begins. Leaving the screen
-    or tapping Skip stops the pass after the walk at hand.
+    stops the pass after the walk at hand.
   - A walk is "placed" once snapped under the current rules, even with no
     rows to show. A partial street read (`complete: false`) is not done.
 - The map refits only when the places walked change, never just because the

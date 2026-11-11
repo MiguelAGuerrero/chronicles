@@ -246,6 +246,7 @@ Links
 Placement and levels
 
 25. Given stopped walks with no areas and an online map, when Places opens for the first time, then every stopped walk is placed in one pass behind a "Placing your walks" line. A walk it can't place (offline, or its tiles fail) stays under "Not placed yet" and is retried at the next opening. Only one pass runs at a time, and leaving the view midway keeps the walks already placed.
+    - **Amended (owner, Nov 11, decision 0137):** the pass runs in the background from the tiles, with no cover, no count and no Skip; the map and the places already walked show at once, and each walk's star comes as it is placed.
 26. A country row must be stored for every walk. The map and the list must show the country level only once walks span two or more countries; then country stars show below z3 and the tree starts at country.
 27. Placing a walk must also read the `place` layer at z10 around the walk, because town (3 km) and city (10 km) points usually lie outside the z14 tiles read for its streets. A town point 2.5 km from the walk, outside its street tiles, must still be found.
 
@@ -303,7 +304,7 @@ There is no places tree (owner, Oct 31). Places are only stars on the map, and t
 - **H5.** A walk opens its replay as a re-watch; back returns to the same map view and sheet state.
 - **H6.** A star opens that place's walks in the sheet, headed by its name and parents, with its walks count and distance walked there. Streets walked per area waits; nothing maps streets to areas yet.
 - **H7.** Stars by zoom as in criteria 12–14 and 26: neighborhoods and "Elsewhere in \<town>" from z11, towns from z6, states below, countries below z3 once two countries are walked. They merge within 44 px with a count. Every star is the same size.
-- **H8.** Walks not yet placed are listed under "Not placed yet". The first opening places them in one pass behind "Placing your walks", and a failure waits for the next launch (criterion 25).
+- **H8.** Walks not yet placed are listed under "Not placed yet". The first opening places them in one pass, in the background from the tiles since decision 0137 (no cover; the walk at hand says "Placing…"), and a failure waits for the next launch (criterion 25).
 - **H9.** The open walk shows nowhere until it stops (criterion 21).
 - **H10.** The home reads only walks, summaries, Area and WalkArea, never traces or media (criterion 24).
 

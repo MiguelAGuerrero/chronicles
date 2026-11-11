@@ -309,7 +309,7 @@ recording, and a recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
-- **Media** (decision 0134), Chronicle's fifth section: every photo, video and voice memo piece kept, in an
+- **Media** (decision 0139), Chronicle's fifth section: every photo, video and voice memo piece kept, in an
   edge-to-edge grid of square tiles with hairline gaps, newest on top, as a photo gallery. A tile is bare (a photo's
   small copy; a video's or memo's glyph and its length) and the context is the header of its day, pinned while its
   tiles scroll: the day ("Yesterday", "Tue, Nov 3", the year when not this one) and where ("A morning walk in Alfama",
@@ -404,7 +404,7 @@ recording, and a recording bar brings a minimized walk back.
 
 - Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (8 kinds), the
   "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
-  buzz: Android Chrome, maybe iPhone Safari).
+  buzz: Android Chrome; not iPhone Safari, decision 0138).
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a

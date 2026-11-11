@@ -19,17 +19,32 @@ test('QL23: the title and the line are trimmed', () => {
   });
 });
 
-test('QL23: an empty title becomes the suggested one', () => {
+test('QL23, tend chronicle T1: an empty title becomes no title, shown as the suggestion', () => {
   const w = walk();
-  assert.equal(renamePatch(w, '', 'x').title, suggestTitle(w));
-  assert.equal(renamePatch(w, '   \n ', 'x').title, suggestTitle(w));
-  assert.match(renamePatch(w, '', null).title, /Fox Point/);
+  assert.equal(renamePatch(w, '', 'x').title, null);
+  assert.equal(renamePatch(w, '   \n ', 'x').title, null);
+  assert.equal(renamePatch(w, '', null).title, null);
+  assert.equal(renamePatch(walk({ area: null }), ' ', '').title, null);
 });
 
-test('QL23: the suggested title follows the walk, without an area too', () => {
-  const w = walk({ area: null });
-  assert.equal(renamePatch(w, ' ', '').title, suggestTitle(w));
-  assert.match(suggestTitle(w), /walk$/);
+test('tend chronicle T1: the suggested title kept as it was is no title, so it follows the walk', () => {
+  // Named before its area was read: the field showed "… evening walk" and Keep it stored nothing.
+  const before = walk({ title: null, area: null });
+  assert.equal(renamePatch(before, suggestTitle(before), '').title, null);
+  assert.equal(renamePatch(before, `  ${suggestTitle(before)} `, '').title, null);
+  // Once finish.ts reads Fox Point, the walk is shown with the suggestion that names it.
+  const after = { ...before, ...renamePatch(before, suggestTitle(before), ''), area: 'Fox Point' };
+  assert.equal(after.title ?? suggestTitle(after), suggestTitle(after));
+  assert.match(after.title ?? suggestTitle(after), /Fox Point/);
+});
+
+test('tend chronicle T1: words that differ from the suggestion are stored, a frozen old title too', () => {
+  const w = walk({ title: null });
+  assert.equal(renamePatch(w, `${suggestTitle(w)}!`, '').title, `${suggestTitle(w)}!`);
+  // A walk saved before keeps its stored words when they are saved unchanged.
+  const old = walk({ title: 'Tuesday evening walk', area: 'Fox Point' });
+  assert.notEqual(suggestTitle(old), 'Tuesday evening walk');
+  assert.equal(renamePatch(old, old.title, '').title, 'Tuesday evening walk');
 });
 
 test('QL23: an empty line becomes none', () => {
@@ -50,4 +65,23 @@ test('QL23: the title is cut to 60 characters and the line to 200', () => {
 
 test('QL23: the patch holds only the title and the line', () => {
   assert.deepEqual(Object.keys(renamePatch(walk(), 'T', 'L')).sort(), ['epilogue', 'title']);
+});
+
+test('tend chronicle audit 1: the suggestion the field was filled with stores no title after the area changed', () => {
+  // The first replay filled Name it before a kept gap placed the walk in Fox Point.
+  const filled = walk({ title: null, area: null });
+  const offered = suggestTitle(filled);
+  const placed = { ...filled, area: 'Fox Point' };
+  assert.notEqual(suggestTitle(placed), offered);
+  assert.equal(renamePatch(placed, offered, '', offered).title, null);
+  // Words of the person's own are kept whatever was offered.
+  assert.equal(renamePatch(placed, 'Down to the river', '', offered).title, 'Down to the river');
+});
+
+test('tend chronicle audit 2: a suggestion longer than the title field, kept unchanged, stores no title', () => {
+  const w = walk({ title: null, area: 'Royal Borough of Kensington and Chelsea and Somewhere Else' });
+  assert.ok(suggestTitle(w).length > TITLE_MAX);
+  assert.equal(renamePatch(w, suggestTitle(w), '').title, null);
+  // As the web field shows a value set from code whole, and a phone's field may cut it.
+  assert.equal(renamePatch(w, suggestTitle(w).slice(0, TITLE_MAX), '').title, null);
 });

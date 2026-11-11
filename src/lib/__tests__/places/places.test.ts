@@ -6,7 +6,7 @@ import { areaKey } from '../../areas/assign';
 import type { Area, AreaLevel, WalkArea } from '../../areas/types';
 import { metersPerPixel } from '../../pins';
 import { placeAll, withTimeout } from '../../placeAll';
-import { levelForZoom, placesIndex, placeWalks, starsFor, unplacedWalks } from '../../places';
+import { fitsOnRead, levelForZoom, placesIndex, placeWalks, starsFor, unplacedWalks } from '../../places';
 import { buildDays } from '../../days';
 import type { Walk } from '../../types';
 
@@ -213,4 +213,12 @@ test('audit: a map that never answers times out instead of hanging the pass', as
   const never = new Promise<string>(() => {});
   await assert.rejects(withTimeout(never, 20, 'map'), /map/);
   assert.equal(await withTimeout(Promise.resolve('ok'), 20, 'map'), 'ok');
+});
+
+// Audit 9: a walk placed while a replay was open moved Chronicle's map when the owner came back (H5, decision 0137).
+test('fix background-placing audit 9: places that came from the background never move a framed map; anything else does', () => {
+  assert.equal(fitsOnRead('a', 'b', true), false, 'a walk placed in the background, here or while away');
+  assert.equal(fitsOnRead('', 'b', true), true, 'nothing was framed yet');
+  assert.equal(fitsOnRead('a', 'b', false), true, 'a new walk, a delete');
+  assert.equal(fitsOnRead('a', 'a', false), false, 'coming back with nothing changed');
 });

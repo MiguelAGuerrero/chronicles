@@ -58,12 +58,16 @@ export const HAPTIC_PATTERNS: Record<FeedbackKind, readonly HapticStep[]> = {
 export const nudgeAllowed = (lastAt: number | null, now: number): boolean => lastAt === null || now - lastAt >= MOTION.nudgeGap * 3;
 
 /**
- * Whether a browser is offered the pocket alert (PA6, audit 4). expo-haptics'
- * web build vibrates where `navigator.vibrate` exists and otherwise tries
- * iPhone Safari's switch haptic on a touch screen; only a touch screen has a
- * motor to feel (desktop Chrome has `navigator.vibrate` and nothing to buzz).
+ * Whether a browser is offered the pocket alert (PA6, audit 4, decision 0138).
+ * It needs `navigator.vibrate` and a touch screen: desktop Chrome has vibrate
+ * and no motor; iPhone Safari has no vibrate, and expo-haptics' switch-haptic
+ * fallback fires only from a tap, never from a location update, so there the
+ * alert would be offered and never felt.
  */
-export const buzzOffered = (env: { vibrate: boolean; coarse: boolean }): boolean => env.coarse;
+export const buzzOffered = (env: { vibrate: boolean; coarse: boolean }): boolean => env.vibrate && env.coarse;
+
+/** On the web only the pocket alert plays, and only where the browser is offered it (decision 0138, fix pocket-alert-hide audit 1: a saved switch stays silent where it is hidden). */
+export const webFeedbackPlays = (kind: FeedbackKind, offered: boolean): boolean => kind === 'nudge' && offered;
 
 /** Large buttons shrink to this while pressed (M4). */
 export const PRESS_SCALE = 0.97;

@@ -45,8 +45,8 @@ async function checks(h) {
       if (onChronicle) await page.click('[data-testid=viewer-close]');
     }
 
-    // Bulk placement (H8): a walk with no places is placed at the next opening,
-    // behind a cover that can be skipped.
+    // Bulk placement (H8): a walk with no places is placed at the next opening, in the background from the
+    // tiles (fix background-placing, the owner, Nov 11): no cover, no count, the map in view throughout.
     await page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
@@ -62,13 +62,17 @@ async function checks(h) {
     }));
     await page.reload();
     await h.mapUp(page);
-    // Waited for as one: a single walk can be placed between seeing the text and counting the button.
-    const placingCover = await page.waitForSelector('[data-testid=skip-placing]', { timeout: 20000 }).then(() => true, () => false);
-    check(placingCover, 'placing old walks shows a cover that can be skipped');
+    // Sampled until the star comes: a single walk can be placed between two looks. The map's grey cover
+    // (`map-cover`, drawn when a map is `covered`) is what the owner saw; the old line and Skip went with it.
     await shot(page, '11-home-placing');
-    await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 60000 });
-    await page.waitForTimeout(500);
-    check((await page.locator('text=/Placing your walks/').count()) === 0, 'the walk is placed again and the cover goes');
+    let covered = false;
+    for (let i = 0; i < 600 && !(await page.locator('[aria-label^="Fox Point,"]').count()); i++) {
+      covered ||= (await page.locator('[data-testid=map-cover], [data-testid=skip-placing]').count()) > 0;
+      covered ||= (await page.locator('text=/Placing your walks/').count()) > 0;
+      await page.waitForTimeout(100);
+    }
+    check((await page.locator('[aria-label^="Fox Point,"]').count()) > 0, 'the walk is placed again and its star shows');
+    check(!covered, 'placing old walks never covers the map or counts the walks (fix background-placing audit 7)');
 }
 
 // Alone: the walk journey first (the first walk, with its captures), then this.

@@ -1,4 +1,4 @@
-# 0134. Media: every photo, video and memo in a grid, the context in the day's header
+# 0139. Media: every photo, video and memo in a grid, the context in the day's header
 
 Date: 2026-11-11 · Status: accepted · Area: chronicle, ui, vision
 

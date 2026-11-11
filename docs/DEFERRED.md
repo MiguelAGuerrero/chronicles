@@ -58,6 +58,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
+- `specs/pocket-alert-nudge/spec.md` PA6 and line 15 still say iPhone Safari gets the switch haptic; the code follows decision 0138. The mirror follows the owner's doc, which needs the same edit (pocket-alert-hide audit 2)
+- The e2e leaves the in-walk drawer's hidden switch (no vibrate) unchecked; only the ready bar is (pocket-alert-hide audit 4)
+
 - An index for Offered; it's read whole, fine for thousands (v1 discovery)
 - An unstamped capture can't find a place: it has no position until stop, `findFor` (v1 Explore)
 - A place moved by a new build can be found twice (v1 Explore)
@@ -66,6 +69,27 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - A reload mid-walk forgets which places alerted, so they nudge again; on Android Chrome that nudge comes before any tap and is blocked, and the places count as alerted (pocket-alert-nudge audit 3)
 - The pocket alert's second tap still plays up to 120 ms after a hold-to-stop or the switch going off on the same fix (pocket-alert-nudge audit 6)
 - The home preview ignores the kind switches and doesn't restore the view after (v1 Explore)
+- [loop] `cacheTilesAround` (`discovery/tileFetch.ts:63`) and `atlasBusy` (`atlas/read.ts:236`) have no caller anywhere: dead code. `cacheTilesAround` also returns the in-flight read of another tile and never re-caches a tile after a purge without a build change, so wiring it in again needs both fixed first. Removal waits for a test that names it (`/tend explore`, Nov 11, low)
+- [loop] A near read whose write fails is retried every 1.5 s for as long as Explore is in front: `readNear` (`atlas/read.ts:110-112`) does not catch `putAtlasAreas` or `setMeta`, so the throw reaches `useAtlas`'s `.catch(() => again(BUSY_MS))`, where `readRing` treats a failed write as a failed read (audit 3). Return `false` there. `atlas/read` is a shell no unit test reaches yet (Test organization) (`/tend explore`, second sweep, Nov 11, medium)
+- [loop] A failed `listAtlasAreas` in `readNear` (`atlas/read.ts:109`, `.catch(() => [])`) rewrites every listed area with no profile, so each ring is read again; return `false` instead (`/tend explore`, second sweep, Nov 11, low)
+- [loop] `exploreRead` hands the read already running to any caller, whatever its centre (`explore/exploreRun.ts:44`, `if (running) return running`): a route probe made while a fix's read runs is told its area was read, and the route effect never asks again, so that stretch gets no faint marks (E22). Return `{ ok: false }` for another centre. `explore/exploreRun` is a shell no unit test reaches yet (`/tend explore`, second sweep, Nov 11, medium)
+- [loop] A capture made while the read of its own area is still running is marked handled against the items loaded then (`explore/useExplore.ts:236-238`), so the place that read brings is never found until a reload (E8). Mark it handled only once a read is not running or a candidate came of it; the matching wants pulling out to be tested (`/tend explore`, second sweep, Nov 11, medium)
+- [loop] Focus on the web: closing an area's card leaves focus nowhere rather than on the tile that opened it; Walk to's question replaces the focused button, dropping focus to the page; Tab and Shift+Tab reach the map and row under the full-screen card (`accessibilityViewIsModal` does not stop them on the web); the planner does not move focus into itself as the card does (`AtlasCard.tsx:119, 166, 322-354`, `PlannerDrawer.tsx:85`; WCAG 2.2, 2.4.3 Focus Order and 2.4.11 Focus Not Obscured; `/tend explore`, second sweep, Nov 11, medium)
+- [loop] A look cancelled while `rememberArea` is writing still shows and announces its line: `lookHere` checks `stopped()` before the write but not after it (`explore.tsx`, after `rememberArea`); on native the write waits on the SQLite queue, so the window is real. A check after the write closes it; it waits for a test that reaches the screen's shell (`/tend explore` review, Nov 11, medium)
+- [loop] Leaving the tab during "What's good here?" does not cancel the look (`explore.tsx`'s focus cleanup clears the card and the choices only). Unconfirmed: a journey step that leaves the tab mid-read and waits 20 s saw nothing kept and nothing said on the build before a fix, so the look may already stop there on the web; the fix was dropped untested (`/tend explore`, second sweep, Nov 11, low)
+- [loop] No pressed state on the card's close, How the marks work, a busy area's Walk to and the next-door chips, where the tile and HomeSheet's `place-go` dim; the busy area's Walk to ignores `starting` (`AtlasCard.tsx:185, 213, 245, 305`; Apple HIG, feedback; `/tend explore`, second sweep, Nov 11, low)
+- [loop] A long area name: the card's footer "Walk to <name>" has no line cap and wraps at 320 px, and a tile's name has none, so the row grows to the tallest card (`AtlasCard.tsx:354`, `AtlasTile.tsx:54`; ui-patterns, "Nothing wraps on a 320 px phone"; read in the code, not pictured; `/tend explore`, second sweep, Nov 11, low)
+- [loop] The press hint is marked seen after 5 s on screen even while an error, a notice or "Looking around…" holds its place, so it may never show (`explore.tsx:126-134`; EC14; `/tend explore`, second sweep, Nov 11, low)
+- [loop] Work redone as the map moves: `ring={{…}}` is a new object each render, so the web map sends the ring again on every settle, and `inViewBox` recomputes the town's dots on every pan though a town under zoom 14 ignores the view (`explore.tsx`, `WalkMap.web.tsx:641`); each focus also reads the whole visited store for the card (`useAtlas.ts:99`) and can set an older list over a ring read just done (`useAtlas.ts:103`) (`/tend explore`, second sweep, Nov 11, low)
+- [loop] `setFit` is called in an effect body (`explore.tsx`, the page's framing effect), against the React Compiler rule in AGENTS.md; `nextFrame` keeps it from looping (`/tend explore`, second sweep, Nov 11, low)
+- [loop] At 320 px two journey checks failed that pass at 390: `carousel`'s "WT13: a dot no pin covers, to tap" and the walk's "the bar's Open in Maps sends the destination (NH3: 29.6 m)". Unconfirmed whether the app or the checks' geometry (run with a scratch preload forcing the width; `/tend explore`, second sweep, Nov 11, low)
+- [loop] `exploreSlots` (`atlas/overlaySlots.ts`) repeats numbers the screen also holds: the long press's choices' 68 (`SPOT_H`), the Towns pill's `bottom: 12` and `minHeight: 44`, the scale bar's 32; its test repeats them again, so a change to one does not fail it. Take the pill's and the choices' places from `exploreSlots` too (`/tend explore` review, Nov 11, low)
+- [loop] A tall overlay is unmeasured: a two-line error banner with an action at 320 px or 200% text, or the long press's choices wrapping taller than 68, may reach the top chips or cover the slots `exploreSlots` assumes; no journey pictures either (`/tend explore` review, Nov 11, low, unconfirmed)
+- [kept] `new Date(c.t)` in `discovery/recall.ts:106` names a month and day in the device's timezone: the same item as functional-core audit 10 (`/tend explore`, Nov 11)
+- [owner] The Explore toast's 3000 ms dwell (`explore.tsx:176`) is a literal, not a `motionTokens` value; no token names a dwell, so whether the rule applies is the owner's (`/tend explore`, Nov 11, low, opinion)
+- [owner] Explore's map labels collide: a busy street's name prints over the town's name and a neighbour's (pictures `11b-explore`, `11d-atlas-town`); the UX review's opinion, no source found (`/tend explore`, Nov 11, medium)
+- [owner] The Remind editor's chip rows wrap with a lone chip on the second row, and "Reminder set" has no Undo (pictures `03a-remind`, `03c-reminder-set`; UX review, opinion, low; `/tend explore`, Nov 11)
+- [owner] On a town's neighborhood page the title reads the parent town ("Allentown · You're here") while the selected card is another area, and the card's footer "You're in Fox Point" is link-coloured but only a status (pictures `whole-towns-4-dot-tapped`, `11c-atlas-card`; UX review, opinion, low; `/tend explore`, Nov 11)
 
 ## Activity density (AD1-AD16, decision 0080)
 
@@ -137,6 +161,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Map layer order on native: no `beforeId` yet (v1.5 landing, native)
 - No sounds yet (Polish: motion)
 - [loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)
+- [loop] The `chronicle` journey's M9 check reads `window.__enters` as soon as `place-title` shows, before the harness's `requestAnimationFrame` has recorded the bounce, and its sheet-drag step can read the sheet before it settles: each failed once in four runs of `/tend inbox`, Nov 11, on code that leaves those screens as they were; wait for the entry (`waitForFunction`) and the settle (low)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -156,6 +181,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 14. [loop] A figure breaks from its unit or noun at a line's end: "589 / m" in a place's header, "1 / video" in a walks row (pictures `09-home-place`, `10-home-walks`). A no-break space inside each figure fixes it, but `walkRowMeta`'s test pins the plain space, so it waits for that test to be restated (ui-patterns, "content must not be lost"; `/tend chronicle`, Nov 11, medium)
 15. [owner] Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first (NN/g H4; A1; `/tend chronicle`, Nov 11, low)
 16. [owner] One walk, described three ways: a walks row says date, distance, time and kinds; a day's timeline "Walk · distance · N moments"; the card's More "More for this walk", the row's "More for <title>" (NN/g H4; `/tend chronicle`, Nov 11, low)
+17. [loop] A backup bundle of a walk with no stored title is named by its area, not by the title it shows (`bundleName` reads `walk.title ?? walk.area`, `export/bundle/shell.ts`): since T1, a walk kept with its suggestion is such a walk (`/tend inbox` review F5, Nov 11, low)
+18. [kept] A walk kept with its suggestion shows the suggestion as the device reads it now, so a walk started at 01:00 in Lisbon reads "Tuesday evening" back in New York; walks left unnamed with Not now did already. The timezone item under Functional core is its fix (`/tend inbox` review F4, Nov 11, low)
 
 ## Town outlines (TO1-TO12, decision 0083)
 
@@ -264,7 +291,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Test organization (decision 0091)
 
-- Shells no unit test reaches (9 after test gaps round 1, Nov 4): `session` (the walk lifecycle; the rules call for a reducer), `explore/exploreRun`, `landing/read`, `atlas/read` and `activity/overture` (the explore reads; testing them needs a network-fetch port in `Ports`), `discovery/recallCheck` (reminders), `deletion/index` (its pending core is tested), `backlog` (it takes the map, the snap and the tile build) and `walkNav` (glue over `expo-router`). Each waits on the owner's call for its cluster.
+- Shells no unit test reaches (9 after test gaps round 1, Nov 4): `session` (the walk lifecycle; the rules call for a reducer), `explore/exploreRun`, `landing/read`, `atlas/read` and `activity/overture` (the explore reads; testing them needs a network-fetch port in `Ports`), `discovery/recallCheck` (reminders), `deletion/index` (its pending core is tested) and `walkNav` (glue over `expo-router`); `backlog` is reached since decision 0137 (`fix background-placing 1-4`). Each waits on the owner's call for its cluster.
 - Every `src/app` and `src/components` file is covered by a journey row as of Nov 4 (`arch/features.test.ts` does not hold that; `check:affected` names a new screen no row covers when it changes). Shared primitives (`icons`, `ui`, `webStyles*`) ride on the `launch` row, a proxy: no journey checks them for themselves.
 - A second mouse pan on the area card's grip never returned in the e2e (the `atlas` journey drags it with touch events instead; `docs/TESTING.md`, traps): whether a mouse pan after the spring-back blocks the page on the web is worth a look in the app (Explore atlas).
 - Live criterion ids no test names (`npm run check:specs`, 28 of 533 after the test trim, Nov 5, counting only a test's name or a check's message, never a comment): 27 are in `scripts/criteria.baseline.json`, which only shrinks, and RR17 is device-only (`UNTESTED`). The trim retired twelve criteria whose text no longer matches the code (`specs/test-gaps/trim.md`). The 27 are named only in comments beside checks that test them in substance: each wants its check renamed or a test of its own.
@@ -302,7 +329,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   - **A nudge** ("a year ago today") as a local notification.
   - **A memo played in its card**: a card opens the viewer, which plays it, so a browser's sound rule is met by the tap.
 - **The Map section keeps its camera across tabs, but not the sheet's height** (resurfaced moments audit 8): the camera and the framed places are kept in the section store while the app is open; the sheet comes back at its resting height.
-- **Placing old walks waits for the map** (resurfaced moments, RM1): the pass that places walks without places (`lib/backlog`) reads them through the home map, which is mounted only for Walks, Days and Map. With Chronicle opening on Memories, a walk made before places existed is placed the first time one of those sections opens. Memories needs no place for its words, so nothing shows wrong; its cards simply have no place line until then.
+- **Placing old walks waits for the map sections** (resurfaced moments, RM1): the pass that places walks without places (`lib/backlog`) runs from the home map's screen, which is mounted only for Walks, Days and Map (it reads tiles in code since decision 0137, so it could run from Memories too; not done). With Chronicle opening on Memories, a walk made before places existed is placed the first time one of those sections opens. Memories needs no place for its words, so nothing shows wrong; its cards simply have no place line until then.
 - **Resurfaced moments audit** (`specs/resurfaced-moments/spec.md`, Audit):
   - **Other languages, "buses" and "bus", the `fall` alias** (audit 6): `terms.ts` is English only; a Spanish note makes a thread of "los". A language-aware stop list and stemmer is its own change.
   - **Android's Back on a thread** (audit 14): a thread is local state, not a route, so Back leaves Chronicle. Native, unverified.
@@ -396,6 +423,11 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **Held captures live in memory**: leaving the screen or a reload drops a held photo or video (Stop warns first). Keeping them across a reload needs the file kept somewhere that survives, which a full disk may refuse.
 - **Retry on the recording bar's camera** (other tabs, NV9): it shows the SA9 words; the held pill is on the walk screen and Navigate, ready.
 - **A check before a video starts**: the system camera owns the recording; the line beside the captures says it beforehand.
+
+## Old walks placed in the background (fix background-placing, decision 0137)
+
+- **The tile reader reads less ground than the map's views did** (fix background-placing audit 3, deferred): `tileCollector`'s plan takes the z14 tiles within 150 m of the trace, while a map view at street zoom loaded every tile it touched over the padded bounds. A neighborhood point up to 1 km away in a tile the walk never entered is read by the replay's map snap but not by the backlog (nor by a gap decision's re-snap, which has read tiles this way since G12), so the same walk can land in a different neighborhood depending on the path. Widening the reader changes what a snap derives (a derivation rule, a hard stop for a fix): the owner's call, with a test over `tileCollectorOf` and a fake `fetchTiles`.
+- **The walk at hand finishes after the screen is left** (audit 5, rejected as a fix): `stopped` is read between walks, so leaving Chronicle mid-walk lets that one walk's tiles decode and snap on the JavaScript thread, as a gap decision does in view. Bounded to one walk; the device item in `docs/NATIVE_UNVERIFIED.md` asks for the smoothness check.
 
 ## Explore's map points (fix pins-selected-only, Nov 10)
 
@@ -494,7 +526,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The drawer's handle sits over the first visible switch** (presence-and-kinds audit 12): this predates the slice and is the drawer's layout, not the kinds'.
 - **Deferred (response thread, decision 0131):** a tree of responses (a response to a response is listed in time order and says what it answers, one level); the sheet from Lately's card or a thread's row (the viewer is the only way in); a response's own responses inside the sheet (its viewer opens its own sheet); a response made mid-walk is listed but names no place until its walk stops and is placed (its time, walk line and content are there); no e2e step for a response on a walk still open (RT13 is a unit test of the pool).
 - **Locate's reselect is not announced** (fix locate-selection audit 3, DN12): a Locate tap returns the row to your own area without a screen-reader announcement, since `say` runs only in `selectKey`. A fix that lands after the reader picked something else also resets that pick (audit 2, accepted: they asked to return to you).
-- **Deferred (media gallery, decision 0134):** a video's small copy, so a video tile shows its first frame (the next
+- **Deferred (media gallery, decision 0139):** a video's small copy, so a video tile shows its first frame (the next
   slice, the owner's call, Nov 11: `expo-video`'s thumbnail on phones and a web exception for a `<video>` frame); a
   cover the owner chooses for a month or year (a fixed rule now: the first photo in the Sort's order); a date
   scrubber, selecting many, sharing from the grid and Recently Added (none asked; Recently Added would sort as Newest
@@ -502,3 +534,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   the web, sticky day headers stack at the top as the list scrolls, the last drawn one seen; a short library cannot
   bring its oldest day to the top after a month's tap (the list ends there); the gallery reads every moment row on
   each show, as the days list does.
+- **The note editor's keyboard height reads `window.innerHeight`** (fix memories-weird-state audit 5): under an iOS
+  pinch-zoom `innerHeight` is the visual viewport, so `threads/useKeyboardHeight.web.ts` reads 0 and the note field
+  sits under the keyboard until the zoom ends. Same trap as the safe-area insets, an older code path; a fix of its own.

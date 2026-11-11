@@ -2,7 +2,7 @@ import { facedAll } from '../../lib/moment';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Linking, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
@@ -24,12 +24,12 @@ import { buildDays } from '../../lib/days';
 import { placeFinds, type ChecklistArea, type Find } from '../../lib/explore/explore';
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
 import { zoomOutFor } from '../../lib/zoomOut';
-import { placeBacklog } from '../../lib/backlog';
+import { backlogStatus, placeBacklog } from '../../lib/backlog';
 import type { Bounds } from '../../lib/geo';
 import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
-import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
+import { fitsOnRead, levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
 import type { LngLat, Walk, WalkSummary } from '../../lib/types';
 import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
@@ -49,6 +49,11 @@ const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Walks a pass began this session; one that failed waits for the next launch (criterion 25). */
 const tried = new Set<string>();
+/**
+ * How many walks the background passes had placed when Chronicle last read its rows. Kept across remounts (a
+ * section switch, a replay): a walk placed while the map was away is followed quietly on return (audit 9).
+ */
+const placedSeen = { n: 0 };
 const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(',') : '');
 /** The closest any of Chronicle's fits may zoom (tabs audit U15). */
 const FIT_MAX_ZOOM = 15;
@@ -105,7 +110,12 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     [cameraNow],
   );
   const screenH = areaH;
-  const [placing, setPlacing] = useState<{ done: number; of: number } | null>(null);
+  // The walk being placed in the background, if any: its row waits, the rest of the screen doesn't. Read from
+  // the pass itself, so a remount mid-pass (a section switch) still shows it (fix background-placing audit 1).
+  const placingId = useStore(backlogStatus, (s) => s.at);
+  const placedCount = useStore(backlogStatus, (s) => s.placed);
+  // Reads the rows again without moving the map, while in front; set by the focus effect below.
+  const quietLoad = useRef<(() => void) | null>(null);
   const [selected, setSelected] = useState<Star | null>(null);
   // A long press at street zoom: Walk here, a one-tap start (NV12).
   const [spot, setSpot] = useState<LngLat | null>(null);
@@ -142,13 +152,10 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     router.navigate('/');
     return true;
   }), []);
-  const skip = useRef(false);
-
   useFocusEffect(
     useCallback(() => {
       let live = true;
-      skip.current = false;
-      const load = async () => {
+      const load = async (refit = true) => {
         const [walks, summaries, areas, rows] = await Promise.all([db.listWalks(), db.listSummaries(), db.listAreas(), db.listWalkAreas()]);
         const openWalk = walks.find((w) => w.open) ?? null;
         if (!live) return null;
@@ -171,39 +178,52 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
         // one made before any walk, is framed too, so its pin is in view. A moment being deleted isn't.
         const gone = deletions.hidden();
         const bounds = fitWithMoments(placesIndex(areas, rows, walks).bounds, caps.filter((c) => !gone.has(c.id)));
-        if (boundsKey(bounds) !== fittedTo.current) {
-          fittedTo.current = boundsKey(bounds);
-          setFit((f) => ({ bounds, key: f.key + 1 }));
+        // A walk placed in the background (refit false) moves the map only when nothing was framed yet; otherwise
+        // its places count as framed, so coming back from a replay keeps the view you left (H5; audit 2).
+        const key = boundsKey(bounds);
+        if (key !== fittedTo.current) {
+          const fit = fitsOnRead(fittedTo.current, key, !refit);
+          fittedTo.current = key;
+          if (fit) setFit((f) => ({ bounds, key: f.key + 1 }));
         }
         return { walks, rows };
       };
       reload.current = () => {
         load().catch(() => {});
       };
-      load()
+      quietLoad.current = () => {
+        load(false).catch(() => {});
+      };
+      // Walks placed while Chronicle was away are followed quietly too: the map stays where it was left (audit 9).
+      const away = backlogStatus.get().placed !== placedSeen.n;
+      placedSeen.n = backlogStatus.get().placed;
+      load(!away)
         .then(async (d) => {
           if (!d) return;
-          // Walks with no places yet are placed in one pass, behind a cover
-          // that Skip lifts; leaving the screen stops the pass after the walk at hand.
+          // Walks with no places yet are placed in the background, one after another, from the tiles (the
+          // owner, Nov 11): the map and the places already walked show at once, with no cover, and each walk's
+          // star comes as it is placed (the effect on `placedCount`). Leaving the screen stops the pass after the
+          // walk at hand; a pass asked for meanwhile waits for it, then places what is left.
           const todo = unplacedWalks(d.walks, d.rows).filter((w) => !tried.has(w.id));
           if (!todo.length) return;
-          setPlacing({ done: 0, of: todo.length });
-          await placeBacklog(todo, () => mapRef.current, {
-            onAttempt: (id) => tried.add(id),
-            onProgress: (done) => live && !skip.current && setPlacing({ done, of: todo.length }),
-            stopped: () => !live || skip.current,
-          });
-          if (live) await load();
+          await placeBacklog(todo, { onAttempt: (id) => tried.add(id), stopped: () => !live });
         })
-        .catch((e) => live && setLoadError({ message: e instanceof Error ? e.message : String(e) }))
-        .finally(() => live && setPlacing(null));
+        .catch((e) => live && setLoadError({ message: e instanceof Error ? e.message : String(e) }));
       return () => {
         live = false;
         reload.current = null;
-        setPlacing(null);
+        quietLoad.current = null;
       };
     }, []),
   );
+
+  // Each walk placed, by this screen's pass or one started before a remount: its star comes at once.
+  useEffect(() => {
+    // Away (no quiet load set), the change waits for the focus effect's read.
+    if (placedCount === placedSeen.n || !quietLoad.current) return;
+    placedSeen.n = placedCount;
+    quietLoad.current();
+  }, [placedCount]);
 
   const days = useMemo(() => buildDays(data?.walks ?? [], captures), [data, captures]);
   // Recomputed when crossing the pin zoom, not on every camera step (audit).
@@ -247,7 +267,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     return got ? { found: got.map((f) => f.name) } : null;
   }, [mode, index, checklists, finds]);
 
-  const busy = placing != null || walkStart.starting;
 
   return (
     <View style={styles.screen}>
@@ -274,7 +293,8 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
           height={sheetAnim}
           bottomInset={0}
           areaHeight={areaH}
-          busy={busy}
+          busy={walkStart.starting}
+          placingId={placingId}
           // A one-tap start to the place (NV12): the saved choices, never the drawer.
           onGoToPlace={selected ? () => walkStart.start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
           placeExtra={placeExtra}
@@ -362,28 +382,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
       />
       <UndoToast style={{ top: insets.top + 64 }} />
 
-      {placing && (
-        // Above the sheet at whatever height it stands, never at a fixed fraction of the screen: a half-height
-        // sheet (the Days list) ran under a cover pinned at 38% and hid its Walks and Days chips.
-        <Animated.View style={[styles.center, styles.over, aboveSheet]} pointerEvents="box-none" accessibilityLiveRegion="polite">
-          <Text style={styles.centerText}>
-            {`Placing your walks (${Math.min(placing.done + 1, placing.of)} of ${placing.of})`}
-          </Text>
-          <Pressable
-            testID="skip-placing"
-            accessibilityRole="button"
-            accessibilityLabel="Skip placing your walks for now"
-            onPress={() => {
-              skip.current = true;
-              setPlacing(null);
-            }}
-            style={styles.skip}
-            hitSlop={8}
-          >
-            <Text style={styles.skipText}>Skip</Text>
-          </Pressable>
-        </Animated.View>
-      )}
 
       <View style={[StyleSheet.absoluteFill, styles.under]}>
         {/* Only while Chronicle is in front: another tab, a walk or a replay takes its map down, so
@@ -403,7 +401,7 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
             // Walk here only at street zoom (NV12): a press on a zoomed-out map lands far from anywhere walkable.
             onLongPress={(at) => {
               const zoom = view?.zoom ?? 0;
-              if (placing != null || zoom < 12) return;
+              if (zoom < 12) return;
               setSelected(null);
               setMode({ kind: 'summary' });
               setSpot(at);
@@ -420,7 +418,6 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
             initialCenter={savedCamera?.center ?? kept?.camera?.center ?? WORLD.center}
             initialZoom={savedCamera?.zoom ?? kept?.camera?.zoom ?? WORLD.zoom}
             onCameraChange={onCameraChange}
-            covered={placing != null}
             attributionTop
             // The scale bar above the sheet at its resting height (QL8).
             scaleInset={{ bottom: sheetH + 12, left: 12 }}
@@ -437,13 +434,6 @@ const styles = StyleSheet.create({
   under: { zIndex: 0 },
   over: { zIndex: 1 },
   top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
-  center: { position: 'absolute', left: 24, right: 24, alignItems: 'center', gap: 10 },
-  centerText: {
-    backgroundColor: 'rgba(255,255,255,0.94)', color: theme.ink, fontSize: 16, fontWeight: '600',
-    paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999, overflow: 'hidden', textAlign: 'center',
-  },
-  skip: { minHeight: 44, paddingHorizontal: 18, justifyContent: 'center', borderRadius: 22, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge },
-  skipText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   spotRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   spotStack: {
