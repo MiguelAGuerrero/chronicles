@@ -313,7 +313,8 @@ recording, and a recording bar brings a minimized walk back.
   thread or makes a new one with a second kept moment; **Respond**, in the viewer's toolbar under the moment
   (a menu: photo or video, voice memo, note), keeps a new moment linked to the one it
   answers, in its thread. A thread reads oldest first, a reply under what it
-  answers; its size is a phrase ("a few moments, since March"), its name is the
+  answers, like a conversation: a note is read in place, in a bubble with its time and
+  walk (its More opens it full screen, to respond or edit), while a photo, video or memo keeps its card; its size is a phrase ("a few moments, since March"), its name is the
   owner's and optional. **Remove from this thread** and **Delete this thread**
   (with Undo) never delete a moment; a thread left with fewer than two moments
   dissolves. **Keep as my thread** copies a Chronicle thread. The viewer says "In a
