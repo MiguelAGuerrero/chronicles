@@ -17,6 +17,13 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  */
 export const PRESENCE_CODE = 'p2';
 
+/**
+ * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
+ * landing (`LANDING_CARRIED`, `landing/view.ts`). Only ever the code just before, and only when the golden tables show
+ * nothing derived changed; empty it at a bump that changes a bar, a mark or a weight.
+ */
+export const PRESENCE_CARRIED: readonly string[] = ['p1'];
+
 const FULL = 1;
 const HALF = 0.5;
 const QUARTER = 0.25;
