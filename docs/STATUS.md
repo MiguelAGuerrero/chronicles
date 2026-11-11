@@ -177,12 +177,14 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox T6 yes`** (from `bc41449`). One build: `tend chronicle T6`, the bar's Walks zooms out to every
-place walked as the sheet's does (one path, `openSheet`; the bar reaches the map through a handle, which replaces the
-counted press of the section-bar slice); pictured `chronicle-t6-bar-walks-framed`. The review (one round): F1 the
-docs (decision 0141, rule lines added, SB3's wording left for the owner), F3 and F4 fixed as `audit 3` (from Days no
-fit) and `audit 4` (the picture), F2 filed as T7. Journeys: `chronicle` (every check, M9 included), `capturehome`,
-`qol`, `resurface`, `tabs`. No sweep, so no lens ran and the balance was not read. Nothing here has run on a phone.
+**Nov 11, `/tend walk-screen`** (from `bc41449f`). Not a whole sweep: the auditor read only part of the area's modules, and
+320 px, 200% text and offline were not pictured. The ready and walk journeys (46 and 111 checks) and eight more covering
+`walk.tsx` ran green. One commit: `tend walk-screen 1`, Stop warns again about a photo held after the first warning (SA8;
+a `space` journey step, failing before and passing after), and `tend walk-screen audit 1`, the same for a second photo held
+beyond the ones warned about (the review's two accepted findings). Filed in DEFERRED: two medium memo-save findings in
+`useCaptures` (no hook harness), a pure-updater cleanup, and five owner questions (dwell times, the pin count, the
+stack during a recording, the pin's tick, Pause's label). Steward: two drifts and one question, all owner's. No T or G
+entries. Area `rough`.
 
 ### Open before the loop
 
