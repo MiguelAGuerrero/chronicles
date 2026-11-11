@@ -171,7 +171,7 @@ const FEATURES = [
     rule: 'walkability',
     source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon}.tsx'],
     journeys: ['walkability', 'headsup'],
-    specs: ['walkability', 'walkability-headsup', 'walkability-urban-form'],
+    specs: ['walkability', 'walkability-headsup', 'walkability-urban-form', 'place-form'],
   },
   {
     name: 'landing',
@@ -394,7 +394,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'place-form': { branch: 'claude/festive-cray-twthtr', since: '2026-11-11' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
