@@ -25,12 +25,20 @@ So a complex's name and outline are in the `buildings` theme, the land use carri
 the shops but not the mall, and only about 5% of buildings are named. A complex is therefore a **named polygon that
 holds other places**, and that is the rule, with no name list.
 
+### The calibration (Nov 11, on the saved fixtures)
+
+Joined by building id, Strawberry Square holds 22 places to go in two pieces (a fragment and the whole), Lehigh Valley Mall 168; Asia Mall 10; West
+Shore Farmer's Market 29 places to go and 4 farmers'-market places; the Broad Street Market's Stone Building 2; the
+Harrisburg Transportation Center 12 places; Holy Spirit Medical Center 9; the city government center 12; a bank building
+24 places but only 3 to go; a parking garage 5 to go. The minimums are 8 places to go for Shopping, 2 market-category places
+for Markets, 8 places for Campuses and for Civic, and any place for Stations.
+
 ### The second probe (Nov 11, before any test was written)
 
-- **A complex straddles tiles.** Strawberry Square is a 3-point sliver at the edge of tile 4692/6187 and the rest of it is in
-  4693/6187; the places inside are split the same way. A rule run on one tile finds nothing, so pieces are joined by their
-  building id across tiles before a complex is judged, and a polygon cut at a tile edge is judged only once the
-  neighbouring tile is read.
+- **A complex can span tiles or leave fragments.** The Lehigh Valley Mall is cut across two z14 tiles (4756/6164 and
+  4756/6165), each piece holding part of its places. Strawberry Square sits wholly in tile 4693/6187; the next tile west
+  carries only a 3-point fragment of it from the tile buffer. So pieces are joined by their building id across tiles before a
+  complex is judged, and it is judged only once every tile that holds any vertex of any piece is read.
 - **"Named and holds places" is too loose.** In downtown Harrisburg's tile 18 named buildings hold two or more places:
   a bank building (24 places, mostly services), a parking garage (10), a courthouse, a music hall, a city government
   center (9). Shopping therefore counts only places to go (presence class weight 1: shop, boutique, eatery, food_counter,
@@ -88,8 +96,8 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
 ## Acceptance criteria
 
 1. **CX1 · A complex is made of other places.** A named polygon (Overture `buildings` with a name) that holds places
-   of a presence class that fits one of the kinds (CX3), at least a fixed minimum of them and of at least two
-   classes, is a complex. For Shopping only places to go count (presence class weight 1), never offices or services. The minimums are constants in core, tuned on the fixtures and never shown. They gate "made of
+   of a presence class that fits one of the kinds (CX3), at least a fixed minimum of them, is a complex. For Shopping only
+   places to go count (presence class weight 1), never offices or services. The minimums are constants in core, tuned on the fixtures and never shown. They gate "made of
    other places"; they are never a measure of size or significance (0103). On the real fixtures Strawberry Square and
    Lehigh Valley Mall are complexes; a named building holding one place, or only offices, is not.
 2. **CX2 · No outline, no complex.** A point named like a mall, a cluster of shops with no named polygon, or several
@@ -97,7 +105,7 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
    source gives it, never inflated, smoothed, joined or boxed.
 3. **CX3 · The kind is a word.** A named polygon is at most one of Shopping, Markets, Campuses, Stations or Civic, said as
    that word, by one table in core (as presence's table is), first match winning in this order:
-   - **Markets:** it holds a place whose Overture category is a market (farmers', public or flea market).
+   - **Markets:** it holds at least a fixed minimum of places whose Overture category is a market (farmers', public or flea).
    - **Stations:** its Overture building subtype is `transportation` and its class is not parking, and it holds a place.
    - **Campuses:** its subtype is `medical` or `education` and it holds at least a fixed minimum of places.
    - **Civic:** its subtype is `civic` and it holds at least a fixed minimum of places.
@@ -146,12 +154,14 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
     bounding box) and Overture release in a derived store (cleared by `purgeDerived`), tagged with a `COMPLEX_CODE` that a
     rule change bumps; they are recomputed from the source, never patched, and a deleted walk or moment leaves them
     untouched. A complex cut by a tile edge is one complex, one outline and one row of the list, joined by its building id
-    and judged only once every tile its pieces touch is read; one not fully read is missing, never a partial outline.
+    and judged only once every tile that holds any vertex of its pieces is read; one not fully read is missing, never a partial
+    outline.
 15. **CX15 · An adapter, no list.** The data reaches the app through `ComplexSource`; no name, place or coordinate is
     hard-coded; unit tests run on in-memory sources, only the adapter's own test reads real tile fixtures, and the
     layer check forbids core importing the adapter.
-16. **CX16 · A bounded, silent read.** One read per selected area reads only the z14 tiles whose places suggest a
-    complex (a cluster of a kind's places, a market, a campus, a station, a civic place), at most a fixed number of tiles
-    and a fixed number of bytes (core constants), nearest the area's point first, never a tile twice per release. A failed
-    read shows nothing and is tried again later (no pill, no error). It reads Overture's `buildings` and `base` tiles
-    from the host the app already uses: `npm run check:vision` passes with its host table unchanged.
+16. **CX16 · A bounded, silent read.** One read per selected area reads the `buildings` and `places` tiles of the z14 tiles
+    within the area's reach, nearest its point first, at most a fixed number of tiles (a core constant) and never a tile twice
+    per release, plus the neighbours a cut polygon needs while the budget allows. Which kind a building is cannot be told from
+    its places alone, so there is no candidate pre-filter. A read that did not cover the area is `partial` (CX4). A failed read
+    shows nothing and is tried again later (no pill, no error). It uses the host the app already uses: `npm run check:vision`
+    passes with its host table unchanged.

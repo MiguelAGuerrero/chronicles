@@ -38,7 +38,7 @@ export function streetAt(fix: LngLat | null, segments: StreetSegment[], snappedI
 }
 
 /** The place line (MC1): only what is known. */
-export function placeLine(o: { street: string | null; near?: boolean; town: string | null }): string {
+export function placeLine(o: { street: string | null; near?: boolean; town: string | null; complex?: { name: string; near: boolean } | null }): string {
   const street = o.street && o.near ? `Near ${o.street}` : o.street;
   if (street && o.town) return `${street}, ${o.town}`;
   return street ?? o.town ?? NO_PLACE;
@@ -115,6 +115,8 @@ export interface ArrivalInput {
   /** The street was found by nearness, not the one the moment snapped to (audit 17). */
   streetNear?: boolean;
   town: string | null;
+  /** CX11: the complex whose outline holds the fix, or lies within the street reach of it. */
+  complex?: { name: string; near: boolean } | null;
   t: number;
   now: number;
   /** Walked time into its walk, or null for a moment outside a walk. */

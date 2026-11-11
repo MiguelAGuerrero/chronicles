@@ -44,8 +44,9 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/complexes
 - **New cache, no new truth.** `complex_tile` is derived (cleared by `purgeDerived`, tagged `COMPLEX_CODE` and the release),
   like `outline_tile`. SQLite migration: the next entry in `MIGRATIONS`; IndexedDB `VERSION` 18 to 19.
 - **Never on a capture, a moment, a walk or an `Area`** (CX7, CX11, CX12).
-- **A complex split by a tile edge** (Strawberry Square: a sliver in one tile, the rest in the next) comes in pieces with one
-  Overture building id; they are joined by that id, and the complex is judged only once every tile its pieces touch is read.
+- **A complex cut by a tile edge or buffer** (the Lehigh Valley Mall across two tiles; a fragment of Strawberry Square in the next
+  tile) comes in pieces with one Overture building id; they are joined by that id, and the complex is judged only once every
+  tile that holds a vertex of any piece is read (`neededTiles`, from `tileAt` of each vertex; no knowledge of the buffer's size).
 - **The store changed shape (Nov 11, after the second probe):** `complex` rather than `complex_tile`: one derived row per
   complex (building id, name, kind, outline, bounding box with an index on `lat`), because a tile alone cannot judge one and
   places are never stored. The moment's line asks it by position. Still a cache, still one migration and one IndexedDB bump.

@@ -10,6 +10,9 @@ paths:
   - "src/components/atlas/**"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
   - "src/lib/__tests__/explore/**"
+  - "src/lib/complexes/**"
+  - "src/lib/__tests__/complexes/**"
+  - "scripts/fixture-complexes.mjs"
 ---
 # Explore and discovery
 

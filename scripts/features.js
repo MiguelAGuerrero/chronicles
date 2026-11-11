@@ -134,6 +134,14 @@ const FEATURES = [
     specs: ['presence'],
   },
   {
+    name: 'complexes',
+    about: 'complexes: named, bounded places made of other places (a mall, a market, a campus, a station), on Explore and in a moment\'s place line',
+    rule: 'explore-and-discovery',
+    source: ['src/lib/complexes/**'],
+    journeys: [],
+    specs: ['complexes'],
+  },
+  {
     name: 'explore',
     about: 'the Explore tab (the atlas), discovery, marks, reminders',
     rule: 'explore-and-discovery',
@@ -148,7 +156,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'complexes'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns'],
   },
   {
     name: 'kind-walk',
