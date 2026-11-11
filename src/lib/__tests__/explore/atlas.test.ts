@@ -454,8 +454,8 @@ test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
   assert.equal(thinRing(marked('food', 3, east(9000), false), O, inTown), true, 'outside the outline');
 });
 
-test('TP10: a town row from the older rules is stale; since a8 a neighborhood row from them is too (PK7); a9 carries none (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a9.p1', 'a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older code is carried; .p1: presence\'s classes (specs/presence PR6)');
+test('TP10: a town row from the older rules is stale; since a8 a neighborhood row from them is too (PK7); a9 carries none of a8 (PC13)', () => {
+  assert.equal(ATLAS_CODE, 'a9.p2', 'a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older a-code is carried; .p2: presence\'s classes (specs/presence PR6, specs/presence-readers PS9, which carries a9.p1)');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a8.p1' }), 'b1'), false, 'PC13: a8 rows, from before community parks, are read again');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), false, 'PK7: a5 neighborhoods are read again');
   assert.equal(rowCurrent(row('Whitehall', O, { level: 'town', code: 'a4' }), 'b1'), false, 'towns are read again');

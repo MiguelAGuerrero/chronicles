@@ -233,7 +233,7 @@ test('PW10: a read without the archive never replaces one measured with it; a ri
 });
 
 test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again too (PK7: the bars changed at every level); a9 too (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a9.p1', 'a9 (community parks), then presence\'s code (specs/presence PR6)');
+  assert.equal(ATLAS_CODE, 'a9.p2', 'a9 (community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
   for (const level of ['neighborhood', 'town'] as const)
     assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), false, `${level} rows from a6 are read again`);
 });
@@ -241,8 +241,12 @@ test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again t
 test('PW11: no count, rank or "popular" mark: the kinds, their labels and the marks text carry no digit', () => {
   for (const k of KINDS) assert.ok(!/\d/.test(k.label), k.label);
   for (const line of MARKS_EXPLAINED) assert.ok(!/\d/.test(line), line);
-  const fields = Object.keys(placesFromArchive([pt(-75.19, 40.69, { name: 'Folly', class: 'folly', src: 'wd', id: 'Q1', sitelinks: '40', rank: '1' })], 'v')[0]).sort();
-  assert.deepEqual(fields, ['at', 'build', 'category', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing that measures a place reaches the app');
+  const place = placesFromArchive([pt(-75.19, 40.69, { name: 'Folly', class: 'folly', src: 'wd', id: 'Q1', sitelinks: '40', rank: '1' })], 'v')[0];
+  const fields = Object.keys(place).sort();
+  // specs/presence-readers: a place carries presence's classes (what it is, never stored); for an archive place they are its
+  // type and `recorded`, the same for every archive place, so nothing measures it.
+  assert.deepEqual(fields, ['at', 'build', 'category', 'classes', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing that measures a place reaches the app');
+  assert.deepEqual(place.classes, ['curiosity', 'recorded']);
 });
 
 test('PW17: a place\'s sheet names its finds and never a total, archive places included', () => {

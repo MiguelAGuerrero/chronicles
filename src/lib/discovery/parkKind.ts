@@ -3,7 +3,7 @@ import { distanceM, projector } from '../geo';
 import { inRings } from './green';
 import type { LngLat } from '../types';
 import community from './communityWords.json';
-import { normalizeBrand, notableName } from './noise';
+import { normalizeWords, notableName } from '../presence/notable';
 import parkNotable from './parkNotable.json';
 import type { Refinement } from './refine';
 import type { Place } from './types';
@@ -26,11 +26,11 @@ export const PARK_RULES = {
   archiveNearM: 150,
 } as const;
 
-const words = (list: readonly string[]) => list.map(normalizeBrand);
+const words = (list: readonly string[]) => list.map(normalizeWords);
 const COMMUNITY = words(community.words);
 const NOTABLE = words(parkNotable.words);
 const hasWord = (name: string, list: readonly string[]): boolean => {
-  const n = ` ${normalizeBrand(name)} `;
+  const n = ` ${normalizeWords(name)} `;
   return list.some((w) => n.includes(` ${w} `));
 };
 

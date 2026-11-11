@@ -1,4 +1,5 @@
 // @layer core
+import type { PresenceClass } from '../presence/presence';
 import type { LngLat } from '../types';
 
 export type CategoryId =
@@ -38,10 +39,10 @@ export interface Place {
    */
   kind?: Kind;
   /**
-   * Presence bars the place lights beside its own category (PK1, `barsOf`): set by an adapter from what it already reads,
-   * never stored (the places archive's places are never cached, PW1).
+   * What the place is: presence's classes (decision 0140, specs/presence-readers), from which its category, kind, mark and
+   * bars are read. Set by an adapter on a fresh read and never stored (web's `putPlaces` leaves it out; native stores columns).
    */
-  alsoBars?: CategoryId[];
+  classes?: PresenceClass[];
 }
 
 /** Truth: a place the app has offered. Never cleared. */

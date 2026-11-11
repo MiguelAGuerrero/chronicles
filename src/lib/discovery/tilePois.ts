@@ -1,7 +1,7 @@
 // @layer core
 import type { TileFeature } from '../areas/tilePlaces';
 import type { LngLat } from '../types';
-import { classDef, classesOfOsm, markClassOf, OSM_RULES } from '../presence/presence';
+import { classDef, classesOfOsm, markClassOf, named, OSM_RULES } from '../presence/presence';
 import { BY_NAME, isMarkFor, markableClass } from './curation';
 import { placeKey } from './places';
 import type { CategoryId, Place } from './types';
@@ -62,9 +62,11 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     const key = placeKey(category, generic ? null : raw, at);
     const name = generic ? GENERIC[sub] : raw;
     if (out.has(key)) continue;
-    const markable = isMarkFor(pc, name);
+    // PS2, PS3: the name's classes beside the tags' (a historic name; a historic museum).
+    const classes = named(classesOfOsm(cls, sub), name);
+    const markable = isMarkFor(classes);
     const kind = markable ? classDef(pc).kind : undefined;
-    out.set(key, { key, name, category, at, generic, build, markable, ...(kind ? { kind } : {}) });
+    out.set(key, { key, name, category, at, generic, build, markable, classes, ...(kind ? { kind } : {}) });
   }
   return [...out.values()];
 }

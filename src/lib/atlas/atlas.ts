@@ -1,12 +1,13 @@
 // @layer core
-import { PRESENCE_CODE } from '../presence/presence';
+import { PRESENCE_CODE, type PresenceClass } from '../presence/presence';
+import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import type { RoadFeature } from '../streets';
 import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
 import { isKindHidden, refineRead } from '../discovery/refinements';
-import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
+import { isMarkable } from '../discovery/noise';
 import { barsOf } from '../discovery/bars';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
@@ -34,8 +35,12 @@ import type { Pocket } from './pockets';
 /** A row's code: the atlas's own (a9) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `a9.${PRESENCE_CODE}`;
 
-/** TP10: the older rules a level's rows still stand under, because the change did not touch that level. None since a8 (PK7): the bars changed at every level. */
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = {};
+/**
+ * TP10: the older rules a level's rows still stand under, because the change did not touch that level. None of a8's
+ * (PK7: the bars changed at every level; PC13: community parks, at every level); a9.p1 stands, since presence p2 read
+ * the archive, names and greens with nothing derived changed (specs/presence-readers PS9).
+ */
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a9.p1'], town: ['a9.p1'] };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -97,10 +102,10 @@ export interface AtlasPlace {
   at: LngLat;
   /** Whether it could be a "?" mark (`isMarkable`); a findable kind counts only these (AG1). */
   markable?: boolean;
-  /** What `barsOf` reads to light a second bar (PK1, PK2); absent, a place lights its category alone. */
   name?: string;
   kind?: Kind;
-  alsoBars?: CategoryId[];
+  /** What `barsOf` reads to light a second bar (PK1, PS2): presence's classes; absent, a place lights its category alone. */
+  classes?: PresenceClass[];
 }
 
 /** A place that could be found (a mark's place): never named on the tab (AT7). */
@@ -189,11 +194,11 @@ export function presenceSteps(places: AtlasPlace[], centre: LngLat, within: With
   const seen = new Set<string>();
   const counts = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Record<CategoryId, number>;
   for (const p of places) {
-    if (p.markable === false && MARK_CATEGORIES.includes(p.category)) continue;
+    if (!countsToward(p)) continue;
     if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
     // PK1-PK4: a place lights each of its bars once (a museum the data calls historic, History and Culture).
-    for (const bar of barsOf({ category: p.category, name: p.name ?? '', kind: p.kind, alsoBars: p.alsoBars })) counts[bar] += 1;
+    for (const bar of barsOf(p)) counts[bar] += 1;
   }
   return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => counts[c] >= s).length as Step])) as Steps;
 }
