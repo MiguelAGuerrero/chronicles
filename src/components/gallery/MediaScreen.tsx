@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { FlatList, Platform, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { captureEdits } from '../../lib/captureEdits';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { gallery } from '../../lib/gallery';
@@ -21,6 +21,9 @@ import { PeriodBlock } from './PeriodBlock';
 import { usePinch } from './usePinch';
 import { ViewMenu } from './ViewMenu';
 
+/** On the web a pinch on the grid is the grid's, never the browser's page zoom (MG20); one finger still scrolls. */
+const PAN_ONLY = (Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) as object;
+
 const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 /**
@@ -38,7 +41,11 @@ export function MediaScreen() {
   const [viewing, setViewing] = useState<{ list: Faced[]; startAt: { id: string; piece: string } } | null>(null);
   const list = useRef<FlatList<Row>>(null);
   const offset = useRef(0);
-  const pending = useRef<{ kind: 'day' | 'month' | 'offset'; key: string; offset?: number } | null>(null);
+  // A scroll asked for on the same list (the size or the sort changed): applied once its rows are drawn (MG18, MG20).
+  const pending = useRef<number | null>(null);
+  // Where a new level opens (MG19): a month to its first day, a year to its first month. The list is remounted for
+  // each level, so this is its initial row.
+  const [landing, setLanding] = useState<{ kind: 'day' | 'month'; key: string } | null>(null);
 
   // A new open of Chronicle is All Items and Days again (MG9, MG19); every show reads what is new (MG14).
   useFocusEffect(
@@ -76,28 +83,29 @@ export function MediaScreen() {
   }, [rows]);
   const sticky = useMemo(() => (st.zoom === 'days' ? rows.flatMap((r, i) => (r.kind === 'header' ? [i] : [])) : []), [rows, st.zoom]);
   const fit = fitFor(st.view.shape);
+  const firstRow = useMemo(() => {
+    if (!landing) return -1;
+    return rows.findIndex((r) => (landing.kind === 'day' ? r.kind === 'header' && r.day.key === landing.key : r.kind === 'block' && r.block.key === landing.key));
+  }, [rows, landing]);
 
   // A scroll asked for in a handler (a month opened, the size changed) lands once its rows are drawn (MG19, MG20).
   useEffect(() => {
-    const p = pending.current;
-    if (!p) return;
+    const to = pending.current;
+    if (to == null) return;
     pending.current = null;
-    let to = p.offset ?? 0;
-    if (p.kind === 'day') to = rows.find((r) => r.kind === 'header' && r.day.key === p.key)?.offset ?? 0;
-    if (p.kind === 'month') to = rows.find((r) => r.kind === 'block' && r.block.key === p.key)?.offset ?? 0;
     requestAnimationFrame(() => list.current?.scrollToOffset({ offset: to, animated: false }));
   }, [rows]);
 
   const setZoom = (z: Zoom) => {
     if (z === st.zoom) return;
-    pending.current = { kind: 'offset', key: '', offset: 0 };
+    setLanding(null);
     gallery.setZoom(z);
   };
   const resize = (dir: 'in' | 'out') => {
     const next = zoomed(st.view.size, dir);
     if (next == null || st.zoom !== 'days') return;
     const after = dayRows(galleryDays(tiles, walks, st.streets, now), width, next).rows;
-    pending.current = { kind: 'offset', key: '', offset: anchorAfter(rows, offset.current, after) };
+    pending.current = anchorAfter(rows, offset.current, after);
     void gallery.setView({ size: next });
   };
   const pinch = usePinch(resize, st.zoom === 'days');
@@ -119,7 +127,7 @@ export function MediaScreen() {
   );
   const openBlock = useCallback(
     (b: Block) => {
-      pending.current = st.zoom === 'months' ? { kind: 'day', key: b.firstDay } : { kind: 'month', key: b.firstMonth };
+      setLanding(st.zoom === 'months' ? { kind: 'day', key: b.firstDay } : { kind: 'month', key: b.firstMonth });
       gallery.setZoom(st.zoom === 'months' ? 'days' : 'months');
     },
     [st.zoom],
@@ -198,7 +206,7 @@ export function MediaScreen() {
   return (
     <View style={styles.screen} testID="media-screen">
       <GalleryBar zoom={st.zoom} show={st.show} onZoom={setZoom} onMenu={() => setMenu(true)} onShowAll={() => gallery.setShow('all')} />
-      <View style={styles.body} onLayout={onLayout} {...pinch}>
+      <View style={[styles.body, PAN_ONLY]} onLayout={onLayout} {...pinch}>
         {empty ? (
           <View style={styles.quiet}>
             <Text testID="gallery-empty" style={styles.quietText}>{emptyLine(st.show)}</Text>
@@ -211,6 +219,7 @@ export function MediaScreen() {
             keyExtractor={(r) => r.key}
             renderItem={renderRow}
             getItemLayout={(_, index) => ({ length: rows[index]?.height ?? 0, offset: rows[index]?.offset ?? 0, index })}
+            initialScrollIndex={firstRow > 0 ? firstRow : undefined}
             stickyHeaderIndices={sticky}
             initialNumToRender={14}
             maxToRenderPerBatch={12}
@@ -230,11 +239,11 @@ export function MediaScreen() {
         sizable={st.zoom === 'days'}
         onClose={() => setMenu(false)}
         onOrder={(order) => {
-          pending.current = { kind: 'offset', key: '', offset: 0 };
+          pending.current = 0;
           void gallery.setView({ order });
         }}
         onShow={(s) => {
-          pending.current = { kind: 'offset', key: '', offset: 0 };
+          pending.current = 0;
           gallery.setShow(s);
         }}
         onZoom={resize}

@@ -5,7 +5,6 @@ import { at, mo, NOW, walk } from './fixtures';
 
 // Media gallery (specs/media-gallery): the grid's tiles, days, blocks and rows, worked out from the moments.
 
-const none = new Map();
 const keys = (ts: Tile[]) => ts.map((t) => t.key);
 
 test('MG3: one tile per photo, video and memo piece, newest first, no notes, no open walk', () => {
@@ -176,6 +175,13 @@ test('MG19: months and years with their cover and place in words', () => {
   // Three names exactly: no "another place"; four: the fourth in words.
   const three = galleryBlocks(galleryTiles(ms.slice(1, 4), [...walks.values()], 'all', 'newest'), walks, {}, 'month', NOW);
   assert.equal(three[0].line, 'Baixa and Graça');
+});
+
+test('MG19: a month with moments outside a walk and no street says so', () => {
+  const walks = new Map([['w', walk('w', at(2026, 11, 2, 8), { area: 'Alfama' })]]);
+  const tiles = galleryTiles([mo('a', [['photo', at(2026, 11, 2, 9)]], 'w'), mo('l', [['photo', at(2026, 11, 3, 9)]])], [...walks.values()], 'all', 'newest');
+  assert.equal(galleryBlocks(tiles, walks, {}, 'month', NOW)[0].line, 'Alfama, and outside a walk');
+  assert.equal(galleryBlocks(tiles, walks, { l: 'Hope Street' }, 'month', NOW)[0].line, 'Hope Street and Alfama', 'a street read names it instead');
 });
 
 test('MG19: exactly one more place than three is "another place"', () => {

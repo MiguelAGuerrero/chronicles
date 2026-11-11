@@ -181,8 +181,12 @@ export function galleryBlocks(tiles: Tile[], walks: ReadonlyMap<string, Walk>, s
     const cover = ts.find((t) => t.kind === 'photo') ?? ts[0];
     const ordered = [cover, ...ts.filter((t) => t !== cover)];
     const names = distinct(ordered.map((t) => blockName(t, walks, streets)).filter((n): n is string => !!n));
-    const allLoose = ts.every((t) => !t.walkId || !walks.has(t.walkId));
-    const line = names.length > 3 ? listed([...names.slice(0, 3), morePlaces(names.length - 3)]) : names.length ? listed(names) : allLoose ? NOT_ON_A_WALK : null;
+    const isLoose = (t: Tile) => !t.walkId || !walks.has(t.walkId);
+    const allLoose = ts.every(isLoose);
+    // Moments outside a walk with no street named are said, so a line never reads as if every picture were a walk's.
+    const unnamedLoose = ts.some((t) => isLoose(t) && !streets[t.momentId]);
+    const named = names.length > 3 ? listed([...names.slice(0, 3), morePlaces(names.length - 3)]) : listed(names);
+    const line = !names.length ? (allLoose ? NOT_ON_A_WALK : null) : unnamedLoose && names.length <= 3 ? `${named}, ${OUTSIDE_A_WALK}` : named;
     const year = key.slice(0, 4);
     const title = unit === 'year' ? year : `${MONTHS[Number(key.slice(5, 7)) - 1]}${year === thisYear ? '' : ` ${year}`}`;
     const firstDay = dayKey(ts[0].t);
