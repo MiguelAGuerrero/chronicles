@@ -215,7 +215,7 @@ test('audit: a map that never answers times out instead of hanging the pass', as
   assert.equal(await withTimeout(Promise.resolve('ok'), 20, 'map'), 'ok');
 });
 
-// Audit 9: a walk placed while a replay was open moved Chronicle's map when the owner came back (H5, decision 0134).
+// Audit 9: a walk placed while a replay was open moved Chronicle's map when the owner came back (H5, decision 0137).
 test('fix background-placing audit 9: places that came from the background never move a framed map; anything else does', () => {
   assert.equal(fitsOnRead('a', 'b', true), false, 'a walk placed in the background, here or while away');
   assert.equal(fitsOnRead('', 'b', true), true, 'nothing was framed yet');

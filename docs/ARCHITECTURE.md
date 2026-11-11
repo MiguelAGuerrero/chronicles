@@ -168,7 +168,7 @@ Streets, snapping, fog
   ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
-  backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0134); shell.ts takes the snap and the reader
+  backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0137); shell.ts takes the snap and the reader
   mapReads.ts                one camera read at a time (mapReadLock)
 Places and areas (v0.5)
   areas/types.ts             PlaceCandidate, TownOutline, BoundarySource, Area, WalkArea: the whole contract

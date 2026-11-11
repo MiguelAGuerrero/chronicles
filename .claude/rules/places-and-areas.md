@@ -110,12 +110,12 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
   U13) and opens to the
   walks list or a place's walks. Start floats above it.
   - Walks with no places are placed in the background (`placeAll`, decision
-    0134); a failure waits for the next launch.
+    0137); a failure waits for the next launch.
   - It reads only walks, summaries, `Area` and `WalkArea` (`places.ts`), never
     traces or media. Keep it that way.
 
 - **Placing old walks** happens in `lib/backlog/`, the home's one read of
-  traces (decision 0134).
+  traces (decision 0137).
   - It reads tiles in code (`tileCollector`), never through the home map: the
     map once jumped from walk to walk at street zoom, so it sat behind a grey
     cover with "Placing your walks (1 of 1)" for up to 80 s a walk, and the

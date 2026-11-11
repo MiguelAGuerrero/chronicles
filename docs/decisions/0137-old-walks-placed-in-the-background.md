@@ -1,4 +1,4 @@
-# 0134. Old walks are placed in the background, from the tiles, with no cover and no count
+# 0137. Old walks are placed in the background, from the tiles, with no cover and no count
 
 Date: 2026-11-11 · Status: accepted · Area: home, places · Amends: 0019 ("placed in one pass behind a cover"), v0.5-places criterion 25
 

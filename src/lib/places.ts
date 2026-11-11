@@ -184,7 +184,7 @@ export function placeWalks(index: PlacesIndex, key: string): { title: string; su
 }
 
 /**
- * Whether a read of the places walked moves Chronicle's map (H5, decision 0134). `framed` and `next` are the
+ * Whether a read of the places walked moves Chronicle's map (H5, decision 0137). `framed` and `next` are the
  * bounds' keys ('' for nothing); `quiet` is a read that follows only walks placed in the background, on screen or
  * while it was away: those never move a framed map, so the view the owner left stays (fix background-placing
  * audit 9). Anything else that changes the places (a new walk, a delete) frames them again.

@@ -416,7 +416,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 
 - [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.
 
-## Old walks placed in the background (fix background-placing, decision 0134)
+## Old walks placed in the background (fix background-placing, decision 0137)
 
 - [ ] **Do:** with a walk from before places (or one stopped offline, then back online), open Chronicle's Map. **Expect:** the map and the stars already placed show at once, with no grey cover and no "Placing your walks"; the walk's row under "Not placed yet" says "Placing…" while its tiles are fetched and decoded on the phone (`tileCollector`, `fetchTiles`), then its star comes, and the map never jumps to it by itself. Switch Map → Walks mid-pass: the row still says "Placing…". Tap Start mid-pass: the walk screen's first seconds stay smooth while the walk at hand finishes (audit 5).
 
