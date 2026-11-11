@@ -203,6 +203,8 @@ Navigation (inside a walk)
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
   nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
+  nav/eta.ts                 time left on the bar: the walk's own pace, clamped (QL17, QL18)
+  nav/previewView.ts         what the live map leaves undrawn while the route preview is open (`forPreview`)
   nav/scenic.ts              scenic routes: who gets the preview, one route per leaning within 30%, the rows in words
   nav/scenicSignals.ts       green (landcover), sights and busy streets of a corridor; their per-routing indexes
   nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)

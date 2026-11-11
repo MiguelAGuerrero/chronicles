@@ -24,6 +24,7 @@
       "M",
       "MC",
       "ME",
+      "MG",
       "ML",
       "MO",
       "MR",
@@ -62,14 +63,15 @@
       "WT"
     ],
     "commits": {
-      "growth": 115,
-      "refinement": 188,
-      "other": 411
+      "growth": 118,
+      "refinement": 199,
+      "other": 419
     },
     "areas": {
       "rough": [
         "chronicle",
-        "explore"
+        "explore",
+        "navigation"
       ],
       "settling": [],
       "polished": [],
@@ -78,6 +80,7 @@
     "neverSwept": [
       "captures",
       "deletion",
+      "gallery",
       "gaps",
       "kind-walk",
       "landing",
@@ -86,7 +89,6 @@
       "memories",
       "moments",
       "motion",
-      "navigation",
       "notify",
       "places",
       "recording",
@@ -103,9 +105,9 @@
       "web"
     ],
     "open": {
-      "openT": 2,
+      "openT": 0,
       "phoneT": 0,
-      "openG": 1
+      "openG": 2
     },
     "reading": "in step",
     "propose": false,
@@ -123,6 +125,12 @@
       "swept": "2026-11-11",
       "main": "0193552f695b394b6965c8dc2127ce33f01cd90b",
       "note": "Second sweep, for the lenses the first left out; not whole (200% text, offline pictures, reviewers on new pictures). Five loop findings shipped (look race, WT11 spoken kinds, two Escape layers, WT13 town tap zoom); twelve [loop] items deferred, four medium (readNear retry, exploreRead centre, capture during a read, web focus). T4 and T5 still open."
+    },
+    "navigation": {
+      "state": "rough",
+      "swept": "2026-11-11",
+      "main": "8bad3baa39209ae442a61aabfd94761d96956639",
+      "note": "First sweep, not whole: the nav bar, Open in Maps and the leanings drawer have no picture, and the scenic and drive journeys fail in this container from an unknown cause (DEFERRED). One low loop finding shipped (the preview's Go names); two medium hook races filed [loop] for want of a hook test harness."
     }
   },
   "declined": []

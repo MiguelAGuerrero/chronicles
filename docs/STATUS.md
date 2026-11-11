@@ -184,10 +184,13 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend inbox`, presence** (from `8bad3ba`). No build. The owner asked that what a street holds be classified by
-one system of its own, isolated from what reads it, so "busy" could later be built from real traffic data and storefronts
-read from the same places. Their four calls (one system; several classes per place; unify the two OpenStreetMap tables
-and show each difference; presence before G2) are decision 0140, and the work is G3, its first slice M; G2 now waits for it.
+**Nov 11, `/tend navigation`** (from `8bad3baa`). Not a whole sweep: the scenic and drive journeys fail in this container
+(`fix preview-clutter audit 1`; `atlas-card` after DW3) from a cause not found, so the nav bar, Open in Maps and the
+leanings drawer were not pictured. One commit: `tend navigation 1`, each route's Go has its own spoken name (X4).
+Filed in DEFERRED: two medium `useNavigation` races (Cancel after the last check; a re-route read swallowing Go here),
+dead eta exports, the selected row's border-only mark, the far-town card's two close buttons, the unexplained e2e
+failures. Docs: `nav/eta.ts` and `nav/previewView.ts` added to ARCHITECTURE. No T or G entries. Steward: nothing found.
+Area `rough`.
 
 ### Open before the loop
 
