@@ -91,10 +91,21 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   without one while a release is known, is stale too (`isStale`). An area
   centred within 1 km of a remembered one replaces it. Markers are rebuilt only
   when areas change, never per zoom. A strip's name keeps 80 m from the pin.
+- **Busy names are the map's text** (decision 0151, `.claude/rules/map.md`): `busyNames` (`landing/names.ts`) gives one per
+  strip at its label point, turned along its street (`alongAngle`), and one per unlabelled pocket; `landingView` lists strips
+  and labels heaviest first and never carries a weight (L9's test).
 - **A street's name is drawn once** (fix street-label-double, Nov 4): two remembered
   areas up to 3 km apart can both find one street, each with its own peak.
   `landingView` keeps one label per name within 300 m (strips and pocket labels
   alike); the same name further away is another street.
+- **The read runs off the page** (explore-dense-city DC7-DC11, DC13, decision 0151): `readAround` fetches the tiles' bytes
+  (`fetchTileBodies`) and hands them, with Overture's and the archive's places, to `computeRead` (`landing/compute.ts`, core:
+  one staged generator, so the page's run and the worker's are the same code). `offPage` (`runOffPage.web.ts`) runs it in a
+  web worker (`compute.worker.ts`), copying the bytes, never transferring them, so the page can still compute them itself if
+  the worker can't start, errors, answers an error or stays silent 60 s (DC8). Native runs it on the JS thread with a turn
+  before each tile and stage (`runOffPage.ts`, DC11). Street pieces are stored in batches of `SEGMENT_BATCH` (150), a turn
+  between them, none once the read is cancelled (DC10). At 4x CPU a first read held the page in one 4.4 s task (deriving
+  streets 1.7 s, storing them 1.7 s); now in no task over 50 ms after the first drawing of the layer.
 - **Busy areas are information only** (the owner's call, Nov 1): no Start here
   pin, no card, no Walk the loop (L10, L13, L16 retired by explore).
   `analysis.landing` is still computed and stored; nothing draws it.

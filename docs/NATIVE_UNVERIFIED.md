@@ -314,6 +314,14 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** outdoors on cellular, Go here to a destination about 5 km away with all three leanings on, and time "Finding a route" to the preview. **Expect:** the corridor read (shared JS over `fetch`: `fetchTiles`, `readOverture`) finishes well under the 30 s timeout (about 1 s on Node for three leanings over 5 km of Zurich; a phone is likely several times that), and Cancel during it stops the read and starts no route. Record the time. (SR13)
 - [ ] **Do:** on Android, open the preview and press the system Back. **Expect:** the preview closes, no destination is set, and the walk keeps recording. (SR8)
 
+## Explore in a dense city (DC1-DC16, decision 0151)
+
+- [ ] **Do:** turn the Busy layer on, open Explore on a town page in a busy downtown and zoom to 15, then 17. **Expect:** the busy names are the map's own text (magenta on a white halo), one per street at its busiest point and turned along it, none over another or over a base-map label; more appear zooming in; none under the selected area's name; none at zoom 12 (DC1-DC6, DC14; `busy-names` symbol layer, font `Noto Sans Bold` from the style's glyphs).
+- [ ] **Do:** with the Busy layer on, open Navigate's ready screen and start a walk in the same downtown. **Expect:** the base map's own street names keep their room and the trace and route draw over the busy names (DC16; `beforeId` `BASE_FIRST_LABEL`, Positron's `waterway_line_label`).
+- [ ] **Do:** with the Busy layer on, swipe Explore's row to a neighborhood more than 1.5 km from any read area, and keep swiping while it reads. **Expect:** the map keeps up during each ease (no freeze), the read starts only once the map has stopped, and its streets and names appear (DC9 through `onRegionWillChange` / `onRegionDidChange`, DC11's turn per tile and stage on the JS thread).
+- [ ] **Do:** after that read, force-quit, reopen in airplane mode and turn the Busy layer on there. **Expect:** the area's busy streets are drawn from what was stored; no error (DC10: street pieces written in batches of 150 through the SQLite queue).
+- [ ] **Do:** watch busy names appear and go as the map zooms, with Reduce Motion on. **Expect:** note how they fade: MapLibre Native has no setting for symbol fades (only `rasterFadeDuration`), so they fade on the library's timing whatever the setting (DEFERRED).
+
 ## The web e2e's stand-ins
 
 Where the headless web e2e fakes what a phone does. Each item is the real thing on a phone.

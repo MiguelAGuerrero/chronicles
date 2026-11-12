@@ -31,6 +31,35 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   - Line sources use `tolerance: 1, buffer: 64`.
   - Profiling shows the app's own JavaScript under 2% of a desktop core; the
     rest is the map drawing. Fewer updates is what helps.
+  - **A setState with the value already held still renders** when React can't
+    bail out early (an effect's cleanup, an update queued beside others): the
+    Busy layer's `setReading(false)` and re-listed rows, and the complexes
+    hook's empty result, each cost Explore a render per switch (fix DC12). Set
+    state only when it changed; `scripts/perf-explore.js` and the `dense`
+    journey count `render:explore`.
+- **Explore in a dense city** (decision 0151, `scripts/perf-explore.js`,
+  `docs/TESTING.md`): measure on the dense downtown before tuning.
+  - **Busy names are the map's own text** (DC1-DC6): one `busy-names` symbol
+    layer (`busyNameLayers`, `busyNamesGeoJSON` in `map/types.ts`), a point per
+    strip at its label point turned along its street (`landing/names.ts`),
+    `text-allow-overlap` and `text-ignore-placement` false, `symbol-sort-key`
+    the view's order (heaviest first; no weight reaches the view, L9), one
+    size and colour for all. `text-font` is `BUSY_NAME_FONT`, a font the base
+    style's glyphs serve; the e2e's fake style has `glyphs` and the harness
+    serves one OFL glyph file. **Trap:** `line-center` placement drew nothing
+    (a strip's pieces don't meet end to end, and most strips are shorter than
+    their name at z15).
+  - **Where the names sit** (DC16): over everything on Explore
+    (`busyNamesOver`), so maplibre places them before the base map's labels;
+    elsewhere under the first base label layer (web finds it; native names it,
+    `BASE_FIRST_LABEL`), so a road keeps its own name and the trace draws over.
+    The selected area's name reserves its room as an invisible feature placed
+    first (`busyNamesReserve`, DC14).
+  - **E2E hooks** (only with `window.__perf`): `data-busy-names` (written at
+    `idle`), `data-busy-given`, `data-busy-over`, `data-idle`,
+    `window.__zoomTo`, `__busyNamesIn`, `__busyNamePoint` (only where the canvas
+    is what a finger meets), and `perfMark` stamps `mark:moved`,
+    `mark:settled`, `mark:busy-read`.
 - **Web memory on iPhone:** the maps use `pixelRatio` ≤ 2,
   `maxTileCacheZoomLevels: 2` and `fadeDuration: 0`. The photo resize shrinks
   its canvas to 0 after use (iOS caps canvas memory per tab). Cached street

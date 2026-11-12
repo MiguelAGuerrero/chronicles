@@ -293,7 +293,11 @@ Landing (v1.5)
   landing/analyze.ts         busy streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read
   landing/spatial.ts         buckets, single linkage, hulls: the analysis's planar helpers
-  landing/read.ts            What's good here: decoder reads, remembered areas
+  landing/read.ts            What's good here: decoder reads, remembered areas; the tiles' bytes go to runOffPage
+  landing/compute.ts         computeRead: decode, streets, places, activity and the measure, one staged generator (DC13)
+  landing/offPage.ts         createOffPage: a worker per read, else the page; same result either way (DC7, DC8)
+  landing/runOffPage(.web).ts the instances: a worker on web (compute.worker.ts), the JS thread with a turn per stage on native
+  landing/names.ts           busyNames: one name per strip at its label point, turned along its street (DC1, DC3)
   landing/view.ts            LANDING_CODE, LandingRow / LandingView, staleness
   landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days
@@ -457,6 +461,10 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
+- **A busy read's background thread** (explore-dense-city DC7, decision 0151): a web worker (`landing/runOffPage.web.ts`,
+  `landing/compute.worker.ts`, built by Expo's export as a file of its own). No Expo module gives the web, or a phone, a
+  background JS thread; native runs the same `computeRead` on the JS thread with a turn before each tile and stage. A
+  worker that can't start (a page left open across a deploy asks for the old worker's file) leaves the read to the page.
 - **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
   react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
   that call alone, since a live region as well would say it twice on Android.

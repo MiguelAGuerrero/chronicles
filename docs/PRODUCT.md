@@ -286,7 +286,10 @@ recording, and a recording bar brings a minimized walk back.
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
 - **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
-  remembered reads the area once.
+  remembered reads the area once, in the background on the web and only once the map has stopped moving, so moving between neighborhoods stays
+  smooth in a dense city (decision 0151). Its street names are the map's own text: one per street at its busiest point, turned along it, never over
+  another name; where they crowd, the heavier streets keep theirs and zooming in brings the rest. On Explore they take the room first; on the
+  walk screen and Navigate the map's own street names do, and the trace draws over them.
 - An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
   "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
 - While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
