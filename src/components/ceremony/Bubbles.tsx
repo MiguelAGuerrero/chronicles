@@ -49,7 +49,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   }, [want, status.isLoaded, player]);
   const lit = Math.round(o.progress * BARS);
   return (
-    <View style={styles.memo}>
+    <View testID="memo-bubble" style={styles.memo}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={status.playing ? 'Pause voice memo' : 'Play voice memo'}
@@ -78,7 +78,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
         {/* The time stays whole on a 320 px phone; the label gives way first (tend replay 8). */}
         <View style={styles.meta}>
           <Text style={[styles.when, styles.label]} numberOfLines={1}>Voice memo · {secs(len)}{' ·\u00a0'}</Text>
-          <Text testID="memo-time" style={styles.when}>{timeOf(o.capture.t)}</Text>
+          <Text testID="memo-time" style={[styles.when, styles.time]} numberOfLines={1}>{timeOf(o.capture.t)}</Text>
         </View>
       </View>
     </View>
@@ -145,6 +145,8 @@ const styles = StyleSheet.create({
   memoBody: { gap: 2, flexShrink: 1 },
   meta: { flexDirection: 'row', alignItems: 'baseline' },
   label: { flexShrink: 1 },
+  // Never shrinks, never wraps: "5:38 PM" stays on one line (tend replay audit 2).
+  time: { flexShrink: 0 },
   // 44 pt: on an iPhone it is the only way to hear a memo, and hitSlop does nothing on the web (audit 27).
   play: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.voice, alignItems: 'center', justifyContent: 'center' },
   wave: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 24 },

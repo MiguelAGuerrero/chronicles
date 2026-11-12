@@ -344,6 +344,17 @@ async function run(h) {
           return e ? { text: e.textContent, whole: e.scrollWidth <= e.clientWidth + 1, right: Math.round(e.getBoundingClientRect().right) } : null;
         });
         check(memo && time && time.whole && /\d\d(\s?[AP]M)?$/.test(time.text) && time.right <= w, `tend replay 8: at 320 px the memo's bubble shows its time whole (${JSON.stringify(time)})`);
+        // On one line, inside its bubble: a wrapped "5:38 / PM" was "whole" too (tend replay audit 2).
+        const line = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=memo-time]');
+          if (!e) return null;
+          const r = document.createRange();
+          r.selectNodeContents(e);
+          const tops = new Set([...r.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top)));
+          const bubble = e.closest('[data-testid=memo-bubble]')?.getBoundingClientRect();
+          return { lines: tops.size, right: Math.round(e.getBoundingClientRect().right), bubbleRight: bubble ? Math.round(bubble.right) : null };
+        });
+        check(line && line.lines === 1 && line.bubbleRight != null && line.right <= line.bubbleRight, `tend replay audit 2: at 320 px the memo's time is one line inside its bubble (${JSON.stringify(line)})`);
         await shot(pg, 'rr-memo-320');
       }
       await pg.click('[data-testid=skip]');
