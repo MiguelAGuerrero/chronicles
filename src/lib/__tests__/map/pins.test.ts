@@ -2,6 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { distanceM } from '../../geo';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../../pins';
 
 import { at, O } from '../foxPoint';
@@ -30,4 +31,48 @@ test('pins: grouped by screen distance at the zoom, joining the nearest pin', ()
   );
   // A capture without a position has no pin.
   assert.equal(pinsFor([{ ...cap('e', 0, 'photo'), lat: null, lon: null }], 30).length, 0);
+});
+
+// tend map 4: pinsFor compared each capture with every pin so far, O(captures x pins) on every half-zoom step; on
+// Chronicle's map, every placed moment in the world (54-59 ms for 2,000 on a desktop, 340 ms for 5,000).
+test('tend map 4: pinsFor over 20,000 spread captures stays near-linear, and groups as before', () => {
+  const cap = (id: string, x: number, y: number, t: number): Faced => facedOf({
+    id, walk_id: 'w', t, lat: at(x, y)[1], lon: at(x, y)[0], kind: 'photo', file_path: null, body: null, segment_id: null,
+  });
+  // 20,000 moments 100 m apart (a 141 x 142 grid, about 14 km across), none within reach of another at z16.
+  const many: Faced[] = [];
+  for (let i = 0; i < 20000; i++) many.push(cap(`m${i}`, (i % 141) * 1, Math.floor(i / 141) * 1, i));
+  const r = PIN_GROUP_PX * metersPerPixel(16, O[1]);
+  const t0 = performance.now();
+  const pins = pinsFor(many, r);
+  const ms = performance.now() - t0;
+  assert.equal(pins.length, 20000);
+  // Comparing each with every pin so far is 2 x 10^8 distances: seconds. Near-linear is milliseconds.
+  assert.ok(ms < 1500, `pinsFor took ${ms.toFixed(0)} ms for 20,000`);
+  // The grouping is the one the plain rule gives (the nearest pin within reach, the later one on a tie), on a
+  // crowd where reaches overlap.
+  const brute = (caps: Faced[], radius: number) => {
+    const out: { id: string; at: [number, number]; ids: string[] }[] = [];
+    for (const c of [...caps].sort((a, b) => a.t - b.t || a.id.localeCompare(b.id))) {
+      const p: [number, number] = [c.lon!, c.lat!];
+      let best: (typeof out)[number] | null = null;
+      let bestD = Math.min(radius, 5000);
+      for (const q of out) {
+        const d = distanceM(q.at, p);
+        if (d <= bestD) {
+          best = q;
+          bestD = d;
+        }
+      }
+      if (best) best.ids.push(c.id);
+      else out.push({ id: c.id, at: p, ids: [c.id] });
+    }
+    return out.map((q) => q.ids);
+  };
+  const crowd: Faced[] = [];
+  // A fixed scatter (no randomness in a test): 600 moments within about 400 m, on a quasi-random sequence.
+  for (let i = 0; i < 600; i++) crowd.push(cap(`c${i}`, ((i * 0.618034) % 1) * 4, ((i * 0.754878) % 1) * 4, i % 97));
+  for (const radius of [15, 30, 120, 400]) {
+    assert.deepEqual(pinsFor(crowd, radius).map((p) => p.captures.map((c) => c.id)), brute(crowd, radius), `radius ${radius}`);
+  }
 });
