@@ -94,7 +94,7 @@ async function run(h) {
     await pg.keyboard.press('ArrowLeft');
     await pg.waitForTimeout(2500);
     const switchRenders = (await perf('render:explore')) - r0;
-    check.todo((await selected()) !== from && switchRenders <= 2, `DC12: a switch from ${from} to ${await selected()} renders Explore ${switchRenders} times (at most 2)`);
+    check((await selected()) !== from && switchRenders <= 2, `DC12: a switch from ${from} to ${await selected()} renders Explore ${switchRenders} times (at most 2)`);
     // A card is selected by scrolling the row to it (the carousel selects what stops in the middle), else by a tap.
     const selectCard = async (name) => {
       const tile = pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`).first();

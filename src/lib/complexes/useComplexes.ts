@@ -56,6 +56,9 @@ export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; 
         return;
       }
       failedAt.current = null;
+      // explore-dense-city DC12: an area with none to show changes nothing on screen (another key already reads as none),
+      // so it sets no state and renders nothing; one with complexes is new to show and renders once.
+      if (!r.complexes.length && !r.partial) return;
       setState({ key, complexes: r.complexes, partial: r.partial });
     })();
     return () => {
