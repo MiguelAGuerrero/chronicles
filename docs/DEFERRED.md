@@ -34,8 +34,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
-- Finding, fix which-place: a moment with two or more unfound places within 60 m is tagged to none unless made on an exploring walk, where "Which place is this moment about?" asks; the home's loose moments and quiet walks never ask, and a moment cannot be tagged to a place afterwards (Explore, E8)
-- Finding, fix which-place audit 3, 5, 6: a declined "Which place?" is not remembered (a reload asks again); several ambiguous captures in a row ask only about the newest; a capture made before Explore is switched on is never asked; the chip lists three places at most and has no e2e journey
+- Finding, fix remove-which-place: a moment with two or more unfound places within 60 m is tagged to none, on any walk; the "Which place is this moment about?" chip is gone (the owner, Nov 12), and a moment cannot be tagged to a place afterwards (Explore, E8). `specs/v1-discovery/spec.md` E8 still says "until the reader picks": the owner's doc wins, so it is theirs to edit
 
 ## Streets and snapping
 
@@ -65,6 +64,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
+- [loop] "What I'm into": the Community parks row appears and disappears with Parks without motion or a spoken cue, and its hint does not say it belongs to Parks (fix subcategory-indent, ux-reviewer U2, U5: WCAG 1.3.1, 4.1.3; opinion, low). Fix: the house motion tokens for the insert, "part of Parks and gardens" in the child's accessibility hint
 - [owner] Explore's area card carries the accent on its border and on "See its neighborhoods" at rest; VISION.md's Always, "Restraint in motion, colour and copy", and the open question on the accent at launch (`docs/STATUS.md`) bear on it. For the next explore sweep (steward, `/tend tabs`, Nov 11; picture `probe-explore-minimized`)
 - [kept] A checklist takes a reclassified place's new category at the next tile build, not at once: items are kept and rebuilt only by E4 and PW12; `PRESENCE_CODE` re-derives the atlas and the landing only (specs/presence PR6, Nov 11)
 - [owner] When the places archive fails to load, the planner and the atlas ring read the map's places alone (`walkPlanner/service.ts`, `atlas.ts` `ringOf`), so a plain-named memorial or church the archive records shows no mark until it loads again: existing behaviour (specs/presence-readers, the steward, Nov 11)
@@ -682,3 +682,4 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **A camera mention's words are "A photo" or "A video"** (note-pages audit 26, in part), not the moment's own context.
 - [loop] **Complexes audit** (0147): `neededTiles` lists the tiles that hold a vertex, so a building longer than a z14 tile with no vertex in a middle tile can lose places there (audit 3). A joined outline draws the tiles' clip edges inside a building cut across tiles; it needs a polygon union (audit 9). A release whose `buildings.pmtiles` is missing falls back to no older release the way the places reader does (audit 6). A row for a building that stops qualifying, or is renamed, is never deleted: only a code bump or a purge clears it (audit 7). A fix's accuracy, the antimeridian and label collisions (audit 12). A seeded complex on Memories' card has no journey step (audit 20). After "See more" the first new row should take a screen reader's focus (audit 21).
 - [owner] **Complexes audit** (0147): the card does not say where the kind switches are (the walk's and Navigate's settings only); a line or link on the card is a navigation choice. A pull of up to nine `buildings` tiles on mobile data without a tap. Whether a store of every area browsed is acceptable derived data (it is cleared by a purge).
+- **No test asserts the tab labels fit their box** (fix tab-label-clip audit 2, low): an e2e check that each label's `scrollHeight` is at most its `clientHeight`, portrait and landscape, belongs to the next change to the tab bar.

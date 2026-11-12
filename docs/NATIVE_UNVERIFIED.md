@@ -457,7 +457,6 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** start a walk, drive 3 km inside it, get out and walk 200 m. **Expect:** "On a ride" while driving; afterwards VoiceOver or TalkBack reads Walk me back as "Walk me back to where the ride ended", and it leads to where you got out, not to where the drive began. (DW6, DW8, DW9)
 - [ ] **Do:** press and hold the walk map, tap Walk back here, then force-quit and reopen the app. **Expect:** "Walk me back now leads here." once; after the relaunch Walk me back still leads to that spot; Stop clears it. (DW7)
 - [ ] **Do:** on a native map, stand where two revealed marks sit within a few metres of each other, then pinch in and out. **Expect:** only one mark shows its name while their names would overlap; both names show once you zoom in enough to part them; no flicker of the pins at the 0.25 zoom steps. (fix mark-names)
-- [ ] **Do:** on a phone, start an exploring walk and take a photo within 60 m of two unfound places (a park and a statue in it). **Expect:** nothing is tagged yet; "Which place is this moment about?" offers both by name and Neither; tapping the park shows "Found: <park>" once and the replay names it; Neither dismisses it and tags nothing; its buttons are reachable by VoiceOver and TalkBack. (fix which-place)
 - [ ] **Do:** on Explore, drag the area cards slowly and then flick across several. **Expect:** each card becomes the selected one, and the map eases to it, as it passes the middle, without waiting for the scroll to stop; the row never jumps back to a card you scrolled past; it comes to rest on one card. (fix carousel-live-select)
 
 
@@ -533,3 +532,7 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with VoiceOver or TalkBack on, let a first replay play while its streets are read; on the card edit a note; open the day's replay and Skip. **Expect:** "Reading the streets you walked" and "Summary" are said once each; the day's card is said after Skip (`tend replay 9`).
 - [ ] **Do:** on a phone, watch a replay through its path. **Expect:** the end ring stands at the walk's last point from the fog to the card, never on the walker (`WalkMap.native.tsx` reads `ended`'s whole runs, `tend replay 2`).
 - [ ] **Do:** on an iPhone, watch a replay whose video plays muted; then watch again and turn VoiceOver on mid-path, once the video's card is up (with VoiceOver on from the start the replay steps through its moments instead, RR17). **Expect:** "Tap for sound" is a 48 pt pill on solid ink at the card's top right, and VoiceOver can reach it as its own button, read "Tap for sound", not folded into the card's name (`Cards.tsx`'s card is `accessible`; if it folds, file it) (`tend replay 6`).
+
+## The tab labels' line height (fix tab-label-clip, Nov 12)
+
+- [ ] **Do:** on an iPhone, look at the bottom tabs in portrait, then in landscape. **Expect:** the stems of the p in Explore and the g in Navigate are whole, and the bar is 62 pt above the home indicator (`tabBarLabelStyle` lineHeight 14, 24 when wider than tall; seen only in desktop Chromium).

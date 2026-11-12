@@ -254,7 +254,7 @@ test('E8: a capture finds the one unfound place within 60 m; with two in reach i
   const a = item('A', m(50, 0));
   const b = item('B', m(30, 0));
   assert.equal(findFor(O, [a], new Set())?.name, 'A');
-  assert.equal(findFor(O, [a, b], new Set()), null, 'two in reach: the reader picks');
+  assert.equal(findFor(O, [a, b], new Set()), null, 'two in reach: nothing is guessed');
   assert.deepEqual(findCandidates(O, [a, b], new Set()).map((x) => x.name), ['B', 'A'], 'nearest first');
   assert.equal(findFor(O, [a, b], new Set([b.key]))?.name, 'A');
   assert.equal(findFor(O, [item('Far', m(70, 0))], new Set()), null);

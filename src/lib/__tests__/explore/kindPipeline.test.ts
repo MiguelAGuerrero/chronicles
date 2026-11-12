@@ -6,7 +6,7 @@ import { waitingKinds, waitingMarks } from '../../atlas/atlas';
 import { mergePlaces } from '../../discovery/archiveMerge';
 import { archivePlace } from '../../discovery/archivePois';
 import { refine, type Refinement } from '../../discovery/refine';
-import { isKindHidden, kindChain, kindParent, kindSwitch, refineRead, REFINEMENTS } from '../../discovery/refinements';
+import { isKindHidden, kindChain, kindRows, kindParent, kindSwitch, refineRead, REFINEMENTS } from '../../discovery/refinements';
 import { placesFromTilePois } from '../../discovery/tilePois';
 import type { Kind, Place } from '../../discovery/types';
 import { KINDS, passedPlaces, routeMarks, visibleMarks, type ChecklistItem } from '../../explore/explore';
@@ -98,4 +98,25 @@ test('PC23: the settings row reads off and locked while Parks is off', () => {
   assert.deepEqual(kindSwitch(new Set<Kind>(['parks']), CP), { on: false, locked: true });
   assert.deepEqual(kindSwitch(new Set<Kind>(), CP), { on: true, locked: false });
   assert.deepEqual(kindSwitch(new Set<Kind>(['parks']), 'viewpoints'), { on: true, locked: false }, 'no other row changes');
+});
+
+test('PC23: a subset is a row, one step in, only while its parent is on', () => {
+  const ids = (h: Kind[]) => kindRows(KINDS, new Set<Kind>(h)).map((r) => `${r.depth}:${r.kind.id}`);
+  assert.ok(ids([]).includes(`1:${CP}`) && ids([]).includes('0:parks'));
+  assert.equal(ids([]).indexOf(`1:${CP}`), ids([]).indexOf('0:parks') + 1, 'right under its parent');
+  assert.ok(!ids(['parks']).some((r) => r.endsWith(CP)), 'parent off: the subset is not shown');
+  assert.ok(ids([CP]).includes(`1:${CP}`), 'the subset off alone still shows, off');
+  assert.equal(ids([]).length, KINDS.length);
+});
+
+test('fix subcategory-indent audit 1: a grandchild sits two steps in and goes with its grandparent', () => {
+  const kinds = [{ id: 'parks' as Kind }, { id: CP }, { id: 'viewpoints' as Kind }];
+  const reg = [
+    { id: 'a', parent: 'parks' as Kind, child: CP },
+    { id: 'b', parent: CP, child: 'viewpoints' as Kind },
+  ] as unknown as readonly Refinement[];
+  const rows = (h: Kind[]) => kindRows(kinds, new Set<Kind>(h), reg).map((r) => `${r.depth}:${r.kind.id}`);
+  assert.deepEqual(rows([]), ['0:parks', `1:${CP}`, '2:viewpoints']);
+  assert.deepEqual(rows([CP]), ['0:parks', `1:${CP}`], 'the middle off hides its child');
+  assert.deepEqual(rows(['parks']), ['0:parks'], 'the grandparent off hides both');
 });
