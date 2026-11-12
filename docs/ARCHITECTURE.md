@@ -117,7 +117,9 @@ Home / tabs
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
-  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants
+  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a single typed note wears its type's glyph (`pinMark`)
+  NoteEditor.tsx             the note editor: text, @ mentions and (for an edit) the Type row, a two-column menu of the eight types and "No type" (NY6)
+  NoteMark.tsx               a note's type as an ink glyph and its spoken name, on the viewer's card and the owner-thread bubble (NY9, NY17)
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
   Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
   Baker(.native|.web).tsx    renders a photo's edits and caption into a saved copy, or the lines and caption alone into a clear PNG for a video (Baker.types.ts): react-native-view-shot over EditedPicture on native, canvas on web
@@ -305,6 +307,7 @@ Memories, moments, days
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
+  noteType.ts                a note's type (core, NY1-NY3, decision 0149): the eight ink marks in fixed order, `noteTypeOf` (unknown reads none), `markOf`; `noteEdit.notePatch` is the one write of text and type together
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
@@ -530,7 +533,7 @@ Truth (`lib/types.ts`):
   replies, reminders and finds point at the same ids as before.
 - `Capture`, a moment's piece: id, moment_id, t (its own capture time), kind
   (photo | video | voice | text), file_path, body, caption, caption_y,
-  thumb_path, edit (a photo's or video's edits as data: rotate, crop, filter,
+  thumb_path, note_type (a note's type, raw as stored, SQLite migration 25, IndexedDB 20; decision 0149), edit (a photo's or video's edits as data: rotate, crop, filter,
   lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
   object; `parseEdit` reads both, decision 0090). Media files and small copies
   are named by the piece's id.

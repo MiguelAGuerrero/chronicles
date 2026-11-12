@@ -62,4 +62,15 @@ The set (`NOTE_TYPES`, in `src/lib/noteType.ts`), in this fixed order, which the
 
 ## Record
 
-(Filled in as the slice is built.)
+Built Nov 12, 2026. All of NY1-NY17 pass: the model and the note save in unit tests (`captures/noteType`, `noteSave`,
+`noteTypeScan`, `bundle`), the stores in `dbContract` (the fake, IndexedDB and SQLite over `node:sqlite`), the screens in
+the `qol` (NY6, NY8-NY11), `threads` (NY15, NY17) and `responses` (NY15) journeys. Also green on their latest run:
+`upgrade`, `chronicle`, `stacks`, `resurface`, `walk`, `edit`, `replay`, `days`, `tabs`, `gallery`. Typecheck, lint and
+`npm test` (1975) pass. Native code (SQLite migration 25, the menu on a phone) has not run on a device: two items in
+`docs/NATIVE_UNVERIFIED.md`. Not audited (the owner has not asked).
+
+UI review (decision 0145), three pictures read by the `ux-reviewer`:
+- **UI finding 1** (one column, not two): rejected. Nine rows at 44 in one column show five without a scroll and hide four of the set; two columns show all nine in the same height (the first build's picture showed the scroll). Opinion in the review; no source.
+- **UI finding 2** (the Type row looks static): accepted, `note-types ui 1` (a chevron, up when open).
+- **UI finding 3** (the mark's name small and grey): accepted, `note-types ui 2` (ink, 14 px).
+- **UI finding 4** (the viewer's round buttons stay lit over the editor's scrim): deferred, recorded in `docs/DEFERRED.md`; every editor in the viewer does this, none is this slice's.

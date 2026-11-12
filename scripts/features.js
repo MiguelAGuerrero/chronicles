@@ -422,9 +422,7 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {
-  'note-types': { branch: 'claude/note-types-custom-icons-22hkgd', since: '2026-11-12' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

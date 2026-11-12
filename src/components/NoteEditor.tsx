@@ -106,6 +106,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
               <Text style={styles.typeLabel}>Type</Text>
               {shown && <Icon name={shown.glyph as IconName} size={20} color={theme.ink} />}
               <Text style={styles.typeValue}>{shown ? shown.name : 'No type'}</Text>
+              <Icon name={typeMenu ? 'chevron-up' : 'chevron-down'} size={18} color={theme.muted} testID="note-type-chevron" />
             </Pressable>
             {typeMenu && (
               <View testID="note-type-menu" style={styles.menu} accessibilityRole="radiogroup">

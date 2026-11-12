@@ -485,6 +485,7 @@ async function run(h) {
       const row = pg.locator('[data-testid=note-type-row]');
       const rowBefore = (await row.count()) ? await row.innerText() : '';
       if (await row.count()) await row.click();
+      const chevron = await pg.locator('[data-testid=note-type-chevron]').count();
       const items = await pg.locator('[data-testid^=note-type-item-]').count();
       const colours = await pg.evaluate(() => [...new Set([...document.querySelectorAll('[data-testid^=note-type-glyph-]')].map((e) => getComputedStyle(e).color))]);
       await shot(pg, 'qol-06-note-type-menu');
@@ -495,6 +496,12 @@ async function run(h) {
       const mark = pg.locator('[data-testid=note-type-mark]');
       const markText = (await mark.count()) ? await mark.first().innerText() : '';
       const markLabel = (await mark.count()) ? await mark.first().getAttribute('aria-label') : '';
+      const nameStyle = await pg.evaluate(() => {
+        const el = [...document.querySelectorAll('[data-testid=note-type-mark] *')].find((e) => /^Idea$/.test((e.textContent || '').trim()) && e.children.length === 0 && getComputedStyle(e).fontFamily && e.tagName !== 'I');
+        if (!el) return null;
+        const st = getComputedStyle(el);
+        return { color: st.color, size: parseFloat(st.fontSize) };
+      });
       await shot(pg, 'qol-07-note-type-card');
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(600);
@@ -505,6 +512,8 @@ async function run(h) {
       check(/Idea/.test(markText) && markLabel === 'Idea',
         `NY9: the viewer's note card shows the type's mark and its spoken name, none without a type (${JSON.stringify([markText, markLabel])})`);
       check(pin >= 1, `NY10: a pin that holds the typed note and another capture keeps its count and its group's words (${pin})`);
+      check(chevron === 1, `note-types ui 1: the Type row shows a chevron, so it reads as a control (${chevron})`);
+      check(!!nameStyle && nameStyle.color === 'rgb(29, 36, 48)' && nameStyle.size >= 14, `note-types ui 2: the mark's name is in ink and 14 px or more (${JSON.stringify(nameStyle)})`);
       check(items === 9 && colours.length === 1 && markLabel === 'Idea',
         `NY11: every glyph is drawn in one ink colour and each has its spoken name (${JSON.stringify(colours)})`);
       // Back to no type, so the steps after this one meet the note as before (NY8).

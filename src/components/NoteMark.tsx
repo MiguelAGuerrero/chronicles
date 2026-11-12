@@ -22,5 +22,5 @@ export function NoteMark({ capture }: { capture: { kind: CaptureKind; note_type?
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  name: { fontSize: 13, color: theme.muted },
+  name: { fontSize: 14, color: theme.ink },
 });
