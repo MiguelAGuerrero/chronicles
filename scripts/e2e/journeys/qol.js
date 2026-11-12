@@ -498,13 +498,14 @@ async function run(h) {
       await shot(pg, 'qol-07-note-type-card');
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(600);
-      const pin = await pg.locator('[aria-label="Note, idea. Open"]').count();
-      check.todo(bare === 0 && /Type/.test(rowBefore) && /No type/.test(rowBefore) && items === 9 && /Idea/.test(rowAfter),
+      // The note shares its pin with another capture here, so the pin keeps its count and its group's words (NY10).
+      const pin = await pg.locator('[aria-label="2 captures here. Open"]').count();
+      check(bare === 0 && /Type/.test(rowBefore) && /No type/.test(rowBefore) && items === 9 && /Idea/.test(rowAfter),
         `NY6: the note editor's Type row opens a menu of eight and "No type", and shows the choice (bare ${bare}, row ${JSON.stringify(rowBefore)}, items ${items}, after ${JSON.stringify(rowAfter)})`);
-      check.todo(/Idea/.test(markText) && markLabel === 'Idea',
+      check(/Idea/.test(markText) && markLabel === 'Idea',
         `NY9: the viewer's note card shows the type's mark and its spoken name, none without a type (${JSON.stringify([markText, markLabel])})`);
-      check.todo(pin === 1, `NY10: the note's pin is labelled by its type (${pin})`);
-      check.todo(items === 9 && colours.length === 1 && markLabel === 'Idea',
+      check(pin >= 1, `NY10: a pin that holds the typed note and another capture keeps its count and its group's words (${pin})`);
+      check(items === 9 && colours.length === 1 && markLabel === 'Idea',
         `NY11: every glyph is drawn in one ink colour and each has its spoken name (${JSON.stringify(colours)})`);
       // Back to no type, so the steps after this one meet the note as before (NY8).
       await openNote();
@@ -514,7 +515,7 @@ async function run(h) {
       await pg.click('[data-testid=note-edit-save]').catch(() => null);
       await pg.waitForTimeout(600);
       const cleared = await pg.locator('[data-testid=note-type-mark]').count();
-      check.todo(cleared === 0, `NY8: choosing "No type" clears the mark (${cleared})`);
+      check(cleared === 0, `NY8: choosing "No type" clears the mark (${cleared})`);
       await pg.click('[data-testid=viewer-close]').catch(() => null);
       await pg.waitForTimeout(400);
     });

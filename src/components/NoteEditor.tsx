@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState, type ComponentRef } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NOTE_MAX, noteText } from '../lib/noteEdit';
 import { NOTE_TYPES, noteTypeOf, type NoteType } from '../lib/noteType';
@@ -108,7 +108,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
               <Text style={styles.typeValue}>{shown ? shown.name : 'No type'}</Text>
             </Pressable>
             {typeMenu && (
-              <ScrollView testID="note-type-menu" style={styles.menu} accessibilityRole="radiogroup">
+              <View testID="note-type-menu" style={styles.menu} accessibilityRole="radiogroup">
                 {[{ id: null, glyph: null, name: 'No type' }, ...NOTE_TYPES].map((t) => (
                   <Pressable
                     key={t.id ?? 'none'}
@@ -129,7 +129,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
                     {chosen === t.id && <Icon name="checkmark" size={18} color={theme.ink} />}
                   </Pressable>
                 ))}
-              </ScrollView>
+              </View>
             )}
           </View>
         )}
@@ -158,8 +158,9 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, borderTopWidth: 1, borderTopColor: theme.line },
   typeLabel: { fontSize: 15, color: theme.muted, flexGrow: 1 },
   typeValue: { fontSize: 15, color: theme.ink },
-  menu: { maxHeight: 220, borderWidth: 1, borderColor: theme.line, borderRadius: 10 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 10 },
+  // Nine entries in two columns: all of them in view at once, five rows of 44 (nothing hidden behind a scroll).
+  menu: { flexDirection: 'row', flexWrap: 'wrap', borderWidth: 1, borderColor: theme.line, borderRadius: 10, overflow: 'hidden' },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 10, width: '50%' },
   itemGlyph: { width: 24, alignItems: 'center' },
   itemName: { fontSize: 16, color: theme.ink, flexGrow: 1 },
 });

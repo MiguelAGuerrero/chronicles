@@ -236,7 +236,7 @@ async function run(h) {
   await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
   await pg.fill('[data-testid=note-edit-input]', 'half a thought');
-  check.todo((await pg.locator('[data-testid=note-type-row]').count()) === 0, 'NY15: a note written in Respond offers no Type: it is made with none, and Edit sets one');
+  check((await pg.locator('[data-testid=note-type-row]').count()) === 0, 'NY15: a note written in Respond offers no Type: it is made with none, and Edit sets one');
   // fix respond-bottom audit 3, on the note editor: a keyboard 300 px tall (the visual viewport shrinks) leaves Save in view.
   const kbTop = await pg.evaluate(() => {
     const vv = window.visualViewport;
@@ -270,7 +270,7 @@ async function run(h) {
   await closeViewer();
   const typedMark = pg.locator(`${bubble('looked strong at the pier')} [data-testid=note-type-mark]`);
   const plain = await pg.locator(`${bubble('And a third')} [data-testid=note-type-mark]`).count();
-  check.todo((await typedMark.count()) === 1 && (await typedMark.first().getAttribute('aria-label')) === 'Question' && plain === 0,
+  check((await typedMark.count()) === 1 && (await typedMark.first().getAttribute('aria-label')) === 'Question' && plain === 0,
     'NY17: a note\'s bubble in the thread shows its type\'s mark and spoken name, and a note with none shows nothing');
   await shot(pg, '71-threads-note-type');
 

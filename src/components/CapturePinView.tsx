@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { pinMark, pinThumb, type CapturePin } from '../lib/pins';
+import { pinNoteLabel, pinThumb, type CapturePin } from '../lib/pins';
 import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
@@ -96,7 +96,7 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
   const n = pin.captures.length;
   const kind = memory
     ? n > 1 ? `${n} memories here` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
-    : n > 1 ? `${n} captures here` : pinMark(pin) ? `Note, ${pinMark(pin)!.name.toLowerCase()}` : KIND_LABEL[pin.captures[0].kind];
+    : n > 1 ? `${n} captures here` : pinNoteLabel(pin) ?? KIND_LABEL[pin.captures[0].kind];
   // One moment with more than one piece says so in words, never how many (MS8, MS9).
   const stacked = n === 1 && hasMore(pin.captures[0]) ? `, ${STACK_SPOKEN}` : '';
   // The bell said in words (RB7).

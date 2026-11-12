@@ -72,6 +72,12 @@ export function pinMark(pin: CapturePin): NoteTypeInfo | null {
   return pin.captures.length === 1 ? markOf(pin.captures[0]) : null;
 }
 
+/** What a screen reader hears of a single typed note's pin: "Note, idea" (NY10, NY11); null when the pin wears no mark. */
+export function pinNoteLabel(pin: CapturePin): string | null {
+  const m = pinMark(pin);
+  return m ? `Note, ${m.name.toLowerCase()}` : null;
+}
+
 export function pinThumb(pin: CapturePin): string | null {
   if (pin.captures.length !== 1) return null;
   const c = pin.captures[0];

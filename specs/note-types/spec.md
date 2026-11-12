@@ -39,7 +39,7 @@ The set (`NOTE_TYPES`, in `src/lib/noteType.ts`), in this fixed order, which the
 7. **NY7** Saving an edited note stores its text and its type together; a failed save puts both back in the viewer, as the text is put back today (QL25).
 8. **NY8** A note saved with a type left as it was, or with none chosen, is unchanged by the editor: capture takes no extra tap, and the composers that exist today (the capture band, the stack's note, the walk's note) make a note with no type.
 9. **NY9** The viewer's note card shows the type's glyph and its spoken name above the note's text; a note with no type shows neither.
-10. **NY10** A note's map pin and the Chronicle's moment picture wear the type's glyph in place of the generic note glyph; a pin of several captures still shows its count.
+10. **NY10** A pin of exactly one note with a type wears the type's glyph in place of the generic note glyph, and says it ("Note, idea"); a pin of several captures keeps its kind's glyph and its count; any picture drawn for a note falls back to the type's glyph.
 11. **NY11** A screen reader hears the type by its spoken name wherever its glyph is drawn, and the glyph is never the only way to tell the types apart: all eight are drawn in the one ink colour (a test asserts a single colour), so shape and name carry it, never colour.
 12. **NY12** No count of a type appears: no "3 questions", no tile, no tally, and nothing sorts, filters or searches notes by type, and no like or dislike is read by Explore, a place, a route or any recommendation.
 13. **NY13** Nothing sets a type from a note's text, its time or its place: a type exists only because the owner chose it.

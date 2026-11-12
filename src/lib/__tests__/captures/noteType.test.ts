@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as mod from '../../noteType';
+import { pinMark, pinNoteLabel } from '../../pins';
 import { markOf, NOTE_TYPES, noteTypeOf } from '../../noteType';
 
 // Note types (specs/note-types, decision 0149): a core model, the owner's own mark on a note.
@@ -34,4 +35,14 @@ test('NY11: every type has its own spoken name, so the glyph is never the only w
 test('NY13: nothing in the model takes a note\'s text, time or place: its functions take one stored value', () => {
   assert.ok(NOTE_TYPES.length > 0, 'the set exists');
   for (const [name, fn] of Object.entries(mod)) if (typeof fn === 'function') assert.ok(fn.length <= 1, `${name} takes at most one argument`);
+});
+
+test('NY10: a pin of exactly one typed note wears the mark and says it; a pin of several keeps its kind and its count', () => {
+  const pin = (...captures: { id: string; kind: string; note_type?: string | null }[]) => ({ id: 'p', lngLat: [0, 0], kind: captures.length > 1 ? 'mixed' : captures[0].kind, captures } as unknown as Parameters<typeof pinMark>[0]);
+  const typed = { id: 'a', kind: 'text', note_type: 'idea' };
+  assert.equal(pinMark(pin(typed))?.id, 'idea');
+  assert.equal(pinNoteLabel(pin(typed)), 'Note, idea');
+  assert.equal(pinMark(pin(typed, { id: 'b', kind: 'photo' })), null);
+  assert.equal(pinNoteLabel(pin({ id: 'c', kind: 'text' })), null);
+  assert.equal(pinNoteLabel(pin({ id: 'd', kind: 'photo', note_type: 'idea' })), null);
 });

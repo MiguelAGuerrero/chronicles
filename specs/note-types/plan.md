@@ -27,7 +27,7 @@ For the owner's review before any code. Nothing is built yet.
 - `noteSave.test.ts` (new, a shell over `fakePorts()`): **NY7** (text and type written together; a failed write leaves both as they were), **NY8** (saving with the type untouched keeps it; the composers' `saveNote` writes no type).
 - `noteType.noCount.test.ts` (new, core): **NY12** (no exported function takes types and returns a count, a filter or a sort key; no lens or search input accepts a type), **NY16** (a scan of `onSaveNote` call sites: each passes the type on).
 - `noteSave.test.ts` also holds **NY15** (Respond's `saveNote` writes no type).
-- On screen, in the `chronicle` journey (`scripts/e2e/journeys/chronicle.js`, already covers `NoteEditor`): **NY6** (the Type row, the menu of nine entries, the choice shown), **NY9**, **NY17** (the card's and the thread bubble's glyph and name, none without a type), **NY10** (the picture's glyph; the pin's, through the map's captured markers if the journey can reach them, otherwise `CapturePinView` is checked by a render of its label). Screenshots at 390 x 844 with the longest note text for the UI review.
+- On screen, in the `chronicle` journey (`scripts/e2e/journeys/chronicle.js`, already covers `NoteEditor`): **NY6** (the Type row, the menu of nine entries, the choice shown), **NY9**, **NY17** (the card's and the thread bubble's glyph and name, none without a type), **NY10** (`pins.test`-style unit test of `pinMark` and `pinNoteLabel`: one typed note wears its mark, several keep their count; the `qol` journey checks the grouped pin keeps its count). Screenshots at 390 x 844 with the longest note text for the UI review.
 
 ## Screens and their controls (matrix: `docs/research/ui-references.md`, section 2)
 
