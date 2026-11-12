@@ -23,6 +23,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
 | v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
 | v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; JN1-JN24, decision 0154) | built and audited 2026-11-12 on `claude/vigilant-ptolemy-tdkzm6`; not deployed (web verified by the e2e `journal` and the eighteen journeys covering its files; native unverified) | `9e84f2e` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected) |
 | Free look (Explore: Move map frees one-finger panning, Show areas here lists the areas around the map's middle; FL1-FL21, decision 0150, amends EC10) | built 2026-11-11 on `slice/free-look`; not deployed | `slice/free-look` | `specs/free-look/spec.md` | plan audited (16 findings: 15 accepted, 1 rejected); the built slice not audited |
 | Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
@@ -125,6 +126,14 @@ first.
 This section is the owner's inbox (decision 0128). `/tend` files here what it may not ship: additions, phone-only
 findings, opinions and architectural calls, each numbered `T<n>` with a recommended shape, and its proposals for the next iteration (`G<n>`, decision 0129).
 Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
+
+### From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)
+
+- **A moment's link to its walk as an inference** (your direction, Nov 12, decision 0154): a data-model change across the replay, the walk screen and deletion. It needs `/vision` and a spec of its own. Recommended: after cut 2, which makes walks chapters and will show what the page needs from a walk.
+- **More on every entry** (audit 18): the steward asks to take it off the page and put "Show less like this" and "Not this one" in the viewer's More. It now trails the dateline. Recommended: keep it until cut 3 designs the contents, then decide.
+- **Three bars at the foot with a walk minimized** (ui 1): the open line, the recording bar and the tab bar. Recommended: fold the walk's time, distance and Stop into the line's own row in cut 2.
+- **The dateline's tap lands on a cluster** (audit 19): the Map frames 150 m around the moment, but entries made at one spot share a pin with a count. Recommended: arrive with that moment's preview open.
+- **JN19 on your phone**: the line above a real keyboard, in Safari and the Home Screen app, is the first thing to try (`docs/NATIVE_UNVERIFIED.md`).
 
 ### From /tend
 

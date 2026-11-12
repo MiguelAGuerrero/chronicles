@@ -56,7 +56,7 @@ async function checks(h) {
     await h.mapUp(page);
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/' && ch.canvases === 1, `Chronicle's map at /, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
-    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=band-note], [data-testid=look-here]')) === 0,
+    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=line-input], [data-testid=look-here]')) === 0,
       'Chronicle\'s map has no Start, Explore button, quick capture or What’s good here; the band is on Memories only (NV11, HC6)');
     await page.reload();
     await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
