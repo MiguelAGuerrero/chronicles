@@ -258,7 +258,15 @@ const FEATURES = [
     rule: 'resurface',
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
-    specs: ['resurfaced-moments', 'memories-context', 'chronicle-journal'],
+    specs: ['resurfaced-moments', 'memories-context'],
+  },
+  {
+    name: 'journal',
+    about: "Chronicle's Memories as a journal: one sheet in book order, ending in an open line where writing is the capture (decision 0151)",
+    rule: 'journal',
+    source: ['src/lib/journal/**', 'src/components/journal/**'],
+    journeys: ['journal'],
+    specs: ['chronicle-journal'],
   },
   {
     name: 'gallery',
