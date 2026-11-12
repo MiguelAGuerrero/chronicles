@@ -160,6 +160,13 @@ test('M13: the card is the weekday, moments, places and any walk distance; no st
   assert.doesNotMatch(JSON.stringify(card), /streak|badge|record/i);
 });
 
+test('tend replay 3: the day card says its distance in the units the walk card uses', () => {
+  const [day] = buildDays([walk('w', at(3, 10), at(3, 11))], [cap('a', at(3, 10, 30), 'w', -71.39)]);
+  assert.equal(dayCard(day, at(20, 9), new Map([['w', 2100]]), 'mi').walked, '1.3 mi walked');
+  assert.equal(dayCard(day, at(20, 9), new Map([['w', 559]]), 'mi').walked, '0.3 mi walked');
+  assert.equal(dayCard(day, at(20, 9), new Map([['w', 999.6]]), 'km').walked, '1.0 km walked');
+});
+
 test('audit (moments 13): a placeless moment first in a group does not pull in a far one', () => {
   const near = cap('nowhere', at(2, 9, 0), null, null, null);
   const here = cap('here', at(2, 9, 1), null, -71.4, 41.812);

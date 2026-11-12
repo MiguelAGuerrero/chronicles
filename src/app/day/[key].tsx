@@ -24,6 +24,7 @@ import { launchRoute } from '../../lib/launchRoute';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
+import { useUnits } from '../../lib/useUnits';
 import { UndoToast } from '../../components/UndoToast';
 import type { LngLat } from '../../lib/types';
 
@@ -211,7 +212,9 @@ export default function DayReplay() {
   };
   // The card is computed once it is reached, not every frame (audit).
   const cardAt = onCard ? phase.t0 : 0;
-  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance) : null), [data, day, cardAt]);
+  // In the units setting, redrawn when it changes (tend replay 3).
+  const units = useUnits();
+  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance, units) : null), [data, day, cardAt, units]);
 
   if (failure) throw failure;
   if (status !== 'ready' || !data || !story) {
