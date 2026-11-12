@@ -25,7 +25,7 @@ import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
 import type { DrawnLine } from '../lib/gaps/draw';
 import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
-import { ComplexKindSwitches, KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { ComplexKindSwitches, KindSwitches, PASS_SCALE, passNote, RangeSlider, walkNote } from '../components/ExploreSettings';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
@@ -38,7 +38,7 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { armedLine, clampPass, clampRange, EXPLORE_KEY, exploredKey, walkPassKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -865,7 +865,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
     if (on) {
       const key = exploredKey(walk.id);
-      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now()))), () => {}).catch(() => {});
+      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now())).then(() => db.setMeta(walkPassKey(walk.id), String(settings.passM)))), () => {}).catch(() => {});
     }
   };
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
@@ -1341,19 +1341,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {exploring && explore.choice && (
-          <LiftIn testID="find-choice" style={styles.findChoice} accessibilityLiveRegion="polite">
-            <Text style={styles.findChoiceTitle}>Which place is this moment about?</Text>
-            <View style={styles.findChoiceRow}>
-              {explore.choice.places.slice(0, 3).map((pl) => (
-                <Pressable key={pl.key} testID="find-choice-place" accessibilityRole="button" accessibilityLabel={`Tag this moment to ${pl.name}`} onPress={() => explore.choose(pl)} style={styles.findChoiceBtn} hitSlop={6}>
-                  <Text style={styles.findChoiceBtnText} numberOfLines={1}>{pl.name}</Text>
-                </Pressable>
-              ))}
-              <Pressable testID="find-choice-none" accessibilityRole="button" accessibilityLabel="Neither, don’t tag a place" onPress={() => explore.choose(null)} style={styles.findChoiceBtn} hitSlop={6}>
-                <Text style={styles.findChoiceBtnText}>Neither</Text>
-              </Pressable>
-            </View>
+        {exploring && explore.armed && (
+          // The armed place (TC3): plain words, above the capture stack, never moving it.
+          <LiftIn testID="armed-line" style={styles.findChoice} accessibilityLiveRegion="polite">
+            <Text style={styles.findChoiceTitle}>{armedLine(explore.armed.item)}</Text>
+            <Pressable testID="armed-cancel" accessibilityRole="button" accessibilityLabel="Cancel, don’t tie the next moment to a place" onPress={explore.disarm} style={styles.findChoiceBtn} hitSlop={6}>
+              <Text style={styles.findChoiceBtnText}>Cancel</Text>
+            </Pressable>
           </LiftIn>
         )}
         {arrived && (
@@ -1573,6 +1567,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
                   {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
                 </Text>
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
+                <Text style={styles.optionSection} accessibilityRole="header">Passing a place</Text>
+                <Text style={styles.markSub}>{passNote(settings.passM)}</Text>
+                <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => changeSettings({ ...settings, passM: clampPass(m) })} />
                 <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
                 <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
                 <ComplexKindSwitches sectionStyle={styles.optionSection} />
@@ -1705,7 +1702,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               {explore.found.has(openMark.key)
                 ? 'Found.'
                 : openMarkNamed
-                  ? 'Take a photo, a memo or a note here to find it.'
+                  ? 'Tap Capture here, then take a photo, a memo or a note, to find it.'
                   : 'Walk within 60 m to see what it is.'}
             </Text>
             {openMarkReach && (
@@ -1724,6 +1721,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 }}
                 disabled={navigation.finding}
               />
+              {openMarkNamed && !explore.found.has(openMark.key) && (
+                <Button
+                  testID="mark-capture"
+                  label="Capture here"
+                  onPress={() => {
+                    explore.arm(openMark);
+                    setMarkOpen(null);
+                  }}
+                />
+              )}
               <Pressable testID="mark-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setMarkOpen(null)} style={styles.spotClose} hitSlop={8}>
                 <Icon name="close" size={22} color={theme.ink} />
               </Pressable>
@@ -1951,7 +1958,6 @@ const styles = StyleSheet.create({
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   findChoice: { backgroundColor: theme.ink, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, alignSelf: 'center', maxWidth: 420, gap: 8 },
   findChoiceTitle: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  findChoiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', maxWidth: 220 },
   findChoiceBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },

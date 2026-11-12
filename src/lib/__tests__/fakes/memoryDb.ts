@@ -9,7 +9,7 @@ import { DERIVED_STORES } from '../../db/stores';
 import type { Db } from '../../db/types';
 import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Place, Recall } from '../../discovery/types';
-import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
+import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
 import { thinThreads } from '../../threads/rules';
@@ -285,6 +285,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       marks.dropWhere(walkOf, walkId);
       summaries.delete(walkId);
       meta.delete(exploredKey(walkId));
+      meta.delete(walkPassKey(walkId));
       walks.delete(walkId);
       // Places only this walk was in go (D8).
       for (const key of staleAreas(areas.keys() as string[], walkAreas.all())) areas.delete(key);

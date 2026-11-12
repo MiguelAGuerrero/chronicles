@@ -229,7 +229,6 @@ module.exports = {
     'src/lib/{days,momentPins,useLocate}.ts',
     'src/lib/locate/**',
     'src/components/MomentBar.tsx',
-    'src/lib/explore/momentFind/**',
   ],
   run,
   checks,

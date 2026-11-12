@@ -16,7 +16,7 @@ import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
 import { countsOf, recountNewStreets } from '../deletion/core';
-import { exploredKey } from '../explore/explore';
+import { exploredKey, walkPassKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
@@ -275,6 +275,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
           await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
         }
         await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
+        await t.runAsync('DELETE FROM meta WHERE key = ?', walkPassKey(walkId));
         await t.runAsync('DELETE FROM walk WHERE id = ?', walkId);
         // Places only this walk was in go (D8).
         await t.runAsync('DELETE FROM area WHERE key NOT IN (SELECT DISTINCT area_key FROM walk_area)');

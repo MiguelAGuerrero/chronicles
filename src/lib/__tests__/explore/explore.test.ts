@@ -449,8 +449,8 @@ test('audit 5: the same town seen at two zooms is one area; the home finds it', 
 });
 
 test('audit 9: what a walk passed counts shown kinds, after exploring began, minus this walk’s finds', () => {
-  const a = item('Museum', m(10, 0));
-  const c = item('Church', m(20, 0), 'churches');
+  const a = item('Museum', m(5, 0));
+  const c = item('Church', m(6, 0), 'churches');
   const b = item('Before', m(500, 0));
   const fixes = [{ at: m(500, 0), t: 1 }, { at: O, t: 10 }];
   assert.equal(passedCount({ items: [a, c, b], fixes, since: 5, hidden: new Set<Kind>(['churches']), foundHere: new Set() }), 1);
@@ -460,9 +460,9 @@ test('audit 9: what a walk passed counts shown kinds, after exploring began, min
 test('RR15: passedAlong gives where and when each passed place came within reach', () => {
   const a = item('Museum', m(300, 0));
   const b = item('Far', m(5000, 0));
-  const fixes = [0, 100, 200, 250, 290, 400].map((x, i) => ({ at: m(x, 0), t: 10 + i }));
+  const fixes = [0, 100, 200, 250, 296, 400].map((x, i) => ({ at: m(x, 0), t: 10 + i }));
   const got = passedAlong({ items: [a, b], fixes, since: 0, hidden: new Set(), foundHere: new Set() });
-  assert.deepEqual(got.map((g) => [g.name, g.t]), [['Museum', 13]], 'the first fix within 60 m');
+  assert.deepEqual(got.map((g) => [g.name, g.t]), [['Museum', 14]], 'the first fix within the pass-by distance (TC6)');
   assert.deepEqual(got[0].at, a.at);
   // Only once exploring began, as the card counts it.
   assert.equal(passedAlong({ items: [a], fixes, since: 15, hidden: new Set(), foundHere: new Set() }).length, 0);

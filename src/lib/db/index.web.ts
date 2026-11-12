@@ -1,7 +1,7 @@
 // @layer adapter
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
-import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
+import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
@@ -446,6 +446,7 @@ export const db: Db = {
       await dropBy(os('mark'), 'walk_id', walkId);
       os('walk_summary').delete(walkId);
       os('meta').delete(exploredKey(walkId));
+      os('meta').delete(walkPassKey(walkId));
       os('walk').delete(walkId);
       // Places only this walk was in go (D8).
       const rows = (await done(os('walk_area').getAll())) as WalkArea[];

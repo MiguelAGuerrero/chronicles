@@ -269,6 +269,14 @@ async function checks(h) {
         await chooser.setFiles(path.join(fixtures, 'clip-20s.webm'));
         await page.waitForSelector('text=/Videos can be up to 15 seconds/');
         check(true, 'a video over the web limit is turned away');
+        // TC3: a capture near a place finds nothing by itself; tapping the place and "Capture here" arms it.
+        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 0, 'TC1: nothing is found by being near a place');
+        await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
+        await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
+        await page.click('[data-testid=mark-capture]');
+        await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
+        const armedSaid = await page.locator('[data-testid=armed-line]').innerText();
+        check(/The next moment is about Hessian Memorial/.test(armedSaid) && (await page.locator('[data-testid=mark-card]').count()) === 0, `TC3: Capture here closes the card and says whom the next moment is about (${armedSaid.replace(/\n/g, ' ')})`);
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
         await page.waitForSelector('text=Video saved here');
@@ -301,12 +309,13 @@ async function checks(h) {
         const twoPins = pinsAfter.includes('Voice memo. Open') && pinsAfter.includes('Video. Open');
         const fair = apartM == null ? shared : apartM <= reachM ? shared : twoPins;
         check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
-        // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
+        // The video is taken about 40 m from the memorial, after "Capture here" on it: it finds it (TC4).
         await page.waitForTimeout(500);
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'TC4: the next capture finds the armed place, which stays drawn as found');
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
         check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
+        check((await page.locator('[data-testid=armed-line]').count()) === 0, 'TC4: arming clears after the capture');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');

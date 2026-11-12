@@ -6,6 +6,7 @@ import { askMotion } from './walkMotion';
 import { saveForLater } from './nav/store';
 import type { Waypoint } from './nav/types';
 import { RecorderError } from './recorder/types';
+import { loadSettings } from './explore/settings';
 import { startWalk } from './session';
 import { parseStartMode, START_MODE_KEY, startPlan, walkHerePlan, type StartMode } from './startPlan';
 import { showWalk } from './walkNav';
@@ -49,7 +50,8 @@ export function useStartWalk() {
       }
       const chosen = mode ?? parseStartMode(await db.getMeta(START_MODE_KEY).catch(() => null));
       const { walk, warning } = await startWalk();
-      const plan = startPlan({ walkId: walk.id, now: Date.now(), mode: chosen, dest, warning });
+      const passM = (await loadSettings().catch(() => null))?.passM;
+      const plan = startPlan({ walkId: walk.id, now: Date.now(), mode: chosen, dest, warning, passM });
       for (const [k, v] of plan.meta) await db.setMeta(k, v);
       // In place, every start says it is recording (NR6); a recorder warning still wins.
       if (opts?.inPlace) return plan.params?.warning ? plan.params : { started: '1' };

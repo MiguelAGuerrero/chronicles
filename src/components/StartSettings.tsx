@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { canBuzz } from '../lib/canBuzz';
-import { clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { clampPass, clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { formatRange } from '../lib/format';
@@ -8,7 +8,7 @@ import { destLine, type StartMode } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
-import { ComplexKindSwitches, KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
+import { ComplexKindSwitches, KindSwitches, PASS_SCALE, passNote, RangeSlider, walkNote } from './ExploreSettings';
 import { Icon } from './icons';
 import { LayersKey } from './LayersControl';
 import type { useLayers } from '../lib/layers/useLayers';
@@ -91,6 +91,9 @@ export function StartSettings(props: {
             {fix ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
           </Text>
           <RangeSlider value={settings.rangeM} onChange={(m) => props.onSettings({ ...settings, rangeM: clampRange(m) })} />
+          <Text style={styles.section} accessibilityRole="header">Passing a place</Text>
+          <Text style={styles.sub}>{passNote(settings.passM)}</Text>
+          <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => props.onSettings({ ...settings, passM: clampPass(m) })} />
           <Text style={styles.section} accessibilityRole="header">What I’m into</Text>
           <KindSwitches hidden={settings.hidden} onToggle={props.onToggleKind} />
           <ComplexKindSwitches sectionStyle={styles.section} />

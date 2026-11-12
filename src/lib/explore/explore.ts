@@ -23,6 +23,8 @@ export type { Kind } from '../discovery/types';
 export const EXPLORE_KEY = 'explore_walk';
 /** Meta, per walk: it explored at some point, so its replay counts what it passed (E11). */
 export const exploredKey = (walkId: string) => `explored:${walkId}`;
+/** The pass-by distance a walk was walked with (TC9), kept beside `explored:<walk>`. */
+export const walkPassKey = (walkId: string) => `walk_pass:${walkId}`;
 
 export const EXPLORE_RULES = {
   /** One read covers this much around its centre (E2), with the tile decoder. */
@@ -34,6 +36,11 @@ export const EXPLORE_RULES = {
   rangeMin: 60,
   rangeMax: 300,
   rangeStep: 20,
+  /** How close counts as passing a place (TC6, TC7): 4-20 m in steps of 2, about 8 m by default. */
+  passDefault: 8,
+  passMin: 4,
+  passMax: 20,
+  passStep: 2,
   /** At most this many "?" near you (E6), and along a route (E23). */
   cap: 8,
   routeCap: 20,
@@ -290,6 +297,43 @@ export function routeProbes(route: LngLat[], stepM = EXPLORE_RULES.readM / 3): L
   return out;
 }
 
+/** The pass-by setting, clamped to 4-20 m in 2 m steps (TC7). */
+export function clampPass(m: number): number {
+  const r = EXPLORE_RULES;
+  if (!Number.isFinite(m)) return r.passDefault;
+  const stepped = r.passMin + Math.round((m - r.passMin) / r.passStep) * r.passStep;
+  return Math.max(r.passMin, Math.min(r.passMax, stepped));
+}
+
+/** A walk's stored pass-by distance, or the default for a walk without one (TC9). */
+export function passFor(raw: string | null): number {
+  const n = raw == null || raw === '' ? NaN : Number(raw);
+  return clampPass(n);
+}
+
+/** The place the reader tapped "Capture here" on, for one walk (TC3, TC4). */
+export interface Armed {
+  item: ChecklistItem;
+  walkId: string;
+}
+
+/** The plain line for an armed place: no accent, no "ready" tone (TC3, steward S2). */
+export const armedLine = (item: { name: string }): string => `The next moment is about ${item.name}`;
+
+/**
+ * The one find a capture makes: the armed place for the first fresh capture, else nothing. A capture
+ * never finds a place by itself, however near (TC1).
+ */
+export function armedFind(armed: Armed | null, fresh: string[]): { item: ChecklistItem; captureId: string } | null {
+  return armed && fresh.length ? { item: armed.item, captureId: fresh[0] } : null;
+}
+
+/** Arming holds on its own walk while the walker is within 60 m of the place; with no fix it stays (TC4). */
+export function armedStill(armed: Armed | null, here: LngLat | null, walkId: string | null): Armed | null {
+  if (!armed || armed.walkId !== walkId) return null;
+  return here && distanceM(here, armed.item.at) > EXPLORE_RULES.revealM ? null : armed;
+}
+
 /** The range setting, clamped to 60-300 m in 20 m steps (E20). */
 export function clampRange(m: number): number {
   const r = EXPLORE_RULES;
@@ -484,23 +528,33 @@ export function foundList(names: string[]): string | null {
  * What a walk passed without stopping (E11, audit 9): places of shown kinds
  * named by a fix after exploring began, not found on this walk.
  */
-export function passedPlaces(o: { items: ChecklistItem[]; fixes: { at: LngLat; t: number }[]; since: number; hidden: Set<Kind>; foundHere: Set<string> }): ChecklistItem[] {
+export interface PassedInput {
+  items: ChecklistItem[];
+  fixes: { at: LngLat; t: number }[];
+  since: number;
+  hidden: Set<Kind>;
+  foundHere: Set<string>;
+  /** How close counts as passing (TC6); the default when absent. */
+  passM?: number;
+}
+export function passedPlaces(o: PassedInput): ChecklistItem[] {
   const shown = o.items.filter((i) => !isKindHidden(o.hidden, i.kind));
-  const named = revealedKeys(shown, o.fixes.filter((f) => f.t >= o.since).map((f) => f.at));
+  const near = nearPoints(o.fixes.filter((f) => f.t >= o.since).map((f) => f.at), o.passM ?? EXPLORE_RULES.passDefault);
+  const named = new Set(shown.filter((x) => near(x.at)).map((x) => x.key));
   const seen = new Set<string>();
   return shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key));
 }
-export const passedCount = (o: Parameters<typeof passedPlaces>[0]): number => passedPlaces(o).length;
+export const passedCount = (o: PassedInput): number => passedPlaces(o).length;
 
 /**
  * The places `passedPlaces` names, each with when the walk first came within
  * reach of it (RR15): the replay whispers one or two by name as the walker gets there, more than two once, at the
  * last, as the card says them (RP19, remarkable-and-public audit 14).
  */
-export function passedAlong(o: Parameters<typeof passedPlaces>[0]): (ChecklistItem & { t: number })[] {
+export function passedAlong(o: PassedInput): (ChecklistItem & { t: number })[] {
   const fixes = o.fixes.filter((f) => f.t >= o.since);
   return passedPlaces(o).flatMap((i) => {
-    const f = fixes.find((x) => distanceM(x.at, i.at) <= EXPLORE_RULES.revealM);
+    const f = fixes.find((x) => distanceM(x.at, i.at) <= (o.passM ?? EXPLORE_RULES.passDefault));
     return f ? [{ ...i, t: f.t }] : [];
   });
 }

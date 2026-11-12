@@ -16,7 +16,6 @@ import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
 import { type Kind } from '../../lib/explore/explore';
-import { findForMoment } from '../../lib/explore/momentFind';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { getLastFix, setLastFix } from '../../lib/lastFix';
@@ -147,7 +146,6 @@ export function useReady(props: {
   };
   const onMoment = useCallback((c: Faced, state: MomentState) => {
     if (state !== 'placed') return;
-    findForMoment(c).catch(() => {});
     if (placedMoments([c]).length) setMoments((prev) => upsertMoment(prev, c));
   }, []);
   const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setMomentError(e), []);

@@ -89,7 +89,7 @@ const FEATURES = [
     name: 'moments',
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
-    source: ['src/lib/{days,useLocate,momentPins,moment}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
+    source: ['src/lib/{days,useLocate,momentPins,moment}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx'],
     journeys: ['days'],
     specs: ['moments-and-days'],
   },
@@ -334,6 +334,8 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // A moment no longer finds a place by itself (the owner, Nov 12, decision 0155): only a tap on the place does (TC1-TC4).
+  'shells-saved-settings': ['SH4'],
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
   // of Places worth the stop went with them.

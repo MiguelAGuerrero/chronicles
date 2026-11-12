@@ -15,7 +15,9 @@ import {
   alertedFor,
   alertKeys,
   EXPLORE_RULES,
-  findCandidates,
+  armedFind,
+  armedStill,
+  type Armed,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -39,7 +41,7 @@ const CHECK_M = 25;
  * Explore on the walk screen (E2-E9, E17-E23): checklists built quietly in
  * the background on every walk; on an exploring walk, the "?" marks within
  * your range, faint ones along a route, the pocket alert; and on any walk, a
- * capture finding the nearest place within 60 m.
+ * capture finding the place the reader armed (TC4).
  */
 /** The places each walk has alerted (audit 3): outlives the walk screen, not a reload. */
 const alertedByWalk = new Map<string, Set<string>>();
@@ -216,11 +218,10 @@ export function useExplore(opts: {
     return () => clearTimeout(t);
   }, [exploring, here, riding, items, revealed]);
 
-  // A capture within 60 m finds the one place in reach, on any walk, whatever its kind (E8, E9, E18).
-  // With two or more in reach the reader picks (`choice`); on a quiet walk nothing is asked, so nothing is found.
-  // Each capture is handled once; an unstamped one has no place until stop.
+  // A capture finds a place only when the reader tapped "Capture here" on it (TC1, TC4): the next capture of this
+  // walk finds the armed place. Each capture is handled once, so one made before arming never counts.
   const handled = useRef(new Set<string>());
-  const [asked, setAsked] = useState<{ captureId: string; keys: string[] } | null>(null);
+  const [armed, setArmed] = useState<Armed | null>(null);
   const record = useCallback(async (item: ChecklistItem, captureId: string) => {
     const walkId = latest.current.walkId;
     if (!walkId) return;
@@ -229,49 +230,34 @@ export function useExplore(opts: {
     setFound((f) => new Set([...(f ?? []), item.key]));
     latest.current.onFound(item);
   }, []);
+  const armedNow = useMemo(() => armedStill(armed, here, opts.walkId), [armed, here, opts.walkId]);
+  // Arming that no longer holds (the walker moved off, the walk ended) is let go.
   useEffect(() => {
-    const walkId = opts.walkId;
+    if (armed && !armedNow) {
+      const t = setTimeout(() => setArmed(null), 0);
+      return () => clearTimeout(t);
+    }
+  }, [armed, armedNow]);
+  const armedRef = useRef<Armed | null>(null);
+  useEffect(() => {
+    armedRef.current = armedNow;
+  });
+  useEffect(() => {
     // Not before the finds are known: they say which captures already found something (audit 4).
     if (!found) return;
-    const fresh = opts.captures.filter((c) => !handled.current.has(c.id) && c.lat != null && c.lon != null);
-    if (!walkId || !fresh.length || !items.length) return;
-    for (const c of fresh) handled.current.add(c.id);
-    (async () => {
-      const taken = new Set(found);
-      for (const c of fresh) {
-        const near = findCandidates([c.lon!, c.lat!], [...items, ...routeItems], taken);
-        if (near.length > 1) {
-          // The newest capture's question replaces an older one.
-          if (latest.current.exploring && mounted.current) setAsked({ captureId: c.id, keys: near.map((i) => i.key) });
-          continue;
-        }
-        if (!near.length) continue;
-        taken.add(near[0].key);
-        await record(near[0], c.id);
-        if (!mounted.current) return;
-      }
-    })();
-  }, [opts.captures, opts.walkId, items, routeItems, found, record]);
-
-  // The question: the places still unfound, nearest first; gone once the capture is, the walk ends or the places are found.
-  const choice = useMemo(() => {
-    if (!asked || !found || !opts.captures.some((c) => c.id === asked.captureId)) return null;
-    const left = asked.keys.filter((k) => !found.has(k));
-    const places = left.map((k) => [...items, ...routeItems].find((i) => i.key === k)).filter((i): i is ChecklistItem => !!i);
-    return places.length > 1 ? { captureId: asked.captureId, places } : null;
-  }, [asked, found, opts.captures, items, routeItems]);
-  const answered = useRef<string | null>(null);
-  const choose = useCallback(
-    (item: ChecklistItem | null) => {
-      // One answer per question (a double tap), and none for a capture that is gone (audit 2, 4).
-      const id = choice?.captureId;
-      if (answered.current === id) return;
-      answered.current = id ?? null;
-      setAsked(null);
-      if (item && id) record(item, id).catch(() => {});
-    },
-    [choice, record],
-  );
+    const fresh = opts.captures.filter((c) => !handled.current.has(c.id)).map((c) => c.id);
+    if (!fresh.length) return;
+    for (const id of fresh) handled.current.add(id);
+    const hit = armedFind(armedRef.current, fresh);
+    if (!hit || found.has(hit.item.key)) return;
+    setArmed(null);
+    record(hit.item, hit.captureId).catch(() => {});
+  }, [opts.captures, found, record]);
+  const arm = useCallback((item: ChecklistItem) => {
+    const walkId = latest.current.walkId;
+    if (walkId) setArmed({ item, walkId });
+  }, []);
+  const disarm = useCallback(() => setArmed(null), []);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;
   const foundSet = useMemo(() => found ?? new Set<string>(), [found]);
@@ -307,5 +293,5 @@ export function useExplore(opts: {
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);
 
-  return { pins, settings, revealed, found: foundSet, itemOf, choice, choose };
+  return { pins, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
 }

@@ -120,6 +120,7 @@ export const META = {
   explore_hidden: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_kinds_known: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_range: { owner: 'explore', codec: number },
+  explore_pass: { owner: 'explore', codec: number },
   // Complexes (specs/complexes, CX10): the kinds switched off on the card and the map, as a comma list; the data is untouched.
   complex_hidden: { owner: 'explore', codec: text },
   explore_haptic: { owner: 'explore', codec: onOff },
@@ -162,6 +163,8 @@ export const META = {
 export const META_FAMILIES = {
   // When Explore was first switched on for a walk (ms): its replay counts finds from then.
   explored: { owner: 'explore', codec: number },
+  // The pass-by distance (m) a walk was walked with, so a later setting never rewrites its replay (TC9).
+  walk_pass: { owner: 'explore', codec: number },
   // A day's replay was watched (ms), so it advances by itself next time.
   day_watched: { owner: 'days', codec: number },
   // The last read of areas near you, per level (lib/atlas/read).
