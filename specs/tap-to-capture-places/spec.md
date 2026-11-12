@@ -26,12 +26,18 @@ Open: none (the owner's three answers, Nov 12).
 
 1. **TC1** A capture made on a walk with an unfound place within 60 m finds nothing by itself, with one place or several, and asks no question (no `find-choice` chip).
 2. **TC2** A moment made outside a walk (`findForMoment`) finds nothing by itself either.
-3. **TC3** A place's card (the `mark-card`) offers "Capture here" for an unfound named place; tapping it arms that place, the card closes, and a quiet line says the next moment is about it, with a way to cancel.
-4. **TC4** The next capture while armed finds that armed place (the same find as before: one find per place, the first stands, `capture_id` set) and disarms; cancelling, ending the walk or a second tap on another place's "Capture here" replaces or clears the arming without a find.
+3. **TC3** A place's card (the `mark-card`) offers "Capture here" for an unfound named place; tapping it arms that place, the card closes, and a quiet line says the next moment is about it, with a way to cancel. The line is plain ink, no accent, neutral words ("The next moment is about the Old Bridge"); it sits above the capture stack and never moves or changes it.
+4. **TC4** The next capture while armed finds that armed place (the same find as before: one find per place, the first stands, `capture_id` set) and disarms. Arming also clears when the walk ends and when the walker is farther than 60 m from the place, so an unrelated capture later is never found by it. Cancelling, ending the walk or a second tap on another place's "Capture here" replaces or clears the arming without a find.
 5. **TC5** Plain capture is unchanged: still one tap, no arming needed, and a moment near a place keeps its ordinary context line.
 6. **TC6** A place is passed when a trace fix comes within the pass-by distance of it (default 8 m, kinds shown), not within 60 m: a fix at 20 m passes nothing at the default. A place a capture found is not passed.
-7. **TC7** The pass-by distance is a setting in the Explore settings (steps of 2 m from 4 to 20 m, default 8 m), saved in meta like the range and read back clamped; the card and replay line read it (`passedLine`, never a count).
+7. **TC7** The pass-by distance is a setting in the Explore settings (steps of 2 m from 4 to 20 m, default 8 m), saved in meta like the range and read back clamped; the card and replay line read it (`passedLine`). No surface shows how many places were passed and the settings copy names no number of passes.
 8. **TC8** Revealing is unchanged: a place within 60 m is still named on the map; only "passed" tightened.
+
+9. **TC9** A walk keeps the pass-by distance it was walked with (a meta value written when the walk starts, `walk_pass:<id>`): changing the setting later never changes an old replay's "Passed ... without stopping" lines; a walk with no stored value reads at the default.
+
+## Steward (Nov 12)
+
+S1 accepted (TC9). S2 accepted (TC3). S3 accepted (TC4). S4 accepted (TC7). Drift 3, tone 1, no breach.
 
 ## Record
 

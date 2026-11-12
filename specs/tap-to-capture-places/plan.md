@@ -13,7 +13,7 @@
 
 ## Data
 
-No new truth or cache, no migration (one meta key). `SNAP_RULES` is not touched: finds and passes are read at view time from the trace, not derived and cached. The replay re-reads the pass-by from the trace, so an old walk's replay reads with the distance saved now (a setting, like the range).
+No new truth or cache, no migration (one meta key). `SNAP_RULES` is not touched: finds and passes are read at view time from the trace, not derived and cached. The walk's pass-by distance is written to meta (`walk_pass:<id>`) when it starts, and its card and replay read that, so a later setting change never rewrites an old walk (TC9, steward S1). A walk without it reads at the default.
 
 ## Tests per criterion (new feature folder: none; existing `explore`)
 
@@ -23,7 +23,7 @@ No new truth or cache, no migration (one meta key). `SNAP_RULES` is not touched:
 
 ## Deferred, and why
 
-- Old walks' replays re-read passes at today's setting: noted in DEFERRED, no stored pass.
+- Walks recorded before this slice read the default 8 m, not the 60 m they were shown with: noted in DEFERRED.
 - Arming only from the walk's place card; the Explore tab's cards and a pin's viewer keep no capture button (not asked).
 
 ## Native
@@ -36,6 +36,11 @@ None new; the haptics and capture stack are reused. Armed state is a React state
 - **Say how close counts as passing.** Set once; a stepper in the Explore settings beside the range (the same row pattern).
 - **Plain capture** keeps its place at the edge, one tap, nothing added.
 
-## Steward
+## Steward (triaged)
 
-Run before the owner reads this; findings are triaged below.
+- S1 replay drifts with the setting: accepted, TC9.
+- S2 armed line register: accepted, in TC3 (plain ink, above the stack, never moves it).
+- S3 stale arming: accepted, TC4 (clears on capture, walk end, 60 m away).
+- S4 words only: accepted, TC7.
+
+Open for you: arming is a state on the walk screen, not a new capture screen. Say if you would rather the card carry Photo/Voice/Note buttons itself.
