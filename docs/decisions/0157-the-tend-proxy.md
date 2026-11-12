@@ -1,4 +1,4 @@
-# 0155. The tend orchestrator may answer the inbox as the owner's proxy, within limits
+# 0157. The tend orchestrator may answer the inbox as the owner's proxy, within limits
 
 Date: 2026-11-12 · Status: accepted · Area: process · Amends: 0128, 0129, 0130 (who answers the inbox) · From: the orchestrated `/tend` session of Nov 11-12
 
@@ -28,7 +28,7 @@ for the inbox (`docs/STATUS.md`, "Needs the owner"), on these terms:
   measure on a screen; a steward's Silent question or a finding that quotes a Never or Always line against a decision.
   When unsure, it goes to the owner.
 - **It is recorded as the proxy's.** A record, entry removal or run-log line for a proxy answer says "the proxy's yes
-  under the owner's delegation (0155), <date>", never "the owner's". `/vision` does not cite a proxy answer as the
+  under the owner's delegation (0157), <date>", never "the owner's". `/vision` does not cite a proxy answer as the
   owner's precedent until the owner confirms it; the orchestrator lists every proxy answer in its closing report for
   the owner to keep or revert.
 - **A screen the proxy approved** gets the `steward` with its pictures, beside the `auditor` and the `ux-reviewer`.
