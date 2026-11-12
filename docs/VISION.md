@@ -140,4 +140,4 @@ same argument is not had twice.
 | 0131 | A moment's responses in a sheet over the viewer: plain entries in words, no count, no unread (reshaped at the gate, Nov 11) |
 | 0139 | Media: bare tiles; the day header says where |
 | 0147 | Complexes: information only; the street kept; a viewing never fetches (reshaped at the gate, Nov 11) |
-| 0149 | Note types: eight marks the owner chooses; thumbs kept, never counted |
+| 0149 | Note types: eight owner-chosen marks, never counted |
