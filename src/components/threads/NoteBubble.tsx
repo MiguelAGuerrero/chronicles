@@ -5,6 +5,7 @@ import { fromLine } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
 import { contextText, momentSpoken } from '../chronicle/MomentCard';
 import { Icon } from '../icons';
+import { NoteMark } from '../NoteMark';
 import { theme } from '../ui';
 import { NoteText } from './NoteText';
 
@@ -34,6 +35,7 @@ export function NoteBubble(props: {
               a note with a mention leaves each mention its own button. */}
           <View role={mentions ? undefined : 'group'} accessible={!mentions} accessibilityLabel={mentions ? undefined : momentSpoken(m, props.now)} style={styles.said}>
             <View style={styles.bubble}>
+              <NoteMark capture={m.capture} />
               {mentions ? <NoteText body={body} style={styles.text} onOpen={props.onOpenRef} /> : <Text style={styles.text}>{body}</Text>}
             </View>
             <Text style={[styles.meta, styles.when]} numberOfLines={2} testID="moment-context">{contextText(undefined, m, props.now)}</Text>

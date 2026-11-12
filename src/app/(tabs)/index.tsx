@@ -19,6 +19,7 @@ import { Banner, Button, theme } from '../../components/ui';
 import type { Area, WalkArea } from '../../lib/areas/types';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
+import { notePatch } from '../../lib/noteEdit';
 import { captureEdits } from '../../lib/captureEdits';
 import { perfCount } from '../../lib/perfCount';
 import { buildDays } from '../../lib/days';
@@ -390,11 +391,12 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         onClose={() => setRecalled(null)}
         autoPlay
         remind
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setCaptures((prev) => applyPatch(prev, c.id, { body }));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          const change = notePatch(body, type);
+          await db.updatePiece(c.piece_id, change);
+          setCaptures((prev) => applyPatch(prev, c.id, change));
+          captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
       <CaptureViewer
@@ -407,11 +409,12 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           await captureEdits.save(c, patch);
           setCaptures((prev) => applyPatch(prev, c.id, patch));
         }}
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setCaptures((prev) => applyPatch(prev, c.id, { body }));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          const change = notePatch(body, type);
+          await db.updatePiece(c.piece_id, change);
+          setCaptures((prev) => applyPatch(prev, c.id, change));
+          captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
       <WalkActions

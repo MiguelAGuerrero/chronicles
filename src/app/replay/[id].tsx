@@ -24,6 +24,7 @@ import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
+import { notePatch } from '../../lib/noteEdit';
 import { captureEdits } from '../../lib/captureEdits';
 import { snapWalk } from '../../lib/finish';
 import { decide } from '../../lib/gaps';
@@ -505,11 +506,12 @@ export default function Replay() {
           await captureEdits.save(c, patch);
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch) });
         }}
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          const change = notePatch(body, type);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change) });
+          captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
       <CaptureViewer
@@ -519,11 +521,12 @@ export default function Replay() {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          const change = notePatch(body, type);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change) });
+          captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
 

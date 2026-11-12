@@ -474,7 +474,7 @@ export function MemoriesScreen() {
           await captureEdits.save(c, patch);
           resurface.patch(c.id, patch);
         }}
-        onSaveNote={(c, body) => resurface.saveNote(c, body)}
+        onSaveNote={(c, body, type) => resurface.saveNote(c, body, type)}
       />
       <CaptureViewer
         key={recalled?.[0]?.id ?? 'none'}
@@ -482,7 +482,7 @@ export function MemoriesScreen() {
         onClose={() => setRecalled(null)}
         autoPlay
         remind
-        onSaveNote={(c, body) => resurface.saveNote(c, body)}
+        onSaveNote={(c, body, type) => resurface.saveNote(c, body, type)}
       />
       {/* Low on the screen, clear of the thread's Back and More: it waits now (ui-conformance audit 6). */}
       <UndoToast style={{ bottom: 16 }} />

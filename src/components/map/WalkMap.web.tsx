@@ -15,7 +15,7 @@ import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
+import { metersPerPixel, pinMark, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
@@ -1138,7 +1138,7 @@ function usePinMarkers(
       const ids = pin.captures.map((c) => c.id).join(',');
       const bell = pinReminded(pin, reminded);
       // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${pinMark(pin)?.id ?? ''}`;
       const existing = markers.current.get(pin.id);
       if (existing?.key === key) {
         // A reminder set or stopped (RB5) redraws the same element in place: focus returns to it when

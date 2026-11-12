@@ -4,7 +4,7 @@ import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-n
 import { thumbShown } from '../../lib/thumbPlan';
 
 import { useMediaUri } from '../../lib/useMediaUri';
-import { Icon, KIND_ICON } from '../icons';
+import { captureIcon, Icon } from '../icons';
 import { theme } from '../ui';
 
 /**
@@ -28,7 +28,7 @@ export function MomentPicture(props: { capture: Faced; style?: StyleProp<ViewSty
           onError={() => (ref === capture.thumb_path && ref !== capture.file_path ? setCopyBroken(true) : setBroken(uri))}
         />
       ) : (
-        <Icon name={KIND_ICON[capture.kind]} size={props.iconSize ?? 28} color={theme.muted} />
+        <Icon name={captureIcon(capture)} size={props.iconSize ?? 28} color={theme.muted} />
       )}
     </View>
   );

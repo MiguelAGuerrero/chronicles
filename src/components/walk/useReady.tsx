@@ -11,6 +11,7 @@ import { Icon } from '../icons';
 import { Banner, Button, theme } from '../ui';
 import { useUnits } from '../../lib/useUnits';
 import { applyPatch, captureBus, LOOSE_MOMENTS } from '../../lib/captureBus';
+import { notePatch } from '../../lib/noteEdit';
 import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
@@ -320,10 +321,11 @@ export function useReady(props: {
           await captureEdits.save(c, patch);
           setMoments((prev) => applyPatch(prev, c.id, patch));
         }}
-        onSaveNote={async (c, body) => {
-          await ready.saveNote(c.piece_id, body);
-          setMoments((prev) => applyPatch(prev, c.id, { body }));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+        onSaveNote={async (c, body, type) => {
+          const change = notePatch(body, type);
+          await ready.saveNote(c.piece_id, body, type);
+          setMoments((prev) => applyPatch(prev, c.id, change));
+          captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
     </>

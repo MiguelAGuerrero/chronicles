@@ -15,7 +15,7 @@ import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReminded, pinThumb } from '../../lib/pins';
+import { metersPerPixel, pinMark, pinReminded, pinThumb } from '../../lib/pins';
 import { useReminded } from '../../lib/useReminded';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
@@ -498,7 +498,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             before this walk's pins so those stay on top (audit 6). */}
         {memoryPins.map((pin) => (
           <Marker
-            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
+            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}:${pinThumb(pin) ?? ''}:${pinMark(pin)?.id ?? ''}:${pinReminded(pin, reminded)}`}
             id={`memory:${pin.id}`}
             lngLat={pin.lngLat}
             anchor="bottom"
@@ -520,8 +520,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             the bell too, so a reminder set or stopped shows at once (RB5). */}
         {pins.map((pin) => (
           <Marker
-            key={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
-            id={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
+            key={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinMark(pin)?.id ?? ''}:${pinReminded(pin, reminded)}`}
+            id={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinMark(pin)?.id ?? ''}:${pinReminded(pin, reminded)}`}
             lngLat={pin.lngLat}
             anchor="bottom"
             onPress={props.onPinPress ? () => props.onPinPress?.(pin.captures) : undefined}

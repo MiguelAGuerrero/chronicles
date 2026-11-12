@@ -10,6 +10,8 @@ import { theme } from '../ui';
 import { MomentPicture } from './MomentPicture';
 import { hasMore } from '../../lib/moment';
 import { StackMark, STACK_SPOKEN } from '../StackMark';
+import { markOf } from '../../lib/noteType';
+import { NoteMark } from '../NoteMark';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 
@@ -21,7 +23,7 @@ export function contextText(context: ContextEntry | undefined, m: MomentView, no
 /** What a moment says about itself in one line, for a screen reader (RM25). */
 export function momentSpoken(m: MomentView, now: number, context?: ContextEntry): string {
   // A moment with more than one piece says so in words (MS8), never how many (MS9).
-  return [KIND_WORD[m.kind], hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
+  return [KIND_WORD[m.kind], markOf(m.capture)?.name ?? null, hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**
@@ -55,6 +57,7 @@ export function MomentCard(props: {
               <Text style={styles.memoText}>{Number.isFinite(memo) && memo > 0 ? `Voice memo, ${formatElapsed(memo)}` : 'Voice memo'}</Text>
             </View>
           )}
+          {m.kind === 'text' && <NoteMark capture={m.capture} />}
           {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
           {props.answering ? <Text style={styles.meta} testID="moment-answering">{props.answering}</Text> : null}
           <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>

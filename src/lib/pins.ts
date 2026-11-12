@@ -1,6 +1,7 @@
 // @layer core
 import type { Faced } from './moment';
 import { distanceM } from './geo';
+import { markOf, type NoteTypeInfo } from './noteType';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
 
@@ -66,6 +67,11 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
  * made, or for a photo that won't decode, the pin keeps its icon, so a map never
  * decodes full photos. A pin of several keeps its count.
  */
+/** A pin of exactly one note with a type wears that type's mark (NY10); a pin of several keeps its kind's glyph and its count. */
+export function pinMark(pin: CapturePin): NoteTypeInfo | null {
+  return pin.captures.length === 1 ? markOf(pin.captures[0]) : null;
+}
+
 export function pinThumb(pin: CapturePin): string | null {
   if (pin.captures.length !== 1) return null;
   const c = pin.captures[0];

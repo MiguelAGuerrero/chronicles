@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { pinThumb, type CapturePin } from '../lib/pins';
+import { pinMark, pinThumb, type CapturePin } from '../lib/pins';
 import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
-import { Icon, KIND_ICON, KIND_LABEL } from './icons';
+import { captureIcon, Icon, KIND_ICON, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
 /** A neutral for pins holding several kinds, distinct from the trace's navy. */
@@ -57,7 +57,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
       <View style={[styles.pin, faint && styles.faint]}>
         <View style={[styles.head, { backgroundColor: color }]}>
-          {n > 1 ? <Text style={styles.count}>{n}</Text> : !painted && <Icon name={KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
+          {n > 1 ? <Text style={styles.count}>{n}</Text> : !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
           {picture && (
             <Image
               testID="pin-thumb"
@@ -96,7 +96,7 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
   const n = pin.captures.length;
   const kind = memory
     ? n > 1 ? `${n} memories here` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
-    : n > 1 ? `${n} captures here` : KIND_LABEL[pin.captures[0].kind];
+    : n > 1 ? `${n} captures here` : pinMark(pin) ? `Note, ${pinMark(pin)!.name.toLowerCase()}` : KIND_LABEL[pin.captures[0].kind];
   // One moment with more than one piece says so in words, never how many (MS8, MS9).
   const stacked = n === 1 && hasMore(pin.captures[0]) ? `, ${STACK_SPOKEN}` : '';
   // The bell said in words (RB7).

@@ -7,6 +7,7 @@ import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, ty
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
+import { NoteMark } from './NoteMark';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
 import { editedRecall, liveRecalls, newRecall } from '../lib/discovery/recall';
@@ -282,6 +283,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
+          {capture.kind === 'text' && <NoteMark capture={capture} />}
           {capture.kind === 'text' &&
             (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body)}</Text>)}
           {capture.kind === 'voice' && uri && (
@@ -316,7 +318,8 @@ export function CaptureViewer(props: {
    */
   onSaveEdit?: (c: Faced, patch: CapturePatch) => Promise<void>;
   /** Offers "Edit note" on notes (QL24); the editor opens inside the viewer. */
-  onSaveNote?: (c: Faced, body: string) => Promise<void>;
+  /** `type`: the chosen note type when the owner changed it (null clears), else undefined, the stored one standing (NY7, NY16). */
+  onSaveNote?: (c: Faced, body: string, type?: string | null) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
   onGoHere?: (c: Faced) => void;
   /** Open in Maps (NH6): hands the capture's place to the phone's maps app, from the More menu. */
@@ -365,6 +368,8 @@ export function CaptureViewer(props: {
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
+  // The type chosen with it, by piece: null is "No type" (NY7).
+  const [editedType, setEditedType] = useState<Map<string, string | null>>(() => new Map());
   // What was deleted (D3, D5) leaves the viewer at once; a piece split out (MS16) shows at once as its own moment,
   // right after the one it came from, while its split waits or once it is stored.
   const visible = useVisible(props.captures);
@@ -482,7 +487,8 @@ export function CaptureViewer(props: {
   const listed = moment && pieces[pi] ? facedAt(moment, pieces[pi].id) : moment;
   // Edits and notes are the piece's own (MS11): kept by the piece's id.
   const editedBody = listed ? edited.get(listed.piece_id) : undefined;
-  const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
+  const withText = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
+  const withBody = withText && editedType.has(withText.piece_id) ? { ...withText, note_type: editedType.get(withText.piece_id) } : withText;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
   // The notes that mention the moment shown, read from their text (RF7): by date, never by count.
@@ -784,16 +790,26 @@ export function CaptureViewer(props: {
             ref={noteEditor}
             key={noting.id}
             body={noting.body ?? ''}
+            type={noting.note_type ?? null}
             mention={{ self: noting.id }}
             onClose={() => setNoting(null)}
-            onSave={async (body) => {
+            onSave={async (body, type) => {
               const c = noting;
               setNoting(null);
               const before = edited.get(c.piece_id);
+              const typeBefore = editedType.has(c.piece_id) ? { had: true, v: editedType.get(c.piece_id) ?? null } : { had: false, v: null };
               setEdited((m) => new Map(m).set(c.piece_id, body));
+              if (type !== undefined) setEditedType((m) => new Map(m).set(c.piece_id, type));
               try {
-                await props.onSaveNote?.(c, body);
+                await props.onSaveNote?.(c, body, type);
               } catch {
+                // Both the words and the type go back as they were (NY7).
+                setEditedType((m) => {
+                  const n = new Map(m);
+                  if (typeBefore.had) n.set(c.piece_id, typeBefore.v);
+                  else n.delete(c.piece_id);
+                  return n;
+                });
                 setEdited((m) => {
                   const n = new Map(m);
                   if (before == null) n.delete(c.piece_id);

@@ -240,9 +240,12 @@ const FEATURES = [
       'src/components/Baker*.ts',
       'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
+      // Note types (NY1-NY17): the model and the mark a note wears.
+      'src/lib/noteType.ts',
+      'src/components/NoteMark.tsx',
     ],
     journeys: ['edit', 'stacks'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'note-types'],
   },
   {
     name: 'chronicle',

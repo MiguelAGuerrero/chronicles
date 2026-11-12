@@ -754,10 +754,10 @@ module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
   covers: [
-    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions,NoteEditor}.tsx',
+    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions,NoteEditor,NoteMark}.tsx',
     'src/components/map/**',
     'src/app/(tabs)/index.tsx',
-    'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
+    'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,noteType,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/unitsStore/**',
     'src/lib/nav/eta.ts',
   ],
