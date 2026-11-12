@@ -279,6 +279,11 @@ test('RR7: a frame is a function of the time alone, so holding the time holds ev
   rhythmFrame(p, 9000);
   rhythmFrame(p, 100);
   assert.deepEqual(rhythmFrame(p, 4200), a);
+  // Held, or paused by a viewer, the clock stands where it is; let go, it goes on (tend replay 14: the frame alone said nothing of Hold).
+  const total = p.total;
+  assert.deepEqual(tickClock({ ms: 4200, held: true }, 33, { paused: false, total }), { clock: { ms: 4200, held: true }, end: false });
+  assert.deepEqual(tickClock({ ms: 4200, held: false }, 33, { paused: true, total }), { clock: { ms: 4200, held: false }, end: false });
+  assert.deepEqual(tickClock({ ms: 4200, held: false }, 33, { paused: false, total }), { clock: { ms: 4233, held: false }, end: false });
 });
 
 test('RR8: the clock runs from arrival to leaving at a moment, with the walker between, and through a cut', () => {
@@ -321,12 +326,21 @@ test('RR9: notes enter as the walker arrives, at most three, each out after 9 s 
   assert.ok(first && first.kind === 'bubble' && first.capture.id === caps[0].id);
   // When the fourth arrives, the first is on its way out.
   const fourth = rhythmFrame(p, stops[3].t0 + R.bubbleOut / 2).overlays.find((o) => o.kind === 'bubble' && o.capture.id === caps[0].id);
-  assert.ok(!fourth || (fourth.kind === 'bubble' && fourth.exit > 0));
+  // It must still be there, leaving (tend replay 14: `!fourth ||` passed with no bubble at all).
+  assert.ok(fourth && fourth.kind === 'bubble' && fourth.exit > 0, 'the first note is on its way out');
   // A lone note leaves after its life.
-  const lone = plan(walkStory(input(line(A, B, 0), [cap('text', 430_000, B, 'Alone')])));
+  // The walk goes on past it, with photos further on, so the plan outlasts the note's life (tend replay 14: the `if` never ran).
+  const ab = line(A, B, 0);
+  const bc = line(B, C, endT(ab)).slice(1);
+  const cd = line(C, D, endT(bc)).slice(1);
+  const dd2 = line(D, D2, endT(cd)).slice(1);
+  const later = [cap('photo', endT(bc), C), cap('photo', endT(cd), D), cap('photo', endT(dd2), D2)];
+  const lone = plan(walkStory(input([...ab, ...bc, ...cd, ...dd2], [cap('text', endT(ab), B, 'Alone'), ...later])));
   const st = lone.segs.find((s) => s.k === 'stop')!;
   const until = st.t0 + R.bubbleLife + R.bubbleOut + 10;
-  if (until < lone.total) assert.ok(!rhythmFrame(lone, until).overlays.some((o) => o.kind === 'bubble'));
+  assert.ok(until < lone.total, `the walk outlasts the note (${until} of ${lone.total} ms)`);
+  assert.ok(rhythmFrame(lone, st.t0 + R.bubbleLife - 10).overlays.some((o) => o.kind === 'bubble'), 'there through its life');
+  assert.ok(!rhythmFrame(lone, until).overlays.some((o) => o.kind === 'bubble'), 'gone after it');
 });
 
 test('RR9: a note\'s pause grows with its words, at most 3 s', () => {
@@ -495,9 +509,14 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
       };
     },
   };
-  const showing = still.show(sampleWalk().story, { reduceMotion: false });
+  const sw = sampleWalk();
+  const showing = still.show(sw.story, { reduceMotion: false });
   assert.equal(showing.total, 2000);
   assert.equal(showing.frame(1500).overlays[0].kind, 'card');
+  // What it shows comes from the app's story, in the walk's order: the photo, then the note (tend replay 14: the
+  // stand-in asserted only its own shape).
+  const { photo, note } = sw;
+  assert.deepEqual([showing.frame(500).pins, showing.frame(1500).pins], [[photo.id], [note.id]]);
   assert.equal(showing.frame(2000).done, true);
 });
 

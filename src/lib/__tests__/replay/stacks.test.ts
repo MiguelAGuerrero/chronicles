@@ -53,11 +53,13 @@ test('MS17: a stack\'s stop spans its first piece to its last', () => {
 });
 
 test('MS17: built through walkStory, a stack and the same pieces apart give the same passed lines in the same order', () => {
-  const passed: WalkInput['passed'] = [{ name: 'Old Mill', generic: false, at: at(2, 0), t: t0 + 200_000 }, { name: 'Green Gate', generic: false, at: at(3.5, 0), t: t0 + 450_000 }];
+  // Both passed inside the trace (tend replay 14: Green Gate at 450 s lay past its end, 285 s, and whispered in neither plan).
+  const passed: WalkInput['passed'] = [{ name: 'Old Mill', generic: false, at: at(2, 0), t: t0 + 200_000 }, { name: 'Green Gate', generic: false, at: at(3.5, 0), t: t0 + 260_000 }];
   const apart = stack.pieces.map((p): Moment => ({ ...stack, id: p.id, t: p.t, pieces: [{ ...p, moment_id: p.id }] }));
   const together = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)], passed)), { reduceMotion: false });
   const separate = rhythmPlan(walkStory(storyOf(trace, [...apart.map(faced), faced(lone)], passed)), { reduceMotion: false });
   assert.deepEqual(together.whispers.map((w) => w.text), separate.whispers.map((w) => w.text));
+  assert.equal(together.whispers.length, 2, `both places whisper (${together.whispers.map((w) => w.text).join(' | ')})`);
 });
 
 test('MS17: the screen reader\'s steps go through a stack\'s pieces in capture order, with no position over them', async () => {

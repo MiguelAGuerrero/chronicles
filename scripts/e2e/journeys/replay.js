@@ -147,14 +147,13 @@ async function run(h) {
 
     const clockNow = () => pg.locator('[data-testid=replay-clock]').getAttribute('aria-label').catch(() => null);
     const clocks = new Set();
-    const seen = { cont: false, note: false, card: false, later: '', counted: '' };
+    const seen = { note: false, card: false, later: '', counted: '' };
     let holdChecked = false;
     let tapChecked = false;
     let pileChecked = false;
     let soundChecked = false;
     let afterViewer = -1;
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=to-name]').count()); k++) {
-      if (await pg.locator('[data-testid=moment]').count()) seen.cont = true;
       if ([2, 5, 9, 14, 20].includes(k)) await shot(pg, `rr-path-${k}`);
       const ck = await clockNow();
       if (ck) clocks.add(ck);
@@ -247,7 +246,9 @@ async function run(h) {
     // The end marker stands where the whole trace ends through the path, as on the card: never on the walker (tend replay 2, QL2).
     const cardEnd = ((await pg.locator('[data-ends]').first().getAttribute('data-ends')) ?? '').split('|')[1];
     check(cardEnd && rec.ends.length === 1 && rec.ends[0] === cardEnd, `tend replay 2: through the path the end marker stays at the trace's last point (${rec.ends.length} places: ${rec.ends.slice(0, 4).join(' ; ')}; the card's ${cardEnd})`);
-    check(onCard && !seen.cont, `RR6: the replay reaches its card with no Continue (${onCard}, ${seen.cont})`);
+    // The screen reader's steps (the only Continue) never mount on the web, so "no Continue" proved nothing here
+    // (tend replay 14); reaching the card with no tap but the checks' own is the claim.
+    check(onCard, `RR6: the replay reaches its card by itself (${onCard})`);
     check(clocks.size >= 3, `RR8: the clock rolls through the walk (${[...clocks].join(', ')})`);
     check((await pg.locator('[data-testid=replay-clock]').count()) === 0, 'RR8: the clock goes when the card comes');
     check(seen.note, 'RR9: the note shows in a bubble');
@@ -360,13 +361,12 @@ async function run(h) {
     await pg.click('[data-testid=day-replay]');
     await pg.waitForURL(/\/day\//, { timeout: 15000 });
     let dayNote = false;
-    let dayCont = false;
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=day-card]').count()); k++) {
-      if (await pg.locator('[data-testid=day-moment]').count()) dayCont = true;
       if (await pg.getByText('Bought two plums').count()) dayNote = true;
       await pg.waitForTimeout(150);
     }
-    check((await pg.locator('[data-testid=day-card]').count()) === 1 && !dayCont && dayNote, `RR16: the day's replay reaches its card with no taps, its note on the way (${dayNote}, ${dayCont})`);
+    // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
+    check((await pg.locator('[data-testid=day-card]').count()) === 1 && dayNote, `RR16: the day's replay reaches its card by itself, its note on the way (${dayNote})`);
     const dayWake = await pg.evaluate(() => window.__wake);
     check(dayWake.log.length > wakesBefore && dayWake.held === 0, `RR24: the day's replay holds the screen awake too, and lets it go on its card (${JSON.stringify(dayWake)})`);
     // The day framed above its card once the fit has settled.
