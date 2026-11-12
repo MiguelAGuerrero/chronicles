@@ -54,10 +54,13 @@ const RAISED = ['owner', 'arch', 'kept'];
 const CAP = 2;
 // The commits the loop makes: the gate's scope in CI.
 const LOOP = /^(tend |Revert "tend )/;
-// main when the gate landed. Its ancestors carry no trailers and are not replayed; every later commit
-// is. A graph fact, unlike an author date, which a rebase keeps and anyone can set. A clone that lacks
-// this commit (a shallow CI checkout, later) gates every commit it reads.
-const CUTOVER = '63ee1e42b1eb0d02be602901ad08a55adfb6f7e2';
+// The cut-over, by the commit graph, never by a date (a rebase keeps an author date and anyone can set
+// one): a commit is replayed only when its parent already holds this gate (`Records-Op` in its
+// scripts/records.js), so whatever lands on main before the gate does is history however late it
+// lands; and never when it is an ancestor of CUTOVER, main as this was written. A clone that lacks
+// CUTOVER (a shallow CI checkout, later) reads the parent rule alone.
+const CUTOVER = '49ceb3e3522a4fd2ec1c92cb35128787497293a2';
+const GATE_MARK = 'Records-Op';
 
 // STATUS.md's parts that operations change. Everything else in it is the owner's, by hand.
 const OWNER = 'Needs the owner';
@@ -982,7 +985,12 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
   const subjects = new Map(shas.map((s) => [s, git('show', '-s', '--format=%s', s).trim()]));
   const anyLoop = shas.some((s) => LOOP.test(subjects.get(s)));
   const hasCutover = tryGit(git, 'cat-file', '-e', `${cutover}^{commit}`) !== null;
-  const legacy = (sha) => hasCutover && tryGit(git, 'merge-base', '--is-ancestor', sha, cutover) !== null;
+  const gated = new Map();
+  const holdsGate = (rev) => {
+    if (!gated.has(rev)) gated.set(rev, showIn(git)(rev, 'scripts/records.js').includes(GATE_MARK));
+    return gated.get(rev);
+  };
+  const legacy = (sha, parent) => !holdsGate(parent) || (hasCutover && tryGit(git, 'merge-base', '--is-ancestor', sha, cutover) !== null);
   let shallow = new Set();
   const shallowFile = tryGit(git, 'rev-parse', '--git-path', 'shallow');
   if (shallowFile) {
@@ -997,14 +1005,13 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
     const res = { sha, subject: subj, problems: [], notices: [] };
     if (parents.length > 1) {
       const touched = git('diff', '--name-only', parents[0], sha).split('\n').filter((f) => f && watched(f));
-      if (!touched.length || legacy(sha)) continue;
+      if (!touched.length || legacy(sha, parents[0])) continue;
       if (anyLoop) res.problems.push(`a merge that changes ${touched.join(', ')}: a merge cannot be replayed, so a push that holds loop commits holds no merge that touches the record documents (a loop run rebases on main, ship.md)`);
       else res.notices.push(`a merge that changes ${touched.join(', ')}: not replayed (no loop commit in the range)`);
       results.push(res);
       continue;
     }
     if (loopOnly && !LOOP.test(subj)) continue;
-    if (legacy(sha)) continue;
     const files = git('show', '--name-status', '--format=', '--no-renames', sha).split('\n').filter(Boolean).map((l) => {
       const [status, file] = l.split('\t');
       return { status: status[0], file };
@@ -1017,14 +1024,16 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
       results.push(res);
       continue;
     }
-    const parent = parents[0] ?? null;
+    // A root commit, or one made before the gate reached its parent, is history.
+    if (!parents.length || legacy(sha, parents[0])) continue;
+    const parent = parents[0];
     for (const f of sidecars.filter((x) => x.status !== 'A')) res.problems.push(`changes another commit's sidecar ${f.file}: a sidecar is added once, with its commit, and never changed or removed`);
     const added = sidecars.filter((x) => x.status === 'A');
     if (added.length > 1) res.problems.push(`adds ${added.length} sidecars (${added.map((x) => x.file).join(', ')}): one commit, one sidecar`);
-    const base = parent ? docsAt(git, parent) : Object.fromEntries(Object.keys(DOCS).map((f) => [f, '']));
+    const base = docsAt(git, parent);
     const head = docsAt(git, sha);
     const sidecar = added.length === 1 ? showIn(git)(sha, added[0].file) : null;
-    res.problems.push(...checkCommit({ base, head, message, sidecar, ledger: parent ? ledgerAt(git, parent) : null, state }));
+    res.problems.push(...checkCommit({ base, head, message, sidecar, ledger: ledgerAt(git, parent), state }));
     results.push(res);
   }
   return { results, ok: results.every((r) => !r.problems.length), state };

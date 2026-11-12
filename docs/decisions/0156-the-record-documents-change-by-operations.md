@@ -57,10 +57,13 @@ that changes the documents fails (a loop run rebases); elsewhere it is noted. A 
 noted and skipped. The owner's own hand edits are not gated by CI. The script, its tests and `tend.test.ts` are in the
 loop's FORBIDDEN list.
 
-**The cut-over.** History carries no trailers. The gate does not replay a commit that is an ancestor of `CUTOVER` in
-`scripts/records.js` (`63ee1e42`, `main` when this landed); every later commit is replayed. Ancestry was chosen over
-an author date: a date is kept through a rebase and set by whoever commits, while a commit made after the cut-over
-cannot become its ancestor. A clone that lacks the cut-over commit gates every commit it reads.
+**The cut-over.** History carries no trailers. The gate replays a commit only when its parent already holds the replay
+gate (`scripts/records.js` with `Records-Op` in it), and never one that is an ancestor of `CUTOVER` in the script
+(`49ceb3e3`, `main` as this was written). Both are facts of the commit graph, chosen over an author date, which a
+rebase keeps and anyone can set. The parent rule is the one that matters: `main` moved twice while this was built,
+and whatever lands there before the gate does is history however late it lands, while a commit made on top of the
+gate cannot pretend otherwise without a merge (which fails) or a loop commit that edits the script (which FORBIDDEN
+fails). The recorded sha is a floor for a clone that cannot read an old parent.
 
 **Landing:** on the orchestrator's session branch, for the owner to review and merge; never pushed to `main` by the
 session.
