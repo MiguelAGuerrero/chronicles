@@ -96,6 +96,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const lastBearing = useRef(0);
+  // A map that comes back opens north-up (CP8), so its screen hears north as it goes (tend map audit 6).
+  const bearingOut = useRef(props.onBearingChange);
+  useEffect(() => {
+    bearingOut.current = props.onBearingChange;
+  });
+  useEffect(
+    () => () => {
+      if (lastBearing.current !== 0) bearingOut.current?.(0);
+    },
+    [],
+  );
   const queryRef = useRef<VectorSourceRef>(null);
   const [ready, setReady] = useState(false);
   const readyWaiters = useRef<(() => void)[]>([]);
@@ -155,7 +166,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const waitingDots = useMemo(() => waitingDotsGeoJSON(props.waitingDots), [props.waitingDots]);
   // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
   // of the trace (MapLibre RN serializes a source's data on each change).
-  const endPoints = traceEnds(props.trace, !!props.ended);
+  const endPoints = traceEnds(Array.isArray(props.ended) ? props.ended : props.trace, !!props.ended);
   const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
@@ -343,8 +354,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         onRegionWillChange={(e) => {
           if (e.nativeEvent.userInteraction) props.onUserMove?.();
         }}
-        // Two fingers turn the map (CP1); a tilt never does.
-        touchRotate
+        // Two fingers turn a map with a compass (CP1, decision 0082); the others stay north-up (tend map 1). A tilt never.
+        touchRotate={!!props.onBearingChange}
         touchPitch={false}
         dragPan={!props.onSwipe || !!props.freePan}
         onRegionDidChange={(e) => {

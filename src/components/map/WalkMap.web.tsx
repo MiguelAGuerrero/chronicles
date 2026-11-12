@@ -1,5 +1,5 @@
 import type { Faced } from '../../lib/moment';
-import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
@@ -16,10 +16,10 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
-import { scaleBar } from '../../lib/scaleBar';
+import { creditsAt, scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
-import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
+import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
@@ -33,7 +33,7 @@ import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
   alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
-  type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VECTOR_SOURCE = 'openmaptiles';
@@ -41,8 +41,8 @@ const VECTOR_SOURCE = 'openmaptiles';
 const VIEW_TIMEOUT_MS = 4000;
 
 // Copied into public/ by scripts/copy-maplibre-worker.js on install, and served
-// under the site's base path (set by experiments.baseUrl) when it has one.
-setWorkerUrl(`${process.env.EXPO_BASE_URL ?? ''}/maplibre-gl-worker.mjs`);
+// under the site's base path (set by experiments.baseUrl) when it has one, with its version (tend map 10).
+setWorkerUrl(mapWorkerUrl(process.env.EXPO_BASE_URL ?? '', getVersion()));
 
 /** The trace's end joins the live dot only this close; farther, it's a pause or gap, not lag. */
 const LINK_MAX_M = 60;
@@ -156,12 +156,34 @@ const DOUBLE_TAP_MS = 300;
  */
 class ClosedAttribution extends AttributionControl {
   private watch?: MutationObserver;
+  private shown?: MutationObserver;
+  private wasOpen = false;
+  private el?: HTMLElement;
+  /** Told when the credits open or close (tend map audit 1: Explore's hint steps aside for them). */
+  onOpen?: (open: boolean) => void;
+  /**
+   * Beside the scale bar (tend map 3): offsets from the map's bottom-left corner. Opened, the box starts at `openLeft`
+   * and keeps the (i) on its bottom row where it was tapped (tend map audit 2); the style sheet below reads these.
+   */
+  place(at: { left: number; bottom: number; openLeft: number; openMaxWidth: number }) {
+    const el = this.el;
+    if (!el) return;
+    el.style.setProperty('--credits-left', `${at.left}px`);
+    el.style.setProperty('--credits-bottom', `${at.bottom}px`);
+    el.style.setProperty('--credits-open-left', `${at.openLeft}px`);
+    el.style.setProperty('--credits-button', `${at.left - at.openLeft}px`);
+    // maplibre's control is content-box: the open box pads 8 px each side.
+    el.style.setProperty('--credits-open-max', `${at.openMaxWidth - OPEN_PAD_X}px`);
+  }
   constructor() {
     // Overture is credited beside the map data (AD16).
     super({ compact: true, customAttribution: OVERTURE_CREDIT });
   }
   onAdd(map: MapLibreMap): HTMLElement {
     const el = super.onAdd(map);
+    this.el = el;
+    el.classList.add(CREDITS_CLASS);
+    addCreditsStyle();
     // The first time it turns compact it is also opened: close it then, once, before it paints.
     const close = () => {
       if (!el.classList.contains('maplibregl-compact')) return;
@@ -171,13 +193,50 @@ class ClosedAttribution extends AttributionControl {
     this.watch = new MutationObserver(close);
     this.watch.observe(el, { attributes: true, attributeFilter: ['class'] });
     close();
+    // Opened or closed by a tap: said once per change, read from the class as it is (the first open above is already undone).
+    this.shown = new MutationObserver(() => {
+      const open = el.classList.contains('maplibregl-compact-show');
+      if (open === this.wasOpen) return;
+      this.wasOpen = open;
+      this.onOpen?.(open);
+    });
+    this.shown.observe(el, { attributes: true, attributeFilter: ['class'] });
     return el;
   }
   onRemove() {
     this.watch?.disconnect();
+    this.shown?.disconnect();
+    if (this.wasOpen) this.onOpen?.(false);
     super.onRemove();
   }
 }
+/** The open credits' side padding (8 px each side; the (i) has a row of its own below the text). */
+const OPEN_PAD_X = 16;
+/** Marks the app's credits control, for the hit area below. */
+const CREDITS_CLASS = 'chronicles-credits';
+/**
+ * The (i) is maplibre's 24 px button; a transparent ring around it makes the target 44 px (X0: "the hit area may
+ * extend past the visual"), once per page.
+ */
+function addCreditsStyle() {
+  if (document.getElementById(CREDITS_CLASS)) return;
+  const style = document.createElement('style');
+  style.id = CREDITS_CLASS;
+  // In a bottom-left corner (every map but Chronicle's), beside the scale bar (tend map 3). Opened, the box grows up and to
+  // the left from there, its text above a row that keeps the (i) where the tap was, so a second tap there closes it, and
+  // a word breaks only if it cannot fit a line at all (tend map audit 2).
+  const corner = `.maplibregl-ctrl-bottom-left>.maplibregl-ctrl-attrib.${CREDITS_CLASS}`;
+  style.textContent =
+    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-button::after{content:'';position:absolute;inset:-10px}` +
+    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-inner{overflow-wrap:break-word}` +
+    // maplibre's blue glow shows on a tap too; the app's own ring (webStyles) stays for the keyboard (tend map audit 3).
+    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-button:focus:not(:focus-visible){box-shadow:none}` +
+    `${corner}{margin:0 0 var(--credits-bottom) var(--credits-left)}` +
+    `${corner}.maplibregl-compact-show{margin-left:var(--credits-open-left);max-width:var(--credits-open-max);padding:2px 8px 28px 8px}` +
+    `${corner}.maplibregl-compact-show .maplibregl-ctrl-attrib-button{top:auto;bottom:0;left:var(--credits-button)}`;
+  document.head.appendChild(style);
+}
+
 /** Held this long without moving, a press is a long press. */
 const LONG_PRESS_MS = 500;
 
@@ -223,6 +282,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCameraChange = useRef(props.onCameraChange);
   const onFitSettled = useRef(props.onFitSettled);
   const onSwipe = useRef(props.onSwipe);
+  const onCreditsOpen = useRef(props.onCreditsOpen);
   const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
@@ -234,10 +294,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onCameraChange.current = props.onCameraChange;
     onFitSettled.current = props.onFitSettled;
     onSwipe.current = props.onSwipe;
+    onCreditsOpen.current = props.onCreditsOpen;
     freePan.current = !!props.freePan;
     fitPadding.current = props.fitPadding;
   });
   const pointerDown = useRef(false);
+  const creditsRef = useRef<ClosedAttribution | null>(null);
+  // The compass asked for north and the map is still easing there: a fit meanwhile goes north too (tend map audit 4).
+  const northAsked = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   perfCount('render:map');
   // On the live walk the dot, cone and camera glide between fixes. They are
@@ -307,6 +371,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       keyboard: !props.onSwipe || !!props.freePan,
     });
     mapRef.current = map;
+    // Only a map with a compass turns (CP1, decision 0082): the others have no way back to north (tend map 1). Neither
+    // two fingers nor Shift and an arrow key turns them.
+    if (!props.onBearingChange) {
+      map.touchZoomRotate.disableRotation();
+      map.keyboard.disableRotation();
+    }
     map.on('load', () => {
       addOverlay(map);
       setReady(true);
@@ -545,6 +615,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
     map.on('rotate', turned);
     map.on('rotateend', turned);
+    // Any move's end (the ease to north done, or cut by a drag or a fit) ends the request.
+    map.on('moveend', () => {
+      northAsked.current = false;
+    });
     // A camera move made in code cancels a drag in progress, and the glide moves
     // the camera every frame. So follow-moves wait while a pointer is down.
     const down = () => { pointerDown.current = true; };
@@ -555,8 +629,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('touchend', up);
     map.on('touchcancel', up);
     map.on('dragend', up);
-    // Top right on the home, where the sheet never covers it (OSM requires it reachable).
-    map.addControl(new ClosedAttribution(), props.attributionTop ? 'top-right' : 'bottom-right');
+    // The credits stay reachable (OSM asks it): top right on Chronicle, where the sheet never covers them; on every
+    // other map beside the scale bar, on the strip its screen keeps clear, placed below (tend map 3). Bottom right,
+    // they lay under the walk's strip, the replay's card, Locate and the capture stack.
+    const credits = new ClosedAttribution();
+    credits.onOpen = (open) => onCreditsOpen.current?.(open);
+    creditsRef.current = credits;
+    map.addControl(credits, props.attributionTop ? 'top-right' : 'bottom-left');
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);
@@ -565,6 +644,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       clearTimeout(pressTimer);
       clearTimeout(holdTimer);
       dropSwipe();
+      // A map that comes back opens north-up (CP8), so its screen hears north as it goes: a map taken down under the
+      // planner left its last turn with the compass (tend map audit 6).
+      if (sentBearing !== 0) onBearingChange.current?.(0);
       map.remove();
       mapRef.current = null;
     };
@@ -663,7 +745,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     () => [...new Set(stripsGeoJSON(props.landing).features.map((f) => `${f.properties!.grade}:${f.properties!.width}`))].sort().join(','),
     [props.landing],
   );
-  const ends = traceEnds(props.trace, !!props.ended);
+  const ends = traceEnds(Array.isArray(props.ended) ? props.ended : props.trace, !!props.ended);
   const endsKey = `${fmt(ends.start)}|${fmt(ends.end)}`;
   useEffect(() => {
     if (ready) setData('ends', endsGeoJSON(ends.start, ends.end));
@@ -718,6 +800,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // Where the dot is drawn (QL12), for the e2e; empty with none.
     container.current?.setAttribute('data-walker', fmt(props.walker));
   }, [ready, glideOn, props.walker]);
+  // The credits beside the scale bar (tend map 3), moved with the inset (a sheet's height) and the map's width.
+  const scaleBottom = (props.scaleInset ?? DEFAULT_SCALE_INSET).bottom;
+  const scaleLeft = (props.scaleInset ?? DEFAULT_SCALE_INSET).left;
+  const creditsTop = !!props.attributionTop;
+  useEffect(() => {
+    const map = mapRef.current;
+    const credits = creditsRef.current;
+    if (!ready || !map || !credits || creditsTop) return;
+    const place = () => credits.place(creditsAt({ bottom: scaleBottom, left: scaleLeft }, SCALE_MAX_PX, map.getContainer().clientWidth));
+    place();
+    map.on('resize', place);
+    return () => {
+      map.off('resize', place);
+    };
+  }, [ready, scaleBottom, scaleLeft, creditsTop]);
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
@@ -1019,7 +1116,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const [w, s, e, n] = props.fitBounds;
       const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
       perfCount('fit');
-      mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration });
+      // At the bearing the map has: maplibre's fit turns it back to north unless told (CP1: a fit never changes the
+      // bearing; tend map 2).
+      const map = mapRef.current;
+      // While the compass's ease to north runs, north: the bearing read mid-ease would stop the map part-way (tend map audit 4).
+      map?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map.getBearing() });
       // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
       const key = props.fitKey ?? 0;
       const t = setTimeout(() => onFitSettled.current?.(key), duration + 150);
@@ -1065,7 +1166,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       mapRef.current?.easeTo({ center: at, offset, duration: animateRef.current ? MOTION.ease : 0 });
     },
     resetNorth() {
-      mapRef.current?.easeTo({ bearing: 0, duration: animateRef.current ? MOTION.camera : 0 });
+      const map = mapRef.current;
+      if (!map) return;
+      const duration = animateRef.current ? MOTION.camera : 0;
+      // Set after easeTo starts: easeTo first stops any move under way, and that move's end clears the request.
+      map.easeTo({ bearing: 0, duration });
+      northAsked.current = duration > 0 && map.getBearing() !== 0;
     },
     async collectPlaces(center) {
       await readyPromise.current!.promise;

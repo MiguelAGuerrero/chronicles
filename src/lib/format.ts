@@ -17,7 +17,8 @@ export function formatDistance(m: number, units: Units = getUnits()): string {
     const ft = Math.round(m / FT_M);
     return ft < MI_FROM_FT ? `${ft} ft` : `${(m / MI_M).toFixed(1)} mi`;
   }
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
+  // Rounded before the step, as the miles are: 999.6 m is "1.0 km", never "1000 m" (tend map 7).
+  return Math.round(m) < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
 /**

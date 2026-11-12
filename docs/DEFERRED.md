@@ -96,6 +96,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] `setFit` is called in an effect body (`explore.tsx`, the page's framing effect), against the React Compiler rule in AGENTS.md; `nextFrame` keeps it from looping (`/tend explore`, second sweep, Nov 11, low)
 - [loop] At 320 px two journey checks failed that pass at 390: `carousel`'s "WT13: a dot no pin covers, to tap" and the walk's "the bar's Open in Maps sends the destination (NH3: 29.6 m)". Unconfirmed whether the app or the checks' geometry (run with a scratch preload forcing the width; `/tend explore`, second sweep, Nov 11, low)
 - [loop] `exploreSlots` (`atlas/overlaySlots.ts`) repeats numbers the screen also holds: the long press's choices' 68 (`SPOT_H`), the Towns pill's `bottom: 12` and `minHeight: 44`, the scale bar's 32; its test repeats them again, so a change to one does not fail it. Take the pill's and the choices' places from `exploreSlots` too (`/tend explore` review, Nov 11, low)
+- [loop] At 320 px, "Press and hold the map to look anywhere." wraps to two lines over Explore's map (picture `probe-map-attrib-320-explore`; ui-patterns, "Nothing wraps on a 320 px phone at the default text size"; `/tend map`, Nov 12, low, explore's)
+- [owner] With no fix, Explore shows Locate at the map's edge and "Find me" in the card, the same crosshair twice (pictures `probe-map-390-explore-denied-before`, `probe-map-390-locate-denied-explore`; UX review U4, NN/g H8, H4; `/tend map`, Nov 12, low). Recommended: hide the edge Locate while the card offers Find me
 - [loop] A tall overlay is unmeasured: a two-line error banner with an action at 320 px or 200% text, or the long press's choices wrapping taller than 68, may reach the top chips or cover the slots `exploreSlots` assumes; no journey pictures either (`/tend explore` review, Nov 11, low, unconfirmed)
 - [kept] `new Date(c.t)` in `discovery/recall.ts:106` names a month and day in the device's timezone: the same item as functional-core audit 10 (`/tend explore`, Nov 11)
 - [owner] The Explore toast's 3000 ms dwell (`explore.tsx:176`) is a literal, not a `motionTokens` value; no token names a dwell, so whether the rule applies is the owner's (`/tend explore`, Nov 11, low, opinion)
@@ -175,9 +177,23 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Native can't tell zoom from pan yet, so a zoom stops following there (Walk screen layout)
 - Map layer order on native: no `beforeId` yet (v1.5 landing, native)
 - No sounds yet (Polish: motion)
-- [loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)
+- ~~[loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)~~: since `tend map 3` its target is 44 px on every map; on Chronicle it stays top right, elsewhere it sits beside the scale bar
 - [loop] The `chronicle` journey's M9 check reads `window.__enters` as soon as `place-title` shows, before the harness's `requestAnimationFrame` has recorded the bounce, and its sheet-drag step can read the sheet before it settles: each failed once in four runs of `/tend inbox`, Nov 11, on code that leaves those screens as they were; wait for the entry (`waitForFunction`) and the settle (low)
   - Since then (`/tend inbox G1 yes`, Nov 11): `npm run e2e:baseline -- chronicle` on `main` (`1912c19`) failed M9 in 3 runs of 3, so it is no longer a flake; `main` fails it, before any change of the run. The cause is not looked for yet.
+- [loop] Every pin is a DOM marker with its own React root whether or not it is in view, and maplibre moves each on every camera move: on Chronicle's map that is every placed moment in the world. `tend map 4` made the grouping near-linear; drawing only the pins in view (with a margin) needs the map's bounds as state, which re-renders on every pan, against the render budget (`WalkMap.web.tsx` `usePinMarkers`, `useZoomPins` in `map/types.ts`; `/tend map`'s auditor F3, Nov 12, medium)
+- [loop] The pin, star and "?" taps read their handlers from refs updated in passive effects (`WalkMap.web.tsx` `usePinMarkers`'s `latest`, `starLatest`, `markLatest`), where the map's own handlers moved to `useLayoutEffect` (audit 8), so a tap in the frame after a render could reach the previous handler. Fix: `useLayoutEffect` for the three; no test reaches a one-frame race, so it waits for one (`/tend map`'s auditor F9, Nov 12, low)
+- [loop] Comments that say what the code does not: `units.ts`'s header says "Pure" under `@layer shell` and names `unitsStore.ts` (a folder now); `ScaleBar.tsx`'s doc comment reads "on with a white halo"; `WalkMap.web.tsx` has QL1-QL2's comment above `gradedKey`; `PIN_HEIGHT` (`CapturePinView.tsx`) is exported and unused (`/tend map`'s auditor F10, Nov 12, low; `check:tend` wants a named test for a comment)
+- [loop] `scaleBar`'s default `units = getUnits()` has no app caller (both maps pass `useUnits()`); dropping it would make `scaleBar.ts` core with no shell import, which shrinks `layers.baseline.json`, which the loop may not edit (`/tend map`'s auditor F10, Nov 12, low)
+- [loop] Native keeps the motion setting the map loaded with for `resetNorth()` and `showPoint()` (`WalkMap.native.tsx` ~l.260-265, an imperative handle built with `[ready]`): turning on Reduce Motion with Explore open, the compass still eases (CP4, M2); the web reads a ref. Unverified on a device (`/tend map`'s auditor F12, Nov 12, low, phone)
+- [loop] On the live walk, following, the compass cannot bring the map north: turned by two fingers (following stops), then Recenter (following again, still turned), keep walking and tap the compass: `resetNorth` eases over 600 ms (`WalkMap.web.tsx`, the handle's `resetNorth`), but each glide frame while following calls `map.jumpTo({ center })` (`applyFrame`), and maplibre's `jumpTo` starts with `this.stop()`, which cuts the ease after one frame; the map stays turned and the compass stays. `qol` misses it: `window.__turn` has no `originalEvent`, so following never stops, and the step runs after the fixes stop. Fix: the follow's `jumpTo` passes the eased bearing while the ease runs, or skips follow frames during it, or `resetNorth` jumps while following. Breaks CP4 (`/tend map`'s review, auditor F3, Nov 12, medium; deferred by the coordinator)
+- [loop] The map's credits (i) sit top right on Chronicle and beside the scale bar on every other map (`attributionTop`, since `tend map 3`): one place on every map would be more consistent; Chronicle's scale bar has room beside it, clear of the sheet (NN/g H4; `/tend map`'s review, ux U5, Nov 12, low)
+- [loop] Opened on the replay, which has no column of buttons at the right at that height, the credits still stop where the walk's capture stack would be (`creditsAt` assumes a 56 px column on every map but Chronicle's), so they wrap to more lines than they need; letting them run to the right inset needs the screen to say it has no column, more than a line (`/tend map`'s review, ux U3, Nov 12, low)
+- [loop] `tend map 10`'s unit test compares `mapWorkerUrl` with a string built from the same version and never reaches the `setWorkerUrl` call, so reverting `WalkMap.web.tsx`'s call to the old address still passes; reaching it means importing the web map in `npm test` or a journey reading the worker request (`/tend map`'s review, auditor "tests that cannot fail", Nov 12, low)
+- [loop] A dark line runs across the walk's bottom strip at about y 630 in `layers-small` (375 x 667, walkability on), through "0:04 · 0 m" and behind Pause and Hold; the same picture on `main` (`92f021c7`) shows it, so it predates `/tend map`. Make the strip opaque over the map or above that layer (ui-patterns, "Content may run under a bar (T7); a control may not float over it"; `/tend map`'s review, ux U6, Nov 12, low)
+
+- [loop] Before a map's style loads, its credits (i) sit flush in the screen's corner, half off it (the replay's reading
+  beat, `probe-390r-reading`): `place()` runs only once the map is ready, and `--credits-bottom` and `--credits-left`
+  have no fallback in the stylesheet (`WalkMap.web.tsx`; `/tend replay`, call 12, low; the map area's)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -185,7 +201,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 2. GPX export (Quality of life, round 4)
 3. The current street as a chip (Quality of life, round 4)
 4. Dark mode (Quality of life, round 4)
-5. The scale bar's miles mode at native's coarser 0.25-zoom view updates (Quality of life)
+5. The scale bar's miles mode at native's coarser 0.25-zoom view updates (Quality of life); and native's view never follows the latitude, so after a long pan at one zoom the bar is measured at the old latitude (42° to 27° at z6: 20% off, where QL7 asks 5%; `WalkMap.native.tsx` ~l.357; `/tend map`'s auditor F11, Nov 12, [loop] low, phone)
 6. An audit pass over the quality-of-life rounds (the owner chose checkpoints instead; 0064)
 7. Memory pins pick up a small copy made mid-walk only when their capture set changes (`memories.ts` sends only changed ids; QL26)
 8. Edit note on Navigate's live walk, which opens no viewer (QL24)
@@ -305,6 +321,34 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
 - **Videos under iOS's loading rule, beyond a plain card** (fix ios-video, Nov 5): the `chronicle` journey copies iOS's rule (no `readyToPlay` before a `play()`) for a plain video card only. Not covered: an edited or trimmed card (its view swap and the seek to the trim's start, audit 5), and a viewer opened by a tapped reminder on a video, which carries its time over when the sized view swaps in (audit 2). A journey with a video reminder and an edited, trimmed clip under the rule would cover both. Never tried in WebKit: whether a time set at `readyState` 0 holds, and whether the size probe's detached `<video>` ever reports its metadata on iOS (if not, an edited video shows unturned in the viewer, as before the fix)
 - **Why Chronicle went white after Keep it** (Nov 4, the owner's iPhone): not reproduced in Chromium. The tabs now show `ScreenError` with the message; the cause waits for it. On a tab, its "Back to walks" goes nowhere (Chronicle is already the route, and only `retry` clears the boundary); Try again and the tab bar work (fix ios-video audit 6)
+
+- [loop] `loadReplay` reads whole stores: all summaries (`listSummaries().find`), and on the web all walks and every
+  `visited_segment` row (`streetKeysBefore`, `db/index.web.ts`); the day's replay calls it once per walk, one after
+  another, and uses neither `newStreets` nor the fog (`/tend replay`, the auditor's F3, medium). Not shipped: `summary.ts`
+  imports the app's `db`, so no unit test reaches it; making it a shell with ports (functional-core) is larger than the
+  finding. Then: the day's walks read together, an option that skips the street history, the web's read by `walk_id`
+- [loop] A photo card's caption is cut to one line ("The blue door on W…" at 320 px; `Cards.tsx` `numberOfLines={1}`;
+  the UX review's U7, the steward's S6, low). Two lines need the card's height to count them, which `cardFloor` and
+  `STACK_TOP` (`tend replay 7`, `11`) now place by
+- [loop] The day's card is a plain View with no scroll, where the walk's card is a 70 % ScrollView: at the largest text
+  size or on a landscape phone its buttons could leave the screen (`/tend replay`, call 10, low; see T23)
+- [loop] Stale lines (the auditor's F8, low): `replay.ts`'s `PauseGroup` comment says each capture shows "until the
+  viewer moves on" (RR6: nothing waits); `Cards.tsx` resolves `useMediaUri(o.capture)` for a stack's grid card it never
+  draws, so the first piece is read twice
+- [loop] The browser's own Back on the name step leaves the replay and drops the words typed (the auditor's F2, its web
+  half): the replay's leave runs on unmount, and a browser's Back cannot be held cheaply (`tabs-and-home.md`).
+  Android's Back and Escape return to the card (`tend replay 4`, `5`)
+- [loop] On a landscape phone the card stands under the whole top stack and is 157 px wide (138 with notched insets):
+  standing beside the centred stack instead would give it the height back (`/tend replay`'s review, call 4, low)
+- [loop] On a narrow card (172 px at 320) the 147 x 48 "Tap for sound" pill covers most of the video's top; it could sit
+  in the card's caption strip there (`/tend replay`'s review, call 10, low)
+- [loop] Two or three bubbles stacked (a six-line note and a memo, about 220 px) can still reach a card resting above
+  `BUBBLE_ROOM` (160 px) on a short phone: where `cardFloor` keeps the reserve, the bubbles' column could be capped at it,
+  the oldest leaving from the top (`Bubbles.tsx` `maxHeight: cornerHeight(ctx)`; the UX review's U13, low)
+- [loop] The day's map leaves out the faint stretch the walk's card draws across a gap (`rr-day-card` against `rr-card`,
+  from before the sweep; `day/[key].tsx` draws only `pathDrawnAt`'s trace and rides; the UX review's U14, low)
+- [owner] A card's time can run a minute ahead of the rolling clock as it grows (`rr-path-20`: the clock 4:07 PM, the
+  card 4:08 PM; the UX review's U10, opinion, low): the clock is the rhythm's (RR8)
 
 ## Town presence (TP, decision 0089)
 
@@ -533,7 +577,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **After a dot's zoom the crowd can run off screen** (whole-towns audit 19, opinion): the map eases around the tapped dot,
   not the places it crowded; fitting them all, or marking the tapped "?" for a moment, is not done.
 - **Android's 48 dp tap reach** (audit 21, in part): a dot's reach is 44 px everywhere.
-- **The back pill covers the scale bar; something peeks under Locate** (audit 23): predates the slice.
+- **The back pill covers the scale bar; something peeks under Locate** (audit 23): predates the slice. The peek was the map's credits (i), under Locate; since `tend map 3` they sit beside the scale bar.
 - **A town past `TILE_BUDGET`** (60 z14 tiles): the nearest 60 are read for its list, as for its card.
 
 ## Explore: a neighborhood with no listed town (fix explore-town-scope, decision 0126)
@@ -593,7 +637,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Web build across deploys (fix stale-chunk, Nov 11)
 
-- [loop] The map worker's address has no version (`WalkMap.web.tsx` ~l.41 sets `/maplibre-gl-worker.mjs`; maplibre's own default adds `?v=<version>`): after a deploy that upgrades maplibre-gl, a page left open that closes its last map and opens another starts the new worker against the old main-thread code. Fix: add the version, with a unit test that reads it from the installed maplibre-gl package (auditor, low)
+- [arch] The map worker's address had no version (`WalkMap.web.tsx` ~l.41 set `/maplibre-gl-worker.mjs`; maplibre's own default adds `?v=<version>`): after a deploy that upgrades maplibre-gl, a page left open that closes its last map and opens another starts the new worker against the old main-thread code. Since `tend map 10` the address carries the version (`mapWorkerUrl`), which mends a cached older worker under a new bundle, but not this: a static host ignores the query and serves only the new file, so an old page needs the previous build's worker kept across deploys, a deploy change (auditor, low; `/tend map`'s auditor, Nov 12)
 - [loop] A change to `app.json` or `app.config.js` alone selects no test in `check:affected` (`scripts/affected.js` `HARNESS`), so `tabs/oneBundle.test.ts` runs only in the full `npm test`, which CI runs before every deploy (auditor, low)
 - [kept] A page opened before this fix still runs the split build: its next first visit to a screen after the deploy shows "Loading module … failed" once, and Try again can't mend it; reopen the app (in the Home Screen app, close it from the app switcher). `ScreenError` offers no page reload for it: the owner chose one bundle over reloading (auditor, low)
 - [owner] Pages serves `index.html` with `cache-control: max-age=600`, so for ten minutes after a deploy a reload may get the old page, which names the old bundle. That is harmless while the browser also holds the old bundle in its cache, and a blank page if it doesn't. Not reproduced (auditor's opinion; header checked live, Nov 11)

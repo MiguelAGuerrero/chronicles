@@ -146,6 +146,103 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   with a walk minimized, then Explore.
   Expect: the section names, the band's Photo, Voice and Note, the recording bar's time and distance and the tab labels are all
   there, wrapping where they must, none cut to a letter or pushed off the screen.
+- **T14 [owner] Map: a pin of several moments is a bare numeral** (2026-11-12)
+  Area: map. Seen: `qol-02-walk`, `qol-03-replay-card` (a dark disc reading "2"; spoken "2 captures here", `CapturePinView.tsx`
+  `pinLabel`). Rests on: VISION.md Always, "Counts are words, in a clause", and "A moment carries its context ... It never
+  appears as a bare thumbnail, filename or count" (steward S2). QL26 shipped "A pin of several captures keeps its count"
+  (Nov 3), so this amends a shipped criterion: yours.
+  Recommended: a pin of several moments shows their kinds in its head (the kinds' icons, up to two, fanned, no numeral),
+  and its spoken name says them in words with the minutes in: "A photo and a note, twelve minutes in. Open". /vision:
+  aligned (honour; "Counts are words"), amends QL26. Whether a pin's name carries the time is put to you separately.
+  Otherwise: keep the disc, say the count in words to a screen reader only ("Two moments here"); or leave it.
+- **T15 [owner] Chronicle: walked places are accent stars, with a numeral where they merge** (2026-11-12)
+  Area: places (seen on the map's sweep). Seen: `probe-map-attrib-390-chronicle` ("Fox Point" on an orange star),
+  `StarView.tsx` l.40-44 (a merged star draws its count, "3"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best
+  of', rankings of places", and "Celebration: ... accent-coloured wins"; Always, "Counts are words" (steward S3). Decision
+  0019 chose stars where walks were; this quotes the page against it, so it is yours.
+  Recommended: a walked place is a plain ink mark (a dot, or the walk's footprints glyph), and a merged place says how many
+  walks in words on a tap ("Three walks here"), never a numeral beside it. /vision: aligned if reshaped (honour; the
+  reshaping is the mark: no star glyph, no accent, no numeral). Amends 0019.
+  Otherwise: keep the star in ink rather than the accent, and drop the numeral; or leave it.
+- **T16 [owner] Map: a walk's start and end differ by colour alone** (2026-11-12)
+  Area: map. Seen: `qol-03-replay-card`, `probe-map-attrib-390-replay` (two white discs of one size, one ringed green,
+  one orange-red, a confusable pair; the end sits on the walked street in the same orange). Rests on: WCAG 2.2, 1.4.1 Use
+  of Color; ui-patterns, "Never colour alone to show state" (UX review U3). QL2 specifies "a white disc with a thick ring
+  in the walked orange": changing it amends a shipped criterion.
+  Recommended: the start stays hollow (white with the green ring); the end is solid, a disc filled in the walked orange
+  with a white ring, so shape tells them apart. /vision: aligned (return: the walk's two ends read at a glance;
+  restraint kept, no new colour). Whether the end should be orange at all is put to you separately.
+  Otherwise: the end ring larger than the start's; or leave it.
+- **T17 [owner] Map: location refused reads as a fault** (2026-11-12)
+  Area: map (Locate on Navigate and Explore). Seen: `probe-map-390-locate-denied-navigate`, `probe-map-390-locate-denied-explore`,
+  `qol-13-locate-denied` (a red error box: "Location permission was denied. Allow location for this site in the browser
+  settings, then try again."). Rests on: VISION.md Always, "Restraint in motion, colour and copy" (steward S5). New copy,
+  so yours.
+  Recommended: the refusal is a quiet notice in ink, not red: "Location is off for this site. Turn it on in the browser's
+  settings to see where you are." (on a phone, "... in Settings", with Open Settings), the same words the recorder's start
+  uses. And with no fix and no tiles drawn, the scale bar is not shown over a blank world ("2,000 km", steward S6).
+  /vision: aligned (honour; restraint).
+  Otherwise: keep the words and drop the red only; or leave it.
+- **T18 [phone] The map's text and buttons at the largest text size** (2026-11-12)
+  Area: map. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
+  Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open a walk with two
+  moments kept at one place, turn the map, then open its replay and Explore.
+  Expect: the scale bar's label stays whole beside its line, a pin's count or kinds stay inside its head, the compass and
+  Locate stay 44 pt and in their column, and the map's (i) stays reachable, none cut or pushed under the strip or a card.
+- **T19 [owner] Replay: the cards say their counts in words, with one hint** (2026-11-12)
+  Area: replay (the walk's card and the day's). Seen: `rr-day-card` ("5 moments · 5 places", now 16 px regular after
+  `tend replay 12`), `probe-390r-card` ("1 photo · 1 video · 1 voice memo · 1 note · tap a pin to open"); the hint
+  worded two ways, "· tap a pin to open" and "Tap a pin to open it" (UX U11). Rests on: VISION.md Always, "Counts are
+  words, in a clause"; the replay rule, "No accent colour or large number on the card" (steward S3). M13 shipped
+  "\<weekday\> · N moments · P places", so this amends a shipped criterion. Your answer of Nov 12 (decision 0153):
+  "places" on the day's card are named places only, said in words.
+  Recommended: the day's line a clause, "Four moments, around Wickenden Street and the Old Mill" (up to two named
+  places, else "Four moments around Fox Point", the day's area, else "Four moments"); the walk's captures line a
+  clause, "Two photos, a video, a voice memo and a note"; one hint on both, "Tap a pin to open it". /vision: aligned
+  (return; "Counts are words, in a clause"), amends M13.
+  Otherwise: the numbers as words only ("Four moments · two places"); or leave it.
+- **T20 [owner] Replay: "Back to the map" and "Back to walks" both go to Chronicle** (2026-11-12)
+  Area: replay. Seen: `src/app/day/[key].tsx` (a day with nothing kept: "Back to the map"), `src/app/replay/[id].tsx`
+  (a walk not found: "Back to walks"); both `router.dismissTo('/')`, which is Chronicle since decision 0112. Rests on:
+  VISION.md, "Chronicle first ... the map is one view of it, not its home" (steward S4). New words, so yours.
+  Recommended: both read "Back to Chronicle". /vision: aligned (return; the place's own name, nothing new).
+  Otherwise: "Back" alone; or leave it.
+- **T21 [owner] Replay: the name step's only way on is Keep it** (2026-11-12)
+  Area: replay (beat five). Seen: `probe-390r-name`, `probe-320r-name` (two fields and Keep it, no Cancel or back).
+  Rests on: NN/g H3, "a clearly marked 'emergency exit'"; the goal-to-control matrix, row 18, "Text view in a sheet
+  with Cancel and Done" (UX U8). Since `tend replay 4` and `5`, Android's Back and the web's Escape return to the card
+  with the words kept; an iPhone has neither. A control on beat five is yours.
+  Recommended: a quiet "Back" in the name sheet's top row, in the card's "Not now" style, returning to the card with
+  the words kept. /vision: aligned (return; restraint: one quiet text control, no new colour).
+  Otherwise: leave it (Keep it with the suggested name loses nothing).
+- **T22 [owner] The walked colour is separate from the accent** (2026-11-12)
+  Area: replay, and every map that draws walked streets (Chronicle's map, the walk's end marker, any map given
+  `walked`). Seen: `probe-390r-fog` (beat one lights the walked streets in `COLORS.walked`, `#c2410c`, the same hex as
+  `theme.accent`; they stay lit through the path; steward Q2). Rests on: your answer of Nov 12 (decision 0153), "the
+  replay must never light anything in the accent"; VISION.md Never, "Celebration: ... accent-coloured wins". The
+  palette is not chosen.
+  Recommended: a walked colour of its own in `COLORS.walked` (`components/map/types.ts`), a deep ochre or brick at
+  3:1 or more against the map's ground and apart from the accent and the kinds' colours, so every map follows at
+  once; the trace's green unchanged; QL2's end ring ("in the walked orange") takes it too. Not built until you pick
+  the hue. /vision: aligned (return; restraint in colour), amends QL2's colour word.
+  Otherwise: keep the hue but draw the walked streets lighter in the replay only; or leave it.
+- **T23 [phone] The replays at the largest text size** (2026-11-12)
+  Area: replay. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
+  Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; finish a walk
+  with a photo, a note and a memo, watch its replay to the card, Name it, then open its day's replay to its card.
+  Expect: the fog's headline and "Reading the streets you walked…" wrap inside their boxes, clear of Skip; Hold, the
+  clock and Skip stay on one row; "20 min later" and "Held · tap to go on" stay whole; a card's caption, "Tap for
+  sound" and the memo's line ("Voice memo · 0:03 · 4:37 PM") stay inside their card and bubble; the walk card's two
+  buttons and Not now, and the name step's fields and Keep it, stay on screen above the keyboard; the day's card
+  (which does not scroll) keeps Watch again and Done on screen.
+- **T24 [phone] The replays with a screen reader, and Android's Back** (2026-11-12)
+  Area: replay. Seen: not on the web (react-native-web's announcement does nothing; the steps never mount there).
+  Do: with VoiceOver, then TalkBack, finish a walk and let its replay play; on the card edit a note; open its day's
+  replay and Skip; on Android with no screen reader, Name it, type a name, press Back.
+  Expect: "Reading the streets you walked", the headline and "Summary" are each said once (not again after the note's
+  edit, `tend replay 9`); the steps go through the moments with Continue, then the card (RR17); the day's card is said
+  after Skip; Back on the name step returns to the card with the name kept (`tend replay 4`), and Back on the card
+  leaves for Chronicle.
 
 ### Next evolutions
 
@@ -173,27 +270,59 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 12, `/tend inbox T12 yes`** (from `2e47bf94`; T12 built, the yes given Nov 12 and carried from the last inbox run).
-- `tend tabs T12`: after a photo from the recording bar, the Edit offer is a pill above the bar, "Photo saved to your
-  walk · Edit · ✕", in the Undo pill's look, that waits for Edit, Close or the next capture of the walk, announced
-  politely; the bar's line keeps its time and distance, and the words are whole on one line at 320 px (they were cut to
-  "Photo save…"). ME23's other places keep 6 s. Decision 0149 (amends ME23 on the bar); `barOffer*` in `lib/recordingBar`.
-- The review's fixes: `audit 15`, a bar photo deleted elsewhere ends the offer (F1); `audit 16`, the capturehome journey
-  pins that a screen over the tabs ends it, as 0149 now says (F2, settled by wording); `audit 17`, paused, the line reads
-  "0:05 · 18 m · Paused", so 320 px cuts the word, never the numbers (F3, U1); `audit 18`, a failed bar photo ends the
-  offer (F4); `audit 19`, the pill goes while the walk is stopping (F5); `audit 20`, Undo's 8 px between Edit and Close
-  (F7, U2); `audit 21`, a note from Memories' band ends the pill, in the capturehome journey (F8).
-The review: one round of the auditor and the ux-reviewer (decision 0145): 7 accepted (U1 and U2 merged into F3 and F7),
-1 deferred (F6, the walker's dot under Explore's hint at 320 px with the pill up, `[loop]` in `docs/DEFERRED.md`), none
-rejected. Pictured, not before: the pill left up on Memories (390 and 320 px), where a second dark pill (the storage
-notice) stood over it at once (`[loop]` in `docs/DEFERRED.md`); the pill with the bar's reminder card was not pictured
-(a reminder needs a fired recall). Journeys `launch`, `edit`, `tabs` and `capturehome` pass; `reload` was reached and
-skipped (its check is the bar's "Hold to stop", unchanged). Filed: no T or G entry. Not a sweep: no lens ran and no area
-changed state. Nothing here has run on a phone; the pill, its announcement and the editor it opens are native view
-code too (`docs/NATIVE_UNVERIFIED.md`).
+**Nov 12, `/tend replay`**, a sweep (from `5da94600`; the first of the replay; `--deploy=main`).
+- `tend replay 1`: beat one's headline stands below the top row, clear of Skip (it covered "...Transit Str[eet]" at
+  390 px); both headlines keep 16 px from the edges at 320.
+- `tend replay 2`: the end marker stays where the trace ends while the path is told (it rode the walker, re-sent
+  every 66 ms; QL2).
+- `tend replay 3`: the day card's distance follows the units setting (QL14).
+- `tend replay 4`: Android's Back on the name step returns to the card with the words kept.
+- `tend replay 5`: Escape on the web is Back's sibling on both replays (not while a viewer holds the key).
+- `tend replay 6`: a video card's Tap for sound is a 44 px target on solid ink, spoken as it reads.
+- `tend replay 7`: on a 320 or 375 px phone a card stands clear of the note being read (with a status bar too, audit 3).
+- `tend replay 8`: the memo's bubble keeps its time whole and on one line at 320 px (audit 2).
+- `tend replay 9`: each beat is said once as it begins; a skipped day's card is said too (native only).
+- `tend replay 10`: the day's replay frames its walks' rides.
+- `tend replay 11`: a card stands under the clock's line and the Held pill (landscape).
+- `tend replay 12`: the day card's line is set as the walk card's (16 px regular).
+- `tend replay 13`: the fog's headline takes its ground from the theme; the colour scan covers both screens.
+- `tend replay 14`: six replay checks that could not fail now can (the auditor's T1, T2, T4-T7; T3 in 11).
+The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
+- `tend replay audit 2`: the memo's time keeps one line (it wrapped "5:38 / PM"; F2, U12).
+- `tend replay audit 3`: under a 20 px status bar a card still clears the note (the reserve fell away; F3).
+- `tend replay audit 4`: a held Escape on the name step stops at the card (its repeat left unsaved; F4).
+- `tend replay audit 5`: in landscape, held, the pills are measured clear of the card (F5).
+- `tend replay audit 6`: the fog's headline starts 8 px below Skip (F6).
+Review: 7 accepted (F1, the record's draft dropping "Open before the loop", restored; F2 with U12; F3-F6; F7, a native
+check reworded), 4 deferred `[loop]` low (call 4, call 10, U13, U14), 0 rejected.
+Filed: T19-T22 `[owner]` (the cards' counts in words, "Back to Chronicle", the name step's way back, the walked
+colour apart from the accent), T23-T24 `[phone]` (the largest text size; the screen reader and Back); `[loop]` in
+`docs/DEFERRED.md`: `loadReplay`'s full scans (medium), the caption on one line, the day card's scroll, two stale
+lines, the browser's Back on the name step, the map's (i) before its style loads; `[owner]` low: a card's time ahead
+of the clock. Decision 0153 records the owner's answers to the steward's questions (Q1-Q4). Not a finding: the memo's
+42 px button (its bubble's entrance scale; 44 px at rest).
+The balance: outgrowing its base (seven areas rough), so no `G` entry. Lenses not whole: the largest text size and the
+screen reader (phone only); the replay area is `rough`.
 
 ### Open before the loop
 
+- **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
+  bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
+  north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`
+  north while the compass's ease runs. Reword it to "a fit keeps the bearing the map has (the web passes
+  `map.getBearing()`, or 0 while the compass turns it north; maplibre's default is north); never a fixed one".
+  Its scale-bar line says the walk screen's map "bottom edge is the strip's top", but the live walk's runs under the
+  strip (`mapEndsAtStrip: false`, `walk.tsx`; only the ready screen's ends there). And it has no line yet for two
+  things this run shipped: only a map given `onBearingChange` (one with a compass) turns (`tend map 1`), and the credits
+  (i) sit beside the scale bar on every map but Chronicle's, with a 44 px target (`creditsAt`, `tend map 3`); opened,
+  the box starts at `openLeft`, clear of a 44 px control over the scale bar, keeps the (i) on its bottom row and says so
+  through `onCreditsOpen` (`tend map audit 1`, `2`); and a trap: `window.__turn` turns the map mounted last, which on
+  Explore can be another screen's, so a journey turns Explore with two real touches. The loop rewords no rule line, and
+  adds none to a file its commits cite.
+- **QL8's and QL11's wording** (Nov 12; `/tend map`): QL8 says the scale bar "reads at AA: ink text on a white pill,
+  like the status chips"; the owner chose a white halo with no background (Nov 4, `ScaleBar.tsx`). QL11 says Locate is
+  "disabled" while it reads the fix; since `tend map 5` it is not `disabled` (a disabled button loses the keyboard's
+  focus): a press while busy does nothing, and it says busy (`aria-busy`). Amend both in the quality-of-life doc and its mirror; the loop may not edit a spec.
 - **ME23's wording after T12** (Nov 12): `specs/media-editing/spec.md` ME23 says every place offers Edit for 6 seconds;
   since `tend tabs T12` (decision 0149) the recording bar's offer is a pill above the bar that waits for Edit, Close or
   the next capture (or the tabs leaving the screen). Amend ME23 with "Amended (owner, Nov 12, decision 0149): on the

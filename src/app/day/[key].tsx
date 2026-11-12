@@ -2,7 +2,7 @@ import { type Faced, facedAll } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CaptureViewer } from '../../components/CaptureView';
@@ -19,11 +19,13 @@ import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
-import { buildDays, dayCaptures, dayCard, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
+import { buildDays, dayCaptures, dayCard, dayFrame, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
-import { boundsOf, type Bounds } from '../../lib/geo';
+import type { Bounds } from '../../lib/geo';
+import { beatWords } from '../../lib/replay';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
+import { useUnits } from '../../lib/useUnits';
 import { UndoToast } from '../../components/UndoToast';
 import type { LngLat } from '../../lib/types';
 
@@ -107,17 +109,14 @@ export default function DayReplay() {
         if (!r) continue;
         plays.set(e.walk.id, r);
       }
-      const points: LngLat[] = [
-        ...dayCaptures(day).filter((c) => c.lat != null && c.lon != null).map((c) => [c.lon!, c.lat!] as LngLat),
-        ...[...plays.values()].flatMap((p) => p.runs.flat()),
-      ];
       const watched = (await db.getMeta(watchedKey(day.key)).catch(() => null)) != null;
       if (!alive) return;
       setData({
         day,
         walks: plays,
         distance: new Map(summaries.map((s) => [s.walk_id, s.distance_m])),
-        bounds: boundsOf(points, 150),
+        // Rides included, as a walk's replay frames them (tend replay 10).
+        bounds: dayFrame(dayCaptures(day), [...plays.values()]),
         watched,
       });
       setStatus('ready');
@@ -130,6 +129,22 @@ export default function DayReplay() {
       alive = false;
     };
   }, [key]);
+
+  // Escape on the web leaves the day's replay as Done does (tend replay 5), the sibling of Android's Back; not while
+  // the viewer holds the key.
+  const viewerOpen = viewing != null;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || viewerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      // A held key's repeats are not more presses: the name step's Escape stops at the card (tend replay audit 4).
+      if (e.key !== 'Escape' || e.repeat) return;
+      if (router.canGoBack()) router.back();
+      else router.dismissTo('/');
+    };
+    // In the capture phase: react-native-web's TextInput stops a key's propagation (the name step's fields).
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [viewerOpen]);
 
   // What happened that day, less any moment just deleted (D3), read once; the ceremony tells it (RR20, RR21).
   // The story and the card read the same day, less what was deleted (audit 26).
@@ -166,12 +181,17 @@ export default function DayReplay() {
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
 
-  // The card: the day marked watched, unless Skip reached it (M12, audit).
+  // The card: said once as it comes, however it was reached (tend replay 9, Skip included); the day marked watched,
+  // unless Skip reached it (M12, audit).
+  const saidAt = useRef<number | null>(null);
   useEffect(() => {
-    if (!onCard || !data || skipped) return;
-    db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
-    AccessibilityInfo.announceForAccessibility('Summary of the day');
-  }, [onCard, data, skipped]);
+    if (!onCard || !data) return;
+    const words = beatWords('day-card', phase.t0, saidAt.current, '');
+    if (!words) return;
+    saidAt.current = phase.t0;
+    AccessibilityInfo.announceForAccessibility(words);
+    if (!skipped) db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
+  }, [onCard, data, skipped, phase.t0]);
 
   // Each walk's trace as far as the ceremony has drawn it; every walk whole on the card.
   const bucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
@@ -195,6 +215,9 @@ export default function DayReplay() {
     [story, traceFrame, onCard, srMode],
   );
 
+  // Every walk of the day whole: where the end marker sits in every beat, never at the tip being told (tend replay 2).
+  const whole = useMemo(() => (story ? Object.values(story.paths).flatMap((p) => pathDrawnAt(p, Infinity).trace) : []), [story]);
+
   // Pins appear as their moments are reached; on the card every pin opens its moments.
   // The story already leaves out a moment deleted from its viewer (D3).
   const pinned = useRevealed(story, frame ? frame.pins : onCard || srMode ? 'all' : 'none');
@@ -208,7 +231,9 @@ export default function DayReplay() {
   };
   // The card is computed once it is reached, not every frame (audit).
   const cardAt = onCard ? phase.t0 : 0;
-  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance) : null), [data, day, cardAt]);
+  // In the units setting, redrawn when it changes (tend replay 3).
+  const units = useUnits();
+  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance, units) : null), [data, day, cardAt, units]);
 
   if (failure) throw failure;
   if (status !== 'ready' || !data || !story) {
@@ -248,8 +273,8 @@ export default function DayReplay() {
         initialCenter={data.bounds ? [(data.bounds[0] + data.bounds[2]) / 2, (data.bounds[1] + data.bounds[3]) / 2] : undefined}
         initialZoom={data.bounds ? undefined : 2}
         veil
-        // The day's walks have ended: each trace's last point is marked (QL2).
-        ended
+        // The day's walks have ended: the day's first start and its last end are marked (QL2), from the whole traces.
+        ended={whole}
         // Above the card once it is up; before that nothing sits at the bottom (Skip is at the top) (QL8).
         scaleInset={onCard ? { bottom: sheetH + 12, left: 12 } : { bottom: insets.bottom + 12, left: 12 }}
       />
@@ -376,7 +401,8 @@ const styles = StyleSheet.create({
   },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   cardTitle: { fontSize: 22, fontWeight: '700', color: theme.ink },
-  cardLine: { fontSize: 18, color: theme.ink, fontWeight: '600' },
+  // The walk card's line, never louder (tend replay 12; the replay rule's "No accent colour or large number on the card").
+  cardLine: { fontSize: 16, color: theme.ink },
   cardMuted: { fontSize: 15, color: theme.muted },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   flex: { flex: 1 },

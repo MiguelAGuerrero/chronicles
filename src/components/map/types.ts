@@ -15,6 +15,15 @@ import type { Star } from '../../lib/places';
 import type { LngLat, StreetSegment } from '../../lib/types';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+
+/**
+ * Where the web map's worker is served from (`scripts/copy-maplibre-worker.js` copies it into `public/`), under the
+ * site's base path, with maplibre-gl's version as maplibre's own default address carries it: a browser that cached
+ * the worker of an older maplibre-gl fetches the new one with the new bundle (tend map 10).
+ */
+export function mapWorkerUrl(base: string, version: string): string {
+  return `${base}/maplibre-gl-worker.mjs?v=${encodeURIComponent(version)}`;
+}
 /** OpenMapTiles tops out at z14; road detail is only complete from there. */
 export const DERIVE_ZOOM = 14;
 /** Upper bound on camera stops while collecting roads for one walk. */
@@ -76,8 +85,11 @@ export interface WalkMapProps {
   drawing?: LngLat[] | null;
   /** 0 to 1; the replay's first beat shows the trace faintly. */
   traceOpacity?: number;
-  /** The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. */
-  ended?: boolean;
+  /**
+   * The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. Given the walk's
+   * whole runs, the markers sit at their ends however much of `trace` is drawn (a replay telling its path, tend replay 2).
+   */
+  ended?: boolean | LngLat[][];
   /** Where the scale bar sits, from the map's bottom-left corner, clear of the screen's own bottom UI (QL8). */
   scaleInset?: { bottom: number; left?: number };
   walked: StreetSegment[];
@@ -89,7 +101,11 @@ export interface WalkMapProps {
   captures: Faced[];
   /** Called when the person pans, zooms or rotates the map themselves. */
   onUserMove?: () => void;
-  /** The map's bearing in degrees from north, when it changes by more than half a degree (CP2). */
+  /**
+   * The map's bearing in degrees from north, when it changes by more than half a degree (CP2). Only a map given this
+   * turns under two fingers: the screens with a compass (CP1, decision 0082); the replay, a day, Chronicle and the
+   * planner stay north-up, as they have no way back to it (tend map 1).
+   */
   onBearingChange?: (bearing: number) => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Faced[]) => void;
@@ -153,6 +169,11 @@ export interface WalkMapProps {
   fitKey?: number;
   /** Called with a fit's key once its camera move has ended, so a map taken down mid-move can redo it. */
   onFitSettled?: (fitKey: number) => void;
+  /**
+   * Web: the map's credits were opened or closed by a tap on their (i), so an overlay that would lie over them can step
+   * aside (tend map audit 1). Native's MapLibre attribution reports nothing.
+   */
+  onCreditsOpen?: (open: boolean) => void;
   /** Space kept clear of the fitted bounds, e.g. for a sheet over the map. */
   fitPadding?: Padding;
   /** The closest a fit may zoom. Default 17. Web passes it to fitBounds; native widens the bounds (capFitBounds). */

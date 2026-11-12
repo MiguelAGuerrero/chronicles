@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
 import { walkStory, type WalkInput } from '../../ceremony/story';
 import { distanceM } from '../../geo';
-import { groupCaptures, timedRuns } from '../../replay';
+import { backFrom, beatWords, groupCaptures, timedRuns } from '../../replay';
 import type { LngLat, TracePoint } from '../../types';
 import { at, walkAlong } from '../foxPoint';
 
@@ -63,4 +63,21 @@ test('replay: a capture after the trace ends stops the path at its end, not afte
   assert.ok(f.walker && distanceM(f.walker, end) <= 25, 'its stop comes as the path ends (within the standstill radius, where it came to a stand)');
   const leg = p.segs.find((s) => s.k === 'leg')!;
   assert.ok(leg.k === 'leg' && leg.move && leg.move.m1 - leg.move.m0 > 250, 'the walker moves through the trace all the way');
+});
+
+test('tend replay 4: Back on the name step returns to the card; from any other beat it leaves the replay', () => {
+  assert.equal(backFrom('name'), 'card');
+  for (const beat of ['reading', 'fog', 'path', 'card']) assert.equal(backFrom(beat), 'leave', beat);
+});
+
+test('tend replay 9: each beat is announced once as it begins, however often its walk is read again', () => {
+  assert.equal(beatWords('reading', 100, null, 'Familiar ground.'), 'Reading the streets you walked');
+  assert.equal(beatWords('reading', 100, 100, 'Familiar ground.'), null, 'the walk read again in the same beat says nothing');
+  assert.equal(beatWords('fog', 200, 100, 'Familiar ground.'), 'Familiar ground.');
+  assert.equal(beatWords('card', 300, 200, 'x'), 'Summary');
+  assert.equal(beatWords('card', 300, 300, 'x'), null, 'a note edited on the card says nothing');
+  assert.equal(beatWords('card', 400, 300, 'x'), 'Summary', 'Watch again, then the card, says it again');
+  for (const quiet of ['path', 'name']) assert.equal(beatWords(quiet, 500, 400, 'x'), null, quiet);
+  // The day's card is said however it was reached, Skip included (call 11).
+  assert.equal(beatWords('day-card', 600, null, 'x'), 'Summary of the day');
 });

@@ -3,8 +3,107 @@
 
 const path = require('path');
 
+// The map's credits start closed behind their (i) button, and a real tap on it opens them (owner, Nov 4: maplibre's
+// compact attribution opened itself across the bottom of a phone's map). Tapped where a finger would tap, never
+// dispatched in code (tend map 3: the (i) lay under the walk's strip, the replay's card, Locate and the camera, and a
+// dispatched click never noticed). Opened, they cover no control; closed again after.
+function creditsChecks({ check, shot }) {
+  const credits = (page) => page.evaluate(() => {
+    const els = [...document.querySelectorAll('.maplibregl-ctrl-attrib')].filter((e) => !e.closest('[aria-hidden=true]'));
+    const el = els[els.length - 1];
+    if (!el) return null;
+    const inner = el.querySelector('.maplibregl-ctrl-attrib-inner');
+    const b = el.querySelector('.maplibregl-ctrl-attrib-button');
+    const r = b ? b.getBoundingClientRect() : null;
+    const x = r ? r.left + r.width / 2 : NaN;
+    const y = r ? r.top + r.height / 2 : NaN;
+    // What a finger at the centre, and 18 px each way from it (a 44 px target), would touch.
+    const on = (px, py) => {
+      const hit = document.elementFromPoint(px, py);
+      return !!hit && (hit === b || b.contains(hit));
+    };
+    const box = el.getBoundingClientRect();
+    // The controls the open credits would lie over (any button outside the map's own DOM).
+    const under = [...document.querySelectorAll('[data-testid]')]
+      .filter((c) => !c.closest('[aria-hidden=true]') && !el.contains(c) && (c.tagName === 'BUTTON' || c.getAttribute('role') === 'button'))
+      .filter((c) => {
+        const q = c.getBoundingClientRect();
+        return q.width > 0 && q.left < box.right && q.right > box.left && q.top < box.bottom && q.bottom > box.top;
+      })
+      .map((c) => c.getAttribute('data-testid'));
+    // Each line of the open credits, and what a finger at its middle would touch: nothing may lie over them (tend map
+    // audit 1: Explore's hint covered their middle line). And a word split across two lines (tend map audit 2).
+    const lines = [];
+    const broken = [];
+    if (inner && getComputedStyle(inner).display !== 'none') {
+      const range = document.createRange();
+      range.selectNodeContents(inner);
+      for (const q of range.getClientRects()) {
+        if (q.width < 1) continue;
+        const hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+        lines.push({ y: Math.round(q.top), top: !!hit && el.contains(hit), on: hit && !el.contains(hit) ? (hit.closest('[data-testid]')?.getAttribute('data-testid') ?? hit.textContent.slice(0, 24)) : null });
+      }
+      const walker = document.createTreeWalker(inner, NodeFilter.SHOW_TEXT);
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+        for (const m of t.textContent.matchAll(/\S+/g)) {
+          const w = document.createRange();
+          w.setStart(t, m.index);
+          w.setEnd(t, m.index + m[0].length);
+          const tops = new Set([...w.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+          if (tops.size > 1) broken.push(m[0]);
+        }
+      }
+    }
+    return {
+      lines,
+      broken,
+      // The (i) wears the app's ring only from the keyboard; a tap leaves no glow (tend map audit 3).
+      glow: b ? getComputedStyle(b).boxShadow : null,
+      // Nothing of the credits is cut: no line runs wider than the box (tend map 3, at 320 px).
+      whole: !inner || inner.scrollWidth <= inner.clientWidth + 1,
+      compact: el.classList.contains('maplibregl-compact'),
+      open: !!inner && getComputedStyle(inner).display !== 'none',
+      text: inner ? inner.textContent : '',
+      x, y,
+      // The (i)'s place in the map, from its bottom-left corner: the map's pane can move or resize while a screen settles.
+      map: (() => {
+        const m = el.closest('.maplibregl-map')?.getBoundingClientRect();
+        return m ? { left: m.left, bottom: m.bottom, dx: x - m.left, dy: m.bottom - y } : null;
+      })(),
+      top: r ? on(x, y) : false,
+      target: r ? [[-18, 0], [18, 0], [0, -18], [0, 18]].every(([dx, dy]) => on(x + dx, y + dy)) : false,
+      box: [Math.round(box.left), Math.round(box.top), Math.round(box.right), Math.round(box.bottom)],
+      under,
+    };
+  });
+  return async (page, where, shotName) => {
+    const a = await credits(page);
+    check(a && a.compact && !a.open, `map attribution: ${where} starts with its credits closed behind the (i) button (${JSON.stringify(a && { compact: a.compact, open: a.open })})`);
+    if (!a) return;
+    check(a.top && a.target, `tend map 3: on ${where}, nothing covers the map's credits (i), and its target is 44 px (at ${Math.round(a.x)},${Math.round(a.y)}: centre ${a.top}, 44 px ${a.target})`);
+    await page.mouse.click(a.x, a.y);
+    await page.waitForTimeout(300);
+    const b = await credits(page);
+    check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b && { open: b.open, text: b.text })})`);
+    check(b && b.under.length === 0 && b.whole, `tend map 3: on ${where}, the open credits lie over no control and none of their words is cut (box ${b && b.box}; under ${JSON.stringify(b && b.under)}; whole ${b && b.whole})`);
+    check(b && b.lines.length > 0 && b.lines.every((l) => l.top), `tend map audit 1: on ${where}, every line of the open credits is the top element at its point (${JSON.stringify(b && b.lines)})`);
+    check(b && b.broken.length === 0, `tend map audit 2: on ${where}, no word of the open credits breaks across two lines (${JSON.stringify(b && b.broken)})`);
+    const placed = (q) => (q && q.map ? `${Math.round(q.map.dx)},${Math.round(q.map.dy)}` : 'none');
+    check(b && a.map && b.map && Math.abs(b.map.dx - a.map.dx) < 1.5 && Math.abs(b.map.dy - a.map.dy) < 1.5,
+      `tend map audit 2: on ${where}, the (i) stays where it was tapped in the map as the credits open (from the map's bottom left: ${placed(a)} → ${placed(b)})`);
+    check(b && (!b.glow || b.glow === 'none'), `tend map audit 3: on ${where}, a tap leaves the (i) with no focus glow (${b && b.glow})`);
+    if (shotName) await shot(page, shotName);
+    // A second tap where the first one was, in the map, closes them again.
+    if (b) await page.mouse.click(b.map ? b.map.left + a.map.dx : a.x, b.map ? b.map.bottom - a.map.dy : a.y);
+    await page.waitForTimeout(300);
+    const c = await credits(page);
+    check(c && !c.open, `tend map audit 2: on ${where}, a second tap at the opening point closes the credits (open ${c && c.open})`);
+  };
+}
+
 async function run(h) {
   const { navUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
+    const creditsCheck = creditsChecks(h);
     const { c, pg } = await freshPage('qol');
     await c.addInitScript(() => {
       window.__perf = {};
@@ -52,7 +151,8 @@ async function run(h) {
     };
     const describe = (s) => (s ? `${s.m} m "${s.label}", ${s.width.toFixed(1)} px for ${s.want.toFixed(1)} at z${s.zoom.toFixed(2)}` : 'no scale bar');
     const fits = (s) => !!s && s.width > 0 && s.width <= 100.5 && Math.abs(s.width - s.want) <= s.want * 0.05;
-    const round = (s) => !!s && /^(1|2|5)0*$/.test(String(s.m)) && s.label === (s.m >= 1000 ? `${s.m / 1000} km` : `${s.m} m`);
+    // Thousands marked ("2,000 km", tend map 7).
+    const round = (s) => !!s && /^(1|2|5)0*$/.test(String(s.m)) && s.label === (s.m >= 1000 ? `${(s.m / 1000).toLocaleString('en-US')} km` : `${s.m} m`);
     // Two zoom levels out: the map's keyboard handler, then the wheel if it didn't take.
     const zoomOutBy = async (levels) => {
       const z0 = Number(await attr('data-zoom'));
@@ -104,27 +204,41 @@ async function run(h) {
       }, png.toString('base64'));
     };
 
-    // The map's credits start closed behind their (i) button, and a tap opens them (owner, Nov 4:
-    // maplibre's compact attribution opened itself across the bottom of a phone's map).
-    const attribution = () => pg.evaluate(() => {
-      const els = [...document.querySelectorAll('.maplibregl-ctrl-attrib')].filter((e) => !e.closest('[aria-hidden=true]'));
-      const el = els[els.length - 1];
-      if (!el) return null;
-      const inner = el.querySelector('.maplibregl-ctrl-attrib-inner');
-      return { compact: el.classList.contains('maplibregl-compact'), open: !!inner && getComputedStyle(inner).display !== 'none', text: inner ? inner.textContent : '' };
-    });
-    const checkAttribution = async (where) => {
-      const a = await attribution();
-      check(a && a.compact && !a.open, `map attribution: ${where} starts with its credits closed behind the (i) button (${JSON.stringify(a)})`);
-      const button = pg.locator('xpath=//*[contains(@class,"maplibregl-ctrl-attrib-button")][not(ancestor::*[@aria-hidden="true"])]').last();
-      // Dispatched: on Navigate the web notice banner lies over the top-right corner until dismissed.
-      await button.dispatchEvent('click');
-      await pg.waitForTimeout(200);
-      const b = await attribution();
-      check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b)})`);
-      await button.dispatchEvent('click');
-      await pg.waitForTimeout(200);
+    // A real two-finger turn (tend map 1): two touches swung 90° about a point in the map's top third, sent through
+    // the DevTools protocol (Playwright has no multi-touch). Touch emulation is on only for the gesture. Returns the
+    // map's bearing after it.
+    const twoFingerTurn = async () => {
+      const cdp = await c.newCDPSession(pg);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+      const box = await pg.locator('xpath=//canvas[contains(@class,"maplibregl-canvas")][not(ancestor::*[@aria-hidden="true"])]').last().boundingBox();
+      const r = 60;
+      let cx = box.x + box.width / 2, cy = box.y + box.height / 4;
+      const pts = (a) => [{ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), id: 1 }, { x: cx - r * Math.cos(a), y: cy - r * Math.sin(a), id: 2 }];
+      // Both touches land on the map's canvas, so a bearing of 0 after them is a refused turn, never a missed one: the
+      // first spot down the map's middle where nothing (a pin, a marker, a card) lies under them (tend map audit 7).
+      const hits = (ps) => pg.evaluate((qs) => qs.map((q) => {
+        const el = document.elementFromPoint(q.x, q.y);
+        return el?.classList.contains('maplibregl-canvas') ? null : (el?.closest('[data-testid]')?.getAttribute('data-testid') ?? el?.className?.toString().slice(0, 30) ?? 'nothing');
+      }), ps);
+      let off = [];
+      for (const f of [1 / 4, 1 / 3, 1 / 5, 2 / 5, 1 / 6]) {
+        cy = box.y + box.height * f;
+        off = (await hits([...pts(0), ...pts(Math.PI / 2)])).filter(Boolean);
+        if (!off.length) break;
+      }
+      check(!off.length, `tend map audit 7: the two-finger turn's touches land on the map's canvas (centre ${Math.round(cx)},${Math.round(cy)}; on ${JSON.stringify(off)})`);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
+      for (let i = 1; i <= 12; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts((i * Math.PI) / 24) });
+        await pg.waitForTimeout(16);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+      await cdp.detach();
+      await pg.waitForTimeout(800);
+      return Number((await attr('data-bearing')) || 0);
     };
+    const checkAttribution = (where, shotName) => creditsCheck(pg, where, shotName);
 
     // Navigate: Locate from 1 km away.
     await pg.goto(navUrl);
@@ -271,6 +385,32 @@ async function run(h) {
       const s3 = await scaleBar();
       check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
     }
+    // Locate from the keyboard keeps the focus through its busy state and after (tend map 5; WCAG 2.2, 2.4.3).
+    {
+      const btn = shown('locate').first();
+      await btn.focus();
+      const seen = new Set();
+      const read = () => pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      // Locate's busy state is seen, however briefly, so the focus is held through it (tend map audit 7).
+      await pg.evaluate(() => {
+        window.__busySeen = false;
+        const o = new MutationObserver(() => {
+          if (document.querySelector('[data-testid=locate][aria-busy=true]')) window.__busySeen = true;
+        });
+        o.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['aria-busy'], childList: true });
+        window.__busyWatch = o;
+      });
+      await pg.keyboard.press('Enter');
+      for (let i = 0; i < 20; i++) {
+        seen.add(await read());
+        await pg.waitForTimeout(50);
+      }
+      await pg.waitForTimeout(1500);
+      seen.add(await read());
+      check(seen.size === 1 && seen.has('locate'), `tend map 5: Locate pressed from the keyboard keeps the focus while it reads the fix and after (${JSON.stringify([...seen])})`);
+      const busySeen = await pg.evaluate(() => { window.__busyWatch?.disconnect(); return window.__busySeen; });
+      check(busySeen === true, `tend map audit 7: Locate said busy (aria-busy="true") while it read the fix (${busySeen})`);
+    }
     // The compass (CP1-CP5, CP8): none at north-up; turned, it sits above Locate with its needle against
     // the turn; a tap eases the map back to north without moving the centre or zoom.
     {
@@ -299,6 +439,35 @@ async function run(h) {
       const cm = lonLat(after.c), cm0 = lonLat(before.c);
       check(Math.abs(after.b) < 0.5 && (await compass.count()) === 0, `qol CP4: a tap turns the map back to north and the compass leaves (bearing ${after.b}, ${await compass.count()} compass)`);
       check(cm && cm0 && mAway(cm, cm0) < 3 && Math.abs(Number(after.z) - Number(before.z)) < 0.05, `qol CP4: the centre and zoom stay (${mAway(cm, cm0).toFixed(1)} m, z ${before.z} → ${after.z})`);
+      // A map with a compass turns under two real fingers (CP1), so the gesture below is a real turn where it is refused.
+      const rendersBefore = await pg.evaluate(() => window.__perf['render:explore'] ?? 0);
+      const turnedByHand = await twoFingerTurn();
+      const turnRenders = (await pg.evaluate(() => window.__perf['render:explore'] ?? 0)) - rendersBefore;
+      // Each half degree of the turn is reported; only the compass reads it (tend map 8: Explore re-rendered for each).
+      check(turnRenders <= 3, `tend map 8: a two-finger turn re-renders the compass, not Explore (${turnRenders} Explore renders over the turn)`);
+      check(Math.abs(turnedByHand) > 5, `tend map 1: two fingers turn Explore's map, which has a compass (bearing ${turnedByHand})`);
+      // A fit keeps the bearing (CP1): Locate frames the fix with the map still turned.
+      await shown('locate').first().click();
+      await pg.waitForTimeout(2000);
+      const afterLocate = Number((await attr('data-bearing')) || 0);
+      check(Math.abs(afterLocate - turnedByHand) < 1 && (await compass.count()) === 1,
+        `tend map 2: turned by hand, a Locate fit keeps the bearing and the compass (CP1; ${turnedByHand} → ${afterLocate}, ${await compass.count()} compass)`);
+      // From the keyboard, the compass leaves (CP4) and hands the focus to Locate below it, never to the page.
+      await compass.first().focus();
+      await pg.keyboard.press('Enter');
+      await pg.waitForTimeout(1500);
+      const focusedAfter = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check((await compass.count()) === 0 && focusedAfter === 'locate', `tend map 6: the compass pressed from the keyboard leaves and the focus goes to Locate below it (focus on ${focusedAfter}, ${await compass.count()} compass)`);
+      // A fit while the compass still eases the map north ends north-up: Enter on the compass, then at once on Locate,
+      // which now has the focus (tend map audit 4: the fit read the bearing mid-ease and froze the map part-way).
+      const turnedAgain = await twoFingerTurn();
+      await compass.first().focus();
+      await pg.keyboard.press('Enter');
+      await pg.keyboard.press('Enter');
+      await pg.waitForTimeout(2500);
+      const midEase = Number((await attr('data-bearing')) || 0);
+      check(Math.abs(turnedAgain) > 5 && Math.abs(midEase) < 0.5 && (await compass.count()) === 0,
+        `tend map audit 4: a Locate fit during the compass's turn to north ends north-up (turned ${turnedAgain}, after ${midEase}, ${await compass.count()} compass)`);
     }
     await tabTo(pg, 'chronicle');
     await pg.waitForTimeout(1200);
@@ -307,6 +476,9 @@ async function run(h) {
       const ends = await attr('data-ends');
       check(round(s4) && fits(s4), `qol QL5: Chronicle shows the scale bar (${describe(s4)})`);
       check(ends !== null && (ends === '' || ends === '|'), `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
+      const turnedChronicle = await twoFingerTurn();
+      check(Math.abs(turnedChronicle) < 0.5, `tend map 1: Chronicle's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedChronicle})`);
+      await checkAttribution('Chronicle');
     }
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
@@ -389,6 +561,26 @@ async function run(h) {
         `qol QL8: the walk screen's scale bar sits clear of its bottom strip (bar bottom ${s5 && s5.box && Math.round(s5.box.y + s5.box.height)}, strip from ${stop && Math.round(stop.y)}; ${describe(s5)})`);
     }
     await shot(pg, 'qol-02-walk');
+    // The live walk's compass (no journey reached it, the compass spec's record): the column's top; pressed from the
+    // keyboard, it leaves and hands the focus to the button below it (tend map 6).
+    {
+      const compassW = pg.locator('[data-testid=compass]').filter({ visible: true });
+      await pg.evaluate(() => window.__turn(45));
+      await pg.waitForTimeout(600);
+      const shownW = await compassW.count();
+      await shot(pg, 'qol-02a-walk-compass');
+      // The button below the compass in this state: Walk me back while it shows, else the unwalked switch (tend map audit 7).
+      const expectW = (await pg.locator('[data-testid=walk-back]').filter({ visible: true }).count()) ? 'walk-back' : 'unwalked';
+      if (shownW) {
+        await compassW.first().focus();
+        await pg.keyboard.press('Enter');
+        await pg.waitForTimeout(1500);
+      }
+      const focusedW = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(shownW === 1 && (await compassW.count()) === 0 && focusedW === expectW,
+        `tend map 6: on the walk, turned, the compass shows; pressed from the keyboard it leaves and the focus goes to the column's next button (shown ${shownW}, focus on ${focusedW}, expected ${expectW}; tend map audit 7)`);
+    }
+    await checkAttribution('the walk screen', 'qol-06-walk-credits-open');
 
     // Stopped: both ends, and the bar above the card.
     await holdStop();
@@ -413,8 +605,11 @@ async function run(h) {
       });
       check(round(s6) && fits(s6) && s6.box && s6.box.y + s6.box.height <= cardTop + 0.5,
         `qol QL8: the replay's scale bar sits above the card (bar bottom ${s6 && s6.box && Math.round(s6.box.y + s6.box.height)}, card from ${Math.round(cardTop)}; ${describe(s6)})`);
+      const turnedReplay = await twoFingerTurn();
+      check(Math.abs(turnedReplay) < 0.5, `tend map 1: the replay's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedReplay})`);
     }
     await shot(pg, 'qol-03-replay-card');
+    await checkAttribution('the replay', 'qol-07-replay-credits-open');
     // QL3: the markers never take a tap: the photo and the note were kept where the trace ends, so their
     // pin stands on the end marker, and a tap there opens it.
     await qstep('qol QL3 tap', async () => {
@@ -666,6 +861,46 @@ async function run(h) {
     });
     await c.close();
 
+    // tend map 3 at 320 px: the credits stay reachable, and open over no control, on every map of a narrow phone.
+    {
+      const { c: c3, pg: p3 } = await freshPage('qol-320');
+      await p3.setViewportSize({ width: 320, height: 700 });
+      const fix3 = (p) => c3.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+      await fix3(s0);
+      await p3.goto(navUrl);
+      await p3.waitForSelector('[data-testid=start]');
+      await p3.waitForTimeout(2500);
+      await creditsCheck(p3, 'Navigate at 320', 'qol-08-ready-credits-open-320');
+      await p3.click('[data-testid=start]');
+      await p3.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      for (let k = 1; k <= 4; k++) {
+        await fix3(at(-0.5 + k * 0.05, -0.5));
+        await p3.waitForTimeout(900);
+      }
+      await p3.waitForTimeout(1500);
+      await creditsCheck(p3, 'the walk screen at 320', 'qol-09-walk-credits-open-320');
+      const sb = await p3.locator('[data-testid=stop]').boundingBox();
+      await p3.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+      await p3.mouse.down();
+      await p3.waitForTimeout(1100);
+      await p3.mouse.up();
+      await p3.waitForURL(/replay/, { timeout: 30000 });
+      await p3.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+      await p3.click('[data-testid=skip]');
+      await p3.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await p3.waitForTimeout(1200);
+      await creditsCheck(p3, 'the replay at 320', 'qol-10-replay-credits-open-320');
+      await p3.goto(navUrl);
+      await p3.waitForTimeout(2500);
+      await tabTo(p3, 'explore');
+      await p3.waitForTimeout(2500);
+      await creditsCheck(p3, 'Explore at 320', 'qol-11-explore-credits-open-320');
+      await tabTo(p3, 'chronicle');
+      await p3.waitForTimeout(2500);
+      await creditsCheck(p3, 'Chronicle at 320');
+      await c3.close();
+    }
+
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
     // button that brings the recorder's notice back after it was dismissed.
     {
@@ -680,6 +915,7 @@ async function run(h) {
       await pg2.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
       await pg2.waitForTimeout(2500);
       const loud = await deniedSaid();
+      await shot(pg2, 'qol-13-locate-denied');
       check(quiet.banners === 0 && quiet.chip === 0 && loud >= 1,
         `qol QL21: denied, Navigate's own fix on focus stays quiet; Locate says why (on focus ${JSON.stringify(quiet)}, after Locate ${loud})`);
       for (let i = 0; i < 4 && (await pg2.locator('[data-testid=banner-dismiss]').count()); i++) {

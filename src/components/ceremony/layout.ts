@@ -30,17 +30,36 @@ export const STAGE_BOTTOM = 44;
 export const pileCenter = (c: StageCtx): [number, number] => [c.width - c.insets.right - 14 - PILE.w / 2, c.height - c.insets.bottom - STAGE_BOTTOM - PILE.h / 2];
 /** Below the top row (Hold, the clock and its line, Skip). */
 export const STAGE_TOP = 64;
+/**
+ * Below all the top can show (tend replay 11): Stage's column 12 in, the clock (36), then "N min later" and "Held" (23
+ * each), 8 apart and 8 to spare. A card stands under it, so neither pill draws over a card, on a landscape phone too.
+ */
+export const STACK_TOP = 12 + 36 + 8 + 23 + 8 + 23 + 8;
 /** A card's caption strip and frame under its picture. */
 const CARD_EXTRA = 48;
 /** The room between the top row and the bottom corner, where a card stands (audit 13: a landscape phone). */
-const cardRoom = (c: StageCtx) => ({ top: c.insets.top + STAGE_TOP, bottom: c.height - c.insets.bottom - STAGE_BOTTOM });
-export function cardWidth(c: StageCtx): number {
+const cardRoom = (c: StageCtx) => ({ top: c.insets.top + STACK_TOP, bottom: c.height - c.insets.bottom - STAGE_BOTTOM });
+/** A six-line note's bubble in the bottom-left corner, with its gap. */
+const BUBBLE_ROOM = 160;
+/** The narrowest a card is drawn. */
+const MIN_CARD = 80;
+/**
+ * The lowest a card reaches: above a note's bubble wherever a card of MIN_CARD still fits over it (a 320 or 375 px
+ * phone, a status bar included: the card shrinks before the bubbles lose their room, tend replay 7, audit 3); a
+ * landscape phone keeps the whole room.
+ */
+function cardFloor(c: StageCtx): number {
   const { top, bottom } = cardRoom(c);
-  return Math.max(80, Math.min((c.width - c.insets.left - c.insets.right) * 0.66, 260, (bottom - top - CARD_EXTRA) / 1.15));
+  return bottom - BUBBLE_ROOM - top >= MIN_CARD * 1.15 + CARD_EXTRA ? bottom - BUBBLE_ROOM : bottom;
 }
-export function restCenter(c: StageCtx): [number, number] {
+export function cardWidth(c: StageCtx): number {
+  const { top } = cardRoom(c);
+  return Math.max(MIN_CARD, Math.min((c.width - c.insets.left - c.insets.right) * 0.66, 260, (cardFloor(c) - top - CARD_EXTRA) / 1.15));
+}
+/** Where a card of height `h` rests: mid-room, raised as far as it must be to stay above its floor, never under the top row. */
+export function restCenter(c: StageCtx, h = 0): [number, number] {
   const { top, bottom } = cardRoom(c);
-  return [(c.width + c.insets.left - c.insets.right) / 2, (top + bottom) / 2];
+  return [(c.width + c.insets.left - c.insets.right) / 2, Math.max(top + h / 2, Math.min((top + bottom) / 2, cardFloor(c) - h / 2))];
 }
 /** The bubbles' corner: as tall as the room under the top row. */
 export const cornerHeight = (c: StageCtx) => Math.max(0, c.height - c.insets.top - STAGE_TOP - c.insets.bottom - STAGE_BOTTOM);

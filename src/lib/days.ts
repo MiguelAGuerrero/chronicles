@@ -1,6 +1,8 @@
 // @layer core
 import type { Faced } from './moment';
-import { distanceM } from './geo';
+import { formatDistance } from './format';
+import { boundsOf, distanceM, type Bounds } from './geo';
+import type { Units } from './units';
 import type { LngLat, Walk } from './types';
 
 /**
@@ -121,15 +123,18 @@ export function spotCount(captures: Faced[]): number {
   return spots.length;
 }
 
+/** The day's frame (RR16): its placed moments and its walks' traces, rides included as a walk's replay frames them (tend replay 10). */
+export function dayFrame(moments: Faced[], walks: { runs: LngLat[][]; rideRuns: LngLat[][] }[]): Bounds | null {
+  const points: LngLat[] = moments.filter((c) => c.lat != null && c.lon != null).map((c) => [c.lon!, c.lat!] as LngLat);
+  for (const w of walks) points.push(...w.runs.flat(), ...w.rideRuns.flat());
+  return boundsOf(points, 150);
+}
+
 /** Meta key set once a day's replay has been watched to its end (M12). */
 export const watchedKey = (key: string) => `day_watched:${key}`;
 
-function formatKm(m: number): string {
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
-}
-
-/** The day's closing card: quiet, no streaks or badges (M13). */
-export function dayCard(day: Day, now: number, distanceByWalk: Map<string, number>) {
+/** The day's closing card: quiet, no streaks or badges (M13). Its distance in the units setting, as the walk's card (tend replay 3). */
+export function dayCard(day: Day, now: number, distanceByWalk: Map<string, number>, units?: Units) {
   const date = new Date(dayStart(day.key));
   const label = dayLabel(day.key, now);
   const weekday = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
@@ -139,7 +144,7 @@ export function dayCard(day: Day, now: number, distanceByWalk: Map<string, numbe
   return {
     title: label === 'Today' || label === 'Yesterday' ? `${label} · ${weekday}` : weekday,
     line: `${plural(caps.length, 'moment', 'moments')} · ${plural(spots, 'place', 'places')}`,
-    walked: metres > 0 ? `${formatKm(metres)} walked` : null,
+    walked: metres > 0 ? `${formatDistance(metres, units)} walked` : null,
   };
 }
 
