@@ -19,7 +19,8 @@ test('tend tabs T12: the bar offers Edit for its photo with no end of its own', 
 
 test('tend tabs T12: the next capture ends the offer, a photo from the bar replacing it with its own', () => {
   const o = barOffer(photo);
-  // Its own photo reaching the walk (the bus tells every path) leaves it standing.
+  // A guard only: the bus tells of the bar's own photo before the bar offers it (tend tabs audit 21), so that news
+  // ends the previous offer; should it ever come after, it leaves its own offer standing.
   assert.equal(barOfferAfter(o, 'p1'), o);
   // A capture from elsewhere (Memories' band, the same walk) ends it.
   assert.equal(barOfferAfter(o, 'm2'), null);
