@@ -24,6 +24,7 @@ a slice lands ─► its area is rough ─► the next /tend sweeps it
 | `/fix` | the owner only | one issue and its flags | one commit with its regression test; DEFERRED for anything else found | hard stops (`ship.md`) | `main` by default (0081) |
 | `/audit` | the owner only (0074) | a built slice's slug | the spec's audit record, regression tests named `<slug> audit N`, fixes | architectural findings | nothing; `/deploy` follows |
 | `/tend` | the owner only | an area, `triage`, `evolve` or `inbox <answers>` | loop commits, inbox entries, DEFERRED tags, the ledger | never mid-run; it files and goes on, and asks about its entries after it has published | `main`: loop findings and its record (0128); an approved entry (0130) |
+| `/tend-orchestrator` | the owner only | a deploy target, a stop rule, a proxy authority (asked first) | `/tend` runs through subagents, reviewers spawned at their review points, the inbox answered within that authority, an insights file in the scratchpad | at the start; then only for `[arch]`, `[phone]`, VISION edits and entries that amend an owner's decision, batched | nothing itself; each run publishes under the grant the owner gave it |
 | `/deploy` | the owner only | a green branch | `main` moved, the Pages run checked | a failed precondition; a merge that is not a fast-forward | `main` |
 | `/e2e` | anyone | a journey name | a pass or failure; pictures with `E2E_SHOTS` | never | nothing |
 | `/docs-gc` | anyone, at the end of a slice | the tree | docs brought back in line | never | nothing |
