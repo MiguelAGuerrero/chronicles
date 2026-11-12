@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type TextStyle } from 'react-native';
-import { switchLabel } from '../lib/complexes/kinds';
+import { COMPLEX_NOTE, switchLabel } from '../lib/complexes/kinds';
 import { useHiddenKinds } from '../lib/complexes/useComplexes';
 import { COMPLEX_KINDS } from '../lib/complexes/types';
 import { kindSwitch } from '../lib/discovery/refinements';
@@ -36,7 +36,7 @@ export function ComplexKindSwitches({ sectionStyle }: { sectionStyle: StyleProp<
   return (
     <>
       <Text style={sectionStyle} accessibilityRole="header">Complexes</Text>
-      <Text style={styles.complexNote}>Shown on area cards and the map</Text>
+      <Text style={styles.complexNote}>{COMPLEX_NOTE}</Text>
       {COMPLEX_KINDS.map((k) => (
         <SwitchRow key={k} testID={`complex-kind-${k}`} label={switchLabel(k)} value={!hidden.includes(k)} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
       ))}

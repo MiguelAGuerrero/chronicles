@@ -26,6 +26,8 @@ export interface BuildingPiece {
 
 /** An Overture place, as far as the rule reads it: where it is and its taxonomy hierarchy, root first. */
 export interface PlaceIn {
+  /** Overture's id: a place near a tile's edge is in both tiles' buffers and is one place (complexes audit 1). */
+  id?: string;
   at: LngLat;
   hierarchy: string[];
 }

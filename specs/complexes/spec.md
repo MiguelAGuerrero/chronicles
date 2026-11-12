@@ -139,7 +139,7 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
 10. **CX10 · Kinds filter the view, never what exists.** A "Complexes" group of five switches (Shopping, Markets,
     Campuses, Stations, Civic), saved as they change, beside "What I'm into". A kind switched off leaves the card and
     the map and nothing else: the read and a moment's line ignore the switches (0115), and switching one on needs no
-    read. With all five off there is no section, no outline and no notice.
+    read. With all five off there is no section, no outline and no notice, and nothing is read (complexes audit 15).
 11. **CX11 · A moment keeps its street.** When a moment's fix is inside a complex's outline, its arrival line leads with
     the complex and keeps the street and the town: "Strawberry Square, N 2nd St, Harrisburg". Outside the outline but
     within `STREET_REACH_M` (40 m) it reads "Near Strawberry Square, ...", as a street found by nearness does (MC2);
@@ -147,8 +147,9 @@ Open: whether a station is a place a walker notices (the vision is silent on tra
 12. **CX12 · Viewing a moment makes no request.** Working out a moment's line uses only complexes already on the phone,
     on every surface that shows it (Memories, the gallery viewer, threads) and fetches nothing; with none cached the
     line is MC1's street line. A line that gains a complex changes once and never back (MC17).
-13. **CX13 · Only the arrival line.** A complex is named in the arrival line of Memories and the gallery viewer, and
-    nowhere else: not in a replay beat or card, a search result, the share reel or a title suggestion; it is never
+13. **CX13 · Only the arrival line.** A complex is named in a moment's arrival line (Memories, and the viewer, which shows the same
+    line), and nowhere else: not in a replay beat or card, a search result, the share reel, a title suggestion, or the gallery's
+    day headers, blocks and tile labels (complexes audit 13); it is never
     stored on a capture, a moment, a thread entry or a walk.
 14. **CX14 · Derived, never truth.** Complexes are cache: one row per complex (its building id, name, kind, outline and
     bounding box) and Overture release in a derived store (cleared by `purgeDerived`), tagged with a `COMPLEX_CODE` that a
@@ -195,8 +196,46 @@ The `ux-reviewer` read the card with its longest name and the settings, at 390 x
 5. U5 Civic below the fold in the picture; track contrast: accept the picture (the journey scrolls to Civic and takes a second
    shot); the switches' track contrast is the app's own and is filed apart, not changed here.
 6. U6 "Shopping" beside the "Shops" bar: reject. The kind word matches the switch's label, which the owner chose.
-7. The map label: judged from code only (12 px, dark brown on a white halo, as the strip labels); no picture exists because the
+7. The map label: judged from code only (12 px, deep plum on a white pill after the audit); no picture exists because the
    web map's canvas gives the e2e no layer to look at. On the device list.
 
 4 fixed, 1 in part, 1 rejected, 1 deferred.
+
+## Audit (decision 0074, 2026-11-12)
+
+The auditor, the steward and the ux-reviewer read the built slice at main `820957a` (the pictures at 390 x 844 on the /chronicles build).
+29 findings: the auditor's 1-12, the steward's 13-20, the ux-reviewer's 21-29. 18 fixed, each behind a test named `complexes audit N`
+in `src/lib/__tests__/complexes/audit.test.ts`; 1 fixed in part; 2 duplicates; 5 deferred; 3 rejected; 1 to the owner.
+
+1. A place in two tiles' buffers counted twice, so four restaurants made a mall: fix. Places keep Overture's id and the shell counts one (`audit 1`).
+2. A building needing a tile the area did not read left `partial` false: fix. The read is partial then (`audit 2`).
+3. `neededTiles` misses a tile crossed by an edge with no vertex: defer. Only a building longer than a z14 tile is affected (DEFERRED).
+4. The 90 s retry never fired and a partial empty read was a "failure": fix. `failed` is its own flag and a timer asks again (`audit 4`).
+5. Every read re-judged and re-wrote everything held: fix in part. It still judges all held tiles, which a join needs, and stores each complex once (`audit 5`).
+6. One bad tile blanked a whole area: fix. A failing tile is left unread and the area is partial; a 404 on a release's buildings falling back to an older release is deferred (`audit 6`).
+7. `COMPLEX_CODE` was never read: fix. A row of an older code is no complex (`audit 7`). Rows for buildings that stop qualifying are never deleted: deferred.
+8. Station, campus and shopping misses on other regions: fix for stations, which now need a class that says so (`audit 8`); campuses of many buildings and transport buildings with no place inside are deferred.
+9. A joined outline draws the tiles' clip edges: defer (a polygon union, a drawing detail).
+10. One store read per moment: fix. A batch asks the store once for a cell (`audit 10`; the gallery no longer asks, see 13).
+11. Map data set on every zoom tick: fix. Outlines and names are split; covered by typecheck, lint and the `complexes` journey, and a unit check that the outline does not depend on zoom (`audit 11`).
+12. A fix's accuracy, the antimeridian and label collisions: defer.
+13. A complex name reached the gallery's day headers, blocks and tile labels, against CX13: fix. The gallery's streets are street names only again, and the CX13 test scans the views too (`audit 13`).
+14. Inside a complex the street's "Near" was dropped: fix (`audit 14`).
+15. Reads with every kind off, and their cost: fix for the all-off case (`audit 15`); asking before a pull on mobile data is the owner's (below).
+16. The thresholds favour large, dense complexes: accept as a note. They are a gate that is never shown (0103), recorded in the rule file; no code.
+17. The kind words are said flatly over a loose rule: the station part is fixed with 8; the rest is the owner's accepted call (0147).
+18. The pictures are a synthetic world ("Shops none" beside a shopping complex): reject, a fixture artefact.
+19. A partial empty read treated as a failure: duplicate of 4.
+20. CX11 and CX14 are tested only in units: defer. A seeded complex on the Memories card is the next journey step.
+21. "See more" has no object and loses focus: fix in part. It is "See more complexes" to a screen reader (`audit 21`); moving focus to the first new row is deferred.
+22. A label on a row View over the Walk to button: fix. The row has no label of its own (`audit 22`).
+23. The map label's ground and size: fix. A white pill, two lines at most, a capped text scale (`audit 23`); dropping the kind word from the label is opinion and not done.
+24. The outline's brown sat beside History's brown: fix. A deep plum, 55 or more apart from every kind and layer colour (`audit 24`).
+25. "Complexes" is jargon: fix. The settings note says what they are (`audit 25`); the header stays.
+26. The switches are reachable only from the walk's and Navigate's settings: to the owner. A line or link on the card is a navigation choice.
+27. No icons on the switches, the note's contrast: reject, removed on purpose in the first review; the track contrast is the app's.
+28. Targets under 48 on Android: fix (`audit 28`).
+29. Partial and empty states by design: reject, CX16's silent read.
+
+For the owner: whether the card should say where the kind switches are (26); whether a pull of up to nine `buildings` tiles on mobile data should wait for a tap (15); whether a store of every area browsed is acceptable derived data.
 

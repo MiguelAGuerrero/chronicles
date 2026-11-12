@@ -51,9 +51,9 @@ import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { walkToChoice } from '../../lib/startPlan';
 import { inPolygons } from '../../lib/complexes/geom';
-import { shown as shownComplexes } from '../../lib/complexes/kinds';
+import { readsWanted, shown as shownComplexes } from '../../lib/complexes/kinds';
 import { complexSection } from '../../lib/complexes/lines';
-import { complexMap } from '../../lib/complexes/mapLayer';
+import { COMPLEX_STYLE, complexMap } from '../../lib/complexes/mapLayer';
 import { useComplexes, useHiddenKinds } from '../../lib/complexes/useComplexes';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
 import { useTabMap } from '../../lib/useTabMap';
@@ -256,15 +256,18 @@ export default function Explore() {
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // CX9, CX16: the selected area's complexes, read silently once it is selected, drawn as quiet outlines named at close zoom.
-  const { complexes: areaComplexes, partial: complexPartial } = useComplexes(focused, sel ? { key: sel.area.key, at: sel.area.at, reachM: sel.area.reachM } : null);
   const { hidden: hiddenKinds } = useHiddenKinds();
+  // With every kind switched off nothing would show, so nothing is read (complexes audit 15).
+  const { complexes: areaComplexes, partial: complexPartial } = useComplexes(focused && readsWanted(hiddenKinds), sel ? { key: sel.area.key, at: sel.area.at, reachM: sel.area.reachM } : null);
   const complexesShown = useMemo(() => shownComplexes(areaComplexes, hiddenKinds), [areaComplexes, hiddenKinds]);
   // The selected area's places over the map (WT7, WT10, WT12, decision 0132; whole-towns audits 3, 6, 14): a
   // neighborhood's places still to find (a town's once zoomed in), a "?" where it has room and a dot where it would
   // crowd, only places in view as "?"; a town at its own scale, every findable place as the same dot, found or not.
   // Never named (AT7). Decided at the settled camera (its exact zoom on both platforms), never per frame.
   const camZoom = cam?.zoom ?? view?.zoom ?? 13;
-  const complexLayer = useMemo(() => (complexesShown.length ? complexMap(complexesShown, camZoom) : null), [complexesShown, camZoom]);
+  // The outlines do not depend on zoom; only whether the names show does, so the map's data is set when that flips, not on every zoom tick (complexes audit 11).
+  const labelsOn = camZoom >= COMPLEX_STYLE.labelMinZoom;
+  const complexLayer = useMemo(() => (complexesShown.length ? complexMap(complexesShown, labelsOn ? COMPLEX_STYLE.labelMinZoom : 0) : null), [complexesShown, labelsOn]);
   const zoomHalf = halfZoom(camZoom);
   const inViewBox = useMemo(() => (cam && mapSize ? viewOf(cam.center, halfZoom(cam.zoom), mapSize) : null), [cam, mapSize]);
   const split = useMemo(() => {

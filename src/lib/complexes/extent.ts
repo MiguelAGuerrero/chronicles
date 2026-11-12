@@ -20,3 +20,11 @@ export function tilesFor(area: { at: LngLat; reachM: number }): { tiles: [number
   const ordered = all.map((t) => ({ t, d: dist(t) })).sort((a, b) => a.d - b.d || a.t[0] - b.t[0] || a.t[1] - b.t[1]).map((x) => x.t);
   return { tiles: ordered.slice(0, COMPLEX_TILE_BUDGET), partial: ordered.length > COMPLEX_TILE_BUDGET };
 }
+
+/** After a failed read the area is asked again once this long has passed, without anyone changing tab or area (complexes audit 4). */
+export const COMPLEX_RETRY_MS = 90_000;
+
+/** Milliseconds until a failed read is due again, or null when none failed. */
+export function retryIn(failedAt: number | null, now: number): number | null {
+  return failedAt == null ? null : Math.max(0, failedAt + COMPLEX_RETRY_MS - now);
+}
