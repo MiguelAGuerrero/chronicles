@@ -124,6 +124,10 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   navigating). Its data is re-sent only when the ends string changes, never per
   publish. Chronicle draws no trace, so no markers. A walk begun on a ride is
   marked where the walking began (accepted).
+  - Since `tend map T16` (decision 0154) shape tells the two apart, not colour alone: the start hollow (white,
+    ringed in the trace's green), the end solid (filled in `COLORS.walked`, a white ring). One paint for both
+    maps, `ENDS_PAINT` (`map/types.ts`). The `qol` journey reads both middles on the replay with the pins and the
+    walker hidden: they are DOM markers standing over the end.
 - **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
   longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
   latitude), in the bottom-left corner, as a sibling of the map inside the
