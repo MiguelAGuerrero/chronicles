@@ -443,7 +443,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 ## Wrapped map names (fix long-names audit)
 
 - **No line cap:** a very long name (60+ characters) wraps to many lines under its pin and can cover neighbouring pins. The owner asked for names not to be truncated, so no cap was added; a cap is the owner's call.
-- **Busy-street label shifts up when it wraps:** `StripLabel`'s marker is centre-anchored, so its first line moves about 8 px up per extra line. Cosmetic; check on a device.
 
 ## Threads the owner makes (decision 0104)
 

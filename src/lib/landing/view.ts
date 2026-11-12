@@ -69,11 +69,12 @@ export const staleNote = (r: LandingRow, build: string, release: string | null =
 
 export interface LandingView {
   pockets: { hull: LngLat[]; name: string; stale: boolean }[];
+  /** Heaviest first across every area, so a heavier street's name is placed first (DC4); the weights stay out of the view (L9). */
   strips: { lines: LngLat[][]; name: string; at: LngLat; stale: boolean }[];
   /** Graded stretches to draw (AD12): every grade, named or not by a busy street. */
   graded: { lines: LngLat[][]; grade: 1 | 2 | 3; stale: boolean }[];
   /** Names of pockets with no strip of their own (a neighbourhood, "A busy pocket"), at their centre (L9). */
-  labels: { name: string; at: LngLat }[];
+  labels: { name: string; at: LngLat; stale?: boolean }[];
 }
 
 /** A strip's name keeps at least this far from its area's Start here pin, so the two never stack (audit). */
@@ -113,6 +114,7 @@ export const predatesStreetFix = (r: LandingRow) => Number(/^l(\d+):/.exec(r.rul
 export function landingView(rows: LandingRow[], build: string | null, release: string | null = null): LandingView {
   const v: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
   const drawn: Drawn[] = [];
+  const heavy = new Map<object, number>();
   for (const [i, r] of rows.entries()) {
     if (predatesStreetFix(r)) continue;
     const stale = build != null && isStale(r, build, release);
@@ -122,12 +124,22 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
     const pin = r.analysis.landing?.at ?? null;
     for (const p of r.analysis.pockets) {
       v.pockets.push({ hull: p.hull, name: p.name, stale });
-      if (!p.strips.length) place(v.labels, drawn, { name: p.name, at: p.centre }, i, stale);
+      if (!p.strips.length) {
+        const label = { name: p.name, at: p.centre, stale };
+        heavy.set(label, p.weight);
+        place(v.labels, drawn, label, i, stale);
+      }
     }
     for (const s of r.analysis.strips) {
-      place(v.strips, drawn, { lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale }, i, stale);
+      const strip = { lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale };
+      heavy.set(strip, s.weight);
+      place(v.strips, drawn, strip, i, stale);
     }
   }
+  // DC4: heaviest first, by the weight the analysis measured; only the order says so, never a number.
+  const byWeight = (a: object, b: object) => (heavy.get(b) ?? 0) - (heavy.get(a) ?? 0);
+  v.strips.sort(byWeight);
+  v.labels.sort(byWeight);
   return v;
 }
 

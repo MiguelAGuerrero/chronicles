@@ -1,5 +1,5 @@
 import type { Faced } from '../../lib/moment';
-import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type SymbolLayerSpecification, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
@@ -8,7 +8,6 @@ import { perfCount } from '../../lib/perfCount';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
-import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
@@ -31,7 +30,7 @@ import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyNameLayers, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -141,6 +140,11 @@ function addOverlay(map: MapLibreMap) {
       'circle-stroke-color': '#ffffff',
       'circle-stroke-width': 2,
     } });
+  // The Busy layer's names (DC1-DC6, DC14): the map's own text, colliding with each other and the base map's labels. Where
+  // the layer sits in the stack is set by busyNamesOver (DC16); added on top here.
+  map.addSource('busy-names', { type: 'geojson', data: empty });
+  const names = busyNameLayers();
+  map.addLayer({ id: 'busy-names', type: 'symbol', source: 'busy-names', layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
 }
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
@@ -322,6 +326,35 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         };
         // A two-finger turn can't be made headless: the e2e turns the newest map in code (CP1-CP5).
         (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
+        // Explore in a dense city (DC5, DC6, DC14, DC15): the e2e moves the newest map in code and asks which busy names are
+        // drawn, where; names the map placed, never the reserved room (DC14).
+        const BUSY = ['busy-names'];
+        const busyIn = (box?: [[number, number], [number, number]]) =>
+          [...new Set((box ? map.queryRenderedFeatures(box, { layers: BUSY }) : map.queryRenderedFeatures({ layers: BUSY }))
+            .filter((f) => !f.properties?.reserve).map((f) => String(f.properties?.name)))];
+        const canvasXY = (x: number, y: number): [number, number] => {
+          const r = map.getCanvas().getBoundingClientRect();
+          return [x - r.left, y - r.top];
+        };
+        const w = window as { __zoomTo?: unknown; __busyNamesIn?: unknown; __busyNamePoint?: unknown };
+        w.__zoomTo = (at: LngLat, zoom: number) => map.jumpTo({ center: at, zoom });
+        w.__busyNamesIn = (x0: number, y0: number, x1: number, y1: number) => busyIn([canvasXY(x0, y0), canvasXY(x1, y1)]);
+        w.__busyNamePoint = () => {
+          const r = map.getCanvas().getBoundingClientRect();
+          for (let y = 60; y < r.height - 60; y += 8)
+            for (let x = 30; x < r.width - 30; x += 8) {
+              // Only where the name is what a finger meets: no pin or control over it.
+              if (document.elementFromPoint(r.left + x, r.top + y) !== map.getCanvas()) continue;
+              const hit = busyIn([[x - 1, y - 1], [x + 1, y + 1]]);
+              if (hit.length) return { x: r.left + x, y: r.top + y, name: hit[0] };
+            }
+          return null;
+        };
+        map.on('movestart', () => container.current?.setAttribute('data-idle', '0'));
+        map.on('idle', () => {
+          container.current?.setAttribute('data-idle', '1');
+          container.current?.setAttribute('data-busy-names', JSON.stringify(busyIn()));
+        });
       }
     });
     // maplibre fires click for each tap of a double-tap zoom: wait to see
@@ -642,6 +675,32 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
     container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
   }, [ready, props.landing]);
+  // The busy names (DC1, DC14): sent when the areas or the reserved name change, never per fix or zoom.
+  const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
+  const reserveRef = useRef(props.busyNamesReserve);
+  useEffect(() => {
+    reserveRef.current = props.busyNamesReserve;
+  });
+  useEffect(() => {
+    if (!ready) return;
+    const names = busyNamesGeoJSON(props.landing, reserveRef.current ?? null);
+    setData('busy-names', names);
+    // The e2e reads what the map was given (only when it is measuring): each name and where it goes.
+    if ((window as { __perf?: unknown }).__perf && container.current) {
+      container.current.dataset.busyGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
+    }
+  }, [ready, props.landing, reserveKey]);
+  // DC16: over every layer on Explore, so its names are placed before the base map's; elsewhere under the base map's labels
+  // (placed after them, so a road keeps its own name) and so under the trace and the route.
+  const namesOver = !!props.busyNamesOver;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const firstSymbol = (map.getStyle().layers as { type: string; id: string }[]).find((l) => l.type === 'symbol' && !l.id.startsWith('busy-names'))?.id;
+    const below = namesOver ? undefined : firstSymbol ?? 'alternates-edge';
+    map.moveLayer('busy-names', below);
+    container.current?.setAttribute('data-busy-over', namesOver ? '1' : '0');
+  }, [ready, namesOver]);
   useEffect(() => {
     if (!ready) return;
     setData('waiting-dots', waitingDotsGeoJSON(props.waitingDots));
@@ -872,44 +931,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     }
     markMarkers.current.clear();
-  }, []);
-  // Strip and pocket names, as DOM markers like the stars.
-  const landingMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!ready || !map) return;
-    for (const m of landingMarkers.current) {
-      m.marker.remove();
-      const r = m.root;
-      queueMicrotask(() => r.unmount());
-    }
-    landingMarkers.current = [];
-    for (const s of props.landing?.strips ?? []) {
-      const el = document.createElement('div');
-      el.style.pointerEvents = 'none';
-      el.setAttribute('aria-hidden', 'true');
-      const root = createRoot(el);
-      perfCount('marker:strip');
-      root.render(<StripLabel name={s.name} />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(s.at).addTo(map), root });
-    }
-    for (const l of props.landing?.labels ?? []) {
-      const el = document.createElement('div');
-      el.style.pointerEvents = 'none';
-      el.setAttribute('aria-hidden', 'true');
-      const root = createRoot(el);
-      perfCount('marker:strip');
-      root.render(<StripLabel name={l.name} />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
-    }
-  }, [ready, props.landing]);
-  useEffect(() => () => {
-    for (const m of landingMarkers.current) {
-      m.marker.remove();
-      const r = m.root;
-      queueMicrotask(() => r.unmount());
-    }
-    landingMarkers.current = [];
   }, []);
   // The complexes' names (CX9), DOM markers like the strip names, rebuilt only when they change; the map adds no summary of its own.
   const complexMarkers = useRef<{ marker: Marker; root: Root }[]>([]);

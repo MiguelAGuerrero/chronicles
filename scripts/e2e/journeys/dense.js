@@ -53,21 +53,21 @@ async function run(h) {
     const names = await drawn();
     const giv = await given();
     const asMarkers = await pg.evaluate((ns) => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => ns.includes((m.textContent ?? '').trim())).length, giv.map((g) => g.name));
-    check.todo(names.length > 0 && asMarkers === 0, `DC1: busy names are drawn by the map (${names.length}: ${names.slice(0, 4).join(', ')}), none as page elements (${asMarkers})`);
+    check(names.length > 0 && asMarkers === 0, `DC1: busy names are drawn by the map (${names.length}: ${names.slice(0, 4).join(', ')}), none as page elements (${asMarkers})`);
     // DC2: in the dense downtown there is not room for every name, so some are left out rather than stacked.
-    check.todo(giv.length > names.length && new Set(names).size === names.length, `DC2: fewer names drawn (${names.length}) than given (${giv.length}), none twice`);
+    check(giv.length > names.length && new Set(names).size === names.length, `DC2: fewer names drawn (${names.length}) than given (${giv.length}), none twice`);
 
     // DC14: no busy name under the selected area's name.
     const label = await safe(() => pg.locator('[data-testid=area-point][data-selected="1"]').first().boundingBox(), null);
     const under = label ? await pg.evaluate((b) => window.__busyNamesIn?.(b.x, b.y, b.x + b.width, b.y + b.height) ?? ['(no hook)'], label) : ['(no selected label)'];
-    check.todo(under.length === 0, `DC14: no busy name under the selected area's name (${under.join(', ')})`);
+    check(under.length === 0, `DC14: no busy name under the selected area's name (${under.join(', ')})`);
 
     // DC15: a tap on a busy name opens nothing and selects nothing.
     const hit = await pg.evaluate(() => window.__busyNamePoint?.() ?? null);
     const sel0 = await selected();
     if (hit) await pg.mouse.click(hit.x, hit.y);
     await pg.waitForTimeout(900);
-    check.todo(!!hit && (await selected()) === sel0 && !(await pg.locator('[data-testid=atlas-card-close]').count()) && !(await pg.locator('[data-testid=atlas-spot]').count()),
+    check(!!hit && (await selected()) === sel0 && !(await pg.locator('[data-testid=atlas-card-close]').count()) && !(await pg.locator('[data-testid=atlas-spot]').count()),
       `DC15: a tap on "${hit?.name}" opens no card and keeps ${sel0} selected`);
     await closeCard();
 
@@ -78,14 +78,14 @@ async function run(h) {
       await pg.evaluate(([at, z]) => window.__zoomTo?.(at, z), [left.at, zoom0 + 2]);
       await idle();
     }
-    check.todo(!!left && (await drawn()).includes(left.name), `DC5: "${left?.name}", left out at ${zoom0.toFixed(1)}, is drawn two levels in`);
+    check(!!left && (await drawn()).includes(left.name), `DC5: "${left?.name}", left out at ${zoom0.toFixed(1)}, is drawn two levels in`);
     await shot(pg, 'dense-2-zoomed-in');
 
     // DC6: zoomed out to 12, no busy name (EC7: names from zoom 13).
     const centre = (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
     await pg.evaluate(([at]) => window.__zoomTo?.(at, 12), [centre]);
     await idle();
-    check.todo((await drawn()).length === 0 && (await given()).length === 0, `DC6: at zoom 12 the map draws no busy name (${(await drawn()).join(', ')})`);
+    check((await drawn()).length === 0 && (await given()).length === 0, `DC6: at zoom 12 the map draws no busy name (${(await drawn()).join(', ')})`);
     await pg.evaluate(([at, z]) => window.__zoomTo?.(at, z), [centre, zoom0]);
     await idle();
 
@@ -132,15 +132,15 @@ async function run(h) {
     await pg.mouse.up();
     await pg.waitForTimeout(1500);
     const dragRenders = (await perf('render:explore')) - r1;
-    check.todo(dragRenders <= 1, `DC12: a Move map drag renders Explore ${dragRenders} times (at most once)`);
-    check.todo((await safe(() => map().getAttribute('data-busy-over'), null)) === '1', 'DC16: on Explore the busy names sit over the base map\'s names');
+    check(dragRenders <= 1, `DC12: a Move map drag renders Explore ${dragRenders} times (at most once)`);
+    check((await safe(() => map().getAttribute('data-busy-over'), null)) === '1', 'DC16: on Explore the busy names sit over the base map\'s names');
 
     // DC16: on Navigate the base map's names keep their room and the trace draws over the busy names.
     await closeCard();
     await h.tabTo(pg, 'navigate');
     await pg.waitForTimeout(3000);
     const over = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map')].filter((m) => m.getBoundingClientRect().width > 0).map((m) => m.getAttribute('data-busy-over')));
-    check.todo(over.length > 0 && over.every((v) => v === '0'), `DC16: on Navigate the busy names sit under the base map's names and the trace (${over.join(',')})`);
+    check(over.length > 0 && over.every((v) => v === '0'), `DC16: on Navigate the busy names sit under the base map's names and the trace (${over.join(',')})`);
     await shot(pg, 'dense-4-navigate');
   } finally {
     denseWorld.serve = false;

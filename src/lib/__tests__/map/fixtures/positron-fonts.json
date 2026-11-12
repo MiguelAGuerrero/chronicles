@@ -1,9 +1,10 @@
 {
- "note": "A copy of the parts of OpenFreeMap Positron (tiles.openfreemap.org/styles/positron, Nov 12, 2026) the busy names depend on: its glyphs URL and the fonts its labels use.",
+ "note": "A copy of the parts of OpenFreeMap Positron (tiles.openfreemap.org/styles/positron, Nov 12, 2026) the busy names depend on: its glyphs URL, the fonts its labels use and its first label layer (the native map puts busy names under it, DC16).",
  "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
  "fonts": [
   "Noto Sans Bold",
   "Noto Sans Italic",
   "Noto Sans Regular"
- ]
+ ],
+ "firstLabel": "waterway_line_label"
 }

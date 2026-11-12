@@ -6,6 +6,7 @@ import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
 import type { ComplexMap } from '../../lib/complexes/mapLayer';
 import type { LandingView } from '../../lib/landing/view';
+import { busyNames } from '../../lib/landing/names';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
@@ -123,6 +124,13 @@ export interface WalkMapProps {
   waitingDots?: WaitingDot[];
   /** Remembered hotspots: pockets shaded, strips drawn and named, as information (v1.5). */
   landing?: LandingView | null;
+  /**
+   * DC16: the busy names go over every layer, placed before the base map's labels (Explore); otherwise under the base map's
+   * labels and so under the trace and the route (the walk screen, Navigate).
+   */
+  busyNamesOver?: boolean;
+  /** DC14: the selected area's name, whose room on the map no busy name takes (Explore). */
+  busyNamesReserve?: { name: string; at: LngLat } | null;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
   /** Explore's areas: quiet dots, the selected one named (atlas round 3, fix pins-selected-only). */
@@ -419,18 +427,57 @@ export function stripsGeoJSON(v: LandingView | null | undefined): GeoJSON.Featur
  * renames it, the names stop drawing with a console error; `map/busyNames.test.ts` reads it from a copy of the style.
  */
 export const BUSY_NAME_FONT = ['Noto Sans Bold'];
+/**
+ * The base style's first label layer (Positron's): on native, busy names go under it off Explore (DC16). The web finds the
+ * first symbol layer itself; native can't read the style, so it names it (held by `map/busyNames.test.ts`).
+ */
+export const BASE_FIRST_LABEL = 'waterway_line_label';
 
-/** The busy names' two layers (DC1-DC6, DC14): along a strip's street, and at a pocket's centre. Not built yet. */
-export function busyNameLayers(): { line: { layout: Record<string, unknown>; paint: Record<string, unknown> }; point: { layout: Record<string, unknown>; paint: Record<string, unknown> } } {
-  throw new Error('busyNameLayers: not built (explore-dense-city DC2)');
+/** The busy names' size, the same for every name whatever its street's grade (DC4). */
+const BUSY_NAME_SIZE = 13;
+/** The selected area's name on the map (AreaPointView: 11 px bold under a 14 px dot, 140 px wide), as the room it reserves (DC14). */
+const AREA_NAME_ROOM = { size: 12, offsetEm: 0.85, widthEm: 11.5 };
+
+/**
+ * The busy names' layer (DC1-DC6, DC14): one name per street at its busiest point, turned along the street there (it turns
+ * with the map), or a pocket's name level at its centre. Names collide with each other and with the base map's labels
+ * (never overlap, never ignore placement), are placed in their `sort` order, and look the same whatever the grade: only a
+ * stale area's names are dimmed. A long name wraps at its width; nothing cuts it.
+ */
+export function busyNameLayers() {
+  const reserve = ['get', 'reserve'];
+  return {
+    layout: {
+      'symbol-placement': 'point',
+      'text-field': ['get', 'name'],
+      'text-font': BUSY_NAME_FONT,
+      'text-size': ['case', reserve, AREA_NAME_ROOM.size, BUSY_NAME_SIZE],
+      'text-allow-overlap': false,
+      'text-ignore-placement': false,
+      'text-padding': 4,
+      'symbol-sort-key': ['get', 'sort'],
+      'text-rotate': ['get', 'angle'],
+      'text-rotation-alignment': 'map',
+      'text-max-width': ['case', reserve, AREA_NAME_ROOM.widthEm, 9],
+      // The reserved area name sits under its dot, as AreaPointView draws it; a busy name is centred on its point.
+      'text-anchor': ['case', reserve, 'top', 'center'],
+      'text-offset': ['case', reserve, ['literal', [0, AREA_NAME_ROOM.offsetEm]], ['literal', [0, 0]]],
+    } as Record<string, unknown>,
+    paint: { 'text-color': HOTSPOT_INK, 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': ['get', 'opacity'] } as Record<string, unknown>,
+  };
 }
 
 /**
- * The busy names as map features (DC1, DC4): lines for strips, points for pockets, and the selected area's name, invisible,
- * reserving its room (DC14). Not built yet.
+ * The busy names as map points (DC1, DC4): each with its `sort` (the view's order: heavier first), its turn and its
+ * opacity (dimmed when stale, DC6). The selected area's name, when given, is drawn at opacity 0 and placed before every
+ * busy name, so none is placed under it (DC14).
  */
-export function busyNamesGeoJSON(_v: LandingView | null | undefined, _reserve: { name: string; at: LngLat } | null = null): { lines: GeoJSON.FeatureCollection; points: GeoJSON.FeatureCollection } {
-  throw new Error('busyNamesGeoJSON: not built (explore-dense-city DC1)');
+export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null): GeoJSON.FeatureCollection {
+  const features: GeoJSON.Feature[] = [];
+  if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, reserve: true }, geometry: { type: 'Point', coordinates: reserve.at } });
+  for (const n of busyNames(v))
+    features.push({ type: 'Feature', properties: { name: n.name, sort: n.order, opacity: n.stale ? HOTSPOT_GRADES.staleOpacity : 1, angle: n.angle, reserve: false }, geometry: { type: 'Point', coordinates: n.at } });
+  return { type: 'FeatureCollection', features };
 }
 
 /** The range preview's ring (E21), as a 64-sided polygon. */

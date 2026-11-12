@@ -274,6 +274,11 @@ export default function Explore() {
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
+  // DC14: the selected area's name keeps its room on the map; no busy name is placed under it.
+  const namedPoint = areaPoints.find((p) => p.selected && p.name);
+  const reserveName = namedPoint?.name ?? null;
+  const reserveAt = namedPoint?.at ?? null;
+  const busyReserve = useMemo(() => (reserveName && reserveAt ? { name: reserveName, at: reserveAt } : null), [reserveName, reserveAt]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // CX9, CX16: the selected area's complexes, read silently once it is selected, drawn as quiet outlines named at close zoom.
   const { hidden: hiddenKinds } = useHiddenKinds();
@@ -576,6 +581,8 @@ export default function Explore() {
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
           landing={busyView}
+          busyNamesOver
+          busyNamesReserve={busyReserve}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {

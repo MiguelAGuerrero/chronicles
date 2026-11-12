@@ -6,7 +6,6 @@ import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useS
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel } from '../MarkPinView';
-import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
@@ -30,7 +29,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, BASE_FIRST_LABEL, busyNameLayers, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -150,6 +149,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const foundPins = useMemo(() => pinsGeoJSON(props.foundPins), [props.foundPins]);
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
+  // The busy names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
+  const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
+  const busyNameData = useMemo(
+    () => busyNamesGeoJSON(props.landing, props.busyNamesReserve ?? null),
+    // The reserved name is read through its key: a new object for the same name and place is not a change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.landing, reserveKey],
+  );
+  const nameLayers = useMemo(() => busyNameLayers(), []);
+  // DC16: over every layer on Explore (the last overlay drawn, placed first); elsewhere under the base map's labels.
+  const namesBelow = props.busyNamesOver ? undefined : BASE_FIRST_LABEL;
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
   const waitingDots = useMemo(() => waitingDotsGeoJSON(props.waitingDots), [props.waitingDots]);
   // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
@@ -494,6 +504,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             'circle-stroke-width': 2,
           }} />
         </GeoJSONSource>
+        {/* The busy names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
+        <GeoJSONSource id="busy-names" data={busyNameData}>
+          <Layer id="busy-names" type="symbol" beforeId={namesBelow} layout={nameLayers.layout as never} paint={nameLayers.paint as never} />
+        </GeoJSONSource>
         {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4), drawn
             before this walk's pins so those stay on top (audit 6). */}
         {memoryPins.map((pin) => (
@@ -565,11 +579,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {(props.areaPoints ?? []).map((p) => (
           <Marker key={`area:${p.id}:${p.name ?? ''}:${p.selected ? 1 : 0}`} id={`area:${p.id}`} lngLat={p.at} anchor="top" offset={[0, -6]}>
             <AreaPointView pin={p} />
-          </Marker>
-        ))}
-        {[...(props.landing?.strips ?? []), ...(props.landing?.labels ?? [])].map((s) => (
-          <Marker key={`label:${s.name}:${s.at.join(',')}`} id={`label:${s.name}:${s.at.join(',')}`} lngLat={s.at} anchor="center">
-            <StripLabel name={s.name} />
           </Marker>
         ))}
         {(props.stars ?? []).map((star) => (
