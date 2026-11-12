@@ -13,6 +13,9 @@ import { NoteText } from '../threads/NoteText';
 import { theme } from '../ui';
 import { OWNER_FONT } from './type';
 
+/** A note is 500 characters at most, about fourteen lines here; one kept longer by an older build is cut on the page and whole in its viewer. */
+const WORDS_LINES = 24;
+
 export type NoFix = 'denied' | 'timeout' | 'unavailable';
 
 /**
@@ -90,7 +93,7 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
         {parseRefs(body).some((x) => 'ref' in x) ? (
           <View testID="entry-words"><NoteText body={body} style={styles.words} onOpen={onOpenRef} /></View>
         ) : (
-          <Text style={styles.words} testID="entry-words">{body}</Text>
+          <Text style={styles.words} testID="entry-words" numberOfLines={WORDS_LINES}>{body}</Text>
         )}
       </View>
     );

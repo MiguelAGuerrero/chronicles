@@ -7,7 +7,7 @@ const copy = (): Promise<any> => import(`../../resurface/${'copy'}`);
 
 test('MC14: every sentence the screen writes, verbatim', async () => {
   const c = await copy();
-  assert.equal(c.HIDDEN_TOAST, 'Hidden. It stays in Lately and in its walk.');
+  assert.equal(c.HIDDEN_TOAST, 'Hidden. It stays in your journal and in its walk.');
   assert.equal(c.NOT_A_THREAD, 'That is not a thread.');
   assert.equal(c.EMPTY, 'Nothing kept yet.');
   assert.equal(c.BRING_BACK, 'Bring back');

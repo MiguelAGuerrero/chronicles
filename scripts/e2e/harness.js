@@ -416,6 +416,24 @@ async function createHarness() {
       if (await pg.locator(`[data-testid=section-${section}]`).filter({ visible: true }).count()) await pg.click(`[data-testid=section-${section}]`);
     }
   };
+  // Memories is a journal (decision 0151): the threads, the Chronicle's and the owner's, are behind its contents
+  // button. `toThreads` opens them from the page; `toJournal` goes back to the page. Both do nothing when already there,
+  // or inside a thread or Hidden (their own Back comes first).
+  const toThreads = async (pg) => {
+    await pg.waitForSelector('[data-testid=threads-screen], [data-testid=memories-menu], [data-testid=thread-screen], [data-testid=own-thread]', { timeout: 20000, state: 'visible' }).catch(() => {});
+    if (await pg.locator('[data-testid=threads-screen], [data-testid=thread-screen], [data-testid=own-thread]').filter({ visible: true }).count()) return;
+    if (!(await pg.locator('[data-testid=memories-menu]').filter({ visible: true }).count())) return;
+    await pg.click('[data-testid=memories-menu]');
+    await pg.waitForSelector('[data-testid=menu-threads]', { timeout: 5000 }).catch(() => {});
+    await pg.click('[data-testid=menu-threads]').catch(() => {});
+    await pg.waitForSelector('[data-testid=threads-screen]', { timeout: 5000 }).catch(() => {});
+  };
+  const toJournal = async (pg) => {
+    if (await pg.locator('[data-testid=threads-back]').filter({ visible: true }).count()) {
+      await pg.click('[data-testid=threads-back]');
+      await pg.waitForSelector('[data-testid=journal-page]', { timeout: 5000 }).catch(() => {});
+    }
+  };
   // Chronicle opens on Memories (RM1); a journey that wants the map's sheet after leaving a replay brings it up.
   const mapUp = async (pg) => {
     await pg.waitForSelector('[data-testid=chronicle-sections]', { timeout: 15000 }).catch(() => {});
@@ -680,7 +698,7 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
-    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint,
   };
 }

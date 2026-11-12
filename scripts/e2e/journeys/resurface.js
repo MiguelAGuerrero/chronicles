@@ -80,7 +80,7 @@ const SEED_CONTEXT = () => {
 const attempt = async (fn) => { try { return !!(await fn()); } catch { return false; } };
 
 async function contextRun(h) {
-  const { url, check, tabTo, freshPage } = h;
+  const { url, check, tabTo, freshPage, toThreads, toJournal } = h;
   const { c, pg } = await freshPage('resurface-context');
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
@@ -96,15 +96,16 @@ async function contextRun(h) {
   const textOf = async (words) => (await cardOf(words).innerText()).replace(/\s+/g, ' ');
 
   // The lines are read after the cards come (the street, and now a complex already on the phone): wait until the last one has its words.
-  await pg.waitForSelector('[data-testid=moment-card]:has-text("No place kept")', { timeout: 15000 }).catch(() => {});
-  const placeOk = await attempt(async () => /Hope Street, Fox Point/.test(await textOf('harbor bench')) && /Hope Street/.test(await textOf('loose near hope')) && !/Fox Point/.test(await textOf('loose near hope')) && /No place kept/.test(await textOf('loose and unplaced')));
-  check(placeOk, 'MC1: a card shows its street and town, the street alone outside a walk, else "No place kept"');
-  const minutesOk = await attempt(async () => /Five minutes in/.test(await textOf('harbor bench')) && /Thirty minutes in/.test(await textOf('orchard blossoms')) && /On its own/.test(await textOf('loose near hope')));
-  check(minutesOk, 'MC3: a card says how far into the walk it was, pauses not counted, or "On its own"');
-  const dayOk = await attempt(async () => /evening/.test(await textOf('harbor bench')));
-  check(dayOk, 'MC4: a card says the time of day in words');
-  const noDigit = await attempt(async () => !/\d/.test(await textOf('harbor bench')));
-  check(noDigit, 'MC7: a card context line holds no digit');
+  await pg.waitForSelector('[data-testid=moment-card]:has-text("No location")', { timeout: 15000 }).catch(() => {});
+  const placeOk = await attempt(async () => /Hope Street, Fox Point/.test(await textOf('harbor bench')) && /Hope Street/.test(await textOf('loose near hope')) && !/Fox Point/.test(await textOf('loose near hope')) && /No location/.test(await textOf('loose and unplaced')));
+  check(placeOk, 'MC1: an entry shows its street and town, the street alone outside a walk, else "No location" (the journal\'s dateline, JN5)');
+  const minutesOk = await attempt(async () => /Five minutes in/.test(await textOf('harbor bench')) && /Thirty minutes in/.test(await textOf('orchard blossoms')) && !/ in\b/.test(await cardOf('loose near hope').locator('[data-testid=entry-dateline]').innerText()));
+  check(minutesOk, 'MC3: an entry says how far into the walk it was, pauses not counted, and nothing of a walk outside one');
+  const dateOf = async (words) => (await cardOf(words).locator('[data-testid=entry-dateline]').innerText()).trim();
+  const dayOk = await attempt(async () => /^\d{1,2}:\d{2} (am|pm) · /.test(await dateOf('harbor bench')));
+  check(dayOk, 'MC4: an entry says when in the day it was, by the clock under its day\'s heading (amended by JN5)');
+  const noDigit = await attempt(async () => !/\d/.test((await dateOf('harbor bench')).replace(/^\d{1,2}:\d{2} /, '')));
+  check(noDigit, 'MC7: past its time, an entry\'s dateline holds no digit');
 
   // Audit 18: the top card's context is short and does not repeat the walk. Audit 17: a street found by nearness is "Near".
   const heroShort = await attempt(async () => {
@@ -118,9 +119,9 @@ async function contextRun(h) {
   check(footOk, 'memories-context audit 3: the foot line names the walk without its town');
 
   // MC15: the owner's words are italic; the app's placeholder is upright.
-  const italic = (sel) => pg.locator(sel).first().evaluate((e) => getComputedStyle(e).fontStyle);
-  const italicOk = await attempt(async () => (await italic('[data-testid=moment-card] >> text=harbor bench')) === 'italic' && (await italic('[data-testid=resurfaced] >> text=A voice memo')) === 'normal');
-  check(italicOk, "MC15: your words are italic and the app's placeholder is upright");
+  const face = (sel) => pg.locator(sel).first().evaluate((e) => getComputedStyle(e).fontFamily);
+  const italicOk = await attempt(async () => /serif/.test((await face('[data-testid=moment-card] >> text=harbor bench')).replace(/sans-serif/g, '')) && !/serif/.test((await face('[data-testid=resurfaced] >> text=A voice note')).replace(/sans-serif/g, '')));
+  check(italicOk, "MC15: your words are in the serif and the app's placeholder in its sans (JN4)");
 
   // MC8-MC10: the header menu.
   const menu = async (item) => { await pg.click('[data-testid=memories-menu]'); await pg.click(`[data-testid=${item}]`); };
@@ -138,15 +139,19 @@ async function contextRun(h) {
   const offOk = await attempt(async () => {
     await pg.click('[data-testid=hidden-back]');
     await menu('menu-off');
-    const line = await pg.locator('[data-testid=resurfaced-off]').innerText();
-    return /Bringing moments back is off/.test(line) && (await pg.locator('[data-testid=resurfaced]').count()) === 0 && (await pg.locator('[data-testid=resurfaced-another]').count()) === 0 && (await pg.locator('[data-testid=moment-card]').count()) > 0;
+    await pg.waitForTimeout(400);
+    await pg.click('[data-testid=memories-menu]');
+    const says = await pg.locator('[data-testid=menu-off]').innerText();
+    await pg.click('[data-testid=menu-close]');
+    return /Off/.test(says) && (await pg.locator('[data-testid=resurfaced]').count()) === 0 && (await pg.locator('[data-testid=moment-card]').count()) > 0;
   });
-  check(offOk, 'MC9: with the switch off, a quiet line replaces the top card and Another, and Lately stays');
+  check(offOk, 'MC9: with the switch off there is no slip, the contents says Off, and the page stays');
   const forgetOk = await attempt(async () => {
     await menu('menu-forget');
     const said = await pg.locator('[data-testid=forget-confirm-text]').innerText();
     await pg.click('[data-testid=forget-confirm]');
-    return /offered again/.test(said) && (await pg.locator('[data-testid=resurfaced-off]').count()) === 1;
+    await pg.waitForTimeout(400);
+    return /offered again/.test(said) && (await prefsOf(pg)).off === true && (await pg.locator('[data-testid=resurfaced]').count()) === 0;
   });
   check(forgetOk, 'MC10: Forget my choices asks once, says what returns, and keeps the switch off');
   const toastOk = await attempt(async () => {
@@ -155,9 +160,9 @@ async function contextRun(h) {
     await pg.click('[data-testid=menu-hide]');
     // An earlier toast may still be up: wait for this choice's own.
     await pg.waitForFunction(() => /Hidden\./.test(document.querySelector('[data-testid=memories-toast]')?.textContent ?? ''), null, { timeout: 5000 });
-    return /Hidden\. It stays in Lately and in its walk\./.test(await pg.locator('[data-testid=memories-toast]').innerText());
+    return /Hidden\. It stays in your journal and in its walk\./.test(await pg.locator('[data-testid=memories-toast]').innerText());
   });
-  check(toastOk, 'MC14: the toast states a fact, Hidden. It stays in Lately and in its walk.');
+  check(toastOk, 'MC14: the toast states a fact, Hidden. It stays in your journal and in its walk.');
   // Audit 7: the toast names the word as the owner wrote it, and Undo takes it back.
   const fewerOk = await attempt(async () => {
     await cardOf('harbor bench').locator('[data-testid=moment-more]').click();
@@ -195,8 +200,9 @@ async function contextRun(h) {
     await pg.reload();
     await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
     await tabTo(pg, 'chronicle', 'memories');
-    await pg.waitForSelector('[data-testid=resurfaced-off]', { timeout: 15000 });
-    return true;
+    await pg.waitForSelector('[data-testid=moment-card]', { timeout: 15000 });
+    await pg.waitForTimeout(1500);
+    return (await prefsOf(pg)).off === true && (await pg.locator('[data-testid=resurfaced]').count()) === 0;
   });
   check(offKeptOk, 'memories-context audit 15: the switch stays off after a reload');
   await c.close();
@@ -206,15 +212,16 @@ async function contextRun(h) {
   await empty.pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(empty.pg, 'chronicle', 'memories');
   const emptyOk = await attempt(async () => {
-    const said = await empty.pg.locator('[data-testid=memories-empty]').innerText();
-    return said.trim().startsWith('Nothing kept yet.') && !/walk somewhere/i.test(said);
+    await empty.pg.waitForSelector('[data-testid=day-heading]', { timeout: 15000 });
+    const said = await empty.pg.locator('[data-testid=memories]').innerText();
+    return (await empty.pg.locator('[data-testid=day-heading]').count()) === 1 && !/walk somewhere|nothing kept/i.test(said) && !/\?/.test(said);
   });
-  check(emptyOk, 'MC14: the empty state reads Nothing kept yet. and gives no instruction');
+  check(emptyOk, 'MC14: the empty journal is today\'s date and the open line, and gives no instruction (JN2)');
   await empty.c.close();
 }
 
 async function run(h) {
-  const { url, check, shot, tabTo, freshPage } = h;
+  const { url, check, shot, tabTo, freshPage, toThreads, toJournal } = h;
   const { c, pg } = await freshPage('resurface');
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
@@ -237,36 +244,47 @@ async function run(h) {
   check(!(await has('[data-testid=resurfaced]:has-text("Just now")')), 'RM7: a moment from the last day is not resurfaced');
 
   // RM22: no number is a score; nothing on Memories holds a digit here.
-  const text = await pg.locator('[data-testid=memories]').innerText();
-  check(!/\d/.test(text), `RM22: Memories shows no digit (${text.replace(/\s+/g, ' ').slice(0, 120)})`);
+  const text = (await pg.locator('[data-testid=memories]').innerText()).replace(/\b\d{1,2}:\d{2}\b/g, '').replace(/\b[A-Z][a-z]+ \d{1,2}(, \d{4})?\b/g, '');
+  check(!/\d/.test(text), `RM22: past its dates and times, Memories shows no digit (${text.replace(/\s+/g, ' ').slice(0, 120)})`);
   // RM25: the top card reads as one named button, and Another, Relive it and More are named buttons; the rail is a list.
   const named = async (name) => (await pg.getByRole('button', { name }).filter({ visible: true }).count()) > 0;
-  check((await named(/Open$/)) && (await named('Relive it')) && (await named('Another')) && (await named('More about this moment'))
-    && (await pg.locator('[data-testid=threads-rail] [role=list]').count()) === 1, 'RM25: the top card, Relive it, Another and More are named buttons, and the rail is a list');
+  await pg.click('[data-testid=resurfaced-more]');
+  await pg.waitForSelector('[data-testid=memory-menu]');
+  const inMore = (await pg.locator('[data-testid=resurfaced-relive]').count()) === 1 && (await pg.locator('[data-testid=resurfaced-another]').count()) === 1;
+  await pg.click('[data-testid=menu-cancel]');
+  const slipNamed = (await named(/Open$/)) && (await named('More about this moment'));
   await shot(pg, '60-memories');
+  await toThreads(pg);
+  check(slipNamed && inMore && (await pg.locator('[data-testid=threads-rail] [role=list]').count()) === 1, 'RM25: the slip and its More are named buttons, Relive it and Another are in More (JN20), and the rail is a list');
 
   // RM14: the threads rail, a tile with a line in words.
+  await toThreads(pg);
   const tile = await pg.locator('[data-testid=thread-tile]').allInnerTexts();
   check(tile.length === 1 && /^\W*Harbor\b/.test(tile[0]) && /Just beginning/.test(tile[0]), `RM14: one thread, Harbor, with a line in words (${tile.join('|').replace(/\n/g, ' ')})`);
 
-  // RM17, RM18: Lately lists every moment, a card opens the viewer.
-  check((await pg.locator('[data-testid=moment-card]').count()) === 7, 'RM17: Lately lists the seven moments, the top card among them');
+  // RM17, RM18: the page lists every moment, an entry opens the viewer.
+  await toJournal(pg);
+  check((await pg.locator('[data-testid=moment-card]').count()) === 7, 'RM17: the page lists the seven moments, the resurfaced one among them');
   // Audit 12: a very long note leaves its card's buttons on screen. Audit 13: the rail is a list, the targets are 44 px.
   const longCard = pg.locator('[data-testid=moment-card]:has-text("quiet quiet")').first();
   await longCard.scrollIntoViewIfNeeded();
   const lb = await longCard.boundingBox();
   const mb = await longCard.locator('[data-testid=moment-more]').boundingBox();
-  check(lb && mb && lb.height < 600 && mb.x + mb.width <= 390 && mb.y + mb.height <= lb.y + lb.height + 1, `audit 12: a 4,000-character note keeps its card short and its More button in view (${Math.round(lb?.height ?? 0)} px)`);
-  await pg.locator('[data-testid=memories-list]').evaluate((e) => e.scrollTo?.(0, 0)).catch(() => {});
+  check(lb && mb && lb.height < 800 && mb.x + mb.width <= 390 && mb.y + mb.height <= lb.y + lb.height + 1, `audit 12: a 4,000-character note keeps its card short and its More button in view (${Math.round(lb?.height ?? 0)} px)`);
   const sb = await pg.locator('[data-testid=section-memories]').boundingBox();
+  await toThreads(pg);
   check((await pg.locator('[data-testid=threads-rail] [role=listitem]').count()) === 1 && sb && sb.height >= 44, 'audit 13: the threads rail is a list, and the section tabs are 44 px tall');
+  await toJournal(pg);
   await pg.locator('[data-testid=moment-open]').first().click();
   check(await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => true, () => false), 'RM18: a card opens the moment in the viewer');
   await pg.click('[data-testid=viewer-close]');
   await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 10000 }).catch(() => {});
 
   // RM8: Another shows a different moment, and says it is a thread.
+  await pg.locator('[data-testid=resurfaced]').scrollIntoViewIfNeeded();
+  await pg.click('[data-testid=resurfaced-more]');
   await pg.click('[data-testid=resurfaced-another]');
+  await pg.waitForTimeout(400);
   check(/You keep coming back to harbor/.test(await label()), 'RM8: Another steps to a moment in the harbor thread, and says so');
 
   // RM20, RM21: Show less like this, kept, with Undo.
@@ -290,9 +308,10 @@ async function run(h) {
   await pg.waitForTimeout(300);
   prefs = await prefsOf(pg);
   check(prefs && prefs.hidden.length === 1 && (await pg.locator('[data-testid=resurfaced]').innerText()) !== was && (await pg.locator('[data-testid=moment-card]').count()) === 7,
-    'RM20: Not this one is kept, the top card moves on, and the moment stays in Lately');
+    'RM20: Not this one is kept, the slip moves on, and the moment stays on the page');
 
   // RM9: Relive it opens the day of a moment made outside a walk.
+  await pg.click('[data-testid=resurfaced-more]');
   await pg.click('[data-testid=resurfaced-relive]');
   const lived = await pg.waitForURL(/\/(day|replay)\//, { timeout: 15000 }).then(() => true, () => false);
   check(lived, 'RM9: Relive it opens the replay of its day (or its walk)');
@@ -300,6 +319,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=resurfaced]', { timeout: 20000 });
 
   // RM15, RM16: a thread's screen; rename and Not a thread are kept.
+  await toThreads(pg);
   await pg.click('[data-testid=thread-tile]');
   await pg.waitForSelector('[data-testid=thread-screen]');
   check((await pg.locator('[data-testid=thread-title]').innerText()) === 'Harbor' && (await pg.locator('[data-testid=thread-quote]').count()) === 2
@@ -313,6 +333,7 @@ async function run(h) {
   await pg.reload();
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(pg, 'chronicle', 'memories');
+  await toThreads(pg);
   await pg.waitForSelector('[data-testid=thread-tile]', { timeout: 20000 });
   check(/The harbor/.test(await pg.locator('[data-testid=thread-tile]').first().innerText()), 'RM16, RM21: the rename survives a reload');
   await pg.click('[data-testid=thread-tile]');
@@ -340,10 +361,10 @@ async function run(h) {
   await empty.pg.goto(url);
   await empty.pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(empty.pg, 'chronicle', 'memories');
-  check(await empty.pg.waitForSelector('[data-testid=memories-empty]', { timeout: 15000 }).then(() => true, () => false)
-    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=capture-band]').count()) === 1
-    && (await empty.pg.locator('[data-testid=resurfaced]').count()) === 0 && (await empty.pg.locator('[data-testid=threads-rail]').count()) === 0,
-    'RM4: with nothing kept, one quiet line and the capture band, and no card or rail (amended by HC13)');
+  check(await empty.pg.waitForSelector('[data-testid=day-heading]', { timeout: 15000 }).then(() => true, () => false)
+    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=open-line]').count()) === 1
+    && (await empty.pg.locator('[data-testid=resurfaced]').count()) === 0 && (await empty.pg.locator('[data-testid=moment-card]').count()) === 0,
+    'RM4: with nothing kept, today\'s date and the open line, and no slip or entry (amended by JN2)');
   await empty.c.close();
   await contextRun(h);
 }

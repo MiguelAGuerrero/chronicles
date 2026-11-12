@@ -79,13 +79,15 @@ async function run(h) {
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1500);
   const cards = await pg.locator('[data-testid=moment-card]').count();
-  const marks = await pg.locator('[data-testid=stack-mark]').count();
-  check(cards === 2 && marks === 1, `MS7, MS8: two moments, two cards, one marked as holding more (${cards} cards, ${marks} marks)`);
-  const markLabel = marks ? await pg.locator('[data-testid=stack-mark]').first().getAttribute('aria-label') : null;
-  check(markLabel === 'with more in this moment', `MS8: the mark is spoken in words (${markLabel})`);
+  // On the journal's page an entry shows every piece under one dateline (chronicle journal JN3, amending MS8's mark there).
+  const stacked = await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-])').count();
+  const marks = await pg.locator('[data-testid=journal-page] [data-testid=stack-mark]').count();
+  check(cards === 2 && stacked === 1 && marks === 0, `MS7, MS8: two moments, two entries, one holding more than one piece, each shown (${cards} entries, ${stacked} stacked, ${marks} marks)`);
+  const markLabel = stacked ? await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-]) [data-testid=moment-open]').first().getAttribute('aria-label') : null;
+  check(/with more in this moment/.test(markLabel ?? ''), `MS8: that it holds more is spoken in words (${markLabel})`);
 
   // The viewer, opened from a list of several: pieces in order by arrows and buttons, no position or total (MS9, MS10).
-  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-mark]) [data-testid=moment-open]').first().click();
+  await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-]) [data-testid=moment-open]').first().click();
   await there('[data-testid=viewer-close]');
   const seen = [];
   const texts = [];
@@ -159,7 +161,7 @@ async function run(h) {
   // Split out (MS16): the stacked moment's note leaves it, shown at once as its own moment, stored after the window.
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1500);
-  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-mark]) [data-testid=moment-open]').first().click().catch(() => {});
+  await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-]) [data-testid=moment-open]').first().click().catch(() => {});
   await there('[data-testid=viewer-close]');
   await pg.keyboard.press('ArrowRight');
   await pg.waitForTimeout(400);

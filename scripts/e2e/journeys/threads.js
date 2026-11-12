@@ -36,7 +36,7 @@ const stored = (pg) => pg.evaluate(() => new Promise((resolve) => {
 }));
 
 async function run(h) {
-  const { url, check, shot, tabTo, freshPage } = h;
+  const { url, check, shot, tabTo, freshPage, toThreads, toJournal } = h;
   const { c, pg } = await freshPage('threads');
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
@@ -44,13 +44,17 @@ async function run(h) {
   await pg.reload();
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(pg, 'chronicle', 'memories');
+  await toThreads(pg);
   await pg.waitForSelector('[data-testid=my-threads]', { timeout: 20000 });
   const has = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const gone = (sel) => pg.waitForSelector(sel, { state: 'detached', timeout: 10000 }).then(() => true, () => false);
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
   const openCard = async (text) => {
+    await toJournal(pg);
     await pg.locator(`[data-testid=moment-card]:has-text("${text}")`).first().scrollIntoViewIfNeeded();
-    await pg.locator(`[data-testid=moment-card]:has-text("${text}") [data-testid=moment-open]`).first().click();
+    await toJournal(pg);
+    // At its first words: an entry draws a reference as a card of its own, which opens the moment it names (JN16).
+    await pg.locator(`[data-testid=moment-card]:has-text("${text}") [data-testid=moment-open]`).first().click({ position: { x: 12, y: 12 } });
     await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
   };
   // In the owner's thread a note is a bubble read in place (fix thread-log); More's "Open the moment" opens the viewer.
@@ -80,11 +84,14 @@ async function run(h) {
   };
 
   // OT12, OT25: the owner's threads are a block of their own beside the Chronicle's, both headed Threads, told apart by a mark.
+  await toThreads(pg);
   const mine0 = await pg.locator('[data-testid=my-threads]').innerText();
+  await toThreads(pg);
   check((await has('[data-testid=my-threads-hint]')) && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
     && /^\W*Threads\b/.test(mine0) && !/Threads you made/.test(mine0) && /latest first/.test(mine0)
     && (await pg.locator('[data-testid=threads-rail]').count()) === 1,
     'OT12: the owner\'s threads are headed Threads, say their order, and have a hint, beside the Chronicle\'s own threads');
+  await toThreads(pg);
   check((await pg.locator('[data-testid=my-threads] [data-testid=thread-mark-made]').count()) >= 1
     && (await pg.locator('[data-testid=threads-rail] [data-testid=thread-mark-found]').count()) >= 1
     && (await pg.locator('[data-testid=thread-mark-made]').first().getAttribute('aria-label')) === 'connected by you'
@@ -93,6 +100,7 @@ async function run(h) {
   await shot(pg, '70-threads-empty');
 
   // OT5, OT6: a thread is made from a moment and a second kept moment, nothing else.
+  await toJournal(pg);
   await openCard('looked strong at the pier');
   await pg.click('[data-testid=viewer-more]');
   await pg.click('[data-testid=viewer-add-thread]');
@@ -105,7 +113,9 @@ async function run(h) {
     'OT5, OT9: the moment picker searches the words in the moments, and each row carries its date');
   await pg.click('[data-testid=add-moment-row]');
   await gone('[data-testid=add-to-thread]');
-  check(await there('text=Connected', 5000), 'owner-threads audit 19: the pill says Connected, nothing warmer');
+  // The viewer says so plainly, in its info line. (This check once read "Connected" off the threads listed behind the
+  // viewer; they are behind the journal's contents now, decision 0151.)
+  check(await there('text=Added to a thread', 5000), 'owner-threads audit 19: the viewer says Added to a thread, nothing warmer');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');
   // The moment's record as seeded (decision 0123): its own fields, and its one piece.
@@ -115,6 +125,7 @@ async function run(h) {
 
   // OT11: the viewer says "in a thread", without the thread's name.
   await closeViewer();
+  await toJournal(pg);
   await openCard('looked strong at the pier');
   const live = await pg.locator('[data-testid=capture-meta]').first().getAttribute('aria-live');
   check(live === 'polite', 'ui-conformance audit 8: the info line is a live region, so what it says is announced on the web');
@@ -175,11 +186,14 @@ async function run(h) {
   await closeViewer();
 
   // OT4: the reply is in Lately like any moment.
+  await toJournal(pg);
   check((await pg.locator('[data-testid=moment-card]:has-text("Same again today")').count()) >= 1, 'OT4: the reply appears in Lately as a moment');
+  await toJournal(pg);
   const lately = await pg.locator('[data-testid=moment-card]:has-text("Same again today") [data-testid=moment-answering]').allInnerTexts();
   check(lately.length === 1 && /^answering /.test(lately[0]), `owner-threads audit 1: the reply in Lately says what it answers (${lately.join('|')})`);
 
   // OT12, OT10: the thread is listed under Threads, a line in words.
+  await toThreads(pg);
   const row = pg.locator('[data-testid=my-thread-row]');
   check((await row.count()) === 1 && /a few moments, since /.test(await row.first().innerText()), `OT12, OT10: Your threads lists it, its size in words (${(await row.first().innerText()).replace(/\n/g, ' | ')})`);
   check((await row.first().locator('[data-testid=thread-mark-made]').count()) === 1, 'OT25: a thread the owner made wears the made mark in its row');
@@ -276,12 +290,16 @@ async function run(h) {
 
   // OT20, OT23: the thread's name appears nowhere but its own places.
   await pg.click('[data-testid=own-thread-back]');
+  await toThreads(pg);
   await pg.waitForSelector('[data-testid=my-threads]');
+  await toJournal(pg);
   const cards = (await pg.locator('[data-testid=moment-card]').allInnerTexts()).join(' ');
+  await toJournal(pg);
   const hero = (await has('[data-testid=resurfaced]')) ? await pg.locator('[data-testid=resurfaced]').innerText() : '';
   check(!/Compliments/.test(cards + hero), 'OT20, OT23: neither the resurfaced card nor Lately shows the thread\'s name');
 
   // OT19: Keep as my thread copies the Chronicle's thread; the Chronicle's own is untouched.
+  await toThreads(pg);
   await pg.click('[data-testid=thread-tile]');
   await pg.waitForSelector('[data-testid=thread-screen]');
   check((await pg.locator('[data-testid=thread-screen] [data-testid=thread-mark-found]').count()) === 1 && (await pg.locator('[data-testid=thread-screen] [data-testid=thread-mark-made]').count()) === 0, 'OT25: the Chronicle\'s thread screen carries the found mark, not the made one');
@@ -296,11 +314,14 @@ async function run(h) {
   check(db.threads.length === 2 && (await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]').count()) === chronicleCards && chronicleCards === 3,
     'OT19: Keep as my thread makes a thread of the owner\'s with the same three moments');
   await pg.click('[data-testid=own-thread-back]');
+  await toThreads(pg);
   await pg.waitForSelector('[data-testid=thread-tile]');
+  await toThreads(pg);
   check((await pg.locator('[data-testid=thread-tile]').count()) === 1 && (await pg.locator('[data-testid=my-thread-row]').count()) === 2,
     'OT19: the Chronicle\'s thread is still there beside the owner\'s two');
 
   // OT14, OT15, UC4: Delete this thread acts at once, waits for Undo, takes the thread and no moment.
+  await toThreads(pg);
   await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').click();
   await pg.waitForSelector('[data-testid=own-thread]');
   const before = (await stored(pg)).captures.length;
@@ -310,17 +331,21 @@ async function run(h) {
     'UC4, OT14: Delete this thread acts at once, with no card, and a pill says Thread deleted, with Undo');
   await pg.click('[data-testid=undo]');
   await pg.waitForTimeout(300);
+  await toThreads(pg);
   check((await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').count()) === 1 && (await stored(pg)).threads.length === 2, 'OT15: Undo brings the thread back, name and members');
+  await toThreads(pg);
   await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').click();
   await pg.click('[data-testid=own-thread-delete]');
   await pg.waitForSelector('[data-testid=undo-toast]');
   await closePill();
   db = await stored(pg);
+  await toThreads(pg);
   check(db.threads.length === 1 && db.captures.length === before && (await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').count()) === 0,
     'OT14: once the pill is closed the thread and its memberships are gone, and every moment is kept');
   await shot(pg, '72-threads-after');
 
   // OT16: deleting a moment takes only its membership; a thread left with one moment dissolves (OT15).
+  await toJournal(pg);
   await openCard('Harbor lights again');
   await pg.click('[data-testid=viewer-more]');
   await pg.click('[data-testid=viewer-delete]');
@@ -333,21 +358,27 @@ async function run(h) {
   await pg.reload();
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(pg, 'chronicle', 'memories');
+  await toThreads(pg);
   await pg.waitForSelector('[data-testid=my-threads]', { timeout: 20000 });
+  await toThreads(pg);
   check((await there('[data-testid=my-thread-row]', 15000)) && (await pg.locator('[data-testid=my-thread-row]').count()) === 1, 'OT21: the owner\'s thread is still there after a reload');
 
   // UC6 (replaces owner-threads audit 5's confirm): Remove that ends the thread acts at once with Undo; Undo brings it back, Close ends it.
+  await toThreads(pg);
   await pg.locator('[data-testid=my-thread-row]').first().click();
   await pg.waitForSelector('[data-testid=own-thread]');
   const kept = (await stored(pg)).captures.length;
   await pg.locator('[data-testid=own-thread] [data-testid=note-bubble] [data-testid=moment-more]').first().click();
   await pg.click('[data-testid=thread-menu-remove]');
   await pg.waitForTimeout(300);
+  await toThreads(pg);
   check((await pg.locator('[data-testid=confirm-remove], [data-testid=confirm]').count()) === 0 && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
     && /Removed from the thread/.test(await pg.locator('[data-testid=undo-toast]').innerText()), 'UC6: Remove that ends the thread acts at once: the thread leaves, with Undo');
   await pg.click('[data-testid=undo]');
   await pg.waitForTimeout(300);
+  await toThreads(pg);
   check((await pg.locator('[data-testid=my-thread-row]').count()) === 1 && (await stored(pg)).threads.length === 1, 'UC6: Undo brings the thread back');
+  await toThreads(pg);
   await pg.locator('[data-testid=my-thread-row]').first().click();
   await pg.locator('[data-testid=own-thread] [data-testid=note-bubble] [data-testid=moment-more]').first().click();
   await pg.click('[data-testid=thread-menu-remove]');
@@ -360,6 +391,7 @@ async function run(h) {
 
   // Moment references (RF1-RF8, decision 0125): a note mentions another moment with @.
   await tabTo(pg, 'chronicle', 'memories');
+  await toJournal(pg);
   await openCard('Orchard blossoms');
   await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
@@ -384,10 +416,13 @@ async function run(h) {
   db = await stored(pg);
   const refNote = db.captures.find((m) => (m.pieces[0].body ?? '').startsWith('Like the @[h1'));
   check(!!refNote && db.links.filter((l) => l.from_id === refNote.id).every((l) => l.to_id === 'o1'), `RF2: the reference is a token in the note's text, and links only what Respond links (${refNote?.pieces[0].body})`);
+  await toJournal(pg);
   const cardText = await pg.locator('[data-testid=moment-card]:has-text("Like the")').first().innerText().catch(() => '');
-  check(cardText && !cardText.includes('@['), `RF6: Lately reads the reference as words, never a token (${cardText.replace(/\n/g, ' · ')})`);
+  check(cardText && !cardText.includes('@['), `RF6: the page never shows a reference's token (${cardText.replace(/\n/g, ' · ')})`);
+  await toJournal(pg);
   await openCard('Like the');
-  const refCard = pg.locator('[data-testid=ref-card]').first();
+  // The page draws the reference as a card too (chronicle journal JN16): this one is the viewer's.
+  const refCard = pg.locator('[data-testid=ref-card]:not([data-testid=journal-page] *)').first();
   const refLabel = await refCard.getAttribute('aria-label').catch(() => null);
   await pg.waitForTimeout(800);
   await shot(pg, '77-note-ref-card');
