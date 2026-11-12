@@ -40,7 +40,10 @@ old/new differential as a `*.test.ts` in SCRATCH for the auditor to run (it cann
 The check for your commits: <sweep or T build: `npm run check:tend -- origin/main..HEAD` |
 G build: `node scripts/tend.js commits --loop-only origin/main..HEAD`; slice commits named the
 slice's way; only the final `tend <area>: the run's record` commit, holding STATUS, DEFERRED, the
-ledger and runs.jsonl alone, is named `tend`>.
+ledger and runs.jsonl alone, is named `tend`>. STATUS, DEFERRED and NATIVE_UNVERIFIED change only
+through `npm run records -- <op>` (decision 0154; ship.md, "The record documents"), and `npm run
+check:records -- origin/main..HEAD` passes before you publish: CI fails a loop commit that edits them
+by hand.
 
 Known constraints (do not rediscover them): <from the notes, e.g.
 - read FORBIDDEN in scripts/tend.js before editing anything outside src/ and the journeys;
@@ -86,7 +89,7 @@ it quotes, and your Silent questions verbatim)]; the commands you ran with their
 The reviews are back; read them: <agent>: SCRATCH/reviews/<branch>-<pause>-<agent>.md (<verdict>).
 My rulings:
 - <id> accept as `<scope> audit N`: <the shape>. <Tripwire.>
-- <id> defer: file it as [<tag>] <severity> in DEFERRED's <section>.
+- <id> defer: file it as [<tag>] <severity> in DEFERRED's <section> (`npm run records -- deferred item add`).
 - <id> reject: <the rule or call it rests on>.
 - <id> to the owner: file it as a T entry (<why: 0155's class>).
 Review counts for the log: accepted <n>, deferred <n>, rejected <n>. One round.

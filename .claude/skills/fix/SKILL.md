@@ -87,8 +87,9 @@ While the question is open the worktree stays; if the answer is no, scrap it.
    layering (`.claude/rules/functional-core.md`): decisions in core, effects in
    a shell. No refactors, no drive-by cleanups.
 2. Native code touched: add an item for it to `docs/NATIVE_UNVERIFIED.md`, the
-   device acceptance suite (`- [ ] **Do:** … **Expect:** …`), and say in the
-   report that it has never run on a device.
+   device acceptance suite (`- [ ] **Do:** … **Expect:** …`), with
+   `npm run records -- native item add "<section>" --file <item>`, and say in
+   the report that it has never run on a device.
 3. The regression test (per the level) fails before the fix and passes after.
    Never skip, loosen or quarantine a test to get green.
 
@@ -121,7 +122,11 @@ findings in the report.
 - `npm run check:docs` must pass (the hook and CI require it).
 - Run `/docs-gc` only if behaviour, a rule or a file location changed. A fix
   that changes how something works updates the rule file or `docs/ARCHITECTURE.md`
-  in the same commit, and `docs/STATUS.md` if a slice's state moved.
+  in the same commit, and `docs/STATUS.md` if a slice's state moved
+  (`npm run records -- slice row set <match> --file <row>`).
+- `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
+  `npm run records` (decision 0154; a second issue is `deferred item add`). Run `npm run
+  check:records -- origin/main` before the commit.
 - A fix that settles a trap goes in `.claude/rules/<area>.md`.
 
 ## 7. Commit and push the branch

@@ -51,6 +51,19 @@ Who hears of it depends on who was typed:
   the run goes on. A slice built from a proposal returns "Stopped on" in its result block; `/tend` files
   the question in the inbox, pushes the branch for review and cleans up.
 
+## The record documents
+
+`docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
+`npm run records -- <op>` (decision 0154; `scripts/records.js`'s header lists the operations: the
+inbox, "Last tend", "Open before the loop", the "In flight" and "Slices" rows, and the items of the
+other two). Each changes one entry and refuses to write if any other byte would move. Write the text
+to a file in the scratchpad and pass `--file`, so nothing needs quoting; never edit these files with
+Edit, Write or sed. Before the commit that holds them, run `npm run check:records -- origin/main` (the
+working tree against `main`): it names each change no operation makes and the operation to use. CI
+runs it on every `tend …` commit. On a merge or rebase conflict in them, take `main`'s side and run
+your operations again. A shipped item is removed (`item remove`), never struck through; a line that
+amends an entry is appended (`note`), never written over the entry.
+
 ## Review
 
 A review reads the diff in a context that did not write it: spawn the `auditor` subagent with the
@@ -101,7 +114,7 @@ What to revert:
 
 - **A fix:** its commit.
 - **A sweep:** the commit the log names as the cause, alone. If the log does not name one, every code
-  commit of the run. The same push carries a corrected record (documents and the ledger only): the
+  commit of the run. The same push carries a corrected record (documents and the ledger only, through `npm run records`): the
   finding filed as `[owner]` with the log's cause, "Last tend" saying what was reverted, the area `rough`.
 - **A slice:** all of it as one unit, its record included (`git revert --no-commit <base>..<tip>`), so
   the spec, the feature map and the proposal's entry go back together and the docs check stays green.
