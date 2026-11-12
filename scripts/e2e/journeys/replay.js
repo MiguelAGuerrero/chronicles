@@ -299,8 +299,11 @@ async function run(h) {
     const cb = await pg.locator('[data-testid=replay-card]').first().boundingBox().catch(() => null);
     const hb = await pg.locator('[data-testid=hold]').boundingBox().catch(() => null);
     const sb = await pg.locator('[data-testid=skip]').boundingBox().catch(() => null);
-    const clear = (r) => !r || !cb || cb.x + cb.width <= r.x || r.x + r.width <= cb.x || cb.y + cb.height <= r.y || r.y + r.height <= cb.y;
+    // Hold and Skip must be there to be cleared (tend replay 11: a missing button let this pass).
+    const clear = (r) => !!r && !!cb && (cb.x + cb.width <= r.x || r.x + r.width <= cb.x || cb.y + cb.height <= r.y || r.y + r.height <= cb.y);
     check(card && cb && cb.y >= 0 && cb.y + cb.height <= 390 && clear(hb) && clear(sb), `replay-rhythm audit 13: the card fits a landscape phone, clear of Hold and Skip (${JSON.stringify(cb)})`);
+    // Under all the top can show: the clock, "N min later" and "Held" (tend replay 11).
+    check(cb && cb.y >= 118, `tend replay 11: on a landscape phone the card stands under the clock's line and the Held pill (${JSON.stringify(cb)})`);
     await shot(pg, 'rr-landscape');
     await pg.click('[data-testid=skip]');
     await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });

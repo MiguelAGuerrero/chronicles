@@ -30,10 +30,15 @@ export const STAGE_BOTTOM = 44;
 export const pileCenter = (c: StageCtx): [number, number] => [c.width - c.insets.right - 14 - PILE.w / 2, c.height - c.insets.bottom - STAGE_BOTTOM - PILE.h / 2];
 /** Below the top row (Hold, the clock and its line, Skip). */
 export const STAGE_TOP = 64;
+/**
+ * Below all the top can show (tend replay 11): Stage's column 12 in, the clock (36), then "N min later" and "Held" (23
+ * each), 8 apart and 8 to spare. A card stands under it, so neither pill draws over a card, on a landscape phone too.
+ */
+export const STACK_TOP = 12 + 36 + 8 + 23 + 8 + 23 + 8;
 /** A card's caption strip and frame under its picture. */
 const CARD_EXTRA = 48;
 /** The room between the top row and the bottom corner, where a card stands (audit 13: a landscape phone). */
-const cardRoom = (c: StageCtx) => ({ top: c.insets.top + STAGE_TOP, bottom: c.height - c.insets.bottom - STAGE_BOTTOM });
+const cardRoom = (c: StageCtx) => ({ top: c.insets.top + STACK_TOP, bottom: c.height - c.insets.bottom - STAGE_BOTTOM });
 /** A six-line note's bubble in the bottom-left corner, with its gap. */
 const BUBBLE_ROOM = 160;
 /** The narrowest card that still gives the bubbles their room. */
