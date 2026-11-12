@@ -639,6 +639,21 @@ test('records cut-over: commits that are ancestors of the cut-over carry no trai
   assert.ok(!records.gateRange('HEAD~1..HEAD', { cwd: r.dir, loopOnly: true, cutover: 'f'.repeat(40) }).ok, 'a cut-over the clone lacks gates every commit');
 });
 
+test('records cut-over: a commit whose parent does not hold the replay gate is not replayed, wherever main stood', () => {
+  const r = repo('before-gate');
+  r.write('scripts/records.js', '// the record documents, before the replay gate\n');
+  r.commit('Records: an earlier gate');
+  r.write('docs/STATUS.md', STATUS.replace('reword l.68.', 'reworded.'));
+  r.commit("tend map: the run's record");
+  assert.ok(records.gateRange('HEAD~1..HEAD', { cwd: r.dir, loopOnly: true }).ok, 'made before the gate: history');
+  copyFileSync(join(ROOT, 'scripts', 'records.js'), join(r.dir, 'scripts', 'records.js'));
+  r.commit('Records: the replay gate lands');
+  r.write('docs/STATUS.md', STATUS);
+  r.commit("tend map: the run's record");
+  assert.ok(!records.gateRange('HEAD~1..HEAD', { cwd: r.dir, loopOnly: true }).ok, 'made on top of the gate: replayed');
+  assert.ok(!records.gateRange('HEAD~1..HEAD', { cwd: r.dir, loopOnly: true, cutover: r.git('rev-parse', 'HEAD~1').stdout.trim() }).ok, 'the recorded cut-over does not exempt what came after it');
+});
+
 // ---------------------------------------------------------------------------------------------------
 // The shell: the command line and the CI gate, in a repository of their own.
 
