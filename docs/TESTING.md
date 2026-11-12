@@ -374,6 +374,27 @@ layout and style time, `perfCount` rates. Look for a column that only grows.
 - It serves `dist/` from the root only (no `CHRONICLES_BASE_URL` build). Its
   scan step clicks `[data-testid=scan]`, retired with scan, and is skipped.
 
+### Explore in a dense city: `scripts/perf-explore.js`
+
+```bash
+npm run export:web && node scripts/perf-explore.js
+```
+
+The owner's Baltimore report (Nov 12). It builds a 3 km downtown on the e2e harness (a named street every 60 m cut
+into blocks, alleys, 2,000 places, a town and eight neighborhoods), opens the town's page with the Busy layer on,
+throttles the CPU (`PERF_RATE`, default 4), then times `PERF_SWITCHES` card taps to the next neighborhood and
+`PERF_DRAGS` drags with Move map on. Each prints frame intervals (p50, p95, max, over 50 ms), long tasks, the
+browser's script, layout and style time, the map's DOM markers and, per switch, the `perfCount` deltas
+(`render:explore`, `setData:*`, `marker:*`: one per React root a marker rebuild mounts).
+
+- `PERF_BUSY=0` leaves the Busy layer off (the control). `PERF_JSON=<file>` writes the numbers; `PERF_SHOT=<file>`
+  the screen after the switches.
+- `PERF_PROFILE=<file>` with `PERF_PROFILE_PHASE=switch|drag` profiles one phase. Export with `--no-minify
+  --source-maps --output-dir <dir>` and pass `E2E_DIST=<dir>` to read the names.
+- **What it can't see:** throttled Chromium scales the CPU only. It draws WebGL in software (the `(program)` share
+  of a profile is mostly that) and doesn't model WebKit's compositing of DOM markers, so a drag that is smooth here
+  can still stutter on an iPhone. Treat it as a gate for main-thread work, and confirm on the phone.
+
 ## 5. CI
 
 `.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`,

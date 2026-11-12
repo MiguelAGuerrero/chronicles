@@ -855,6 +855,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           markLatest.current?.(id);
         });
       const root = createRoot(el);
+      perfCount('marker:mark');
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} />);
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
       markMarkers.current.set(pin.id, { marker, root, key, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
@@ -888,6 +889,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.style.pointerEvents = 'none';
       el.setAttribute('aria-hidden', 'true');
       const root = createRoot(el);
+      perfCount('marker:strip');
       root.render(<StripLabel name={s.name} />);
       landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(s.at).addTo(map), root });
     }
@@ -896,6 +898,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.style.pointerEvents = 'none';
       el.setAttribute('aria-hidden', 'true');
       const root = createRoot(el);
+      perfCount('marker:strip');
       root.render(<StripLabel name={l.name} />);
       landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
     }
@@ -931,6 +934,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.dataset.testid = 'complex-label';
       el.dataset.name = l.text;
       const root = createRoot(el);
+      perfCount('marker:complex');
       root.render(<ComplexLabelView text={l.text} />);
       complexMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
     }
@@ -967,6 +971,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       if (p.name) el.dataset.name = p.name;
       if (p.selected) el.dataset.selected = '1';
       const root = createRoot(el);
+      perfCount('marker:area');
       root.render(<AreaPointView pin={p} />);
       // Anchored at the top so the dot, not the label, sits on the point.
       areaMarkers.current.push({ marker: new Marker({ element: el, anchor: 'top', offset: [0, -6] }).setLngLat(p.at).addTo(map), root });

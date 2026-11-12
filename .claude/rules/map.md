@@ -5,7 +5,7 @@ paths:
   - "src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate}.ts"
   - "src/components/{LocateButton,CompassButton}.tsx"
   - "src/lib/compass.ts"
-  - "scripts/{copy-maplibre-worker,perf-walk}.js"
+  - "scripts/{copy-maplibre-worker,perf-walk,perf-explore}.js"
   - "src/lib/__tests__/map/**"
 ---
 # Map
