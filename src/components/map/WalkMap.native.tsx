@@ -341,8 +341,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         onRegionWillChange={(e) => {
           if (e.nativeEvent.userInteraction) props.onUserMove?.();
         }}
-        // Two fingers turn the map (CP1); a tilt never does.
-        touchRotate
+        // Two fingers turn a map with a compass (CP1, decision 0082); the others stay north-up (tend map 1). A tilt never.
+        touchRotate={!!props.onBearingChange}
         touchPitch={false}
         dragPan={!props.onSwipe || !!props.freePan}
         onRegionDidChange={(e) => {

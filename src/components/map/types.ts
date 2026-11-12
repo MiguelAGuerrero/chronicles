@@ -89,7 +89,11 @@ export interface WalkMapProps {
   captures: Faced[];
   /** Called when the person pans, zooms or rotates the map themselves. */
   onUserMove?: () => void;
-  /** The map's bearing in degrees from north, when it changes by more than half a degree (CP2). */
+  /**
+   * The map's bearing in degrees from north, when it changes by more than half a degree (CP2). Only a map given this
+   * turns under two fingers: the screens with a compass (CP1, decision 0082); the replay, a day, Chronicle and the
+   * planner stay north-up, as they have no way back to it (tend map 1).
+   */
   onBearingChange?: (bearing: number) => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Faced[]) => void;

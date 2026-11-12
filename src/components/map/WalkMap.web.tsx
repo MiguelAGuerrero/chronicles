@@ -304,6 +304,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       keyboard: !props.onSwipe || !!props.freePan,
     });
     mapRef.current = map;
+    // Only a map with a compass turns (CP1, decision 0082): the others have no way back to north (tend map 1). Neither
+    // two fingers nor Shift and an arrow key turns them.
+    if (!props.onBearingChange) {
+      map.touchZoomRotate.disableRotation();
+      map.keyboard.disableRotation();
+    }
     map.on('load', () => {
       addOverlay(map);
       setReady(true);

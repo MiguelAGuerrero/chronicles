@@ -113,6 +113,26 @@ async function run(h) {
       const inner = el.querySelector('.maplibregl-ctrl-attrib-inner');
       return { compact: el.classList.contains('maplibregl-compact'), open: !!inner && getComputedStyle(inner).display !== 'none', text: inner ? inner.textContent : '' };
     });
+    // A real two-finger turn (tend map 1): two touches swung 90° about a point in the map's top third, sent through
+    // the DevTools protocol (Playwright has no multi-touch). Touch emulation is on only for the gesture. Returns the
+    // map's bearing after it.
+    const twoFingerTurn = async () => {
+      const cdp = await c.newCDPSession(pg);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+      const box = await pg.locator('xpath=//canvas[contains(@class,"maplibregl-canvas")][not(ancestor::*[@aria-hidden="true"])]').last().boundingBox();
+      const cx = box.x + box.width / 2, cy = box.y + box.height / 4, r = 60;
+      const pts = (a) => [{ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), id: 1 }, { x: cx - r * Math.cos(a), y: cy - r * Math.sin(a), id: 2 }];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
+      for (let i = 1; i <= 12; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts((i * Math.PI) / 24) });
+        await pg.waitForTimeout(16);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+      await cdp.detach();
+      await pg.waitForTimeout(800);
+      return Number((await attr('data-bearing')) || 0);
+    };
     const checkAttribution = async (where) => {
       const a = await attribution();
       check(a && a.compact && !a.open, `map attribution: ${where} starts with its credits closed behind the (i) button (${JSON.stringify(a)})`);
@@ -299,6 +319,11 @@ async function run(h) {
       const cm = lonLat(after.c), cm0 = lonLat(before.c);
       check(Math.abs(after.b) < 0.5 && (await compass.count()) === 0, `qol CP4: a tap turns the map back to north and the compass leaves (bearing ${after.b}, ${await compass.count()} compass)`);
       check(cm && cm0 && mAway(cm, cm0) < 3 && Math.abs(Number(after.z) - Number(before.z)) < 0.05, `qol CP4: the centre and zoom stay (${mAway(cm, cm0).toFixed(1)} m, z ${before.z} → ${after.z})`);
+      // A map with a compass turns under two real fingers (CP1), so the gesture below is a real turn where it is refused.
+      const turnedByHand = await twoFingerTurn();
+      check(Math.abs(turnedByHand) > 5, `tend map 1: two fingers turn Explore's map, which has a compass (bearing ${turnedByHand})`);
+      await compass.first().click();
+      await pg.waitForTimeout(1500);
     }
     await tabTo(pg, 'chronicle');
     await pg.waitForTimeout(1200);
@@ -307,6 +332,8 @@ async function run(h) {
       const ends = await attr('data-ends');
       check(round(s4) && fits(s4), `qol QL5: Chronicle shows the scale bar (${describe(s4)})`);
       check(ends !== null && (ends === '' || ends === '|'), `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
+      const turnedChronicle = await twoFingerTurn();
+      check(Math.abs(turnedChronicle) < 0.5, `tend map 1: Chronicle's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedChronicle})`);
     }
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
@@ -413,6 +440,8 @@ async function run(h) {
       });
       check(round(s6) && fits(s6) && s6.box && s6.box.y + s6.box.height <= cardTop + 0.5,
         `qol QL8: the replay's scale bar sits above the card (bar bottom ${s6 && s6.box && Math.round(s6.box.y + s6.box.height)}, card from ${Math.round(cardTop)}; ${describe(s6)})`);
+      const turnedReplay = await twoFingerTurn();
+      check(Math.abs(turnedReplay) < 0.5, `tend map 1: the replay's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedReplay})`);
     }
     await shot(pg, 'qol-03-replay-card');
     // QL3: the markers never take a tap: the photo and the note were kept where the trace ends, so their
