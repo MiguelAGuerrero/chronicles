@@ -1,24 +1,29 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compose, lately } from '../../resurface/feed';
+import { JOURNAL_PAGE, journalMoments, journalPage } from '../../journal/page';
+import { compose } from '../../resurface/feed';
 import { EMPTY_PREFS } from '../../resurface/prefs';
 import { at, moment, NOW } from './fixtures';
 
-test('RM17: with no thread it is plainly newest first', () => {
+/** The page's entries, oldest first, as the journal draws them (chronicle journal JN1, which amends RM17 and MC13). */
+const onPage = (ms: Parameters<typeof journalMoments>[0], limit = JOURNAL_PAGE) => journalPage(journalMoments(ms, [], new Set()), NOW, limit);
+const ids = (ms: Parameters<typeof journalMoments>[0]) => onPage(ms).rows.flatMap((r) => (r.k === 'entry' ? [r.key] : []));
+
+test('RM17: with no thread the page is plainly in the order kept, newest last (JN1)', () => {
   const ms = [at(2026, 11, 1), at(2026, 11, 4), at(2026, 10, 2)].map((t, i) => moment(t, ['bench', 'orchard', 'fountain'][i], { id: `p${i}` }));
   const c = compose(ms, EMPTY_PREFS, new Set(), NOW, 's');
-  assert.deepEqual(lately(c.moments, NOW, 20).items.map((m) => m.id), ['p1', 'p0', 'p2']);
+  assert.deepEqual(ids(c.moments), ['p2', 'p0', 'p1']);
 });
 
-test('RM17: twenty at first, then twenty more', () => {
-  const ms = Array.from({ length: 45 }, (_, i) => moment(NOW - (i + 1) * 3_600_000, `n${i}`));
+test('RM17: a page at first, then a page more (JN1)', () => {
+  const ms = Array.from({ length: 2 * JOURNAL_PAGE + 5 }, (_, i) => moment(NOW - (i + 1) * 3_600_000, `n${i}`));
   const c = compose(ms, EMPTY_PREFS, new Set(), NOW, 's');
-  const first = lately(c.moments, NOW, 20);
-  assert.equal(first.items.length, 20);
+  const first = onPage(c.moments);
+  assert.equal(first.rows.filter((r) => r.k === 'entry').length, JOURNAL_PAGE);
   assert.equal(first.more, true);
-  const third = lately(c.moments, NOW, 60);
-  assert.equal(third.items.length, 45);
+  const third = onPage(c.moments, 3 * JOURNAL_PAGE);
+  assert.equal(third.rows.filter((r) => r.k === 'entry').length, 2 * JOURNAL_PAGE + 5);
   assert.equal(third.more, false);
 });
 
@@ -36,20 +41,20 @@ test('RM4: no moments is an empty feed', () => {
   assert.deepEqual([c.moments, c.threads, c.order], [[], [], []]);
 });
 
-test('RM20: Not this one keeps the moment in Lately', () => {
+test('RM20: Not this one keeps the moment on the page', () => {
   const m = moment(at(2026, 3, 1), 'bench');
   const c = compose([m], { ...EMPTY_PREFS, hidden: [m.id] }, new Set(), NOW, 's');
   assert.equal(c.order.length, 0);
-  assert.equal(lately(c.moments, NOW, 20).items.length, 1);
+  assert.equal(ids(c.moments).length, 1);
 });
 
-test('MC13: Lately is strictly newest first, a thread gives no priority, ties broken by id', () => {
+test('MC13: the page is strictly by time, a thread gives no priority, ties broken by id (book order since JN1)', () => {
   const thr = [at(2026, 9, 1), at(2026, 9, 8), at(2026, 10, 30)].map((t) => moment(t, 'harbor', { id: `h${t}` }));
   const newer = moment(at(2026, 11, 4), 'bench', { id: 'newer' });
   const tieA = moment(at(2026, 10, 31), 'orchard', { id: 'a-tie' });
   const tieB = moment(at(2026, 10, 31), 'fountain', { id: 'b-tie' });
   const c = compose([...thr, newer, tieB, tieA], EMPTY_PREFS, new Set(), NOW, 's');
-  const ids = lately(c.moments, NOW, 20).items.map((m: { id: string }) => m.id);
-  assert.deepEqual(ids.slice(0, 3), ['newer', 'a-tie', 'b-tie']);
-  assert.equal(ids[3], thr[2].id, 'the thread moment is where its time puts it');
+  const order = ids(c.moments);
+  assert.deepEqual(order.slice(-3), ['a-tie', 'b-tie', 'newer']);
+  assert.equal(order.at(-4), thr[2].id, 'the thread moment is where its time puts it');
 });

@@ -19,15 +19,32 @@ export const chronicleSection = (() => {
   const store = createStore<Section>('memories');
   let visits = 0;
   let map: KeptMap | null = null;
+  let focus: [number, number] | null = null;
   return {
     store,
-    set: (s: Section) => store.set(s),
+    set: (s: Section) => {
+      // A moment asked for on the map and never taken goes with the map (chronicle journal audit 9).
+      if (s !== 'map') focus = null;
+      store.set(s);
+    },
     /** Every path the app moves to. */
     noteRoute(path: string) {
       if (!keepsSection(path)) visits += 1;
       store.set((s) => sectionOnRoute(s, path));
+      if (store.get() !== 'map') focus = null;
     },
     visit: () => visits,
+    /** A journal entry's dateline asks for the map on its moment (chronicle journal JN6): Map comes up framed on it. */
+    showMoment(at: [number, number]) {
+      focus = at;
+      store.set('map');
+    },
+    /** The moment asked for, taken once by the map as it reads. */
+    takeFocus(): [number, number] | null {
+      const at = focus;
+      focus = null;
+      return at;
+    },
     keptMap: () => map,
     keepMap(view: KeptMap) {
       map = view;

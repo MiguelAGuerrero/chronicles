@@ -2,7 +2,8 @@
 import { type Faced, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compose, lately } from '../../resurface/feed';
+import { journalMoments } from '../../journal/page';
+import { compose } from '../../resurface/feed';
 import { labelFor, whenLine } from '../../resurface/lines';
 import { resurfaceOrder } from '../../resurface/pick';
 import { DEFAULT_EXTRACTORS } from '../../resurface/extractors';
@@ -126,11 +127,11 @@ test('resurfaced-moments audit 6: a word and its plural are one term, for -ie an
   one('statue', 'statues');
 });
 
-test('resurfaced-moments audit 7: what was kept in the last day heads Lately (now by plain time: MC13)', () => {
+test('resurfaced-moments audit 7: what was kept in the last day is the latest entry on the page (by plain time: MC13, JN1)', () => {
   const thr = [at(2026, 9, 1), at(2026, 9, 8), at(2026, 10, 30)].map((t) => moment(t, 'harbor', { id: `h${t}` }));
   const justNow = moment(NOW - 20 * 60_000, 'bench', { id: 'now' });
   const c = compose([...thr, justNow], EMPTY_PREFS, new Set(), NOW, 's');
-  assert.equal(lately(c.moments, NOW, 20).items[0].id, 'now');
+  assert.equal(journalMoments(c.moments, [], new Set()).at(-1)?.id, 'now');
 });
 
 test('resurfaced-moments audit 10: a choice says whether it was kept', async () => {

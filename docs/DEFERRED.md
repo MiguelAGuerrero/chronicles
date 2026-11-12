@@ -132,8 +132,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
 - A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0112)
-- Lost toasts on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-memo, unseen; "saved to your walk" goes when the walk stops and the band remounts loose
-- An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
+- A lost toast on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-note, unseen. (The "saved to your walk" toast is gone with the journal, decision 0155.)
+- (Settled by the journal, decision 0155: an open walk's moment made from Memories shows on the page at once, JN8.)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
@@ -686,3 +686,21 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] **Neighborhood boundaries audit** (0152): a shape clipped at a z12 tile edge is judged by the pieces read, so one overlap point can be owned differently by what is kept (audit, first deferral; as towns, TO2). Checklists and finds built under the old nearest-point rule keep their area until the next tile build, so Explore and Chronicle can name different neighborhoods for one place until then (audit, second deferral; `AREA_RULES` does not reach the kept checklist stores). The "Association" filter loses a real neighborhood named so (steward). A macrohood is a big neighborhood where nothing smaller holds a point, with no size cap (steward). A town's page lists a shape with no tile point only from tiles already kept (a listing asks for no more); a share-only neighborhood past 1 km of its point is the town's on Explore (audit 3).
 - **Neighborhood boundaries UX review** (0152, ui 3, opinion): a thin light casing around the neighborhood's line so it holds on any map ground; its contrast already passes 3:1 on the tinted and the plain ground, so it waits for a ground where it does not.
 - **No test asserts the tab labels fit their box** (fix tab-label-clip audit 2, low): an e2e check that each label's `scrollHeight` is at most its `clientHeight`, portrait and landscape, belongs to the next change to the tab bar.
+
+## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)
+
+- **The other three cuts:** walks as chapters with their trace drawn, day pages in place of the Days section, and the section bar going (cut 2); Media as plates, a scrubber by month, jump to a date and search (cut 3); the walk screen's Quiet | Explore naming (cut 4).
+- **A moment's link to its walk as an inference** from time and place (the owner's direction, Nov 12): `Capture.walk_id` is still stored and read by the replay, the walk screen and deletion. It goes through `/vision` and a spec of its own.
+- **Memories still reads every capture row at open** (never media); only the latest page is drawn. Reading a page of rows from the store waits for a store method that reads by time, newest first, with a limit.
+- **Every page a reader loads stays drawn** until Memories is left: the sheet is a plain `ScrollView`, not a recycling list. A reader who scrolls back through a year holds that year's entries.
+- **An entry is 500 characters** (`NOTE_MAX`), as every note is. A longer one from an older build is cut to 24 lines on the page and whole in its viewer.
+- **A reload within a second or two of the first character can lose that entry's place**: its one fix was on its way in the page that went. The entry is kept, and says "No location" after a minute.
+- **A voice note plays from its viewer**, not in place on the page: its line on the page opens the entry.
+- **The "Today" link on old pages** in the approved drawing is not built: the open line is pinned at every scroll position, and a tap in it brings today's foot up.
+- **JN19 on a phone**: the web's arithmetic is unit-tested (`keyboardLift`); a real keyboard over the line is a device check (`docs/NATIVE_UNVERIFIED.md`).
+- **Audit, deferred** (`specs/chronicle-journal/spec.md`, Audit): `lines.ts` reads the phone's time zone in core, as `days.ts` does (12); a dateline's tap arrives at a cluster pin with its count over the Map's own sheet, not at that moment alone, and nothing marks the pin or offers a way back to the page (19, ui 3); a picked reference's words sit in the serif field while typing (21); three bars at the foot with a walk minimized (ui 1); the resurfacing switch drawn as a menu row (ui 6); Done as a word beside two icons, to judge with a real keyboard (ui 11); "answering …" set like a dateline (ui 13).
+- **A drop that fails leaves the entry kept** with what was last written: the line is emptied and nothing says so. A broken store would fail the writes before it too.
+- **The first character's place can be lost to a reload** within its first seconds, as noted above; the audit added no fix.
+- **The line and the page, deferred** (`specs/chronicle-journal/spec.md`, the `/fix` review): a new page opened from the line reads a fix as the pencil does, on a walk with a stale fix too, and one left empty has read a location for nothing (5); a list inside a quote reads as the quote's lines on the sheet (8); a walk ending while a page is up closes the page, its words kept (10); the page's words are sans where the sheet's are serif (ui 3).
+- **Note pages' serializer** (found by the same review, on `main` before it): a URL or word with `_` or `*` gains a backslash each time the page saves it, and a hard-broken line that looks like a heading rule or a table row reopens as a heading or as an empty page (`src/lib/notePage/schema.ts`, `toBody`). In `docs/STATUS.md` for the owner.
+

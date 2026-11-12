@@ -46,7 +46,7 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 
 The app is three tabs in one loop: Explore before, Navigate during,
 Chronicle after. The bar reads Chronicle, Explore, Navigate, and the app opens on Chronicle's
-Memories, whose band keeps a moment in one tap (decision 0112). A walk screen opens over them while
+Memories, a journal whose open line keeps a moment in one tap (decisions 0112, 0155). A walk screen opens over them while
 recording, and a recording bar brings a minimized walk back.
 
 ### Explore (before)
@@ -314,32 +314,39 @@ recording, and a recording bar brings a minimized walk back.
   **Memories | Walks | Days | Map | Media**, and leaving for another tab puts it back on
   Memories. The bar always names what is shown: the sheet's own Walks | Days and Map
   (and a drag, or a long press's Walk here) move it too, and one map stays up across
-  Walks, Days and Map (SB1-SB5, decision 0136). The app opens here (decision 0112). Memories is the feed:
-  - **The band** at its foot: camera, mic and note, one tap each, in plain ink,
-    fixed while the feed scrolls and first for a screen reader. A moment kept there
-    heads Lately at once and is placed by its one fix ("Note kept here"); with a walk
-    minimized it goes to the walk ("Note saved to your walk"), and the recording bar
-    shows no camera on Memories. With nothing kept, Memories is one line and the band.
-  - **A resurfaced moment** at the top, different on each open, in the user's own
-    words, with a label that says why ("A year ago today", "Last October", "You
-    keep coming back to the water"). **Relive it** opens the replay of its walk
-    (or its day); **Another** steps to the next. Nothing from the last day is
-    resurfaced; it is in Lately.
+  Walks, Days and Map (SB1-SB5, decision 0136). The app opens here (decision 0112). Memories is a **journal**
+  (decision 0155, the first of four cuts):
+  - **The page**: every moment as an entry on one sheet, in the order made, oldest above, opening at today. Each day
+    that has an entry begins with its date in full; a day with nothing does not appear. An entry has no card: a dateline
+    in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
+    then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
+    placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
+  - **The open line** at the foot, fixed while the page scrolls and first for a screen reader: a field, the camera and
+    the mic, with no hint text. Writing is the capture: the first character begins an entry with its time and one fix,
+    and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
+    are one entry; Done ends it, as do two minutes without a piece. Typing **@** references another moment, drawn on
+    the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
+    walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
+    is today's date and the open line.
+  - **The line and the page**: while you write, the line offers **Open as a page**, which opens the note's page (below) on
+    the same entry with what you typed already there; from an empty line it opens a new page. An entry a page wrote is
+    drawn on the sheet in its shape (a heading, bullets, numbered lines, checkboxes, quotes) as plain text in your
+    serif; a long one is cut with "The entry goes on; open it to read the rest". In the line a photo joins the entry;
+    on the page it is its own moment, mentioned in the note.
+  - **A resurfaced moment** as a slip under today's date, different on each open, in the user's own words, with a label
+    that says why ("A year ago today", "Last October", "You keep coming back to the water"). A tap opens it; its More
+    holds **Relive it** (the replay of its walk, or its day), **Another**, and the two below. Nothing from the last day
+    is resurfaced. It keeps its place while you write.
+  - **The contents** (the button at the top right): **Threads**, **Hidden** (what you hid, set to fewer, removed or
+    softened, each to bring back), the switch **Bring moments back**, and **Forget my choices**.
   - **Threads**: things the user keeps coming back to, found in the words of
     notes and photo captions (a word in three moments on two days). A tile shows
     the user's own word and a line in words ("Just beginning", "Often, lately",
     "Comes back every October"). A thread's page shows two of the user's own
     sentences and its moments; **Rename** and **Not a thread** change only the
     thread. No rank or count is shown.
-  - **Lately**: every moment, strictly newest first; a card opens the moment and a
-    small line opens the walk's replay. Each moment arrives with its place (the
-    street and the walk's town), the time of day, how far into the walk it was and,
-    when the capture before it was close, "just after a photo" (decision 0098).
-  - **A menu on the header** opens **Hidden** (what you hid, set to fewer, removed
-    or softened, each to bring back), the switch **Bring moments back**, and
-    **Forget my choices**.
-  - **Show less like this** and **Not this one** (on the ... of the top card and
-    of every card) change what is brought back, never what is kept; both have Undo.
+  - **Show less like this** and **Not this one** (on the ... of the slip and
+    of every entry) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
 - **Media** (decision 0139), Chronicle's fifth section: every photo, video and voice memo piece kept, in an
   edge-to-edge grid of square tiles with hairline gaps, newest on top, as a photo gallery. A tile is bare (a photo's
@@ -490,7 +497,8 @@ recording, and a recording bar brings a minimized walk back.
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14) | Built 2026-11-11 (web verified by the e2e `responses`; native unverified) |
 | Moment references (a note mentions moments with @) | Built on `claude/ui-conformance` (web verified by the e2e `threads`; native unverified) |
-| Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
+| Capture from Chronicle (the app opens on Memories, one tap from keeping a moment; HC1-HC15; the band is the journal's open line since 0155) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order, the open line where writing is the capture, the slip, the contents; JN1-JN24, decision 0155) | Built 2026-11-12 (web verified by the e2e `journal`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in a grid under day headers; Years, Months, Days; Sort, Show, Zoom, Square or Aspect; MG1-MG22) | Built (web verified by the e2e `gallery`; native unverified) |
