@@ -29,6 +29,8 @@ export const AtlasTile = memo(function AtlasTile(props: {
   /** A town: the tile opens its neighborhoods. */
   drill?: boolean;
   wide?: boolean;
+  /** While looking, a distance is yours, said so: "4 km from you" (free-look ui 3). */
+  fromYou?: boolean;
   onPress: (key: string) => void;
 }) {
   const { listed, fam } = props;
@@ -62,7 +64,7 @@ export const AtlasTile = memo(function AtlasTile(props: {
               <Text style={styles.character} numberOfLines={2} testID="atlas-character">{characterLine(a.profile!.steps)}</Text>
             )}
             <Text style={styles.metaText} numberOfLines={2}>
-              {listed.unplaced ? null : <Text style={listed.here ? styles.here : null}>{distanceWords(listed.distanceM, listed.here, fmt)}</Text>}
+              {listed.unplaced ? null : <Text style={listed.here ? styles.here : null}>{props.fromYou ? distanceWords(listed.distanceM, listed.here, fmt).replace(/ away$/, ' from you') : distanceWords(listed.distanceM, listed.here, fmt)}</Text>}
               {listed.unplaced ? null : ' · '}
               <Text style={fam.walks ? styles.known : null}>{familiarityWords(fam)}</Text>
             </Text>

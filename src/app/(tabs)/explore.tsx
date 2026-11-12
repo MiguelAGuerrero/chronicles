@@ -140,7 +140,8 @@ export default function Explore() {
   const home = stale || looked ? null : fresh.home;
   // What this visit to the page has framed; opening a page or going back starts a new visit.
   const framed = useRef<PageFramed | null>(null);
-  const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
+  // `ask` is a far Walk here's question, asked before anything starts (FL12, decision 0121).
+  const [spot, setSpot] = useState<{ at: LngLat; zoom: number; ask?: 'ask' | 'later' } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
   // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not.
@@ -628,7 +629,7 @@ export default function Explore() {
         <View style={styles.titleCard}>
           <View accessibilityRole="header" style={styles.titleText} testID="atlas-title">
             <View style={styles.titleRow}>
-              <Text testID="explore-area" style={styles.title} numberOfLines={1}>{title}</Text>
+              <Text testID="explore-area" style={styles.title} numberOfLines={lookOn && !town ? 2 : 1}>{title}</Text>
             </View>
             <Text testID="explore-subtitle" style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
           </View>
@@ -648,7 +649,36 @@ export default function Explore() {
               lookHere(at);
             }}
           />
-          {spot.zoom >= 12 && (
+          {spot.ask ? (
+            <>
+              {spot.ask === 'ask' && (
+                <Button
+                  testID="spot-walk-now"
+                  label="Walk now"
+                  disabled={looking}
+                  busy={walkStart.starting}
+                  busyLabel="Starting…"
+                  style={styles.spotBtn}
+                  onPress={() => {
+                    const at = spot.at;
+                    setSpot(null);
+                    walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                  }}
+                />
+              )}
+              <Button
+                testID="spot-walk-later"
+                variant="secondary"
+                label="When I get there"
+                style={styles.spotBtn}
+                onPress={() => {
+                  const at = spot.at;
+                  setSpot(null);
+                  void walkStart.later({ at, label: 'Your spot', kind: 'point' });
+                }}
+              />
+            </>
+          ) : spot.zoom >= 12 && (
             <Button
               testID="walk-here"
               variant="secondary"
@@ -659,8 +689,12 @@ export default function Explore() {
               style={styles.spotBtn}
               onPress={() => {
                 const at = spot.at;
-                setSpot(null);
-                walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                // A far point, or none of your fixes fresh, asks first; a walk open routes as before (FL12).
+                const choice = walkToChoice(you ? metresBetween(you, at) : null, stale ? null : fixSeen.current || null, Date.now());
+                if (openInfo.walk || choice === 'start') {
+                  setSpot(null);
+                  walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                } else setSpot({ ...spot, ask: choice });
               }}
             />
           )}
@@ -721,6 +755,7 @@ export default function Explore() {
                 selected={isSel}
                 drill={!town && l.area.level === 'town'}
                 wide={!!town && l.area.key === town.key}
+                fromYou={lookOn}
                 onPress={onCard}
               />
             )}
@@ -757,6 +792,7 @@ export default function Explore() {
           finds={ringOf.get(card.area.key)?.finds ?? NONE}
           you={you}
           unplaced={card.unplaced}
+          fromYou={lookOn}
           nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
           walkTo={!card.here ? walkTarget(card.area) : null}
           // DW14: too far to walk (N5) offers When I get there alone.
@@ -822,7 +858,8 @@ const styles = StyleSheet.create({
   // The row under the map sizes to its cards: never `flex: 1` (react-native-web would stretch it).
   rowPane: { flexGrow: 0, flexShrink: 0, paddingBottom: 8, paddingTop: 4 },
   overlay: { position: 'absolute', left: 12, right: 64, alignItems: 'flex-start', gap: 8 },
-  titleWrap: { position: 'absolute', right: 12, alignItems: 'flex-start' },
+  // Clear of the Layers button's column (free-look ui 1): the looked page's longer title never runs under it.
+  titleWrap: { position: 'absolute', right: 64, alignItems: 'flex-start' },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
     maxWidth: 616, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,

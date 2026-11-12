@@ -87,4 +87,6 @@ The steward's "Silent" list: a look with no area is FL20; the long press's Walk 
 
 ## Record
 
-(filled in as the slice is built)
+Built Nov 11, 2026 on `slice/free-look`. FL1-FL16, FL18, FL20, FL21 have tests (unit `freeLook`; journey `freelook`, all checks pass); FL17 is recorded as deferred in `UNTESTED` (a late launch fix cannot be staged; the guard is `lookedRef`/`freeRef`); FL19 is deferred with the out-of-town stars. Deferred in DEFERRED.md: a tap while the map still coasts loads the last settled middle (FL5). Native paths are in NATIVE_UNVERIFIED.md and have never run on a device. Decision 0147. A far Walk here asks first (`spot.ask`, FL12). The UI review (ux-reviewer on pictures) has not run.
+
+UI review (the `ux-reviewer` on the journey's pictures, 390 and 320 px; Nov 11): 6 findings, 4 accepted, 1 deferred, 1 rejected. Accepted and fixed, each held by the journey's pictures and checks: the looked title clipped under the Layers button (ui 1: the title card clears that column and wraps to two lines while looking); the pill and Locate sharing one glyph (ui 2: the pill has no icon); a looked card's distance not saying whose it is (ui 3: "4.0 km from you"); the centre mark's hairline (ui 6: a light edge). Deferred: the toggle is icon-only (ui 4; its spoken name and pressed state are tested; a visible cue on first use is the owner's to ask for). Rejected: no feedback on the pill (ui 5: the page's title and the announcement are the feedback).

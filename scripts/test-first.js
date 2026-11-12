@@ -14,8 +14,12 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = process.env.TEST_FIRST_ROOT ? path.resolve(process.env.TEST_FIRST_ROOT) : path.join(__dirname, '..');
+<<<<<<< HEAD
 // `git grep` over every test names ids in more than 1 MB: a default buffer overflowed, and every id read as untested.
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+=======
+const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 256 * 1024 * 1024 });
+>>>>>>> f6655523 (Free look: far Walk here asks, UI review fixes, journey checks real, docs (FL1-FL21))
 
 const ID = /\b([A-Z]{1,3})(\d+)\b/g;
 const TODO = /\{\s*todo\s*:|\bcheck\.todo\(/;

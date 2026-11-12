@@ -375,7 +375,7 @@ const RETIRED = {
  */
 const UNTESTED = {
   // Free look: the out-of-town stars (decision 0115) are queued, not built; FL19 is the call their slice carries.
-  'free-look': { FL19: 'deferred: the out-of-town stars of decision 0115 are not built yet; 0147 records that they follow the look, and that slice carries it' },
+  'free-look': { FL17: 'deferred: a launch fix that arrives late cannot be staged in the harness; the guard is the screen\'s `lookedRef` and `freeRef` in the fix handler, read by code review', FL19: 'deferred: the out-of-town stars of decision 0115 are not built yet; 0147 records that they follow the look, and that slice carries it' },
   // react-native-web always reports a screen reader, so the check that keeps the viewer's bars is a phone's (UC8).
   'ui-conformance': { UC8: 'device: with VoiceOver or TalkBack on, a tap on a photo leaves the viewer\'s bars up; the web build always reports a screen reader' },
   // Places out of town: queued, not started (the owner, Nov 9-10). Back to IN_PROGRESS when the slice begins.
@@ -422,7 +422,6 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
-  'free-look': { branch: 'slice/free-look', since: '2026-11-11' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

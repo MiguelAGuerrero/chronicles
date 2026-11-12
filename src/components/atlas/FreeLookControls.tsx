@@ -39,7 +39,6 @@ export function ShowAreasPill(props: { onPress: () => void; bottom: number }) {
       onPress={props.onPress}
       style={({ pressed }) => [styles.pill, { bottom: props.bottom }, pressed && styles.pressed]}
     >
-      <Icon name="locate-outline" size={18} color={theme.ink} />
       <Text style={styles.pillText} numberOfLines={1}>{showHereLabel()}</Text>
     </Pressable>
   );
@@ -70,6 +69,7 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 15, fontWeight: '600', color: theme.ink, flexShrink: 1 },
   markWrap: { position: 'absolute', top: '50%', left: '50%', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
-  markH: { position: 'absolute', width: 22, height: 2, borderRadius: 1, backgroundColor: theme.ink, opacity: 0.8 },
-  markV: { position: 'absolute', width: 2, height: 22, borderRadius: 1, backgroundColor: theme.ink, opacity: 0.8 },
+  // A light edge round the ink keeps 3:1 on dark ground too (free-look ui 6).
+  markH: { position: 'absolute', width: 24, height: 4, borderRadius: 2, backgroundColor: theme.ink, borderWidth: 1, borderColor: '#ffffff' },
+  markV: { position: 'absolute', width: 4, height: 24, borderRadius: 2, backgroundColor: theme.ink, borderWidth: 1, borderColor: '#ffffff' },
 });

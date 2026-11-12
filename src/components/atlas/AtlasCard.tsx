@@ -59,6 +59,8 @@ export function AtlasCard(props: {
   distanceM: number;
   /** FL12: a looked card with no fresh fix of yours says no distance. */
   unplaced?: boolean;
+  /** While looking, a distance is yours, said so (free-look ui 3). */
+  fromYou?: boolean;
   here: boolean;
   fam: Familiarity;
   walked: Set<string>;
@@ -193,7 +195,7 @@ export function AtlasCard(props: {
               <Text style={[styles.you, fam.walks ? styles.known : null]}>
                 {familiarityWords(fam)}{last ? ` · last ${last}` : ''}
               </Text>
-              {props.unplaced ? null : <Text style={styles.muted}> · {distanceWords(props.distanceM, props.here, fmt)}</Text>}
+              {props.unplaced ? null : <Text style={styles.muted}> · {props.fromYou ? distanceWords(props.distanceM, props.here, fmt).replace(/ away$/, ' from you') : distanceWords(props.distanceM, props.here, fmt)}</Text>}
             </View>
           </View>
           <Pressable testID="atlas-card-close" accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.close}>

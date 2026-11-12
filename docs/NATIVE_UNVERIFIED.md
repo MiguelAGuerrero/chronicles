@@ -493,3 +493,11 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a phone, open Memories with a hundred moments taken in and around a mall that is already cached, and scroll it. **Expect:** each moment's line leads with the complex only for those inside or within 40 m of its outline, the list scrolls smoothly (one store read for a kilometre cell, `complexes/lookup.ts`), and the gallery's day headers and tiles never name a complex (complexes audit 10, 13)
 - [ ] **Do:** with a screen reader on, press "See more" in a card with more than four complexes, and open a row's Walk to. **Expect:** the button is read as "See more complexes"; the new rows are reachable and each Walk to is named "Walk to <name>"; the row itself is not read twice (complexes audit 21, 22)
 - [ ] **Do:** on a phone, zoom a map past 15 beside two complexes with long names. **Expect:** each name shows on a white pill of at most two lines in plum, not scaling past one and a third at the largest text size, and the outline in plum is distinct from History's brown dots (complexes audit 23, 24)
+
+
+## Free look (FL1-FL21, decision 0147)
+
+- [ ] **Do:** on a phone, open Explore, tap Move map, then drag the map a long way with one finger and let it coast. **Expect:** the map pans and coasts, the row does not step, and pinch and the two-finger turn still work (FL3; `dragPan` switches at runtime on MapLibre RN, and the swiper's handlers are off while it is on).
+- [ ] **Do:** with Move map on, pan to another town and tap Show areas here, then a card, then Locate. **Expect:** the row lists the towns around the middle of the map with "Around the middle of the map" as the title; Locate brings the page back to you (FL6, FL7, FL8).
+- [ ] **Do:** with Move map on, press and hold a far spot and tap Walk here. **Expect:** a question, Walk now or When I get there, before anything starts; a drag that pans never starts the hold (FL10, FL12).
+- [ ] **Do:** after a drag on a native map with Move map on, tap a "?" or a dot. **Expect:** the tap acts as usual (onPress after a native drag, FL3).

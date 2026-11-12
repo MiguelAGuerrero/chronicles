@@ -394,7 +394,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - **Not checked by script:** tone, accent colours, celebration and motion, a capture moved behind a tap, a moment shown without its context. The steward and `/vision review` cover them; the replay's card keeps its own e2e scan for a large number and an accent colour.
 - **The copy heuristic is lexical:** copy built across several literals, or held in a constant with no space and a lowercase start, is not read; JSX text next to code with `;` or `=` is skipped.
-- **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue.
+- **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue. Amended by free look (decision 0147, FL18): after Show areas here they follow the looked point; a pan alone still does not move them.
+- **Free look's out-of-town stars** (FL19, decision 0147): drawn within 50 km of the page's centre when decision 0115's stars are built; nothing to build until then.
+- **Show areas here mid-coast** (free-look FL5): it loads the camera's last settled middle; a tap while the map still coasts is not held until it settles.
 - **The Layers button is off-screen in a short landscape web window** (UI audit 10, web only; native is portrait).
 - **The heads-up is not announced by VoiceOver or TalkBack** (UI audit 12): `accessibilityLiveRegion` is Android-only and a node that mounts filled is not announced on the web; native needs an explicit announcement.
 - **Escape also closes an open atlas card or capture viewer** in the same keypress as the Layers panel (UI audit 13).
