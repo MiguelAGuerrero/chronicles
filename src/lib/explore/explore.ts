@@ -348,7 +348,7 @@ export function findCandidates(at: LngLat, items: ChecklistItem[], found: Set<st
 /**
  * The place a capture finds by itself: the one unfound place within 60 m. With two or more in reach
  * the nearest is only a guess (a park's marker can sit farther than a statue in it), so nothing is
- * found until the reader picks from `findCandidates`.
+ * found: the walker taps a mark to make a moment about it.
  */
 export function findFor(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem | null {
   const c = findCandidates(at, items, found);
