@@ -301,7 +301,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
 
   // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
+  // The buttons the compass hands the focus to as it leaves (tend map 6): Locate on the ready screen; on the walk,
+  // the one below it in the column, Walk me back while that shows, else the unwalked streets.
+  const readyLocateRef = useRef<PressableRef>(null);
+  const backRef = useRef<PressableRef>(null);
+  const unwalkedRef = useRef<PressableRef>(null);
   const ready = useReady({
+    locateRef: readyLocateRef,
     active: !walk,
     onClose: props.onMinimize,
     onStarting: () => setHolding(true),
@@ -1238,7 +1244,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         <>
           {ready.overlay}
           {/* The compass over Locate while the map is turned (CP2); the live walk has its own, below. */}
-          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} />
+          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} focusAfter={readyLocateRef} />
         </>
       ) : (
       <>
@@ -1624,6 +1630,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {/* Small round controls in the stack's column, above the captures (as in AllTrails), inside the
           640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
       <Pressable
+        ref={unwalkedRef}
         testID="unwalked"
         accessibilityRole="switch"
         accessibilityState={{ checked: showUnwalked }}
@@ -1651,6 +1658,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onPress={() => mapRef.current?.resetNorth()}
         bottom={at.edgeBottom(awayFromStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
+        focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
       <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
@@ -1658,6 +1666,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
         <Pressable
+          ref={backRef}
           testID="walk-back"
           accessibilityRole="button"
           accessibilityLabel={wayBack.said}

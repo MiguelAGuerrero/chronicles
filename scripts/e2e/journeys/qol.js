@@ -381,8 +381,12 @@ async function run(h) {
       const afterLocate = Number((await attr('data-bearing')) || 0);
       check(Math.abs(afterLocate - turnedByHand) < 1 && (await compass.count()) === 1,
         `tend map 2: turned by hand, a Locate fit keeps the bearing and the compass (CP1; ${turnedByHand} → ${afterLocate}, ${await compass.count()} compass)`);
-      await compass.first().click();
+      // From the keyboard, the compass leaves (CP4) and hands the focus to Locate below it, never to the page.
+      await compass.first().focus();
+      await pg.keyboard.press('Enter');
       await pg.waitForTimeout(1500);
+      const focusedAfter = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check((await compass.count()) === 0 && focusedAfter === 'locate', `tend map 6: the compass pressed from the keyboard leaves and the focus goes to Locate below it (focus on ${focusedAfter}, ${await compass.count()} compass)`);
     }
     await tabTo(pg, 'chronicle');
     await pg.waitForTimeout(1200);
@@ -476,6 +480,23 @@ async function run(h) {
         `qol QL8: the walk screen's scale bar sits clear of its bottom strip (bar bottom ${s5 && s5.box && Math.round(s5.box.y + s5.box.height)}, strip from ${stop && Math.round(stop.y)}; ${describe(s5)})`);
     }
     await shot(pg, 'qol-02-walk');
+    // The live walk's compass (no journey reached it, the compass spec's record): the column's top; pressed from the
+    // keyboard, it leaves and hands the focus to the button below it (tend map 6).
+    {
+      const compassW = pg.locator('[data-testid=compass]').filter({ visible: true });
+      await pg.evaluate(() => window.__turn(45));
+      await pg.waitForTimeout(600);
+      const shownW = await compassW.count();
+      await shot(pg, 'qol-02a-walk-compass');
+      if (shownW) {
+        await compassW.first().focus();
+        await pg.keyboard.press('Enter');
+        await pg.waitForTimeout(1500);
+      }
+      const focusedW = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(shownW === 1 && (await compassW.count()) === 0 && (focusedW === 'walk-back' || focusedW === 'unwalked'),
+        `tend map 6: on the walk, turned, the compass shows; pressed from the keyboard it leaves and the focus goes to the column's next button (shown ${shownW}, focus on ${focusedW})`);
+    }
     await checkAttribution('the walk screen', 'qol-06-walk-credits-open');
 
     // Stopped: both ends, and the bar above the card.

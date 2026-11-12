@@ -1,3 +1,4 @@
+import { forwardRef, type ComponentRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { Icon } from './icons';
 import { theme } from './ui';
@@ -10,11 +11,12 @@ import { theme } from './ui';
  * the browser takes the focus off it (tend map 5), so it is never `disabled`;
  * a press while busy does nothing, and busy is said with `aria-busy`.
  */
-export function LocateButton(props: { busy: boolean; onPress: () => void; bottom: number; right?: number }) {
+export const LocateButton = forwardRef<ComponentRef<typeof Pressable>, { busy: boolean; onPress: () => void; bottom: number; right?: number }>(function LocateButton(props, ref) {
   const { width } = useWindowDimensions();
   const right = props.right ?? Math.max(12, (width - 640) / 2 + 12);
   return (
     <Pressable
+      ref={ref}
       testID="locate"
       accessibilityRole="button"
       accessibilityLabel="Center on your position"
@@ -26,7 +28,7 @@ export function LocateButton(props: { busy: boolean; onPress: () => void; bottom
       {props.busy ? <ActivityIndicator size="small" color={theme.ink} /> : <Icon name="locate-outline" size={22} color={theme.ink} />}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   // Small round controls at the map's edges, as on the walk screen.
