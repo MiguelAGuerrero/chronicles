@@ -49,7 +49,7 @@ export interface AtlasData {
  * where it hasn't under this build, then reads their rings in screen order,
  * one at a time and with no button. A failed read waits before it is tried again.
  */
-export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea | null): AtlasData {
+export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea | null, looking = false): AtlasData {
   const [rows, setRows] = useState<AtlasArea[]>([]);
   const rowsRef = useRef(rows);
   useEffect(() => {
@@ -194,7 +194,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       if (step.kind === 'idle') return setStatus('idle');
       if (step.kind === 'near') {
         setStatus('listing');
-        const ok = await readNear(step.at, step.level, build!, step.radiusM, () => stop, step.town && town?.key === step.town ? town : null);
+        const ok = await readNear(step.at, step.level, build!, step.radiusM, () => stop, step.town && town?.key === step.town ? town : null, looking);
         if (stop) return;
         if (ok === null) return again(BUSY_MS);
         if (!ok) {
@@ -220,7 +220,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       stop = true;
       if (timer) clearTimeout(timer);
     };
-  }, [focused, from, town, build, tick]);
+  }, [focused, from, town, build, tick, looking]);
 
   return useMemo(
     () => ({ build, rows, neighborhoods, towns, home, status, townsListed: townsKnown.build === build && townsKnown.listed, hidden, outlines: borders, ...extra }),

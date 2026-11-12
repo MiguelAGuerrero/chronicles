@@ -12,8 +12,8 @@ owner, in <repo path>. Read `AGENTS.md`, `.claude/skills/tend/SKILL.md` and
 carry them out yourself (and `slice`, `vision`, where they are called).
 
 The run: `/tend <mode and answers>` --deploy=<main|branch>.
-[The answers are the proxy's under the owner's delegation (decision 0150), <date>: write them so in
-every record, entry removal and run-log line ("the proxy's yes under 0150, <date>"), never "the
+[The answers are the proxy's under the owner's delegation (decision 0151), <date>: write them so in
+every record, entry removal and run-log line ("the proxy's yes under 0151, <date>"), never "the
 owner's". | The owner answered <entry> personally.]
 The owner has authorised <a fast-forward push of this run's work to main, ship.md "Publish to
 main" | pushing the run's branch only>. Push nowhere else, except the branches ship.md and /tend
@@ -34,7 +34,7 @@ SCRATCH/reviews/<your branch>-<pause>-<agent>-prompt.md. Then give your hand-bac
 report, through the hand-back tool you have) as `REVIEW REQUEST:` (agent type and prompt path, one
 per line) and `RESUME WITH: …`. Leave the worktree in place; I resume you with the findings.
 A screen change gets a `ux-reviewer` beside the `auditor` (0145)[, and a `steward`: this yes was
-the proxy's (0150)]. One review round for the diff. For "nothing a person sees changes", write the
+the proxy's (0151)]. One review round for the diff. For "nothing a person sees changes", write the
 old/new differential as a `*.test.ts` in SCRATCH for the auditor to run (it cannot run scripts).
 
 The check for your commits: <sweep or T build: `npm run check:tend -- origin/main..HEAD` |
@@ -88,7 +88,7 @@ My rulings:
 - <id> accept as `<scope> audit N`: <the shape>. <Tripwire.>
 - <id> defer: file it as [<tag>] <severity> in DEFERRED's <section>.
 - <id> reject: <the rule or call it rests on>.
-- <id> to the owner: file it as a T entry (<why: 0150's class>).
+- <id> to the owner: file it as a T entry (<why: 0151's class>).
 Review counts for the log: accepted <n>, deferred <n>, rejected <n>. One round.
 Then: rerun only the journeys the fixes touch, the record, fetch and rebase (10.3), publish, Pages,
 the live check, cleanup, and the final report in the shape I asked for.

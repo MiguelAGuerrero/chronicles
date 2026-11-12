@@ -6,6 +6,8 @@ import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
+import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
+import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
 import { cancelLook, endLook, IDLE, isLive, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
@@ -93,21 +95,32 @@ export default function Explore() {
   const { width, height } = useWindowDimensions();
   const walkStart = useStartWalk();
   const openInfo = useOpenWalkInfo();
-  const [from, setFrom] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
+  // `you` is where the reader is (their fix); `from` is where the page lists around: `you`, or the looked point (FL16).
+  const [you, setYou] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
+  // Free look (FL3): Move map frees one finger; Show areas here takes the map's middle as the page's centre.
+  const [free, setFree] = useState(false);
+  const [looked, setLooked] = useState<{ at: LngLat; you: LngLat | null } | null>(null);
+  const from = looked?.at ?? you;
+  const lookedRef = useRef(looked);
+  const freeRef = useRef(free);
+  useEffect(() => {
+    lookedRef.current = looked;
+    freeRef.current = free;
+  }, [looked, free]);
   // With no fix since launch (a reload), the atlas opens where it last listed areas, never saying "You're here" (AT1).
   const [stale, setStale] = useState(() => !getLastFix());
   useEffect(() => {
-    if (from) return;
+    if (you) return;
     let live = true;
-    // Only a read of the page near you counts: a town's page reads around the town, not around you.
+    // Only a read of the page near you counts: a town's page reads around the town, a look around the looked point (FL15).
     nearReads('neighborhood').then((n) => {
-      const mine = n.find((r) => (r.radiusM ?? ATLAS_RULES.nearNeighborhoodM) === ATLAS_RULES.nearNeighborhoodM);
-      if (live && mine) setFrom((f) => f ?? mine.at);
+      const mine = listedAround(n, ATLAS_RULES.nearNeighborhoodM);
+      if (live && mine) setYou((f) => f ?? mine.at);
     }, () => {});
     return () => {
       live = false;
     };
-  }, [from]);
+  }, [you]);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
   // What the reader chose; the selected area is this while it is in the row, else the row's first (EC1).
@@ -118,14 +131,17 @@ export default function Explore() {
   const [open, setOpen] = useState<string | null>(null);
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
-  const fresh = useAtlas(focused, from, townSeen);
+  const fresh = useAtlas(focused, from, townSeen, looked != null);
   const town = useMemo(() => (townSeen ? fresh.rows.find((r) => r.key === townSeen.key) ?? townSeen : null), [fresh.rows, townSeen]);
-  const neighborhoods = useMemo(() => (stale ? fresh.neighborhoods.map((x) => ({ ...x, here: false })) : fresh.neighborhoods), [fresh.neighborhoods, stale]);
-  const allTowns = useMemo(() => (stale ? fresh.towns.map((x) => ({ ...x, here: false })) : fresh.towns), [fresh.towns, stale]);
-  const home = stale ? null : fresh.home;
+  // A look lists in plain distance order from its point, says "here" nowhere, and measures from a fresh fix of yours (FL6, FL7, FL12).
+  const around = (l: Listed[]) => (looked ? lookedList(l, looked.at, looked.you) : stale ? l.map((x) => ({ ...x, here: false })) : l);
+  const neighborhoods = useMemo(() => around(fresh.neighborhoods), [fresh.neighborhoods, stale, looked]); // eslint-disable-line react-hooks/exhaustive-deps
+  const allTowns = useMemo(() => around(fresh.towns), [fresh.towns, stale, looked]); // eslint-disable-line react-hooks/exhaustive-deps
+  const home = stale || looked ? null : fresh.home;
   // What this visit to the page has framed; opening a page or going back starts a new visit.
   const framed = useRef<PageFramed | null>(null);
-  const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
+  // `ask` is a far Walk here's question, asked before anything starts (FL12, decision 0121).
+  const [spot, setSpot] = useState<{ at: LngLat; zoom: number; ask?: 'ask' | 'later' } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
   // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not.
@@ -158,13 +174,15 @@ export default function Explore() {
       const fix = getLastFix();
       if (fix && fix.t > fixSeen.current) {
         fixSeen.current = fix.t;
-        setFrom(fix.at);
+        setYou(fix.at);
         setStale(false);
       }
       // A card or the long press's choices never outlive the tab's turn in front (audit 8, round 3).
       return () => {
         setOpen(null);
         setSpot(null);
+        // FL14: Move map is off on the next visit; the look stands, like the page and the selection.
+        setFree(false);
       };
     }, []),
   );
@@ -192,7 +210,8 @@ export default function Explore() {
 
   const { busy: locating, locate } = useLocate({
     onFix: (at) => {
-      setFrom(at);
+      setYou(at);
+      setLooked(null);
       setStale(false);
       fixSeen.current = Date.now();
       // Locate is a way back to you: leave a town's page, drop the reader's pick (so the row's first, your own
@@ -214,9 +233,10 @@ export default function Explore() {
       if (!r.at) return;
       setLastFix(r.at);
       fixSeen.current = getLastFix()?.t ?? Date.now();
-      setFrom(r.at);
+      setYou(r.at);
       setStale(false);
-      frame([r.at], ATLAS_RULES.ringM);
+      // FL17: a fix that arrives while Move map is on or a look stands only becomes `you`; it moves nothing.
+      if (!lookedRef.current && !freeRef.current) frame([r.at], ATLAS_RULES.ringM);
     }, () => {});
   }, [focused, frame]);
 
@@ -365,14 +385,14 @@ export default function Explore() {
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
-    const page = townSeen ? `town:${townSeen.key}` : 'near';
+    const page = townSeen ? `town:${townSeen.key}` : looked ? lookPage(looked.at) : 'near';
     // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
     const padM = townSeen ? townReachM(townSeen) * 0.6 : 150;
     const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM });
     if (!next) return;
     framed.current = next.framed;
     setFit((f) => ({ bounds: next.bounds, key: f.key + 1 }));
-  }, [townSeen, fresh.build, townBox, points, from]);
+  }, [townSeen, looked, fresh.build, townBox, points, from]);
 
   const lookHere = async (at: LngLat) => {
     const started = startLook(look.current);
@@ -440,6 +460,18 @@ export default function Explore() {
     else mapRef.current?.showPoint(l.area.at, mapPad);
     say(l.area.name);
   }, [frame, mapPad, say]);
+  // Show areas here (FL5, FL6): the page lists around the map's settled middle; it is its own page, framed afresh.
+  const showHere = useCallback(() => {
+    const at = centreOf(cam);
+    if (!at) return;
+    setSpot(null);
+    setOpen(null);
+    setSelected(null);
+    setTownSeen(null);
+    framed.current = null;
+    setLooked({ at, you: youFresh(getLastFix(), Date.now()) });
+    say(lookWords().announcement);
+  }, [cam, say]);
   // A swipe on the map steps the row, by what is on screen (EC8, EC9, EC10): left is the next card, right the previous.
   const onSwipe = useCallback(({ dx, dy }: { dx: number; dy: number }) => {
     const key = stepKey(order, selected, rowStep(dx, dy, SNAP.minSwipePx));
@@ -466,10 +498,14 @@ export default function Explore() {
   const wide = screen.w >= TWO_PANES;
   const error = walkStart.error ?? locError;
   // The title names the level shown (fix explore-town-scope): the towns near you, or the town whose page is open.
-  const title = town?.name ?? 'Near you';
-  const subtitle = town
-    ? (ownTown?.here || (home && home.area.key === town.key) ? 'You’re here' : distanceWords(ownTown?.distanceM ?? 0, false, fmt))
-    : words.subtitle;
+  const lookOn = looked != null;
+  const title = town?.name ?? (lookOn ? lookWords().title : 'Near you');
+  const subtitle = lookOn
+    ? lookWords().subtitle
+    : town
+      ? (ownTown?.here || (home && home.area.key === town.key) ? 'You’re here' : distanceWords(ownTown?.distanceM ?? 0, false, fmt))
+      : words.subtitle;
+  const lookEmpty = lookOn && !town ? emptyLook(shown.length, fresh.status) : null;
   const cardLayout: CardLayout = wide
     ? { kind: 'side', width: 400, height: screen.h }
     : { kind: 'sheet', screenH: screen.h };
@@ -513,7 +549,7 @@ export default function Explore() {
   ) : null;
 
   // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.
-  const slots = exploreSlots({ spot: !!spot, town: !!town });
+  const slots = exploreSlots({ spot: !!spot, town: !!town, free });
   const mapPane = (
     <View style={styles.map} onLayout={(e) => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
@@ -525,7 +561,7 @@ export default function Explore() {
           ref={mapRef}
           onBearingChange={setBearing}
           captures={NONE}
-          walker={from}
+          walker={you}
           marks={spot ? [spot.at] : NONE}
           areaPoints={areaPoints}
           complexes={complexLayer}
@@ -565,6 +601,7 @@ export default function Explore() {
             else if (does === 'zoom' && dot) zoomTo(dot.at, dot.key);
           }}
           onSwipe={onSwipe}
+          freePan={free}
           onViewChange={setView}
           fitBounds={fit.bounds}
           fitKey={fit.key}
@@ -592,7 +629,7 @@ export default function Explore() {
         <View style={styles.titleCard}>
           <View accessibilityRole="header" style={styles.titleText} testID="atlas-title">
             <View style={styles.titleRow}>
-              <Text testID="explore-area" style={styles.title} numberOfLines={1}>{title}</Text>
+              <Text testID="explore-area" style={styles.title} numberOfLines={lookOn && !town ? 2 : 1}>{title}</Text>
             </View>
             <Text testID="explore-subtitle" style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
           </View>
@@ -612,7 +649,36 @@ export default function Explore() {
               lookHere(at);
             }}
           />
-          {spot.zoom >= 12 && (
+          {spot.ask ? (
+            <>
+              {spot.ask === 'ask' && (
+                <Button
+                  testID="spot-walk-now"
+                  label="Walk now"
+                  disabled={looking}
+                  busy={walkStart.starting}
+                  busyLabel="Starting…"
+                  style={styles.spotBtn}
+                  onPress={() => {
+                    const at = spot.at;
+                    setSpot(null);
+                    walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                  }}
+                />
+              )}
+              <Button
+                testID="spot-walk-later"
+                variant="secondary"
+                label="When I get there"
+                style={styles.spotBtn}
+                onPress={() => {
+                  const at = spot.at;
+                  setSpot(null);
+                  void walkStart.later({ at, label: 'Your spot', kind: 'point' });
+                }}
+              />
+            </>
+          ) : spot.zoom >= 12 && (
             <Button
               testID="walk-here"
               variant="secondary"
@@ -623,8 +689,12 @@ export default function Explore() {
               style={styles.spotBtn}
               onPress={() => {
                 const at = spot.at;
-                setSpot(null);
-                walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                // A far point, or none of your fixes fresh, asks first; a walk open routes as before (FL12).
+                const choice = walkToChoice(you ? metresBetween(you, at) : null, stale ? null : fixSeen.current || null, Date.now());
+                if (openInfo.walk || choice === 'start') {
+                  setSpot(null);
+                  walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                } else setSpot({ ...spot, ask: choice });
               }}
             />
           )}
@@ -638,6 +708,10 @@ export default function Explore() {
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
       {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
+      {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
+      {focused && !plan && <MoveMapToggle on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
+      {focused && !plan && free && <CentreMark />}
+      {focused && !plan && free && <ShowAreasPill onPress={showHere} bottom={slots.showBottom ?? 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
           Phones announce through the call alone (a live region too would say it twice on Android). */}
@@ -672,7 +746,7 @@ export default function Explore() {
             selected={selected}
             width={screen.w}
             reduced={reduced}
-            label={town ? `Areas in ${town.name}` : words.label}
+            label={town ? `Areas in ${town.name}` : lookOn ? lookRowLabel(shown[0]?.area.level === 'town') : words.label}
             onSettle={selectKey}
             renderCard={(l, isSel) => (
               <AtlasTile
@@ -681,6 +755,7 @@ export default function Explore() {
                 selected={isSel}
                 drill={!town && l.area.level === 'town'}
                 wide={!!town && l.area.key === town.key}
+                fromYou={lookOn}
                 onPress={onCard}
               />
             )}
@@ -695,7 +770,8 @@ export default function Explore() {
           <View style={styles.empty} testID="atlas-empty">
             {listing ? <ActivityIndicator color={theme.muted} /> : null}
             <Text style={styles.emptyText}>
-              {listing ? 'Reading the map around you…'
+              {lookEmpty ? lookEmpty
+                : listing ? (lookOn ? 'Reading the map around the middle of the map…' : 'Reading the map around you…')
                 : fresh.status === 'offline' ? 'Couldn’t read the map. It will try again in a moment.'
                   : town ? 'No neighborhoods are named on the map here.' : 'No towns are named on the map here.'}
             </Text>
@@ -714,21 +790,23 @@ export default function Explore() {
           walked={fresh.walked}
           waiting={ringOf.get(card.area.key)?.waiting ?? NONE}
           finds={ringOf.get(card.area.key)?.finds ?? NONE}
-          you={from}
+          you={you}
+          unplaced={card.unplaced}
+          fromYou={lookOn}
           nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
           walkTo={!card.here ? walkTarget(card.area) : null}
           // DW14: too far to walk (N5) offers When I get there alone.
-          farOff={!canWalkTo(card.distanceM)}
-          busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!from && canWalkTo(metresBetween(from, b.at)) }))}
+          farOff={!card.unplaced && !canWalkTo(card.distanceM)}
+          busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!you && canWalkTo(metresBetween(you, b.at)) }))}
           // CX4: the complexes of the selected area, nearest its point first, "See more" for the rest.
           complexSection={(expanded) => {
             if (!sel || sel.area.key !== card.area.key) return null;
             const s = complexSection(areaComplexes, { from: card.area.at, partial: complexPartial, hidden: hiddenKinds, expanded });
-            return s && { ...s, rows: s.rows.map((r) => ({ ...r, walkable: !!from && canWalkTo(metresBetween(from, r.at)) })) };
+            return s && { ...s, rows: s.rows.map((r) => ({ ...r, walkable: !!you && canWalkTo(metresBetween(you, r.at)) })) };
           }}
           // DW1, DW2, DW5 (decision 0121): near with a fresh fix starts at once; far, or with no fresh fix, asks.
           // With a walk open, Walk to routes that walk, as before (NV10).
-          askFirst={(to) => !openInfo.walk && walkToChoice(from ? metresBetween(from, to) : null, stale ? null : fixSeen.current || null, Date.now()) !== 'start'}
+          askFirst={(to) => !openInfo.walk && walkToChoice(you ? metresBetween(you, to) : null, stale ? null : fixSeen.current || null, Date.now()) !== 'start'}
           onLater={(at, label) => {
             setOpen(null);
             void walkStart.later({ at, label, kind: 'point' });
@@ -754,9 +832,9 @@ export default function Explore() {
         <PlannerDrawer
           kind={plan}
           area={card.area}
-          you={getLastFix()?.at ?? from}
+          you={getLastFix()?.at ?? you}
           lastFixAt={getLastFix()?.t ?? null}
-          fixNow={() => getLastFix()?.at ?? from}
+          fixNow={() => getLastFix()?.at ?? you}
           starting={walkStart.starting}
           onClose={() => setPlan(null)}
           onStart={(dest) => {
@@ -780,7 +858,8 @@ const styles = StyleSheet.create({
   // The row under the map sizes to its cards: never `flex: 1` (react-native-web would stretch it).
   rowPane: { flexGrow: 0, flexShrink: 0, paddingBottom: 8, paddingTop: 4 },
   overlay: { position: 'absolute', left: 12, right: 64, alignItems: 'flex-start', gap: 8 },
-  titleWrap: { position: 'absolute', right: 12, alignItems: 'flex-start' },
+  // Clear of the Layers button's column (free-look ui 1): the looked page's longer title never runs under it.
+  titleWrap: { position: 'absolute', right: 64, alignItems: 'flex-start' },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
     maxWidth: 616, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,

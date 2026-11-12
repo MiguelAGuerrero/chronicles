@@ -1,4 +1,4 @@
-# 0150. The tend orchestrator may answer the inbox as the owner's proxy, within limits
+# 0151. The tend orchestrator may answer the inbox as the owner's proxy, within limits
 
 Date: 2026-11-12 · Status: accepted · Area: process · Amends: 0128, 0129, 0130 (who answers the inbox) · From: the orchestrated `/tend` session of Nov 11-12
 
@@ -9,7 +9,7 @@ On Nov 11 the owner asked an orchestrator to run `/tend` again and again through
 conflict with the current feature set. Additions and enhancements do not have to go through me unless those additions
 have implications on the overall architecture of the app." The session answered T7, G4, T9 and T12 that way, but no
 record said the owner had delegated anything, and two decision records written by its runs credited the owner with
-the proxy's yes (0151). The orchestrator is the skill `/tend-orchestrator`.
+the proxy's yes (0152). The orchestrator is the skill `/tend-orchestrator`.
 
 ## Decision
 When the owner types `/tend-orchestrator` and agrees its authority at the start, the orchestrator is the owner's proxy
@@ -28,7 +28,7 @@ for the inbox (`docs/STATUS.md`, "Needs the owner"), on these terms:
   measure on a screen; a steward's Silent question or a finding that quotes a Never or Always line against a decision.
   When unsure, it goes to the owner.
 - **It is recorded as the proxy's.** A record, entry removal or run-log line for a proxy answer says "the proxy's yes
-  under the owner's delegation (0150), <date>", never "the owner's". `/vision` does not cite a proxy answer as the
+  under the owner's delegation (0151), <date>", never "the owner's". `/vision` does not cite a proxy answer as the
   owner's precedent until the owner confirms it; the orchestrator lists every proxy answer in its closing report for
   the owner to keep or revert.
 - **A screen the proxy approved** gets the `steward` with its pictures, beside the `auditor` and the `ux-reviewer`.

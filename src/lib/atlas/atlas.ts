@@ -245,6 +245,8 @@ export interface Listed {
   distanceM: number;
   /** You are in it (AT1): the nearest area of its level, within its reach. */
   here: boolean;
+  /** FL12: a looked page with no fresh fix of yours says no distance. */
+  unplaced?: boolean;
 }
 
 /**
@@ -319,6 +321,8 @@ export interface NearRead {
   radiusM?: number;
   /** WT9: the town whose page this read listed (its key); missing on reads around you and on those by reach alone. */
   town?: string;
+  /** FL15: made for a look (Show areas here), never for the page around you. */
+  look?: boolean;
 }
 
 /** Near reads kept per level, newest first, so going into a town and back reads nothing twice. */
@@ -336,14 +340,18 @@ export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build
   return !list.some((r) => !r.town && r.build === build && codeCurrent(r.code) && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
+/** FL15: reads made for looks kept apart from the reads around you, so looking about never pushes them out. */
+export const LOOK_KEPT = 6;
+
 /** The kept near reads after a new one: newest first, at most NEAR_KEPT. */
 export function withNear(reads: NearRead[], read: NearRead): NearRead[] {
   // Whole-towns audit 13: towns' reads are kept apart from the reads around you, NEAR_KEPT of each, so moving about
-  // never pushes out a town's whole-border listing.
+  // never pushes out a town's whole-border listing. Free look audit 1: so are the reads of looks (LOOK_KEPT).
   const all = [read, ...reads];
   const towns = new Set(all.filter((r) => r.town).slice(0, NEAR_KEPT));
-  const near = new Set(all.filter((r) => !r.town).slice(0, NEAR_KEPT));
-  return all.filter((r) => towns.has(r) || near.has(r));
+  const looks = new Set(all.filter((r) => !r.town && r.look).slice(0, LOOK_KEPT));
+  const near = new Set(all.filter((r) => !r.town && !r.look).slice(0, NEAR_KEPT));
+  return all.filter((r) => towns.has(r) || near.has(r) || looks.has(r));
 }
 
 /**
@@ -634,7 +642,7 @@ export const busyAreas = (a: AtlasArea): { label: string; at: LngLat }[] =>
 /** AT13: one sentence a screen reader says for a tile; how far and the walked count are its only numbers (AT11). */
 export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => string): string {
   const a = l.area;
-  const head = `${a.name}. ${distanceWords(l.distanceM, l.here, fmt)}. ${familiarityWords(fam)}.`;
+  const head = l.unplaced ? `${a.name}. ${familiarityWords(fam)}.` : `${a.name}. ${distanceWords(l.distanceM, l.here, fmt)}. ${familiarityWords(fam)}.`;
   if (!a.profile) return `${head} Being read.`;
   if (a.profile.thin) return head;
   const part = a.profile.partial ? ' Covers part of the town.' : '';

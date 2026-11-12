@@ -15,10 +15,18 @@ const PILL_BOTTOM = 12;
 /** The long press's choices over the map's bottom (EC19): 10 + their height (68) + a gap. */
 const SPOT_TOP = 10 + 68 + GAP;
 
-export function exploreSlots(o: { spot: boolean; town: boolean }): { scaleBottom: number; overlayBottom: number } {
-  const pillBottom = o.spot ? SPOT_TOP : PILL_BOTTOM;
-  // The long press's choices span the map's width, so the bar rises above them as well as above the pill.
-  const scaleBottom = o.town ? pillBottom + PILL_H + GAP : o.spot ? SPOT_TOP : SCALE_BOTTOM;
-  const clearOfBelow = (o.spot ? SPOT_TOP : PILL_BOTTOM) + (o.town ? PILL_H + GAP : 0);
-  return { scaleBottom, overlayBottom: Math.max(clearOfBelow, scaleBottom + SCALE_H + GAP) };
+/**
+ * FL21: the bottom-left stack, from the bottom: the long press's choices (spanning the width), the Towns pill, the Show areas
+ * pill (only while Move map is on), the scale bar, then the one-at-a-time overlay. `showBottom` and `townBottom` are the pills'
+ * places, when they have one.
+ */
+export function exploreSlots(o: { spot: boolean; town: boolean; free?: boolean }): { scaleBottom: number; overlayBottom: number; showBottom?: number; townBottom?: number } {
+  const base = o.spot ? SPOT_TOP : PILL_BOTTOM;
+  const step = PILL_H + GAP;
+  const townBottom = o.town ? base : undefined;
+  const showBottom = o.free ? base + (o.town ? step : 0) : undefined;
+  const clearOfBelow = base + (o.town ? step : 0) + (o.free ? step : 0);
+  // The long press's choices span the map's width, so the bar rises above them as well as above the pills.
+  const scaleBottom = o.town || o.free ? clearOfBelow : o.spot ? SPOT_TOP : SCALE_BOTTOM;
+  return { scaleBottom, overlayBottom: Math.max(clearOfBelow, scaleBottom + SCALE_H + GAP), ...(showBottom != null ? { showBottom } : {}), ...(townBottom != null ? { townBottom } : {}) };
 }
