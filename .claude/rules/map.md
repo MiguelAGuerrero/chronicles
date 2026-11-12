@@ -58,8 +58,9 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     true, so two pins side by side both keep theirs; DC14, DC17). A name its
     point can't hold slides along its street (`text-variable-anchor` center,
     left, right with a 2.6 em radial offset). **Trap:** `text-padding` takes
-    no data expression; `map/busyNames.test.ts` runs maplibre's own
-    `validateStyleMin` over both layers.
+    no data expression: maplibre refuses the layer with a console error (the
+    `dense` journey's "no console errors" caught it). The style spec package
+    is not a declared dependency, so no unit test can validate a layer.
   - **E2E hooks** (only with `window.__perf`): `data-busy-names` (written at
     `idle`), `data-busy-given`, `data-busy-over`, `data-idle`,
     `window.__zoomTo`, `__busyNamesIn`, `__busyNamePoint` (only where the canvas

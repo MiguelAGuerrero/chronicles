@@ -1,13 +1,24 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createExpression } from '@maplibre/maplibre-gl-style-spec';
 import { BUSY_NAME_STALE_INK, HOTSPOT_INK, busyNameLayers, busyNameRotate, busyNamesGeoJSON } from '../../../components/map/types';
 import { alongAngle } from '../../landing/names';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
 
 // explore-dense-city's UI review (decision 0145), regression tests written before each fix.
+
+/** The few expression operators `busyNameRotate` uses, evaluated as maplibre does (`%` keeps the dividend's sign, as JS). */
+function evaluate(e: unknown, props: Record<string, number>): number {
+  if (typeof e === 'number') return e;
+  const [op, ...args] = e as [string, ...unknown[]];
+  if (op === 'get') return props[args[0] as string];
+  const [a, b] = args.map((x) => evaluate(x, props));
+  if (op === '+') return a + b;
+  if (op === '-') return a - b;
+  if (op === '%') return a % b;
+  throw new Error(`unexpected operator ${op}`);
+}
 
 const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
 const lum = (h: string) => { const [r, g, b] = hex(h); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
@@ -35,10 +46,8 @@ test('explore-dense-city ui 2: a street within 5 degrees of north-south reads bo
 
 test('explore-dense-city ui 3: on a turned map every name stays upright on screen', () => {
   for (const bearing of [0, 45, 100, 150, 180, -120, -60]) {
-    const expr = createExpression(busyNameRotate(bearing) as never, { type: 'number', 'property-type': 'data-driven', expression: { interpolated: false, parameters: ['zoom', 'feature'] } } as never);
-    assert.equal(expr.result, 'success', JSON.stringify(expr));
     for (const angle of [-90, -60, 0, 30, 84]) {
-      const r = (expr as unknown as { value: { evaluate(g: unknown, f: unknown): number } }).value.evaluate({ zoom: 15 }, { properties: { angle }, type: 'Point' });
+      const r = evaluate(busyNameRotate(bearing), { angle });
       // On screen a map-aligned name turns by its rotation less the map's bearing; upright is within [-95, 85).
       const s = ((r - bearing) % 360 + 540) % 360 - 180;
       assert.ok(s >= -95 && s < 85, `bearing ${bearing}, angle ${angle}: on screen ${s}`);

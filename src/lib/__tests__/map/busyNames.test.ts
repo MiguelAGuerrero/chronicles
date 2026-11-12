@@ -81,21 +81,6 @@ test('DC17: every "?" pin keeps its room: an invisible box over it, placed befor
   assert.deepEqual(room.filter, ['get', 'reserve']);
 });
 
-test('DC1, DC17: both of the names\' layers are valid in the style spec (maplibre refuses a data expression where a property takes none)', async () => {
-  const { validateStyleMin } = await import('@maplibre/maplibre-gl-style-spec');
-  const l = busyNameLayers();
-  const style = {
-    version: 8, glyphs: 'https://example.invalid/{fontstack}/{range}.pbf',
-    sources: { names: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } },
-    layers: [
-      { id: 'names', type: 'symbol', source: 'names', filter: l.filter, layout: l.layout, paint: l.paint },
-      { id: 'room', type: 'symbol', source: 'names', filter: l.room.filter, layout: l.room.layout, paint: l.room.paint },
-    ],
-  };
-  const errors = validateStyleMin(style as never);
-  assert.deepEqual(errors.map((e: { message: string }) => e.message), []);
-});
-
 test('DC17: a name its point can\'t hold slides along its street, clear of a pin there', () => {
   const { layout } = busyNameLayers();
   assert.deepEqual(layout['text-variable-anchor'], ['center', 'left', 'right'], 'centred first, then along the street either way');
