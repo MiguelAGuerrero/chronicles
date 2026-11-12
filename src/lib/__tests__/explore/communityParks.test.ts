@@ -234,3 +234,10 @@ test('tend explore audit 1: a park named for an old town or city hall, school, c
   assert.equal(notableBeyondNeighbourhood('Old Town Hall Museum'), false);
   assert.equal(notableName('Old Town Hall'), true);
 });
+
+test('tend explore audit 2: a park named for the site of something old stays a park', () => {
+  // "Old City" here names what stood on the site, not a neighbourhood (the landing harness, Cleburne TX, with no archive).
+  for (const n of ['Site of the Old City Spring Ball Fields', 'Site of the Old Town Well Playground', 'Old Village Green Courts'])
+    assert.equal(kindOf(read([park(n)]), n), 'parks', n);
+  assert.equal(kindOf(read([park('Old City Ball Fields')]), 'Old City Ball Fields'), CP, 'the neighbourhood just before a community word');
+});
