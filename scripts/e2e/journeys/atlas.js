@@ -172,7 +172,8 @@ async function checks(h) {
       await page.click('[data-testid=atlas-how]');
       {
         const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
-        check(/same marks mean the same anywhere/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
+        // A neighborhood counted across its own ground says so instead of the ring's line (neighborhood boundaries audit 11).
+        check(/same marks mean the same anywhere|counted across the ground drawn around it/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
       }
       await shot(page, '11c-atlas-card');
       {

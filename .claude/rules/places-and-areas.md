@@ -106,7 +106,7 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     inside it (`representative`, `shapes.ts`: a concave shape's centroid can lie outside it); and a point-only neighborhood whose
     point lies inside another's shape is dropped (HB6). `withoutOutlines` strips `hoodOutline` before candidates are stored.
   - **Ground:** `hoodGround` is a shape with the smaller shapes inside it cut out as holes, or, for a point-only neighborhood, the
-    cells `hoodAt` gives it, traced on a grid fixed to the map so two shares meet edge to edge. `hoodExtentFor` gives a card the
+    cells `hoodAt` gives it, traced on a grid fixed to the map so two shares meet edge to edge, kept inside the outline-decided town that holds its point (the line never crosses the border drawn beside it), and smoothed (corner cutting, an even resample, a moving average; an average by vertex index goes wrong where a long edge has few vertices). `hoodExtentFor` gives a card the
     shape to count across (`Extent.shape`, profile `extent: 'shape'`); a share-only neighborhood still counts across the ring.
     `groundOf` is what a screen asks, from the kept tiles only: `useHoodGround` looks in the cache a few times and never the
     network (selecting makes no request, HB12), and the map keeps its ring until the tiles are kept.

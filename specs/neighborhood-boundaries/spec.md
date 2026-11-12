@@ -87,3 +87,14 @@ The auditor (12 findings: 3 high, 6 medium, 3 low) and the steward (6 drift, 1 t
 Deferred (docs/DEFERRED.md): **D1** a shape clipped at a z12 tile edge is judged smaller by the pieces read, so an overlap point can be owned differently by what is kept (F7; as towns); **D2** checklists and finds already built under the old rule keep their area until the next tile build (F10), the owner's call below.
 
 For the owner (the steward's silent questions, none a breach): whether a walk's remembered place name may change silently after the update (HB13 says yes, derived and never written); whether a point-only name such as Chinatown should stay as a place a find can say, without ground; whether the "Association" suffix filter, which loses a real name ending so, needs a way back; whether a macrohood that becomes a big neighborhood wants a size cap; and whether the line beside the card's familiarity words is acceptable.
+
+### UX review (Nov 12, decision 0145)
+
+The `ux-reviewer` read the two pictures of the changed screen (a neighborhood with a shape, and one with only its point, drawn as a share). The line is legible, carries no number or fill, reads as a place and not as progress, and clears every overlay. Findings, each with its regression test in `src/lib/__tests__/places/hoodUi.test.ts`:
+
+1. The share's line ran across the orange town border and the tint, so the two boundaries contradicted each other (U2; HB9's own bound): accept, fixed. A share keeps to the town outline that holds its point (`neighborhood-boundaries ui 1`).
+2. The share's edge was serrated, which told a share from a shape (U1; HB15): accept, fixed. The traced loop is cut at its corners, resampled evenly and relaxed, so its turns at street zoom are gentle (`neighborhood-boundaries ui 2`).
+3. A light casing so the line holds on any ground (U3, opinion, low): defer. Its contrast against the tint and the plain ground is far above 3:1 in the pictures (WCAG 1.4.11), so nothing fails; recorded in `docs/DEFERRED.md`.
+4. The selection is named by the pin and the card, not the line (U4, opinion): reject. The line is decorative by design (HB10), the card carries the name and its selected state, and the existing carousel journey checks both.
+
+2 fixed, 1 deferred, 1 rejected; no accepted UI finding is open. Not shown by the pictures (motion, dark appearance, a real thumb, the ring fallback while the tiles are kept): native and on-device checks, in `docs/NATIVE_UNVERIFIED.md`.

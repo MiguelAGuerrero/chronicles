@@ -105,16 +105,21 @@ export function hoodGround(hood: PlaceCandidate, candidates: PlaceCandidate[], s
   const i1 = Math.ceil((hood.at[0] + reach / (111_320 * Math.cos((lat0 * Math.PI) / 180))) / dLon);
   const j0 = Math.floor((hood.at[1] - reach / 110_540) / dLat);
   const j1 = Math.ceil((hood.at[1] + reach / 110_540) / dLat);
+  // A neighborhood inside a town's drawn border keeps to it: the line never crosses the border it is drawn beside (ui 1).
+  const home = townAt(hood.at, candidates, set);
+  const homeId = home?.by === 'outline' ? home.c.outline?.id : undefined;
   const owned = new Set<string>();
   for (let i = i0; i <= i1; i++) {
     for (let j = j0; j <= j1; j++) {
       const p: LngLat = [(i + 0.5) * dLon, (j + 0.5) * dLat];
       if (distanceM(p, hood.at) > reach) continue;
-      if (hoodAt(p, candidates, townAt(p, candidates, set), set) === hood) owned.add(`${i},${j}`);
+      const town = townAt(p, candidates, set);
+      if (homeId && !(town?.by === 'outline' && town.c.outline?.id === homeId)) continue;
+      if (hoodAt(p, candidates, town, set) === hood) owned.add(`${i},${j}`);
     }
   }
   if (!owned.size) return null;
-  const rings = traceRings(owned).map((ring) => smooth(ring.map(([i, j]): LngLat => [i * dLon, j * dLat])));
+  const rings = traceRings(owned).map((ring) => relax(smooth(smooth(ring.map(([i, j]): LngLat => [i * dLon, j * dLat])))));
   const polygons = groupRings(rings);
   return polygons.length ? { polygons, bbox: bboxOf(polygons) } : null;
 }
@@ -177,8 +182,9 @@ function mergeCollinear(ring: Pt[]): Pt[] {
   return out;
 }
 
-/** One pass of corner cutting, so a grid's stairs read as a line (the ring stays within its hull and closed). */
+/** One pass of corner cutting, so a grid's stairs read as a line (the ring stays within its hull and closed); a ring may be closed already (its last point the first). */
 function smooth(ring: LngLat[]): LngLat[] {
+  if (ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, -1);
   const out: LngLat[] = [];
   for (let i = 0; i < ring.length; i++) {
     const a = ring[i];
@@ -187,6 +193,54 @@ function smooth(ring: LngLat[]): LngLat[] {
   }
   out.push(out[0]);
   return out;
+}
+
+/** A closed ring's vertices at an even spacing of about `stepM` metres along it, so an average over neighbors is an average over distance. */
+function evenly(ring: LngLat[], stepM: number): LngLat[] {
+  const k = 111_320 * Math.cos((ring[0][1] * Math.PI) / 180);
+  const segs = ring.map((p, i) => {
+    const q = ring[(i + 1) % ring.length];
+    return Math.hypot((q[0] - p[0]) * k, (q[1] - p[1]) * 110_540);
+  });
+  const total = segs.reduce((a, b) => a + b, 0);
+  const n = Math.max(3, Math.round(total / stepM));
+  const out: LngLat[] = [];
+  let i = 0;
+  let into = 0;
+  for (let m = 0; m < n; m++) {
+    const target = (m * total) / n;
+    while (i < ring.length - 1 && into + segs[i] < target) into += segs[i++];
+    const p = ring[i];
+    const q = ring[(i + 1) % ring.length];
+    const f = segs[i] === 0 ? 0 : (target - into) / segs[i];
+    out.push([p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]);
+  }
+  return out;
+}
+
+/**
+ * Takes the grid's wobble out of a closed ring (ui 2): each vertex moves to the mean of its neighbors a few steps either side,
+ * a few times over. A straight edge, such as the bisector between two shares, stays where it is; a loop shrinks by less than a metre.
+ */
+function relax(ring: LngLat[], window = 4, passes = 3): LngLat[] {
+  let pts = evenly(ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1] ? ring.slice(0, -1) : ring.slice(), 6);
+  const n = pts.length;
+  if (n < 2 * window + 1) return ring;
+  for (let pass = 0; pass < passes; pass++) {
+    const next: LngLat[] = new Array(n);
+    for (let i = 0; i < n; i++) {
+      let x = 0;
+      let y = 0;
+      for (let d = -window; d <= window; d++) {
+        const q = pts[(i + d + n) % n];
+        x += q[0];
+        y += q[1];
+      }
+      next[i] = [x / (2 * window + 1), y / (2 * window + 1)];
+    }
+    pts = next;
+  }
+  return [...pts, pts[0]];
 }
 
 const signedArea = (ring: LngLat[]) => {
