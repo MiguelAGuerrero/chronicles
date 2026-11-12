@@ -13,8 +13,10 @@ import { reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { perfCount } from '../lib/perfCount';
-import { barOffer, barOfferAfter, barOfferShown, barOfferWords, recordingLine, type BarOffer } from '../lib/recordingBar';
+import { barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, recordingLine, type BarOffer } from '../lib/recordingBar';
 import { captureBus } from '../lib/captureBus';
+import { deletions } from '../lib/deletion';
+import { useHidden } from '../lib/deletion/useDeletions';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
@@ -69,7 +71,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // The next capture of this walk, from any path (Memories' band too), ends the offer; the bar's own photo replaces it.
   const [listener] = useState(() => ({}));
   useEffect(() => captureBus.subscribe(walk.id, listener, (c) => setOffer((o) => barOfferAfter(o, c.id))), [walk.id, listener]);
-  const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id));
+  // Its photo deleted elsewhere (Memories, a day) ends it, Undo waiting or not (tend tabs audit 15).
+  const hidden = useHidden();
+  useEffect(() => deletions.subscribe(() => setOffer((o) => barOfferAfterHidden(o, deletions.hidden()))), []);
+  const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden);
   const offerWords = offer ? barOfferWords(offer.kind) : null;
   // Announced politely, without moving focus, as Undo is: iOS reads no live regions (decision 0113).
   const spoken = offerUp ? offerWords?.spoken : undefined;

@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EDIT_OFFER_MS, offerEdit, offerLeft } from '../../editOffer';
-import { barOffer, barOfferAfter, barOfferShown, barOfferWords } from '../../recordingBar';
+import { barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords } from '../../recordingBar';
 
 const photo = { id: 'p1', kind: 'photo' as const };
 
@@ -14,7 +14,7 @@ test('tend tabs T12: the bar offers Edit for its photo with no end of its own', 
   assert.deepEqual(o, { id: 'p1', kind: 'photo' });
   // No clock in it: it stands for as long as its photo is the walk's.
   assert.equal('until' in o, false);
-  assert.equal(barOfferShown(o, ['m0', 'p1']), true);
+  assert.equal(barOfferShown(o, ['m0', 'p1'], new Set()), true);
 });
 
 test('tend tabs T12: the next capture ends the offer, a photo from the bar replacing it with its own', () => {
@@ -30,8 +30,8 @@ test('tend tabs T12: the next capture ends the offer, a photo from the bar repla
 });
 
 test('tend tabs T12: a photo no longer in the walk (deleted elsewhere) is not offered', () => {
-  assert.equal(barOfferShown(barOffer(photo), ['m0']), false);
-  assert.equal(barOfferShown(null, ['p1']), false);
+  assert.equal(barOfferShown(barOffer(photo), ['m0'], new Set()), false);
+  assert.equal(barOfferShown(null, ['p1'], new Set()), false);
 });
 
 test('tend tabs T12: the pill says what was kept, is announced with its Edit, and its Close says the photo stays', () => {
@@ -48,4 +48,15 @@ test('tend tabs T12: the pill says what was kept, is announced with its Edit, an
 test("tend tabs T12: ME23's other places keep their six seconds", () => {
   assert.equal(offerLeft(offerEdit(photo, 1000), 1000), EDIT_OFFER_MS);
   assert.equal(EDIT_OFFER_MS, 6000);
+});
+
+test('tend tabs audit 15: a bar photo deleted elsewhere (waiting on Undo, or gone) ends the offer and is never shown', () => {
+  const o = barOffer(photo);
+  // Deleted from Memories: hidden while its Undo waits, and the bar's own list still holds it.
+  assert.equal(barOfferShown(o, ['m0', 'p1'], new Set(['p1'])), false);
+  assert.equal(barOfferAfterHidden(o, new Set(['p1'])), null);
+  // Another thing deleted leaves it as it is.
+  assert.equal(barOfferAfterHidden(o, new Set(['m0'])), o);
+  assert.equal(barOfferShown(o, ['m0', 'p1'], new Set(['m0'])), true);
+  assert.equal(barOfferAfterHidden(null, new Set(['p1'])), null);
 });

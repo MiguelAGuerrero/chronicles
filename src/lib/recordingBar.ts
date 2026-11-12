@@ -37,8 +37,12 @@ export const barOffer = (kept: { id: string; kind: 'photo' | 'video' }): BarOffe
 /** A capture reached the walk: its own leaves the offer standing; any other (Memories' band, the same walk) ends it. */
 export const barOfferAfter = (o: BarOffer | null, keptId: string): BarOffer | null => (o && o.id !== keptId ? null : o);
 
-/** Shown while its capture is still the walk's (one deleted elsewhere has nothing to edit). */
-export const barOfferShown = (o: BarOffer | null, captureIds: readonly string[]): boolean => !!o && captureIds.includes(o.id);
+/** Shown while its capture is still the walk's and not deleted elsewhere, its Undo waiting or not (tend tabs audit 15). */
+export const barOfferShown = (o: BarOffer | null, captureIds: readonly string[], hidden: ReadonlySet<string>): boolean =>
+  !!o && captureIds.includes(o.id) && !hidden.has(o.id);
+
+/** A delete of its photo ends the offer, so a committed delete never brings it back (tend tabs audit 15). */
+export const barOfferAfterHidden = (o: BarOffer | null, hidden: ReadonlySet<string>): BarOffer | null => (o && hidden.has(o.id) ? null : o);
 
 /** The pill's words, its announcement (as Undo's names its Undo) and its Close's spoken name. */
 export const barOfferWords = (kind: 'photo' | 'video'): { text: string; spoken: string; close: string } => {
