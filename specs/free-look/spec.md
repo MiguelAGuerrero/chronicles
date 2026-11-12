@@ -26,7 +26,7 @@ On Explore, a **Move map** switch frees one-finger panning. With it on, the read
 - **The page's words** are "Around the middle of the map": it says what the page is around and nothing about where the reader is (Nov 11).
 - **Distance is not a ranking** (Nov 11): cards keep their distance, from the reader's fresh fix; ranking in the Never lines is for the quality of a place.
 - **The layers follow the look** (Nov 11): Busy streets, Walkability and the town borders read around the looked-at point; this amends the DEFERRED line "Explore's layers follow the selected area or you, not the panned map".
-- **Out-of-town stars follow the look** (Nov 11): within 50 km of the looked point; a tapped star's distance is from the reader. Decision 0147 amends 0115's "within 50 km of you".
+- **Out-of-town stars follow the look** (Nov 11): within 50 km of the looked point; a tapped star's distance is from the reader. Decision 0147 amends 0115's "within 50 km of you". The stars are not built yet (0115 is queued), so this is carried by that slice (FL19, deferred).
 
 ## Criteria
 
@@ -48,7 +48,7 @@ On Explore, a **Move map** switch frees one-finger panning. With it on, the read
 16. **FL16** What means you stays on you while looking: the walker's dot, the area card's "you", the walk planner's start, and the busy streets' walkability from your fix.
 17. **FL17** A launch fix that arrives while Move map is on or a look stands never moves the map or the look; it only becomes `you`.
 18. **FL18** After a look, the Busy layer, the Walkability layer and the town borders read around the looked-at point, as around a page's centre; the DEFERRED line that said they follow the selected area or you, not the panned map, is amended.
-19. **FL19** After a look, the out-of-town "?" stars are drawn within 50 km of the looked point (decision 0115, amended in 0147), and a tapped place's distance is said from you.
+19. **FL19** Deferred with 0115: the out-of-town "?" stars (decision 0115, queued, not built) will be drawn within 50 km of the page's centre, so of a look, and a tapped place's distance will be said from you. Nothing in the app draws them yet, so there is nothing to build or test here; the call is recorded in decision 0147 for that slice to carry.
 20. **FL20** A look with no area around the middle (open water, a field) says so in words, with no cards and no count; Locate and Move map stay on screen.
 21. **FL21** The overlays never overlap in any combination of the long press's choices, a town's page, Move map and a turned map's compass, at 390 px and at 320 px: the toggle, the pill, the scale bar, the Towns pill, Locate and the compass each have their own place.
 

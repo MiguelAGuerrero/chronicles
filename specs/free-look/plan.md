@@ -31,7 +31,7 @@ For the owner to review before any code. The criteria are in `spec.md` (FL1-FL21
    - Show areas here: `setLooked(centre)` where `centre` is the map's settled middle from `onCameraChange` after the coast (audit 8), leave a town's page, drop the pick, close the card and the spot, announce (FL6). Each look gets its own page key (`{page:'look', at, build}`) so `nextFrame` frames the first area, around the looked point only, also on a second look (audit 2). Locate's `onFix` also clears `looked` (FL8).
    - **A look is never where the reader was** (audit 1, FL15): `readNear` records a read of a look with a `look` flag (a field in the meta JSON, no new key, no schema); the launch fallback and `needsNear` for the page near you ignore flagged reads, and `withNear` keeps the newest 12 of each of the two kinds apart, so looks never push out the reads around you.
    - While `looked`: `neighborhoods`, `allTowns` and the `ownTown` fallback go through `lookedList(…, you)`; `home` is the town a fresh fix is inside, else null; the title and subtitle come from `lookWords`; a town's page keeps its own name and its subtitle never says where the reader is.
-   - The layers read around `at` (FL18) and the out-of-town stars around `at`, a tapped star's distance from `you` (FL19).
+   - The layers read around `at` (FL18). The out-of-town stars (0115) are not built yet: FL19 is deferred and recorded in 0147 for that slice.
    - `onSwipe={free ? undefined : onSwipe}` and the arrow keys follow it (FL1, FL3, FL4). A blur effect sets `free` false (FL14).
    - Controls: `FreeLookControls` (below). `exploreSlots` gains `free` so the scale bar and the overlay clear the Show areas pill.
 3. **`components/atlas/FreeLookControls.tsx` (a view).** The Move map toggle button in the right column, above the compass; "Show areas here" as a pill low on the map, above the row, beside the Towns back pill's corner; the centre mark (a small crosshair, pointer-events none), drawn only while `free` (FL5). Icons from the existing set; state drawn by fill and label, not colour alone (FL2).
@@ -61,7 +61,7 @@ For the owner to review before any code. The criteria are in `spec.md` (FL1-FL21
 | FL16 | e2e `freelook` "FL16: the walker's dot and the card's you stay on your fix while looking" |
 | FL17 | e2e `freelook` "FL17: a late launch fix never moves the map or the look" (a delayed geolocation) |
 | FL18 | e2e `freelook` "FL18: after a look the Busy and Walkability layers and the borders are around the looked point"; `freeLook.test.ts` "FL18: layerCentre is the look" |
-| FL19 | `freeLook.test.ts` "FL19: the out-of-town centre is the look, the tapped star's distance is from you" |
+| FL19 | deferred (`UNTESTED` in `scripts/features.js`): the stars of 0115 are not built; 0147 records the call for that slice |
 | FL20 | `freeLook.test.ts` "FL20: a look with no area has its line"; e2e `freelook` "FL20: open water says so and keeps Locate and Move map" |
 | FL21 | `freeLook.test.ts` "FL21: exploreSlots never overlaps for every spot, town and free combination"; e2e `freelook` shots at 390 and 320 px |
 

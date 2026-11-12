@@ -15,7 +15,8 @@ const PILL_BOTTOM = 12;
 /** The long press's choices over the map's bottom (EC19): 10 + their height (68) + a gap. */
 const SPOT_TOP = 10 + 68 + GAP;
 
-export function exploreSlots(o: { spot: boolean; town: boolean }): { scaleBottom: number; overlayBottom: number } {
+/** FL21: `free` (Move map is on) adds the Show areas pill; `showBottom` is its place, when it has one. */
+export function exploreSlots(o: { spot: boolean; town: boolean; free?: boolean }): { scaleBottom: number; overlayBottom: number; showBottom?: number; townBottom?: number } {
   const pillBottom = o.spot ? SPOT_TOP : PILL_BOTTOM;
   // The long press's choices span the map's width, so the bar rises above them as well as above the pill.
   const scaleBottom = o.town ? pillBottom + PILL_H + GAP : o.spot ? SPOT_TOP : SCALE_BOTTOM;

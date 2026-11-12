@@ -245,6 +245,8 @@ export interface Listed {
   distanceM: number;
   /** You are in it (AT1): the nearest area of its level, within its reach. */
   here: boolean;
+  /** FL12: a looked page with no fresh fix of yours says no distance. */
+  unplaced?: boolean;
 }
 
 /**
@@ -319,6 +321,8 @@ export interface NearRead {
   radiusM?: number;
   /** WT9: the town whose page this read listed (its key); missing on reads around you and on those by reach alone. */
   town?: string;
+  /** FL15: made for a look (Show areas here), never for the page around you. */
+  look?: boolean;
 }
 
 /** Near reads kept per level, newest first, so going into a town and back reads nothing twice. */
