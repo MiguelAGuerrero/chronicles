@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
-import { ENTRY_GOES_ON, noteBlocks, sheetBlocks } from '../../lib/journal/blocks';
+import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
 import { formatElapsed } from '../../lib/format';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
 import { facedAt, hasMore } from '../../lib/moment';
-import { parseRefs } from '../../lib/refs';
+import { parseRefs, plainRefs } from '../../lib/refs';
 import type { ContextEntry } from '../../lib/resurface/shell';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
@@ -13,9 +13,6 @@ import { Icon } from '../icons';
 import { NoteText } from '../threads/NoteText';
 import { theme } from '../ui';
 import { OWNER_FONT } from './type';
-
-/** A note is 500 characters at most, about fourteen lines here; one kept longer by an older build is cut on the page and whole in its viewer. */
-const WORDS_LINES = 24;
 
 export type NoFix = 'denied' | 'timeout' | 'unavailable';
 
@@ -105,7 +102,7 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
         {parseRefs(body).some((x) => 'ref' in x) ? (
           <View testID="entry-words"><NoteText body={body} style={styles.words} onOpen={onOpenRef} /></View>
         ) : (
-          <Text style={styles.words} testID="entry-words" numberOfLines={WORDS_LINES}>{body}</Text>
+          <Plain body={body} />
         )}
       </View>
     );
@@ -128,6 +125,20 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
   );
 }
 
+const LISTED = new Set(['bullet', 'number', 'task']);
+
+/** A plain entry's words: whole when short, cut at a word with a line that says so when long (JN27, audit 3). */
+function Plain({ body }: { body: string }) {
+  const cut = sheetWords(body);
+  if (!cut.more) return <Text style={styles.words} testID="entry-words">{body}</Text>;
+  return (
+    <View testID="entry-words" style={styles.blocks}>
+      <Text style={styles.words}>{cut.text}</Text>
+      <Text style={styles.app} testID="entry-goes-on">{ENTRY_GOES_ON}</Text>
+    </View>
+  );
+}
+
 /** A block's words, with each mention as that moment's card. */
 function Words(props: { text: string; style: StyleProp<TextStyle>; onOpenRef: (v: MomentView) => void }) {
   if (parseRefs(props.text).some((x) => 'ref' in x)) return <View style={styles.grow}><NoteText body={props.text} style={props.style} onOpen={props.onOpenRef} /></View>;
@@ -144,19 +155,22 @@ function Blocks({ body, onOpenRef }: { body: string; onOpenRef: (v: MomentView) 
   return (
     <View testID="entry-words" style={styles.blocks}>
       {shown.map((b, i) => {
+        // Lines of one list sit closer than paragraphs do (ui 6).
+        const tight = i > 0 && LISTED.has(b.k) && shown[i - 1].k === b.k ? styles.tight : null;
         if (b.k === 'heading') return <View key={i} testID="entry-block-heading" accessibilityRole="header"><Words text={b.text} style={[styles.words, b.level === 1 ? styles.h1 : styles.h2]} onOpenRef={onOpenRef} /></View>;
         if (b.k === 'para') return <View key={i} testID="entry-block-para"><Words text={b.text} style={styles.words} onOpenRef={onOpenRef} /></View>;
         if (b.k === 'quote') return <View key={i} testID="entry-block-quote" style={styles.quote}><Words text={b.text} style={[styles.words, styles.quoted]} onOpenRef={onOpenRef} /></View>;
         if (b.k === 'task') {
           return (
-            <View key={i} testID="entry-block-task" style={styles.item} accessible accessibilityRole="checkbox" aria-checked={b.done} aria-disabled accessibilityLabel={b.text}>
-              <View style={styles.box}><Icon name={b.done ? 'checkbox-outline' : 'square-outline'} size={20} color={theme.ink} /></View>
+            <View key={i} testID="entry-block-task" style={[styles.item, tight]} accessible accessibilityRole="checkbox" aria-checked={b.done} aria-disabled accessibilityLabel={plainRefs(b.text)}>
+              <View style={styles.box}>{/* Muted: on the sheet a box is read, and ticked in its page (ui 7). */}
+                <Icon name={b.done ? 'checkbox-outline' : 'square-outline'} size={20} color={theme.muted} /></View>
               <Words text={b.text} style={styles.words} onOpenRef={onOpenRef} />
             </View>
           );
         }
         return (
-          <View key={i} testID={`entry-block-${b.k}`} style={styles.item}>
+          <View key={i} testID={`entry-block-${b.k}`} style={[styles.item, tight]}>
             <Text style={[styles.words, styles.mark]}>{b.k === 'number' ? `${b.n}.` : '•'}</Text>
             <Words text={b.text} style={styles.words} onOpenRef={onOpenRef} />
           </View>
@@ -169,6 +183,7 @@ function Blocks({ body, onOpenRef }: { body: string; onOpenRef: (v: MomentView) 
 
 const styles = StyleSheet.create({
   blocks: { gap: 8 },
+  tight: { marginTop: -5 },
   grow: { flex: 1 },
   h1: { fontSize: 23, lineHeight: 30, fontWeight: '600' },
   h2: { fontSize: 20, lineHeight: 28, fontWeight: '600' },

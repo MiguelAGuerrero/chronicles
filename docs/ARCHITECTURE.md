@@ -37,7 +37,7 @@ index.js                     entry: imports lib/recorder (defines the background
 src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
 src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2); Navigate's press opens the walk screen (NR1)
 src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath, then the walk screen, ready (NR1, NR3)
-src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories with the capture band; Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
+src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories as a journal with its open line (0154); Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
@@ -89,8 +89,9 @@ The journal (specs/chronicle-journal, JN1-JN24, decision 0154): Memories as one 
   journal/lines.ts           dayHeading, clockTime, dateline (time, then place and walk once read; No location), entrySpoken, the open line's labels
   journal/pen.ts             the open line's reducer: begin on the first character, save as typed, drop when emptied, Done, a kept capture, a failed save
   journal/target.ts          where an entry goes: the open walk, a moment of its own, or wait until the keeper knows
+  journal/blocks.ts          noteBlocks (a page-written note's Markdown as blocks the sheet draws natively, mentions kept), sheetBlocks (the first twelve, and that it goes on)
   journal/keyboard.ts        keyboardLift: how far a browser's keyboard hides the foot (used by threads/useKeyboardHeight.web)
-  components/journal/        JournalPage (the sheet: opens at the foot, older entries added above), Entry (dateline and pieces, no card), Slip (the resurfaced moment), OpenLine (the field, camera and mic; runs the pen through useCaptures), type (the owner's serif)
+  components/journal/        JournalPage (the sheet: opens at the foot, older entries added above), Entry (dateline and pieces, no card; a page-written note as native blocks), Slip (the resurfaced moment), OpenLine (the field, camera and mic; runs the pen through useCaptures; Open as a page hands the entry to the note's page), type (the owner's serif)
 Media gallery (specs/media-gallery, MG1-MG22, decision 0139)
   gallery/types.ts           Show, Order, Zoom, Size, Shape, GalleryView (what is kept)
   gallery/layout.ts          galleryTiles (one per photo, video and memo piece, in the Sort's order), galleryDays and dayLine (a header per day, where in words), galleryBlocks (months and years: the cover, the place line), dayRows and blockRows (every row's offset known, MG12), tileLabel, withPiecePatch
@@ -113,10 +114,10 @@ Home / tabs
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
   OpenWalk.tsx               the open walk kept above the tabs: walk, pauses, live trace, useOpenWalk / useOpenWalkInfo
   RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk; its photo's Edit pill above it
-  MomentBar.tsx              MomentBar (loose moments from Navigate and Memories, or the open walk's from Memories' band) and CaptureRow (the controls, as a stack or a band)
+  MomentBar.tsx              MomentBar (loose moments from Navigate's ready screen) and CaptureRow (the stack's controls and the note's page); Memories keeps moments from journal/OpenLine
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack (a stack, or Memories' band), AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map

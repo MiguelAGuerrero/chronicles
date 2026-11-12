@@ -149,3 +149,11 @@ test('chronicle-journal audit 1: the line lifts by what the keyboard covers abov
   assert.equal(lineLift(0, 82), 0);
   assert.equal(lineLift(60, 82), 0);
 });
+
+test('fix journal-note-pages audit 4: a save that fails after the line gave its entry to a page is not said on the empty line', () => {
+  // The line handed its entry to the page and reset; a write begun before that fails late.
+  const late = run([{ k: 'saveFailed' }]);
+  assert.deepEqual(late.state, PEN_START);
+  assert.deepEqual(late.effects, []);
+  assert.deepEqual(run([{ k: 'saved', body: 'A heron' }]).state, PEN_START);
+});

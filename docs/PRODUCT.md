@@ -46,7 +46,7 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 
 The app is three tabs in one loop: Explore before, Navigate during,
 Chronicle after. The bar reads Chronicle, Explore, Navigate, and the app opens on Chronicle's
-Memories, whose band keeps a moment in one tap (decision 0112). A walk screen opens over them while
+Memories, a journal whose open line keeps a moment in one tap (decisions 0112, 0154). A walk screen opens over them while
 recording, and a recording bar brings a minimized walk back.
 
 ### Explore (before)

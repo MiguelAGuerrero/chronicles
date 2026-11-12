@@ -94,11 +94,14 @@ export function penStep(s0: PenState, e: PenEvent): { state: PenState; effects: 
     case 'beginFailed':
       return out({ ...s, beginning: false, after: null, failed: true });
     case 'saved': {
+      // A write that lands after the line gave its entry away (to a page) is no longer the line's (audit 4).
+      if (!s.entry) return out(s);
       const kept = e.body === s.body;
       if (s.leaving && kept) return out(PEN_START, { k: 'clear' }, ...(s.leaving === 'done' ? [{ k: 'end' } as PenEffect] : []));
       return out({ ...s, stored: e.body, failed: kept ? false : s.failed });
     }
     case 'saveFailed':
+      if (!s.entry) return out(s);
       return out({ ...s, failed: true, leaving: null });
     case 'retry': {
       if (!s.failed) return out(s);

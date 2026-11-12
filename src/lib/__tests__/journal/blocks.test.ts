@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ENTRY_GOES_ON, SHEET_BLOCKS, noteBlocks, sheetBlocks } from '../../journal/blocks';
+import { ENTRY_GOES_ON, SHEET_BLOCKS, SHEET_CHARS, noteBlocks, sheetBlocks, sheetWords } from '../../journal/blocks';
 import { refToken } from '../../refs';
 
 
@@ -43,4 +43,28 @@ test('JN27: the sheet draws the first blocks of a long entry and says it goes on
   assert.deepEqual(sheetBlocks(blocks.slice(0, 3)), { shown: blocks.slice(0, 3), more: false });
   assert.equal(ENTRY_GOES_ON, 'The entry goes on; open it to read the rest');
   assert.doesNotMatch(ENTRY_GOES_ON, /[0-9?]/);
+});
+
+test('fix journal-note-pages audit 3: one very long paragraph is cut on the sheet and says it goes on', () => {
+  const long = Array.from({ length: 400 }, () => 'words').join(' ');
+  const cut = sheetBlocks(noteBlocks(long));
+  assert.equal(cut.more, true);
+  assert.equal(cut.shown.length, 1);
+  assert.ok(cut.shown[0].text.length <= SHEET_CHARS, `${cut.shown[0].text.length} characters drawn`);
+  assert.doesNotMatch(cut.shown[0].text, /\s$/, 'cut at a word, with no space left hanging');
+  // A plain entry is cut by the same rule, and says so too.
+  assert.deepEqual(sheetWords('short'), { text: 'short', more: false });
+  const plain = sheetWords(long);
+  assert.equal(plain.more, true);
+  assert.ok(plain.text.length <= SHEET_CHARS);
+});
+
+test('fix journal-note-pages audit 8: a nested list keeps its lines, and a private-use character in the words is kept', () => {
+  assert.deepEqual(noteBlocks('- fruit\n  - apple\n  - pear\n- bread'), [
+    { k: 'bullet', text: 'fruit' },
+    { k: 'bullet', text: 'apple' },
+    { k: 'bullet', text: 'pear' },
+    { k: 'bullet', text: 'bread' },
+  ]);
+  assert.deepEqual(noteBlocks('odd 0 pua'), [{ k: 'para', text: 'odd 0 pua' }]);
 });

@@ -506,7 +506,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 
 The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@expo/dom-webview`) that has never run.
 
-- [ ] **Do:** on an iPhone and an Android phone, tap the pencil on Navigate, on the walk and on Memories' band. **Expect:** the note's page slides up full screen with the keyboard up and the cursor in the body, at once, in one tap; the day and "Not on a walk" or "On your walk" head it. (NP1, NP2)
+- [ ] **Do:** on an iPhone and an Android phone, tap the pencil on Navigate and on the walk; on Memories tap in the open line, then Open as a page. **Expect:** the note's page slides up full screen with the keyboard up and the cursor in the body, at once, in one tap; the day and "Not on a walk" or "On your walk" head it. (NP1, NP2)
 - [ ] **Do:** on the page, type `# `, `- `, `[ ] `, `1. `, `> ` at the start of lines, then `**two**`. **Expect:** each becomes its heading, list, checklist, numbered list, quote and bold at once in the WebView, with the marks gone; Return and Backspace behave as on the web. (NP3)
 - [ ] **Do:** with the keyboard up, tap Aa, then Bold, Checklist and Quote; then @ and the camera. **Expect:** the bar sits just above the keyboard on iOS and Android, the panel above it, every button reachable; Bold shows pressed; @ opens the moment picker over the page inside the same Modal. (NP4)
 - [ ] **Do:** write a few words, wait two seconds, then swipe the app away and reopen it. **Expect:** the note is there with the words written before the pause; writing then sending the app to the background keeps the last words too (AppState `background`). (NP9)

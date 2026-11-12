@@ -57,7 +57,7 @@ type LineProps = {
   /** The piece the line is writing, drawn here and not on the page; null when none. */
   onWriting: (pieceId: string | null) => void;
   /** What the line wrote to a piece, and a piece (or its whole moment) it removed: the page's own copy follows (audit 6). */
-  onWritten?: (e: { momentId: string; pieceId: string }, body: string) => void;
+  onWritten?: (e: { momentId: string; pieceId: string }, body: string, format?: 'md') => void;
   onDropped?: (e: { momentId: string; pieceId: string }, gone: 'moment' | 'piece') => void;
   /** Whether a voice note is recording: the page holds a viewer back until it stops. */
   onRecording?: (on: boolean) => void;
@@ -65,6 +65,8 @@ type LineProps = {
   onFoot: () => void;
   /** Something was kept and should be seen (an entry let go, a photo, a voice note): from a thread or Hidden the page comes back (audit 15). */
   onSeen?: () => void;
+  /** The line's own height, as it changes (its status row comes and goes): the sheet pads its foot by it (ui 1). */
+  onHeight?: (h: number) => void;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
   above?: ReactNode;
 };
@@ -344,27 +346,44 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     const entry = s.entry;
     const body = s.body;
     const kept = cap.captures.find((c) => c.id === entry.momentId);
-    // What is typed is written now, and the line lets go of it: the page holds it from here.
+    // What is typed is written first, after anything queued before it; only once that write has landed does the line
+    // let go and the page take the entry (audit 4). A write that fails is said in the line, with Retry: no page opens
+    // over words the store does not hold.
     if (pending.current) clearTimeout(pending.current.timer);
     pending.current = null;
-    queue.current = queue.current.then(() => capRef.current.writeLine(entry, body).then(() => told.current.written?.(entry, body), () => {}));
-    penRef.current = PEN_START;
-    setPen(PEN_START);
-    setText('');
-    setRefs([]);
-    setSelection(undefined);
-    onWriting(null);
-    changed.current();
-    setPage({ key, into: null, entry: { ...entry, body, t: kept?.t ?? pageNow, placed: kept?.lat != null } });
+    queue.current = queue.current.then(() =>
+      capRef.current.writeLine(entry, body).then(
+        () => {
+          told.current.written?.(entry, body);
+          // Typed on meanwhile: the line keeps its entry, and the page is asked for again.
+          if (penRef.current.entry?.pieceId !== entry.pieceId || penRef.current.body !== body) return;
+          penRef.current = PEN_START;
+          setPen(PEN_START);
+          setText('');
+          setRefs([]);
+          setSelection(undefined);
+          onWriting(null);
+          changed.current();
+          keptOnPage.current = true;
+          setPage({ key, into: null, entry: { ...entry, body, t: kept?.t ?? pageNow, placed: kept?.lat != null } });
+        },
+        () => send.current({ k: 'saveFailed' }),
+      ),
+    );
   };
+  // Whether the page kept anything: only then is there something to be seen on the sheet (audit 10).
+  const keptOnPage = useRef(false);
   const closePage = () => {
     setPage(null);
     changed.current();
-    seen.current?.();
+    if (keptOnPage.current) seen.current?.();
+    keptOnPage.current = false;
   };
   const pageCamera = async () => {
     // On the page a photo is its own moment, mentioned in the note (NP14); in the line it joins the entry (JN15).
     const k = await cap.takePhoto(null);
+    // Its own moment, and not the entry the line writes into next (audit 10).
+    if (k) momentPill.newMoment();
     return k ? { id: k.momentId, label: k.kind === 'video' ? 'A video' : 'A photo' } : null;
   };
 
@@ -473,7 +492,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
         {!recording && focused && <SpaceLine />}
       </View>
       {/* The whole strip is the line's: a tap between its controls never lands on an entry scrolled beneath. */}
-      <View style={styles.line} testID="open-line" pointerEvents="auto">
+      <View style={styles.line} testID="open-line" pointerEvents="auto" onLayout={(e) => props.onHeight?.(Math.round(e.nativeEvent.layout.height))}>
         {(status || recording || typing) && (
           <View style={styles.statusRow}>
             {recording ? (
@@ -496,7 +515,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
                 ) : (
                   // The line opens into the note's page (JN25): for a long entry, or one with a shape.
                   <Pressable testID="line-page" accessibilityRole="button" accessibilityLabel="Open as a page" accessibilityState={{ disabled: pen.beginning }} disabled={pen.beginning} onPress={openPage} style={styles.textBtn}>
-                    <Text style={styles.textBtnText}>Open as a page</Text>
+                    <Text style={styles.pageBtnText}>Open as a page</Text>
                   </Pressable>
                 )}
               </>
@@ -546,7 +565,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
       </View>
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
-          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} onWalk={walking} camera onClose={closePage} />
+          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
         )}
         {page?.entry && (
           <NotePage
@@ -565,9 +584,14 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
               save: async (body) => {
                 const e = page.entry!;
                 await cap.setNote({ id: e.momentId, piece_id: e.pieceId }, body);
-                told.current.written?.(e, body);
+                told.current.written?.(e, body, 'md');
               },
-              remove: () => deleteNoteNow({ id: page.entry!.momentId, piece_id: page.entry!.pieceId }),
+              remove: () => {
+                // The entry is going: what is written next begins another, never a piece of this one (audit 1).
+                momentPill.newMoment();
+                keptOnPage.current = false;
+                deleteNoteNow({ id: page.entry!.momentId, piece_id: page.entry!.pieceId });
+              },
             }}
           />
         )}
@@ -630,6 +654,8 @@ const styles = StyleSheet.create({
   timerText: { color: theme.ink, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   textBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   textBtnText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
+  // The quieter of the two words beside Done (ui 2).
+  pageBtnText: { color: theme.ink, fontSize: 15, fontWeight: '400' },
   pill: { width: '100%', maxWidth: 480, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.ink, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14, minHeight: 48 },
   pillText: { color: theme.bg, fontSize: 14, flex: 1 },
   pillBtn: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },

@@ -248,11 +248,13 @@ export function MemoriesScreen() {
     void resurface.refresh();
   }, []);
   // What the line wrote or removed, in this sitting's own copy, so the page is whole before a read and when one fails (audit 6).
-  const onWritten = useCallback((e: { momentId: string; pieceId: string }, body: string) => {
+  const onWritten = useCallback((e: { momentId: string; pieceId: string }, body: string, format?: 'md') => {
     setSession((prev) => prev.map((m) => {
       if (m.id !== e.momentId) return m;
-      const pieces = m.capture.pieces.map((p) => (p.id === e.pieceId ? { ...p, body } : p));
-      const capture = { ...m.capture, pieces, ...(m.capture.piece_id === e.pieceId ? { body } : null) };
+      // A page's write is Markdown, and the copy says so, or the sheet would draw its marks raw (fix journal-note-pages audit 6).
+      const was = format ? { body, body_format: format } : { body };
+      const pieces = m.capture.pieces.map((p) => (p.id === e.pieceId ? { ...p, ...was } : p));
+      const capture = { ...m.capture, pieces, ...(m.capture.piece_id === e.pieceId ? was : null) };
       return { ...m, capture, words: wordsOf(capture) };
     }));
   }, []);
@@ -273,7 +275,9 @@ export function MemoriesScreen() {
     pageRef.current?.toFoot();
   }, []);
   // Every list scrolls its last entry clear above the open line (JN9), and messages sit above it (JN18).
-  const clear = { paddingBottom: LINE_REST_H + 24 };
+  // The line grows by its status row while it is written in; the sheet's foot follows what it measures (ui 1).
+  const [lineH, setLineH] = useState(LINE_REST_H);
+  const clear = { paddingBottom: lineH + 24 };
   // Memories' own toast (Undo) goes in the band's column, above its pills, so the two never cover each other (audit 2).
   const undoToast = toast ? (
     <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
@@ -412,7 +416,7 @@ export function MemoriesScreen() {
         more={page.more}
         now={now}
         onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
-        footPad={LINE_REST_H + 16}
+        footPad={lineH + 16}
         notice={failedNotice}
         entry={entry}
         slip={pick ? (
@@ -449,7 +453,7 @@ export function MemoriesScreen() {
   const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
   const bandLayer = (
     <View key="line" style={styles.bandLayer} pointerEvents="box-none">
-      <OpenLine focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} above={undoToast} />
+      <OpenLine focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast} />
     </View>
   );
 
@@ -569,8 +573,8 @@ export function MemoriesScreen() {
         remind
         onSaveNote={(c, body) => resurface.saveNote(c, body)}
       />
-      {/* Low on the screen, clear of the thread's Back and More: it waits now (ui-conformance audit 6). */}
-      <UndoToast style={{ bottom: 16 }} />
+      {/* Above the open line, whatever its height: a delete's Undo waits, and must never cover the line or sit under it (fix journal-note-pages audit 1). */}
+      <UndoToast style={{ bottom: lineH + 12, zIndex: 3 }} />
     </View>
   );
 }

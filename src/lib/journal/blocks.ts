@@ -22,7 +22,7 @@ const decode = (s: string) => s.replace(/&(amp|lt|gt|quot|#39|apos|nbsp);/g, (_m
 // A mention's token holds `[`, `|` and `]`, which Markdown would read as its own: each is set aside as a private-use
 // mark while the note is lexed, and put back in the block it landed in.
 const MENTION = /@\[[^\]\n]*\]/g;
-const HELD = /(\d+)/g;
+const HELD = /\uE000(\d+)\uE001/g;
 
 /** The words of inline tokens, in order. */
 function inline(tokens: Token[] | undefined): string {
@@ -68,10 +68,12 @@ function walk(tokens: Token[], out: NoteBlock[]): void {
       const list = t as Tokens.List;
       let n = typeof list.start === 'number' ? list.start : 1;
       for (const item of list.items) {
-        const text = wordsIn(item.tokens);
+        // A list inside an item keeps its own lines, after the item's (audit 8).
+        const text = wordsIn(item.tokens.filter((x) => x.type !== 'list'));
         if (item.task) out.push({ k: 'task', done: !!item.checked, text });
         else if (list.ordered) out.push({ k: 'number', n: n++, text });
         else out.push({ k: 'bullet', text });
+        walk(item.tokens.filter((x) => x.type === 'list'), out);
       }
     } else if (t.type === 'blockquote') {
       out.push({ k: 'quote', text: wordsIn((t as Tokens.Blockquote).tokens) });
@@ -84,11 +86,13 @@ function walk(tokens: Token[], out: NoteBlock[]): void {
 /** The blocks of a note the page wrote, in order. A block with no words (a bare box) is none. */
 export function noteBlocks(md: string): NoteBlock[] {
   const held: string[] = [];
-  const safe = md.replace(MENTION, (m) => `${held.push(m) - 1}`);
+  // A private-use mark already in the words is held too, as itself, so it comes back untouched (audit 8).
+  const kept = md.replace(HELD, (m) => `\uE000${held.push(m) - 1}\uE001`);
+  const safe = kept.replace(MENTION, (m) => `\uE000${held.push(m) - 1}\uE001`);
   const out: NoteBlock[] = [];
   walk(new Lexer({ gfm: true }).lex(safe), out);
   return out
-    .map((b) => ({ ...b, text: b.text.replace(HELD, (_m, i: string) => held[Number(i)] ?? '') }))
+    .map((b) => ({ ...b, text: b.text.replace(HELD, (m, i: string) => held[Number(i)] ?? m) }))
     .filter((b) => b.text.trim().length > 0 && !/^\[[ xX]?\]$/.test(b.text.trim()));
 }
 
@@ -97,7 +101,38 @@ export const SHEET_BLOCKS = 12;
 /** Said under a long entry on the sheet, in the app's voice. */
 export const ENTRY_GOES_ON = 'The entry goes on; open it to read the rest';
 
-/** The blocks the sheet draws, and whether the entry goes on past them. */
+/** Text cut to `max` characters at a word, never inside a mention's token. */
+function cutAt(text: string, max: number): string {
+  if (text.length <= max) return text;
+  let end = text.lastIndexOf(' ', max);
+  if (end < max / 2) end = max;
+  const open = text.lastIndexOf('@[', end);
+  if (open >= 0 && text.indexOf(']', open) >= end) end = open;
+  return text.slice(0, end).trimEnd();
+}
+
+/** The blocks the sheet draws, and whether the entry goes on past them: at most `max` blocks and `SHEET_CHARS` characters. */
 export function sheetBlocks(blocks: NoteBlock[], max = SHEET_BLOCKS): { shown: NoteBlock[]; more: boolean } {
-  return blocks.length > max ? { shown: blocks.slice(0, max), more: true } : { shown: blocks, more: false };
+  const shown: NoteBlock[] = [];
+  let room = SHEET_CHARS;
+  for (const b of blocks) {
+    if (shown.length >= max) return { shown, more: true };
+    if (b.text.length > room) {
+      const text = cutAt(b.text, room);
+      // A sliver of a block says nothing: the entry stops at the block before.
+      if (text.length >= 40 || shown.length === 0) shown.push({ ...b, text });
+      return { shown, more: true };
+    }
+    shown.push(b);
+    room -= b.text.length;
+  }
+  return { shown, more: false };
+}
+
+/** The sheet draws this many characters of an entry at most (audit 3): a block count alone lets one long paragraph through. */
+export const SHEET_CHARS = 1200;
+
+/** A plain entry's words as the sheet draws them, cut at a word when long. */
+export function sheetWords(text: string, max = SHEET_CHARS): { text: string; more: boolean } {
+  return text.length > max ? { text: cutAt(text, max), more: true } : { text, more: false };
 }
