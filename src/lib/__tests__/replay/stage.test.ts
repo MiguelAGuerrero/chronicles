@@ -54,3 +54,13 @@ test('tend replay 13: the two replay screens take their colours from the theme, 
     assert.doesNotMatch(readFileSync(join(root, f), 'utf8'), /['"](#[0-9a-fA-F]{3,8}|rgba?\()/, `${f} has a colour of its own`);
   }
 });
+
+test('tend replay audit 3: at 320 x 568 under a 20 px status bar a card still stands clear of the bubbles\' corner', () => {
+  const c: StageCtx = { ...stage(320, 568), insets: { top: 20, bottom: 0, left: 0, right: 0 } };
+  const cw = cardWidth(c);
+  const ch = cardH(cw);
+  const y = restCenter(c, ch)[1];
+  assert.ok(y + ch / 2 <= 568 - STAGE_BOTTOM - BUBBLE + 0.01, `the card's foot at ${Math.round(y + ch / 2)} reaches the bubble's ${568 - STAGE_BOTTOM - BUBBLE}`);
+  assert.ok(y - ch / 2 >= 20 + STACK_TOP - 0.01, `the card's head at ${Math.round(y - ch / 2)} under the stack`);
+  assert.ok(cw >= 80, `no narrower than a card can be (${cw})`);
+});
