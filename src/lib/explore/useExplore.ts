@@ -39,7 +39,7 @@ const CHECK_M = 25;
  * Explore on the walk screen (E2-E9, E17-E23): checklists built quietly in
  * the background on every walk; on an exploring walk, the "?" marks within
  * your range, faint ones along a route, the pocket alert; and on any walk, a
- * capture finding the nearest place within 60 m.
+ * capture finding the one place within 60 m.
  */
 /** The places each walk has alerted (audit 3): outlives the walk screen, not a reload. */
 const alertedByWalk = new Map<string, Set<string>>();
