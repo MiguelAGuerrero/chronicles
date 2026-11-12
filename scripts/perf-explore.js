@@ -134,13 +134,21 @@ function summarize(rows) {
   try {
     await pg.goto(h.exploreUrl);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 1, null, { timeout: 90000 });
-    if (process.env.PERF_BUSY !== '0') await h.switchLayer(pg, 'busy');
+    // PERF_READ=1: the Busy layer goes on only once throttled, so its first read is timed (the read phase).
+    const READ = process.env.PERF_READ === '1';
+    if (process.env.PERF_BUSY !== '0' && !READ) await h.switchLayer(pg, 'busy');
     // The town's page: its neighborhoods are the row.
     const first = await h.areaTile(pg, hoods[0], 90000);
     if (!(await first.count())) throw new Error(`no card for ${hoods[0]}: ${await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.name).join(', '))}`);
     await first.click();
+    // A tap on the selected card opens it: close it, so the map and its controls are bare.
+    await pg.waitForTimeout(800);
+    if (await pg.locator('[data-testid=atlas-card-close]').count()) {
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(800);
+    }
     // Busy streets read and drawn around it, before anything is timed.
-    await pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 120000 }).catch(() => {});
+    if (!READ) await pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 120000 }).catch(() => {});
     await pg.waitForFunction(() => document.querySelectorAll('.maplibregl-marker').length > (window.__busyOff ? 20 : 30), null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(3000);
     result.markersAtStart = await markers(pg);
@@ -179,6 +187,19 @@ function summarize(rows) {
       console.log(`${PHASE} profile, total time (ms):`);
       for (const [k, v] of [...tot.entries()].sort((a, b) => b[1] - a[1]).slice(0, 60)) console.log(`  ${Math.round(v)}\t${k}`);
     };
+    if (READ) {
+      if (process.env.PERF_PROFILE && PHASE === 'read') await startProfile();
+      const m0 = await metricsNow(cdp);
+      const t0 = await now(pg);
+      await h.switchLayer(pg, 'busy');
+      await pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 180000, polling: 250 });
+      await pg.waitForTimeout(1000);
+      const t1 = await now(pg);
+      const md = metricDelta(m0, await metricsNow(cdp));
+      if (process.env.PERF_PROFILE && PHASE === 'read') await stopProfile();
+      result.read = { ...(await windowStats(pg, t0, t1)), ...md };
+      console.log('read', JSON.stringify(result.read));
+    }
     if (process.env.PERF_PROFILE && PHASE === 'switch') await startProfile();
     // Switches: a tap on the next neighborhood's card, as a swipe of the row ends (the map eases there and its layers follow).
     for (let i = 0; i < SWITCHES; i++) {
