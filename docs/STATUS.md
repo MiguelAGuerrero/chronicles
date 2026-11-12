@@ -127,16 +127,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T10 [owner] Chronicle's Map peek: one way to act, and a line that is true while you walk** (2026-11-11)
-  Area: tabs. Seen: `tabs-2-chronicle-peek-with-a-walk-minimized-and-none-finished` (the `tabs` journey's picture; `HomeSheet.tsx`
-  ~l.282-370): with a walk minimized and none finished the peek says "Walk somewhere and it is starred here" and offers Days and
-  Navigate. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; NN/g H8 (the peek's Days repeats the section bar's
-  Days, its Navigate the Navigate tab just below, and the recording bar's › is a third way; UX review U8); the line asks you to walk
-  while you are walking (steward S1). `tend tabs 7` already keeps the line whole; this is what it says and what sits beside it.
-  Recommended: with nothing open, the line and Navigate only (Days goes: the section bar holds it); with a walk open and none
-  finished, "This walk is starred here when it ends" and no button (the bar's › is the way back). It amends tabs audit U7 (your
-  call, Nov 2). /vision: aligned (return; restraint).
-  Otherwise: drop the peek's Days alone and keep the line, or leave it.
 - **T11 [owner] Voice and note are two taps away while a walk is minimized, off Memories** (2026-11-11)
   Area: tabs. Seen: `tabs-2-recording-bar`, `probe-explore-minimized` (pictures): on Explore and Chronicle's other sections the
   recording bar offers the camera only. Rests on: VISION.md Always, "Capture is one tap away on every screen you walk or capture
@@ -195,21 +185,29 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 12, `/tend inbox T9 yes, T12 yes`** (from `e411854`; T9 built, T12 waits for the next inbox run, one build per run).
-- `tend explore T9`: community parks reads presence's notable rule past a neighbourhood's "Old Town/City/Quarter/Village" or
-  "old and new", and "heritage" leaves `parkNotable.json`, so "Old Town Playground", "Old City Tot Lot", "Old and New Ball
-  Field" and "Heritage Hills Playground" are community parks; `ATLAS_CODE` a10.p2 (the atlas's own part, none carried).
-- `tend explore audit 1`: the read-past only where a community word follows at once, so a park named for an old town hall,
-  school, church or cemetery stays a park (the auditor's F1); `audit 2`: "Site of the Old City Spring Ball Fields" stays a park (F2).
-The old/new differential against `e411854` (413,270 park cases, 3,628 rings, 10,360 landing reads): only parks becoming
-community parks, every one named with "heritage" or a neighbourhood's phrase just before a community word; the golden
-tables move Heritage Park Playground alone (PS8 lists it). Filed: no T or G entry; one [arch] item in `docs/DEFERRED.md`
-(the read-past before `normalizeWords`, F3); the specs' and the explore rule's wording in "Open before the loop" (F4, F5).
-The review: one auditor round, 2 accepted, 3 deferred, none rejected. Journeys `marks`, `atlas`, `grading`, `outlines`
-pass. Not a sweep: no lens ran and no area changed state. Nothing here has run on a phone (no native code touched).
+**Nov 12, `/tend inbox T10 yes, T12 yes`** (from `3fa8c309`; T10 built, T12 waits for the next inbox run, one build per run).
+- `tend tabs T10`: Chronicle's empty peek offers Navigate alone with nothing open (the section bar holds Days); with a
+  walk open and none finished it says "This walk is starred here when it ends" and offers no button (the recording
+  bar's › is the way back). Decision 0148 (amends 0050's U7); the words are `emptyPeek` in `lib/quietLines`.
+- `tend tabs audit 1`: until Chronicle's first read the peek is plain, so opening the Map with walks kept never shows the
+  empty line or its Navigate (the auditor's F1, from before T10); `audit 2`: a walk stopped from the bar on the Map stays
+  this walk in the peek until Chronicle reads it (F2); `audit 3`: the tabs journey measures the peek's height, 76 px with
+  a walk open, 124 px over Navigate (F3); `audit 4`: the walk-open line sits under the grabber as the other does (the UI
+  review's U1).
+The review: one round of the auditor and the ux-reviewer (decision 0145): 4 accepted, 1 deferred (F4, the three texts
+that still say the old peek, in "Open before the loop": the loop edits no decision, spec or rule line), 1 rejected (U2,
+"starred" is the app's word across the Map; a vocabulary change is the owner's). Journeys `tabs`, `days` and `launch`
+pass. Filed: no T or G entry. Not a sweep: no lens ran and no area changed state. Nothing here has run on a phone; the
+peek renders on native too (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **Chronicle's empty peek after T10** (Nov 12; the T10 review's F4): decision 0148 amends 0050, but three texts still
+  say the old peek. `docs/decisions/0050-chronicle-peek.md` line 3 has no "Amended by [0148](0148-the-empty-peek-one-way-and-a-true-line.md)"
+  (as 0030's names 0082); `specs/v0.5-places/spec.md` criterion 19 wants an "Amended (owner, Nov 12, decision 0148): with
+  a walk open and none finished, the line is 'This walk is starred here when it ends'" (as criterion 25's); and
+  `.claude/rules/tabs-and-home.md` lines 123-125 state U7 in the present tense (a "Since T10" line under them says
+  what is true). The loop edits no decision record, no spec and no rule line already there.
 - **Community parks' wording after T9** (Nov 12; the T9 review's F4, F5): `specs/presence-readers/spec.md` line 26 (the
   read-past "stays only in the step that makes a museum historic"), line 30 and PS3 (parkKind asks `notableName`), and
   `specs/community-parks/spec.md` PC2 (lists "Heritage" as a keeping word; any `notable.json` word keeps a park). Since

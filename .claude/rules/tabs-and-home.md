@@ -123,6 +123,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   - Chronicle's peek: with no walk finished (a walk minimized or not), the
     empty line, Days and a Navigate button (U7); otherwise a Walks | Days
     switch in the header at every height (U8). No "N walks · M places" (U13).
+    - Since T10 (decision 0148, amends U7): with nothing open, the line and Navigate alone (the section bar holds Days); with a walk open and none finished, "This walk is starred here when it ends" and no button (`emptyPeek` in `lib/quietLines`). The line sits under the grabber in both states, and only Navigate makes the peek taller (`tend tabs audit 3`, `audit 4`). A walk is open by the keeper (`useOpenWalkInfo`) or while Chronicle's own read still holds it open, so a walk stopped from the bar never reads "Walk somewhere" on the way to its replay (`audit 2`); before the first read the peek is plain (`read`, `audit 1`). The tabs journey goes back to the walk by the recording bar's ›; the days journey opens a day kept before any walk from the section bar's Days.
   - The recording bar shows a pause glyph when paused and a forward chevron,
     not chevron-up, as its way back (U10). The walk options button is always
     `options-outline` (U11): a compass read as the Explore tab.
