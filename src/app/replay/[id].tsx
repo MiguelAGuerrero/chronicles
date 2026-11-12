@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { FOG_MS } from '../../lib/replay';
+import { backFrom, FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -196,19 +196,26 @@ export default function Replay() {
     leftForChronicle.current = true;
     router.dismissTo('/');
   }, []);
+  // The beat as Back reads it, outside render (tend replay 4).
+  const beatNow = useRef<Beat>('reading');
+  useEffect(() => {
+    beatNow.current = phase.beat;
+  }, [phase.beat]);
   useEffect(() => {
     if (rewatch) return;
     // However it is left, the first replay ends on Chronicle's Memories (RM3).
     chronicleSection.set('memories');
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      toChronicle();
+      // Back on the name step returns to the card, the words typed kept (tend replay 4).
+      if (backFrom(beatNow.current) === 'card') go('card');
+      else toChronicle();
       return true;
     });
     return () => {
       back.remove();
       if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
-  }, [rewatch, toChronicle]);
+  }, [rewatch, toChronicle, go]);
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {

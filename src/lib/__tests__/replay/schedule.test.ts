@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
 import { walkStory, type WalkInput } from '../../ceremony/story';
 import { distanceM } from '../../geo';
-import { groupCaptures, timedRuns } from '../../replay';
+import { backFrom, groupCaptures, timedRuns } from '../../replay';
 import type { LngLat, TracePoint } from '../../types';
 import { at, walkAlong } from '../foxPoint';
 
@@ -63,4 +63,9 @@ test('replay: a capture after the trace ends stops the path at its end, not afte
   assert.ok(f.walker && distanceM(f.walker, end) <= 25, 'its stop comes as the path ends (within the standstill radius, where it came to a stand)');
   const leg = p.segs.find((s) => s.k === 'leg')!;
   assert.ok(leg.k === 'leg' && leg.move && leg.move.m1 - leg.move.m0 > 250, 'the walker moves through the trace all the way');
+});
+
+test('tend replay 4: Back on the name step returns to the card; from any other beat it leaves the replay', () => {
+  assert.equal(backFrom('name'), 'card');
+  for (const beat of ['reading', 'fog', 'path', 'card']) assert.equal(backFrom(beat), 'leave', beat);
 });

@@ -40,6 +40,14 @@ export function groupCaptures(captures: Faced[]): PauseGroup[] {
   return groups;
 }
 
+/**
+ * Where Back (Android) or Escape (web) takes the walk's replay from a beat: the name step goes back to its card with
+ * the words typed kept (tend replay 4); any other beat leaves the replay, as Not now or Done does.
+ */
+export function backFrom(beat: string): 'card' | 'leave' {
+  return beat === 'name' ? 'card' : 'leave';
+}
+
 export type TimedRun = { t: number; p: LngLat }[];
 
 /** Index of the last element with t <= target, or -1. */
