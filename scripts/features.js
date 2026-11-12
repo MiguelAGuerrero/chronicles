@@ -238,11 +238,11 @@ const FEATURES = [
       // Media editing (ME1-ME23): the editor, edited photos and videos, the Edit offer.
       'src/components/edit/**',
       'src/components/Baker*.ts',
-      'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
+      'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
     ],
     journeys: ['edit', 'stacks'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim'],
   },
   {
     name: 'chronicle',
@@ -430,6 +430,7 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
+  'voice-trim': { branch: 'claude/upbeat-gates-s6xy90', since: '2026-11-12' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
