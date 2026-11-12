@@ -31,7 +31,20 @@ function creditsChecks({ check, shot }) {
         return q.width > 0 && q.left < box.right && q.right > box.left && q.top < box.bottom && q.bottom > box.top;
       })
       .map((c) => c.getAttribute('data-testid'));
+    // Each line of the open credits, and what a finger at its middle would touch: nothing may lie over them (tend map
+    // audit 1: Explore's hint covered their middle line).
+    const lines = [];
+    if (inner && getComputedStyle(inner).display !== 'none') {
+      const range = document.createRange();
+      range.selectNodeContents(inner);
+      for (const q of range.getClientRects()) {
+        if (q.width < 1) continue;
+        const hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+        lines.push({ y: Math.round(q.top), top: !!hit && el.contains(hit), on: hit && !el.contains(hit) ? (hit.closest('[data-testid]')?.getAttribute('data-testid') ?? hit.textContent.slice(0, 24)) : null });
+      }
+    }
     return {
+      lines,
       // Nothing of the credits is cut: no line runs wider than the box (tend map 3, at 320 px).
       whole: !inner || inner.scrollWidth <= inner.clientWidth + 1,
       compact: el.classList.contains('maplibregl-compact'),
@@ -54,6 +67,7 @@ function creditsChecks({ check, shot }) {
     const b = await credits(page);
     check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b && { open: b.open, text: b.text })})`);
     check(b && b.under.length === 0 && b.whole, `tend map 3: on ${where}, the open credits lie over no control and none of their words is cut (box ${b && b.box}; under ${JSON.stringify(b && b.under)}; whole ${b && b.whole})`);
+    check(b && b.lines.length > 0 && b.lines.every((l) => l.top), `tend map audit 1: on ${where}, every line of the open credits is the top element at its point (${JSON.stringify(b && b.lines)})`);
     if (shotName) await shot(page, shotName);
     if (b) await page.mouse.click(b.x, b.y);
     await page.waitForTimeout(300);

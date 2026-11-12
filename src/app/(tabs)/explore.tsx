@@ -169,6 +169,8 @@ export default function Explore() {
   const locateRef = useRef<ComponentRef<typeof Pressable>>(null);
   // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
   const [plan, setPlan] = useState<CategoryId | null>(null);
+  // The map's credits are open (web), and the hint steps aside for them (tend map audit 1).
+  const [creditsOpen, setCreditsOpen] = useState(false);
   // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
   const [bearing] = useState(() => createStore(0));
   // The map comes down when Explore loses focus and opens north-up again (CP8).
@@ -548,7 +550,8 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : !pressSeen && !spot && from ? (
+  ) : !pressSeen && !spot && from && !creditsOpen ? (
+    // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1).
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
 
@@ -564,6 +567,7 @@ export default function Explore() {
           fog={NONE}
           ref={mapRef}
           onBearingChange={bearing.set}
+          onCreditsOpen={setCreditsOpen}
           captures={NONE}
           walker={you}
           marks={spot ? [spot.at] : NONE}

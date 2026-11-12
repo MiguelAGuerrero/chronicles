@@ -153,7 +153,11 @@ const DOUBLE_TAP_MS = 300;
  */
 class ClosedAttribution extends AttributionControl {
   private watch?: MutationObserver;
+  private shown?: MutationObserver;
+  private wasOpen = false;
   private el?: HTMLElement;
+  /** Told when the credits open or close (tend map audit 1: Explore's hint steps aside for them). */
+  onOpen?: (open: boolean) => void;
   /** Beside the scale bar (tend map 3): offsets from the map's bottom-left corner, and the widest it opens. */
   place(at: { left: number; bottom: number; maxWidth: number }) {
     if (!this.el) return;
@@ -179,10 +183,20 @@ class ClosedAttribution extends AttributionControl {
     this.watch = new MutationObserver(close);
     this.watch.observe(el, { attributes: true, attributeFilter: ['class'] });
     close();
+    // Opened or closed by a tap: said once per change, read from the class as it is (the first open above is already undone).
+    this.shown = new MutationObserver(() => {
+      const open = el.classList.contains('maplibregl-compact-show');
+      if (open === this.wasOpen) return;
+      this.wasOpen = open;
+      this.onOpen?.(open);
+    });
+    this.shown.observe(el, { attributes: true, attributeFilter: ['class'] });
     return el;
   }
   onRemove() {
     this.watch?.disconnect();
+    this.shown?.disconnect();
+    if (this.wasOpen) this.onOpen?.(false);
     super.onRemove();
   }
 }
@@ -250,6 +264,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCameraChange = useRef(props.onCameraChange);
   const onFitSettled = useRef(props.onFitSettled);
   const onSwipe = useRef(props.onSwipe);
+  const onCreditsOpen = useRef(props.onCreditsOpen);
   const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
@@ -261,6 +276,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onCameraChange.current = props.onCameraChange;
     onFitSettled.current = props.onFitSettled;
     onSwipe.current = props.onSwipe;
+    onCreditsOpen.current = props.onCreditsOpen;
     freePan.current = !!props.freePan;
     fitPadding.current = props.fitPadding;
   });
@@ -593,6 +609,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // other map beside the scale bar, on the strip its screen keeps clear, placed below (tend map 3). Bottom right,
     // they lay under the walk's strip, the replay's card, Locate and the capture stack.
     const credits = new ClosedAttribution();
+    credits.onOpen = (open) => onCreditsOpen.current?.(open);
     creditsRef.current = credits;
     map.addControl(credits, props.attributionTop ? 'top-right' : 'bottom-left');
     map.on('zoomend', track);

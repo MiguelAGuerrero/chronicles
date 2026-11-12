@@ -164,6 +164,11 @@ export interface WalkMapProps {
   fitKey?: number;
   /** Called with a fit's key once its camera move has ended, so a map taken down mid-move can redo it. */
   onFitSettled?: (fitKey: number) => void;
+  /**
+   * Web: the map's credits were opened or closed by a tap on their (i), so an overlay that would lie over them can step
+   * aside (tend map audit 1). Native's MapLibre attribution reports nothing.
+   */
+  onCreditsOpen?: (open: boolean) => void;
   /** Space kept clear of the fitted bounds, e.g. for a sheet over the map. */
   fitPadding?: Padding;
   /** The closest a fit may zoom. Default 17. Web passes it to fitBounds; native widens the bounds (capFitBounds). */
