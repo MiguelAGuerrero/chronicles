@@ -85,6 +85,9 @@ export function notePause(text: string | null): number {
   return Math.min(R.noteMax, R.note + Math.ceil((words - R.noteWords) / 5) * R.notePerFive);
 }
 
+/** A note's pause by its words as shown (NP10). */
+export const noteSlotPause = (c: Pick<Faced, 'body' | 'body_format'>): number => notePause(c.body);
+
 const slotKind = (c: Faced): SlotKind => (c.kind === 'text' ? 'note' : c.kind === 'voice' ? 'memo' : c.kind);
 const slotOf = (c: Faced): Slot => ({ capture: c, kind: slotKind(c), t0: 0, t1: slotDur(c), len: mediaLen(c) });
 
@@ -142,7 +145,7 @@ function stopLength(slots: Slot[]): number {
 const mediaLen = (c: Faced) => Math.max(R.mediaMin, Number(c.body) || 0);
 function slotDur(c: Faced): number {
   switch (slotKind(c)) {
-    case 'note': return notePause(c.body);
+    case 'note': return noteSlotPause(c);
     case 'memo': return mediaLen(c) + R.mediaTail;
     case 'photo': return R.photo;
     case 'video': return mediaLen(c) + R.grow + R.tuck;

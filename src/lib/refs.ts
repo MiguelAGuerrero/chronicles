@@ -51,7 +51,8 @@ export function plainRefs(body: string, words: (id: string) => string | null = (
 }
 
 /** A note's words for a plain-text reader with no lookup (rows, Lately, a reminder, the replay): never a raw token. */
-export const plainNote = (body: string | null | undefined): string | null => (body == null ? null : plainRefs(body));
+/** A note as words (NP10): a body the page wrote (`format` 'md') loses its marks too; any other reads as stored (NP7). */
+export const plainNote = (body: string | null | undefined, _format?: 'md' | null): string | null => (body == null ? null : plainRefs(body));
 
 /**
  * The notes that mention a moment (RF7), read from their bodies when shown: oldest first, by date, never by how often
