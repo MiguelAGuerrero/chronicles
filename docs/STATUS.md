@@ -244,6 +244,19 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   edit, `tend replay 9`); the steps go through the moments with Continue, then the card (RR17); the day's card is said
   after Skip; Back on the name step returns to the card with the name kept (`tend replay 4`), and Back on the card
   leaves for Chronicle.
+- **T25 [owner] Replay: the walker's dot and the solid end differ by colour alone** (2026-11-12)
+  Area: map (the replay and the day replay). Seen: `22-day-replay-walk` after `tend map T16`: mid-path the walker is
+  a solid navy disc with a white ring and, about 45 px away, the end a solid orange disc with a white ring, about one
+  size; before T16 the end was hollow (the T16 review's F1 and U1; `ENDS_PAINT`, `components/map/types.ts`; the dot,
+  `WalkMap.web.tsx` `points` l.137). Rests on: WCAG 2.2, 1.4.1 Use of Color; ui-patterns, "Never colour alone to show
+  state" (X3). The motion tells them apart while the path plays, not on Hold or with reduced motion. QL2 says "the dot
+  is its end" on a live walk; the two are drawn together only on a replay. The marker's shape is yours (decision 0154).
+  Recommended: a bullseye end, a walked centre, a white band and a walked outer ring (two circle layers on the `ends`
+  source, the outer one drawn first), so the end differs in shape from the hollow start and from the solid dot; the
+  start and the dot unchanged. It takes T22's hue when you pick one, with nothing of its own. /vision: aligned
+  (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
+  Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
+  instead; or leave it (the motion tells them apart while it plays).
 
 ### Next evolutions
 
@@ -277,9 +290,19 @@ T16 built, the others wait for the next inbox run, one build per run; decision 0
   hollow, white ringed in the trace's green, so shape tells them apart (WCAG 2.2, 1.4.1). One paint for both maps
   (`ENDS_PAINT`, `components/map/types.ts`); no new hue (T22 is open and the end follows `COLORS.walked`). The `qol`
   journey reads both markers' middles on the replay. A live walk still has no end marker (QL2).
+The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
+- `tend map audit 8`: the `qol` step that reads the ends restores every marker, a failed read too (F2).
+- `tend map audit 9`: `ENDS_PAINT` is type-checked as a circle paint, with no cast on either map (F3).
+- `tend map audit 10`: `endsGeoJSON`'s start and end take the paint's own branches; native adds only opacity (F5).
+- `tend map audit 11`: the replay journey pictures the walk's card at 375 and 320 px once its title shows, its map
+  drawing both ends (U4; the old pictures showed a moment's beat, now `rr-beat-<w>`).
+Review: 5 accepted (F2, F3, F5, U4; F4, two stale records, named in "Open before the loop" with a note under the
+native check), 2 deferred `[owner]` low in `docs/DEFERRED.md` (U2, the end reads smaller; U3, a pin's stalk inside a
+marker), 1 to you as T25 (F1 with U1: mid-replay the walker's dot and the solid end differ by colour alone), 0
+rejected. The end filled in the accent's hex is your accepted interim until T22 (0153, 0154).
 Answered and waiting: T17 yes (the quiet ink notice, no scale bar over a blank world), T14 yes (kinds, no numeral, the
 time in the spoken name), T15 reshaped by the owner to "Ink star, no numeral" (/vision: aligned). QL2's wording and the
-map rule's marker lines in "Open before the loop"; one native check. Filed: no T or G entry. Not a sweep: no lens ran and
+map rule's marker lines in "Open before the loop"; one native check. Filed: T25 `[owner]`. Not a sweep: no lens ran and
 no area changed state. Nothing here has run on a phone; the `ends` layer is drawn on native too
 (`docs/NATIVE_UNVERIFIED.md`).
 
@@ -289,9 +312,12 @@ no area changed state. Nothing here has run on a phone; the `ends` layer is draw
   `specs/quality-of-life/spec.md`) says the end marker is "a white disc with a thick ring in the walked orange"; since
   `tend map T16` it is solid, a disc filled in the walked colour with a white ring, the start still hollow. Amend QL2 to
   "a disc filled in the walked colour with a white ring, so shape, not colour alone, tells it from the start", in the
-  doc and the mirror; the loop may not edit a spec. `.claude/rules/map.md`'s marker line ("a ring in
-  `COLORS.walked`") and its Native line ("the `ends` layer's `match` stroke colour") say the old paint; a "Since
-  `tend map T16`" line under the first says what is true. The loop rewords no rule line.
+  doc and the mirror; the loop may not edit a spec. `.claude/rules/map.md` l.119-121 ("a ring in `COLORS.walked`")
+  and its Native line ("the `ends` layer's `match` stroke colour") say the old paint; a "Since `tend map T16`" line
+  under the first says what is true. The loop rewords no rule line. Two records say it too (the T16 review's F4):
+  `docs/NATIVE_UNVERIFIED.md`'s first Quality of life check ("with the `match` stroke colour"; an indented note under
+  it points to the next check), and T22 above ("QL2's end ring ('in the walked orange') takes it too": since T16 the
+  end is a fill, which takes it the same way).
 - **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
   bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
   north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`

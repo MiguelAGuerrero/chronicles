@@ -175,6 +175,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 ## Quality of life
 
 - [ ] **Do:** stop a walk and open its replay. **Expect:** the `ends` layer (`lib/traceEnds.ts`) draws the start and end markers with the `match` stroke colour, as on the web (Quality of life). (QL1, QL2)
+  - Since `tend map T16` the end is filled; see the next check.
 - [ ] **Do:** stop a walk with a photo kept where it ends, open its replay and its day's replay. **Expect:** MapLibre RN draws `ENDS_PAINT` (`components/map/types.ts`, spread into the `ends` layer with the trace's opacity) as the web does: the start a white disc ringed in green, the end a disc filled in the walked orange with a white ring, both `match` expressions read, the photo's pin over the end (`tend map T16`, decision 0154). (QL2)
 - [ ] **Do:** zoom each map in and out (the walk screen, Explore, Chronicle, a replay). **Expect:** the scale bar over the native map (`components/map/ScaleBar.tsx`) sits bottom-left clear of each screen's bottom UI and follows the zoom with a round length (Quality of life). (QL5, QL7, QL8)
 - [ ] **Do:** after a drive, tap Locate on Explore. **Expect:** `locateOnce` fresh on expo-location (`lib/useLocate.ts`) reads a fix taken after the tap, never a cached one, and centres on where you are (Quality of life). (QL10)
