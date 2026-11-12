@@ -338,6 +338,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           onWalkActions={setActionsFor}
           now={now}
           onNavigate={() => showWalk()}
+          // From the open walk's keeper, never this tab's last read: a walk minimized since then is open (T10, tabs audit 2).
+          walkOpen={!!openInfo.walk}
         />
       </View>
 

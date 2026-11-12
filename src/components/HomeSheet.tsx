@@ -10,7 +10,7 @@ import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
-import { timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
+import { emptyPeek, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
@@ -29,7 +29,7 @@ export type SheetMode =
 
 /** The sheet's height when it peeks over the map, above the safe area. */
 export const SHEET_PEEK = 76;
-/** The empty peek's line on its own row: two lines of it and the gap above the buttons (tend tabs 7). */
+/** The empty peek's line on its own row: two lines of it and the gap above its Navigate (tend tabs 7). */
 const STACKED_EXTRA = 48;
 
 /**
@@ -221,8 +221,10 @@ export function HomeSheet(props: {
   onWalkActions?: (walkId: string) => void;
   /** The home's clock, for naming today and yesterday. */
   now: number;
-  /** With no walk finished yet, the peek's way to Navigate (tabs audit U7). */
+  /** With no walk finished yet, the peek's way to Navigate (tabs audit U7), offered only with no walk open (T10, 0148). */
   onNavigate?: () => void;
+  /** A walk is open (minimized): the empty peek says this walk is starred when it ends, and offers no button (T10, 0148). */
+  walkOpen?: boolean;
   /** False while the sheet is out of sight or covered (another route, a viewer, a menu): Back and Escape are then
    *  the cover's, never the sheet's, and never move Chronicle's section (section-bar audit 1). */
   ownKeys?: boolean;
@@ -251,8 +253,12 @@ export function HomeSheet(props: {
     return days.find((d) => d.key === key) ?? null;
   })() : null;
   const noWalks = index.walkCount === 0;
-  // With nothing walked, the peek's line sits on its own row above its buttons, so they never cut it short (tend tabs 7).
-  const stacked = noWalks && !expanded;
+  // Nothing walked: one way to act, and a line true while you walk (tend tabs T10, decision 0148).
+  const peekEmpty = emptyPeek(!!props.walkOpen);
+  const peekNavigate = peekEmpty.navigate && !!props.onNavigate;
+  // With nothing walked, the peek's line sits on its own row above its button, so it never cuts it short (tend tabs 7);
+  // with no button (a walk open) the line has the row to itself.
+  const stacked = noWalks && !expanded && peekNavigate;
   const listTitle = props.mode.kind === 'days' ? 'Your days' : 'Walks';
   const nowT = props.now;
 
@@ -283,9 +289,9 @@ export function HomeSheet(props: {
               </Text>
             </View>
           ) : noWalks && !expanded ? (
-            // Nothing walked yet, a walk minimized or not (tabs audit U7): how walks get here, and the way there.
-            <Text testID="sheet-empty" style={styles.empty} numberOfLines={2}>
-              Walk somewhere and it is starred here
+            // Nothing walked yet (tabs audit U7): how walks get here, or, with a walk open, that it is starred when it ends (T10).
+            <Text testID="sheet-empty" style={[styles.empty, !stacked && styles.headerText]} numberOfLines={2}>
+              {peekEmpty.line}
             </Text>
           ) : noWalks ? (
             <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>{listTitle}</Text>
@@ -341,35 +347,18 @@ export function HomeSheet(props: {
               <Icon name="map-outline" size={18} color={theme.ink} />
               <Text style={styles.pillText}>Map</Text>
             </Pressable>
-          ) : noWalks ? (
-            <View style={styles.pills}>
-              {days.length > 0 && (
-                <Pressable
-                  testID="sheet-days"
-                  accessibilityRole="button"
-                  accessibilityLabel="Show your days"
-                  accessibilityState={{ expanded: false }}
-                  onPress={() => props.onMode({ kind: 'days' })}
-                  style={styles.pill}
-                  hitSlop={8}
-                >
-                  <Icon name="calendar-outline" size={18} color={theme.ink} />
-                  <Text style={styles.pillText}>Days</Text>
-                </Pressable>
-              )}
-              {props.onNavigate && (
-                <Pressable
-                  testID="sheet-navigate"
-                  accessibilityRole="button"
-                  accessibilityLabel="Go to Navigate to start a walk"
-                  onPress={props.onNavigate}
-                  style={styles.pill}
-                >
-                  <Icon name="navigate-outline" size={18} color={theme.ink} />
-                  <Text style={styles.pillText}>Navigate</Text>
-                </Pressable>
-              )}
-            </View>
+          ) : noWalks && peekNavigate ? (
+            // Navigate alone: the section bar holds Days, and with a walk open the recording bar's › is the way back (T10).
+            <Pressable
+              testID="sheet-navigate"
+              accessibilityRole="button"
+              accessibilityLabel="Go to Navigate to start a walk"
+              onPress={props.onNavigate}
+              style={styles.pill}
+            >
+              <Icon name="navigate-outline" size={18} color={theme.ink} />
+              <Text style={styles.pillText}>Navigate</Text>
+            </Pressable>
           ) : null}
         </View>
       }
@@ -577,7 +566,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
   },
   pillText: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  pills: { flexDirection: 'row', gap: 8 },
   switchRow: { flexDirection: 'row' },
   switch: { flexDirection: 'row', borderRadius: 24, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, padding: 1 },
   // 44 pt, the target size (X0; tend chronicle 8).

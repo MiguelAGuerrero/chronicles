@@ -118,38 +118,47 @@ async function run(h) {
       check((await metaOf(pg, 'start_mode')) === 'quiet', 'NV22: back to Quiet, saved as it changed');
 
     });
-    // Chronicle with no walks (tabs audit U7): the peek holds the empty line and a way to Navigate.
-    const emptyPeek = async (when) => {
+    // Chronicle with no walks (tabs audit U7, amended by T10, decision 0148): with nothing open, the empty line and
+    // Navigate alone; with a walk open, a line about this walk and no button (the recording bar's › is the way back).
+    const emptyPeek = async (when, open) => {
       const sheet = await pg.locator('[data-testid=home-sheet]').boundingBox();
       const nav = await pg.locator('[data-testid=sheet-navigate]').boundingBox().catch(() => null);
-      const said = (await pg.locator('[data-testid=home-sheet]').innerText()).includes('Walk somewhere and it is starred here');
-      check(said && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
-        `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${said}, ${nav && Math.round(nav.y)})`);
+      const line = (await pg.locator('[data-testid=sheet-empty]').innerText().catch(() => '')).trim();
+      if (!open) {
+        check(line === 'Walk somewhere and it is starred here' && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
+          `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${JSON.stringify(line)}, ${nav && Math.round(nav.y)})`);
+      } else {
+        check(line === 'This walk is starred here when it ends' && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 0 && (await shownCount(pg, '[data-testid=recording-return]')) === 1,
+          `tend tabs T10: ${when}, the peek says this walk is starred when it ends, offers no button, and the recording bar's › is there (${JSON.stringify(line)})`);
+      }
+      check((await shownCount(pg, '[data-testid=sheet-days]')) === 0, `tend tabs T10: ${when}, the peek offers no Days (the section bar holds it)`);
       await h.shot(pg, `tabs-2-chronicle-peek-${when.replace(/\W+/g, '-')}`);
-      // tend tabs 7: the peek's line is shown whole, never cut short by the buttons beside it, at 390 and at 320 px.
+      // tend tabs 7: the peek's line is shown whole, never cut short by the button beside it, at 390 and at 320 px.
       try {
         for (const width of [390, 320]) {
           await pg.setViewportSize({ width, height: 844 });
           await pg.waitForTimeout(600);
-          const line = await pg.evaluate(() => {
+          const got = await pg.evaluate(() => {
             const e = document.querySelector('[data-testid=sheet-empty]');
             const s = document.querySelector('[data-testid=home-sheet]')?.getBoundingClientRect();
             const r = e?.getBoundingClientRect();
             const pills = [...document.querySelectorAll('[data-testid=sheet-navigate], [data-testid=sheet-days]')].map((p) => p.getBoundingClientRect());
-            return e && s && { cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1, inside: r.y >= s.y && r.bottom <= s.bottom + 1, pillsIn: pills.every((p) => p.y >= s.y && p.bottom <= s.bottom + 1), days: pills.length };
+            return e && s && { cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1, inside: r.y >= s.y && r.bottom <= s.bottom + 1, pillsIn: pills.every((p) => p.y >= s.y && p.bottom <= s.bottom + 1), pills: pills.length };
           });
-          check(line && !line.cut && line.inside && line.pillsIn, `tend tabs 7: ${when}, at ${width} px the peek's line is whole and inside the sheet, its buttons too (${JSON.stringify(line)})`);
+          check(got && !got.cut && got.inside && got.pillsIn, `tend tabs 7, tend tabs T10: ${when}, at ${width} px the peek's line is whole and inside the sheet, its button too (${JSON.stringify(got)})`);
+          if (width === 320) await h.shot(pg, `tabs-2-chronicle-peek-${when.replace(/\W+/g, '-')}-320`);
         }
       } finally {
         await pg.setViewportSize({ width: 390, height: 844 });
         await pg.waitForTimeout(600);
       }
       if (await pg.locator('[data-testid=sheet-navigate]').count()) await pg.click('[data-testid=sheet-navigate]');
+      else if (open) await pg.click('[data-testid=recording-return]');
       else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);
       // Navigate is the walk screen (NR1, NR2): ready with no walk open, the walk with one.
       check(new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar], [data-testid=stop]').count()) === 1,
-        `tabs audit U7: ${when}, the peek's Navigate opens Navigate, the walk screen (${new URL(pg.url()).pathname})`);
+        `tabs audit U7, tend tabs T10: ${when}, the peek's Navigate, or the recording bar's › with a walk open, opens the walk screen (${new URL(pg.url()).pathname})`);
     };
     await step('tabs audit Chronicle read before the walk', async () => {
       // Chronicle is opened once before any walk: its last read says no walk is open (tabs audit 2).
@@ -159,7 +168,7 @@ async function run(h) {
       await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(800);
-      await emptyPeek('with nothing walked');
+      await emptyPeek('with nothing walked', false);
 
     });
     await step('tabs audit 3: a memo, then Walk here', async () => {
@@ -362,10 +371,10 @@ async function run(h) {
       await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(1000);
-      await emptyPeek('with a walk minimized and none finished');
+      await emptyPeek('with a walk minimized and none finished', true);
     });
     await step('NR2: following the walk', async () => {
-      // Chronicle's Navigate opened the walk (U7 above): it goes on there, the trace growing to the walker. A route preview left open from
+      // The recording bar's › opened the walk (U7, T10 above): it goes on there, the trace growing to the walker. A route preview left open from
       // an earlier step shows only its routes (fix preview-clutter), so it is closed first: this step is about the trace.
       if (await pg.locator('[data-testid=route-cancel]').count()) {
         await pg.click('[data-testid=route-cancel]');
