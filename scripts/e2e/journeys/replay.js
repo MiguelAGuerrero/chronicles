@@ -343,6 +343,7 @@ async function run(h) {
       const sb = await boxOf('[data-testid=skip]');
       check(shown && hb && sb && apart(hb, sb) && hb.x >= 16 && hb.x + hb.width <= w - 16,
         `tend replay 1: at ${w} px the fog's headline clears Skip and keeps 16 px from each edge (${JSON.stringify(hb)}, Skip ${JSON.stringify(sb)})`);
+      check(hb && sb && hb.y >= sb.y + sb.height + 8 - 0.5, `tend replay audit 6: at ${w} px the fog's headline starts 8 px below Skip (headline ${hb && hb.y}, Skip's foot ${sb && sb.y + sb.height})`);
       await shot(pg, `rr-fog-${w}`);
       await pg.click('[data-testid=skip]');
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });

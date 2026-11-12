@@ -17,7 +17,7 @@ import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import { STAGE_TOP, type StageCtx } from '../../components/ceremony/layout';
+import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
@@ -494,8 +494,9 @@ export default function Replay() {
       )}
 
       {beat === 'fog' && (
-        // Below the top row, so Skip never covers its words, and 16 px in from each edge (tend replay 1).
-        <View testID="replay-headline" style={[styles.headline, { top: insets.top + STAGE_TOP, maxWidth: Math.min(340, width - 32) }]} pointerEvents="none">
+        // Below the top row, so Skip never covers its words, and 16 px in from each edge (tend replay 1): 8 px under
+        // Skip's foot (12 in, 48 tall; tend replay audit 6).
+        <View testID="replay-headline" style={[styles.headline, { top: insets.top + 12 + 48 + 8, maxWidth: Math.min(340, width - 32) }]} pointerEvents="none">
           <Text style={styles.headlineLabel}>{head.line}</Text>
           {head.note ? <Text style={styles.headlineNote}>{head.note}</Text> : null}
         </View>
