@@ -488,6 +488,24 @@ async function run(h) {
       const chevron = await pg.locator('[data-testid=note-type-chevron]').count();
       const items = await pg.locator('[data-testid^=note-type-item-]').count();
       const colours = await pg.evaluate(() => [...new Set([...document.querySelectorAll('[data-testid^=note-type-glyph-]')].map((e) => getComputedStyle(e).color))]);
+      // note-types audit 8: the menu reads down its columns (No type to Happy, then Neutral to Dislike), the chosen row tinted.
+      const boxes = {};
+      for (const id of ['none', 'question', 'emphasis', 'idea', 'happy', 'neutral', 'sad', 'like', 'dislike']) boxes[id] = await pg.locator(`[data-testid=note-type-item-${id}]`).boundingBox().catch(() => null);
+      const colA = ['none', 'question', 'emphasis', 'idea', 'happy'].map((i) => boxes[i]);
+      const colB = ['neutral', 'sad', 'like', 'dislike'].map((i) => boxes[i]);
+      const down = (col) => col.every((b, i) => b && (i === 0 || (Math.abs(b.x - col[0].x) < 2 && b.y > col[i - 1].y)));
+      const tint = await pg.evaluate(() => getComputedStyle(document.querySelector('[data-testid=note-type-item-none]')).backgroundColor);
+      check(down(colA) && down(colB) && colB[0].x > colA[0].x && Math.abs(colB[0].y - colA[0].y) < 2 && tint !== 'rgba(0, 0, 0, 0)',
+        `note-types audit 8: the Type menu reads down its columns and tints the chosen row (${JSON.stringify([colA.map((b) => b && Math.round(b.y)), colB.map((b) => b && Math.round(b.y)), tint])})`);
+      // note-types audit 9: on a small phone with the menu open, Save and Cancel stay reachable (the card scrolls).
+      const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 520 });
+      await pg.waitForTimeout(500);
+      const saveBox = await pg.locator('[data-testid=note-edit-save]').boundingBox();
+      const canReach = await pg.evaluate(() => { const el = document.querySelector('[data-testid=note-edit-save]'); el.scrollIntoView({ block: 'nearest' }); const r = el.getBoundingClientRect(); return r.bottom <= window.innerHeight && r.top >= 0; });
+      await pg.setViewportSize(vp);
+      await pg.waitForTimeout(400);
+      check(!!saveBox && canReach, `note-types audit 9: at 320 x 520 with the menu open, Save can be reached (${JSON.stringify(saveBox)}, reached ${canReach})`);
       await shot(pg, 'qol-06-note-type-menu');
       if (items) await pg.click('[data-testid=note-type-item-idea]');
       const rowAfter = (await row.count()) ? await row.innerText() : '';

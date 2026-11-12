@@ -1,5 +1,5 @@
 // @layer view
-import { type Faced, faced, facedAll, facedOf } from './moment';
+import { type Faced, faced, facedAll, facedOf, isFacePiece } from './moment';
 import {
   RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder,
 } from 'expo-audio';
@@ -627,10 +627,12 @@ export function useCaptures(
    * walk's other views (the walk screen, Navigate's live walk) show it too.
    * Its find and reminder hang on its id, so they stay.
    */
-  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string, type?: string | null) {
+  async function setNote(c: Pick<Faced, 'id' | 'piece_id' | 'pieces'>, body: string, type?: string | null) {
     const id = c.id;
     const change = notePatch(body, type);
     await db.updatePiece(c.piece_id, change);
+    // A note of a stacked moment shown at its own piece never lands on the moment's face (note-types audit 1).
+    if (!isFacePiece(c)) return;
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, change));
     captureBus.patch(walkId, id, change, self);
   }

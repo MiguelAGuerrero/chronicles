@@ -17,6 +17,7 @@ import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { notePatch } from '../../lib/noteEdit';
+import { isFacePiece } from '../../lib/moment';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
 import { buildDays, dayCaptures, dayCard, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
@@ -308,8 +309,8 @@ export default function DayReplay() {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
           const change = notePatch(body, type);
           await db.updatePiece(c.piece_id, change);
-          setData((d) => d && withNote(d, c.id, change));
-          captureBus.patch(c.walk_id, c.id, change, null);
+          if (isFacePiece(c)) setData((d) => d && withNote(d, c.id, change));
+          if (isFacePiece(c)) captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
 

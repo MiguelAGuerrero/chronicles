@@ -272,6 +272,9 @@ async function run(h) {
   const plain = await pg.locator(`${bubble('And a third')} [data-testid=note-type-mark]`).count();
   check((await typedMark.count()) === 1 && (await typedMark.first().getAttribute('aria-label')) === 'Question' && plain === 0,
     'NY17: a note\'s bubble in the thread shows its type\'s mark and spoken name, and a note with none shows nothing');
+  // note-types audit 3: the plain bubble's group already says the type, so the mark inside it is not said again.
+  const markHidden = await pg.locator(`${bubble('looked strong at the pier')} [data-testid=note-type-mark]`).first().evaluate((el) => !!el.closest('[aria-hidden=true]') || el.getAttribute('aria-hidden') === 'true').catch(() => false);
+  check(markHidden, 'note-types audit 3: a plain bubble says its type once: the mark inside the group is hidden from a screen reader');
   await shot(pg, '71-threads-note-type');
 
   // OT8: Remove from this thread keeps the moment.

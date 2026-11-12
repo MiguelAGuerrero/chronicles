@@ -74,3 +74,22 @@ UI review (decision 0145), three pictures read by the `ux-reviewer`:
 - **UI finding 2** (the Type row looks static): accepted, `note-types ui 1` (a chevron, up when open).
 - **UI finding 3** (the mark's name small and grey): accepted, `note-types ui 2` (ink, 14 px).
 - **UI finding 4** (the viewer's round buttons stay lit over the editor's scrim): deferred, recorded in `docs/DEFERRED.md`; every editor in the viewer does this, none is this slice's.
+
+## Audit (Nov 12, 2026)
+
+The auditor, the steward and the `ux-reviewer` ran on the built slice and its three pictures. 11 findings: 4 fixed, 3 deferred, 4 rejected.
+
+1. A note typed in a stacked moment patched the moment's face on screen (`applyPatch` by moment id; the auditor's F1): **accept**. Fixed: every note save skips the list and bus patch unless the note is shown at its face's piece (`isFacePiece`). Test: `note-types audit 1` (`captures/noteSave.test.ts`).
+2. No test of a pin's spoken name through `CapturePinView`, and the marker is rebuilt (focus lost) when a type changes (F2): **defer**. The label is unit-tested (`pinNoteLabel`, NY10); the e2e's pin is always a group. In `docs/DEFERRED.md`.
+3. A plain bubble says its type twice on the web (F3): **accept**. Fixed: `NoteMark quiet`, hidden from a screen reader inside a named group. Test: `note-types audit 3` (`threads` journey).
+4. An unknown stored value cannot be cleared by choosing "No type" (F4): **reject**. NY2: an unknown value reads as no type, so there is nothing shown to clear, and leaving a newer build's value alone is the safer way.
+5. A Sad or Dislike mark on a map pin reads as a verdict at a place (steward S1): **reject**, the owner's call (Nov 12, asked in the audit): every type marks its pin; the pin is the owner's own note on their own map, shown to no one and read by nothing about a place (Explore draws no `CapturePinView`). Recorded in decision 0149.
+6. The menu's order reads as a scale (S2): **reject**. The order is the owner's (0149); NY12 and NY13 forbid anything reading a position; column-major layout (audit 8) keeps Like apart from Sad.
+7. "Like" and "Dislike" are rating words (S3): **reject**, the owner's call (0149).
+8. The two-column menu scans row by row, and the chosen row has only a tick (`ux-reviewer` U5): **accept**. Fixed: five rows down the left, four down the right, the chosen row tinted. Test: `note-types audit 8` (`qol` journey).
+9. The editor card can push Save off a small screen or under the keyboard with the menu open (U6): **accept**. Fixed: the card scrolls within the room it has. Test: `note-types audit 9` (`qol` journey, 320 x 520).
+10. The mark's name small and grey on the card (U7): **reject**, already ink at 14 px (`note-types ui 2`); the pager sharing the meta row is the viewer's own.
+11. The thread bubbles' ⋯ buttons are small targets (U8): **defer**, not this slice's (the bubbles' More predates it). In `docs/DEFERRED.md`.
+
+Journeys run after the fixes: `qol` (twice, red then green), `threads` (twice), `responses` (once). Typecheck, lint and `npm test` pass. Native code is unverified.
+

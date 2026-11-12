@@ -12,6 +12,7 @@ import { Banner, Button, theme } from '../ui';
 import { useUnits } from '../../lib/useUnits';
 import { applyPatch, captureBus, LOOSE_MOMENTS } from '../../lib/captureBus';
 import { notePatch } from '../../lib/noteEdit';
+import { isFacePiece } from '../../lib/moment';
 import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
@@ -324,8 +325,8 @@ export function useReady(props: {
         onSaveNote={async (c, body, type) => {
           const change = notePatch(body, type);
           await ready.saveNote(c.piece_id, body, type);
-          setMoments((prev) => applyPatch(prev, c.id, change));
-          captureBus.patch(c.walk_id, c.id, change, null);
+          if (isFacePiece(c)) setMoments((prev) => applyPatch(prev, c.id, change));
+          if (isFacePiece(c)) captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
     </>

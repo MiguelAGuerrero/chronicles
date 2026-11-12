@@ -20,6 +20,7 @@ import type { Area, WalkArea } from '../../lib/areas/types';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { notePatch } from '../../lib/noteEdit';
+import { isFacePiece } from '../../lib/moment';
 import { captureEdits } from '../../lib/captureEdits';
 import { perfCount } from '../../lib/perfCount';
 import { buildDays } from '../../lib/days';
@@ -395,8 +396,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
           const change = notePatch(body, type);
           await db.updatePiece(c.piece_id, change);
-          setCaptures((prev) => applyPatch(prev, c.id, change));
-          captureBus.patch(c.walk_id, c.id, change, null);
+          if (isFacePiece(c)) setCaptures((prev) => applyPatch(prev, c.id, change));
+          if (isFacePiece(c)) captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
       <CaptureViewer
@@ -413,8 +414,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
           const change = notePatch(body, type);
           await db.updatePiece(c.piece_id, change);
-          setCaptures((prev) => applyPatch(prev, c.id, change));
-          captureBus.patch(c.walk_id, c.id, change, null);
+          if (isFacePiece(c)) setCaptures((prev) => applyPatch(prev, c.id, change));
+          if (isFacePiece(c)) captureBus.patch(c.walk_id, c.id, change, null);
         }}
       />
       <WalkActions

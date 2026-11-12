@@ -16,3 +16,7 @@ The owner's calls, Nov 12 (the gate argued once and the owner reaffirmed):
 - `specs/note-types` carries these as NY1-NY17.
 - The VISION.md edit this implies is the owner's to make: under Never "A feed, followers, likes, public profiles", the nearest-fit column could add "a mark on your own note, shown to no one (0149)". Not made by an agent.
 - A thumb on a note must never become a signal about a place; any feature that reads types (search, lenses, recall) goes through the gate again.
+
+## Addendum, Nov 12 (the audit)
+The steward asked whether a Sad or Dislike mark on a single note's map pin amounts to a verdict at a place. The owner's call: **keep**, every type marks its pin (NY10). The pin is the owner's own moment on their own map, shown to no one and read by nothing about a place; Explore draws none of these pins. "Never applied to a place" means no feature reads a type to say something about a place, a route or a recommendation.
+

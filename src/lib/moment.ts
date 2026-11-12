@@ -13,6 +13,11 @@ export function face(m: Pick<Moment, 'pieces'>): Capture {
   return m.pieces.find((p) => p.kind === 'photo' || p.kind === 'video') ?? m.pieces[0];
 }
 
+/** Whether a faced moment is shown at its face's piece: only then is it the row, the pin or the card of the moment (note-types audit 1). */
+export function isFacePiece(f: Pick<Faced, 'piece_id' | 'pieces'>): boolean {
+  return f.pieces.length === 0 || f.piece_id === face(f).id;
+}
+
 /**
  * What a row, a pin or a card shows of a moment: the moment's own fields (its id, walk, time and place) with its
  * face's media, the face's own id as `piece_id` (a media write names it), and every piece.

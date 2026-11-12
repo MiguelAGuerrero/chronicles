@@ -1,5 +1,5 @@
 // @layer shell
-import { type Faced, facedAll } from '../moment';
+import { type Faced, facedAll, isFacePiece } from '../moment';
 import { captureBus, type CapturePatch } from '../captureBus';
 import { createStore, type Store } from '../store';
 import type { Ports } from '../ports/types';
@@ -256,6 +256,8 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     async saveNote(c: Faced, body: string, type?: string | null): Promise<void> {
       const change = notePatch(body, type);
       await p.db.updatePiece(c.piece_id, change);
+      // A note of a stacked moment shown at its own piece never lands on the moment's face (note-types audit 1).
+      if (!isFacePiece(c)) return;
       captureBus.patch(c.walk_id, c.id, change, null);
       this.patch(c.id, change);
     },

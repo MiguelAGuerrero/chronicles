@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { type Faced, facedAll, facedOf, momentOf } from '../../moment';
+import { type Faced, facedAll, facedAt, facedOf, isFacePiece, momentOf } from '../../moment';
 import { createReady } from '../../ready/shell';
 import { createResurface } from '../../resurface/shell';
 import type { Walk } from '../../types';
@@ -55,4 +55,29 @@ test('NY7: the ready screen\'s note save writes the type with the text', async (
   const s = (await p.db.getMomentsByIds(['n1']).then(facedAll))[0];
   assert.equal(s.body, 'new');
   assert.equal(s.note_type, 'emphasis');
+});
+
+test('note-types audit 1: a note typed in a stacked moment changes its own piece and never the moment\'s face on screen', async () => {
+  const p = fakePorts({ now: 3_000_000 });
+  await p.db.createWalk(walk);
+  await p.db.addMoment({
+    id: 'm1', walk_id: 'w1', t: 1_500_000, lat: null, lon: null, segment_id: null,
+    pieces: [
+      { id: 'm1', moment_id: 'm1', t: 1_500_000, kind: 'photo', file_path: 'walks/w1/m1.jpg', body: null },
+      { id: 'b', moment_id: 'm1', t: 1_500_100, kind: 'text', file_path: null, body: 'second' },
+    ],
+  });
+  const r = createResurface(p);
+  await r.load();
+  const c = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
+  assert.equal(c.kind, 'photo', 'the face is the photo');
+  await r.saveNote(facedAt(c, 'b'), 'second, edited', 'idea');
+  const [stored] = await p.db.getMomentsByIds(['m1']);
+  assert.equal(stored.pieces.find((x) => x.id === 'b')!.note_type, 'idea', 'the note piece is typed');
+  assert.equal(stored.pieces.find((x) => x.id === 'm1')!.note_type ?? null, null, 'the photo is not');
+  const shown = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
+  assert.equal(shown.note_type ?? null, null, 'the face on screen takes no type');
+  assert.equal(shown.body, null, 'nor the note\'s words');
+  assert.equal(isFacePiece(facedAt(c, 'b')), false);
+  assert.equal(isFacePiece(c), true);
 });

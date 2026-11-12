@@ -612,3 +612,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [owner] **Note types** (0149): a type chosen while writing in the capture band, the stack's note, the walk's note and Respond (capture stays one tap, so these make a note with no type and Edit sets one); searching, lensing or threading notes by type, and a type on a photo, video or memo. Any feature that reads types goes through the vision gate again.
 - [loop] **Note types** (0149): the responses sheet's entries (RT10: no mark in the sheet) and the replay's note bubbles carry no mark; the neutral mark is a dash in a circle because Ionicons has no neutral face.
 - [loop] **Note types** (0149, UI review, finding 4): the viewer's More and Close buttons stay lit above the note editor's scrim, as they do over every editor inside the viewer; a scrim over them would be a viewer change, not this slice's.
+- [loop] **Note types** (0149, audit 2): a pin's marker is rebuilt, and web focus lost, when its note's type changes (the key includes the mark); the reminder bell keeps the element. No test reaches a single-note pin in the e2e (the replay's is always a group).
+- [loop] **Note types** (0149, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
+
