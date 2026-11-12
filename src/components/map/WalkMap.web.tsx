@@ -226,6 +226,8 @@ function addCreditsStyle() {
   style.textContent =
     `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-button::after{content:'';position:absolute;inset:-10px}` +
     `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-inner{overflow-wrap:break-word}` +
+    // maplibre's blue glow shows on a tap too; the app's own ring (webStyles) stays for the keyboard (tend map audit 3).
+    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-button:focus:not(:focus-visible){box-shadow:none}` +
     `${corner}{margin:0 0 var(--credits-bottom) var(--credits-left)}` +
     `${corner}.maplibregl-compact-show{margin-left:var(--credits-open-left);max-width:var(--credits-open-max);padding:2px 8px 28px 8px}` +
     `${corner}.maplibregl-compact-show .maplibregl-ctrl-attrib-button{top:auto;bottom:0;left:var(--credits-button)}`;

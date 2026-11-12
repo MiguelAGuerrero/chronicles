@@ -57,6 +57,8 @@ function creditsChecks({ check, shot }) {
     return {
       lines,
       broken,
+      // The (i) wears the app's ring only from the keyboard; a tap leaves no glow (tend map audit 3).
+      glow: b ? getComputedStyle(b).boxShadow : null,
       // Nothing of the credits is cut: no line runs wider than the box (tend map 3, at 320 px).
       whole: !inner || inner.scrollWidth <= inner.clientWidth + 1,
       compact: el.classList.contains('maplibregl-compact'),
@@ -89,6 +91,7 @@ function creditsChecks({ check, shot }) {
     const placed = (q) => (q && q.map ? `${Math.round(q.map.dx)},${Math.round(q.map.dy)}` : 'none');
     check(b && a.map && b.map && Math.abs(b.map.dx - a.map.dx) < 1.5 && Math.abs(b.map.dy - a.map.dy) < 1.5,
       `tend map audit 2: on ${where}, the (i) stays where it was tapped in the map as the credits open (from the map's bottom left: ${placed(a)} → ${placed(b)})`);
+    check(b && (!b.glow || b.glow === 'none'), `tend map audit 3: on ${where}, a tap leaves the (i) with no focus glow (${b && b.glow})`);
     if (shotName) await shot(page, shotName);
     // A second tap where the first one was, in the map, closes them again.
     if (b) await page.mouse.click(b.map ? b.map.left + a.map.dx : a.x, b.map ? b.map.bottom - a.map.dy : a.y);
