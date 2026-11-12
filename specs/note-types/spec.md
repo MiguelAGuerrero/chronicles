@@ -26,7 +26,7 @@ Open: (1) Is "Important" the right name for the second type, given "every moment
 
 ## Acceptance criteria
 
-The set (`NOTE_TYPES`, in `src/lib/noteType.ts`), in this fixed order, which the menu keeps after "No type": `question` "Question", `important` "Important", `idea` "Idea", `joy` "Joyful", `low` "Low". Glyphs: help-circle, alert-circle, bulb, happy, and for the low a plain downward arrow (`arrow-down-circle-outline`), not a mirror of joy's face (steward S1).
+The set (`NOTE_TYPES`, in `src/lib/noteType.ts`), in this fixed order, which the menu keeps after "No type": `question` "Question", `important` "Important", `idea` "Idea", `joy` "Joyful", `low` "Low". Glyphs: help-circle, alert-circle, bulb, happy, and for the low a plain downward arrow (`arrow-down-circle-outline`), not a mirror of joy's face (steward finding 1).
 
 1. **NY1** The set is five types, each with a glyph and a spoken name, and one of them is a low, and the low is not last by accident: the order is fixed as above and the low's glyph is not the mirror of joy's; no type is named or ordered as better than another.
 2. **NY2** A stored value outside the set (a newer build's, a bad row) reads as no type, never an error or a blank glyph.
@@ -47,9 +47,9 @@ The set (`NOTE_TYPES`, in `src/lib/noteType.ts`), in this fixed order, which the
 
 ## Steward triage (Nov 12)
 
-- **S1** accepted in part: the low is a downward arrow, not a sad face. Rejected in part: "no glyph is a face". The owner asked for a happy emoji, so joy stays a face; for the owner to overrule (Open).
-- **S2** accepted: fixed order, single ink colour asserted (NY1, NY11).
-- **S3** "Important" as a name: for the owner (Open).
+- **Finding 1** accepted in part: the low is a downward arrow, not a sad face. Rejected in part: "no glyph is a face". The owner asked for a happy emoji, so joy stays a face; for the owner to overrule (Open).
+- **Finding 2** accepted: fixed order, single ink colour asserted (NY1, NY11).
+- **Finding 3** "Important" as a name: for the owner (Open).
 - **Callers undercounted** accepted: twelve call sites, listed in the plan; NY16.
 - **Pin data** accepted: only a pin of exactly one capture that is a note wears a type; a pin of several keeps its kind glyph and count (NY10).
 - **NY12's grep test** accepted: the test asserts the public API, no function taking types and returning a count or filter, with a scan only as a backstop that lists no files.
