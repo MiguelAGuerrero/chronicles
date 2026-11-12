@@ -65,3 +65,9 @@ test('tend tabs audit 18: a later bar photo that fails to save ends the offer, s
   assert.equal(barOfferAfter(barOffer(photo), null), null);
   assert.equal(barOfferAfter(null, null), null);
 });
+
+test('tend tabs audit 19: while the walk is stopping from the bar the pill is not shown, so no edit starts that the stop would lose', () => {
+  const o = barOffer(photo);
+  assert.equal(barOfferShown(o, ['p1'], new Set(), true), false);
+  assert.equal(barOfferShown(o, ['p1'], new Set(), false), true);
+});

@@ -78,7 +78,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // Its photo deleted elsewhere (Memories, a day) ends it, Undo waiting or not (tend tabs audit 15).
   const hidden = useHidden();
   useEffect(() => deletions.subscribe(() => setOffer((o) => barOfferAfterHidden(o, deletions.hidden()))), []);
-  const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden);
+  // Held to stop, the walk is going: the pill goes first (tend tabs audit 19).
+  const [stopping, setStopping] = useState(false);
+  const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
   const offerWords = offer ? barOfferWords(offer.kind) : null;
   // Announced politely, without moving focus, as Undo is: iOS reads no live regions (decision 0113).
   const spoken = offerUp ? offerWords?.spoken : undefined;
@@ -142,7 +144,6 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     setOffer(barOffer(kept));
   };
 
-  const [stopping, setStopping] = useState(false);
   const stop = async () => {
     if (stopping) return;
     setStopping(true);
