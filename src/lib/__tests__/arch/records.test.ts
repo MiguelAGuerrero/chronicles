@@ -314,6 +314,7 @@ test('records: deferred and native items are added, removed, tagged, noted, set,
   assert.ok(split.includes('- [loop] Go here: Cancel pressed while the read returns.\n- [loop] A Go here tapped while a re-route runs is dropped.\n- [owner] Since then: still dropped.\n- [owner] The route'));
   assert.throws(() => records.apply('deferred', 'item split', DEFERRED, { match: 'A Go here tapped', body: '- [loop] A Go here tapped is dropped.\n- [owner] Since then.' }), /missing: while, re, route, runs, still/);
   assert.throws(() => records.apply('deferred', 'item split', DEFERRED, { match: 'A Go here tapped', body: '- one bullet only with every word: A Go here tapped while a re-route runs is dropped. Since then: still dropped.' }), /two bullets/);
+  assert.throws(() => records.apply('deferred', 'item split', DEFERRED, { match: 'A Go here tapped', body: '- [loop] A Go here tapped while a re-route runs is dropped.\n- [owner] Since then: still dropped, and now fixed.' }), /adds words: and, now, fixed/, 'a split is not a rewrite: it adds no word');
   const gone = records.apply('deferred', 'item remove', DEFERRED, { match: 'A Go here tapped' }).text;
   assert.ok(!gone.includes('Since then'), 'a bullet goes with its sub-bullets');
   assert.throws(() => records.apply('deferred', 'item remove', DEFERRED, { match: 'Go here' }), /in 2 items/);
