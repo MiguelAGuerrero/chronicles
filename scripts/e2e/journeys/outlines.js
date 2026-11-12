@@ -100,6 +100,34 @@ async function run(h) {
     check(span(after.pageView) < 6, `fix explore-fit-area: the town's page is framed on the town, not far wider (${span(after.pageView).toFixed(1)}x its width)`);
     check(span(after.reopened) < span(after.pageView) * 1.2,
       `fix explore-fit-area audit 3: opened again, the page is framed on the town as the first time, not on its reach (${span(after.reopened).toFixed(1)}x, first ${span(after.pageView).toFixed(1)}x)`);
+    // Neighborhood boundaries (HB9, HB10, HB14): a selected neighborhood's own ground is drawn as a line, in place of
+    // the ring, and gone when the selection is cleared; its card carries no tally.
+    divisions.serve = true;
+    const ground = await (async () => {
+      const { c, pg } = await freshPage('outlines-ground');
+      await pg.goto(exploreUrl);
+      const hood = '[data-testid=atlas-tile][data-level="neighborhood"]';
+      await pg.waitForSelector(hood, { timeout: 45000 }).catch(() => {});
+      await pg.locator(hood).first().click().catch(() => {});
+      await pg.waitForTimeout(2500);
+      const read = async () => ({
+        ground: (await pg.locator('[data-ground]').first().getAttribute('data-ground').catch(() => null)) ?? '',
+        ring: (await pg.locator('[data-ring]').first().getAttribute('data-ring').catch(() => null)) ?? '',
+      });
+      const selected = await read();
+      const card = await pg.locator(hood + '[data-selected="1"]').first().innerText().catch(() => '');
+      await shot(pg, 'outlines-ground');
+      await pg.click('[data-testid=atlas-back-pill]').catch(() => {});
+      await pg.waitForTimeout(1500);
+      const cleared = await read();
+      await c.close();
+      return { selected, cleared, card };
+    })();
+    divisions.serve = false;
+    check.todo(/^\d+$/.test(ground.selected.ground) && Number(ground.selected.ground) > 0 && ground.selected.ring === '',
+      `HB9: a selected neighborhood draws its own ground as a line, not the ring (ground ${ground.selected.ground}, ring ${ground.selected.ring})`);
+    check.todo(ground.cleared.ground === '', `HB14: the ground is gone when the selection is cleared (${ground.cleared.ground})`);
+    check.todo(!/\d+\s*(%|of\b)/.test(ground.card), `HB10: the neighborhood's card carries no tally or share (${ground.card.replace(/\s+/g, ' ').slice(0, 100)})`);
     const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
     check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
 }

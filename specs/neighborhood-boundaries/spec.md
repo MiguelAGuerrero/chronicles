@@ -12,9 +12,11 @@ A neighborhood today is a named point with a reach. Explore draws it as a fixed 
 - **The same shape draws and places** (Nov 12). One rule decides which neighborhood a point belongs to, and Explore's ring, the Chronicle map's stars, the walk's title and a walk's areas all follow it. Placement is cache: `AREA_RULES` is bumped and every walk is placed again.
 - **Where a city has no usable polygon, a nearest-point share** (Nov 12). The ground no polygon holds goes to the nearest neighborhood point, so two neighborhoods never claim the same ground.
 
+- **The open calls, on the defaults** (the owner, Nov 12, "proceed with your defaults"): a polygon named for an association is not a neighborhood (HB1); a point-only neighborhood inside another's polygon is dropped, the polygon's owner standing (HB6); polygon cutting is our own routine, never a new package (plan). An audit follows the build (decision 0074).
+
 ## What the measurement found (Overture release 2026-10-21.0, divisions tiles at z12)
 
-- Baltimore: about 50 `neighborhood` areas on land (Mount Vernon, Federal Hill, Canton, Little Italy, Seton Hill, Downtown West, Inner Harbor...), real shapes, not community-board districts; 4 `macrohood` areas (Downtown, South Baltimore, Highlandtown, Belair-Edison) that lie over the neighborhoods inside them; about 10 `microhood` areas that are plazas and squares (McKeldin Plaza, Broadway Square). No Chinatown.
+- Baltimore: about 50 `neighborhood` areas on land (Mount Vernon, Federal Hill, Canton, Little Italy, Seton Hill, Downtown West, Inner Harbor...), real shapes, not community-board districts, that almost never overlap (the fixture's one overlap is a sliver of Inner Harbor and Otterbein); 4 `macrohood` areas (Downtown, South Baltimore, Highlandtown, Belair-Edison) that, in the fixture, sit beside the neighborhoods rather than over them; no city outline (Baltimore is a county and a label point), so its town is decided by point; about 10 `microhood` areas that are plazas and squares (McKeldin Plaza, Broadway Square). No Chinatown.
 - Coverage varies by town: Allentown PA 31 neighborhoods, Providence RI 10, Hoboken NJ 3, Phillipsburg NJ 2. A town with few polygons is the common case, so the fallback is half of the slice.
 - Some "neighborhoods" are a homeowners association ("McHenry Pointe Homeowners Association", "Silo Point Community Association").
 
@@ -26,21 +28,21 @@ Touches: Never, "Scores, streaks, completion, coverage" and "Badges for neighbou
 Verdict: aligned if reshaped
 Shape: A neighborhood's boundary is a line around its own ground, drawn for the one you selected, never a fill by progress, and never for all neighborhoods at once. It names no count, share or score. Where a town has no polygon the line is the edge of the neighborhood's nearest-point share.
 Criteria: HB1-HB16.
-Open: HB6 (a point-only neighborhood inside another's polygon) and HB1's association names are the owner's to settle at the plan.
+Open: none; HB1's association names and HB6 were settled by the owner on Nov 12.
 
 ## Criteria
 
 ### What is read
 
-1. **HB1 Neighborhood polygons are read.** From the divisions tiles read for town outlines, a `division_area` of subtype `neighborhood` or `macrohood` on land with a name is a neighborhood polygon; a `microhood`, a maritime area and an unnamed one are not. Counties and localities are not neighborhoods, as before. Tiles stored before this decoder are read again. *Open (the owner's, steward S5):* a polygon whose name is an association ("... Homeowners Association", "... Community Association") is (a) not a neighborhood, so the walker's own words stand, or (b) one, under Overture's name, recorded as the owner's call.
-2. **HB2 Never two owners.** A point inside one or more neighborhood polygons belongs to the smallest by area, ties to the nearer representative point. Two neighborhoods never claim one point: of Baltimore's "Downtown" macrohood and the "Downtown West" neighborhood inside it, a point in both is Downtown West, a point only in the macrohood is Downtown. A macrohood's ground, as drawn and as counted (HB9, HB11), excludes every neighborhood polygon inside it: "Downtown"'s card never counts what belongs to "Downtown West" (steward S2).
+1. **HB1 Neighborhood polygons are read.** From the divisions tiles read for town outlines, a `division_area` of subtype `neighborhood` or `macrohood` on land with a name is a neighborhood polygon; a `microhood`, a maritime area and an unnamed one are not. Counties and localities are not neighborhoods, as before. Tiles stored before this decoder are read again. A polygon whose name ends in "Association" ("... Homeowners Association", "... Community Association") is not a neighborhood (the owner's call, Nov 12): the walker's own words stand.
+2. **HB2 Never two owners.** A point inside one or more neighborhood polygons belongs to the smallest by area, ties to the nearer representative point. Two neighborhoods never claim one point: where one shape lies inside another (a macrohood over a neighborhood), or two shapes overlap in a sliver (Baltimore's Inner Harbor and Otterbein do), the smaller owns the point; a point only in the macrohood (most of Baltimore's "Downtown") is the macrohood's. A macrohood's ground, as drawn and as counted (HB9, HB11), excludes every neighborhood polygon inside it: "Downtown"'s card never counts what belongs to "Downtown West" (steward S2).
 3. **HB3 Inside the town, as before.** A polygon counts only for a point whose town is decided and holds the polygon's representative point (TO6). A point in no town takes no neighborhood by polygon.
 
 ### The ground no polygon holds
 
 4. **HB4 The nearest point takes the rest.** Where the polygons were read at a point and none holds it, the nearest neighborhood point within 1 km, inside the town, takes it, as today. A neighborhood that has a polygon never takes a point outside its polygon by its point.
 5. **HB5 One neighborhood, one candidate.** A polygon and a map-tile place point of the same name, the point inside the polygon, are one neighborhood at the point (as TO4 joins a town's outline to its label); its area key is unchanged (`level`, name, parent), so a walk already placed in "Mount Vernon" is still in "Mount Vernon". A polygon with no tile point is a neighborhood of its own at its representative point.
-6. **HB6 A point-only neighborhood inside a polygon.** *Open (the owner's).* A tile place point whose own point lies inside another neighborhood's polygon (Chinatown inside Mount Vernon's or Downtown's) takes: (a) nothing and is dropped from the town's neighborhoods, the polygon's owner standing; or (b) a share of at most 200 m around its point, cut out of the polygon's.
+6. **HB6 A point-only neighborhood inside a polygon is dropped.** A tile place point with no polygon of its own whose point lies inside another neighborhood's polygon (Chinatown inside Mount Vernon's or Downtown's) is not a neighborhood where the polygons were read: the polygon's owner stands, and no share is cut for it (the owner's call, Nov 12; steward S6).
 
 ### Placing
 

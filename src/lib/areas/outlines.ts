@@ -2,7 +2,7 @@
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { AREA_REACH_M } from './rules';
-import type { PlaceCandidate, TownOutline } from './types';
+import type { HoodOutline, PlaceCandidate, TownOutline } from './types';
 
 /*
  * Town outlines (TO1-TO6), the pure part: which town's border a point is
@@ -25,6 +25,11 @@ export interface OutlinePiece {
   polygons: LngLat[][][];
 }
 
+/** One neighborhood's piece of shape in one tile, as a source hands it over (HB1). */
+export interface HoodPiece extends OutlinePiece {
+  subtype: 'neighborhood' | 'macrohood';
+}
+
 /** Cache (TO12, TB7): what one tile held, so it is never read twice. Keyed `z/x/y`. */
 export interface OutlineTile {
   key: string;
@@ -38,6 +43,8 @@ export interface OutlineTile {
   pieces: OutlinePiece[];
   /** The source's own points for towns, by the id their pieces carry. */
   points: { id: string; at: LngLat }[];
+  /** Neighborhood shapes in the tile (HB1); a tile stored before the decoder that read them has none. */
+  hoods?: HoodPiece[];
   /** Fresh from the decoder only, never stored: ids of the localities it found nested in another (wards), for the reader to remember. */
   nested?: string[];
 }
@@ -62,6 +69,8 @@ export const withoutNested = (tiles: OutlineTile[], ids: ReadonlySet<string>): O
 export interface OutlineSet {
   tiles: ReadonlySet<string>;
   towns: TownOutline[];
+  /** The neighborhood shapes in those tiles, merged by id (HB1). */
+  hoods?: HoodOutline[];
 }
 
 export const outlineTileKey = (x: number, y: number, z: number = OUTLINE_ZOOM) => `${z}/${x}/${y}`;
