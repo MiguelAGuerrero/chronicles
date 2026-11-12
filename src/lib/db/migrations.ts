@@ -249,4 +249,8 @@ export const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX complex_box ON complex (south, north);
   `,
+  // Note types (NY4, decision 0149): a note's type, chosen by the owner, raw; null for none and for every note kept before.
+  `
+  ALTER TABLE capture ADD COLUMN note_type TEXT;
+  `,
 ];

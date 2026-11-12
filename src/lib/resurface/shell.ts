@@ -8,6 +8,7 @@ import { DEFAULT_EXTRACTORS, signalsOf } from './extractors';
 import { pausedMs } from '../geo';
 import { complexAt, COMPLEX_NEAR_DEG } from '../complexes/place';
 import { arrivalLine, previousCapture, streetAt } from './context';
+import { notePatch } from '../noteEdit';
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { openWalkViews, toMomentViews, wordsOf } from './views';
@@ -252,10 +253,11 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
-    async saveNote(c: Faced, body: string, _type?: string | null): Promise<void> {
-      await p.db.updatePiece(c.piece_id, { body });
-      captureBus.patch(c.walk_id, c.id, { body }, null);
-      this.patch(c.id, { body });
+    async saveNote(c: Faced, body: string, type?: string | null): Promise<void> {
+      const change = notePatch(body, type);
+      await p.db.updatePiece(c.piece_id, change);
+      captureBus.patch(c.walk_id, c.id, change, null);
+      this.patch(c.id, change);
     },
     /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
     async undo(change: PrefsChange): Promise<void> {

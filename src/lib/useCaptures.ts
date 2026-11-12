@@ -19,6 +19,7 @@ import { makeThumb } from './media/thumb';
 import { isOutOfSpace, saveFailLine } from './space/core';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
+import { notePatch } from './noteEdit';
 import { stampFor } from './pieceStamp';
 import type { CaptureKind, LngLat, Moment } from './types';
 
@@ -626,11 +627,12 @@ export function useCaptures(
    * walk's other views (the walk screen, Navigate's live walk) show it too.
    * Its find and reminder hang on its id, so they stay.
    */
-  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string) {
+  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string, type?: string | null) {
     const id = c.id;
-    await db.updatePiece(c.piece_id, { body });
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, { body }));
-    captureBus.patch(walkId, id, { body }, self);
+    const change = notePatch(body, type);
+    await db.updatePiece(c.piece_id, change);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, change));
+    captureBus.patch(walkId, id, change, self);
   }
 
   /** With `into`, the note joins that open moment as a piece (MS2, MS3). */

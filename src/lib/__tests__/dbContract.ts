@@ -216,7 +216,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(parseEdit((flats(await db.getMoments('a')))[0].edit), null);
     });
 
-    test('NY4: a note keeps its type: set, changed, cleared; one kept before reads as no type', { todo: 'test first' }, async () => {
+    test('NY4: a note keeps its type: set, changed, cleared; one kept before reads as no type', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('n1', 'a', 1)));
       assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null, 'a note kept before has none');
@@ -230,13 +230,13 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null);
     });
 
-    test('NY4: a note added with a type is read back with it', { todo: 'test first' }, async () => {
+    test('NY4: a note added with a type is read back with it', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('n1', 'a', 1, { note_type: 'idea' })));
       assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'idea');
     });
 
-    test('NY5: the type belongs to its piece: two notes of one moment hold different types', { todo: 'test first' }, async () => {
+    test('NY5: the type belongs to its piece: two notes of one moment hold different types', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('m1', 'a', 1)));
       await db.addPiece('m1', { id: 'p2', moment_id: 'm1', t: 2, kind: 'text', file_path: null, body: 'second', note_type: 'happy' });

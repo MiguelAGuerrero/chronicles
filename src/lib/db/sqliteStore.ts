@@ -55,7 +55,7 @@ const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
 
 const WALK_COLUMNS = ['started_at', 'ended_at', 'title', 'epilogue', 'open', 'area', 'snapped_build'] as const;
 const MOMENT_COLUMNS = ['walk_id', 'lat', 'lon', 'segment_id'] as const;
-const PIECE_COLUMNS = ['t', 'kind', 'file_path', 'body', 'caption', 'caption_y', 'thumb_path', 'edit'] as const;
+const PIECE_COLUMNS = ['t', 'kind', 'file_path', 'body', 'caption', 'caption_y', 'thumb_path', 'edit', 'note_type'] as const;
 
 /**
  * Moments joined to their pieces, one statement per read (MT7): the piece's columns are prefixed `p_` and
@@ -63,7 +63,7 @@ const PIECE_COLUMNS = ['t', 'kind', 'file_path', 'body', 'caption', 'caption_y',
  */
 const MOMENT_SELECT =
   'SELECT m.id, m.walk_id, m.t, m.lat, m.lon, m.segment_id, c.id AS p_id, c.t AS p_t, c.kind AS p_kind, c.file_path AS p_file_path, ' +
-  'c.body AS p_body, c.caption AS p_caption, c.caption_y AS p_caption_y, c.thumb_path AS p_thumb_path, c.edit AS p_edit ' +
+  'c.body AS p_body, c.caption AS p_caption, c.caption_y AS p_caption_y, c.thumb_path AS p_thumb_path, c.edit AS p_edit, c.note_type AS p_note_type ' +
   'FROM moment m JOIN capture c ON c.moment_id = m.id';
 const ORDER = ' ORDER BY m.t, m.id, c.t';
 
@@ -162,8 +162,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         );
         for (const c of m.pieces) {
           await t.runAsync(
-            'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            c.id, m.id, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit),
+            'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit, note_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            c.id, m.id, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit), c.note_type ?? null,
           );
         }
       });
@@ -182,8 +182,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return write(async (t) => {
         if (!(await t.getFirstAsync('SELECT 1 FROM moment WHERE id = ?', momentId))) throw new Error(`No moment ${momentId}.`);
         await t.runAsync(
-          'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          c.id, momentId, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit),
+          'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit, note_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          c.id, momentId, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit), c.note_type ?? null,
         );
       });
     },

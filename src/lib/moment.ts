@@ -40,7 +40,7 @@ export function momentOf(c: Flat & { piece_id?: string; pieces?: Capture[] }): M
 export const facedOf = (c: Flat): Faced => faced(momentOf(c));
 
 /** The piece columns of a joined row are prefixed `p_` (the SQLite store's one statement per read, MT7). */
-export type PieceRow = { p_id: string; p_t: number; p_kind: Capture['kind']; p_file_path: string | null; p_body: string | null; p_caption?: string | null; p_caption_y?: number | null; p_thumb_path?: string | null; p_edit?: unknown };
+export type PieceRow = { p_id: string; p_t: number; p_kind: Capture['kind']; p_file_path: string | null; p_body: string | null; p_caption?: string | null; p_caption_y?: number | null; p_thumb_path?: string | null; p_edit?: unknown; p_note_type?: string | null };
 export type JoinedRow = Omit<Moment, 'pieces'> & PieceRow;
 
 /**
@@ -62,6 +62,7 @@ export function foldRows(rows: JoinedRow[]): Moment[] {
     if (r.p_caption_y != null) piece.caption_y = r.p_caption_y;
     if (r.p_thumb_path != null) piece.thumb_path = r.p_thumb_path;
     if (r.p_edit != null) piece.edit = parseEdit(r.p_edit);
+    if (r.p_note_type != null) piece.note_type = r.p_note_type;
     m.pieces.push(piece);
   }
   for (const m of out.values()) m.pieces.sort((a, b) => a.t - b.t);
@@ -130,7 +131,7 @@ export function facedAt(f: Faced, pieceId: string): Faced {
   if (!p) return f;
   return {
     ...f, piece_id: p.id, kind: p.kind, file_path: p.file_path, body: p.body,
-    caption: p.caption ?? null, caption_y: p.caption_y ?? null, thumb_path: p.thumb_path ?? null, edit: p.edit ?? null,
+    caption: p.caption ?? null, caption_y: p.caption_y ?? null, thumb_path: p.thumb_path ?? null, edit: p.edit ?? null, note_type: p.note_type ?? null,
   };
 }
 

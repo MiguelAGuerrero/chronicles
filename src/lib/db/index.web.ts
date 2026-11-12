@@ -20,7 +20,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 19;
+const VERSION = 20;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -158,6 +158,10 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
   if (oldVersion < 19 && upTo >= 19) {
     // Complexes (CX14, specs/complexes): derived rows, one per named building made of other places; cleared with the derived stores.
     d.createObjectStore('complex', { keyPath: 'id' });
+  }
+  if (oldVersion < 20 && upTo >= 20) {
+    // Note types (NY4, decision 0149): a piece's `note_type` lives inside its moment's record, so there is nothing to move;
+    // the version marks the first build that writes it, and a note kept before reads as no type.
   }
 }
 

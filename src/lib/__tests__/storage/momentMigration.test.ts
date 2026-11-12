@@ -65,7 +65,7 @@ test('MT1: a version-17 IndexedDB upgrades to one-piece moments under the same i
   assert.deepEqual(await db.getMoments('w1'), [asMoment(OLD_CAPTURES[0]), asMoment(OLD_CAPTURES[1])]);
   assert.deepEqual(await db.momentsBetween(0, 100), OLD_CAPTURES.map(asMoment));
   const d = await req(indexedDB.open('chronicles'));
-  assert.equal(d.version, 19);
+  assert.equal(d.version, 20);
   assert.ok(!d.objectStoreNames.contains('capture'), 'the capture store is folded into the moment store');
   d.close();
 });

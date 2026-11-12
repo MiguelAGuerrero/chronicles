@@ -21,7 +21,7 @@ async function seeded(extra: Partial<Faced> = {}) {
 }
 const stored = async (p: Awaited<ReturnType<typeof seeded>>['p']) => (await p.db.getMomentsByIds(['n1']).then(facedAll))[0];
 
-test('NY7: saving an edited note stores its text and its type together, and shows both at once', { todo: 'test first' }, async () => {
+test('NY7: saving an edited note stores its text and its type together, and shows both at once', async () => {
   const { p, r, c } = await seeded();
   await r.saveNote(c, 'second thought', 'idea');
   const s = await stored(p);
@@ -30,7 +30,7 @@ test('NY7: saving an edited note stores its text and its type together, and show
   assert.equal(r.store.get().moments.find((m) => m.id === 'n1')!.capture.note_type, 'idea');
 });
 
-test('NY7: a failed save leaves the text and the type as they were', { todo: 'test first' }, async () => {
+test('NY7: a failed save leaves the text and the type as they were', async () => {
   const { p, r, c } = await seeded({ note_type: 'question' });
   p.db.failNext('updatePiece');
   await assert.rejects(r.saveNote(c, 'lost', 'sad'));
@@ -39,7 +39,7 @@ test('NY7: a failed save leaves the text and the type as they were', { todo: 'te
   assert.equal(s.note_type, 'question');
 });
 
-test('NY8: saving with the type left alone keeps it, and "No type" (null) clears it', { todo: 'test first' }, async () => {
+test('NY8: saving with the type left alone keeps it, and "No type" (null) clears it', async () => {
   const { p, r, c } = await seeded({ note_type: 'like' });
   await r.saveNote(c, 'edited words');
   assert.equal((await stored(p)).note_type, 'like');
@@ -47,7 +47,7 @@ test('NY8: saving with the type left alone keeps it, and "No type" (null) clears
   assert.equal((await stored(p)).note_type ?? null, null);
 });
 
-test('NY7: the ready screen\'s note save writes the type with the text', { todo: 'test first' }, async () => {
+test('NY7: the ready screen\'s note save writes the type with the text', async () => {
   const p = fakePorts({ now: 3_000_000 });
   await p.db.createWalk(walk);
   await p.db.addMoment(momentOf(note('n1')));
