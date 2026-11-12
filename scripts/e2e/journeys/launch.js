@@ -160,7 +160,7 @@ async function fresh(h) {
       const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^Paused · \d+:\d\d · \d+ m$/.test(await barText())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+ m · Paused$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
         `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
       // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
@@ -202,7 +202,18 @@ async function fresh(h) {
             oneLine: tr.height - parseFloat(getComputedStyle(t).paddingTop) - parseFloat(getComputedStyle(t).paddingBottom)
               <= parseFloat(getComputedStyle(t).fontSize) * 1.6 && t.scrollWidth <= Math.ceil(tr.width) + 1,
             room: Math.round(window.innerWidth - r.width),
-            whole: !/…/.test(t.textContent),
+            // tend tabs audit 17: the pill's words and the line's time and distance are drawn whole, measured, not read.
+            whole: t.scrollWidth <= t.clientWidth + 1,
+            numbers: (() => {
+              const s = q('[data-testid=recording-stats]');
+              const n = s?.firstChild;
+              const cut = n?.textContent?.indexOf(' · Paused') ?? -1;
+              if (!s || !n || n.nodeType !== 3 || cut < 1) return false;
+              const range = document.createRange();
+              range.setStart(n, 0);
+              range.setEnd(n, cut);
+              return range.getBoundingClientRect().right <= s.getBoundingClientRect().left + s.clientWidth + 1;
+            })(),
             inPill: !!(edit && edit.width >= 44 && edit.right <= r.right + 1),
             close: close?.getAttribute('aria-label') ?? null,
             live: p.getAttribute('aria-live'),
@@ -212,7 +223,7 @@ async function fresh(h) {
           };
         });
         const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.close === 'Close, the photo stays as it is'
-          && m.live === 'polite' && /^Paused · \d+:\d\d · \d/.test(m.stats ?? '') && !m.said && m.wide);
+          && m.live === 'polite' && /^\d+:\d\d · \d+ m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
         const at390 = await pill();
         await h.shot(pg, 'tabs-9-bar-edit-offer');
         let at320 = null;
@@ -234,7 +245,7 @@ async function fresh(h) {
         await pg.waitForTimeout(400);
         const closed = await pg.locator('[data-testid=bar-edit-offer]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-        check(fine(waited) && closed === 0 && /^Paused · \d+:\d\d · \d/.test(stats),
+        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+ m · Paused$/.test(stats),
           `tend tabs T12: the pill is still up after 6 s and goes with its Close, the line still its time and distance (${!!waited}, ${closed}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
