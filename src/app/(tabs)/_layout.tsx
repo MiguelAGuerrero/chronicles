@@ -29,7 +29,7 @@ export const unstable_settings = { initialRouteName: 'index' };
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 /** The tab bar's height above the safe area. */
-const TAB_BAR_H = 58;
+const TAB_BAR_H = 62;
 
 const ignoreHeight = () => {};
 
@@ -75,6 +75,9 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.muted,
         // Tall enough for the icon and its label on the web too, where the default bar clipped the label.
         tabBarStyle: { backgroundColor: theme.surface, borderTopColor: theme.line, height: TAB_BAR_H + insets.bottom, paddingTop: 4, paddingBottom: insets.bottom + 4 },
+        // A one-line label clips its overflow, and at the default line height the box ends at the baseline's
+        // descent: the stems of p and g were cut (the owner's iPhone, Nov 12). An explicit line height leaves room.
+        tabBarLabelStyle: { lineHeight: 14 },
         sceneStyle: { backgroundColor: theme.bg },
       }}
     >
