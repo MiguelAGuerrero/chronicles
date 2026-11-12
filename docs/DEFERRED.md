@@ -627,3 +627,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **A voice note plays from its viewer**, not in place on the page: its line on the page opens the entry.
 - **The "Today" link on old pages** in the approved drawing is not built: the open line is pinned at every scroll position, and a tap in it brings today's foot up.
 - **JN19 on a phone**: the web's arithmetic is unit-tested (`keyboardLift`); a real keyboard over the line is a device check (`docs/NATIVE_UNVERIFIED.md`).
+- **Audit, deferred** (`specs/chronicle-journal/spec.md`, Audit): `lines.ts` reads the phone's time zone in core, as `days.ts` does (12); a dateline's tap arrives at a cluster pin with its count over the Map's own sheet, not at that moment alone, and nothing marks the pin or offers a way back to the page (19, ui 3); a picked reference's words sit in the serif field while typing (21); three bars at the foot with a walk minimized (ui 1); the resurfacing switch drawn as a menu row (ui 6); Done as a word beside two icons, to judge with a real keyboard (ui 11); "answering …" set like a dateline (ui 13).
+- **A drop that fails leaves the entry kept** with what was last written: the line is emptied and nothing says so. A broken store would fail the writes before it too.
+- **The first character's place can be lost to a reload** within its first seconds, as noted above; the audit added no fix.
+

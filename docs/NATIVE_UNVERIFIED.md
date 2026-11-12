@@ -170,6 +170,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] **Do:** start a walk on Navigate, then record a voice memo from the walk screen; minimize mid-memo is off, so stop it, minimize, open Memories and record one from the open line; go back to Navigate's walk screen at once and tap its mic. **Expect:** both memos are kept and play; the line's audio-mode reset never leaves the walk screen's recorder unable to start. (JN14)
 - [ ] **Do:** from Memories' open line, take a photo with the system camera, then a 15 s video; with a walk minimized, hold the bar's Stop while the video is still being kept. **Expect:** the camera opens over the tab, each is kept, and the stopped walk's replay plays the video (`memoGate.kept()`, capture-from-chronicle audit 6). (HC6)
+- [ ] **Do:** record a voice note from the open line and press Android Back mid-note; then tap the camera mid-note. **Expect:** Back does nothing while it records (`BackHandler`); the camera's tap saves the note, then opens the camera. (JN14)
+- [ ] **Do:** type @ in the open line with the keyboard up and pick a moment. **Expect:** the picker opens in its own Modal over the keyboard, the reference lands at the caret, and the keyboard comes back. (JN16)
+- [ ] **Do:** write three entries, force-quit mid-sentence on the third, and reopen (SQLite, the single write queue). **Expect:** all three are on the page with their words; `beginNote`, `writeNote` and `dropNote` ran in order. Native has no `pagehide`: at most the last 400 ms of typing is missing. (JN13)
+- [ ] **Do:** tap a placed entry's dateline. **Expect:** Chronicle's Map comes up framed about 150 m around that moment (`takeFocus` on MapLibre RN's fit), not on everything walked. (JN6)
 - [ ] **Do:** deny the camera to Chronicles, tap the open line's camera, and tap Settings on the message. **Expect:** iOS opens Chronicles' settings (`Linking.openSettings`). (JN18)
 
 ## Quality of life

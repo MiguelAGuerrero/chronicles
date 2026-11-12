@@ -127,3 +127,8 @@ Report-only, on the spec and this plan: 3 blocking, 7 should-fix, 1 note. 10 acc
 11. Testability: **accept**. The line's mark is still, not a focused caret; "this morning" is for today only; the digit scan leaves out your own words (JN5, JN9, JN22). JN10's "nothing invites" is tested as: no placeholder, no label ending in a question mark, no notification scheduled by the journal.
 
 Left open by the steward and not settled here: VISION.md's open question 5 (how much recall the app may volunteer) still sits under the slip, as it does under today's top card.
+
+## After the build (Nov 12)
+
+Built and audited: what changed from this plan, the tests and the audit's triage are in `specs/chronicle-journal/spec.md`, "Record" and "Audit". Defaults 1-5, 7 and 8 were built as written; default 6 as changed after the steward.
+
