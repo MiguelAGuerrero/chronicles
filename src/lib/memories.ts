@@ -46,7 +46,7 @@ const clock = (ms: number) => {
 
 /** The preview's line (MR4): a note's first line, a photo's caption, a memo's or video's length, else the kind. */
 export function previewLine(c: Faced): string {
-  if (c.kind === 'text') return (plainNote(c.body) ?? '').split('\n')[0].trim() || LABEL.text;
+  if (c.kind === 'text') return (plainNote(c.body, c.body_format) ?? '').split('\n')[0].trim() || LABEL.text;
   if (c.kind === 'photo') return c.caption?.trim() || LABEL.photo;
   const ms = Number(c.body);
   return Number.isFinite(ms) && ms > 0 ? `${LABEL[c.kind]} · ${clock(ms)}` : LABEL[c.kind];

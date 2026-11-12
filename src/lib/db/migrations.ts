@@ -249,4 +249,9 @@ export const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX complex_box ON complex (south, north);
   `,
+  // Note pages (NP7, decision 0149): a note's body is Markdown the page wrote; null, it reads as stored (every note
+  // written before). IndexedDB keeps the record whole and needs no version.
+  `
+  ALTER TABLE capture ADD COLUMN body_format TEXT;
+  `,
 ];

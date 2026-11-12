@@ -9,6 +9,13 @@ import { KIND_LABEL } from '../icons';
 import { theme } from '../ui';
 import { timeOf } from './layout';
 import { plainNote } from '../../lib/refs';
+import { stepNote } from '../../lib/notePage/plain';
+
+/** A note as the step reads it (NP10): its first 300 characters, then that it goes on. */
+const noteStep = (c: { body: string | null; body_format?: 'md' | null }) => {
+  const s = stepNote(plainNote(c.body, c.body_format) ?? '');
+  return s.more ? `${s.text}… ${s.more}` : s.text;
+};
 
 /** Taps this soon after a moment appears are ignored, so a double tap skips nothing. */
 const TAP_GUARD_MS = 600;
@@ -73,7 +80,7 @@ export function StepThrough(props: {
   }, [key]);
   useEffect(() => {
     if (!capture) return;
-    const what = capture.kind === 'text' ? `Note: ${plainNote(capture.body) ?? ''}` : `${KIND_LABEL[capture.kind]}, ${timeOf(capture.t)}`;
+    const what = capture.kind === 'text' ? `Note: ${noteStep(capture)}` : `${KIND_LABEL[capture.kind]}, ${timeOf(capture.t)}`;
     AccessibilityInfo.announceForAccessibility(`${what}. ${props.auto ? '' : 'Continue when ready.'}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

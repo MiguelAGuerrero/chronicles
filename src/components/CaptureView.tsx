@@ -283,7 +283,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
           {capture.kind === 'text' &&
-            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body)}</Text>)}
+            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
           )}

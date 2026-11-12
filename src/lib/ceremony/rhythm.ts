@@ -11,6 +11,7 @@ import { facedAt, hasMore, type Faced } from '../moment';
 import { gridDuration, GRID_MAX } from './grid';
 import { passedLine } from '../explore/explore';
 import { distanceM } from '../geo';
+import { plainNote } from '../refs';
 import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { GAP_MS } from '../replay';
 import type { LngLat } from '../types';
@@ -86,7 +87,7 @@ export function notePause(text: string | null): number {
 }
 
 /** A note's pause by its words as shown (NP10). */
-export const noteSlotPause = (c: Pick<Faced, 'body' | 'body_format'>): number => notePause(c.body);
+export const noteSlotPause = (c: Pick<Faced, 'body' | 'body_format'>): number => notePause(plainNote(c.body, c.body_format));
 
 const slotKind = (c: Faced): SlotKind => (c.kind === 'text' ? 'note' : c.kind === 'voice' ? 'memo' : c.kind);
 const slotOf = (c: Faced): Slot => ({ capture: c, kind: slotKind(c), t0: 0, t1: slotDur(c), len: mediaLen(c) });

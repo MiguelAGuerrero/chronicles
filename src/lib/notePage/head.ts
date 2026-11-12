@@ -19,6 +19,32 @@ export type NoteHeadInput = {
 
 export type NoteHead = { day: string; line: string; short: string };
 
-export function noteHead(_i: NoteHeadInput): NoteHead {
-  throw new Error('note pages: not built');
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** "Thursday, November 12", with the year when it is not this one. */
+function dayOf(t: number, now: number): string {
+  const d = new Date(t);
+  const year = d.getFullYear() === new Date(now).getFullYear() ? '' : `, ${d.getFullYear()}`;
+  return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}${year}`;
+}
+
+/** "Nov 12", with the year when it is not this one. */
+function shortDayOf(t: number, now: number): string {
+  const d = new Date(t);
+  const year = d.getFullYear() === new Date(now).getFullYear() ? '' : ` ${d.getFullYear()}`;
+  return `${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}${year}`;
+}
+
+export const PLACE_PENDING = 'Place not kept yet';
+export const NO_PLACE_KEPT = 'No place kept';
+
+export function noteHead(i: NoteHeadInput): NoteHead {
+  const day = dayOf(i.t, i.now);
+  const shortDay = shortDayOf(i.t, i.now);
+  if (i.draft) return { day, line: `${i.time} · ${i.draft.onWalk ? 'On your walk' : 'Not on a walk'}`, short: shortDay };
+  const context = i.context?.trim() || null;
+  if (!context) return { day, line: `${i.time} · ${i.placing ? PLACE_PENDING : NO_PLACE_KEPT}`, short: shortDay };
+  const place = context.split(' · ')[0];
+  return { day, line: `${i.time} · ${context}`, short: `${shortDay} · ${place}` };
 }

@@ -11,6 +11,7 @@
     "@tiptap/core": "3.33.1",
     "@tiptap/extension-list": "3.33.1",
     "@tiptap/extension-mention": "3.33.1",
+    "@tiptap/extension-paragraph": "3.33.1",
     "@tiptap/extensions": "3.33.1",
     "@tiptap/markdown": "3.33.1",
     "@tiptap/pm": "3.33.1",

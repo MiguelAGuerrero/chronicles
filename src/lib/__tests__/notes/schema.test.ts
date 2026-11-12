@@ -22,18 +22,18 @@ const shown = (doc: JSONContent): string => {
 
 const PAGE = '# Bakery\n\nSmelled it **two** blocks *off*.\n\n## The queue\n\n- rye\n- warm\n\n1. one\n2. two\n\n- [ ] come back\n- [x] ask her name\n\n> the queue went round the corner\n\nWent with @[abc_1|the bakery photo] in mind.';
 
-test('NP7: a page the editor wrote reopens exactly as it was left', { todo: 'test first' }, () => {
+test('NP7: a page the editor wrote reopens exactly as it was left', () => {
   assert.equal(toBody(toDoc(PAGE, 'md')), PAGE);
   const doc = toDoc(PAGE, 'md');
   const types = JSON.stringify(doc);
   for (const t of ['"heading"', '"bulletList"', '"orderedList"', '"taskList"', '"checked":true', '"blockquote"', '"bold"', '"italic"', '"mention"']) assert.ok(types.includes(t), t);
 });
 
-test('NP7: a mention survives as @[id|words], and one with no words as @[id]', { todo: 'test first' }, () => {
+test('NP7: a mention survives as @[id|words], and one with no words as @[id]', () => {
   for (const body of ['see @[m1|the fig tree] again', 'see @[m-2_x]']) assert.equal(toBody(toDoc(body, 'md')), body);
 });
 
-test('NP7: a note without the mark shows character for character, and written in, still does (steward S10)', { todo: 'test first' }, () => {
+test('NP7: a note without the mark shows character for character, and written in, still does (the steward)', () => {
   for (const old of ['> 5 km', '*sigh*', 'snake_case and _this_', '# 3 buses', '- 3 pints\n1. first\n+ plus', '~~gone~~ [a](http://x.y) <b>x</b> &amp;', 'two\nlines\n\nand a gap', 'with @[m1|a mention]']) {
     const doc = toDoc(old, null);
     assert.equal(shown(doc), old.replace('@[m1|a mention]', '@a mention'), old);
@@ -43,14 +43,14 @@ test('NP7: a note without the mark shows character for character, and written in
   }
 });
 
-test('NP7: Markdown outside what the page makes is kept as the text that was typed', { todo: 'test first' }, () => {
+test('NP7: Markdown outside what the page makes is kept as the text that was typed', () => {
   const typed: JSONContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: '~~gone~~ [a](http://x.y) | t | `c` # 3 1. x' }] }] };
   assert.equal(shown(toDoc(toBody(typed), 'md')), '~~gone~~ [a](http://x.y) | t | `c` # 3 1. x');
   const leading: JSONContent = { type: 'doc', content: ['# 3 buses', '1. not a list', '- not a bullet', '> not a quote'].map((text) => ({ type: 'paragraph', content: [{ type: 'text', text }] })) };
   assert.equal(shown(toDoc(toBody(leading), 'md')), '# 3 buses\n1. not a list\n- not a bullet\n> not a quote');
 });
 
-test('NP13: a link, an image or HTML in a body is never made a link or loaded', { todo: 'test first' }, () => {
+test('NP13: a link, an image or HTML in a body is never made a link or loaded', () => {
   const doc = JSON.stringify(toDoc('[a](http://x.y) ![i](http://x.y/i.png) <img src="http://x.y/j.png"> <iframe src="http://x.y"></iframe> http://x.y', 'md'));
   for (const t of ['"link"', '"image"', 'iframe"', '"href"']) assert.ok(!doc.includes(t), t);
 });

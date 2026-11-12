@@ -216,7 +216,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(parseEdit((flats(await db.getMoments('a')))[0].edit), null);
     });
 
-    test('NP7: a note keeps the mark that its body is Markdown, through addMoment and updatePiece; an older note has none', { todo: 'test first' }, async () => {
+    test('NP7: a note keeps the mark that its body is Markdown, through addMoment and updatePiece; an older note has none', async () => {
       const db = await fresh();
       await db.addMoment(momentOf({ ...capture('old', null, 1), kind: 'text', body: '# 3 buses' }));
       await db.addMoment(momentOf({ ...capture('new', null, 2), kind: 'text', body: '# Figs', body_format: 'md' }));

@@ -1,6 +1,6 @@
 // @layer core
-/** A note's text at most, as the composer allows (QL24). */
-export const NOTE_MAX = 500;
+/** A note's text at most (QL24; 20,000 since note pages NP8, decision 0149), counted as shown. */
+export const NOTE_MAX = 20000;
 
 /**
  * A note's edited text as it is stored (QL25): trimmed and cut to
