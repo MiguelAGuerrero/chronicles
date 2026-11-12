@@ -58,11 +58,26 @@ Who hears of it depends on who was typed:
 inbox, "Last tend", "Open before the loop", the "In flight" and "Slices" rows, and the items of the
 other two). Each changes one entry and refuses to write if any other byte would move. Write the text
 to a file in the scratchpad and pass `--file`, so nothing needs quoting; never edit these files with
-Edit, Write or sed. Before the commit that holds them, run `npm run check:records -- origin/main` (the
-working tree against `main`): it names each change no operation makes and the operation to use. CI
-runs it on every `tend …` commit. On a merge or rebase conflict in them, take `main`'s side and run
-your operations again. A shipped item is removed (`item remove`), never struck through; a line that
-amends an entry is appended (`note`), never written over the entry.
+Edit, Write or sed.
+
+- **Each operation is recorded.** It is added to a pending sidecar under `.claude/records/`, staged as
+  it is written. Commit the sidecar with the documents, and put the lines
+  `npm run records -- trailers` prints (one `Records-Op:` per operation, in order) in the message's
+  last paragraph, beside `Co-Authored-By`. The gate replays them on the parent's documents and fails the commit unless
+  it gets the commit's documents byte for byte: a hand edit, a dropped trailer or a sidecar edited
+  afterwards all fail. CI runs it on every `tend …` commit and the revert of one.
+- **What the run did not file is the owner's.** Removing or rewriting an entry this run did not add
+  (`inbox remove`/`set`, `open remove`/`set`, `item remove`/`set`/`retag`) needs `--reason "<why>"`,
+  which goes into the trailer, and a commit does it to at most two entries per section. A tag moves
+  only toward `[owner]`, `[arch]` or `[kept]`. A shipped item is removed (`item remove`), never struck
+  through; a line that amends an entry is appended (`note`); a reworded one is `set`, with its reason.
+- **Before the commit:** `npm run check:records -- origin/main` (the commits since `main` and the
+  working tree with its pending operations). It names each change no operation makes.
+- **On a merge or rebase conflict** in them, take `main`'s side of the three documents and the ledger
+  and run `npm run records -- redo`: it runs the pending operations again on `HEAD`'s documents, the
+  inbox numbering on from `main`'s ledger, and the trailers stay as they are. A loop run never merges
+  `main` into its branch: a merge that touches the documents fails the gate in a push with loop
+  commits.
 
 ## Review
 

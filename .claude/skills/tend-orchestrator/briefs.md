@@ -41,9 +41,11 @@ The check for your commits: <sweep or T build: `npm run check:tend -- origin/mai
 G build: `node scripts/tend.js commits --loop-only origin/main..HEAD`; slice commits named the
 slice's way; only the final `tend <area>: the run's record` commit, holding STATUS, DEFERRED, the
 ledger and runs.jsonl alone, is named `tend`>. STATUS, DEFERRED and NATIVE_UNVERIFIED change only
-through `npm run records -- <op>` (decision 0156; ship.md, "The record documents"), and `npm run
-check:records -- origin/main..HEAD` passes before you publish: CI fails a loop commit that edits them
-by hand.
+through `npm run records -- <op>` (decision 0156; ship.md, "The record documents"): each record
+commit carries the lines `npm run records -- trailers` prints and the sidecar the operations staged,
+an entry the run did not file leaves or changes only with `--reason` (two per section per commit),
+and `npm run check:records -- origin/main` passes before you publish: CI replays every loop
+commit's trailers and fails any other change.
 
 Known constraints (do not rediscover them): <from the notes, e.g.
 - read FORBIDDEN in scripts/tend.js before editing anything outside src/ and the journeys;

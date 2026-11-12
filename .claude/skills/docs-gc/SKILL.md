@@ -70,7 +70,11 @@ grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' docs/DEFERRED.md | tr -d '`' | sort -u | whi
 ```
 
 Read each hit: a constant named in both is not proof. Move a shipped item to
-the spec's record and PRODUCT.md, and drop it from DEFERRED.md.
+the spec's record and PRODUCT.md, and drop it from DEFERRED.md with
+`npm run records -- deferred item remove <match> --reason "<what shipped it>"`
+(decision 0156: the three record documents change only through operations, two
+removals per section per commit; `npm run check:records -- origin/main` before
+the commit, whose message carries `npm run records -- trailers`).
 
 ## 6. Native is still unverified
 
@@ -79,7 +83,7 @@ grep -n "never run on a device\|not run on a device" docs/NATIVE_UNVERIFIED.md A
 ```
 
 Both must say so unless the owner reports a device run; then update both and
-`docs/STATUS.md`.
+`docs/STATUS.md` (the owner's own words, or `npm run records` operations).
 
 ## 7. README commands match package.json
 

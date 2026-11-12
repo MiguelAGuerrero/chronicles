@@ -126,7 +126,8 @@ findings in the report.
   (`npm run records -- slice row set <match> --file <row>`).
 - `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
   `npm run records` (decision 0156; a second issue is `deferred item add`). Run `npm run
-  check:records -- origin/main` before the commit.
+  check:records -- origin/main` before the commit, and put the lines `npm run records -- trailers`
+  prints in its message.
 - A fix that settles a trap goes in `.claude/rules/<area>.md`.
 
 ## 7. Commit and push the branch

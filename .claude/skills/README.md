@@ -44,13 +44,14 @@ shell, and the other two a shell that `.claude/hooks/readonly-bash.sh` keeps to 
   `.claude/skills/tend/runs.jsonl` (one line a run: what it found, shipped, filed and was told).
   A new session reads these and `git log` first. The copies on `main` are the only ones that count:
   a run reads them from a worktree of `origin/main` and publishes its changes to them with its work.
-  The three documents change only through `npm run records -- <op>`, one whole entry at a time, and
-  `npm run check:records` before the commit (decision 0156; `ship.md`, "The record documents").
+  The three documents change only through `npm run records -- <op>`, one whole entry at a time, each
+  recorded and named in its commit's `Records-Op:` trailers, and `npm run check:records` before the
+  commit (decision 0156; `ship.md`, "The record documents").
 - **A stopped slice is parked, not lost:** its branch is pushed as `slice/<slug>-parked`, its question
   is a `T` entry on `main`, and the owner's answer resumes it (`/tend`, section 7).
 - **Gates are scripts where they can be:** `check:docs` (a criterion without a test), `check:vision`,
   `check:test-first`, the layer check, `check:tend` (a loop commit without a test or a source),
-  `check:records` (a record document changed by anything but an operation), the Stop hook and CI. A procedure step that keeps being missed becomes a check, not a louder sentence.
+  `check:records` (a record document changed by anything but its commit's declared operations), the Stop hook and CI. A procedure step that keeps being missed becomes a check, not a louder sentence.
 - **One piece of work per run.** A `/fix` is one issue; a `/tend` sweep is one area; an approved
   proposal is one run of its own.
 - **Naming is the record.** `fix <name>`, `fix <name> audit N`, `tend <scope> N`, `<Slice>: … (XX1-XX9)`:

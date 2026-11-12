@@ -235,7 +235,8 @@ screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
    --file <row>`, or `slice row set <match>` for one already there) and the "In flight"
    row removed (`inflight remove <match>`), or left in flight with its state
    (`inflight set`), with the audit's counts if there was one. Then `npm run
-   check:records -- origin/main`.
+   check:records -- origin/main`, and the commit's message carries the lines
+   `npm run records -- trailers` prints.
 3. Run `/docs-gc`.
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is
