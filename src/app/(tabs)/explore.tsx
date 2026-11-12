@@ -10,6 +10,7 @@ import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
 import { cancelLook, endLook, IDLE, isLive, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
+import { createStore } from '../../lib/store';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
@@ -168,9 +169,10 @@ export default function Explore() {
   const locateRef = useRef<ComponentRef<typeof Pressable>>(null);
   // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
   const [plan, setPlan] = useState<CategoryId | null>(null);
-  const [bearing, setBearing] = useState(0);
+  // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
+  const [bearing] = useState(() => createStore(0));
   // The map comes down when Explore loses focus and opens north-up again (CP8).
-  useFocusEffect(useCallback(() => () => setBearing(0), []));
+  useFocusEffect(useCallback(() => () => bearing.set(0), [bearing]));
   useFocusEffect(
     useCallback(() => {
       const fix = getLastFix();
@@ -561,7 +563,7 @@ export default function Explore() {
           walked={NONE}
           fog={NONE}
           ref={mapRef}
-          onBearingChange={setBearing}
+          onBearingChange={bearing.set}
           captures={NONE}
           walker={you}
           marks={spot ? [spot.at] : NONE}

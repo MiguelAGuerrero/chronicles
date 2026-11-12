@@ -8,6 +8,7 @@ import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
 import { perfCount } from '../lib/perfCount';
+import { createStore } from '../lib/store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
@@ -286,7 +287,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
-  const [bearing, setBearing] = useState(0);
+  // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
+  const [bearing] = useState(() => createStore(0));
   const [viewing, setViewing] = useState<Faced[] | null>(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
@@ -1154,7 +1156,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={bearing.set} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
         {...drawn}
@@ -1216,7 +1218,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           ? { top: insets.top + 24, bottom: cardAt.bottom + 300, left: 24, right: 24 }
           : { top: insets.top + 24, bottom: drawerH - BAR_H - insets.bottom + 16, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
-        onBearingChange={setBearing}
+        onBearingChange={bearing.set}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={(at, radiusM) => {
           if (isDrawing) return;

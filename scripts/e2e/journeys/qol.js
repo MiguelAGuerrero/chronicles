@@ -374,7 +374,11 @@ async function run(h) {
       check(Math.abs(after.b) < 0.5 && (await compass.count()) === 0, `qol CP4: a tap turns the map back to north and the compass leaves (bearing ${after.b}, ${await compass.count()} compass)`);
       check(cm && cm0 && mAway(cm, cm0) < 3 && Math.abs(Number(after.z) - Number(before.z)) < 0.05, `qol CP4: the centre and zoom stay (${mAway(cm, cm0).toFixed(1)} m, z ${before.z} → ${after.z})`);
       // A map with a compass turns under two real fingers (CP1), so the gesture below is a real turn where it is refused.
+      const rendersBefore = await pg.evaluate(() => window.__perf['render:explore'] ?? 0);
       const turnedByHand = await twoFingerTurn();
+      const turnRenders = (await pg.evaluate(() => window.__perf['render:explore'] ?? 0)) - rendersBefore;
+      // Each half degree of the turn is reported; only the compass reads it (tend map 8: Explore re-rendered for each).
+      check(turnRenders <= 3, `tend map 8: a two-finger turn re-renders the compass, not Explore (${turnRenders} Explore renders over the turn)`);
       check(Math.abs(turnedByHand) > 5, `tend map 1: two fingers turn Explore's map, which has a compass (bearing ${turnedByHand})`);
       // A fit keeps the bearing (CP1): Locate frames the fix with the map still turned.
       await shown('locate').first().click();
