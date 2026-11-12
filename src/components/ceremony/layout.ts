@@ -34,13 +34,26 @@ export const STAGE_TOP = 64;
 const CARD_EXTRA = 48;
 /** The room between the top row and the bottom corner, where a card stands (audit 13: a landscape phone). */
 const cardRoom = (c: StageCtx) => ({ top: c.insets.top + STAGE_TOP, bottom: c.height - c.insets.bottom - STAGE_BOTTOM });
-export function cardWidth(c: StageCtx): number {
+/** A six-line note's bubble in the bottom-left corner, with its gap. */
+const BUBBLE_ROOM = 160;
+/** The narrowest card that still gives the bubbles their room. */
+const ROOMY_CARD = 160;
+/**
+ * The lowest a card reaches: above a note's bubble where a card of ROOMY_CARD still fits over it (a 320 or 375 px
+ * phone, where the card covered the note being read, tend replay 7); a landscape phone keeps the whole room.
+ */
+function cardFloor(c: StageCtx): number {
   const { top, bottom } = cardRoom(c);
-  return Math.max(80, Math.min((c.width - c.insets.left - c.insets.right) * 0.66, 260, (bottom - top - CARD_EXTRA) / 1.15));
+  return bottom - BUBBLE_ROOM - top >= ROOMY_CARD * 1.15 + CARD_EXTRA ? bottom - BUBBLE_ROOM : bottom;
 }
-export function restCenter(c: StageCtx): [number, number] {
+export function cardWidth(c: StageCtx): number {
+  const { top } = cardRoom(c);
+  return Math.max(80, Math.min((c.width - c.insets.left - c.insets.right) * 0.66, 260, (cardFloor(c) - top - CARD_EXTRA) / 1.15));
+}
+/** Where a card of height `h` rests: mid-room, raised as far as it must be to stay above its floor, never under the top row. */
+export function restCenter(c: StageCtx, h = 0): [number, number] {
   const { top, bottom } = cardRoom(c);
-  return [(c.width + c.insets.left - c.insets.right) / 2, (top + bottom) / 2];
+  return [(c.width + c.insets.left - c.insets.right) / 2, Math.max(top + h / 2, Math.min((top + bottom) / 2, cardFloor(c) - h / 2))];
 }
 /** The bubbles' corner: as tall as the room under the top row. */
 export const cornerHeight = (c: StageCtx) => Math.max(0, c.height - c.insets.top - STAGE_TOP - c.insets.bottom - STAGE_BOTTOM);

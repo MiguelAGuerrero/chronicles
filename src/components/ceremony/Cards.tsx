@@ -164,7 +164,7 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const grid = !!o.pieces?.length;
   const imgH = grid ? gridHeight(o.pieces!.length, w - 14) : w * 1.15;
   const h = imgH + 7 + 34;
-  const rest = restCenter(ctx);
+  const rest = restCenter(ctx, h);
   // It grows from its pin, where the frame says the pin is (audit 10).
   const pin = (o.from ? project(ctx, o.from) : null) ?? rest;
   const pile = pileCenter(ctx);

@@ -322,6 +322,18 @@ async function run(h) {
       await pg.click('[data-testid=skip]');
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
     }
+    // On a 375 or 320 px phone a card stands above a note's bubble in the corner, under the top row (tend replay 7).
+    for (const [w, ht] of [[375, 667], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.getByText('Watch again').click();
+      const up = await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).then(() => true, () => false);
+      await pg.waitForTimeout(1200);
+      const cb = await boxOf('[data-testid=replay-card]');
+      check(up && cb && cb.y + cb.height <= ht - 44 - 160 && cb.y >= 64, `tend replay 7: at ${w}x${ht} the card stands clear of the bubbles' corner and the top row (${JSON.stringify(cb)})`);
+      await shot(pg, `rr-card-${w}`);
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+    }
     await pg.setViewportSize({ width: 390, height: 844 });
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
