@@ -476,6 +476,49 @@ async function run(h) {
       await pg.waitForTimeout(400);
     });
 
+    // Note types (NY6, NY9, NY10, NY11): the editor's Type row and menu, the card's mark, the pin's label, in one ink.
+    await qstep('note-types NY6, NY9, NY10, NY11', async () => {
+      await openNote();
+      const bare = await pg.locator('[data-testid=note-type-mark]').count();
+      await pg.click('[data-testid=viewer-edit-note]');
+      await pg.locator('[data-testid=note-edit-input]').waitFor({ timeout: 5000 });
+      const row = pg.locator('[data-testid=note-type-row]');
+      const rowBefore = (await row.count()) ? await row.innerText() : '';
+      if (await row.count()) await row.click();
+      const items = await pg.locator('[data-testid^=note-type-item-]').count();
+      const colours = await pg.evaluate(() => [...new Set([...document.querySelectorAll('[data-testid^=note-type-glyph-]')].map((e) => getComputedStyle(e).color))]);
+      await shot(pg, 'qol-06-note-type-menu');
+      if (items) await pg.click('[data-testid=note-type-item-idea]');
+      const rowAfter = (await row.count()) ? await row.innerText() : '';
+      await pg.click('[data-testid=note-edit-save]');
+      await pg.waitForTimeout(800);
+      const mark = pg.locator('[data-testid=note-type-mark]');
+      const markText = (await mark.count()) ? await mark.first().innerText() : '';
+      const markLabel = (await mark.count()) ? await mark.first().getAttribute('aria-label') : '';
+      await shot(pg, 'qol-07-note-type-card');
+      await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(600);
+      const pin = await pg.locator('[aria-label="Note, idea. Open"]').count();
+      check.todo(bare === 0 && /Type/.test(rowBefore) && /No type/.test(rowBefore) && items === 9 && /Idea/.test(rowAfter),
+        `NY6: the note editor's Type row opens a menu of eight and "No type", and shows the choice (bare ${bare}, row ${JSON.stringify(rowBefore)}, items ${items}, after ${JSON.stringify(rowAfter)})`);
+      check.todo(/Idea/.test(markText) && markLabel === 'Idea',
+        `NY9: the viewer's note card shows the type's mark and its spoken name, none without a type (${JSON.stringify([markText, markLabel])})`);
+      check.todo(pin === 1, `NY10: the note's pin is labelled by its type (${pin})`);
+      check.todo(items === 9 && colours.length === 1 && markLabel === 'Idea',
+        `NY11: every glyph is drawn in one ink colour and each has its spoken name (${JSON.stringify(colours)})`);
+      // Back to no type, so the steps after this one meet the note as before (NY8).
+      await openNote();
+      await pg.click('[data-testid=viewer-edit-note]');
+      await pg.locator('[data-testid=note-type-row]').click().catch(() => null);
+      await pg.click('[data-testid=note-type-item-none]').catch(() => null);
+      await pg.click('[data-testid=note-edit-save]').catch(() => null);
+      await pg.waitForTimeout(600);
+      const cleared = await pg.locator('[data-testid=note-type-mark]').count();
+      check.todo(cleared === 0, `NY8: choosing "No type" clears the mark (${cleared})`);
+      await pg.click('[data-testid=viewer-close]').catch(() => null);
+      await pg.waitForTimeout(400);
+    });
+
     // tend chronicle 1: Escape with the @ picker open closes the picker alone; the editor keeps what was typed,
     // the @ as typed (RF1), as Escape steps out of the Rename editor before its sheet (QL22).
     await qstep('tend chronicle 1', async () => {

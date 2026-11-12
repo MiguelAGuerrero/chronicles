@@ -252,7 +252,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
-    async saveNote(c: Faced, body: string): Promise<void> {
+    async saveNote(c: Faced, body: string, _type?: string | null): Promise<void> {
       await p.db.updatePiece(c.piece_id, { body });
       captureBus.patch(c.walk_id, c.id, { body }, null);
       this.patch(c.id, { body });

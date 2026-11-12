@@ -38,6 +38,6 @@ export function createReady(p: Pick<Ports, 'db' | 'recorder'>) {
     /** Whether the recorder keeps tracing in the background (a phone), or only while the page is open (web). */
     background: () => p.recorder.capabilities.background,
     /** A note's text is its piece's own (decision 0123). */
-    saveNote: (pieceId: string, body: string) => p.db.updatePiece(pieceId, { body }),
+    saveNote: (pieceId: string, body: string, _type?: string | null) => p.db.updatePiece(pieceId, { body }),
   };
 }

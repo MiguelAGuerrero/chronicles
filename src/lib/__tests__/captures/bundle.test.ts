@@ -80,3 +80,16 @@ test('MT8: the bundle lists moments with their pieces, each piece\'s media named
   assert.equal(json.version, 2);
   assert.deepEqual(json.moments.map((m: { id: string; pieces: { id: string; moment_id: string; media: string }[] }) => [m.id, m.pieces.map((x) => [x.id, x.moment_id, x.media])]), [['m1', [['m1', 'm1', 'media/m1.jpg']]]]);
 });
+
+test('NY14: the bundle keeps a note\'s type with the note, and says nothing for a note with none', { todo: 'test first' }, async () => {
+  const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
+  await p.db.createWalk(walk);
+  await p.db.addMoment(momentOf(cap('typed', null, { note_type: 'question' })));
+  await p.db.addMoment(momentOf(cap('plain', null)));
+  const io = memoryIO({});
+  await createBundleWriter(p).writeWalkBundle('w1', io);
+  const json = JSON.parse(strFromU8(unzipSync(io.bytes())['walk.json']));
+  const byId = Object.fromEntries(json.moments.flatMap((m: { pieces: { id: string }[] }) => m.pieces).map((c: { id: string }) => [c.id, c]));
+  assert.equal(byId.typed.note_type, 'question');
+  assert.equal(byId.plain.note_type ?? null, null);
+});

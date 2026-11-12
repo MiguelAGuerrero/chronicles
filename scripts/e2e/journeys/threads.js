@@ -236,6 +236,7 @@ async function run(h) {
   await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
   await pg.fill('[data-testid=note-edit-input]', 'half a thought');
+  check.todo((await pg.locator('[data-testid=note-type-row]').count()) === 0, 'NY15: a note written in Respond offers no Type: it is made with none, and Edit sets one');
   // fix respond-bottom audit 3, on the note editor: a keyboard 300 px tall (the visual viewport shrinks) leaves Save in view.
   const kbTop = await pg.evaluate(() => {
     const vv = window.visualViewport;
@@ -257,6 +258,21 @@ async function run(h) {
   await pg.waitForTimeout(300);
   check(!(await has('[data-testid=note-edit-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=viewer-respond]')), 'owner-threads audit 9: Cancel closes the note being written, leaves the viewer open and Respond ready');
   await closeViewer();
+
+  // NY17: a note's bubble in the thread wears its type's mark and spoken name; one with no type is as before.
+  await openInThread('pier');
+  await pg.waitForSelector('[data-testid=viewer-edit-note]');
+  await pg.click('[data-testid=viewer-edit-note]');
+  await pg.click('[data-testid=note-type-row]').catch(() => null);
+  await pg.click('[data-testid=note-type-item-question]').catch(() => null);
+  await pg.click('[data-testid=note-edit-save]');
+  await pg.waitForTimeout(600);
+  await closeViewer();
+  const typedMark = pg.locator(`${bubble('looked strong at the pier')} [data-testid=note-type-mark]`);
+  const plain = await pg.locator(`${bubble('And a third')} [data-testid=note-type-mark]`).count();
+  check.todo((await typedMark.count()) === 1 && (await typedMark.first().getAttribute('aria-label')) === 'Question' && plain === 0,
+    'NY17: a note\'s bubble in the thread shows its type\'s mark and spoken name, and a note with none shows nothing');
+  await shot(pg, '71-threads-note-type');
 
   // OT8: Remove from this thread keeps the moment.
   await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]:has-text("And a third") [data-testid=moment-more]').click();

@@ -216,6 +216,39 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(parseEdit((flats(await db.getMoments('a')))[0].edit), null);
     });
 
+    test('NY4: a note keeps its type: set, changed, cleared; one kept before reads as no type', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('n1', 'a', 1)));
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null, 'a note kept before has none');
+      await db.updatePiece('n1', { note_type: 'question' });
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'question');
+      await db.updatePiece('n1', { note_type: 'sad', body: 'new words' });
+      const [got] = flats(await db.getMoments('a'));
+      assert.equal(got.note_type, 'sad');
+      assert.equal(got.body, 'new words');
+      await db.updatePiece('n1', { note_type: null });
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null);
+    });
+
+    test('NY4: a note added with a type is read back with it', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('n1', 'a', 1, { note_type: 'idea' })));
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'idea');
+    });
+
+    test('NY5: the type belongs to its piece: two notes of one moment hold different types', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('m1', 'a', 1)));
+      await db.addPiece('m1', { id: 'p2', moment_id: 'm1', t: 2, kind: 'text', file_path: null, body: 'second', note_type: 'happy' });
+      await db.updatePiece('m1', { note_type: 'question' });
+      const [m] = await db.getMomentsByIds(['m1']);
+      const byId = Object.fromEntries(m.pieces.map((x) => [x.id, x.note_type ?? null]));
+      assert.deepEqual(byId, { m1: 'question', p2: 'happy' });
+      await db.updatePiece('p2', { note_type: null });
+      const [again] = await db.getMomentsByIds(['m1']);
+      assert.deepEqual(Object.fromEntries(again.pieces.map((x) => [x.id, x.note_type ?? null])), { m1: 'question', p2: null });
+    });
+
     test('media-editing audit 7: every capture read gives the edit parsed; a newer or broken one reads as none', async () => {
       const db = await fresh();
       const edit: MediaEdit = { v: 1, rotate: 180, crop: null, filter: 'noir', strokes: [], trim: null };
