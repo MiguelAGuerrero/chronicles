@@ -204,7 +204,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll}.ts', 'src/lib/backlog/**', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence'],
+    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence', 'neighborhood-boundaries'],
   },
   {
     name: 'map',
@@ -430,6 +430,7 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
+  'neighborhood-boundaries': { branch: 'claude/elegant-brahmagupta-ficipi', since: '2026-11-12' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
