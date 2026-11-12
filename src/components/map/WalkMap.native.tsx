@@ -471,7 +471,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             ...ENDS_PAINT,
             'circle-opacity': props.traceOpacity ?? 1,
             'circle-stroke-opacity': props.traceOpacity ?? 1,
-          } as never} />
+          }} />
         </GeoJSONSource>
         <GeoJSONSource id="cone" data={cone}>
           <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />

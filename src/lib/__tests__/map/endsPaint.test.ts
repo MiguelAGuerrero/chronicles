@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import type { CircleLayerSpecification } from 'maplibre-gl';
 import { COLORS, ENDS_PAINT } from '../../../components/map/types';
 
 // tend map T16 (the owner's yes, Nov 12): a walk's start and end differed by colour alone, two white discs
@@ -49,4 +50,14 @@ test('tend map T16: both maps draw the ends layer with this paint, web and nativ
   const native = readFileSync(join(dir, 'WalkMap.native.tsx'), 'utf8');
   assert.match(web, /id: 'ends', type: 'circle', source: 'ends',\s*paint: ENDS_PAINT\b/);
   assert.match(native, /<Layer id="ends" type="circle" paint=\{\{\s*\.\.\.ENDS_PAINT,/);
+});
+
+test('tend map audit 9: ENDS_PAINT is a valid circle paint, type-checked with no cast', () => {
+  // A misspelt key or a wrong value type fails the typecheck here: the maps no longer cast it away.
+  const paint: NonNullable<CircleLayerSpecification['paint']> = ENDS_PAINT;
+  for (const key of Object.keys(paint)) assert.match(key, /^circle-/);
+  const web = readFileSync(join(__dirname, '../../../components/map/WalkMap.web.tsx'), 'utf8');
+  const native = readFileSync(join(__dirname, '../../../components/map/WalkMap.native.tsx'), 'utf8');
+  assert.match(web, /paint: ENDS_PAINT \}\);/, 'the web passes ENDS_PAINT as it is');
+  assert.doesNotMatch(native, /'circle-stroke-opacity': props\.traceOpacity \?\? 1,\s*\} as never\}/, 'native spreads it with no cast');
 });

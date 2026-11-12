@@ -120,7 +120,7 @@ function addOverlay(map: MapLibreMap) {
   // are DOM markers, so they sit above every layer. The start hollow, ringed in the trace's green;
   // the end solid, filled in the walked colour with a white ring (tend map T16).
   map.addLayer({ id: 'ends', type: 'circle', source: 'ends',
-    paint: ENDS_PAINT as unknown as CircleLayerSpecification['paint'] });
+    paint: ENDS_PAINT });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   // The range preview (E21): a soft disc with a firm edge, under the walker.
   map.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': RING_COLOR, 'fill-opacity': 0.12 } });

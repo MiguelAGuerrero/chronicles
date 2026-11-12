@@ -13,6 +13,7 @@ import { useMemo } from 'react';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin } from '../../lib/pins';
 import type { Star } from '../../lib/places';
 import type { LngLat, StreetSegment } from '../../lib/types';
+import type { CircleLayerSpecification } from 'maplibre-gl';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -540,7 +541,7 @@ export const ENDS_PAINT = {
   'circle-radius': 7,
   'circle-stroke-width': 4,
   'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, '#ffffff'],
-} as const;
+} satisfies NonNullable<CircleLayerSpecification['paint']>;
 
 /**
  * Where the walk began and ended, as points with a `kind` (QL1, QL2), drawn with `ENDS_PAINT`.
