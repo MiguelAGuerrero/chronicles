@@ -6,7 +6,6 @@ import { OPEN_MS, WALK_ON_M, initial, openId, step } from '../../openMoment';
 import { keyboardLift } from '../../journal/keyboard';
 import { refToken } from '../../refs';
 
-const T = 'test first';
 const run = (events: PenEvent[], from: PenState = PEN_START) => {
   let state = from;
   const effects: PenEffect[] = [];
@@ -19,7 +18,7 @@ const run = (events: PenEvent[], from: PenState = PEN_START) => {
 };
 const E = { momentId: 'm1', pieceId: 'p1' };
 
-test('JN12: the first character begins an entry, once', { todo: T }, () => {
+test('JN12: the first character begins an entry, once', () => {
   const r = run([{ k: 'type', body: 'A' }, { k: 'type', body: 'A h' }]);
   assert.deepEqual(r.effects, [{ k: 'begin', body: 'A' }]);
   assert.equal(r.state.beginning, true);
@@ -27,7 +26,7 @@ test('JN12: the first character begins an entry, once', { todo: T }, () => {
   assert.deepEqual(run([{ k: 'type', body: '   ' }]).effects, []);
 });
 
-test('JN13: saved as typed, never twice the same, an emptied entry removed', { todo: T }, () => {
+test('JN13: saved as typed, never twice the same, an emptied entry removed', () => {
   const r = run([{ k: 'type', body: 'A' }, { k: 'type', body: 'A heron' }, { k: 'began', ...E, body: 'A' }]);
   assert.deepEqual(r.effects.at(-1), { k: 'save', ...E, body: 'A heron' });
   const again = run([{ k: 'saved', body: 'A heron' }, { k: 'type', body: 'A heron' }], r.state);
@@ -40,7 +39,7 @@ test('JN13: saved as typed, never twice the same, an emptied entry removed', { t
   assert.deepEqual(early.effects.at(-1), { k: 'drop', ...E });
 });
 
-test('JN13: a failed save is said, the words held, and Retry writes them', { todo: T }, () => {
+test('JN13: a failed save is said, the words held, and Retry writes them', () => {
   const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
   const failed = run([{ k: 'saveFailed' }], typed.state);
   assert.equal(failed.state.failed, true);
@@ -54,7 +53,7 @@ test('JN13: a failed save is said, the words held, and Retry writes them', { tod
   assert.deepEqual(run([{ k: 'retry' }], noBegin.state).effects, [{ k: 'begin', body: 'A' }]);
 });
 
-test('JN15: Done writes what is typed, empties the line and ends the entry', { todo: T }, () => {
+test('JN15: Done writes what is typed, empties the line and ends the entry', () => {
   const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
   const done = run([{ k: 'done' }], typed.state);
   assert.deepEqual(done.effects.slice(-3), [{ k: 'save', ...E, body: 'A heron' }, { k: 'clear' }, { k: 'end' }]);
@@ -63,7 +62,7 @@ test('JN15: Done writes what is typed, empties the line and ends the entry', { t
   assert.deepEqual(run([{ k: 'done' }]).effects, [{ k: 'end' }]);
 });
 
-test('JN15: a photo or memo kept leaves the words as their own piece, and the entry open', { todo: T }, () => {
+test('JN15: a photo or memo kept leaves the words as their own piece, and the entry open', () => {
   const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
   const kept = run([{ k: 'kept' }], typed.state);
   assert.deepEqual(kept.effects.slice(-2), [{ k: 'save', ...E, body: 'A heron' }, { k: 'clear' }]);
@@ -71,20 +70,20 @@ test('JN15: a photo or memo kept leaves the words as their own piece, and the en
   assert.deepEqual(kept.state, PEN_START);
 });
 
-test('JN15: Done while the begin is on its way still ends the entry once it is stored', { todo: T }, () => {
+test('JN15: Done while the begin is on its way still ends the entry once it is stored', () => {
   const r = run([{ k: 'type', body: 'A heron' }, { k: 'done' }, { k: 'began', ...E, body: 'A heron' }]);
   assert.deepEqual(r.effects.slice(-2), [{ k: 'clear' }, { k: 'end' }]);
   assert.deepEqual(r.state, PEN_START);
 });
 
-test('JN15: the entry that closed by itself lets go of the line', { todo: T }, () => {
+test('JN15: the entry that closed by itself lets go of the line', () => {
   const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
   const closed = run([{ k: 'closed' }], typed.state);
   assert.deepEqual(closed.effects, [{ k: 'save', ...E, body: 'A heron' }, { k: 'clear' }]);
   assert.deepEqual(closed.state, PEN_START);
 });
 
-test('JN15: one entry until two minutes, leaving or 100 m; a keystroke counts as its last piece', { todo: T }, () => {
+test('JN15: one entry until two minutes, leaving or 100 m; a keystroke counts as its last piece', () => {
   // The rules are moment stacks' (MS4, MS5), which the journal follows without the setting.
   let s = step(initial, { k: 'kept', id: 'm1', t: 0, walking: true });
   s = step(s, { k: 'piece', id: 'm1', t: 90_000 });
@@ -94,7 +93,7 @@ test('JN15: one entry until two minutes, leaving or 100 m; a keystroke counts as
   assert.equal(openId(step(s, { k: 'leave' }), 91_000), null);
 });
 
-test('JN16: a reference survives typing around it, and counts as words', { todo: T }, () => {
+test('JN16: a reference survives typing around it, and counts as words', () => {
   const ref = refToken('m9', 'the pier, Sep 11');
   assert.equal(hasWords(ref), true);
   assert.equal(hasWords(' \n '), false);
@@ -102,7 +101,7 @@ test('JN16: a reference survives typing around it, and counts as words', { todo:
   assert.deepEqual(r.effects.at(-1), { k: 'save', ...E, body: `Back at ${ref} again` });
 });
 
-test('JN19: the foot lifts by what the keyboard hides, and never while zoomed', { todo: T }, () => {
+test('JN19: the foot lifts by what the keyboard hides, and never while zoomed', () => {
   assert.equal(keyboardLift(844, 844, 0), 0);
   assert.equal(keyboardLift(844, 508, 0), 336);
   assert.equal(keyboardLift(844, 508, 40), 296);

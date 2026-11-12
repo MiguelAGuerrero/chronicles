@@ -45,9 +45,67 @@ export type PenEffect =
 
 export const PEN_START: PenState = { body: '', entry: null, beginning: false, stored: '', after: null, failed: false };
 
-export function penStep(s: PenState, _e: PenEvent): { state: PenState; effects: PenEffect[] } {
-  return { state: s, effects: [] };
+/** Whether a body holds anything worth keeping: words or a reference. */
+export const hasWords = (body: string): boolean => body.trim().length > 0;
+
+const out = (state: PenState, ...effects: PenEffect[]) => ({ state, effects });
+
+/** What letting go of the line does once its piece is stored: write what differs, then empty the line. */
+function letGo(s: PenState, end: boolean): { state: PenState; effects: PenEffect[] } {
+  const effects: PenEffect[] = [];
+  if (s.entry) {
+    if (!hasWords(s.body)) effects.push({ k: 'drop', ...s.entry });
+    else if (s.body !== s.stored) effects.push({ k: 'save', ...s.entry, body: s.body });
+  }
+  if (s.entry || s.body) effects.push({ k: 'clear' });
+  if (end) effects.push({ k: 'end' });
+  return { state: PEN_START, effects };
 }
 
-/** Whether a body holds anything worth keeping: words or a reference. */
-export const hasWords = (_body: string): boolean => false;
+export function penStep(s: PenState, e: PenEvent): { state: PenState; effects: PenEffect[] } {
+  switch (e.k) {
+    case 'type': {
+      const next = { ...s, body: e.body };
+      if (s.beginning) return out(next);
+      if (!s.entry) {
+        // The first character begins an entry (JN12); spaces alone begin nothing.
+        if (!hasWords(e.body) || s.failed) return out(next);
+        return out({ ...next, beginning: true }, { k: 'begin', body: e.body });
+      }
+      // Emptied: the piece is removed, so no blank entry is ever kept (JN13).
+      if (!hasWords(e.body)) return out({ ...PEN_START, body: e.body }, { k: 'drop', ...s.entry });
+      if (e.body === s.stored) return out(next);
+      return out(next, { k: 'save', ...s.entry, body: e.body });
+    }
+    case 'began': {
+      const entry = { momentId: e.momentId, pieceId: e.pieceId };
+      const next: PenState = { ...s, entry, beginning: false, stored: e.body, failed: false };
+      if (s.after) return letGo({ ...next, after: null }, s.after === 'done');
+      if (!hasWords(s.body)) return out({ ...PEN_START, body: s.body }, { k: 'drop', ...entry });
+      if (s.body !== e.body) return out(next, { k: 'save', ...entry, body: s.body });
+      return out(next);
+    }
+    case 'beginFailed':
+      return out({ ...s, beginning: false, after: null, failed: true });
+    case 'saved':
+      return out({ ...s, stored: e.body, failed: s.body === e.body ? false : s.failed });
+    case 'saveFailed':
+      return out({ ...s, failed: true });
+    case 'retry': {
+      if (!s.failed) return out(s);
+      if (s.entry) return out(s, { k: 'save', ...s.entry, body: s.body });
+      if (!hasWords(s.body)) return out({ ...s, failed: false });
+      return out({ ...s, failed: false, beginning: true }, { k: 'begin', body: s.body });
+    }
+    case 'done':
+    case 'kept': {
+      // The begin is still on its way: remembered, and done once the piece is stored (JN15).
+      if (s.beginning) return out({ ...s, after: e.k === 'done' || s.after === 'done' ? 'done' : 'kept' });
+      return letGo(s, e.k === 'done');
+    }
+    case 'closed': {
+      if (s.beginning) return out(s);
+      return letGo(s, false);
+    }
+  }
+}
