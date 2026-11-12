@@ -6,7 +6,6 @@ import { facedAt, type Faced } from '../../moment';
 import { NOTE_SAVE_PAUSE } from '../../motionTokens';
 import { closable, startSave, stepSave, type SaveEvent, type SaveState } from '../../notePage/autosave';
 import { noteHead } from '../../notePage/head';
-import { stripMarks } from '../../notePage/plain';
 import { NOTE_MAX } from '../../noteEdit';
 import { roomOf, roomOfCount } from '../../notePage/room';
 import { toBody, toDoc } from '../../notePage/schema';
