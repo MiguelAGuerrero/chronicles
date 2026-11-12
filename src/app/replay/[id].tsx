@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, FOG_MS } from '../../lib/replay';
+import { backFrom, beatWords, FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -348,14 +348,15 @@ export default function Replay() {
     return () => clearInterval(timer);
   }, [beat, phase.t0, go]);
 
-  // Words for screen readers at each beat.
+  // Words for screen readers at each beat, once as it begins, not again when the walk is read anew (tend replay 9).
+  const saidAt = useRef<number | null>(null);
   useEffect(() => {
     if (!data) return;
-    const s = data.summary;
-    if (beat === 'reading') AccessibilityInfo.announceForAccessibility('Reading the streets you walked');
-    if (beat === 'fog') AccessibilityInfo.announceForAccessibility(headline(s, data).spoken);
-    if (beat === 'card') AccessibilityInfo.announceForAccessibility('Summary');
-  }, [beat, data]);
+    const words = beatWords(beat, phase.t0, saidAt.current, headline(data.summary, data).spoken);
+    if (!words) return;
+    saidAt.current = phase.t0;
+    AccessibilityInfo.announceForAccessibility(words);
+  }, [beat, phase.t0, data]);
 
   // The trace as far as the ceremony has drawn each path; whole outside the path beat.
   const traceBucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;

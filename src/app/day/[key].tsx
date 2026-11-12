@@ -2,7 +2,7 @@ import { type Faced, facedAll } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CaptureViewer } from '../../components/CaptureView';
@@ -22,6 +22,7 @@ import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
 import { buildDays, dayCaptures, dayCard, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
 import { boundsOf, type Bounds } from '../../lib/geo';
+import { beatWords } from '../../lib/replay';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { useUnits } from '../../lib/useUnits';
@@ -182,12 +183,17 @@ export default function DayReplay() {
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
 
-  // The card: the day marked watched, unless Skip reached it (M12, audit).
+  // The card: said once as it comes, however it was reached (tend replay 9, Skip included); the day marked watched,
+  // unless Skip reached it (M12, audit).
+  const saidAt = useRef<number | null>(null);
   useEffect(() => {
-    if (!onCard || !data || skipped) return;
-    db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
-    AccessibilityInfo.announceForAccessibility('Summary of the day');
-  }, [onCard, data, skipped]);
+    if (!onCard || !data) return;
+    const words = beatWords('day-card', phase.t0, saidAt.current, '');
+    if (!words) return;
+    saidAt.current = phase.t0;
+    AccessibilityInfo.announceForAccessibility(words);
+    if (!skipped) db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
+  }, [onCard, data, skipped, phase.t0]);
 
   // Each walk's trace as far as the ceremony has drawn it; every walk whole on the card.
   const bucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
