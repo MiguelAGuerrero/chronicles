@@ -38,6 +38,8 @@ const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
 const STOP_TIMEOUT_MS = 3000;
+/** How long a location read left by an emptied entry serves the next one (chronicle journal JN12). */
+const SPARE_FIX_MS = 120_000;
 /** How long a discarded memo can be brought back. */
 export const UNDO_MS = 5000;
 
@@ -184,8 +186,17 @@ export function useCaptures(
    */
   const startLocating = (s: Stamp) => {
     // In a walk too: while paused the recorder is stopped, so the last fix is where the pause began.
-    if (!s.at && !s.locating && !s.into) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    if (s.at || s.locating || s.into) return;
+    // An entry emptied before it was kept left its read behind: the next one begun in the same sitting takes it,
+    // so nothing is read twice for one kept entry (chronicle journal JN12).
+    const left = spare.current;
+    spare.current = null;
+    s.locating = left && clockNow() - left.at < SPARE_FIX_MS ? left.fix : locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
+  /** The location read of the moment begun last, on its way or answered, and the moments an emptied line removed (JN12, JN13). */
+  const lastLocate = useRef<{ id: string; fix: Promise<LocateResult> } | null>(null);
+  const dropped = useRef(new Set<string>());
+  const spare = useRef<{ fix: Promise<LocateResult>; at: number } | null>(null);
   const folder = () => walkId ?? LOOSE_FOLDER;
 
   /**
@@ -230,6 +241,7 @@ export function useCaptures(
     captureBus.emit(shown, self);
     if (!walkId) onMoment.current?.(c, 'kept');
     onKept.current?.(c.id, false);
+    if (stamp.locating) lastLocate.current = { id: c.id, fix: stamp.locating };
     placeMoment(c, stamp);
     // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
     if (kind !== 'text') void space.afterKept({ recording: walkId != null });
@@ -251,6 +263,8 @@ export function useCaptures(
     }
     stamp.locating
       .then(async (r) => {
+        // Emptied meanwhile (JN13): nothing is left to place.
+        if (dropped.current.has(c.id)) return;
         if (!r.at) {
           report(c, r.reason ?? 'timeout');
           return;
@@ -639,7 +653,50 @@ export function useCaptures(
       if (text.trim()) await add('text', stampNow(true, into), null, text.trim());
     });
 
+  /**
+   * The journal's open line (chronicle journal JN12, JN13): the first character stores a note at once, as a new
+   * moment or, with `into`, as a piece of the open one, and says which, so what is typed after can be written to it.
+   */
+  const beginNote = async (body: string, into: string | null = null): Promise<{ momentId: string; pieceId: string } | null> => {
+    if (!enabled) return null;
+    const stamp = stampNow(true, into);
+    if (stamp.into) return addPiece(stamp.into, 'text', stamp, null, body);
+    const id = await add('text', stamp, null, body);
+    return id ? { momentId: id, pieceId: id } : null;
+  };
+
+  /** What the line holds now, written to its piece; the moment's face follows only when the piece is its face. */
+  const writeNote = async (e: { momentId: string; pieceId: string }, body: string) => {
+    await db.updatePiece(e.pieceId, { body });
+    if (e.pieceId !== e.momentId) return;
+    if (alive.current) setCaptures((prev) => applyPatch(prev, e.momentId, { body }));
+    captureBus.patch(walkId, e.momentId, { body }, self);
+  };
+
+  /**
+   * An entry emptied of its words is not kept (JN13): its piece goes, and the moment with it when it held nothing
+   * else. Says whether the moment went, and leaves its location read for the next entry of the sitting (JN12).
+   */
+  const dropNote = async (e: { momentId: string; pieceId: string }): Promise<'moment' | 'piece'> => {
+    const [stored] = await db.getMomentsByIds([e.momentId]);
+    if (stored && stored.pieces.some((x) => x.id !== e.pieceId)) {
+      await db.deletePieces([e.pieceId]);
+      const [now] = await db.getMomentsByIds([e.momentId]);
+      if (now && alive.current) setCaptures((prev) => prev.map((x) => (x.id === e.momentId ? { ...faced(now), lat: x.lat, lon: x.lon } : x)));
+      return 'piece';
+    }
+    dropped.current.add(e.momentId);
+    // Its read, answered or not, serves the next entry of the sitting: the place is where the writing began.
+    if (lastLocate.current?.id === e.momentId) spare.current = { fix: lastLocate.current.fix, at: clockNow() };
+    await db.deleteMoments([e.momentId]);
+    if (alive.current) setCaptures((prev) => prev.filter((x) => x.id !== e.momentId));
+    return 'moment';
+  };
+
   return {
+    beginNote,
+    writeNote,
+    dropNote,
     captures,
     busy,
     voiceStartedAt,

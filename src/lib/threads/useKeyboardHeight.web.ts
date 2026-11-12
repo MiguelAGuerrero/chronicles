@@ -1,5 +1,6 @@
 // @layer view
 import { useEffect, useState } from 'react';
+import { keyboardLift } from '../journal/keyboard';
 
 /**
  * How far the on-screen keyboard reaches up from the page's foot; 0 while it is down. react-native-web's `Keyboard`
@@ -11,7 +12,8 @@ export function useKeyboardHeight(): number {
   useEffect(() => {
     const vv = typeof window !== 'undefined' ? window.visualViewport : null;
     if (!vv) return;
-    const read = () => setHeight(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    // Nothing while the page is pinch-zoomed: a zoom shrinks the visual viewport too (chronicle journal JN19).
+    const read = () => setHeight(keyboardLift(window.innerHeight, vv.height, vv.offsetTop, vv.scale));
     vv.addEventListener('resize', read);
     vv.addEventListener('scroll', read);
     return () => {

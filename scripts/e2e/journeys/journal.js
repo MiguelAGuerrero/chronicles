@@ -262,6 +262,8 @@ async function run(h) {
   await pg.locator('[data-testid=moment-picker] [data-testid=moment-picker-row]').first().click().catch(() => {});
   await pg.waitForTimeout(800);
   const withRef = await pg.locator(input).inputValue().catch(() => '');
+  // The picker leaves a space after the reference; one delete takes the space, the next the reference whole.
+  await pg.keyboard.press('Backspace');
   await pg.keyboard.press('Backspace');
   await pg.waitForTimeout(300);
   const refGone = await pg.locator(input).inputValue().catch(() => '');
@@ -389,8 +391,9 @@ async function run(h) {
   await pg.locator('[data-testid=viewer-respond]').click().catch(() => {});
   await pg.waitForSelector('[data-testid=respond-sheet]', { timeout: 4000 }).catch(() => {});
   await pg.click('[data-testid=respond-note]', { timeout: 3000 }).catch(() => {});
-  await pg.fill('[data-testid=note-input]', 'He never did play.').catch(() => {});
-  await pg.click('[data-testid=note-save]').catch(() => {});
+  await pg.waitForSelector('[data-testid=note-edit-input]', { timeout: 4000 }).catch(() => {});
+  await pg.fill('[data-testid=note-edit-input]', 'He never did play.').catch(() => {});
+  await pg.click('[data-testid=note-edit-save]').catch(() => {});
   await pg.waitForTimeout(1500);
   await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1500);
@@ -399,15 +402,24 @@ async function run(h) {
     `JN17: a past page has no way to insert, and a response is a new entry at the end that says what it answers (${JSON.stringify({ inserts, lastNow })})`);
 
   // JN18: a refused microphone says so above the line, and the line keeps its box; Undo sits above it too.
-  await c.clearPermissions();
-  await c.grantPermissions(['geolocation']);
+  await pg.evaluate(() => {
+    const md = navigator.mediaDevices;
+    window.__gum = md ? md.getUserMedia.bind(md) : null;
+    window.__pq = navigator.permissions.query.bind(navigator.permissions);
+    const no = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+    if (md) md.getUserMedia = no;
+    navigator.permissions.query = (d) => (d && d.name === 'microphone' ? Promise.resolve({ state: 'denied', onchange: null, addEventListener() {}, removeEventListener() {} }) : window.__pq(d));
+  });
   await pg.click('[data-testid=band-voice]').catch(() => {});
   const err = await there('[data-testid=band-error]', 8000);
   const errBox = await box(pg, '[data-testid=band-error]');
   const lineWithErr = await box(pg, line);
   check.todo(err && !!errBox && errBox.y + errBox.h <= lineWithErr.y && same(lineWithErr, lineAtRest),
     `JN18: a refused microphone is said above the line, which keeps its box (${JSON.stringify({ errBox, lineWithErr })})`);
-  await c.grantPermissions(['geolocation', 'microphone']);
+  await pg.evaluate(() => {
+    if (window.__gum) navigator.mediaDevices.getUserMedia = window.__gum;
+    navigator.permissions.query = window.__pq;
+  });
   await pg.waitForTimeout(6500);
   await pg.locator(entries).last().locator('[data-testid=moment-more]').click().catch(() => {});
   await pg.locator('[data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});

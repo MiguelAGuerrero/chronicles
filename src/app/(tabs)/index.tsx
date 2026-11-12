@@ -26,7 +26,7 @@ import { placeFinds, type ChecklistArea, type Find } from '../../lib/explore/exp
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
 import { zoomOutFor } from '../../lib/zoomOut';
 import { backlogStatus, placeBacklog } from '../../lib/backlog';
-import type { Bounds } from '../../lib/geo';
+import { boundsOf, type Bounds } from '../../lib/geo';
 import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -55,6 +55,8 @@ const tried = new Set<string>();
  * section switch, a replay): a walk placed while the map was away is followed quietly on return (audit 9).
  */
 const placedSeen = { n: 0 };
+/** How far around a moment the map frames when a journal entry asks for it (JN6). */
+const MOMENT_FOCUS_M = 150;
 const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(',') : '');
 /** The closest any of Chronicle's fits may zoom (tabs audit U15). */
 const FIT_MAX_ZOOM = 15;
@@ -199,7 +201,13 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         // its places count as framed, so coming back from a replay keeps the view you left (H5; audit 2).
         const key = boundsKey(bounds);
         let framed = false;
-        if (key !== fittedTo.current) {
+        // Asked for from a journal entry's dateline (JN6): the map frames that moment, not everything walked.
+        const asked = chronicleSection.takeFocus();
+        if (asked) {
+          fittedTo.current = key;
+          zoomOnMount.current = false;
+          setFit((f) => ({ bounds: boundsOf([asked], MOMENT_FOCUS_M), key: f.key + 1 }));
+        } else if (key !== fittedTo.current) {
           const fit = fitsOnRead(fittedTo.current, key, !refit);
           fittedTo.current = key;
           if (fit) setFit((f) => ({ bounds, key: f.key + 1 }));
