@@ -440,7 +440,8 @@ async function run(h) {
         if (await pg.locator('[data-testid=viewer-more]').count()) {
           const onNote = await pg.evaluate(() => !!document.querySelector('[data-testid=viewer-close]') && /First words on the corner\.|Edited on the replay\./.test(document.body.innerText));
           if (onNote) {
-            const shownNote = await pg.locator('text=/^(First words on the corner|Edited on the replay)\.$/').first().isVisible().catch(() => false);
+            // Back keeps what was written (note pages NP9), so the note may read on past its first sentence.
+            const shownNote = await pg.locator('text=/^(First words on the corner|Edited on the replay)\./').first().isVisible().catch(() => false);
             if (shownNote) return;
           }
         }
