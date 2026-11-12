@@ -25,7 +25,7 @@ type State = object;
 type Gate = { results: { sha: string; subject: string; problems: string[]; notices: string[] }[]; ok: boolean };
 const records = createRequire(__filename)(join(ROOT, 'scripts', 'records.js')) as {
   CUTOVER: string;
-  parse(text: string): { blocks: Block[] };
+  parse(text: string): { blocks: Block[]; lines: string[]; eol: boolean };
   apply(kind: Kind, name: string, text: string, args?: Args): { text: string; id?: string };
   replay(docs: Docs, ops: Op[], o?: { ledger?: Ledger }): { docs: Docs };
   trailersOf(ops: Op[]): string[];
@@ -34,6 +34,7 @@ const records = createRequire(__filename)(join(ROOT, 'scripts', 'records.js')) a
   newRangeState(): State;
   checkCommit(c: { base: Docs; head: Docs; message: string; sidecar: string | null; ledger?: Ledger; state: State }): string[];
   gateRange(range: string, o: { cwd: string; loopOnly?: boolean; cutover?: string }): Gate;
+  transact(doc: { blocks: Block[]; lines: string[]; eol: boolean }, made: { edit: { at: number; remove: number; lines: string[] }; mid: (mid: Block[]) => boolean }): string;
 };
 const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   FORBIDDEN: RegExp[];
@@ -389,6 +390,8 @@ test('records caps: at most two entries the run did not file are removed or set 
   assert.match(problems(DOCS0, [rm('QL8'), rm('The vision review'), rm('device milestone')]).join('\n'), /at most two[\s\S]*Open before the loop/);
   // Other sections count apart; notes, first tags and splits are not counted.
   assert.deepEqual(problems(DOCS0, [rm('QL8'), rm('The vision review'), { argv: ['inbox', 'remove', 'T11', '--reason', 'built'] }, { argv: ['open', 'note', 'device milestone'], body: 'Still.' }]), []);
+  const del = (m: string): Op => ({ argv: ['deferred', 'item', 'remove', m, '--reason', 'shipped'] });
+  assert.deepEqual(problems(DOCS0, [del('Cancel pressed'), del('planner'), { argv: ['deferred', 'item', 'tag', 'A Go here tapped', 'loop'] }, { argv: ['deferred', 'item', 'split', 'A Go here tapped'], body: '- [loop] A Go here tapped while a re-route runs is dropped.\n- [loop] Since then: still dropped.' }]), [], 'a first tag and a split beside two removals are not counted');
   const items: Op[] = ['Cancel pressed', 'route preview', 'planner'].map((m) => ({ argv: ['deferred', 'item', 'remove', m, '--reason', 'shipped'] }));
   assert.match(problems(DOCS0, items).join('\n'), /at most two[\s\S]*Navigation and routes/);
   assert.match(problems(DOCS0, ['T11', 'T13', 'T14'].map((t) => ({ argv: ['inbox', 'remove', t, '--reason', 'answered'] }))).join('\n'), /at most two[\s\S]*From \/tend/);
@@ -445,7 +448,7 @@ test('records audit 1: 6af0c01f with its heading and one item kept fails, declar
 test('records audit 2: every T entry removed at once fails', () => {
   const ops: Op[] = ['T11', 'T13', 'T14'].map((t) => ({ argv: ['inbox', 'remove', t, '--reason', 'answered'] }));
   assert.match(problems(DOCS0, ops).join('\n'), /at most two[\s\S]*From \/tend/);
-  assert.match(forged(DOCS0, made(DOCS0, ops).head).join('\n'), /no Records-Op trailer/);
+  assert.match(forged(DOCS0, made(DOCS0, ops).head, ops.slice(0, 2)).join('\n'), /docs\/STATUS\.md does not match its declared operations/, 'two declared, three gone: the third is a hand edit');
 });
 
 test('records audit 3: an open item reworded where it stands is "open set", with its reason; a remove and add put back in place pass too', () => {
@@ -457,11 +460,15 @@ test('records audit 3: an open item reworded where it stands is "open set", with
 });
 
 test('records audit 4: replacing an item the run did not file needs a stated reason, in one commit or across two', () => {
+  const unreasoned = records.newRangeState();
+  const m1 = made(DOCS0, [{ argv: ['open', 'remove', 'QL8'] }]);
+  assert.match(records.checkCommit({ ...m1, state: unreasoned }).join('\n'), /--reason/, 'commit one removes it without a reason');
+  assert.deepEqual(records.checkCommit({ ...made(m1.head, [{ argv: ['open', 'add', '--after', "The map's rule lines"], body: '**Settled** (Nov 13): no change needed.' }]), state: unreasoned }), [], 'commit two puts the gutted text where it stood: the add is the run\'s, the removal was the fault');
   const state = records.newRangeState();
-  assert.match(records.checkCommit({ ...made(DOCS0, [{ argv: ['open', 'remove', 'QL8'] }]), state }).join('\n'), /--reason/);
-  const m1 = made(DOCS0, [{ argv: ['open', 'remove', 'QL8', '--reason', 'the owner amended both (Nov 12)'] }]);
-  assert.deepEqual(records.checkCommit({ ...m1, state: records.newRangeState() }), []);
-  assert.match(m1.message, /--reason "the owner amended both \(Nov 12\)"/, 'the reason is in the trailer');
+  const r1 = made(DOCS0, [{ argv: ['open', 'remove', 'QL8', '--reason', 'the owner amended both (Nov 12)'] }]);
+  assert.deepEqual(records.checkCommit({ ...r1, state }), []);
+  assert.match(r1.message, /--reason "the owner amended both \(Nov 12\)"/, 'the reason is in the trailer');
+  assert.deepEqual(records.checkCommit({ ...made(r1.head, [{ argv: ['open', 'add', '--after', "The map's rule lines"], body: '**Settled** (Nov 13): no change needed.' }]), state }), []);
 });
 
 test('records audit 5: an [owner] item re-tagged [loop] by moving it fails, in one commit or across the range', () => {
@@ -480,7 +487,8 @@ test('records audit 6: a "Slices" row is set only under its own name, with its t
   assert.throws(() => records.apply('status', 'slice row set', STATUS, { match: 'v1.5: landing', body: '| Foo | built | x | y | no |' }), /keeps its name/);
   assert.throws(() => records.apply('status', 'slice row set', STATUS, { match: 'Rides', body: '| Rides | shipped |' }), /cells/);
   assert.throws(() => records.apply('status', 'inflight set', STATUS, { match: 'Note pages', body: '| Other | `x` | built |' }), /keeps its name/);
-  assert.match(forged(DOCS0, withStatus(DOCS0, STATUS.replace("| v1.5: landing (What's good here) | shipped |", '| Foo | built |'))).join('\n'), /no Records-Op trailer/);
+  const swapped = withStatus(DOCS0, STATUS.replace("| v1.5: landing (What's good here) | shipped | `2372244` | `specs/landing/spec.md` | yes |", '| Foo | built | x | y | no |'));
+  assert.match(forged(DOCS0, swapped, [{ argv: ['slice', 'row', 'set', 'v1.5: landing'], body: '| Foo | built | x | y | no |' }]).join('\n'), /keeps its name/, 'declared as a row set, the swap is refused by the operation');
 });
 
 test('records audit 7: a new section goes after the last block, with one intro paragraph at most; no kept block changes section', () => {
@@ -490,7 +498,7 @@ test('records audit 7: a new section goes after the last block, with one intro p
   assert.throws(() => records.apply('deferred', 'item add', DEFERRED, { section: 'Done', create: true, intro: 'One.\n- a bullet', body: 'x' }), /paragraph/);
   // The hand-made version: an H2 inserted before the second item of a section.
   const mid = DEFERRED.replace('- A Go here tapped', '## Done: nothing left\n\nOne.\n\nTwo.\n\n- A Go here tapped');
-  assert.match(forged(DOCS0, withDeferred(DOCS0, mid)).join('\n'), /no Records-Op trailer/);
+  assert.match(forged(DOCS0, withDeferred(DOCS0, mid), [{ argv: ['deferred', 'item', 'add', 'Done: nothing left', '--new'], body: 'Two.', intro: 'One.' }]).join('\n'), /docs\/DEFERRED\.md does not match its declared operations/, 'declared as a new section, it lands at the end, not mid-section');
   // An operation's body that would start a section is refused before it is written.
   assert.throws(() => records.apply('deferred', 'item note', DEFERRED, { match: 'GPX', body: 'x\n## Done' }), /heading/);
   assert.throws(() => records.apply('status', 'open add', STATUS, { body: 'x\nDone\n===' }), /heading|rule/);
@@ -640,10 +648,8 @@ test('records cut-over: commits that are ancestors of the cut-over carry no trai
   assert.ok(!records.gateRange('HEAD~1..HEAD', { cwd: r.dir, loopOnly: true, cutover: 'f'.repeat(40) }).ok, 'a cut-over the clone lacks gates every commit');
 });
 
-test('records cut-over: a commit whose parent does not hold the replay gate is not replayed, wherever main stood', () => {
-  const r = repo('before-gate');
-  r.write('scripts/records.js', '// the record documents, before the replay gate\n');
-  r.commit('Records: an earlier gate');
+test('records cut-over: commits made before the gate are history; every descendant of the gate is replayed', () => {
+  const r = repo('before-gate', { gate: false });
   r.write('docs/STATUS.md', STATUS.replace('reword l.68.', 'reworded.'));
   r.commit("tend map: the run's record");
   assert.ok(records.gateRange('HEAD~1..HEAD', { cwd: r.dir, loopOnly: true }).ok, 'made before the gate: history');
@@ -656,15 +662,193 @@ test('records cut-over: a commit whose parent does not hold the replay gate is n
 });
 
 // ---------------------------------------------------------------------------------------------------
+// Round 2 of the audit (records-script-r2-auditor, Nov 12): F14-F26 and the tests that could not fail.
+
+test('records audit 18: a body, row or section name with a lone carriage return is refused, and so is a document holding one', () => {
+  assert.throws(() => records.apply('deferred', 'item add', DEFERRED, { section: 'Navigation and routes', top: true, body: '[loop] x\r## Done: nothing left here' }), /carriage return/);
+  assert.throws(() => records.apply('status', 'last-tend set', STATUS, { body: 'A digest.\r<!--' }), /carriage return/);
+  assert.throws(() => records.apply('status', 'inbox note', STATUS, { match: 'T11', body: 'ok\r<!--' }), /carriage return/);
+  assert.throws(() => records.apply('status', 'inflight add', STATUS, { body: '| a\r| b | c |' }), /carriage return/);
+  assert.throws(() => records.apply('deferred', 'item add', DEFERRED, { section: 'Done\r## x', create: true, body: 'x' }), /carriage return/);
+  assert.throws(() => records.apply('deferred', 'item add', DEFERRED, { section: 'Done', create: true, intro: 'One.\r## x', body: 'x' }), /carriage return/);
+  assert.throws(() => records.parse('# T\r## U\n'), /carriage return/);
+  assert.ok(records.apply('deferred', 'item add', DEFERRED.replace(/\n/g, '\r\n'), { section: 'Navigation and routes', body: 'x' }).text.includes('\r\n- x\r\n'), 'CRLF is still a line ending');
+});
+
+test('records audit 19: a loop commit after a non-loop commit that drops the marker is still replayed, and the dropped marker is a problem', () => {
+  const r = repo('marker');
+  r.write('scripts/records.js', r.read('scripts/records.js').replace(/Records-Op/g, 'Records\\u002dOp'));
+  r.commit('Records: a refactor');
+  r.write('docs/DEFERRED.md', cut(DEFERRED, '## Navigation and routes', true));
+  r.commit("tend map: the run's record");
+  const g = records.gateRange('HEAD~2..HEAD', { cwd: r.dir, loopOnly: true });
+  assert.ok(!g.ok);
+  const said = g.results.flatMap((x) => x.problems).join('\n');
+  assert.match(said, /no Records-Op trailer/);
+  assert.match(said, /no longer holds the gate/);
+});
+
+test('records audit 20: an [owner] item re-added as [loop] with a word changed, or in the other document, needs a reason naming it', () => {
+  const remove: Op = { argv: ['deferred', 'item', 'remove', '[owner] The route preview', '--reason', 'moved'] };
+  const reworded: Op = { argv: ['deferred', 'item', 'add', 'Navigation and routes', '--top'], body: '[loop] The route preview shows by a border alone' };
+  const native: Op = { argv: ['native', 'item', 'add', 'Compass (CP1-CP8)'], body: "- [ ] [loop] The route preview's selected row shows by a border alone." };
+  for (const add of [reworded, native]) {
+    assert.match(problems(DOCS0, [remove, add]).join('\n'), /names? .*The route preview's selected row shows b/, add.argv[0]);
+    assert.match(problems(DOCS0, [add, remove]).join('\n'), /names? .*The route preview's selected row shows b/, `${add.argv[0]}, added first`);
+  }
+  const state = records.newRangeState();
+  const m1 = made(DOCS0, [remove]);
+  assert.deepEqual(records.checkCommit({ ...m1, state }), []);
+  assert.match(records.checkCommit({ ...made(m1.head, [reworded]), state }).join('\n'), /The route preview's selected row shows b/, 'across commits of the range');
+  const named: Op = { ...reworded, argv: [...reworded.argv, '--reason', "the owner's call on The route preview's selected row shows b... is now the loop's: decided in T30"] };
+  assert.deepEqual(problems(DOCS0, [remove, named]), [], 'a reason naming the item lets it through');
+  assert.deepEqual(problems(DOCS0, [{ argv: ['deferred', 'item', 'remove', 'Cancel pressed', '--reason', 'shipped'] }, reworded]), [], 'a [loop] item removed is not the owner\'s');
+});
+
+test('records audit 21: redo after main took the number keeps the run\'s note on the run\'s entry, and refuses a target that changed', () => {
+  const r = repo('target');
+  assert.equal(r.stdin('- **T? [owner] a** (2026-11-12)\n', 'scripts/records.js', 'inbox', 'add').status, 0);
+  assert.equal(r.stdin('**Answered** (Nov 13): the owner said no; drop it.\n', 'scripts/records.js', 'inbox', 'note', 'T19').status, 0);
+  assert.match(r.node('scripts/records.js', 'trailers').stdout, /^Records-Op: inbox note @1 sha256:/m, 'the note names the run\'s own entry by its handle');
+  const side = readdirSync(join(r.dir, '.claude', 'records'))[0];
+  const kept = r.read(`.claude/records/${side}`);
+  r.git('reset', '-q', '--hard');
+  r.git('clean', '-qfd');
+  // main files its own T19 meanwhile.
+  r.write('docs/STATUS.md', STATUS.replace('  Recommended: its kinds.\n', '  Recommended: its kinds.\n- **T19 [owner] main\'s own** (2026-11-13)\n'));
+  r.write('.claude/skills/tend/ledger.json', JSON.stringify({ lastT: 19, lastG: 4, areas: {} }, null, 2) + '\n');
+  r.commit('Owner: main files T19');
+  mkdirSync(join(r.dir, '.claude', 'records'), { recursive: true });
+  r.write(`.claude/records/${side}`, kept);
+  const redo = r.node('scripts/records.js', 'redo');
+  assert.equal(redo.status, 0, redo.stderr);
+  const doc = r.read('docs/STATUS.md');
+  assert.ok(doc.includes("- **T19 [owner] main's own** (2026-11-13)\n- **T20 [owner] a** (2026-11-12)\n  **Answered** (Nov 13): the owner said no; drop it.\n"), doc);
+  // A sidecar that names the number itself refuses: T19 is not the entry it noted.
+  const raw = (JSON.parse(kept) as { ops: (Op & { target?: string })[] }).ops;
+  raw[1] = { ...raw[1], argv: ['inbox', 'note', 'T19'] };
+  assert.throws(() => records.replay({ ...DOCS0, 'docs/STATUS.md': doc.replace(/- \*\*T20[\s\S]*?drop it\.\n/, '') }, raw, { ledger: { lastT: 19 } }), /target/);
+  // A matched entry changed under the operation: refused.
+  const t = records.replay(DOCS0, [{ argv: ['open', 'remove', 'QL8', '--reason', 'x'] }], { ledger: LEDGER }) as unknown as { steps: { target?: string }[] };
+  const op = { argv: ['open', 'remove', 'QL8', '--reason', 'x'], target: t.steps[0].target };
+  assert.throws(() => records.replay(withStatus(DOCS0, STATUS.replace('amend both in the doc.', 'amend QL8 in the doc.')), [op], { ledger: LEDGER }), /target/);
+});
+
+test('records audit 22: an item filed by a non-loop commit of the push is the run\'s for CI as for the CLI', () => {
+  const r = repo('nonloop');
+  r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  assert.equal(r.stdin('[loop] Threads: a reply waits.\n', 'scripts/records.js', 'deferred', 'item', 'add', 'Navigation and routes').status, 0);
+  r.commit(`Threads TH1: a reply\n\n${r.node('scripts/records.js', 'trailers').stdout}`);
+  const cli = r.node('scripts/records.js', 'deferred', 'item', 'remove', 'Threads: a reply waits');
+  assert.equal(cli.status, 0, cli.stderr);
+  r.commit(`tend map: the run's record\n\n${r.node('scripts/records.js', 'trailers').stdout}`);
+  assert.equal(r.node('scripts/records.js', 'verify', 'origin/main..HEAD').status, 0);
+  const ci = r.node('scripts/tend.js', 'commits', '--loop-only', 'origin/main..HEAD');
+  assert.equal(ci.status, 0, ci.stderr);
+});
+
+test('records audit 23: a clean merge of main into a loop branch passes; a merge that edits a document fails', () => {
+  const r = repo('clean-merge');
+  const base = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('checkout', '-q', '-b', 'run');
+  assert.equal(r.stdin('[loop] A finding.\n', 'scripts/records.js', 'deferred', 'item', 'add', 'Navigation and routes').status, 0);
+  r.commit(`tend map: the run's record\n\n${r.node('scripts/records.js', 'trailers').stdout}`);
+  r.git('checkout', '-q', 'main');
+  r.write('docs/NATIVE_UNVERIFIED.md', NATIVE + '- [ ] **Do:** a check. **Expect:** it holds.\n');
+  r.commit('Owner: a native check');
+  r.git('checkout', '-q', 'run');
+  r.git('merge', '-q', '--no-edit', 'main');
+  const clean = records.gateRange(`${base}..run`, { cwd: r.dir, loopOnly: true });
+  assert.ok(clean.ok, JSON.stringify(clean.results));
+  r.git('checkout', '-q', '-b', 'hand', 'run~1');
+  r.git('merge', '-q', '--no-commit', 'main');
+  r.write('docs/DEFERRED.md', r.read('docs/DEFERRED.md').replace('Dark mode', 'Dark theme'));
+  r.commit('Merge main, by hand');
+  const hand = records.gateRange(`${base}..hand`, { cwd: r.dir, loopOnly: true });
+  assert.ok(!hand.ok);
+  assert.match(hand.results.flatMap((x) => x.problems).join('\n'), /merge[\s\S]*docs\/DEFERRED\.md/);
+});
+
+test('records audit 24: a split neither ticks a checkbox nor reorders, drops or repeats words', () => {
+  assert.throws(() => records.apply('native', 'item split', NATIVE, { match: 'turn the map', body: '- [x] **Do:** turn the map.\n- [x] **Expect:** the compass shows.' }), /marker/);
+  assert.ok(records.apply('native', 'item split', NATIVE, { match: 'turn the map', body: '- [ ] **Do:** turn the map.\n- [ ] **Expect:** the compass shows.' }).text.includes('- [ ] **Do:** turn the map.\n- [ ] **Expect:** the compass shows.\n'));
+  assert.throws(() => records.apply('deferred', 'item split', DEFERRED, { match: 'planner', body: '- [arch] The main thread runs\n- [arch] the planner on.' }), /order/);
+  assert.throws(() => records.apply('deferred', 'item split', DEFERRED, { match: 'planner', body: '- [arch] The planner runs on\n- [arch] main thread.' }), /order|missing/, 'a repeated word dropped');
+  // The split's tag rule runs: an [owner] bullet's part demoted to [loop].
+  assert.match(problems(DOCS0, [{ argv: ['deferred', 'item', 'split', 'route preview'], body: "- [loop] The route preview's selected row\n- [owner] shows by a border alone." }]).join('\n'), /\[owner\] to \[loop\]/);
+});
+
+test('records audit 25: the deploy workflow fetches the whole pushed range and runs the gate as main had it', () => {
+  const wf = read('.github/workflows/pages.yml');
+  assert.match(wf, /fetch-depth: 0/);
+  assert.match(wf, /git show "\$\{BEFORE\}:scripts\/records\.js"/, 'the gate is read from the push\'s base');
+  assert.match(wf, /forced/);
+  assert.match(wf, /::error::[^\n]*BEFORE/i, 'an unreachable base fails a push that is not forced');
+});
+
+test('records audit 26: a committed record whose numbers would move stops the run; a record commit is never amended', () => {
+  assert.match(read('.claude/skills/tend/SKILL.md'), /record commit whose inbox numbers would move[\s\S]{0,200}stop/i);
+  assert.match(read('.claude/skills/ship.md'), /never amend a record commit/i);
+  assert.match(read('.claude/skills/tend/SKILL.md'), /docs\/STATUS\.md`, `docs\/DEFERRED\.md`, `docs\/NATIVE_UNVERIFIED\.md` and the ledger/, 'all three documents and the ledger');
+  assert.doesNotMatch(read('.claude/skills/deploy/SKILL.md'), /or the owner's merge/);
+  assert.match(read('.claude/skills/tend/SKILL.md'), /item split[^\n]*\n?[^\n]*(order|marker)/, 'the split\'s guard is said whole');
+});
+
+test('records audit 27: redo writes only the documents its operations touch, and refuses another changed by hand', () => {
+  const r = repo('redo-only');
+  assert.equal(r.stdin('Filed.\n', 'scripts/records.js', 'open', 'add').status, 0);
+  r.write('docs/DEFERRED.md', DEFERRED.replace('Dark mode', 'Dark theme'));
+  const refused = r.node('scripts/records.js', 'redo');
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /docs\/DEFERRED\.md/);
+  assert.ok(r.read('docs/DEFERRED.md').includes('Dark theme'), 'the hand edit is left as it was');
+  r.write('docs/DEFERRED.md', DEFERRED);
+  assert.equal(r.node('scripts/records.js', 'redo').status, 0);
+});
+
+test('records audit 28: an inbox entry removed in the range can be put back under its number', () => {
+  const back: Op = { argv: ['inbox', 'add', '--id', 'T11'], body: '- **T11 [owner] Voice and note are two taps away** (2026-11-11)' };
+  const gone: Op = { argv: ['inbox', 'remove', 'T11', '--reason', 'answered by mistake'] };
+  assert.deepEqual(problems(DOCS0, [gone, back]), []);
+  const state = records.newRangeState();
+  const m1 = made(DOCS0, [gone]);
+  assert.deepEqual(records.checkCommit({ ...m1, state }), []);
+  assert.deepEqual(records.checkCommit({ ...made(m1.head, [back]), state }), [], 'in a later commit of the range');
+  assert.match(forged(m1.head, m1.head, [back]).join('\n'), /already given out/, 'outside the range that removed it, the number stays retired');
+});
+
+test('records audit 29: a link reference definition is refused as a body', () => {
+  assert.throws(() => records.apply('deferred', 'item add', DEFERRED, { section: 'Navigation and routes', body: '[owner]: https://example.com "a"' }), /link reference/);
+  assert.throws(() => records.apply('status', 'open note', STATUS, { match: 'QL8', body: '  [x]: /y' }), /link reference/);
+});
+
+test('records audit 30: trailers without a sidecar must be canonical', () => {
+  const head = made(DOCS0, [{ argv: ['open', 'remove', 'QL8', '--reason', 'x'] }]).head;
+  const say = (line: string) => records.checkCommit({ base: DOCS0, head, message: `tend map: x\n\n${line}\n`, sidecar: null, ledger: LEDGER, state: records.newRangeState() });
+  assert.deepEqual(say('Records-Op: open remove QL8 --reason x'), []);
+  assert.match(say('Records-Op: open remove QL8 --reason "x" --intro').join('\n'), /not as .*trailers.* prints|canonical/);
+  assert.match(say('Records-Op: open  remove QL8 --reason x').join('\n'), /not as .*trailers.* prints|canonical/);
+});
+
+test('records: transact refuses an edit that moves another block or does not read back as its entry', () => {
+  const doc = records.parse('# T\n\n## A\n\npara\n\n- a\n');
+  assert.throws(() => records.transact(doc, { edit: { at: 5, remove: 0, lines: ['x'] }, mid: () => true }), /would also alter "para"/);
+  assert.throws(() => records.transact(doc, { edit: { at: 6, remove: 0, lines: ['## B', ''] }, mid: () => true }), /would also alter "- a"/, 'an item that keeps its text but changes section');
+  assert.throws(() => records.transact(doc, { edit: { at: 6, remove: 0, lines: ['- b'] }, mid: (m) => m.length === 2 }), /does not read back/);
+  assert.equal(records.transact(doc, { edit: { at: 6, remove: 0, lines: ['- b'] }, mid: (m) => m.length === 1 && m[0].text === '- b' }), '# T\n\n## A\n\npara\n\n- b\n- a\n');
+});
+
+// ---------------------------------------------------------------------------------------------------
 // The shell: the command line and the CI gate, in a repository of their own.
 
 const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
-function repo(name: string) {
+function repo(name: string, { gate = true }: { gate?: boolean } = {}) {
   const dir = join(tmp, name);
   mkdirSync(join(dir, 'scripts'), { recursive: true });
   mkdirSync(join(dir, 'docs'), { recursive: true });
   mkdirSync(join(dir, '.claude', 'skills', 'tend'), { recursive: true });
   for (const f of ['records.js', 'tend.js']) copyFileSync(join(ROOT, 'scripts', f), join(dir, 'scripts', f));
+  if (!gate) writeFileSync(join(dir, 'scripts', 'records.js'), '// the record documents, before the replay gate\n');
   writeFileSync(join(dir, 'docs', 'STATUS.md'), STATUS);
   writeFileSync(join(dir, 'docs', 'DEFERRED.md'), DEFERRED);
   writeFileSync(join(dir, 'docs', 'NATIVE_UNVERIFIED.md'), NATIVE);
