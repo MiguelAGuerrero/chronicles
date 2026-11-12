@@ -30,7 +30,7 @@ import { noteHead, type NoteHead } from '../lib/notePage/head';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
-import { mentioning, plainNote } from '../lib/refs';
+import { mentioning, plainNote, withGone } from '../lib/refs';
 import type { MomentView } from '../lib/resurface/types';
 import { useMomentPool } from './threads/useMomentPool';
 import { MomentPicker } from './threads/MomentPicker';
@@ -180,7 +180,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   /** A moment's responses, named in words at the end of the info line, a button that opens them (response thread RT1). */
   responses?: { text: string; onPress: () => void } | null;
   /** A note is read as its page (NP5): its head, its drawing to its last line; a tap on the words asks to edit. */
-  note?: { head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void };
+  note?: { head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void; gone?: (id: string) => boolean };
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -286,10 +286,13 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   if (capture.kind === 'text' && props.note) {
     return (
       <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
-        <NoteReader body={capture.body ?? ''} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
+        {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
+        <View testID="capture-card" style={styles.pageArea}>
+        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
         <View style={[styles.metaRow, styles.pageMeta]}>
           <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
           {actions(false)}
+        </View>
         </View>
       </View>
     );
@@ -324,6 +327,8 @@ export function CaptureViewer(props: {
   onClose: () => void;
   /** Extra words per capture, e.g. which walk it came from. */
   context?: Map<string, string>;
+  /** A note's page head line per moment, where the screen has one (note pages NP2), without touching the info line. */
+  heads?: Map<string, string>;
   /** A heading over the captures, e.g. "What happened here". */
   title?: string;
   /**
@@ -381,7 +386,9 @@ export function CaptureViewer(props: {
   const [noting, setNoting] = useState<Faced | null>(null);
   // A note's page is headed by the day and the moment's context as the viewer was given it (NP2).
   const [headNow] = useState(() => Date.now());
-  const headOf = (c: Faced): NoteHead => noteHead({ t: c.t, now: headNow, time: timeOf(c), context: props.context?.get(c.id) ?? null, placing: false, draft: null });
+  // With no line given, it says what it knows and never claims no place for a placed moment (note-pages audit 2).
+  const headOf = (c: Faced): NoteHead =>
+    noteHead({ t: c.t, now: headNow, time: timeOf(c), context: props.heads?.get(c.id) ?? props.context?.get(c.id) ?? null, placing: false, draft: null, placed: c.lat != null, onWalk: !!c.walk_id });
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
@@ -665,6 +672,8 @@ export function CaptureViewer(props: {
                       const v = pool.byId.get(id);
                       if (v && !hidden.has(v.id)) setOpenedStack((st) => [...st, v.capture]);
                     },
+                    // A moment no longer kept, or waiting in Undo, reads so and opens nothing (RF5; note-pages audit 10).
+                    gone: pool.ready ? (id) => !pool.byId.has(id) || hidden.has(id) : undefined,
                   }
                 : undefined
             }
@@ -825,11 +834,18 @@ export function CaptureViewer(props: {
               create: async () => {},
               save: async (body) => {
                 const c = noting;
+                const before = edited.get(c.piece_id);
                 setEdited((m) => new Map(m).set(c.piece_id, body));
                 try {
                   await props.onSaveNote?.(c, body);
                 } catch (e) {
-                  setSaveState({ id: c.id, text: 'The note could not be saved' });
+                  // What shows is what is kept (note-pages audit 5): the page stays open with its words.
+                  setEdited((m) => {
+                    const n = new Map(m);
+                    if (before == null) n.delete(c.piece_id);
+                    else n.set(c.piece_id, before);
+                    return n;
+                  });
                   throw e;
                 }
               },
@@ -1078,6 +1094,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius,
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  pageArea: { flex: 1 },
   pageMeta: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.surface, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   nav: { flexDirection: 'row', gap: 8 },
   action: {

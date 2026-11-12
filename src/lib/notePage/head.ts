@@ -15,6 +15,10 @@ export type NoteHeadInput = {
   placing: boolean;
   /** A page still being written, before anything is kept; `onWalk` says whether it goes to a walk. */
   draft: { onWalk: boolean } | null;
+  /** The moment has a place, though no line names it here (note-pages audit 2): never "No place kept". */
+  placed?: boolean;
+  /** The moment belongs to a walk (said when no context line says so). */
+  onWalk?: boolean;
 };
 
 export type NoteHead = { day: string; line: string; short: string };
@@ -42,8 +46,14 @@ export const NO_PLACE_KEPT = 'No place kept';
 export function noteHead(i: NoteHeadInput): NoteHead {
   const day = dayOf(i.t, i.now);
   const shortDay = shortDayOf(i.t, i.now);
-  if (i.draft) return { day, line: `${i.time} · ${i.draft.onWalk ? 'On your walk' : 'Not on a walk'}`, short: shortDay };
-  const context = i.context?.trim() || null;
+  if (i.draft) {
+    const where = i.placing && !i.draft.onWalk ? ` · ${PLACE_PENDING}` : '';
+    return { day, line: `${i.time} · ${i.draft.onWalk ? 'On your walk' : 'Not on a walk'}${where}`, short: shortDay };
+  }
+  const given = i.context?.trim() || null;
+  // A placed moment is never said to have no place, whatever line it was given (note-pages audit 2).
+  const context = given && i.placed && given.startsWith(`${NO_PLACE_KEPT} · `) ? given.slice(NO_PLACE_KEPT.length + 3) : given;
+  if (!context && i.placed) return { day, line: `${i.time} · ${i.onWalk ? 'On a walk' : 'Not on a walk'}`, short: shortDay };
   if (!context) return { day, line: `${i.time} · ${i.placing ? PLACE_PENDING : NO_PLACE_KEPT}`, short: shortDay };
   const place = context.split(' · ')[0];
   return { day, line: `${i.time} · ${context}`, short: `${shortDay} · ${place}` };

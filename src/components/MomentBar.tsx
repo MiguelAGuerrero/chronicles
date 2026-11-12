@@ -294,7 +294,8 @@ export function CaptureRow(props: {
             into={page.into}
             onWalk={!!props.onWalk}
             camera
-            onKept={() => saved('text')}
+            // Kept a second into writing: the toast says where it went, with no buzz mid-sentence (note-pages audit 27).
+            onKept={() => onKept?.('text')}
             onClose={() => setPage(null)}
           />
         )}

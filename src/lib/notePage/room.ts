@@ -19,7 +19,12 @@ export const ROOM_FULL = 'This note is full';
 export const ROOM_WARN_AT = 1000;
 
 export function roomOf(body: string): Room {
-  const left = NOTE_MAX - shownLength(body);
+  return roomOfCount(shownLength(body));
+}
+
+/** The room left by the count the editor keeps (note-pages audit 8), so the line and the editor's limit agree. */
+export function roomOfCount(shown: number): Room {
+  const left = NOTE_MAX - shown;
   if (left <= 0) return { full: true, line: ROOM_FULL };
   if (left < ROOM_WARN_AT) return { full: false, line: ROOM_FEW };
   return { full: false, line: null };

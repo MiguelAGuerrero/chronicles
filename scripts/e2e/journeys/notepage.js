@@ -16,13 +16,14 @@ const SEED = () => {
     { id: 'page', t: now - 2 * DAY, body: `# Bakery\n\nSmelled it **two** blocks *off*.\n\n- rye\n- warm\n\n1. one\n2. two\n\n- [ ] come back\n- [x] ask her name\n\n> the queue went round the corner\n\n${long}\n\nThe last line.`, body_format: 'md' },
     { id: 'old', t: now - 3 * DAY, body: '> 5 km\n*sigh*\nsnake_case\n# 3 buses', body_format: null },
     { id: 'fig', t: now - 4 * DAY, body: 'The fig tree on Hope Street.', body_format: null },
+    { id: 'placed', t: now - 5 * DAY, body: 'Kept at the corner, with its place.', body_format: 'md', lat: 41.8195, lon: -71.4006 },
   ];
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
       const tx = req.result.transaction(['moment'], 'readwrite');
-      for (const m of moments) tx.objectStore('moment').put({ id: m.id, walk_id: null, t: m.t, lat: null, lon: null, segment_id: null, piece_ids: [m.id], pieces: [piece(m.id, m.t, m.body, m.body_format)] });
+      for (const m of moments) tx.objectStore('moment').put({ id: m.id, walk_id: null, t: m.t, lat: m.lat ?? null, lon: m.lon ?? null, segment_id: null, piece_ids: [m.id], pieces: [piece(m.id, m.t, m.body, m.body_format)] });
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     };
@@ -190,7 +191,7 @@ async function run(h) {
   await pg.click('[data-testid=band-note]');
   await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.waitForTimeout(1500);
-  await pg.click('[data-testid=note-back]');
+  await pg.keyboard.press('Escape');
   await gone('[data-testid=note-page]');
   await pg.waitForTimeout(800);
   const emptyKeptNothing = (await stored(pg)).length === n0;
@@ -203,7 +204,7 @@ async function run(h) {
   // NP5: a formatted note reads in the viewer, drawn, to its last line.
   await card.scrollIntoViewIfNeeded();
   await card.locator('[data-testid=moment-open]').click();
-  await there('[data-testid=note-reader] [data-testid=note-input]', 10000);
+  await there('[data-testid=note-reader] [data-testid=note-text]', 10000);
   await pg.waitForTimeout(800);
   await shot(pg, 'np-05-reader');
   const read = {
@@ -212,18 +213,18 @@ async function run(h) {
     editable: await pg.locator('[data-testid=note-reader] [contenteditable=true]').count(),
   };
   const bodyBefore = (await stored(pg)).find((m) => m.id === 'page').pieces[0].body;
-  await pg.locator('[data-testid=note-reader] input[type=checkbox]').first().click({ force: true }).catch(() => {});
-  await pg.waitForTimeout(800);
-  const bodyAfterTick = (await stored(pg)).find((m) => m.id === 'page').pieces[0].body;
   // NP2: scrolled past the head, the short head is the reader's; on the page it is the top bar's (checked below).
   await pg.locator('[data-testid=note-reader] [data-testid=note-scroll]').evaluate((e) => { e.scrollTop = e.scrollHeight; });
   await pg.waitForTimeout(400);
   const lastSeen = await pg.locator('[data-testid=note-reader] >> text=The last line.').isVisible().catch(() => false);
+  // A box in the reader ticks nothing; it opens the page, as the words do (note-pages audit 23).
+  await pg.locator('[data-testid=note-reader] input[type=checkbox]').first().click({ force: true }).catch(() => {});
+  await there('[data-testid=note-page] [data-testid=note-input]');
+  await pg.waitForTimeout(800);
+  const bodyAfterTick = (await stored(pg)).find((m) => m.id === 'page').pieces[0].body;
   check(read.h1 >= 2 && read.task === 2 && read.quote === 1 && read.strong === 1 && read.editable === 0 && lastSeen && bodyAfterTick === bodyBefore,
     `NP5: the note reads drawn and read-only to its last line, and a tap on a box there changes nothing (${JSON.stringify(read)}, last ${lastSeen})`);
   // NP6: on the page, a tick is kept; nothing counts the boxes.
-  await pg.click('[data-testid=viewer-edit-note]');
-  await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.locator('[data-testid=note-scroll]').last().evaluate((e) => { e.scrollTop = e.scrollHeight; e.dispatchEvent(new Event('scroll')); });
   await pg.waitForTimeout(400);
   const short = (await pg.locator('[data-testid=note-short]').innerText().catch(() => '')).trim();
@@ -244,12 +245,12 @@ async function run(h) {
   const oldText = (await oldCard.innerText().catch(() => '')).trim();
   await oldCard.scrollIntoViewIfNeeded();
   await oldCard.locator('[data-testid=moment-open]').click();
-  await there('[data-testid=note-reader] [data-testid=note-input]', 10000);
-  const oldRead = (await pg.locator('[data-testid=note-reader] [data-testid=note-input]').innerText()).trim();
+  await there('[data-testid=note-reader] [data-testid=note-text]', 10000);
+  const oldRead = (await pg.locator('[data-testid=note-reader] [data-testid=note-text]').innerText()).trim();
   await pg.click('[data-testid=viewer-edit-note]');
   await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.waitForTimeout(1500);
-  await pg.click('[data-testid=note-back]');
+  await pg.keyboard.press('Escape');
   await gone('[data-testid=note-page]');
   await pg.waitForTimeout(600);
   const oldRow = (await stored(pg)).find((m) => m.id === 'old').pieces[0];
@@ -264,7 +265,11 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   const notEmptied = (await stored(pg)).find((m) => m.id === 'old')?.pieces[0].body === '> 5 km\n*sigh*\nsnake_case\n# 3 buses';
   await pg.click('[data-testid=note-done]');
+  // The viewer closes with the page, then the toast lifts in on Memories.
+  await pg.waitForTimeout(1500);
   const undo = await there('[data-testid=undo-toast]', 6000);
+  // Failed once in eight runs (specs/note-pages, Record): say what was on screen, so the next failure says why.
+  if (!undo) console.log('NP9 state', JSON.stringify({ page: await pg.locator('[data-testid=note-page]').count(), viewer: await pg.locator('[data-testid=viewer-close]').count(), toast: await pg.locator('[data-testid=undo-toast]').count(), old: !!(await stored(pg)).find((m) => m.id === 'old'), meta: await pg.locator('[data-testid=capture-meta]').first().innerText().catch(() => null) }));
   check(emptyKeptNothing && notEmptied && undo, `NP9: an empty new page keeps nothing; an emptied note keeps its words until left, then goes with Undo (${emptyKeptNothing}, ${notEmptied}, ${undo})`);
   if (undo) await pg.click('[data-testid=undo]');
   await pg.waitForTimeout(600);
@@ -290,12 +295,116 @@ async function run(h) {
   check(leaks.img + leaks.iframe + leaks.a === 0 && outside.filter((u) => u.includes('example.com')).length === 0 && !!pasted && !/<img|<iframe|\]\(http/.test(pasted.pieces[0].body),
     `NP13: nothing leaves the app while a page with a URL is written and read, and pasted HTML leaves no image, frame or link (${JSON.stringify(leaks)}, ${outside.length} outside)`);
 
+  // The audit's regression checks (specs/note-pages, Record).
+  const fault = (on) => pg.evaluate((v) => {
+    window.__failMoment = v;
+    if (window.__faultPatched) return;
+    window.__faultPatched = true;
+    for (const m of ['put', 'add']) {
+      const orig = IDBObjectStore.prototype[m];
+      IDBObjectStore.prototype[m] = function (...a) {
+        if (window.__failMoment && this.name === 'moment') throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        return orig.apply(this, a);
+      };
+    }
+  }, on);
+  await pg.click('[data-testid=band-note]');
+  await there('[data-testid=note-page] [data-testid=note-input]');
+  // note-pages audit 19, 21: one way out (Done), and the keyboard bar's buttons say what they are.
+  const topButtons = await pg.locator('[data-testid=note-page] [data-testid=note-top] [role=button]').count();
+  const barWords = (await pg.locator('[data-testid=note-bar]').innerText().catch(() => '')).replace(/\s+/g, ' ');
+  check(topButtons === 1 && (await pg.locator('[data-testid=note-done]').count()) === 1, `note-pages audit 19: the page's top bar has one way out, Done (${topButtons} buttons)`);
+  check(/Format/.test(barWords) && /Mention/.test(barWords) && /Camera/.test(barWords), `note-pages audit 21: the keyboard bar's buttons are labelled ("${barWords}")`);
+  // note-pages audit 25: no focus frame round the page while writing.
+  await input().click();
+  const outline = await input().evaluate((e) => getComputedStyle(e).outlineStyle);
+  check(outline === 'none', `note-pages audit 25: the page being written has no focus frame (${outline})`);
+  // note-pages audit 4: a save that fails keeps the page open with its words, and Done tries again.
+  await fault(true);
+  await pg.keyboard.type('Faulty words kept.');
+  await pg.waitForTimeout(1800);
+  const failedSaid = (await pg.locator('[data-testid=note-short]').innerText().catch(() => '')).trim();
+  await pg.click('[data-testid=note-done]');
+  await pg.waitForTimeout(800);
+  const stillOpen = (await pg.locator('[data-testid=note-page]').count()) === 1 && (await input().innerText()).includes('Faulty words kept.');
+  await fault(false);
+  await pg.click('[data-testid=note-done]');
+  const closedOnce = await gone('[data-testid=note-page]');
+  await pg.waitForTimeout(600);
+  const faultyKept = (await stored(pg)).some((m) => (m.pieces?.[0]?.body ?? '').startsWith('Faulty words kept.'));
+  check(failedSaid === 'Not saved yet' && stillOpen && closedOnce && faultyKept, `note-pages audit 4: a failed save keeps the page open with its words; Done keeps it once it can (${failedSaid}, ${stillOpen}, ${closedOnce}, ${faultyKept})`);
+  // note-pages audit 2: a placed note opened from Memories never says "No place kept".
+  const placedCard = pg.locator('[data-testid=moment-card]:has-text("Kept at the corner")').first();
+  await placedCard.scrollIntoViewIfNeeded();
+  await placedCard.locator('[data-testid=moment-open]').click();
+  await there('[data-testid=note-reader] [data-testid=note-line]', 10000);
+  await pg.waitForTimeout(1500);
+  const placedLine = (await pg.locator('[data-testid=note-reader] [data-testid=note-line]').innerText()).trim();
+  check(!/No place kept/.test(placedLine), `note-pages audit 2: a placed note's page never says No place kept ("${placedLine}")`);
+  // note-pages audit 23: a box in the reader opens the page for writing, and changes nothing.
+  await pg.click('[data-testid=viewer-close]');
+  await gone('[data-testid=viewer-close]');
+  const pageCard = pg.locator('[data-testid=moment-card]:has-text("Bakery")').first();
+  await pageCard.scrollIntoViewIfNeeded();
+  await pageCard.locator('[data-testid=moment-open]').click();
+  await there('[data-testid=note-reader] input[type=checkbox]', 10000);
+  const bodyNow = (await stored(pg)).find((m) => m.id === 'page').pieces[0].body;
+  await pg.locator('[data-testid=note-reader] input[type=checkbox]').first().click({ force: true });
+  const toPage = await there('[data-testid=note-page] [data-testid=note-input]', 5000);
+  check(toPage && (await stored(pg)).find((m) => m.id === 'page').pieces[0].body === bodyNow, 'note-pages audit 23: a box in the reader opens the page for writing and ticks nothing');
+  // note-pages audit 18: a ticked item's words are not struck through; the tick is the mark.
+  const struck = await pg.locator('[data-testid=note-page] ul[data-type=taskList] > li[data-checked=true] > div').first().evaluate((e) => getComputedStyle(e).textDecorationLine).catch(() => 'missing');
+  check(struck === 'none', `note-pages audit 18: a ticked item's words are not struck through (${struck})`);
+  // note-pages audit 5: the viewer's Edit, failing, keeps the page open and the stored words as they were.
+  await fault(true);
+  await input().click();
+  await pg.keyboard.press('Control+End');
+  await pg.keyboard.type(' More.');
+  await pg.waitForTimeout(1800);
+  await pg.click('[data-testid=note-done]');
+  await pg.waitForTimeout(800);
+  const editOpen = (await pg.locator('[data-testid=note-page]').count()) === 1;
+  const unchanged = (await stored(pg)).find((m) => m.id === 'page').pieces[0].body === bodyNow;
+  await fault(false);
+  await pg.click('[data-testid=note-done]');
+  await gone('[data-testid=note-page]');
+  check(editOpen && unchanged, `note-pages audit 5: a failed save from the viewer leaves the page open and the stored words as they were (${editOpen}, ${unchanged})`);
+  // note-pages audit 26: a mention chip's edge reads at 3:1 (theme.edge).
+  const chipEdge = await pg.locator('[data-testid=note-reader] .mention, [data-testid=note-reader] [data-id]').first().evaluate((e) => getComputedStyle(e).borderTopColor).catch(() => null);
+  if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
+  await gone('[data-testid=viewer-close]');
+  const n1 = (await stored(pg)).find((m) => (m.pieces?.[0]?.body ?? '').includes('@['));
+  const chipCard = n1 ? pg.locator(`[data-testid=moment-card]:has-text("by the door")`).first() : null;
+  let edge = chipEdge;
+  if (chipCard && (await chipCard.count())) {
+    await chipCard.scrollIntoViewIfNeeded();
+    await chipCard.locator('[data-testid=moment-open]').click();
+    await there('[data-testid=note-reader] .mention', 10000);
+    edge = await pg.locator('[data-testid=note-reader] .mention').first().evaluate((e) => getComputedStyle(e).borderTopColor);
+    await pg.click('[data-testid=viewer-close]');
+    await gone('[data-testid=viewer-close]');
+  }
+  check(edge === 'rgb(138, 133, 125)', `note-pages audit 26: a mention chip's edge is the control edge, 3:1 (${edge})`);
+  // note-pages audit 14: a reply's page has the camera too.
+  const figCard = pg.locator('[data-testid=moment-card]:has-text("The fig tree")').first();
+  await figCard.scrollIntoViewIfNeeded();
+  await figCard.locator('[data-testid=moment-open]').click();
+  await there('[data-testid=viewer-respond]', 10000);
+  await pg.click('[data-testid=viewer-respond]');
+  await pg.click('[data-testid=respond-note]');
+  await there('[data-testid=note-page] [data-testid=note-input]');
+  check((await pg.locator('[data-testid=note-page] [data-testid=note-camera]').count()) === 1, 'note-pages audit 14: a reply\'s page has the camera');
+  // The web's viewer takes no Escape (threads journey): Done leaves the empty reply, keeping nothing.
+  await pg.click('[data-testid=note-done]');
+  await gone('[data-testid=note-page]');
+  if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
+
   // NP1 on Navigate, ready: its pencil opens the page too.
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=moment-note]', { timeout: 30000 });
   await pg.click('[data-testid=moment-note]');
   const readyPage = await there('[data-testid=note-page] [data-testid=note-input]');
-  await pg.click('[data-testid=note-back]');
+  await pg.keyboard.press('Escape');
   check(readyPage, 'NP1: Navigate\'s pencil opens the page in one tap');
   await c.close();
 }

@@ -138,8 +138,11 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=plan-capture]', { timeout: 30000 }).catch(() => {});
   check((await pg.locator('[data-testid=plan-capture]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-photo]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-voice]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-note]').count()) === 1, 'WP23: with a walk recording, the capture stack is on the planner: photo, voice and note, one tap away');
   await pg.click('[data-testid=plan-cap-note]');
-  await pg.fill('[data-testid=plan-note] textarea, [data-testid=plan-note] input', 'A note from the planner');
-  await pg.click('[data-testid=plan-note] >> text=Save');
+  // note-pages audit 13: the planner's pencil opens the note's page too, never the old card.
+  const plannerPage = await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).then(() => true, () => false);
+  check(plannerPage && (await pg.locator('[data-testid=plan-note]').count()) === 0, 'note-pages audit 13: the planner\'s pencil opens the note\'s page');
+  await pg.fill('[data-testid=note-page] [data-testid=note-input]', 'A note from the planner');
+  await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(1500);
   const saved = await pg.evaluate((id) => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');

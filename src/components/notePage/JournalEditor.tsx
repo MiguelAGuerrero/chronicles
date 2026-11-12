@@ -6,15 +6,15 @@
  * picker, the camera and the saving. Everything it says back is plain data: the body as Markdown, the words as shown,
  * which formats are on, that @ was typed.
  */
-import { useEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
-import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
+import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor, type ReactNodeViewProps } from '@tiptap/react';
 import { CharacterCount, Placeholder } from '@tiptap/extensions';
 import { IS_DOM, useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from 'expo/dom';
 import { noteExtensions, toBody, toDoc, type BodyFormat } from '../../lib/notePage/schema';
 
 export type Formats = { h1: boolean; h2: boolean; bold: boolean; italic: boolean; bullet: boolean; ordered: boolean; task: boolean; quote: boolean };
 export type FormatKind = 'h1' | 'h2' | 'body' | 'bold' | 'italic' | 'bullet' | 'ordered' | 'task' | 'quote';
-export type Palette = { ink: string; muted: string; line: string; bg: string; surface: string };
+export type Palette = { ink: string; muted: string; line: string; edge: string; bg: string; surface: string };
 
 /** What the app asks of the editor (Expo DOM's handle: plain JSON arguments). `format` takes a `FormatKind`. */
 export interface JournalHandle extends DOMImperativeFactory {
@@ -24,8 +24,29 @@ export interface JournalHandle extends DOMImperativeFactory {
 }
 type JSONValue = Parameters<DOMImperativeFactory[string]>[number];
 
+/** A mention as the reader draws it: `useMentionCards`' JSON (RF4, RF5). */
+type Card = { gone: true; text: string } | { gone: false; name: string; line: string; spoken: string };
+const Cards = createContext<Record<string, Card> | undefined>(undefined);
+
+/** A mention in the reader: a card of its moment, its words and its date, place and walk; or that it is gone (RF4, RF5). */
+function MentionView(p: ReactNodeViewProps) {
+  const cards = useContext(Cards);
+  const id = String(p.node.attrs.id);
+  const c = cards?.[id];
+  if (!c) return <NodeViewWrapper as="span" className="mention" data-id={id}>@{String(p.node.attrs.label ?? 'a moment')}</NodeViewWrapper>;
+  if (c.gone) return <NodeViewWrapper as="span" className="card gone" data-testid="ref-card-gone">{c.text}</NodeViewWrapper>;
+  return (
+    <NodeViewWrapper as="span" className="card mention" data-id={id} data-testid="ref-card" role="button" tabIndex={0} aria-label={c.spoken}>
+      <span className="card-name">{c.name}</span>
+      <span className="card-line">{c.line}</span>
+    </NodeViewWrapper>
+  );
+}
+
 type Props = {
   dom?: DOMProps;
+  /** The reader's cards of the moments mentioned (RF4); while writing, a mention is a chip. */
+  mentions?: Record<string, Card>;
   ref?: Ref<JournalHandle>;
   body: string;
   bodyFormat: BodyFormat;
@@ -35,7 +56,8 @@ type Props = {
   maxChars: number;
   head: { day: string; line: string };
   palette: Palette;
-  onChange: (body: string, shown: string) => void;
+  /** The body, the words as shown, and the editor's own count of them (the one its limit holds to). */
+  onChange: (body: string, shown: string, count: number) => void;
   onFormats: (f: Formats) => void;
   /** @ was typed (the picker opens); the @ stays as typed if nothing is picked (RF1). */
   onMention: () => void;
@@ -86,6 +108,7 @@ export default function JournalEditor(props: Props) {
     extensions: [
       ...noteExtensions({
         readOnlyTicks: false,
+        mentionView: props.editable ? undefined : ReactNodeViewRenderer(MentionView, { as: 'span' }),
         checkboxLabel: (text, checked) => `Checkbox, ${checked ? 'ticked' : 'not ticked'}${text ? `: ${text}` : ''}`,
         mention: {
           HTMLAttributes: { class: 'mention' },
@@ -109,9 +132,10 @@ export default function JournalEditor(props: Props) {
       CharacterCount.configure({ limit: props.maxChars }),
     ],
     editorProps: {
-      attributes: { 'data-testid': 'note-input', 'aria-label': 'Note', role: 'textbox', 'aria-multiline': 'true', class: 'page' },
+      // Being written it is `note-input`; read, `note-text`, so a reply's page over a read note is never confused with it.
+      attributes: { 'data-testid': props.editable ? 'note-input' : 'note-text', 'aria-label': 'Note', role: 'textbox', 'aria-multiline': 'true', class: 'page' },
     },
-    onUpdate: ({ editor: e }) => cb.current.onChange(toBody(e.getJSON()), e.getText({ blockSeparator: '\n' })),
+    onUpdate: ({ editor: e }) => cb.current.onChange(toBody(e.getJSON()), e.getText({ blockSeparator: '\n' }), e.storage.characterCount.characters()),
     onSelectionUpdate: ({ editor: e }) => cb.current.onFormats(formatsOf(e)),
     onTransaction: ({ editor: e }) => cb.current.onFormats(formatsOf(e)),
   });
@@ -150,7 +174,7 @@ export default function JournalEditor(props: Props) {
 
   const p = props.palette;
   const css = `
-    .page, .page:focus, .page:focus-visible { outline: none; }
+    .page, .page:focus, .page:focus-visible, [data-testid=note-input]:focus-visible { outline: none !important; }
     .page { font-size: 17px; line-height: 1.5; color: ${p.ink}; min-height: 40vh; padding-bottom: 96px; }
     .page p { margin: 0 0 10px; }
     .page h1 { font-size: 26px; line-height: 1.25; margin: 18px 0 8px; font-weight: 700; }
@@ -163,9 +187,12 @@ export default function JournalEditor(props: Props) {
     .page ul[data-type=taskList] > li > label span { display: none; }
     .page ul[data-type=taskList] > li > div { flex: 1; min-width: 0; padding-top: 1px; }
     .page ul[data-type=taskList] > li > div p { margin: 0 0 6px; }
-    .page ul[data-type=taskList] > li[data-checked=true] > div { text-decoration: line-through; text-decoration-color: ${p.muted}; }
     .page blockquote { margin: 0 0 10px; padding-left: 14px; border-left: 3px solid ${p.muted}; }
-    .page .mention { border: 1px solid ${p.line}; border-radius: 8px; padding: 1px 6px; background: ${p.surface}; white-space: nowrap; cursor: pointer; }
+    .page .mention { border: 1px solid ${p.edge}; border-radius: 8px; padding: 1px 6px; background: ${p.surface}; white-space: nowrap; cursor: pointer; }
+    .page .card { display: flex; flex-direction: column; gap: 2px; margin: 8px 0; padding: 8px 10px; border: 1px solid ${p.edge}; border-radius: 12px; background: ${p.surface}; cursor: pointer; white-space: normal; }
+    .page .card-name { font-weight: 600; font-size: 15px; }
+    .page .card-line { font-size: 13px; color: ${p.muted}; }
+    .page .card.gone { color: ${p.muted}; cursor: default; }
     .page p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: ${p.muted}; float: left; height: 0; pointer-events: none; }
   `;
   const root: CSSProperties = { position: 'absolute', inset: 0, overflowY: 'auto', background: p.bg, color: p.ink, fontFamily: '-apple-system, system-ui, Roboto, sans-serif', WebkitTextSizeAdjust: '100%' };
@@ -188,7 +215,11 @@ export default function JournalEditor(props: Props) {
           cb.current.onOpenMention(mention.getAttribute('data-id') ?? '');
           return;
         }
-        if (!cb.current.editable && !el.closest('label') && el.closest('.page')) cb.current.onTapToEdit();
+        // A box in the reader is a way in, like the words: it opens the page and ticks nothing (note-pages audit 23).
+        if (!cb.current.editable && el.closest('.page')) {
+          if (el.closest('label')) e.preventDefault();
+          cb.current.onTapToEdit();
+        }
       }}
     >
       <style>{css}</style>
@@ -197,7 +228,9 @@ export default function JournalEditor(props: Props) {
           <h1 role="heading" aria-level={1} style={{ fontSize: 28, lineHeight: 1.2, fontWeight: 700, margin: '0 0 6px', color: p.ink }} data-testid="note-day">{props.head.day}</h1>
           <p style={{ fontSize: 15, margin: 0, color: p.muted }} data-testid="note-line">{props.head.line}</p>
         </header>
-        <EditorContent editor={editor} />
+        <Cards.Provider value={props.mentions}>
+          <EditorContent editor={editor} />
+        </Cards.Provider>
       </div>
     </div>
   );

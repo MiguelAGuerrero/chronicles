@@ -87,6 +87,16 @@ export function MemoriesScreen() {
     });
   }, []);
   const [viewing, setViewing] = useState<Faced[] | null>(null);
+  // A note's page is headed by the line Lately reads for it (note pages NP2; note-pages audit 2).
+  const headsOf = (list: { id: string }[] | null): Map<string, string> | undefined => {
+    if (!list) return undefined;
+    const m = new Map<string, string>();
+    for (const c of list) {
+      const e = state.context[c.id];
+      if (e?.state === 'done') m.set(c.id, e.line);
+    }
+    return m;
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [hiddenOpen, setHiddenOpen] = useState(false);
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
@@ -469,6 +479,7 @@ export function MemoriesScreen() {
           threads.load().catch(() => {});
         }}
         thread={own ? { id: own.id, name: own.name } : null}
+        heads={headsOf(viewing)}
         remind
         onSaveEdit={async (c, patch) => {
           await captureEdits.save(c, patch);
@@ -479,6 +490,7 @@ export function MemoriesScreen() {
       <CaptureViewer
         key={recalled?.[0]?.id ?? 'none'}
         captures={memoOn ? null : recalled}
+        heads={headsOf(recalled)}
         onClose={() => setRecalled(null)}
         autoPlay
         remind

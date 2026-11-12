@@ -218,5 +218,10 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   - **Ticks only on the page**: TaskItem's `onReadOnlyChecked` refuses while reading (the steward's S1, 0114).
   - **On a phone, nothing loads** (NP13): the DOM document adds a Content-Security-Policy meta when `IS_DOM`; the
     schema has no image, frame or link, so a paste keeps none. `@expo/dom-webview` can't refuse a navigation.
+  - **Leaving** (the audit): Done is the one way out; Escape and system Back go through `requestClose` and keep too. The page
+    closes only once what is written is kept (`closable`): a failed save keeps it open, "Not saved yet" in its top bar.
+  - **Mentions** read as cards in the reader (RF4): `useMentionCards` gives JSON to the DOM, drawn by TipTap's
+    `ReactNodeViewRenderer` under a React context; while writing, a chip. A gone moment's token is relabelled by `withGone`.
   - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
-    `innerText()`); the page is `note-page`, Done `note-done`, Back `note-back`, the body `note-input` everywhere.
+    `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
+    (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.

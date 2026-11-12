@@ -255,7 +255,7 @@ async function run(h) {
   // The web's viewer takes no Escape; native's Back goes through the same composeFor first (NATIVE_UNVERIFIED).
   // A page left empty keeps nothing (note pages NP9): its words cleared, Back leaves no reply behind.
   await pg.fill('[data-testid=note-input]', '');
-  await pg.click('[data-testid=note-back]');
+  await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(300);
   check(!(await has('[data-testid=note-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=viewer-respond]')), 'owner-threads audit 9: Back closes the note being written, leaves the viewer open and Respond ready');
   await closeViewer();

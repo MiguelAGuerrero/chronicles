@@ -113,8 +113,8 @@ export const ReplyDock = forwardRef<NotePageHandle, {
         </View>
       )}
       {props.stage === 'note' && (
-        // A reply's page (NP1): begun at the tap, answering this moment, kept as it is written; no camera here.
-        <NewNotePage ref={noteRef} key={props.answeredId} cap={cap} into={null} onWalk={!!walkId} onClose={() => props.setStage(null)} />
+        // A reply's page (NP1): begun at the tap, answering this moment, kept as it is written; its camera too (note-pages audit 14).
+        <NewNotePage ref={noteRef} key={props.answeredId} cap={cap} into={null} onWalk={!!walkId} camera onClose={() => props.setStage(null)} />
       )}
     </>
   );

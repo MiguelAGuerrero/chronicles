@@ -162,3 +162,10 @@ export function typedAt(prev: string, next: string): number | null {
   while (a < prev.length && prev[a] === next[a]) a++;
   return next[a] === '@' && next.slice(a + 1) === prev.slice(a) ? a : null;
 }
+
+/** A note's mentions of moments no longer kept read so (RF5; note-pages audit 10), for a drawing that has no lookup. */
+export const withGone = (body: string, gone: (id: string) => boolean): string =>
+  body.replace(TOKEN, (m, id: string) => (gone(id) ? refToken(id, GONE) : m));
+
+/** A note's words and mentions in order; a page's marks dropped whole first, never split at a mention (note-pages audit 12). */
+export const noteParts = (body: string, format?: 'md' | null): RefPart[] => parseRefs(format === 'md' ? stripMarks(body) : body);

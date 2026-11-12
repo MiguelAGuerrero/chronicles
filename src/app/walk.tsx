@@ -1881,10 +1881,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
             into={page.into}
             onWalk
             camera
-            onKept={() => {
-              feedback('tap');
-              setToast('Note saved here');
-            }}
+            // No buzz mid-sentence (note-pages audit 27); the toast says where it went.
+            onKept={() => setToast('Note saved here')}
             onClose={() => setPage(null)}
           />
         )}

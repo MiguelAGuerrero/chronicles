@@ -1,5 +1,6 @@
 // @layer core
 import { NOTE_SAVE_PAUSE } from '../motionTokens';
+import { stripMarks } from './plain';
 /**
  * Saving a page as it is written (NP9, decision 0149): a reducer, because pauses, leaving, the background, a save
  * in flight and a failed one tangle (functional-core rule). The view runs its effects through the screen's own
@@ -16,6 +17,8 @@ export type SaveState = {
   inFlight: boolean;
   failed: boolean;
   leaving: boolean;
+  /** Its delete has gone out: never twice. */
+  deleted?: boolean;
 };
 
 export type SaveEvent =
@@ -28,7 +31,11 @@ export type SaveEvent =
 
 export type SaveEffect = { type: 'create'; body: string } | { type: 'save'; body: string } | { type: 'delete' };
 
-const has = (text: string) => text.trim().length > 0;
+/** Words, not marks: a page of only empty bullets, boxes or quotes has none (note-pages audit 6). */
+const has = (text: string) => text.trim().length > 0 && stripMarks(text).trim().length > 0;
+
+/** The page may close: nothing in flight, nothing failed (note-pages audit 4). A failure keeps it open, its words on it. */
+export const closable = (s: SaveState): boolean => !s.inFlight && !s.failed;
 
 export function startSave(o: { kept: boolean; body: string; now: number }): SaveState {
   return { kept: o.kept, text: o.body, stored: o.body, editedAt: o.now, inFlight: false, failed: false, leaving: false };
@@ -54,10 +61,12 @@ export function stepSave(s: SaveState, e: SaveEvent): { state: SaveState; effect
     case 'background':
       return write({ ...s, failed: false });
     case 'leave': {
+      // Left once already (note-pages audit 11): what that started is running; a failure since is retried.
+      if (s.leaving && !s.failed) return { state: s, effects: [] };
       const left = { ...s, leaving: true, failed: false };
       if (!has(s.text)) {
         if (!s.kept || s.inFlight) return { state: left, effects: [] };
-        return { state: left, effects: [{ type: 'delete' }] };
+        return { state: { ...left, deleted: true }, effects: [{ type: 'delete' }] };
       }
       return write(left);
     }
@@ -65,7 +74,7 @@ export function stepSave(s: SaveState, e: SaveEvent): { state: SaveState; effect
       const landed = { ...s, kept: true, stored: e.text, inFlight: false, failed: false };
       // Words typed while it was in flight are written at once when leaving, else at the next pause.
       if (landed.leaving) {
-        if (!has(landed.text)) return { state: landed, effects: [{ type: 'delete' }] };
+        if (!has(landed.text)) return landed.deleted ? { state: landed, effects: [] } : { state: { ...landed, deleted: true }, effects: [{ type: 'delete' }] };
         return write(landed);
       }
       return { state: landed, effects: [] };

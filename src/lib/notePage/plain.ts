@@ -50,7 +50,8 @@ function blocks(tokens: Token[], lines: string[]): void {
 export function stripMarks(md: string): string {
   const lines: string[] = [];
   blocks(new Lexer({ gfm: true }).lex(md), lines);
-  return lines.map((l) => l.trim()).filter((l) => l.length > 0).join('\n');
+  // A bare box with no words is no words (note-pages audit 6).
+  return lines.map((l) => l.trim()).filter((l) => l.length > 0 && !/^\[[ xX]?\]$/.test(l)).join('\n');
 }
 
 /** What the replay's screen-reader step reads of a note (NP10): its first 300 characters, then a line that it goes on. */

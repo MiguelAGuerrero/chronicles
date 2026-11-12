@@ -502,7 +502,7 @@ async function run(h) {
       };
       check(after.picker === 0 && after.editor === 1 && after.text === 'Edited on the replay. and @',
         `tend chronicle 1: Escape closes the @ picker alone, and the note editor keeps its words (${JSON.stringify(after)})`);
-      if (after.editor) await pg.click('[data-testid=note-back]');
+      if (after.editor) await pg.click('[data-testid=note-done]');
       await pg.waitForTimeout(300);
       if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(400);

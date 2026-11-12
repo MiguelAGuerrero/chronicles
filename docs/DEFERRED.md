@@ -611,10 +611,15 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Note pages (NP1-NP14, decision 0149)
 
-- **A mention on the page is a chip, not a card with its picture** (NP5): the editor runs in a WebView on phones, which may not reach the app's media files; the chip says the moment's words, and a tap opens it. Drawing the picture needs the file passed in as data, a cost per mention.
+- **A mention's card has no picture** (NP5, RF4): the reader draws a card of the moment's kind, words, date, place and walk, and the page while writing a chip; the editor runs in a WebView on phones, which may not reach the app's media files. Drawing the picture needs the file passed in as data, a cost per mention.
 - **"Added to on Nov 30"**: words added to a note weeks later carry its first time (the steward, silent 1); saying so needs a stored edit time.
 - **The page's camera is on capture surfaces only** (the pencil on Navigate, the walk and Memories' band): a reply's page and Edit in the viewer have none, since the viewer holds no camera of its own.
 - **Selection across a whole page, dragging blocks, a "/" menu, links, tables, photos inline**: out by the owner's calls (Nov 12).
 - **Undo of a whole session's writing**: TipTap's history covers the page while it is open.
 - **An older note's lines read as paragraphs on its page**, a little spaced, until it is written in (NP7 keeps its characters, not its spacing).
 - **The room left is counted by the editor's words as shown**, a mention as "@" and its words, one more than `shownLength`'s count.
+- **A failed camera on the page is said off the page** (note-pages audit 9): a refused camera's message and a held photo's Retry draw on the screen under the page's Modal; the photo is held, never lost, and Retry shows once the page closes, but a photo kept by Retry is not mentioned in the note.
+- **The page's format panel uses typed glyphs, and its style row is not a segmented control** (note-pages audit 22, the UX review's U4, low).
+- **The reader's info line repeats the date and time the head says** (note-pages audit 24, U6): the viewer's line is read by other journeys; trimming it for notes is its own change.
+- **A page being written does not say how far into the walk or "just after"** (note-pages audit 3, in part): it needs the walk's start and the capture before, at the tap.
+- **A camera mention's words are "A photo" or "A video"** (note-pages audit 26, in part), not the moment's own context.

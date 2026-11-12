@@ -130,7 +130,7 @@ export function facedAt(f: Faced, pieceId: string): Faced {
   const p = f.pieces.find((x) => x.id === pieceId);
   if (!p) return f;
   return {
-    ...f, piece_id: p.id, kind: p.kind, file_path: p.file_path, body: p.body,
+    ...f, piece_id: p.id, kind: p.kind, file_path: p.file_path, body: p.body, body_format: p.body_format ?? null,
     caption: p.caption ?? null, caption_y: p.caption_y ?? null, thumb_path: p.thumb_path ?? null, edit: p.edit ?? null,
   };
 }

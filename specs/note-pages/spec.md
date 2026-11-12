@@ -143,4 +143,40 @@ amended by NP1 and NP8 (decision 0149). Their test reads the limit from `NOTE_MA
 
 ## Record
 
-(Filled in as the slice is built: what passed, what was deferred, the UI review's triage.)
+Built 2026-11-12 on `claude/blissful-ptolemy-o3q79x`: NP1-NP14 tested first by history (14 of 14, `check:test-first`),
+unit tests in `src/lib/__tests__/notes/`, the dbContract NP7 case, and the `notepage` journey. Native unverified.
+
+### Audit (2026-11-12, at the owner's request; auditor, steward and ux-reviewer together, decision 0145)
+
+27 findings: 20 fixed (two in part), 3 deferred, 4 merged into others. Pictures: `np-01` to `np-05` (390 x 844).
+
+1. A stack's note takes its face's mark (`facedAt`): accept, fixed; `note-pages audit 1`.
+2. The viewer heads a placed note "No place kept": accept, fixed (the head says what it knows; Memories passes its lines as `heads`); `note-pages audit 2` (unit and e2e).
+3. A new page's head says no place: accept in part, fixed: "Place not kept yet" while the fix is on the way; `note-pages audit 3`. The walk's "how far in" and "just after" on a page being written are deferred (they need the walk's start and the capture before, at the tap).
+4. A failed save on the way out loses a new note: accept, fixed (the page stays open until it is kept); `note-pages audit 4` (unit and e2e, with a storage fault).
+5. The viewer shows a failed edit as kept: accept, fixed (rolled back; the page stays open); `note-pages audit 5` (e2e).
+6. Empty bullets, boxes or quotes count as words: accept, fixed; `note-pages audit 6`.
+7. `---` and indented lines are dropped once written in: accept, fixed; `note-pages audit 7`.
+8. The editor's limit and the room line count differently: accept, fixed (the line uses the editor's count); `note-pages audit 8`.
+9. The page's camera fails out of sight: defer (`docs/DEFERRED.md`): the photo is held and its Retry shows once the page closes.
+10. The reader's mentions are chips, a gone moment keeps its words: accept, fixed: cards through TipTap's React node views (RF4's words and spoken name; the `threads` journey's RF4 checks), and a gone moment reads "A moment no longer kept"; `note-pages audit 10`. The card's picture is deferred.
+11. A second leave deletes twice: accept, fixed; `note-pages audit 11`.
+12. Marks split at a mention in a thread's bubble: accept, fixed (`noteParts`); `note-pages audit 12`.
+13. The planner's pencil keeps the old card: accept, fixed; `note-pages audit 13` (`planner` journey).
+14. A reply's page has no camera: accept, fixed; `note-pages audit 14`.
+15. (steward S1) A new page's head lacks context: merged into 3.
+16. (steward S2) The viewer says "No place kept": merged into 2.
+17. (steward S3) A reply's page has no camera: merged into 14.
+18. (steward S4) A ticked item's words are struck through: accept, fixed (the tick is the mark); `note-pages audit 18`.
+19. (UX U1) Back and Done both keep: accept, fixed: Done is the one way out (Escape and system Back still leave and keep); `note-pages audit 19`.
+20. (UX U2) The head leaves out context: merged into 2 and 3.
+21. (UX U3) The keyboard bar is icon-only: accept, fixed (Format, Mention, Camera under their marks); `note-pages audit 21`.
+22. (UX U4) The panel's typed glyphs and grouping: defer (a segmented style row and symbols are polish; nothing wraps or misleads).
+23. (UX U5) The reader's boxes look tickable and do nothing: accept, fixed (a box opens the page, as the words do; it ticks nothing); `note-pages audit 23`.
+24. (UX U6) The reader's info line repeats the date: defer (other journeys read the viewer's info line; a change of its own).
+25. (UX U7) A focus frame round the page: accept, fixed (`webStyles`' `!important` outline is beaten on the page); `note-pages audit 25`.
+26. (UX U8) The chip's edge is faint, its words generic: accept in part, fixed: the edge is `theme.edge` (3:1); `note-pages audit 26`. "A photo" as a camera mention's words is deferred.
+27. (auditor, UI) A buzz a second into writing, its toast under the page: accept, fixed (no haptic for a note; the toast after); covered by review only.
+
+Open: the `notepage` journey's NP9 check (the Undo after an emptied note is left) failed once in eight runs on the branch and
+passed the other seven; the journey prints the page, viewer and toast counts when it fails, so the next failure says why.

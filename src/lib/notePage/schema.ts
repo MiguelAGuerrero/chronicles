@@ -5,7 +5,7 @@
  * null, every note written before) is read literally: each of its lines a paragraph of plain text, so `# 3 buses`
  * stays as typed, and once written in it is kept as Markdown that shows the same characters.
  */
-import type { AnyExtension, JSONContent, MarkdownToken } from '@tiptap/core';
+import type { AnyExtension, JSONContent, MarkdownToken, NodeViewRenderer } from '@tiptap/core';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { Mention } from '@tiptap/extension-mention';
 import { MarkdownManager } from '@tiptap/markdown';
@@ -35,7 +35,14 @@ export const NoteMention = Mention.extend({
 
 /** A line of a paragraph that Markdown would read as a block of its own is kept as text (NP7). */
 const LEADING = /^(\s*)(#{1,6}(?=\s|$)|\d+(?=[.)]\s)|[-+*](?=\s)|>)/;
-const keepLeading = (line: string) => line.replace(LEADING, (_m, sp: string, mark: string) => `${sp}${/^\d/.test(mark) ? mark : `\\${mark[0]}${mark.slice(1)}`}`).replace(/^(\s*\d+)([.)])(?=\s)/, '$1\\$2');
+const keepLeading = (line: string) =>
+  line
+    // An indent would read as code: it is kept as no-break spaces, which read the same (note-pages audit 7).
+    .replace(/^[ \t]+/, (ws) => ws.replace(/\t/g, '    ').replace(/ /g, '\u00a0'))
+    // A line of three or more -, * or _ would read as a rule (note-pages audit 7).
+    .replace(/^(\u00a0*)([-*_])((?:\s*\2){2,}\s*)$/, '$1\\$2$3')
+    .replace(LEADING, (_m, sp: string, mark: string) => `${sp}${/^\d/.test(mark) ? mark : `\\${mark[0]}${mark.slice(1)}`}`)
+    .replace(/^(\s*\d+)([.)])(?=\s)/, '$1\\$2');
 
 const SafeParagraph = Paragraph.extend({
   renderMarkdown(node, helpers, ctx) {
@@ -51,6 +58,8 @@ export type EditorOptions = {
   readOnlyTicks?: boolean;
   /** How a checkbox is heard (NP12). */
   checkboxLabel?: (text: string, checked: boolean) => string;
+  /** How a mention is drawn: the reader draws it as a card of its moment (RF4). */
+  mentionView?: NodeViewRenderer;
 };
 
 /** The extensions the document is made of: the subset of the spec and nothing more (no link, image, code or rule). */
@@ -64,7 +73,7 @@ export function noteExtensions(o: EditorOptions = {}): AnyExtension[] {
       onReadOnlyChecked: () => !!o.readOnlyTicks,
       ...(o.checkboxLabel ? { a11y: { checkboxLabel: (node, checked) => o.checkboxLabel!(node.textContent, checked) } } : {}),
     }),
-    o.mention ? NoteMention.configure(o.mention) : NoteMention,
+    (o.mentionView ? NoteMention.extend({ addNodeView: () => o.mentionView! }) : NoteMention).configure(o.mention ?? {}),
   ];
 }
 

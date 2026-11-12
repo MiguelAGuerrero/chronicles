@@ -2,9 +2,9 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NOTE_MAX } from '../../lib/noteEdit';
-import { startSave, stepSave, type SaveEffect, type SaveEvent } from '../../lib/notePage/autosave';
+import { closable, startSave, stepSave, type SaveEffect, type SaveEvent } from '../../lib/notePage/autosave';
 import type { NoteHead } from '../../lib/notePage/head';
-import { fits, roomOf } from '../../lib/notePage/room';
+import { fits, roomOfCount } from '../../lib/notePage/room';
 import type { BodyFormat } from '../../lib/notePage/schema';
 import { refLabel } from '../../lib/threads/lines';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
@@ -12,6 +12,7 @@ import { Icon } from '../icons';
 import { MomentPicker } from '../threads/MomentPicker';
 import { useMomentPool } from '../threads/useMomentPool';
 import { theme } from '../ui';
+import { useMentionCards } from './useMentionCards';
 import JournalEditor, { type FormatKind, type Formats, type JournalHandle, type Palette } from './JournalEditor';
 
 /** How a page keeps what is written (NP9): a new note becomes a moment once it has words; then it is saved; left empty, it goes. */
@@ -42,7 +43,7 @@ export function newNoteStore(keep: (body: string) => Promise<{ id: string; piece
   };
 }
 
-export const PALETTE: Palette = { ink: theme.ink, muted: theme.muted, line: theme.line, bg: theme.surface, surface: theme.bg };
+export const PALETTE: Palette = { ink: theme.ink, muted: theme.muted, line: theme.line, edge: theme.edge, bg: theme.surface, surface: theme.bg };
 export const PLACEHOLDER = 'Start writing';
 
 /** The page's saving (NP9): `autosave.ts`'s reducer, its effects run through the store, a pause read every quarter second. */
@@ -53,6 +54,8 @@ function useAutosave(store: NoteStore, initial: string) {
   const alive = useRef(true);
   const [failed, setFailed] = useState(false);
   const runRef = useRef<(e: SaveEvent) => void>(() => {});
+  // Left, the page closes once nothing is in flight; a failure keeps it open with its words (note-pages audit 4).
+  const closeWhenKept = useRef<(() => void) | null>(null);
   useEffect(() => {
     storeRef.current = store;
     const exec = (fx: SaveEffect) => {
@@ -66,6 +69,11 @@ function useAutosave(store: NoteStore, initial: string) {
       state.current = r.state;
       if (alive.current) setFailed(r.state.failed);
       r.effects.forEach(exec);
+      const close = closeWhenKept.current;
+      if (close && closable(state.current)) {
+        closeWhenKept.current = null;
+        close();
+      } else if (close && state.current.failed) closeWhenKept.current = null;
     };
   });
   useEffect(() => {
@@ -85,7 +93,11 @@ function useAutosave(store: NoteStore, initial: string) {
   return {
     failed,
     edit: (text: string) => runRef.current({ type: 'edit', text, now: Date.now() }),
-    leave: () => runRef.current({ type: 'leave' }),
+    /** Leaves: `close` runs once what is written is kept, or at once if nothing needs keeping; never after a failure. */
+    leave: (close: () => void) => {
+      closeWhenKept.current = close;
+      runRef.current({ type: 'leave' });
+    },
   };
 }
 
@@ -108,8 +120,8 @@ const NONE: Formats = { h1: false, h2: false, bold: false, italic: false, bullet
 
 export type NotePageHandle = { requestClose(): void };
 
-/** One of the page's tools: 44 pt, named, and pressed or not where it toggles (NP4). */
-function Tool(props: { testID: string; label: string; onPress: () => void; on?: boolean; disabled?: boolean; children: React.ReactNode }) {
+/** One of the page's tools: 44 pt, named, and pressed or not where it toggles (NP4); the bar's say their name (note-pages audit 21). */
+function Tool(props: { testID: string; label: string; caption?: string; onPress: () => void; on?: boolean; disabled?: boolean; children: React.ReactNode }) {
   return (
     <Pressable
       testID={props.testID}
@@ -119,16 +131,18 @@ function Tool(props: { testID: string; label: string; onPress: () => void; on?: 
       aria-pressed={props.on}
       disabled={props.disabled}
       onPress={props.onPress}
-      style={({ pressed }) => [styles.tool, props.on && styles.toolOn, (pressed || props.disabled) && styles.dim]}
+      style={({ pressed }) => [styles.tool, props.caption != null && styles.toolCaptioned, props.on && styles.toolOn, (pressed || props.disabled) && styles.dim]}
     >
       {props.children}
+      {props.caption != null ? <Text style={styles.caption}>{props.caption}</Text> : null}
     </Pressable>
   );
 }
 
 /**
  * A note's page (NP1-NP14, decision 0149), in Apple Journal's manner: the day and the moment's context at its head,
- * the words under them, kept as they are written. Back and Done both leave and keep. Aa opens the format panel, @
+ * the words under them, kept as they are written. Done is the one way out, and keeps (so do Escape and Back; note-pages
+ * audit 19). Aa opens the format panel, @
  * the moment picker, the camera (where the page was opened to capture) a photo kept as its own moment and mentioned.
  * Drawn inside whichever Modal is open, never as a Modal of its own (iOS: no Modal over a Modal).
  */
@@ -151,15 +165,14 @@ export const NotePage = forwardRef<NotePageHandle, {
   const [picking, setPicking] = useState(false);
   const [past, setPast] = useState(false);
   const [shown, setShown] = useState('');
+  const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const pool = useMomentPool(picking);
   const [now] = useState(() => Date.now());
-  const room = roomOf(shown);
+  // The room line counts what the editor counts, so it says full when the editor takes no more (note-pages audit 8).
+  const room = roomOfCount(count);
   const onClose = props.onClose;
-  const leave = () => {
-    save.leave();
-    onClose();
-  };
+  const leave = () => save.leave(onClose);
   useImperativeHandle(ref, () => ({
     requestClose: () => {
       if (picking) setPicking(false);
@@ -175,11 +188,8 @@ export const NotePage = forwardRef<NotePageHandle, {
   const bottom = Platform.OS === 'web' ? keyboard : 0;
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[StyleSheet.absoluteFill, styles.page]} testID="note-page">
-      <View style={[styles.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable testID="note-back" accessibilityRole="button" accessibilityLabel="Back" onPress={leave} style={({ pressed }) => [styles.topBtn, pressed && styles.dim]}>
-          <Icon name="chevron-back" size={22} color={theme.ink} />
-          <Text style={styles.topText}>Back</Text>
-        </Pressable>
+      <View style={[styles.top, { paddingTop: insets.top + 6 }]} testID="note-top">
+        <View style={styles.topBtn} />
         <Text style={[styles.short, save.failed && styles.failed]} numberOfLines={1} testID="note-short" accessibilityLiveRegion="polite">
           {save.failed ? 'Not saved yet' : past ? props.head.short : ''}
         </Text>
@@ -199,8 +209,9 @@ export const NotePage = forwardRef<NotePageHandle, {
           maxChars={NOTE_MAX}
           head={{ day: props.head.day, line: props.head.line }}
           palette={PALETTE}
-          onChange={(body, text) => {
+          onChange={(body, text, n) => {
             setShown(text);
+            setCount(n);
             save.edit(body);
           }}
           onFormats={setFormats}
@@ -224,16 +235,17 @@ export const NotePage = forwardRef<NotePageHandle, {
         </View>
       )}
       <View style={[styles.bar, { paddingBottom: (keyboard && Platform.OS !== 'ios' ? 0 : insets.bottom) + 6, marginBottom: bottom }]} testID="note-bar" accessibilityRole="toolbar">
-        <Tool testID="note-format" label="Format" on={panel} onPress={() => setPanel((p) => !p)}>
+        <Tool testID="note-format" label="Format" caption="Format" on={panel} onPress={() => setPanel((p) => !p)}>
           <Text style={styles.glyph}>Aa</Text>
         </Tool>
-        <Tool testID="note-mention" label="Mention a moment" onPress={() => setPicking(true)}>
+        <Tool testID="note-mention" label="Mention a moment" caption="Mention" onPress={() => setPicking(true)}>
           <Text style={styles.glyph}>@</Text>
         </Tool>
         {camera ? (
           <Tool
             testID="note-camera"
             label="Take a photo or video"
+            caption="Camera"
             disabled={busy}
             onPress={() => {
               setBusy(true);
@@ -271,10 +283,12 @@ export const NotePage = forwardRef<NotePageHandle, {
  * edit, a mention opens its moment, a checkbox changes nothing (the steward's S1, decision 0114).
  */
 export function NoteReader(props: { body: string; bodyFormat: BodyFormat; head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void }) {
+  const mentions = useMentionCards(props.body);
   return (
     <View style={styles.reader} testID="note-reader">
       <JournalEditor
         dom={{ style: { flex: 1 } } as never}
+        mentions={mentions}
         body={props.body}
         bodyFormat={props.bodyFormat}
         editable={false}
@@ -310,6 +324,8 @@ const styles = StyleSheet.create({
   panelRow: { paddingHorizontal: 8, gap: 6, alignItems: 'center' },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingTop: 6, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line, backgroundColor: theme.surface },
   tool: { minWidth: 44, minHeight: 44, paddingHorizontal: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  toolCaptioned: { minWidth: 64, paddingVertical: 2, gap: 0 },
+  caption: { fontSize: 11, color: theme.ink, marginTop: -2 },
   toolOn: { backgroundColor: theme.line, borderWidth: 1.5, borderColor: theme.ink },
   glyph: { fontSize: 17, color: theme.ink, fontWeight: '500' },
   bold: { fontWeight: '800' },
