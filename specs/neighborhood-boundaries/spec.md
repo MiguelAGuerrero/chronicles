@@ -53,11 +53,11 @@ Open: none; HB1's association names and HB6 were settled by the owner on Nov 12.
 
 9. **HB9 Its own ground, as a line.** Selecting a neighborhood on Explore draws its boundary instead of the 800 m ring: its polygon with the smaller polygons inside it cut out, or, with no polygon, the edge of its nearest-point share (bounded by its 1 km reach, its neighbors' nearest-point edges, the town border and the polygons others hold). One neighborhood at a time; it is a line with at most a faint wash, the same for every neighborhood.
 10. **HB10 Nothing says how much.** The boundary carries no walked, unwalked, found or unfound tint, no percentage, no count, no label of a number (NV14). The line has no accessible label of its own; the selected neighborhood is announced by its name and "selected", with no digit, and a polygon's area is never rendered (steward S4).
-11. **HB11 What its card counts is what is drawn.** A neighborhood's bars, marks and pockets (the atlas profile) are read across the ground that is drawn, as a town's are across its outline (TP1), not across an 800 m ring around its point.
+11. **HB11 What its card counts is what is drawn.** A neighborhood's bars, marks and pockets (the atlas profile) are read across the ground that is drawn, its shape or its nearest-point share, as a town's are across its outline (TP1), not across an 800 m ring around its point. Where no ground is known (the tiles unread, or a failed read, tried again) the ring stands for both the line and the count, and a card that counted across a ground never has a ring drawn over it (audit 4, 5).
 
 ### When the read fails
 
-12. **HB12 Quiet and as before.** Where the hood polygons weren't read (offline, the tile missing, more than 12 tiles), Explore and placing behave as today (points and the ring) with no error and no change to the screen's words; a failed read is tried again, never stored as "none". Selecting a neighborhood makes no network request: the ground is read from the cache only (steward, data). The reads are Overture's divisions host only, on the same screens and cache as town outlines, and a stored tile is never read twice (TO12).
+12. **HB12 Quiet and as before.** Where the hood polygons weren't read (offline, the tile missing, more than 12 tiles), Explore and placing behave as today (points and the ring) with no error and no change to the screen's words; a failed read is tried again, never stored as "none". Selecting a neighborhood draws its line from the cache only: the line itself makes no request. The card's own read, started by the same tap, may fetch Overture's divisions tiles, the same host and cache as town outlines, and nothing else (audit 10, which corrects this line's earlier "selecting makes no network request"). The reads are Overture's divisions host only, on the same screens and cache as town outlines, and a stored tile is never read twice (TO12).
 
 ### Added by the steward's findings (Nov 12)
 
@@ -65,3 +65,25 @@ Open: none; HB1's association names and HB6 were settled by the owner on Nov 12.
 14. **HB14 One look, whatever the data.** The ground's style is identical for every neighborhood, has no input from the walker's walks, finds or captures, is gone when the selection is cleared, and at most one is drawn at a time. Its colour is a named token, not a literal (S3).
 15. **HB15 A made-up edge looks like a real one.** A nearest-point share is drawn with the same line as a polygon; nothing on the screen tells the two apart (silent 2).
 16. **HB16 Stars follow placing.** A Chronicle map star is named by the neighborhood a walk is placed in (HB7); a macrohood names a star only where no neighborhood polygon holds the walk's pieces (silent 3).
+
+## Audit (Nov 12, decision 0074, asked by the owner)
+
+The auditor (12 findings: 3 high, 6 medium, 3 low) and the steward (6 drift, 1 tone, 5 questions for the owner) read the built slice from the code and spec; the UX review is below. Each accepted finding has a regression test, `neighborhood-boundaries audit N` in `src/lib/__tests__/places/hoodAudit.test.ts`.
+
+1. Explore's neighborhood list ignored the shapes (auditor F1, high): accept. A name inside a shape is no row, a shape with no tile point is one, on the near read and the town's page (by kept tiles only). `shapedHoods`.
+2. Joining shapes was not idempotent or order-independent (F2 high, F8, F13): accept. `buildChecklists` and `areaFor` joined twice and duplicated the candidate; the smallest shape now claims a point first and a joined candidate stays joined; towns the same.
+3. A far corner of a big shape was assigned to a neighborhood whose checklist never reads it (F3 high): accept. Past its point's reach Explore says the town's or no one's, never a different neighborhood. Said in HB8's test; placing still says the shape.
+4. A card counted across a ring while the line drew a share; a failed read stayed a ring; one tile clipped a shape (F4, steward S1): accept. A share-only neighborhood counts across its share; a failed or short read sets `outlineRetry`; the read takes the neighbors' tiles too (`hoodProbe`, `hoodExtent`, `shapeUnread`).
+5. The ring showed over a card that counted a shape; the ground was drawn from partial tiles and never refreshed (F5, S2): accept. `shouldDrawRing`; the cache is looked in until every probe's tile is kept, and the ground is computed again only when a tile arrived (`lookAgain`).
+6. The share trace could be slow (F6, medium): reject, measured: a share over 200 candidates and a 5,000-vertex town ring took about 60-85 ms. The test stays as a budget guard (1,500 ms).
+7. A smaller shape poking out of its host was cut out of it, drawing its edge across the host's (F9): accept. Only a shape wholly inside its host is a hole.
+8. The decoder stamp made every stored z10 border tile read again (F11): accept. A z10 tile cut under `sub1` stands (it holds no shapes).
+9. The line's colour was a literal beside `theme.ink` (F12, S4): accept as a guard: the test holds `GROUND_COLOR` to `theme.ink` and away from the accent; the code was already right.
+10. HB12 said selecting makes no network request, which the card's read can break (S3): accept, reworded above; the line's own hook reads the cache only (tested in HB12).
+11. The card's copy said "the same marks mean the same anywhere" for shapes that differ in size (S5): accept. The line no longer compares: "counted across the ground drawn around it where the map has one, and within about a ten-minute walk of its point where it has not".
+12. Nested outlines read as several at once (S6): accept as a clarification and a guard: one feature, the nested shapes its holes (HB9 above).
+13. `data-ground` carries a ring count on the map's container (S7): accept as a guard: no label, title or aria is built from the ground, and the map's label takes none. The attribute stays the e2e's hook.
+
+Deferred (docs/DEFERRED.md): **D1** a shape clipped at a z12 tile edge is judged smaller by the pieces read, so an overlap point can be owned differently by what is kept (F7; as towns); **D2** checklists and finds already built under the old rule keep their area until the next tile build (F10), the owner's call below.
+
+For the owner (the steward's silent questions, none a breach): whether a walk's remembered place name may change silently after the update (HB13 says yes, derived and never written); whether a point-only name such as Chinatown should stay as a place a find can say, without ground; whether the "Association" suffix filter, which loses a real name ending so, needs a way back; whether a macrohood that becomes a big neighborhood wants a size cap; and whether the line beside the card's familiarity words is acceptable.
