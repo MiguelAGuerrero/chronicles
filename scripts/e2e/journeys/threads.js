@@ -65,9 +65,9 @@ async function run(h) {
     await pg.click('[data-testid=viewer-respond]');
     await pg.waitForSelector('[data-testid=respond-sheet]');
     await pg.click('[data-testid=respond-note]');
-    await pg.waitForSelector('[data-testid=note-edit-input]');
-    await pg.fill('[data-testid=note-edit-input]', text);
-    await pg.click('[data-testid=note-edit-save]');
+    await pg.waitForSelector('[data-testid=note-input]');
+    await pg.fill('[data-testid=note-input]', text);
+    await pg.click('[data-testid=note-done]');
   };
   // Close on the Undo pill: the delete stands and is stored now (UC2).
   const closePill = async () => {
@@ -235,7 +235,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=viewer-respond]');
   await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
-  await pg.fill('[data-testid=note-edit-input]', 'half a thought');
+  await pg.fill('[data-testid=note-input]', 'half a thought');
   // fix respond-bottom audit 3, on the note editor: a keyboard 300 px tall (the visual viewport shrinks) leaves Save in view.
   const kbTop = await pg.evaluate(() => {
     const vv = window.visualViewport;
@@ -245,17 +245,19 @@ async function run(h) {
     return h;
   });
   await pg.waitForTimeout(300);
-  const keep = await pg.locator('[data-testid=note-edit-save]').boundingBox();
-  const input = await pg.locator('[data-testid=note-edit-input]').boundingBox();
+  const keep = await pg.locator('[data-testid=note-done]').boundingBox();
+  const input = await pg.locator('[data-testid=note-input]').boundingBox();
   check(!!keep && !!input && keep.y + keep.height <= kbTop && input.y >= 0, `fix respond-bottom audit 3: with the keyboard up, the note being written and Save stay above it (${keep && Math.round(keep.y + keep.height)} <= ${kbTop})`);
   await pg.evaluate(() => {
     delete window.visualViewport.height;
     window.visualViewport.dispatchEvent(new Event('resize'));
   });
   // The web's viewer takes no Escape; native's Back goes through the same composeFor first (NATIVE_UNVERIFIED).
-  await pg.locator('[data-testid=note-editor] >> text=Cancel').click();
+  // A page left empty keeps nothing (note pages NP9): its words cleared, Back leaves no reply behind.
+  await pg.fill('[data-testid=note-input]', '');
+  await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(300);
-  check(!(await has('[data-testid=note-edit-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=viewer-respond]')), 'owner-threads audit 9: Cancel closes the note being written, leaves the viewer open and Respond ready');
+  check(!(await has('[data-testid=note-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=viewer-respond]')), 'owner-threads audit 9: Back closes the note being written, leaves the viewer open and Respond ready');
   await closeViewer();
 
   // OT8: Remove from this thread keeps the moment.
@@ -363,8 +365,8 @@ async function run(h) {
   await openCard('Orchard blossoms');
   await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
-  await pg.waitForSelector('[data-testid=note-edit-input]');
-  await pg.click('[data-testid=note-edit-input]');
+  await pg.waitForSelector('[data-testid=note-input]');
+  await pg.click('[data-testid=note-input]');
   await pg.keyboard.type('Like the ');
   await pg.keyboard.type('@');
   const picker = await there('[data-testid=moment-picker]', 5000);
@@ -374,11 +376,11 @@ async function run(h) {
   await pg.waitForTimeout(300);
   await pg.locator('[data-testid=moment-picker-row]').first().click();
   await gone('[data-testid=moment-picker]');
-  const typed = await pg.locator('[data-testid=note-edit-input]').inputValue();
+  const typed = (await pg.locator('[data-testid=note-input]').innerText()).trim();
   check(picker && /^Like the @\S/.test(typed) && !typed.includes('@['), `RF1: typing @ in a note opens the moment picker, and a pick puts a reference at that point ("${typed}")`);
   await pg.keyboard.type('again.');
-  await pg.click('[data-testid=note-edit-save]');
-  await gone('[data-testid=note-editor]');
+  await pg.click('[data-testid=note-done]');
+  await gone('[data-testid=note-page]');
   await closeViewer();
   await pg.waitForTimeout(800);
   db = await stored(pg);

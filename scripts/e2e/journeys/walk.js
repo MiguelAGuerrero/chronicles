@@ -311,7 +311,7 @@ async function checks(h) {
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
-        await page.click('[data-testid=note-save]');
+        await page.click('[data-testid=note-done]');
         await page.waitForTimeout(2500);
         check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');

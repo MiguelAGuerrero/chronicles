@@ -116,7 +116,8 @@ Home / tabs
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
-  CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
+  CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
+  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @ and the camera; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap)
   CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
   Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
@@ -306,6 +307,8 @@ Memories, moments, days
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
+  notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
+  noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
   editOffer.ts               the after-capture Edit offer's timing and words (core)
@@ -532,8 +535,10 @@ Truth (`lib/types.ts`):
   (photo | video | voice | text), file_path, body, caption, caption_y,
   thumb_path, edit (a photo's or video's edits as data: rotate, crop, filter,
   lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
-  object; `parseEdit` reads both, decision 0090). Media files and small copies
-  are named by the piece's id.
+  object; `parseEdit` reads both, decision 0090), body_format (a note's body is
+  Markdown the note page wrote: 'md'; null or absent, it reads as stored;
+  SQLite migration 25, IndexedDB keeps the record whole; decision 0151). Media
+  files and small copies are named by the piece's id.
 - Screens read `Faced` moments (`lib/moment.ts`): the moment's own fields with
   its face's media (`face`: the first photo or video, else the first piece),
   the face's id as `piece_id` for media writes (`db.updatePiece`), and every

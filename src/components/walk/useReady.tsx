@@ -1,6 +1,7 @@
 import type { Faced } from '../../lib/moment';
+import { notePatch } from '../../lib/noteEdit';
 import { useFocusEffect, useIsFocused } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject } from 'react';
 import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
@@ -59,7 +60,10 @@ export function useReady(props: {
   onStarting: () => void;
   /** The walk is recording, with its notice params (`error` when its plan failed); `null` if it didn't start. */
   onStarted: (params: Record<string, string> | null) => void;
+  /** Locate's button, which the screen's compass hands the focus to as it leaves (tend map 6). */
+  locateRef?: RefObject<ComponentRef<typeof Pressable> | null>;
 }) {
+  const { locateRef } = props;
   // The destination line and the zero distance follow the units setting (QL16).
   useUnits();
   const at = useStackLayout();
@@ -267,7 +271,7 @@ export function useReady(props: {
       </View>
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
-      <LocateButton busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
+      <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
       <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
@@ -322,8 +326,8 @@ export function useReady(props: {
         }}
         onSaveNote={async (c, body) => {
           await ready.saveNote(c.piece_id, body);
-          setMoments((prev) => applyPatch(prev, c.id, { body }));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          setMoments((prev) => applyPatch(prev, c.id, notePatch(body)));
+          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
         }}
       />
     </>

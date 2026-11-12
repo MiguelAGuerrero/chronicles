@@ -1,4 +1,5 @@
 // @layer view
+import { notePatch } from './noteEdit';
 import { type Faced, faced, facedAll, facedOf } from './moment';
 import {
   RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder,
@@ -20,7 +21,7 @@ import { isOutOfSpace, saveFailLine } from './space/core';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import { stampFor } from './pieceStamp';
-import type { CaptureKind, LngLat, Moment } from './types';
+import type { Capture, CaptureKind, LngLat, Moment } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
 /** A voice memo shorter than this was an accidental tap. */
@@ -46,7 +47,7 @@ type Busy = CaptureKind | null;
 export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
 
 /** When a capture was begun and where; a moment outside a walk also has its fix on the way. */
-interface Stamp {
+export interface Stamp {
   t: number;
   at: LngLat | null;
   /** The moment a reply answers, fixed when the capture began, so a swipe meanwhile never moves it (ui-conformance audit 10). */
@@ -192,9 +193,9 @@ export function useCaptures(
    * A piece added to an open moment (moment stacks MS3, MS5): stored with its own time under the moment, whose place
    * and time stay; shown here and told to the walk's other paths as the moment, now with its new piece.
    */
-  async function addPiece(into: string, kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<{ momentId: string; pieceId: string } | null> {
+  async function addPiece(into: string, kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null, more: Partial<Pick<Capture, 'body_format'>> = {}): Promise<{ momentId: string; pieceId: string } | null> {
     const pieceId = newId();
-    const piece = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body };
+    const piece: Capture = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body, ...more };
     await db.addPiece(into, piece);
     const [stored] = await db.getMomentsByIds([into]);
     if (stored) {
@@ -207,14 +208,14 @@ export function useCaptures(
     return { momentId: into, pieceId };
   }
 
-  async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<string | null> {
+  async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null, more: Partial<Pick<Capture, 'body_format'>> = {}): Promise<string | null> {
     if (!enabled) return null;
-    if (stamp.into) return (await addPiece(stamp.into, kind, stamp, file_path, body))?.pieceId ?? null;
+    if (stamp.into) return (await addPiece(stamp.into, kind, stamp, file_path, body, more))?.pieceId ?? null;
     // A new moment and its first piece, under one id (decision 0123): its one place and time, the piece's media.
     const id = newId();
     const m: Moment = {
       id, walk_id: walkId, t: stamp.t, lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null, segment_id: null,
-      pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body }],
+      pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body, ...more }],
     };
     await db.addMoment(m);
     const c = faced(m);
@@ -628,9 +629,9 @@ export function useCaptures(
    */
   async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string) {
     const id = c.id;
-    await db.updatePiece(c.piece_id, { body });
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, { body }));
-    captureBus.patch(walkId, id, { body }, self);
+    await db.updatePiece(c.piece_id, notePatch(body));
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, notePatch(body)));
+    captureBus.patch(walkId, id, notePatch(body), self);
   }
 
   /** With `into`, the note joins that open moment as a piece (MS2, MS3). */
@@ -638,6 +639,17 @@ export function useCaptures(
     guarded('text', async () => {
       if (text.trim()) await add('text', stampNow(true, into), null, text.trim());
     });
+
+  /**
+   * A note's page opens (NP1): its time, its one fix and what it answers are taken at the tap, however long the
+   * first words take (the steward's S9). `keepNote` keeps it, as Markdown, once it has words (NP9).
+   */
+  const beginNote = (into: string | null = null): Stamp => stampNow(true, into);
+  async function keepNote(stamp: Stamp, body: string): Promise<{ id: string; piece_id: string } | null> {
+    const pieceId = await add('text', stamp, null, body, { body_format: 'md' });
+    if (!pieceId) return null;
+    return { id: stamp.into ?? pieceId, piece_id: pieceId };
+  }
 
   return {
     captures,
@@ -655,6 +667,8 @@ export function useCaptures(
     held: held.map((h) => h.kind),
     retryHeld,
     saveNote,
+    beginNote,
+    keepNote,
     setEdit,
     setNote,
   };

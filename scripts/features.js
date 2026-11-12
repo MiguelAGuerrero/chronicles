@@ -248,7 +248,7 @@ const FEATURES = [
     name: 'chronicle',
     about: 'the Chronicle tab: the walks list, months, rename, editing a note',
     rule: 'tabs-and-home',
-    source: ['src/app/(tabs)/index.tsx', 'src/lib/{rename,noteEdit,months,walkTitle}.ts', 'src/components/{NoteEditor,WalkActions}.tsx'],
+    source: ['src/app/(tabs)/index.tsx', 'src/lib/{rename,months,walkTitle}.ts', 'src/components/WalkActions.tsx'],
     journeys: ['chronicle'],
     specs: ['quality-of-life', 'section-bar'],
   },
@@ -275,6 +275,14 @@ const FEATURES = [
     source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
     journeys: ['threads', 'responses'],
     specs: ['owner-threads', 'moment-references', 'response-thread'],
+  },
+  {
+    name: 'notes',
+    about: 'note pages: a note is a journal entry, written in TipTap (Expo DOM), kept as it is written, read in the viewer; its body is Markdown once the page wrote it',
+    rule: 'captures-and-media',
+    source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
+    journeys: ['notepage'],
+    specs: ['note-pages'],
   },
   {
     name: 'motion',

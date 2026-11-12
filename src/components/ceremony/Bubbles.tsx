@@ -100,11 +100,11 @@ function Bubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
           <Pressable
             testID="replay-note"
             accessibilityRole="button"
-            accessibilityLabel={`Note, ${timeOf(o.capture.t)}: ${plainNote(o.capture.body) ?? ''}`}
+            accessibilityLabel={`Note, ${timeOf(o.capture.t)}: ${plainNote(o.capture.body, o.capture.body_format) ?? ''}`}
             accessibilityHint="Opens the note"
             onPress={() => ctx.open([o.capture])}
           >
-            <Text style={styles.text} numberOfLines={6}>{plainNote(o.capture.body)}</Text>
+            <Text style={styles.text} numberOfLines={6}>{plainNote(o.capture.body, o.capture.body_format)}</Text>
             <Text style={styles.when}>{timeOf(o.capture.t)}</Text>
           </Pressable>
         )}

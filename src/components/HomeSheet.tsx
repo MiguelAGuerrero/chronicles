@@ -506,7 +506,7 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
     );
   }
   const c = e.capture;
-  const what = c.kind === 'text' ? (plainNote(c.body) ?? '') : KIND_LABEL[c.kind];
+  const what = c.kind === 'text' ? (plainNote(c.body, c.body_format) ?? '') : KIND_LABEL[c.kind];
   return (
     <Pressable
       testID="timeline-moment"

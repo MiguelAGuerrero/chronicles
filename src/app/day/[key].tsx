@@ -1,4 +1,5 @@
 import { type Faced, facedAll } from '../../lib/moment';
+import { notePatch } from '../../lib/noteEdit';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -305,9 +306,9 @@ export default function DayReplay() {
         remind
         onSaveNote={async (c, body) => {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
+          await db.updatePiece(c.piece_id, notePatch(body));
           setData((d) => d && withNote(d, c.id, body));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
         }}
       />
 
@@ -355,10 +356,10 @@ export default function DayReplay() {
 function withNote(d: Loaded, id: string, body: string): Loaded {
   const entries = d.day.entries.map((e) =>
     e.kind === 'walk'
-      ? { ...e, captures: applyPatch(e.captures, id, { body }) }
-      : e.capture.id === id ? { ...e, capture: { ...e.capture, body } } : e,
+      ? { ...e, captures: applyPatch(e.captures, id, notePatch(body)) }
+      : e.capture.id === id ? { ...e, capture: { ...e.capture, ...notePatch(body) } } : e,
   );
-  const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, { body }) }]));
+  const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, notePatch(body)) }]));
   return { ...d, day: { ...d.day, entries }, walks };
 }
 

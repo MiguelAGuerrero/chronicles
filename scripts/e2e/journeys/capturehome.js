@@ -135,9 +135,9 @@ async function run(h) {
   // HC9, HC15: a note heads Lately at once, then its toast says where it went; one fix, nothing after.
   const bandAtRest = await box(pg, band);
   await pg.click('[data-testid=band-note]');
-  await pg.waitForSelector('[data-testid=band-note-input]', { timeout: 5000 }).catch(() => {});
-  await pg.fill('[data-testid=band-note-input]', 'A heron on the old pier.').catch(() => {});
-  await pg.click('[data-testid=band-note-save]').catch(() => {});
+  await pg.waitForSelector('[data-testid=note-input]', { timeout: 5000 }).catch(() => {});
+  await pg.fill('[data-testid=note-input]', 'A heron on the old pier.').catch(() => {});
+  await pg.click('[data-testid=note-done]').catch(() => {});
   const headed = await pg.waitForFunction(() => {
     const first = document.querySelector('[data-testid=memories-list] [data-testid=moment-card]');
     return !!first && first.innerText.includes('A heron on the old pier.');
@@ -171,8 +171,8 @@ async function run(h) {
 
   // capture-from-chronicle audit 2: a moment's toast and Memories' Undo at once stack, never overlap, and Undo stays tappable.
   await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=band-note-input]', 'Kept while an Undo was up.').catch(() => {});
-  await pg.click('[data-testid=band-note-save]').catch(() => {});
+  await pg.fill('[data-testid=note-input]', 'Kept while an Undo was up.').catch(() => {});
+  await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).catch(() => {});
   await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').nth(1).locator('[data-testid=moment-more]').click().catch(() => {});
   await pg.locator('[data-testid=memory-menu-hide], [data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
@@ -237,8 +237,8 @@ async function run(h) {
   const membersBefore = (await stored(pg)).members.length;
   const bandInThread = await box(pg, band);
   await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=band-note-input]', 'Kept while reading a thread.').catch(() => {});
-  await pg.click('[data-testid=band-note-save]').catch(() => {});
+  await pg.fill('[data-testid=note-input]', 'Kept while reading a thread.').catch(() => {});
+  await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForTimeout(1200);
   const afterThread = await stored(pg);
   check(inThread && same(beforeScroll, bandInThread),
@@ -318,8 +318,8 @@ async function run(h) {
   check(failed && !failedAccent, `capture-from-chronicle audit 11: Memories' failed state, now on the launch screen, uses no accent colour (${failedAccent})`);
   await pg.evaluate(() => { window.__breakReads = false; });
   await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=band-note-input]', 'Kept while the list was down.').catch(() => {});
-  await pg.click('[data-testid=band-note-save]').catch(() => {});
+  await pg.fill('[data-testid=note-input]', 'Kept while the list was down.').catch(() => {});
+  await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForTimeout(1200);
   check(failed && (await stored(pg)).captures.some((x) => x.body === 'Kept while the list was down.'),
     `HC6: the band keeps a moment while Memories shows it failed to read (failed: ${failed})`);
@@ -385,8 +385,8 @@ async function run(h) {
   const walkLabel = await pg.locator('[data-testid=band-note]').getAttribute('aria-label').catch(() => null);
   check(walkLabel === 'Add to your walk: write a note', `HC8: with a walk open, the band is named for the walk ("${walkLabel}")`);
   await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=band-note-input]', 'Kept on the walk, from Memories.').catch(() => {});
-  await pg.click('[data-testid=band-note-save]').catch(() => {});
+  await pg.fill('[data-testid=note-input]', 'Kept on the walk, from Memories.').catch(() => {});
+  await pg.click('[data-testid=note-done]').catch(() => {});
   const walkToast = await pg.waitForSelector('[data-testid=band-toast]', { timeout: 8000 }).then((e) => e.innerText(), () => null);
   for (let i = 6; i < 10; i++) await step(i);
   const db = await stored(pg);
@@ -439,8 +439,8 @@ async function run(h) {
     const settingsBtn = err ? await p3.locator('[data-testid=band-error] [role=button]').count() : -1;
     check(err && settingsBtn === 0, `capture-from-chronicle audit 4: on the web a denied mic is said above the band, with no Settings button (${err}, ${settingsBtn})`);
     await p3.click('[data-testid=band-note]').catch(() => {});
-    await p3.fill('[data-testid=band-note-input]', 'Kept beside an error.').catch(() => {});
-    await p3.click('[data-testid=band-note-save]').catch(() => {});
+    await p3.fill('[data-testid=note-input]', 'Kept beside an error.').catch(() => {});
+    await p3.click('[data-testid=note-done]').catch(() => {});
     await p3.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).catch(() => {});
     const pair = { err: await box(p3, '[data-testid=band-error]'), toast: await box(p3, '[data-testid=band-toast]') };
     check(!!pair.err && !!pair.toast && !overlap(pair.err, pair.toast),

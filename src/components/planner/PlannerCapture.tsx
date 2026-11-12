@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { AccessibilityInfo, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { AccessibilityInfo, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LngLat } from '../../lib/types';
 import { feedback } from '../../lib/motion';
 import { useCaptures } from '../../lib/useCaptures';
 import { CaptureStack } from '../walk/CaptureStack';
-import { Button, theme } from '../ui';
+import { theme } from '../ui';
+import { Modal } from '../Modal';
+import { NewNotePage } from '../notePage/NewNotePage';
+import type { NotePageHandle } from '../notePage/NotePage';
 
 /**
  * Capture on the planner while a walk is recording (WP23): the same stack as the walk screen, photo, voice memo and note, one tap away,
@@ -18,8 +21,9 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
   const cap = useCaptures(props.walkId, props.here, props.lastFixAt, (e) =>
     setSaid({ text: e.message, settings: !!e.openSettings && Platform.OS !== 'web' }),
   );
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [note, setNote] = useState('');
+  // The note's page (note pages NP1; note-pages audit 13), begun at the pencil's tap, keyed per page.
+  const [page, setPage] = useState(0);
+  const pageRef = useRef<NotePageHandle>(null);
   async function photo() {
     if (await cap.takePhoto()) {
       feedback('tap');
@@ -42,14 +46,6 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
   async function discardVoice() {
     await cap.discardVoice();
   }
-  async function saveNote() {
-    if (await cap.saveNote(note)) {
-      setNote('');
-      setNoteOpen(false);
-      feedback('tap');
-      setMessage('Note saved here');
-    }
-  }
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none" testID="plan-capture">
       <CaptureStack
@@ -61,7 +57,7 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
         onVoice={startVoice}
         onSave={saveVoice}
         onDiscard={discardVoice}
-        onNote={() => setNoteOpen(true)}
+        onNote={() => setPage((n) => n + 1)}
       />
       {said ? (
         <View style={styles.toast}>
@@ -73,15 +69,9 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
           ) : null}
         </View>
       ) : null}
-      {noteOpen ? (
-        <View style={styles.note} testID="plan-note">
-          <TextInput value={note} onChangeText={setNote} placeholder="A note, here" multiline style={styles.input} accessibilityLabel="A note, here" autoFocus />
-          <View style={styles.noteRow}>
-            <Button variant="ghost" label="Close" onPress={() => setNoteOpen(false)} />
-            <Button label="Save" onPress={() => void saveNote()} />
-          </View>
-        </View>
-      ) : null}
+      <Modal visible={page > 0} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
+        {page > 0 ? <NewNotePage key={page} ref={pageRef} cap={cap} into={null} onWalk camera onKept={() => setMessage('Note saved here')} onClose={() => setPage(0)} /> : null}
+      </Modal>
     </View>
   );
 }
@@ -91,7 +81,4 @@ const styles = StyleSheet.create({
   toastText: { color: '#ffffff', textAlign: 'center' },
   settings: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 22, backgroundColor: theme.surface },
   settingsText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
-  note: { position: 'absolute', left: 12, right: 12, bottom: 90, backgroundColor: theme.surface, borderRadius: 14, padding: 12, gap: 8, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
-  input: { minHeight: 80, fontSize: 16, color: theme.ink, textAlignVertical: 'top' },
-  noteRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });

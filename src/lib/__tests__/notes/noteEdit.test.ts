@@ -16,11 +16,11 @@ test('QL25: blank or whitespace is no text (deleting is the menu\'s Delete)', ()
   assert.equal(noteText('\n\t  \n'), null);
 });
 
-test('QL25: the text is cut to 500 characters, as the composer', () => {
-  assert.equal(NOTE_MAX, 500);
-  const long = 'a'.repeat(620);
-  assert.equal(noteText(long)?.length, 500);
-  assert.equal(noteText(`  ${'b'.repeat(500)}  `), 'b'.repeat(500));
+// Amended by note pages NP8 (decision 0151): the limit is NOTE_MAX, 20,000 since the page.
+test('QL25: the text is cut to the note\'s limit, as the composer', () => {
+  const long = 'a'.repeat(NOTE_MAX + 120);
+  assert.equal(noteText(long)?.length, NOTE_MAX);
+  assert.equal(noteText(`  ${'b'.repeat(NOTE_MAX)}  `), 'b'.repeat(NOTE_MAX));
 });
 
 test('QL25: inner line breaks and spaces are kept', () => {

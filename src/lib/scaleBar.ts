@@ -42,17 +42,54 @@ function longestRound(max: number): number {
 
 function metric(maxM: number) {
   const meters = longestRound(maxM);
-  return { meters, label: meters >= 1000 ? `${round(meters / 1000)} km` : `${meters} m` };
+  return { meters, label: meters >= 1000 ? `${grouped(round(meters / 1000))} km` : `${meters} m` };
 }
+
+/** A whole number with its thousands marked, as the specs write them: "2,000 km", "2,000 ft" (tend map 7). */
+const grouped = (n: number) => (Number.isInteger(n) ? String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : String(n));
 
 function imperial(maxM: number) {
   const maxMi = maxM / MI_M;
   if (maxMi >= 1) {
     const mi = longestRound(maxMi);
-    return { meters: mi * MI_M, label: `${mi} mi` };
+    return { meters: mi * MI_M, label: `${grouped(mi)} mi` };
   }
   const ft = Math.min(MAX_FT, longestRound(maxM / FT_M));
-  return { meters: ft * FT_M, label: `${ft} ft` };
+  return { meters: ft * FT_M, label: `${grouped(ft)} ft` };
+}
+
+/** The scale bar's padding on each side (`ScaleBar.tsx`), and the gap from its widest extent to the map's credits. */
+const BAR_PAD = 8;
+const CREDITS_GAP = 8;
+/** The widest round button at a map's right edge: the walk's capture stack (`CAP`, `components/walk/layout.ts`). */
+const EDGE_BUTTON = 56;
+/** A round control standing over the scale bar's start (the walk's and the ready screen's Layers), and the gap past it. */
+const LEFT_BUTTON = 44;
+const LEFT_GAP = 8;
+
+/**
+ * Where a map's credits (i) sit (tend map 3): on the strip each screen keeps clear for the scale bar (`scaleInset`,
+ * QL8), just right of the bar at its widest, level with its line; opened, they stop short of the column of round
+ * buttons at the map's right edge (Locate and the compass at 44 px, the walk's capture stack at 56, 12 px from the
+ * edge, or from a centred 640 px column on a wide screen). Pure: offsets from the map's bottom-left corner, in px.
+ */
+export function creditsAt(
+  inset: { bottom: number; left?: number },
+  maxPx: number,
+  mapWidth: number,
+): { left: number; bottom: number; maxWidth: number; openLeft: number; openMaxWidth: number } {
+  const left = (inset.left ?? 12) + BAR_PAD + maxPx + BAR_PAD + CREDITS_GAP;
+  const column = Math.max(12, (mapWidth - 640) / 2 + 12) + EDGE_BUTTON + 8;
+  // Opened, they start further left, over the scale bar but clear of a round control standing over its start, so a
+  // word as long as "OpenStreetMap" fits a line at 320 px; the (i) stays where it was tapped (tend map audit 2).
+  const openLeft = Math.min(left, (inset.left ?? 12) + LEFT_BUTTON + LEFT_GAP);
+  return {
+    left,
+    bottom: inset.bottom + 4,
+    maxWidth: Math.max(80, mapWidth - left - column),
+    openLeft,
+    openMaxWidth: Math.max(80, mapWidth - openLeft - column),
+  };
 }
 
 /** Kills the float noise of 5 * 10 ** -1 and friends. */

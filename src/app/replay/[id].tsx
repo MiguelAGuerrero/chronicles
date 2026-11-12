@@ -1,4 +1,5 @@
 import type { Faced } from '../../lib/moment';
+import { notePatch } from '../../lib/noteEdit';
 import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -507,9 +508,9 @@ export default function Replay() {
         }}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          await db.updatePiece(c.piece_id, notePatch(body));
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, notePatch(body)) });
+          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
         }}
       />
       <CaptureViewer
@@ -521,9 +522,9 @@ export default function Replay() {
         onClose={() => setHere(null)}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          await db.updatePiece(c.piece_id, notePatch(body));
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, notePatch(body)) });
+          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
         }}
       />
 

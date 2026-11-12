@@ -216,6 +216,18 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(parseEdit((flats(await db.getMoments('a')))[0].edit), null);
     });
 
+    test('NP7: a note keeps the mark that its body is Markdown, through addMoment and updatePiece; an older note has none', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf({ ...capture('old', null, 1), kind: 'text', body: '# 3 buses' }));
+      await db.addMoment(momentOf({ ...capture('new', null, 2), kind: 'text', body: '# Figs', body_format: 'md' }));
+      const [old, made] = flats(await db.getMomentsByIds(['old', 'new']));
+      assert.equal(old.body_format ?? null, null);
+      assert.equal(made.body_format, 'md');
+      await db.updatePiece('old', { body: '\\# 3 buses and more', body_format: 'md' });
+      const [after] = flats(await db.getMomentsByIds(['old']));
+      assert.deepEqual([after.body, after.body_format], ['\\# 3 buses and more', 'md']);
+    });
+
     test('media-editing audit 7: every capture read gives the edit parsed; a newer or broken one reads as none', async () => {
       const db = await fresh();
       const edit: MediaEdit = { v: 1, rotate: 180, crop: null, filter: 'noir', strokes: [], trim: null };

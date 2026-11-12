@@ -2,7 +2,8 @@ import { forwardRef, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCaptures } from '../../lib/useCaptures';
 import { Icon, type IconName } from '../icons';
-import { NoteEditor, type NoteEditorHandle } from '../NoteEditor';
+import { NewNotePage } from '../notePage/NewNotePage';
+import type { NotePageHandle } from '../notePage/NotePage';
 import { Ticking } from '../Ticking';
 import { theme } from '../ui';
 import { formatElapsed } from '../../lib/format';
@@ -19,7 +20,7 @@ export type ReplyStage = 'sheet' | 'note' | null;
  * the note are the viewer's to close with Back (`stage`, audit 9); the note through its own `requestClose`, so an @ picker
  * closes first (tend chronicle 1). Drawn inside the viewer's Modal, never a second one.
  */
-export const ReplyDock = forwardRef<NoteEditorHandle, {
+export const ReplyDock = forwardRef<NotePageHandle, {
   answeredId: string;
   threadId?: string | null;
   walkId?: string | null;
@@ -112,18 +113,8 @@ export const ReplyDock = forwardRef<NoteEditorHandle, {
         </View>
       )}
       {props.stage === 'note' && (
-        <NoteEditor
-          ref={noteRef}
-          key={props.answeredId}
-          title="Reply"
-          body=""
-          mention={{ self: props.answeredId }}
-          onClose={() => props.setStage(null)}
-          onSave={(text) => {
-            props.setStage(null);
-            void cap.saveNote(text);
-          }}
-        />
+        // A reply's page (NP1): begun at the tap, answering this moment, kept as it is written; its camera too (note-pages audit 14).
+        <NewNotePage ref={noteRef} key={props.answeredId} cap={cap} into={null} onWalk={!!walkId} camera onClose={() => props.setStage(null)} />
       )}
     </>
   );

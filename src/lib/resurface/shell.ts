@@ -1,4 +1,5 @@
 // @layer shell
+import { notePatch } from '../noteEdit';
 import { type Faced, facedAll } from '../moment';
 import { captureBus, type CapturePatch } from '../captureBus';
 import { createStore, type Store } from '../store';
@@ -256,9 +257,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
     async saveNote(c: Faced, body: string): Promise<void> {
-      await p.db.updatePiece(c.piece_id, { body });
-      captureBus.patch(c.walk_id, c.id, { body }, null);
-      this.patch(c.id, { body });
+      await p.db.updatePiece(c.piece_id, notePatch(body));
+      captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+      this.patch(c.id, notePatch(body));
     },
     /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
     async undo(change: PrefsChange): Promise<void> {

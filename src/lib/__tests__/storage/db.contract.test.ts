@@ -95,9 +95,9 @@ dbContract('SQLite (db/sqliteStore.ts over node:sqlite)', async (legacy?: Legacy
 test('MT11: the native store opens over node:sqlite, from an empty database and from one at user_version 22', async () => {
   const empty = nodeSqlite();
   assert.deepEqual(await makeSqliteDb(empty.open).listWalks(), []);
-  assert.equal(empty.userVersion(), 24);
+  assert.equal(empty.userVersion(), 25); // 25: body_format (note pages NP7)
   const old = nodeSqlite();
   await old.at22();
   assert.deepEqual(await makeSqliteDb(old.open).listWalks(), []);
-  assert.equal(old.userVersion(), 24);
+  assert.equal(old.userVersion(), 25);
 });
