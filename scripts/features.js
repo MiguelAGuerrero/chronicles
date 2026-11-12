@@ -442,6 +442,7 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
+  'chronicle-journal': { branch: 'fix/journal-note-pages', since: '2026-11-12' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

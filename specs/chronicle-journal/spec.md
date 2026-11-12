@@ -64,6 +64,14 @@ Open: the owner's remark of Nov 12 that a moment need not belong to a walk (an a
 23. **JN23** For a screen reader the contents button comes first, then the open line and its controls, then the slip, then the entries from the newest back. An entry is spoken as its kind, its words and its dateline.
 24. **JN24** Chronicle's section bar and its Walks, Days, Map and Media sections work as before this cut, and the recording bar still shows no camera while Memories is in front.
 
+### The line and the page (added Nov 12, after note pages shipped; the owner's call)
+
+Note pages (decision 0151) made a note a full-screen page written in a rich-text editor. The owner's call, Nov 12: the line is for a thought, the page is for an entry, and one stored note is under both. Vision: Honour (capture stays one tap in the line; the page is one more for a long entry); it adds no prompt, count or hint; verdict aligned.
+
+25. **JN25** While the line has the keyboard or holds words, its status row offers **Open as a page** (a thumb's target, named so for a screen reader). With words in the line it opens the note's page on that same entry, with what was typed already there; what the page then writes is that entry's, kept as Markdown. From an empty line it opens a new page, which keeps nothing if left empty. Done on the page returns to the sheet at its foot, with the line empty. A photo taken in the line joins the entry as a piece; the page's own camera keeps a photo as its own moment and mentions it (NP14): two rules, by the owner's call.
+26. **JN26** An entry the page wrote is drawn on the sheet in its shape: a heading, bullets, numbered lines, checkboxes (ticked or not, never counted) and quotes, as plain native text in the owner's serif, with each mention as that moment's card. No raw mark (`#`, `-`, `[ ]`, `**`) shows, and the sheet never holds the editor or a web view. A note the page did not write stays literal (NP7).
+27. **JN27** A long entry shows its first twelve blocks on the sheet, then one line in the app's voice: "The entry goes on; open it to read the rest". The whole entry is in its viewer.
+
 ## Amends
 
 - **Capture from Chronicle** (`specs/capture-from-chronicle/spec.md`): HC6-HC13 and HC15 (the band becomes the open line; "<Kind> kept here" and "saved to your walk" toasts go, since the entry itself appears); HC9's "heads Lately" and HC10's "not shown until the walk stops".

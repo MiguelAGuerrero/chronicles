@@ -32,6 +32,9 @@ const SEED = ({ now, day }) => {
   for (let i = 0; i < 60; i++) rows.push(note(`n${String(i).padStart(2, '0')}`, now - (i + 2) * day, `A quiet note from a walk around town, the ${i % 2 ? 'second' : 'first'} of its day.`));
   rows.push(note('h1', now - 50 * day - 1000, 'The harbor at dusk.'), note('h2', now - 40 * day - 1000, 'Harbor lights again.'), note('h3', now - 20 * day - 1000, 'Out to the harbor early.'));
   rows.push(note('year', now - 365 * day, 'First frost on the allotment gate. Nobody about.'));
+  const page = (id, t, body) => ({ id, walk_id: null, t, lat: null, lon: null, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind: 'text', file_path: null, body, body_format: 'md' }] });
+  rows.push(page('pagenote', now - 4 * day - 1000, '# Bakery\n\nSmelled it **two** blocks *off*.\n\n- rye\n- warm\n\n- [ ] come back\n- [x] ask her name\n\nBack to @[h1|the harbor] soon.'));
+  rows.push(page('pagelong', now - 5 * day - 1000, Array.from({ length: 30 }, (_, i) => `A paragraph of a long entry, the ${i % 2 ? 'even' : 'odd'} kind.`).join('\n\n')));
   rows.push(note('long', now - 3 * day - 1000, 'A long entry, to see how the page carries one: the market was closing and the stallholders were stacking crates, and a man with a trumpet case stood at the corner as if waiting for the square to empty before he would play.'));
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('chronicles');
@@ -333,6 +336,52 @@ async function run(h) {
     `JN16: @ opens the picker, the reference is one delete in the line, a card on the page and a token in the note (${JSON.stringify({ picker, withRef, refGone, refCard, refBody })})`);
   await shot(pg, 'journal-03-reference');
 
+  // JN25: the line opens into a page on the same entry: what was typed is there, and what the page adds is the same moment's.
+  const beforePage = (await stored(pg)).moments.length;
+  await type('Starts in the line');
+  await pg.waitForTimeout(1200);
+  const pageBtn = await pg.locator('[data-testid=line-page]').filter({ visible: true }).first().evaluate((e) => { const r = e.getBoundingClientRect(); return { label: e.getAttribute('aria-label'), text: e.innerText.trim(), w: Math.round(r.width), h: Math.round(r.height) }; }).catch(() => null);
+  await pg.click('[data-testid=line-page]').catch(() => {});
+  const pageUp = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
+  await pg.waitForTimeout(800);
+  const carried = (await pg.locator('[data-testid=note-page] [data-testid=note-input]').innerText().catch(() => '')).trim();
+  await shot(pg, 'journal-13-line-as-page');
+  await pg.locator('[data-testid=note-page] [data-testid=note-input]').click().catch(() => {});
+  await pg.keyboard.press('Control+End');
+  await pg.keyboard.press('Enter');
+  await pg.keyboard.type('- rye', { delay: 15 });
+  await pg.keyboard.press('Enter');
+  await pg.keyboard.type('warm', { delay: 15 });
+  await pg.waitForTimeout(1500);
+  await pg.click('[data-testid=note-done]').catch(() => {});
+  await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const afterPage = (await stored(pg)).moments;
+  const paged = afterPage.find((m) => m.pieces.some((p) => /Starts in the line/.test(p.body ?? '')));
+  const pagedPiece = paged?.pieces.find((p) => /Starts in the line/.test(p.body ?? ''));
+  const onSheet = await pg.locator(entries).last().evaluate((e) => ({
+    words: e.innerText.includes('Starts in the line'), bullets: e.querySelectorAll('[data-testid=entry-block-bullet]').length,
+    inView: e.getBoundingClientRect().bottom <= window.innerHeight, raw: /(^|\n)- rye/.test(e.innerText),
+  })).catch(() => null);
+  const lineEmpty = await pg.locator(input).inputValue().catch(() => null);
+  check.todo(!!pageBtn && pageBtn.label === 'Open as a page' && pageBtn.w >= 44 && pageBtn.h >= 44 && pageUp && carried === 'Starts in the line',
+    `JN25: while writing, the line offers Open as a page, and the page opens with what was typed (${JSON.stringify({ pageBtn, pageUp, carried })})`);
+  check.todo(afterPage.length === beforePage + 1 && pagedPiece?.body_format === 'md' && /- rye/.test(pagedPiece?.body ?? '') && !!onSheet && onSheet.words && onSheet.bullets === 2 && onSheet.inView && !onSheet.raw && lineEmpty === '',
+    `JN25: the page wrote on into the same entry, which is back on the sheet at its foot with its list drawn, and the line is empty (${JSON.stringify({ added: afterPage.length - beforePage, format: pagedPiece?.body_format, onSheet, lineEmpty })})`);
+  // JN25: from an empty line the same control opens a new page, and an empty page keeps nothing.
+  await done();
+  await pg.waitForTimeout(600);
+  const beforeEmpty = (await stored(pg)).moments.length;
+  await pg.click(input).catch(() => {});
+  await pg.click('[data-testid=line-page]').catch(() => {});
+  const newPageUp = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
+  await pg.waitForTimeout(1200);
+  await pg.keyboard.press('Escape');
+  await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  check.todo(newPageUp && (await stored(pg)).moments.length === beforeEmpty, `JN25: from an empty line Open as a page opens a new page, and one left empty keeps nothing (${newPageUp})`);
+  await pg.evaluate(() => document.activeElement?.blur?.());
+
   // JN1, JN2, JN9, JN20: a long journal opens at its foot in book order; the line is fixed; older entries load above.
   await pg.evaluate(SEED, { now: Date.now(), day: DAY });
   await pg.reload();
@@ -387,6 +436,33 @@ async function run(h) {
   const backAtFoot = await pg.evaluate((sel) => { const all = document.querySelectorAll(sel); const r = all[all.length - 1]?.getBoundingClientRect(); return !!r && r.bottom <= window.innerHeight && r.bottom > 0; }, entries);
   check(backAtFoot, 'JN11: a tap in the line brings today\'s page to the foot');
   await pg.evaluate(() => document.activeElement?.blur?.());
+
+  // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
+  const pageEntry = pg.locator(entries).filter({ hasText: 'Smelled it two blocks off.' });
+  await pageEntry.scrollIntoViewIfNeeded().catch(() => {});
+  const shape = await pageEntry.evaluate((e) => ({
+    heading: [...e.querySelectorAll('[data-testid=entry-block-heading]')].map((x) => x.innerText.trim()),
+    bullets: [...e.querySelectorAll('[data-testid=entry-block-bullet]')].map((x) => x.innerText.replace(/\s+/g, ' ').trim()),
+    tasks: [...e.querySelectorAll('[data-testid=entry-block-task]')].map((x) => [x.getAttribute('aria-checked'), x.innerText.replace(/\s+/g, ' ').trim()]),
+    refs: e.querySelectorAll('[data-testid=ref-card]').length,
+    raw: /(^|\n)\s*(#|- \[|\*\*)/.test(e.innerText) || /@\[/.test(e.innerText),
+    frames: e.querySelectorAll('iframe').length,
+    headFont: getComputedStyle(e.querySelector('[data-testid=entry-block-heading]') ?? e).fontFamily,
+    digits: /[0-9]/.test([...e.querySelectorAll('[data-testid^=entry-block-]')].map((x) => x.innerText).join(' ')),
+  })).catch(() => null);
+  check.todo(!!shape && shape.heading.join('|') === 'Bakery' && shape.bullets.length === 2 && /rye/.test(shape.bullets[0]) && shape.tasks.length === 2
+    && shape.tasks[0][0] === 'false' && shape.tasks[1][0] === 'true' && /come back/.test(shape.tasks[0][1]) && shape.refs === 1 && !shape.raw && shape.frames === 0 && /serif/.test(shape.headFont.replace(/sans-serif/g, '')) && !shape.digits,
+    `JN26: a page-written entry shows its heading, bullets and checkboxes as native text in the owner's serif, a mention as a card, no raw marks, no count and no web view (${JSON.stringify(shape)})`);
+  const longEntry = pg.locator(entries).filter({ hasText: 'A paragraph of a long entry' });
+  await longEntry.scrollIntoViewIfNeeded().catch(() => {});
+  const cut = await longEntry.evaluate((e) => ({
+    paras: e.querySelectorAll('[data-testid=entry-block-para]').length,
+    more: e.querySelector('[data-testid=entry-goes-on]')?.innerText.trim() ?? null,
+    moreFont: e.querySelector('[data-testid=entry-goes-on]') ? getComputedStyle(e.querySelector('[data-testid=entry-goes-on]')).fontFamily : '',
+  })).catch(() => null);
+  check.todo(!!cut && cut.paras === 12 && cut.more === 'The entry goes on; open it to read the rest' && !/(^|,\s*)(ui-serif|Georgia|serif)/.test(cut.moreFont),
+    `JN27: a long entry is cut on the sheet, with a line in the app's voice that it goes on (${JSON.stringify(cut)})`);
+  await shot(pg, 'journal-12-page-entry');
 
   // JN5: an earlier day's entry is dated by the clock, with "No location" when no fix ever came.
   const oldLine = await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=entry-dateline]').innerText().catch(() => '');
