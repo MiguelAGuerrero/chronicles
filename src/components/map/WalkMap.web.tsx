@@ -297,6 +297,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   });
   const pointerDown = useRef(false);
   const creditsRef = useRef<ClosedAttribution | null>(null);
+  // The compass asked for north and the map is still easing there: a fit meanwhile goes north too (tend map audit 4).
+  const northAsked = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   perfCount('render:map');
   // On the live walk the dot, cone and camera glide between fixes. They are
@@ -610,6 +612,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
     map.on('rotate', turned);
     map.on('rotateend', turned);
+    // Any move's end (the ease to north done, or cut by a drag or a fit) ends the request.
+    map.on('moveend', () => {
+      northAsked.current = false;
+    });
     // A camera move made in code cancels a drag in progress, and the glide moves
     // the camera every frame. So follow-moves wait while a pointer is down.
     const down = () => { pointerDown.current = true; };
@@ -1106,7 +1112,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // At the bearing the map has: maplibre's fit turns it back to north unless told (CP1: a fit never changes the
       // bearing; tend map 2).
       const map = mapRef.current;
-      map?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: map.getBearing() });
+      // While the compass's ease to north runs, north: the bearing read mid-ease would stop the map part-way (tend map audit 4).
+      map?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map.getBearing() });
       // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
       const key = props.fitKey ?? 0;
       const t = setTimeout(() => onFitSettled.current?.(key), duration + 150);
@@ -1152,7 +1159,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       mapRef.current?.easeTo({ center: at, offset, duration: animateRef.current ? MOTION.ease : 0 });
     },
     resetNorth() {
-      mapRef.current?.easeTo({ bearing: 0, duration: animateRef.current ? MOTION.camera : 0 });
+      const map = mapRef.current;
+      if (!map) return;
+      const duration = animateRef.current ? MOTION.camera : 0;
+      // Set after easeTo starts: easeTo first stops any move under way, and that move's end clears the request.
+      map.easeTo({ bearing: 0, duration });
+      northAsked.current = duration > 0 && map.getBearing() !== 0;
     },
     async collectPlaces(center) {
       await readyPromise.current!.promise;

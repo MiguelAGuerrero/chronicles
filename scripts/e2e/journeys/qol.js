@@ -433,6 +433,16 @@ async function run(h) {
       await pg.waitForTimeout(1500);
       const focusedAfter = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
       check((await compass.count()) === 0 && focusedAfter === 'locate', `tend map 6: the compass pressed from the keyboard leaves and the focus goes to Locate below it (focus on ${focusedAfter}, ${await compass.count()} compass)`);
+      // A fit while the compass still eases the map north ends north-up: Enter on the compass, then at once on Locate,
+      // which now has the focus (tend map audit 4: the fit read the bearing mid-ease and froze the map part-way).
+      const turnedAgain = await twoFingerTurn();
+      await compass.first().focus();
+      await pg.keyboard.press('Enter');
+      await pg.keyboard.press('Enter');
+      await pg.waitForTimeout(2500);
+      const midEase = Number((await attr('data-bearing')) || 0);
+      check(Math.abs(turnedAgain) > 5 && Math.abs(midEase) < 0.5 && (await compass.count()) === 0,
+        `tend map audit 4: a Locate fit during the compass's turn to north ends north-up (turned ${turnedAgain}, after ${midEase}, ${await compass.count()} compass)`);
     }
     await tabTo(pg, 'chronicle');
     await pg.waitForTimeout(1200);
