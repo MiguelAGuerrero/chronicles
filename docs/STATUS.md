@@ -23,7 +23,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
 | v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
 | v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
-| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; JN1-JN27, decision 0154) | built and audited 2026-11-12; merged with note pages and deployed by `/fix` (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; JN1-JN27, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix` (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |
 | Free look (Explore: Move map frees one-finger panning, Show areas here lists the areas around the map's middle; FL1-FL21, decision 0150, amends EC10) | built 2026-11-11 on `slice/free-look`; not deployed | `slice/free-look` | `specs/free-look/spec.md` | plan audited (16 findings: 15 accepted, 1 rejected); the built slice not audited |
 | Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
@@ -135,7 +135,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)
 
-- **A moment's link to its walk as an inference** (your direction, Nov 12, decision 0154): a data-model change across the replay, the walk screen and deletion. It needs `/vision` and a spec of its own. Recommended: after cut 2, which makes walks chapters and will show what the page needs from a walk.
+- **A moment's link to its walk as an inference** (your direction, Nov 12, decision 0155): a data-model change across the replay, the walk screen and deletion. It needs `/vision` and a spec of its own. Recommended: after cut 2, which makes walks chapters and will show what the page needs from a walk.
 - **More on every entry** (audit 18): the steward asks to take it off the page and put "Show less like this" and "Not this one" in the viewer's More. It now trails the dateline. Recommended: keep it until cut 3 designs the contents, then decide.
 - **Three bars at the foot with a walk minimized** (ui 1): the open line, the recording bar and the tab bar. Recommended: fold the walk's time, distance and Stop into the line's own row in cut 2.
 - **The dateline's tap lands on a cluster** (audit 19): the Map frames 150 m around the moment, but entries made at one spot share a pin with a count. Recommended: arrive with that moment's preview open.
@@ -170,24 +170,22 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   and its spoken name says them in words with the minutes in: "A photo and a note, twelve minutes in. Open". /vision:
   aligned (honour; "Counts are words"), amends QL26. Whether a pin's name carries the time is put to you separately.
   Otherwise: keep the disc, say the count in words to a screen reader only ("Two moments here"); or leave it.
+  **Answered yes** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
+  0154): the recommended shape, with the time in the spoken name (the question put separately: yes). Waits for the
+  next `/tend inbox`, one build per run (T16 was built first).
 - **T15 [owner] Chronicle: walked places are accent stars, with a numeral where they merge** (2026-11-12)
   Area: places (seen on the map's sweep). Seen: `probe-map-attrib-390-chronicle` ("Fox Point" on an orange star),
   `StarView.tsx` l.40-44 (a merged star draws its count, "3"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best
   of', rankings of places", and "Celebration: ... accent-coloured wins"; Always, "Counts are words" (steward S3). Decision
   0019 chose stars where walks were; this quotes the page against it, so it is yours.
-  Recommended: a walked place is a plain ink mark (a dot, or the walk's footprints glyph), and a merged place says how many
-  walks in words on a tap ("Three walks here"), never a numeral beside it. /vision: aligned if reshaped (honour; the
-  reshaping is the mark: no star glyph, no accent, no numeral). Amends 0019.
-  Otherwise: keep the star in ink rather than the accent, and drop the numeral; or leave it.
-- **T16 [owner] Map: a walk's start and end differ by colour alone** (2026-11-12)
-  Area: map. Seen: `qol-03-replay-card`, `probe-map-attrib-390-replay` (two white discs of one size, one ringed green,
-  one orange-red, a confusable pair; the end sits on the walked street in the same orange). Rests on: WCAG 2.2, 1.4.1 Use
-  of Color; ui-patterns, "Never colour alone to show state" (UX review U3). QL2 specifies "a white disc with a thick ring
-  in the walked orange": changing it amends a shipped criterion.
-  Recommended: the start stays hollow (white with the green ring); the end is solid, a disc filled in the walked orange
-  with a white ring, so shape tells them apart. /vision: aligned (return: the walk's two ends read at a glance;
-  restraint kept, no new colour). Whether the end should be orange at all is put to you separately.
-  Otherwise: the end ring larger than the start's; or leave it.
+  Recommended (the owner's reshape, Nov 12: "Ink star, no numeral"): a walked place keeps its star (0019), drawn in ink
+  rather than the accent, one size as now; a merged star draws no numeral, and its spoken name says its places and walks
+  in words. /vision on the reshape: aligned (return: where your walks were, at a glance; the Never row "Ratings,
+  reviews, stars, 'best of', rankings of places" is not met by a one-size mark of "walked here", which rates nothing;
+  "accent-coloured wins" and "Counts are words" are met by the ink and the missing numeral). Amends 0019's colour.
+  Otherwise (the sweep's first shape): a plain ink mark with no star glyph; or leave it.
+  **Answered reshape** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
+  0154): still one commit's worth; waits for the next `/tend inbox`, one build per run (T16 was built first).
 - **T17 [owner] Map: location refused reads as a fault** (2026-11-12)
   Area: map (Locate on Navigate and Explore). Seen: `probe-map-390-locate-denied-navigate`, `probe-map-390-locate-denied-explore`,
   `qol-13-locate-denied` (a red error box: "Location permission was denied. Allow location for this site in the browser
@@ -198,6 +196,9 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   uses. And with no fix and no tiles drawn, the scale bar is not shown over a blank world ("2,000 km", steward S6).
   /vision: aligned (honour; restraint).
   Otherwise: keep the words and drop the red only; or leave it.
+  **Answered yes** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
+  0154): the recommended quiet ink notice, with no scale bar over a blank world. Waits for the next `/tend inbox`, one
+  build per run (T16 was built first).
 - **T18 [phone] The map's text and buttons at the largest text size** (2026-11-12)
   Area: map. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open a walk with two
@@ -258,6 +259,19 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   edit, `tend replay 9`); the steps go through the moments with Continue, then the card (RR17); the day's card is said
   after Skip; Back on the name step returns to the card with the name kept (`tend replay 4`), and Back on the card
   leaves for Chronicle.
+- **T25 [owner] Replay: the walker's dot and the solid end differ by colour alone** (2026-11-12)
+  Area: map (the replay and the day replay). Seen: `22-day-replay-walk` after `tend map T16`: mid-path the walker is
+  a solid navy disc with a white ring and, about 45 px away, the end a solid orange disc with a white ring, about one
+  size; before T16 the end was hollow (the T16 review's F1 and U1; `ENDS_PAINT`, `components/map/types.ts`; the dot,
+  `WalkMap.web.tsx` `points` l.137). Rests on: WCAG 2.2, 1.4.1 Use of Color; ui-patterns, "Never colour alone to show
+  state" (X3). The motion tells them apart while the path plays, not on Hold or with reduced motion. QL2 says "the dot
+  is its end" on a live walk; the two are drawn together only on a replay. The marker's shape is yours (decision 0154).
+  Recommended: a bullseye end, a walked centre, a white band and a walked outer ring (two circle layers on the `ends`
+  source, the outer one drawn first), so the end differs in shape from the hollow start and from the solid dot; the
+  start and the dot unchanged. It takes T22's hue when you pick one, with nothing of its own. /vision: aligned
+  (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
+  Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
+  instead; or leave it (the motion tells them apart while it plays).
 
 ### Next evolutions
 
@@ -285,42 +299,40 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 12, `/tend replay`**, a sweep (from `5da94600`; the first of the replay; `--deploy=main`).
-- `tend replay 1`: beat one's headline stands below the top row, clear of Skip (it covered "...Transit Str[eet]" at
-  390 px); both headlines keep 16 px from the edges at 320.
-- `tend replay 2`: the end marker stays where the trace ends while the path is told (it rode the walker, re-sent
-  every 66 ms; QL2).
-- `tend replay 3`: the day card's distance follows the units setting (QL14).
-- `tend replay 4`: Android's Back on the name step returns to the card with the words kept.
-- `tend replay 5`: Escape on the web is Back's sibling on both replays (not while a viewer holds the key).
-- `tend replay 6`: a video card's Tap for sound is a 44 px target on solid ink, spoken as it reads.
-- `tend replay 7`: on a 320 or 375 px phone a card stands clear of the note being read (with a status bar too, audit 3).
-- `tend replay 8`: the memo's bubble keeps its time whole and on one line at 320 px (audit 2).
-- `tend replay 9`: each beat is said once as it begins; a skipped day's card is said too (native only).
-- `tend replay 10`: the day's replay frames its walks' rides.
-- `tend replay 11`: a card stands under the clock's line and the Held pill (landscape).
-- `tend replay 12`: the day card's line is set as the walk card's (16 px regular).
-- `tend replay 13`: the fog's headline takes its ground from the theme; the colour scan covers both screens.
-- `tend replay 14`: six replay checks that could not fail now can (the auditor's T1, T2, T4-T7; T3 in 11).
+**Nov 12, `/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`** (from `ea34a2ca`; the owner's own answers, in person;
+T16 built, the others wait for the next inbox run, one build per run; decision 0154).
+- `tend map T16`: a walk's end marker is solid, a disc filled in the walked colour with a white ring; the start stays
+  hollow, white ringed in the trace's green, so shape tells them apart (WCAG 2.2, 1.4.1). One paint for both maps
+  (`ENDS_PAINT`, `components/map/types.ts`); no new hue (T22 is open and the end follows `COLORS.walked`). The `qol`
+  journey reads both markers' middles on the replay. A live walk still has no end marker (QL2).
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend replay audit 2`: the memo's time keeps one line (it wrapped "5:38 / PM"; F2, U12).
-- `tend replay audit 3`: under a 20 px status bar a card still clears the note (the reserve fell away; F3).
-- `tend replay audit 4`: a held Escape on the name step stops at the card (its repeat left unsaved; F4).
-- `tend replay audit 5`: in landscape, held, the pills are measured clear of the card (F5).
-- `tend replay audit 6`: the fog's headline starts 8 px below Skip (F6).
-Review: 7 accepted (F1, the record's draft dropping "Open before the loop", restored; F2 with U12; F3-F6; F7, a native
-check reworded), 4 deferred `[loop]` low (call 4, call 10, U13, U14), 0 rejected.
-Filed: T19-T22 `[owner]` (the cards' counts in words, "Back to Chronicle", the name step's way back, the walked
-colour apart from the accent), T23-T24 `[phone]` (the largest text size; the screen reader and Back); `[loop]` in
-`docs/DEFERRED.md`: `loadReplay`'s full scans (medium), the caption on one line, the day card's scroll, two stale
-lines, the browser's Back on the name step, the map's (i) before its style loads; `[owner]` low: a card's time ahead
-of the clock. Decision 0153 records the owner's answers to the steward's questions (Q1-Q4). Not a finding: the memo's
-42 px button (its bubble's entrance scale; 44 px at rest).
-The balance: outgrowing its base (seven areas rough), so no `G` entry. Lenses not whole: the largest text size and the
-screen reader (phone only); the replay area is `rough`.
+- `tend map audit 8`: the `qol` step that reads the ends restores every marker, a failed read too (F2).
+- `tend map audit 9`: `ENDS_PAINT` is type-checked as a circle paint, with no cast on either map (F3).
+- `tend map audit 10`: `endsGeoJSON`'s start and end take the paint's own branches; native adds only opacity (F5).
+- `tend map audit 11`: the replay journey pictures the walk's card at 375 and 320 px once its title shows, its map
+  drawing both ends (U4; the old pictures showed a moment's beat, now `rr-beat-<w>`).
+Review: 5 accepted (F2, F3, F5, U4; F4, two stale records, named in "Open before the loop" with a note under the
+native check), 2 deferred `[owner]` low in `docs/DEFERRED.md` (U2, the end reads smaller; U3, a pin's stalk inside a
+marker), 1 to you as T25 (F1 with U1: mid-replay the walker's dot and the solid end differ by colour alone), 0
+rejected. The end filled in the accent's hex is your accepted interim until T22 (0153, 0154).
+Answered and waiting: T17 yes (the quiet ink notice, no scale bar over a blank world), T14 yes (kinds, no numeral, the
+time in the spoken name), T15 reshaped by the owner to "Ink star, no numeral" (/vision: aligned). QL2's wording and the
+map rule's marker lines in "Open before the loop"; one native check. Filed: T25 `[owner]`. Not a sweep: no lens ran and
+no area changed state. Nothing here has run on a phone; the `ends` layer is drawn on native too
+(`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **QL2's wording after T16** (Nov 12; decision 0154): the quality-of-life doc (mirrored in
+  `specs/quality-of-life/spec.md`) says the end marker is "a white disc with a thick ring in the walked orange"; since
+  `tend map T16` it is solid, a disc filled in the walked colour with a white ring, the start still hollow. Amend QL2 to
+  "a disc filled in the walked colour with a white ring, so shape, not colour alone, tells it from the start", in the
+  doc and the mirror; the loop may not edit a spec. `.claude/rules/map.md` l.119-121 ("a ring in `COLORS.walked`")
+  and its Native line ("the `ends` layer's `match` stroke colour") say the old paint; a "Since `tend map T16`" line
+  under the first says what is true. The loop rewords no rule line. Two records say it too (the T16 review's F4):
+  `docs/NATIVE_UNVERIFIED.md`'s first Quality of life check ("with the `match` stroke colour"; an indented note under
+  it points to the next check), and T22 above ("QL2's end ring ('in the walked orange') takes it too": since T16 the
+  end is a fill, which takes it the same way).
 - **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
   bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
   north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`

@@ -72,7 +72,7 @@ type LineProps = {
 };
 
 /**
- * The journal's open line (chronicle journal JN9-JN19, decision 0154): a text field, the camera and the mic, fixed
+ * The journal's open line (chronicle journal JN9-JN19, decision 0155): a text field, the camera and the mic, fixed
  * at the foot of Memories. Writing in it is the capture: the first character stores an entry, which is kept as it
  * is typed. With a walk minimized, what it keeps is the walk's; only that case reads the live trace.
  */

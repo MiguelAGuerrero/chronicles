@@ -1,6 +1,6 @@
 # Chronicle journal, cut 1: plan
 
-For the owner's review before any code (`/slice` step 3). Spec: `specs/chronicle-journal/spec.md` (JN1-JN24); the owner's calls: decision 0154; the approved drawing: https://claude.ai/artifact/GvCtF3iCjh1CksvojJcvoF.
+For the owner's review before any code (`/slice` step 3). Spec: `specs/chronicle-journal/spec.md` (JN1-JN24); the owner's calls: decision 0155; the approved drawing: https://claude.ai/artifact/GvCtF3iCjh1CksvojJcvoF.
 
 ## Defaults for your review
 
@@ -9,7 +9,7 @@ My calls where your answers left room. Each can flip without touching the rest.
 1. **The open line is pinned at the foot, at every scroll position** (JN9). The drawing shows it at the end of today's page; pinned, it is also there when you have scrolled back a month, so capture stays one tap everywhere on Memories, as the band was (HC7). A tap in it brings today's page up. The drawing's "Today" link on old pages is therefore not built.
 2. **An entry is stored from its first character and saved as you type** (JN12, JN13), through the same path that edits a note today. A crash mid-sentence loses at most the last half second. An entry emptied of all its words is removed, so no blank moment is ever kept.
 3. **The "kept here" and "saved to your walk" toasts go** (JN8, amending HC9, HC10 and HC15). The entry appearing on the page is the confirmation; "No location" is said in the dateline.
-4. **A walk's entries on the page, the storage unchanged.** You said a moment need not belong to a walk. In this cut the page treats it that way: a moment made during a walk is on the page like any other (JN8). Underneath, it is still stored with its walk, because the replay, the walk screen and deletion all read that link. Making the link an inference from time and place is a change to the data model across those features; I have recorded it as your direction in decision 0154 and left it for its own gate and spec.
+4. **A walk's entries on the page, the storage unchanged.** You said a moment need not belong to a walk. In this cut the page treats it that way: a moment made during a walk is on the page like any other (JN8). Underneath, it is still stored with its walk, because the replay, the walk screen and deletion all read that link. Making the link an inference from time and place is a change to the data model across those features; I have recorded it as your direction in decision 0155 and left it for its own gate and spec.
 5. **The slip keeps one visible action, and stays put** (JN20): a tap opens the moment. Relive it and Another move into its More with Fewer like this and Hide. **Changed after the steward (7):** I had told you the slip goes away once you write. A card that sits over an empty line and vanishes at the first character behaves like a prompt, so it now keeps its place for that open of the app.
 6. **Changed after the steward (1): the open line stays in a thread, your thread and Hidden**, as the band does today (HC7). Only the contents list itself, a short menu, has none.
 7. **The dateline's tap goes to Chronicle's Map** (JN6): the section bar moves to Map, framed on that moment's pin, and Back returns to the page where it was.
@@ -85,7 +85,7 @@ Unit tests in `src/lib/__tests__/journal/`; screen checks in a new journey `scri
 - Walks as chapters with a drawn trace, day pages replacing the Days section, and the section bar going: cut 2.
 - Media as plates, the scrubber by month, jump to a date, search: cut 3.
 - The walk screen's Quiet | Explore naming: cut 4.
-- A moment's link to its walk as an inference: its own gate (decision 0154).
+- A moment's link to its walk as an inference: its own gate (decision 0155).
 - Reading only a page of rows from the store: the page draws one page, but Memories still reads every capture row (never media) at open, as it does today.
 
 ## Native paths that will not run on a device

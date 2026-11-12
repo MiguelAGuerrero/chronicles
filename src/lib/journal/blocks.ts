@@ -2,7 +2,7 @@
 import { Lexer, type Token, type Tokens } from 'marked';
 
 /**
- * A page-written note on the journal's sheet (chronicle journal JN26, JN27; decisions 0151, 0154): its Markdown read
+ * A page-written note on the journal's sheet (chronicle journal JN26, JN27; decisions 0151, 0155): its Markdown read
  * into blocks the sheet draws with plain native text (a heading, a bullet, a numbered line, a checkbox, a quote, a
  * paragraph), never the editor itself: a list of entries cannot hold a web view each. A block's text keeps its
  * mention tokens (`@[id|words]`), so the sheet can draw them as cards; every other mark is read as its words. Read

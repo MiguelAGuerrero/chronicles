@@ -7,7 +7,7 @@ paths:
 ---
 # The journal (Chronicle's Memories)
 
-Memories is a journal page (decision 0154): one sheet in book order, opening at today, ending in an open line where writing, a photo or a voice note is the capture. The spec is `specs/chronicle-journal/spec.md` (JN1-JN24). The codemap is in `docs/ARCHITECTURE.md`. This is cut 1 of four: Walks, Days, Map and Media are as they were.
+Memories is a journal page (decision 0155): one sheet in book order, opening at today, ending in an open line where writing, a photo or a voice note is the capture. The spec is `specs/chronicle-journal/spec.md` (JN1-JN24). The codemap is in `docs/ARCHITECTURE.md`. This is cut 1 of four: Walks, Days, Map and Media are as they were.
 
 ## What it must stay
 

@@ -28,7 +28,7 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   `walks/moments/`. A loose moment finds a place like a walk's capture
   (`explore/momentFind/shell.ts`, tested over `fakePorts()`; `index.ts` passes the Undo window's ids).
 - **Capture from Chronicle** (HC1-HC5, HC7, HC9, HC10, HC14, HC15; decision 0112) is the journal's open line since
-  decision 0154: see `.claude/rules/journal.md`. `MomentBar` is the ready screen's alone now; `lib/captureBand.ts` keeps
+  decision 0155: see `.claude/rules/journal.md`. `MomentBar` is the ready screen's alone now; `lib/captureBand.ts` keeps
   the ready screen's toast (`momentToast`) and `barCamera` (the recording bar shows no camera on Memories, where the open
   line files into the walk). A photo or video being kept is still tracked by `memoGate.keep`, and the bar's Stop waits
   on `memoGate.kept()`. Trap, unchanged: in the headless e2e a fixed location never refreshes the walk's last fix, so a

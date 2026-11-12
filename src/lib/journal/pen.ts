@@ -1,6 +1,6 @@
 // @layer core
 /**
- * The open line's decisions (chronicle journal JN12, JN13, JN15, JN16; decision 0154): when typing begins an
+ * The open line's decisions (chronicle journal JN12, JN13, JN15, JN16; decision 0155): when typing begins an
  * entry, when it is saved, when an emptied one is removed, and when the line lets go of it. A reducer: the view
  * runs the effects with the capture code it already has.
  */

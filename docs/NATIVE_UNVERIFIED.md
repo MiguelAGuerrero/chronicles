@@ -156,7 +156,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on a phone at the largest text size, with nothing walked and a walk minimized, open Chronicle's Map. **Expect:** the peek's line, "This walk is starred here when it ends", sits whole under the grabber; the peek is the plain 76 pt with no button, and a line that wraps to two at a large size may be clipped (the header is 48 pt; the T10 review's native notes; see T13).
 - [ ] **Do:** set Distances to miles, set a destination and pull up the ready bar; step the "?" range from 60 to 300 m. **Expect:** the destination and the range read in feet or miles, each range step a different number of feet, on the ready bar and the walk's options alike (`tend tabs 6`, audits 5-7).
 
-## Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0154)
+## Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)
 
 - [ ] **Do:** on an iPhone with a home indicator, open the app on Memories; write a line in the open line, then add a photo and a voice note without tapping Done; then tap Done. **Expect:** the line sits just above the tab bar and clear of the home indicator; the words are on the page under one dateline with the photo and the note, each taking one tap; the dateline gains its place once the one fix comes. (HC6, HC7, HC9, JN9, JN12, JN14, JN15)
 - [ ] **Do:** tap in the open line and type three lines. **Expect:** the line rides above the keyboard with "Kept as you write", the camera, the mic and Done; the entry's dateline stays in view above it; Done lowers the keyboard. (JN13, JN19)
@@ -182,6 +182,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 ## Quality of life
 
 - [ ] **Do:** stop a walk and open its replay. **Expect:** the `ends` layer (`lib/traceEnds.ts`) draws the start and end markers with the `match` stroke colour, as on the web (Quality of life). (QL1, QL2)
+  - Since `tend map T16` the end is filled; see the next check.
+- [ ] **Do:** stop a walk with a photo kept where it ends, open its replay and its day's replay. **Expect:** MapLibre RN draws `ENDS_PAINT` (`components/map/types.ts`, spread into the `ends` layer with the trace's opacity) as the web does: the start a white disc ringed in green, the end a disc filled in the walked orange with a white ring, both `match` expressions read, the photo's pin over the end (`tend map T16`, decision 0154). (QL2)
 - [ ] **Do:** zoom each map in and out (the walk screen, Explore, Chronicle, a replay). **Expect:** the scale bar over the native map (`components/map/ScaleBar.tsx`) sits bottom-left clear of each screen's bottom UI and follows the zoom with a round length (Quality of life). (QL5, QL7, QL8)
 - [ ] **Do:** after a drive, tap Locate on Explore. **Expect:** `locateOnce` fresh on expo-location (`lib/useLocate.ts`) reads a fix taken after the tap, never a cached one, and centres on where you are (Quality of life). (QL10)
 - [ ] **Do:** tap Locate on Explore and on Navigate's ready screen, twice quickly. **Expect:** the Locate edge button over the native sheet (`components/LocateButton.tsx`) is 44 pt, shows busy while reading, and ignores the second tap (Quality of life). (QL9, QL11)
@@ -538,3 +540,7 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with VoiceOver or TalkBack on, let a first replay play while its streets are read; on the card edit a note; open the day's replay and Skip. **Expect:** "Reading the streets you walked" and "Summary" are said once each; the day's card is said after Skip (`tend replay 9`).
 - [ ] **Do:** on a phone, watch a replay through its path. **Expect:** the end ring stands at the walk's last point from the fog to the card, never on the walker (`WalkMap.native.tsx` reads `ended`'s whole runs, `tend replay 2`).
 - [ ] **Do:** on an iPhone, watch a replay whose video plays muted; then watch again and turn VoiceOver on mid-path, once the video's card is up (with VoiceOver on from the start the replay steps through its moments instead, RR17). **Expect:** "Tap for sound" is a 48 pt pill on solid ink at the card's top right, and VoiceOver can reach it as its own button, read "Tap for sound", not folded into the card's name (`Cards.tsx`'s card is `accessible`; if it folds, file it) (`tend replay 6`).
+
+## The tab labels' line height (fix tab-label-clip, Nov 12)
+
+- [ ] **Do:** on an iPhone, look at the bottom tabs in portrait, then in landscape. **Expect:** the stems of the p in Explore and the g in Navigate are whole, and the bar is 62 pt above the home indicator (`tabBarLabelStyle` lineHeight 14, 24 when wider than tall; seen only in desktop Chromium).

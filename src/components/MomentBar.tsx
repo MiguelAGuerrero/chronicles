@@ -25,7 +25,7 @@ import { LiftIn, theme } from './ui';
 /**
  * Camera, mic and pencil on the ready screen (M1, NR9): a moment in one tap. Each moment asks for one fix as it
  * is begun and is kept at once; the toast says where it landed when the fix comes, or "No location" (M2).
- * Chronicle's Memories keeps moments from its own open line (`components/journal/OpenLine`, decision 0154).
+ * Chronicle's Memories keeps moments from its own open line (`components/journal/OpenLine`, decision 0155).
  */
 export function MomentBar(props: {
   disabled?: boolean;

@@ -591,6 +591,28 @@ async function run(h) {
       const endAt = lonLat(b);
       check(startAt && endAt && mAway(startAt, s0) < 15 && mAway(endAt, last) < 15,
         `qol QL2: the replay marks the start and the end of the trace (data-ends ${JSON.stringify(ends)}: start ${startAt ? mAway(startAt, s0).toFixed(1) : '-'} m, end ${endAt ? mAway(endAt, last).toFixed(1) : '-'} m off)`);
+      // tend map T16: shape tells the two apart, not colour alone: the start's middle is white (hollow), the end's
+      // the walked colour (solid). The pins and the walker are DOM markers over the end, hidden for the read.
+      if (startAt && endAt) {
+        // The markers come back whatever the read does (tend map audit 8): a read that throws left them all hidden.
+        const markersHidden = async (read) => {
+          await pg.evaluate(() => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = 'hidden'; }));
+          try { return await read(); } finally {
+            await pg.evaluate(() => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = ''; }));
+          }
+        };
+        const hiddenNow = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => m.style.visibility === 'hidden').length);
+        const thrown = await markersHidden(async () => { throw new Error('a read that fails'); }).then(() => false, () => true);
+        const left = await hiddenNow();
+        const [pxStart, pxEnd] = await markersHidden(async () => [await pixelsAround(startAt), await pixelsAround(endAt)]);
+        const leftAfter = await hiddenNow();
+        check(thrown && left === 0 && leftAfter === 0,
+          `tend map audit 8: after the ends read every marker is visible again, a failed read too (hidden after a throw ${left}, after the read ${leftAfter})`);
+        const walked = [0xc2, 0x41, 0x0c];
+        const nearWalked = (c) => Math.abs(c[0] - walked[0]) + Math.abs(c[1] - walked[1]) + Math.abs(c[2] - walked[2]) <= 60;
+        check(pxStart.white && !pxEnd.white && nearWalked(pxEnd.centre),
+          `tend map T16: the start is hollow (white middle) and the end solid in the walked colour (start ${JSON.stringify(pxStart.centre)}, end ${JSON.stringify(pxEnd.centre)})`);
+      }
       const s6 = await scaleBar();
       // The card: the outermost painted box around Name it.
       const cardTop = await pg.evaluate(() => {

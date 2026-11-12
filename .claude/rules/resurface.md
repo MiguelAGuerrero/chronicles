@@ -6,7 +6,7 @@ paths:
 ---
 # Resurfaced moments (Chronicle's Memories)
 
-Chronicle opens on Memories, a journal since decision 0154 (`.claude/rules/journal.md`): one resurfaced moment as a slip on today's page, the threads the user keeps coming back to (behind the contents), and every moment as an entry. The spec is `specs/resurfaced-moments/spec.md` (RM1-RM25); the owner's calls are in `docs/decisions/0098-chronicle-opens-on-memories.md`. The codemap is in `docs/ARCHITECTURE.md`.
+Chronicle opens on Memories, a journal since decision 0155 (`.claude/rules/journal.md`): one resurfaced moment as a slip on today's page, the threads the user keeps coming back to (behind the contents), and every moment as an entry. The spec is `specs/resurfaced-moments/spec.md` (RM1-RM25); the owner's calls are in `docs/decisions/0098-chronicle-opens-on-memories.md`. The codemap is in `docs/ARCHITECTURE.md`.
 
 - **Nothing is a score.** Threads are ranked internally (`Thread.score`), and nothing ranked, weighted or counted is ever shown. Every sentence comes from `lib/resurface/lines.ts`, which writes numbers as words; a test checks no digit leaves it (RM22). Dates and a memo's length are the only digits on Memories.
 - **Signals are the extension point** (`types.ts`, `extractors.ts`). `deriveThreads`, the feed and the shell read `Signal`s and nothing else. A transcriber fills a memo's `MomentView.words` (through `ResurfaceOptions.transcript`), or a new `SignalExtractor` is added to `DEFAULT_EXTRACTORS`; neither touches the feed. Never read `Capture` fields in `threads.ts`, `pick.ts` or `feed.ts`.

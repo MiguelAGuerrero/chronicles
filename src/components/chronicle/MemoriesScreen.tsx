@@ -49,7 +49,7 @@ const NO_IDS: string[] = [];
 const viewOf = (c: Faced): MomentView => ({ id: c.id, t: c.t, kind: c.kind, walkId: c.walk_id, words: wordsOf(c), place: null, hasMedia: c.kind === 'text' ? true : !!c.file_path, capture: c });
 
 /**
- * Chronicle's Memories as a journal (chronicle journal JN1-JN24, decision 0154): every kept moment as an entry on
+ * Chronicle's Memories as a journal (chronicle journal JN1-JN24, decision 0155): every kept moment as an entry on
  * one sheet in book order, a resurfaced moment as a slip on today's page, and the open line at the foot, where
  * writing is the capture. Threads, Hidden and the resurfacing choices are behind the contents button.
  */

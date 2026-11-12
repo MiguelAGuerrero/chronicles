@@ -416,7 +416,7 @@ async function createHarness() {
       if (await pg.locator(`[data-testid=section-${section}]`).filter({ visible: true }).count()) await pg.click(`[data-testid=section-${section}]`);
     }
   };
-  // Memories is a journal (decision 0154): the threads, the Chronicle's and the owner's, are behind its contents
+  // Memories is a journal (decision 0155): the threads, the Chronicle's and the owner's, are behind its contents
   // button. `toThreads` opens them from the page; `toJournal` goes back to the page. Both do nothing when already there,
   // or inside a thread or Hidden (their own Back comes first).
   const toThreads = async (pg) => {

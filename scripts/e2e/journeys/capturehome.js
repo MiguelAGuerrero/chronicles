@@ -1,5 +1,5 @@
 // Capture from Chronicle (HC1-HC5, HC7, HC10, HC14, decision 0112): the app opens on Chronicle's Memories, which keeps a
-// moment in one tap from its open line (the journal, decision 0154; the `journal` journey holds the line's own checks). Its own browser: an empty app first, then seeded moments, then
+// moment in one tap from its open line (the journal, decision 0155; the `journal` journey holds the line's own checks). Its own browser: an empty app first, then seeded moments, then
 // a walk minimized. E2E_ONLY=capturehome runs it alone.
 
 // Counts every location read, so a launch that reads none and a moment that reads one fix can be told (HC9, HC14).
@@ -67,7 +67,7 @@ async function run(h) {
     els.filter((e) => /^tab-(chronicle|explore|navigate)$/.test(e.dataset.testid)).map((e) => e.innerText.replace(/[^A-Za-z]/g, '')));
   check(tabs.join(',') === 'Chronicle,Explore,Navigate', `HC3: the tabs read Chronicle, Explore, Navigate (${tabs.join(', ')})`);
 
-  // Memories is a journal since decision 0154: what the band's checks proved here (HC6-HC9, HC11-HC13, HC15 and the
+  // Memories is a journal since decision 0155: what the band's checks proved here (HC6-HC9, HC11-HC13, HC15 and the
   // audit's 2, 5, 8, 9, 11) is the open line's now, checked by the `journal` journey (JN2, JN9-JN15, JN18). What stays
   // here is the launch and the tabs, the walk minimized under Memories, the recording bar and Explore's one fix.
 

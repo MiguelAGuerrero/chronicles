@@ -1,4 +1,4 @@
-# 0154. Chronicle is a journal: the page you read is the page you write on
+# 0155. Chronicle is a journal: the page you read is the page you write on
 
 Date: 2026-11-12 · Status: accepted · Area: chronicle, capture, vision · Amends: 0098, 0112 (Memories' layout)
 

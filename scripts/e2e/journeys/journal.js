@@ -1,4 +1,4 @@
-// Chronicle journal, cut 1 (JN1-JN24, decision 0154): Memories is a journal page in book order, ending in an
+// Chronicle journal, cut 1 (JN1-JN24, decision 0155): Memories is a journal page in book order, ending in an
 // open line where writing, a photo or a voice note is the capture. Its own browser: an empty journal first,
 // then seeded entries, then a walk minimized. E2E_ONLY=journal runs it alone.
 

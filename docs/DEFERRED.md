@@ -65,6 +65,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
+- [loop] "What I'm into": the Community parks row appears and disappears with Parks without motion or a spoken cue, and its hint does not say it belongs to Parks (fix subcategory-indent, ux-reviewer U2, U5: WCAG 1.3.1, 4.1.3; opinion, low). Fix: the house motion tokens for the insert, "part of Parks and gardens" in the child's accessibility hint
 - [owner] Explore's area card carries the accent on its border and on "See its neighborhoods" at rest; VISION.md's Always, "Restraint in motion, colour and copy", and the open question on the accent at launch (`docs/STATUS.md`) bear on it. For the next explore sweep (steward, `/tend tabs`, Nov 11; picture `probe-explore-minimized`)
 - [kept] A checklist takes a reclassified place's new category at the next tile build, not at once: items are kept and rebuilt only by E4 and PW12; `PRESENCE_CODE` re-derives the atlas and the landing only (specs/presence PR6, Nov 11)
 - [owner] When the places archive fails to load, the planner and the atlas ring read the map's places alone (`walkPlanner/service.ts`, `atlas.ts` `ringOf`), so a plain-named memorial or church the archive records shows no mark until it loads again: existing behaviour (specs/presence-readers, the steward, Nov 11)
@@ -132,8 +133,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
 - A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0112)
-- A lost toast on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-note, unseen. (The "saved to your walk" toast is gone with the journal, decision 0154.)
-- (Settled by the journal, decision 0154: an open walk's moment made from Memories shows on the page at once, JN8.)
+- A lost toast on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-note, unseen. (The "saved to your walk" toast is gone with the journal, decision 0155.)
+- (Settled by the journal, decision 0155: an open walk's moment made from Memories shows on the page at once, JN8.)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
@@ -194,6 +195,15 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] Before a map's style loads, its credits (i) sit flush in the screen's corner, half off it (the replay's reading
   beat, `probe-390r-reading`): `place()` runs only once the map is ready, and `--credits-bottom` and `--credits-left`
   have no fallback in the stylesheet (`WalkMap.web.tsx`; `/tend replay`, call 12, low; the map area's)
+- [owner] The solid end reads smaller than the hollow start: both are 22 px across (MapLibre strokes outside the
+  radius), but the end's white ring is about 1.2:1 on the grey ground and 1:1 on the white street casings, so it
+  reads as a 14 px orange dot (`23-day-card`, `rr-day-card` after `tend map T16`). The pair still reads began and
+  ended. A radius of 9 with a 2 px ring would keep 22 px and show about 18 px of orange; the marker's size is yours
+  (the T16 review's U2, low)
+- [owner] A capture pin standing on a start or end puts its stalk inside the marker: the "2" pin's stalk lands in the
+  solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
+  `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
+  the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -673,8 +683,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **A camera mention's words are "A photo" or "A video"** (note-pages audit 26, in part), not the moment's own context.
 - [loop] **Complexes audit** (0147): `neededTiles` lists the tiles that hold a vertex, so a building longer than a z14 tile with no vertex in a middle tile can lose places there (audit 3). A joined outline draws the tiles' clip edges inside a building cut across tiles; it needs a polygon union (audit 9). A release whose `buildings.pmtiles` is missing falls back to no older release the way the places reader does (audit 6). A row for a building that stops qualifying, or is renamed, is never deleted: only a code bump or a purge clears it (audit 7). A fix's accuracy, the antimeridian and label collisions (audit 12). A seeded complex on Memories' card has no journey step (audit 20). After "See more" the first new row should take a screen reader's focus (audit 21).
 - [owner] **Complexes audit** (0147): the card does not say where the kind switches are (the walk's and Navigate's settings only); a line or link on the card is a navigation choice. A pull of up to nine `buildings` tiles on mobile data without a tap. Whether a store of every area browsed is acceptable derived data (it is cleared by a purge).
+- **No test asserts the tab labels fit their box** (fix tab-label-clip audit 2, low): an e2e check that each label's `scrollHeight` is at most its `clientHeight`, portrait and landscape, belongs to the next change to the tab bar.
 
-## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0154)
+## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)
 
 - **The other three cuts:** walks as chapters with their trace drawn, day pages in place of the Days section, and the section bar going (cut 2); Media as plates, a scrubber by month, jump to a date and search (cut 3); the walk screen's Quiet | Explore naming (cut 4).
 - **A moment's link to its walk as an inference** from time and place (the owner's direction, Nov 12): `Capture.walk_id` is still stored and read by the replay, the walk screen and deletion. It goes through `/vision` and a spec of its own.

@@ -3,7 +3,7 @@ import type { Capture } from './types';
 
 /**
  * What is left of capture from Chronicle (HC7, HC15, decision 0112) now that Memories is a journal (decision
- * 0154): a loose moment's toast on Navigate's ready screen, and the recording bar's camera. The open line's own
+ * 0155): a loose moment's toast on Navigate's ready screen, and the recording bar's camera. The open line's own
  * decisions are in `lib/journal`.
  */
 

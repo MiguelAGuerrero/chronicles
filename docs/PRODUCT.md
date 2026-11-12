@@ -46,7 +46,7 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 
 The app is three tabs in one loop: Explore before, Navigate during,
 Chronicle after. The bar reads Chronicle, Explore, Navigate, and the app opens on Chronicle's
-Memories, a journal whose open line keeps a moment in one tap (decisions 0112, 0154). A walk screen opens over them while
+Memories, a journal whose open line keeps a moment in one tap (decisions 0112, 0155). A walk screen opens over them while
 recording, and a recording bar brings a minimized walk back.
 
 ### Explore (before)
@@ -202,8 +202,8 @@ recording, and a recording bar brings a minimized walk back.
 - The map follows a live dot, with the walked trace in green and rides (bus,
   train) dashed. The map stays north-up unless you turn it with two fingers (a compass then
   shows above the edge buttons and sets north again, decision 0082); a soft cone on the dot shows the way
-  you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds an
-  orange ring where it ended. Every map has a scale bar in its bottom-left
+  you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds a
+  solid orange disc with a white ring where it ended (shape, not colour alone, tells them apart; decision 0154). Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
   out. A pin of one photo shows the photo itself, small and round. Faint
   pins with a clock badge show earlier walks' captures nearby (memories on
@@ -309,7 +309,7 @@ recording, and a recording bar brings a minimized walk back.
   Memories. The bar always names what is shown: the sheet's own Walks | Days and Map
   (and a drag, or a long press's Walk here) move it too, and one map stays up across
   Walks, Days and Map (SB1-SB5, decision 0136). The app opens here (decision 0112). Memories is a **journal**
-  (decision 0154, the first of four cuts):
+  (decision 0155, the first of four cuts):
   - **The page**: every moment as an entry on one sheet, in the order made, oldest above, opening at today. Each day
     that has an entry begins with its date in full; a day with nothing does not appear. An entry has no card: a dateline
     in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
@@ -491,8 +491,8 @@ recording, and a recording bar brings a minimized walk back.
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14) | Built 2026-11-11 (web verified by the e2e `responses`; native unverified) |
 | Moment references (a note mentions moments with @) | Built on `claude/ui-conformance` (web verified by the e2e `threads`; native unverified) |
-| Capture from Chronicle (the app opens on Memories, one tap from keeping a moment; HC1-HC15; the band is the journal's open line since 0154) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
-| Chronicle journal, cut 1 (Memories as a journal page in book order, the open line where writing is the capture, the slip, the contents; JN1-JN24, decision 0154) | Built 2026-11-12 (web verified by the e2e `journal`; native unverified) |
+| Capture from Chronicle (the app opens on Memories, one tap from keeping a moment; HC1-HC15; the band is the journal's open line since 0155) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order, the open line where writing is the capture, the slip, the contents; JN1-JN24, decision 0155) | Built 2026-11-12 (web verified by the e2e `journal`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in a grid under day headers; Years, Months, Days; Sort, Show, Zoom, Square or Aspect; MG1-MG22) | Built (web verified by the e2e `gallery`; native unverified) |

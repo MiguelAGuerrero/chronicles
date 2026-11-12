@@ -3,7 +3,7 @@ import { dayKey } from '../days';
 import type { MomentView } from '../resurface/types';
 
 /**
- * The journal's page (chronicle journal JN1, JN2, JN8; decision 0154): every kept moment as an entry on one
+ * The journal's page (chronicle journal JN1, JN2, JN8; decision 0155): every kept moment as an entry on one
  * sheet, in the order made, under a heading per day. Pure: the clock is an argument.
  */
 

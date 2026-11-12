@@ -262,7 +262,7 @@ const FEATURES = [
   },
   {
     name: 'journal',
-    about: "Chronicle's Memories as a journal: one sheet in book order, ending in an open line where writing is the capture (decision 0154)",
+    about: "Chronicle's Memories as a journal: one sheet in book order, ending in an open line where writing is the capture (decision 0155)",
     rule: 'journal',
     source: ['src/lib/journal/**', 'src/components/journal/**'],
     journeys: ['journal'],
@@ -380,7 +380,7 @@ const RETIRED = {
   // The test trim (Nov 5, the owner's call): the replay rhythm (decision 0085, RR1) replaced the ride's 4 s squeeze; a
   // ride is a stretch like any other, and still draws dashed (R5).
   rides: ['R10'],
-  // Memories became a journal (the owner, Nov 12, decision 0154): the capture band gave way to the open line, so the
+  // Memories became a journal (the owner, Nov 12, decision 0155): the capture band gave way to the open line, so the
   // band's button names (HC8), its memo slots (HC11), its restraint (HC12) and its empty state (HC13) are the journal's
   // JN10, JN14 and JN2 now, checked by the `journal` journey.
   'capture-from-chronicle': ['HC8', 'HC11', 'HC12', 'HC13'],

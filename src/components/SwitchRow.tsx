@@ -16,6 +16,8 @@ export function SwitchRow(props: {
   value: boolean;
   /** A row that cannot be switched now (a subset under a parent that is off): dimmed, announced, and a tap does nothing. */
   disabled?: boolean;
+  /** Steps in from the left: a subset sits under its parent (PC23). */
+  indent?: number;
   onChange: (on: boolean) => void;
 }) {
   return (
@@ -28,7 +30,7 @@ export function SwitchRow(props: {
       aria-checked={props.value}
       disabled={props.disabled}
       onPress={() => !props.disabled && props.onChange(!props.value)}
-      style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled]}
+      style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled, !!props.indent && { marginLeft: props.indent * 28 }]}
     >
       {props.icon && <Icon name={props.icon} size={20} color={theme.ink} />}
       <View style={styles.rowText} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>

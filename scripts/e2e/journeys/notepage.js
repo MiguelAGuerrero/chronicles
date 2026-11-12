@@ -58,7 +58,7 @@ async function run(h) {
   const gone = (sel, timeout = 6000) => pg.waitForSelector(sel, { state: 'detached', timeout }).then(() => true, () => false);
   const input = () => pg.locator('[data-testid=note-page] [data-testid=note-input]');
   const inPage = (sel) => pg.locator(`[data-testid=note-page] [data-testid=note-input] ${sel}`).count();
-  // On Memories a page opens from the journal's open line (chronicle journal JN25, decision 0154): a tap in the line,
+  // On Memories a page opens from the journal's open line (chronicle journal JN25, decision 0155): a tap in the line,
   // then Open as a page. The pencil that opened it in one tap went with the band; the line itself is the one tap.
   const openPage = async () => {
     await pg.click('[data-testid=line-input]');

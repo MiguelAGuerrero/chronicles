@@ -114,7 +114,7 @@ async function run(h) {
   await pg.click('[data-testid=add-moment-row]');
   await gone('[data-testid=add-to-thread]');
   // The viewer says so plainly, in its info line. (This check once read "Connected" off the threads listed behind the
-  // viewer; they are behind the journal's contents now, decision 0154.)
+  // viewer; they are behind the journal's contents now, decision 0155.)
   check(await there('text=Added to a thread', 5000), 'owner-threads audit 19: the viewer says Added to a thread, nothing warmer');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');

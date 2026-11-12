@@ -1,10 +1,10 @@
-<!-- Repo first: written from the owner's request in a session (Nov 12), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0154. The approved drawing: https://claude.ai/artifact/GvCtF3iCjh1CksvojJcvoF -->
+<!-- Repo first: written from the owner's request in a session (Nov 12), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0155. The approved drawing: https://claude.ai/artifact/GvCtF3iCjh1CksvojJcvoF -->
 
 # Chronicle journal, cut 1: the page and the pen
 
 Nov 12, 2026 · @Miguel Guerrero
 
-Memories is a feed with three capture buttons at its foot, and the owner finds that the feed does not say "capture here". Memories becomes a journal: one sheet in the order moments were made, opening at today, ending in an open line where writing, a photo or a voice note is the capture. This is the first of four cuts (decision 0154); Walks, Days, Map and Media stay as they are in this one.
+Memories is a feed with three capture buttons at its foot, and the owner finds that the feed does not say "capture here". Memories becomes a journal: one sheet in the order moments were made, opening at today, ending in an open line where writing, a photo or a voice note is the capture. This is the first of four cuts (decision 0155); Walks, Days, Map and Media stay as they are in this one.
 
 ## Vision
 
@@ -14,9 +14,9 @@ Touches: Always "Capture is one tap away on every screen you walk or capture fro
 Verdict: aligned if reshaped
 Shape: A typographic journal, never a costume: white ground, the app's ink, no paper, binding or page turns. Entries are prose without cards, each under a dateline that carries its context; the owner's words are set in a serif and everything the app says in its plain sans, so the app never appears to write in the book. The page ends in an open line that is always on screen: a caret, with the camera and the mic at its end, one tap each. Writing in the journal starts no walk and no trace; an entry reads one fix when it begins. New entries land only at the end; a past entry can be corrected or responded to, never inserted before. Reshaped from the owner's first telling in three places: the camera and mic stay one tap (a journal must not demote them behind the pen); the book is structure, not texture; and "controlling Navigate from the journal" became "the journal is the quiet mode, Navigate is the walk".
 Criteria: JN3-JN5 (context, two voices, no cards), JN9-JN11 (one tap, no hint, no prompt, no location at open), JN12 (one fix at the entry's start, no trace), JN17 (the past is fixed), JN20 (the slip never leads or nags), JN22 (restraint), JN2 (no empty days, nothing counted).
-Open: the owner's remark of Nov 12 that a moment need not belong to a walk (an association by time and place, read at recall) is a change to the data model; it is recorded in decision 0154 as a direction and is not part of this cut.
+Open: the owner's remark of Nov 12 that a moment need not belong to a walk (an association by time and place, read at recall) is a change to the data model; it is recorded in decision 0155 as a direction and is not part of this cut.
 
-## Decisions (the owner's calls, Nov 12, decision 0154)
+## Decisions (the owner's calls, Nov 12, decision 0155)
 
 - **The journal is the whole Chronicle tab**, built in four cuts. This spec is the first: Memories becomes the page; Walks, Days, Map and Media stay.
 - **Typographic**, in book order (oldest above, newest below), opening at today.
@@ -139,7 +139,7 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 ## The line and the page: record and review (Nov 12, `/fix`, branch `fix/journal-note-pages`)
 
 - **Why:** `main` shipped note pages (NP1-NP14, decision 0151) while this slice was built. Both owned how a note is written (`useCaptures`, `MomentBar`), and with the band gone Memories had no way to open a note's page. The owner's call: the line for a thought, the page for an entry, one stored note under both; the photo rule stays two rules.
-- **Merged:** the journal onto `main` (three conflicts). The capture bar keeps `main`'s note page for the ready screen and the walk; the line's own methods are `beginLine`, `writeLine`, `dropLine`. The journal's decision is 0154 (0151 is note pages').
+- **Merged:** the journal onto `main` (three conflicts). The capture bar keeps `main`'s note page for the ready screen and the walk; the line's own methods are `beginLine`, `writeLine`, `dropLine`. The journal's decision is 0155 (0151 is note pages').
 - **Built:** JN25-JN27, tests first at `9313af4`, the code at `aa992a7`, the review's fixes at `9d5a846`. Note pages' own journey opens its pages from the line.
 - **Checked:** typecheck, lint, `npm test` (2,088), and on the `/chronicles` build the journeys `journal`, `notepage`, `capturehome`, `resurface`, `threads`, `stacks`, `responses`, `ready` and `walk`. Reached and not rerun after the merge, since none holds a check on what changed: `chronicle`, `days`, `edit`, `qol`, `reload`, `space`, `tabs`, `upgrade`, `launch`, `gallery` (each green on the journal's branch before it).
 - **Review** (the auditor 1-11, the UX reviewer ui 1-8), 19 findings: 11 fixed, 6 deferred, 2 notes with nothing to change. Tests are named `fix journal-note-pages audit N` or `ui N`: unit tests in `src/lib/__tests__/journal/` (audit 3, 4, 8), checks in the `journal` journey (audit 1, 7, 10; ui 1, 2, 6, 7).
