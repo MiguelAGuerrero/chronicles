@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   missing: { color: theme.ink, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   reading: { color: theme.ink, fontSize: 17, fontWeight: '600', textAlign: 'center' },
   headline: {
-    position: 'absolute', alignSelf: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)',
+    position: 'absolute', alignSelf: 'center', alignItems: 'center', backgroundColor: theme.glass,
     borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24,
   },
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },

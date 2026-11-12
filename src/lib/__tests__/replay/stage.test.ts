@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { cardWidth, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_TOP, type StageCtx } from '../../../components/ceremony/layout';
 
 /** The stage of a phone this size, portrait or landscape, with no insets. */
@@ -43,5 +45,12 @@ test('tend replay 11: a card stands below all the top can show (the clock, "N mi
     const y = restCenter(c, ch)[1];
     assert.ok(y - ch / 2 >= STACK_TOP - 0.01, `${w}x${h}: the card's head at ${Math.round(y - ch / 2)} under the stack's ${STACK_TOP}`);
     assert.ok(y + ch / 2 <= h - STAGE_BOTTOM + 0.01, `${w}x${h}: and above the corner`);
+  }
+});
+
+test('tend replay 13: the two replay screens take their colours from the theme, as the stage does', () => {
+  const root = join(__dirname, '..', '..', '..');
+  for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) {
+    assert.doesNotMatch(readFileSync(join(root, f), 'utf8'), /['"](#[0-9a-fA-F]{3,8}|rgba?\()/, `${f} has a colour of its own`);
   }
 });
