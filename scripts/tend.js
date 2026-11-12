@@ -144,6 +144,10 @@ const FORBIDDEN = [
   /\.baseline\.json$/,
   /^eslint-suppressions\.json$/,
   /^scripts\/(?!e2e\/journeys\/)/,
+  // The record documents' gate (decision 0154): the loop changes them only through scripts/records.js,
+  // and never the script or the tests that hold it (the pattern above covers the script; named for grep).
+  /^scripts\/records\.js$/,
+  /^src\/lib\/__tests__\/arch\/(records|tend)\.test\.ts$/,
   /^\.claude\/(hooks|agents)\//,
   /^\.claude\/settings/,
   /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl)$)/,
@@ -387,6 +391,41 @@ function next() {
   console.log(area ?? 'none: every area is at rest; run /tend evolve');
 }
 
+/**
+ * The record documents (decision 0154): each loop commit's change to docs/STATUS.md, docs/DEFERRED.md
+ * and docs/NATIVE_UNVERIFIED.md must be whole operations of scripts/records.js. Read oldest first, so a
+ * block an earlier loop commit of the range filed may be amended by a later one (the record after the
+ * review). Returns the problems by commit.
+ */
+function recordsOf(shas) {
+  const records = require('./records');
+  const show = (rev, file) => {
+    try {
+      return git('show', `${rev}:${file}`);
+    } catch {
+      return '';
+    }
+  };
+  const fresh = Object.fromEntries(Object.keys(records.DOCS).map((f) => [f, new Set()]));
+  const out = new Map();
+  for (const sha of [...shas].reverse()) {
+    if (!/^tend /.test(git('show', '-s', '--format=%s', sha))) continue;
+    const touched = git('show', '--name-only', '--format=', sha).split('\n').filter((f) => records.DOCS[f]);
+    if (!touched.length) continue;
+    let last = {};
+    try {
+      const ledger = JSON.parse(show(`${sha}^`, records.LEDGER_REL));
+      last = { T: ledger.lastT, G: ledger.lastG };
+    } catch {
+      // no ledger at the parent: entry numbers are read from the document alone
+    }
+    const pairs = touched.map((file) => ({ file, base: show(`${sha}^`, file), head: show(sha, file), fresh: fresh[file], last }));
+    out.set(sha, records.commitProblems(pairs));
+    for (const p of pairs) for (const t of records.addedTexts(p.base, p.head)) fresh[p.file].add(t);
+  }
+  return out;
+}
+
 function commits(argv) {
   const range = argv.find((a) => !a.startsWith('--'));
   // CI reads a push that may hold anyone's commits: with --loop-only the others are left alone.
@@ -399,6 +438,7 @@ function commits(argv) {
   const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
   let bad = 0;
   const read = [];
+  const recordIssues = recordsOf(shas);
   for (const sha of shas) {
     const [subject, ...rest] = git('show', '-s', '--format=%s%n%b', sha).split('\n');
     const files = git('show', '--name-status', '--format=', sha).split('\n').filter(Boolean).map((l) => {
@@ -413,7 +453,9 @@ function commits(argv) {
     const rewritesLog = files.some((f) => f.path === RUNS_REL) && removes(RUNS_REL);
     const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && removes(f.path)).map((f) => f.path);
     read.push({ subject, body: rest.join('\n'), files });
-    for (const p of tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules })) {
+    const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules });
+    if (/^tend /.test(subject)) problems.push(...(recordIssues.get(sha) ?? []));
+    for (const p of problems) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
     }
@@ -433,7 +475,7 @@ if (require.main === module) {
   else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> '<json>' | commits [--loop-only] <range>');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range>');
     process.exit(2);
   }
 }

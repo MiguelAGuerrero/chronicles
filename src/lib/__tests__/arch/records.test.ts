@@ -16,7 +16,7 @@ type Block = { kind: string; text: string; h2: string | null; h3: string | null;
 type Kind = 'status' | 'deferred' | 'native';
 type Found = { op: string; block?: string; where?: string };
 type Violation = { where: string; block: string; change: string; fix: string };
-type Args = { body?: string; match?: string; id?: string; ledger?: Record<string, unknown> | null; section?: string; create?: boolean; intro?: string; tag?: string };
+type Args = { body?: string; match?: string; id?: string; ledger?: Record<string, unknown> | null; section?: string; create?: boolean; intro?: string; tag?: string; after?: string; top?: boolean; end?: boolean };
 const records = createRequire(__filename)(join(ROOT, 'scripts', 'records.js')) as {
   parse(text: string): { blocks: Block[] };
   compare(base: string, head: string, o: { kind: Kind; fresh?: Set<string>; last?: { T?: number; G?: number } }): { ops: Found[]; violations: Violation[] };
@@ -226,9 +226,13 @@ test('records: last-tend set replaces the body under its heading and nothing aft
 });
 
 test('records: open add, note and remove act on "Open before the loop" alone, a whole bullet at a time', () => {
-  const added = records.apply('status', 'open add', STATUS, { body: "**ME23's wording after T12** (Nov 12): amend ME23.\nin the doc and the mirror." }).text;
-  assert.ok(added.includes("- **Branch clean-up:** nine branches are merged.\n- **ME23's wording after T12** (Nov 12): amend ME23.\n  in the doc and the mirror.\n\n## In flight"));
+  const body = "**ME23's wording after T12** (Nov 12): amend ME23.\nin the doc and the mirror.";
+  const added = records.apply('status', 'open add', STATUS, { body }).text;
+  assert.ok(added.includes("### Open before the loop\n\n- **ME23's wording after T12** (Nov 12): amend ME23.\n  in the doc and the mirror.\n- **The map's rule lines"), 'newest first, as the section is kept');
   assert.deepEqual(clean(STATUS, added), ['open add']);
+  assert.ok(records.apply('status', 'open add', STATUS, { body, end: true }).text.includes("- **Branch clean-up:** nine branches are merged.\n- **ME23's wording"));
+  assert.ok(records.apply('status', 'open add', STATUS, { body, after: 'QL8' }).text.includes("amend both in the doc.\n- **ME23's wording"));
+  assert.deepEqual(clean(STATUS, records.apply('status', 'open add', STATUS, { body, after: 'QL8' }).text), ['open add'], 'an entry placed beside its kin is still an operation');
   const noted = records.apply('status', 'open note', STATUS, { match: 'QL8', body: 'Since `tend map 5` QL11 too.' }).text;
   assert.ok(noted.includes('amend both in the doc.\n  Since `tend map 5` QL11 too.\n- **The vision'));
   assert.deepEqual(clean(STATUS, noted), ['open note']);
@@ -242,7 +246,8 @@ test('records: open add, note and remove act on "Open before the loop" alone, a 
 test('records: rows of "In flight" come and go; a row of "Slices" is added or set, a row at a time', () => {
   const row = '| Free look (FL1-FL21) | `slice/free-look` | built |';
   const added = records.apply('status', 'inflight add', STATUS, { body: row }).text;
-  assert.ok(added.includes('| Complexes (CX1-CX16) | `claude/complexes` | built |\n' + row + '\n\n## Updating'));
+  assert.ok(added.includes('|---|---|---|\n' + row + '\n| Note pages'), 'newest first');
+  assert.ok(records.apply('status', 'inflight add', STATUS, { body: row, end: true }).text.includes('`claude/complexes` | built |\n' + row + '\n\n## Updating'));
   assert.deepEqual(clean(STATUS, added), ['inflight add']);
   const set = records.apply('status', 'inflight set', STATUS, { match: 'Note pages', body: '| Note pages (NP1-NP14) | `claude/note-pages` | merged 2026-11-12 |' }).text;
   assert.deepEqual(clean(STATUS, set), ['inflight set']);
@@ -250,6 +255,7 @@ test('records: rows of "In flight" come and go; a row of "Slices" is added or se
   const slice = records.apply('status', 'slice row add', STATUS, { body: '| Free look (FL1-FL21) | built | `slice/free-look` | `specs/free-look/spec.md` | no |' }).text;
   assert.ok(slice.includes('`specs/motion/spec.md` | yes |\n| Free look'));
   assert.deepEqual(clean(STATUS, slice), ['slice row add']);
+  assert.ok(records.apply('status', 'slice row add', STATUS, { body: '| Free look | built | x | y | no |', after: 'Rides' }).text.includes('| yes |\n| Free look | built | x | y | no |\n| Motion'));
   assert.deepEqual(clean(STATUS, records.apply('status', 'slice row set', STATUS, { match: 'Rides', body: '| Rides | shipped, audited | `8e49c9c` | `specs/rides/spec.md` | yes |' }).text), ['slice row set']);
   assert.throws(() => records.apply('status', 'inflight add', STATUS, { body: '| two | cells |' }), /cells/);
   assert.throws(() => records.apply('status', 'inflight add', STATUS, { body: 'no pipes' }), /"\|"/);
@@ -274,6 +280,12 @@ test('records: deferred and native items are added to a section, removed, tagged
   const noted = records.apply('deferred', 'item note', DEFERRED, { match: 'GPX', body: 'Since Nov 12: asked for.' }).text;
   assert.ok(noted.includes('2. GPX export\n   (round 4)\n   Since Nov 12: asked for.\n3. Dark mode'), 'a numbered item\'s note lines up under its text');
   assert.deepEqual(clean(DEFERRED, noted, 'deferred'), ['deferred item note']);
+  assert.ok(records.apply('deferred', 'item add', DEFERRED, { section: 'Navigation and routes', body: 'x', top: true }).text.includes('## Navigation and routes\n\n- x\n- [loop] Go here'));
+  const split = records.apply('deferred', 'item split', DEFERRED, { match: 'A Go here tapped', body: '- [loop] A Go here tapped while a re-route runs is dropped.\n- [owner] Since then: still dropped.' }).text;
+  assert.ok(split.includes('- [loop] Go here: Cancel pressed while the read returns.\n- [loop] A Go here tapped while a re-route runs is dropped.\n- [owner] Since then: still dropped.\n- [owner] The route'));
+  assert.deepEqual(clean(DEFERRED, split, 'deferred'), ['deferred item split']);
+  assert.throws(() => records.apply('deferred', 'item split', DEFERRED, { match: 'A Go here tapped', body: '- [loop] A Go here tapped is dropped.\n- [owner] Since then.' }), /missing: while, re, route, runs, still/);
+  assert.throws(() => records.apply('deferred', 'item split', DEFERRED, { match: 'A Go here tapped', body: '- one bullet only with every word: A Go here tapped while a re-route runs is dropped. Since then: still dropped.' }), /two bullets/);
   const gone = records.apply('deferred', 'item remove', DEFERRED, { match: 'A Go here tapped' }).text;
   assert.ok(!gone.includes('Since then'), 'a bullet goes with its sub-bullets');
   assert.deepEqual(clean(DEFERRED, gone, 'deferred'), ['deferred item remove']);
@@ -305,10 +317,14 @@ test('records: verify refuses the hand edits no operation makes', () => {
   assert.match(changes(STATUS, STATUS.replace("\n  Its scale-bar line says the strip's top.", '')).join(), /rewritten in place/);
   assert.match(changes(DEFERRED, DEFERRED.replace('\n  - Since then: still dropped.', ''), 'deferred').join(), /rewritten in place/);
   assert.match(changes(DEFERRED, DEFERRED.replace('[loop] Go here', '~~[loop] Go here').replace('read returns.', 'read returns.~~: shipped'), 'deferred').join(), /rewritten in place/, 'a shipped item is removed, not struck through');
+  assert.match(changes(STATUS, STATUS.replace('amend both in the doc.', 'amended.')).join(), /rewritten in place/, 'a bullet cut short is rewritten');
+  assert.match(changes(DEFERRED, DEFERRED.replace('- A Go here tapped while a re-route runs is dropped.\n  - Since then: still dropped.', '- A Go here tapped is dropped.\n- Since then: fine.'), 'deferred').join(), /rewritten in place/, 'two bullets that drop words are no split');
+  // Unrelated: the last item goes and a new one comes at the end, in one commit.
+  assert.deepEqual(changes(DEFERRED, DEFERRED.replace('3. Dark mode', '- [loop] The planner times out on a phone with fifty kinds.'), 'deferred'), []);
   assert.match(changes(STATUS, STATUS.replace("owner's inbox (decision 0128)", "owner's inbox")).join(), /paragraph rewritten/);
   assert.match(changes(DEFERRED, DEFERRED.replace('## Navigation and routes', '## Routes'), 'deferred').join(), /heading changed/);
   // The owner's parts of STATUS.md: its head, the branch table, a slice's row.
-  assert.match(changes(STATUS, STATUS.replace('2026-11-12\n', '2026-11-13\n')).join(), /rewritten/);
+  assert.match(changes(STATUS, STATUS.replace('2026-11-12\n', '2026-11-13\n')).join(), /bullet (rewritten|removed)/);
   assert.match(changes(STATUS, STATUS.replace('| Rides | merged |', '| Rides | deleted |')).join(), /Branches/);
   assert.match(changes(STATUS, STATUS.replace(/\| Motion .*\n/, '')).join(), /"Slices" removed/);
   // An entry where it does not belong; a number used twice or given out again.
@@ -335,7 +351,7 @@ test('records: verify passes what operations make, in any number and together', 
   assert.deepEqual(clean(STATUS, text).sort(), ['inbox add T19', 'inbox remove T11', 'last-tend set', 'open add', 'open remove']);
   // A run amends what it filed in an earlier commit of the same run: `fresh` holds those blocks.
   const filed = records.apply('status', 'open add', STATUS, { body: 'Filed by this run.' }).text;
-  const amended = filed.replace('Filed by this run.', 'Filed by this run, after the review.');
+  const amended = filed.replace('Filed by this run.', 'Filed by the run, reworded.');
   assert.ok(changes(filed, amended).length > 0, 'without the run\'s own blocks it is a rewrite');
   assert.deepEqual(records.compare(filed, amended, { kind: 'status', fresh: new Set(records.addedTexts(STATUS, filed)) }).violations, []);
 });
@@ -409,7 +425,7 @@ test('records: tend.js fails a loop commit that edits the records by hand, passe
   assert.equal(r.stdin('Filed by this run.\n', 'scripts/records.js', 'open', 'add').status, 0);
   r.commit("tend replay: the run's record");
   // The review's record amends the open item the run filed: allowed, it is the run's own.
-  r.write('docs/STATUS.md', r.read('docs/STATUS.md').replace('Filed by this run.', 'Filed by this run, after the review.'));
+  r.write('docs/STATUS.md', r.read('docs/STATUS.md').replace('Filed by this run.', 'Filed by the run, reworded.'));
   r.commit("tend replay: the run's record, after the review");
   const good = r.node('scripts/tend.js', 'commits', '--loop-only', 'HEAD~2..HEAD');
   assert.equal(good.status, 0, good.stderr);
@@ -431,5 +447,5 @@ test('records: tend.js fails a loop commit that edits the records by hand, passe
   r.commit('STATUS: the owner puts it back');
   r.write('docs/STATUS.md', STATUS.replace('amend both in the doc.', 'amended.'));
   r.commit('tend map: the run\'s record');
-  assert.match(r.node('scripts/tend.js', 'commits', '--loop-only', 'HEAD~1..HEAD').stderr, /rewritten in place/);
+  assert.match(r.node('scripts/tend.js', 'commits', '--loop-only', 'HEAD~1..HEAD').stderr, /rewritten in place/, 'a bullet cut short is rewritten too');
 });
