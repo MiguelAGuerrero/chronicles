@@ -214,10 +214,12 @@ recording, and a recording bar brings a minimized walk back.
 - **A note is a page** (note pages, decision 0149), in Apple Journal's manner: the pencil opens it full screen in
   one tap, headed by the day in large type and a line of when, where and which walk (the short form stays in the
   top bar once that scrolls away). Headings, lists, checklists, quotes, bold and italic come from typing (`# `,
-  `- `, `[ ] `, `1. `, `> `, `**`) or from **Aa** above the keyboard; **@** mentions a moment, and the camera there
-  keeps a photo as its own moment and mentions it where the cursor was. What is written is kept as it is written,
-  with no Save; Back and Done both keep it, a page left empty keeps nothing, and a note emptied and left goes with
-  Undo. A note holds up to 20,000 characters; near the end the page says "Room for a few more lines". Checklists are
+  `- `, `[ ] `, `1. `, `> `, `**`) or from **Format** above the keyboard; **Mention** mentions a moment, and the
+  **Camera** there keeps a photo as its own moment and mentions it where the cursor was (on a reply's page too). What
+  is written is kept as it is written, with no Save; **Done** is the one way out (Escape and Back keep too), a page
+  left empty keeps nothing, a note emptied and left goes with Undo, and a save that fails keeps the page open,
+  "Not saved yet" in its top bar. In the viewer a note reads as its page, its mentions as cards of their moments;
+  a tap on its words or a box opens it for writing. A note holds up to 20,000 characters; near the end the page says "Room for a few more lines". Checklists are
   never counted. Everywhere else a page reads as its words; a note written before pages reads as it was typed.
 - When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
