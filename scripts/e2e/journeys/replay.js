@@ -331,6 +331,17 @@ async function run(h) {
       const cb = await boxOf('[data-testid=replay-card]');
       check(up && cb && cb.y + cb.height <= ht - 44 - 160 && cb.y >= 64, `tend replay 7: at ${w}x${ht} the card stands clear of the bubbles' corner and the top row (${JSON.stringify(cb)})`);
       await shot(pg, `rr-card-${w}`);
+      if (w === 320) {
+        // The memo's bubble keeps its time whole at 320 px; its label gives way first (tend replay 8).
+        const memo = await pg.waitForSelector('[data-testid=memo-play]', { timeout: 60000 }).then(() => true, () => false);
+        await pg.waitForTimeout(600);
+        const time = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=memo-time]');
+          return e ? { text: e.textContent, whole: e.scrollWidth <= e.clientWidth + 1, right: Math.round(e.getBoundingClientRect().right) } : null;
+        });
+        check(memo && time && time.whole && /\d\d(\s?[AP]M)?$/.test(time.text) && time.right <= w, `tend replay 8: at 320 px the memo's bubble shows its time whole (${JSON.stringify(time)})`);
+        await shot(pg, 'rr-memo-320');
+      }
       await pg.click('[data-testid=skip]');
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
     }
