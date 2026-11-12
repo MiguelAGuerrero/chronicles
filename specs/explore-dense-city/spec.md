@@ -25,6 +25,7 @@ Explore's Busy layer names its streets with the map's own text, the way the base
 - **The read in a web worker on the web**, started only once the map settles on both platforms; on native it stays on the JS thread, yielding between stages.
 - **On the walk screen and in Navigate the base map's names keep their room**, and the trace and route draw over the busy names; only Explore gives busy names priority (DC16).
 - **The base map's own name of a busy street stays**; only one that would overlap a busy name gives way (steward S3).
+- **No clutter** (the owner, Nov 12, after the names were in: "Ensure there is no clutter as shown"): every "?" pin keeps its room, so no busy name is drawn under one (DC17); a name its point can't hold slides along its street beside the pin. Where pins cover the screen, names appear as zooming in spreads the pins.
 - **The "?" pins and the area points stay DOM markers this round.** If a drag still stutters on the phone, they move to map layers next (DEFERRED).
 - **No pre-rendered image of the area:** at street zoom a city is several times iOS Safari's canvas limit, baked text can't avoid overlaps or be tapped, and it must be redrawn whenever an area is read again. Raster tiles for the magenta lines alone stay an option for later.
 

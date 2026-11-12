@@ -151,11 +151,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
   // The busy names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
   const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
+  // DC17: every "?" pin keeps its room; re-made only when the pins move.
+  const pinsKey = props.landing ? (props.discoveries ?? []).map((d) => d.at.join(',')).join('|') : '';
   const busyNameData = useMemo(
-    () => busyNamesGeoJSON(props.landing, props.busyNamesReserve ?? null),
+    () => busyNamesGeoJSON(props.landing, props.busyNamesReserve ?? null, (props.discoveries ?? []).map((d) => d.at)),
     // The reserved name is read through its key: a new object for the same name and place is not a change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.landing, reserveKey],
+    [props.landing, reserveKey, pinsKey],
   );
   // explore-dense-city ui 3: the names fold upright for the bearing the map settled on, to the nearest 5 degrees.
   const [namesBearing, setNamesBearing] = useState(0);
@@ -520,7 +522,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         {/* The busy names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
         <GeoJSONSource id="busy-names" data={busyNameData}>
-          <Layer id="busy-names" type="symbol" beforeId={namesBelow} layout={nameLayers.layout as never} paint={nameLayers.paint as never} />
+          <Layer id="busy-names" type="symbol" beforeId={namesBelow} filter={nameLayers.filter as never} layout={nameLayers.layout as never} paint={nameLayers.paint as never} />
+          {/* The room the selected area's name and each "?" pin keep (DC14, DC17), placed first. */}
+          <Layer id="busy-names-room" type="symbol" beforeId={namesBelow} filter={nameLayers.room.filter as never} layout={nameLayers.room.layout as never} paint={nameLayers.room.paint as never} />
         </GeoJSONSource>
         {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4), drawn
             before this walk's pins so those stay on top (audit 6). */}

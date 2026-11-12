@@ -450,8 +450,17 @@ export function busyNameRotate(bearing: number): unknown[] {
   return ['+', ['-', ['%', ['+', ['-', ['get', 'angle'], b], 455], 180], 95], b];
 }
 
+/**
+ * A "?" pin's room (DC17): one wide letter at this size and padding covers the pin's drawn box (48 px wide, 42 above its
+ * point, 6 below, `MarkPinView` on the web marker), standing on the point as the pin does.
+ */
+const PIN_ROOM_TEXT = 'W';
+const PIN_ROOM = { size: 40, offsetEm: 0.15, padding: 5 };
+
 /** The busy names' size, the same for every name whatever its street's grade (DC4). */
 const BUSY_NAME_SIZE = 13;
+/** How far a name slides along its street off a point it can't sit on (DC17): 34 px at 13 px, past a pin's half width. */
+const BUSY_NAME_SLIDE_EM = 2.6;
 /** The selected area's name on the map (AreaPointView: 11 px bold under a 14 px dot, 140 px wide), as the room it reserves (DC14). */
 const AREA_NAME_ROOM = { size: 12, offsetEm: 0.85, widthEm: 11.5 };
 
@@ -462,25 +471,51 @@ const AREA_NAME_ROOM = { size: 12, offsetEm: 0.85, widthEm: 11.5 };
  * stale area's names change, to a greyer ink. A long name wraps at its width; nothing cuts it.
  */
 export function busyNameLayers() {
-  const reserve = ['get', 'reserve'];
+  const box = ['get', 'box'];
+  const paint = { 'text-color': ['case', ['get', 'stale'], BUSY_NAME_STALE_INK, HOTSPOT_INK], 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': ['get', 'opacity'] } as Record<string, unknown>;
+  const text = {
+    'symbol-placement': 'point',
+    'text-field': ['get', 'name'],
+    'text-font': BUSY_NAME_FONT,
+    'text-ignore-placement': false,
+    'symbol-sort-key': ['get', 'sort'],
+  };
   return {
+    /** The names themselves, never placed over each other, a base-map label or a reserved room. */
     layout: {
-      'symbol-placement': 'point',
-      'text-field': ['get', 'name'],
-      'text-font': BUSY_NAME_FONT,
-      'text-size': ['case', reserve, AREA_NAME_ROOM.size, BUSY_NAME_SIZE],
+      ...text,
+      'text-size': BUSY_NAME_SIZE,
       'text-allow-overlap': false,
-      'text-ignore-placement': false,
       'text-padding': 4,
-      'symbol-sort-key': ['get', 'sort'],
       'text-rotate': busyNameRotate(0),
       'text-rotation-alignment': 'map',
-      'text-max-width': ['case', reserve, AREA_NAME_ROOM.widthEm, 9],
-      // The reserved area name sits under its dot, as AreaPointView draws it; a busy name is centred on its point.
-      'text-anchor': ['case', reserve, 'top', 'center'],
-      'text-offset': ['case', reserve, ['literal', [0, AREA_NAME_ROOM.offsetEm]], ['literal', [0, 0]]],
+      'text-max-width': 9,
+      // DC17: centred on its point if there is room, else starting or ending beside it, clear of a pin there (a pin's
+      // box is 24 px each side of its point): the text is turned along its street, so it slides along the street.
+      'text-variable-anchor': ['center', 'left', 'right'],
+      'text-radial-offset': BUSY_NAME_SLIDE_EM,
     } as Record<string, unknown>,
-    paint: { 'text-color': ['case', ['get', 'stale'], BUSY_NAME_STALE_INK, HOTSPOT_INK], 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': ['get', 'opacity'] } as Record<string, unknown>,
+    paint,
+    filter: ['!', ['get', 'reserve']] as unknown[],
+    /**
+     * The room kept for what the map draws over itself (DC14, DC17): the selected area's name under its dot, and each
+     * "?" pin. Invisible, always placed (two pins side by side both keep theirs), and no name is placed over it.
+     */
+    room: {
+      layout: {
+        ...text,
+        'text-allow-overlap': true,
+        'text-size': ['case', box, PIN_ROOM.size, AREA_NAME_ROOM.size],
+        // One padding for both (it can't follow a feature): the pin's box is sized by its letter.
+        'text-padding': PIN_ROOM.padding,
+        'text-max-width': AREA_NAME_ROOM.widthEm,
+        // The area's name sits under its dot, as AreaPointView draws it; a pin stands on its point.
+        'text-anchor': ['case', box, 'bottom', 'top'],
+        'text-offset': ['case', box, ['literal', [0, PIN_ROOM.offsetEm]], ['literal', [0, AREA_NAME_ROOM.offsetEm]]],
+      } as Record<string, unknown>,
+      paint: { 'text-opacity': 0 } as Record<string, unknown>,
+      filter: ['get', 'reserve'] as unknown[],
+    },
   };
 }
 
@@ -489,12 +524,13 @@ export function busyNameLayers() {
  * it is stale (a greyer ink, DC6). The selected area's name, when given, is drawn at opacity 0 and placed before every
  * busy name, so none is placed under it (DC14).
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null, _pins: readonly LngLat[] = []): GeoJSON.FeatureCollection {
+export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null, pins: readonly LngLat[] = []): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
-  if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true }, geometry: { type: 'Point', coordinates: reserve.at } });
+  if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true, box: false }, geometry: { type: 'Point', coordinates: reserve.at } });
+  // DC17: each "?" pin's room, an invisible box standing over its point as the pin does.
+  for (const at of pins) features.push({ type: 'Feature', properties: { name: PIN_ROOM_TEXT, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true, box: true }, geometry: { type: 'Point', coordinates: at } });
   for (const n of busyNames(v))
-    features.push({ type: 'Feature', properties: { name: n.name, sort: n.order, opacity: 1, angle: n.angle, stale: n.stale, reserve: false }, geometry: { type: 'Point', coordinates: n.at } });
+    features.push({ type: 'Feature', properties: { name: n.name, sort: n.order, opacity: 1, angle: n.angle, stale: n.stale, reserve: false, box: false }, geometry: { type: 'Point', coordinates: n.at } });
   return { type: 'FeatureCollection', features };
 }
 

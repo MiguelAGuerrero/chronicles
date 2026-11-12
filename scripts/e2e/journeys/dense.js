@@ -40,12 +40,25 @@ async function run(h) {
     // read, Far Point's, below.
     await h.switchLayer(pg, 'busy');
     await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 120000 }));
-    // Street zoom around the selected area, where the names draw (EC7: from 13).
+    // DC17 at street zoom (15): in this downtown the "?" pins cover the screen, and no name is drawn under any of them.
     const mid = (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
     await pg.evaluate(([at]) => window.__zoomTo?.(at, 15), [mid]);
-    await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-names') ?? '[]') !== '[]', null, { timeout: 30000 }));
+    await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-given') ?? '[]') !== '[]', null, { timeout: 30000 }));
     await idle();
     await shot(pg, 'dense-1-names');
+    const underPinsAt = async () => {
+      const boxes = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=mark-pin]')].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0).map((r) => [r.x, r.y, r.right, r.bottom]));
+      const under = await pg.evaluate((bs) => bs.flatMap(([x0, y0, x1, y1]) => window.__busyNamesIn?.(x0 + 4, y0 + 4, x1 - 4, y1 - 4) ?? ['(no hook)']), boxes);
+      return { pins: boxes.length, under: [...new Set(under)] };
+    };
+    const at15 = await underPinsAt();
+    check(at15.pins > 0 && at15.under.length === 0, `DC17: at zoom 15 no busy name under any of ${at15.pins} "?" pins (${at15.under.join(', ')})`);
+    // Close in (16) on a busy street's own label point, where the pins spread apart and leave room for names.
+    const firstGiven = (await given())[0];
+    await pg.evaluate(([at]) => window.__zoomTo?.(at, 16), [firstGiven?.at ?? mid]);
+    await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-names') ?? '[]') !== '[]', null, { timeout: 30000 }));
+    await idle();
+    await shot(pg, 'dense-1b-names-close');
 
     // DC1: the names are the map's own text: drawn, and none of them a page element over the map.
     const names = await drawn();
@@ -60,10 +73,9 @@ async function run(h) {
     const under = label ? await pg.evaluate((b) => window.__busyNamesIn?.(b.x, b.y, b.x + b.width, b.y + b.height) ?? ['(no hook)'], label) : ['(no selected label)'];
     check(under.length === 0, `DC14: no busy name under the selected area's name (${under.join(', ')})`);
 
-    // DC17: no busy name under a "?" pin: each pin's own box holds no name.
-    const pinBoxes = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=mark-pin]')].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0).map((r) => [r.x, r.y, r.right, r.bottom]));
-    const underPins = await pg.evaluate((bs) => bs.flatMap(([x0, y0, x1, y1]) => window.__busyNamesIn?.(x0 + 4, y0 + 4, x1 - 4, y1 - 4) ?? ['(no hook)']), pinBoxes);
-    check.todo(pinBoxes.length > 0 && underPins.length === 0, `DC17: no busy name under any of ${pinBoxes.length} "?" pins (${[...new Set(underPins)].join(', ')})`);
+    // DC17 close in: no busy name under any "?" pin either.
+    const at17 = await underPinsAt();
+    check(at17.pins > 0 && at17.under.length === 0, `DC17: at zoom 16 no busy name under any of ${at17.pins} "?" pins (${at17.under.join(', ')})`);
 
     // DC15: a tap on a busy name opens nothing and selects nothing.
     const hit = await pg.evaluate(() => window.__busyNamePoint?.() ?? null);

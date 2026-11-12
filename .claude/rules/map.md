@@ -53,8 +53,13 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     (`busyNamesOver`), so maplibre places them before the base map's labels;
     elsewhere under the first base label layer (web finds it; native names it,
     `BASE_FIRST_LABEL`), so a road keeps its own name and the trace draws over.
-    The selected area's name reserves its room as an invisible feature placed
-    first (`busyNamesReserve`, DC14).
+    The selected area's name and every "?" pin reserve their room in a second,
+    invisible layer over the names (`busy-names-room`: `text-allow-overlap`
+    true, so two pins side by side both keep theirs; DC14, DC17). A name its
+    point can't hold slides along its street (`text-variable-anchor` center,
+    left, right with a 2.6 em radial offset). **Trap:** `text-padding` takes
+    no data expression; `map/busyNames.test.ts` runs maplibre's own
+    `validateStyleMin` over both layers.
   - **E2E hooks** (only with `window.__perf`): `data-busy-names` (written at
     `idle`), `data-busy-given`, `data-busy-over`, `data-idle`,
     `window.__zoomTo`, `__busyNamesIn`, `__busyNamePoint` (only where the canvas

@@ -144,7 +144,9 @@ function addOverlay(map: MapLibreMap) {
   // the layer sits in the stack is set by busyNamesOver (DC16); added on top here.
   map.addSource('busy-names', { type: 'geojson', data: empty });
   const names = busyNameLayers();
-  map.addLayer({ id: 'busy-names', type: 'symbol', source: 'busy-names', layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
+  map.addLayer({ id: 'busy-names', type: 'symbol', source: 'busy-names', filter: names.filter, layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
+  // The room the selected area's name and each "?" pin keep (DC14, DC17): above the names, so it is placed first.
+  map.addLayer({ id: 'busy-names-room', type: 'symbol', source: 'busy-names', filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
 }
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
@@ -699,18 +701,25 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The busy names (DC1, DC14): sent when the areas or the reserved name change, never per fix or zoom.
   const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
   const reserveRef = useRef(props.busyNamesReserve);
+  // DC17: every "?" pin keeps its room; sent again only when the pins move, never per render.
+  const pinsAt = (props.discoveries ?? []).map((d) => d.at);
+  const pinsKey = props.landing ? pinsAt.map((a) => a.join(',')).join('|') : '';
+  const pinsRef = useRef(pinsAt);
+  useEffect(() => {
+    pinsRef.current = (props.discoveries ?? []).map((d) => d.at);
+  });
   useEffect(() => {
     reserveRef.current = props.busyNamesReserve;
   });
   useEffect(() => {
     if (!ready) return;
-    const names = busyNamesGeoJSON(props.landing, reserveRef.current ?? null);
+    const names = busyNamesGeoJSON(props.landing, reserveRef.current ?? null, pinsRef.current);
     setData('busy-names', names);
     // The e2e reads what the map was given (only when it is measuring): each name and where it goes.
     if ((window as { __perf?: unknown }).__perf && container.current) {
       container.current.dataset.busyGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
     }
-  }, [ready, props.landing, reserveKey]);
+  }, [ready, props.landing, reserveKey, pinsKey]);
   // DC16: over every layer on Explore, so its names are placed before the base map's; elsewhere under the base map's labels
   // (placed after them, so a road keeps its own name) and so under the trace and the route.
   const namesOver = !!props.busyNamesOver;
@@ -720,6 +729,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const firstSymbol = (map.getStyle().layers as { type: string; id: string }[]).find((l) => l.type === 'symbol' && !l.id.startsWith('busy-names'))?.id;
     const below = namesOver ? undefined : firstSymbol ?? 'alternates-edge';
     map.moveLayer('busy-names', below);
+    map.moveLayer('busy-names-room', below);
     container.current?.setAttribute('data-busy-over', namesOver ? '1' : '0');
   }, [ready, namesOver]);
   useEffect(() => {
