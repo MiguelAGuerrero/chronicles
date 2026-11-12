@@ -65,6 +65,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
+- [loop] "What I'm into": the Community parks row appears and disappears with Parks without motion or a spoken cue, and its hint does not say it belongs to Parks (fix subcategory-indent, ux-reviewer U2, U5: WCAG 1.3.1, 4.1.3; opinion, low). Fix: the house motion tokens for the insert, "part of Parks and gardens" in the child's accessibility hint
 - [owner] Explore's area card carries the accent on its border and on "See its neighborhoods" at rest; VISION.md's Always, "Restraint in motion, colour and copy", and the open question on the accent at launch (`docs/STATUS.md`) bear on it. For the next explore sweep (steward, `/tend tabs`, Nov 11; picture `probe-explore-minimized`)
 - [kept] A checklist takes a reclassified place's new category at the next tile build, not at once: items are kept and rebuilt only by E4 and PW12; `PRESENCE_CODE` re-derives the atlas and the landing only (specs/presence PR6, Nov 11)
 - [owner] When the places archive fails to load, the planner and the atlas ring read the map's places alone (`walkPlanner/service.ts`, `atlas.ts` `ringOf`), so a plain-named memorial or church the archive records shows no mark until it loads again: existing behaviour (specs/presence-readers, the steward, Nov 11)
