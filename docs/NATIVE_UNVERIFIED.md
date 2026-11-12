@@ -533,3 +533,7 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with VoiceOver or TalkBack on, let a first replay play while its streets are read; on the card edit a note; open the day's replay and Skip. **Expect:** "Reading the streets you walked" and "Summary" are said once each; the day's card is said after Skip (`tend replay 9`).
 - [ ] **Do:** on a phone, watch a replay through its path. **Expect:** the end ring stands at the walk's last point from the fog to the card, never on the walker (`WalkMap.native.tsx` reads `ended`'s whole runs, `tend replay 2`).
 - [ ] **Do:** on an iPhone, watch a replay whose video plays muted; then watch again and turn VoiceOver on mid-path, once the video's card is up (with VoiceOver on from the start the replay steps through its moments instead, RR17). **Expect:** "Tap for sound" is a 48 pt pill on solid ink at the card's top right, and VoiceOver can reach it as its own button, read "Tap for sound", not folded into the card's name (`Cards.tsx`'s card is `accessible`; if it folds, file it) (`tend replay 6`).
+
+## The tab labels' line height (fix tab-label-clip, Nov 12)
+
+- [ ] **Do:** on an iPhone, look at the bottom tabs in portrait, then in landscape. **Expect:** the stems of the p in Explore and the g in Navigate are whole, and the bar is 62 pt above the home indicator (`tabBarLabelStyle` lineHeight 14, 24 when wider than tall; seen only in desktop Chromium).
