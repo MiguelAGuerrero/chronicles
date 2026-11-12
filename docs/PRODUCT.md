@@ -374,7 +374,9 @@ recording, and a recording bar brings a minimized walk back.
   - **Days**: local midnight to midnight, each with its walks and loose
     moments as a timeline, and **Replay this day**.
 - A star's sheet offers **Walk here**. With no walk finished, the peek shows
-  an empty line and a Navigate button.
+  an empty line and a Navigate button; with a walk open, "This walk is starred
+  here when it ends" and no button, the recording bar's › being the way back
+  (decision 0148).
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): it
   glides into each moment and away, zips through long empty stretches with

@@ -73,7 +73,12 @@ async function checks(h) {
 
       // Today is listed in Chronicle's sheet with its moment (M7, M9, NV18).
       await h.mapUp(p2);
-      await p2.click('[data-testid=sheet-days]');
+      // tend tabs T10: with nothing walked and nothing open, the peek offers Navigate alone; Days is the section bar's.
+      check(await p2.waitForSelector('[data-testid=sheet-empty]', { timeout: 10000 }).then(() => true, () => false)
+        && (await p2.locator('[data-testid=sheet-days]').count()) === 0 && (await p2.locator('[data-testid=sheet-navigate]').count()) === 1,
+        'tend tabs T10: with a day kept and nothing walked, the peek offers Navigate and no Days (the section bar holds it)');
+      await shot(p2, 'days-0-peek-a-day-and-nothing-walked');
+      await p2.click('[data-testid=section-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const dayRow = await p2.locator('[data-testid=day-row]').first().innerText();
       check(/^Today/.test(dayRow) && /1 moment\b/.test(dayRow), `the days list starts with today and its moment (${dayRow.replace(/\n/g, ' · ')})`);

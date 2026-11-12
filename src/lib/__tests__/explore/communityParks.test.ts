@@ -9,6 +9,7 @@ import { refineRead } from '../../discovery/refinements';
 import { placesFromTilePois } from '../../discovery/tilePois';
 import type { Kind, Place } from '../../discovery/types';
 import { placeToRow } from '../../db/placeRow';
+import { notableBeyondNeighbourhood, notableName } from '../../presence/notable';
 import { findFor, foundLine, KINDS, parseHidden, routeMarks, visibleMarks, type ChecklistItem } from '../../explore/explore';
 import type { RoadFeature } from '../../streets';
 import type { LngLat } from '../../types';
@@ -163,8 +164,8 @@ test('PC12: nothing is fetched to sort: the judgement is synchronous and the mod
   }
 });
 
-test('PC13: ATLAS_CODE is a9 and a stored place carries no kind', () => {
-  assert.ok(ATLAS_CODE.startsWith('a9'), ATLAS_CODE);
+test('PC13: ATLAS_CODE is past a8 (a9, a10 since tend explore T9) and a stored place carries no kind', () => {
+  assert.ok(ATLAS_CODE.startsWith('a10.'), ATLAS_CODE);
   const p = read([park('Elm Street Playground')])[0];
   assert.equal(p.kind, CP);
   assert.ok(!('kind' in placeToRow(p)));
@@ -201,4 +202,42 @@ test('PC17: size never demotes a park without a community word', () => {
   for (const side of [20, 60, 90]) assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), side)])]), 'Cedar Park'), 'parks', `${side} m square`);
   // An outline cut at a tile edge (a thin sliver) changes nothing either.
   assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), 6)])]), 'Cedar Park'), 'parks');
+});
+
+test('tend explore T9: parkNotable.json holds no word notable.json leaves out as a neighbourhood\'s', () => {
+  const list = (f: string) => JSON.parse(readFileSync(new URL(f, import.meta.url), 'utf8')) as { _note: string; words: string[] };
+  const notable = list('../../presence/notable.json');
+  const parkWords = list('../../discovery/parkNotable.json');
+  // notable.json's note names the words it leaves out because they also name neighbourhoods; the park words follow it.
+  const left = /left out/.test(notable._note) ? (/\(([^)]*)\)\s*are left out/.exec(notable._note)?.[1] ?? '').split(/,\s*/) : [];
+  assert.ok(left.includes('heritage') && left.length >= 5, `the note names its neighbourhood words: ${left.join(', ')}`);
+  for (const w of left) assert.ok(!parkWords.words.includes(w), `parkNotable.json holds "${w}"`);
+  // Presence's reading, with presence-and-kinds audit 5's read-past of a neighbourhood: these four are plain grounds for play.
+  for (const n of ['Old Town Playground', 'Old City Tot Lot', 'Old and New Ball Field', 'Heritage Hills Playground'])
+    assert.equal(kindOf(read([park(n)]), n), CP, n);
+  // The same reading presence gives a museum: a notable word beside the neighbourhood still keeps a park.
+  for (const n of ['Old Mill Playground', 'Old Town Historic Playground', 'Heritage Memorial Playground', 'Old Quarry Ball Field'])
+    assert.equal(kindOf(read([park(n)]), n), 'parks', n);
+  const src = readFileSync(new URL('../../discovery/parkKind.ts', import.meta.url), 'utf8');
+  assert.match(src, /import \{[^}]*\bnotableName\b[^}]*\} from '\.\.\/presence\/notable'/, 'parkKind asks presence\'s rule (tend explore audit 1: past a neighbourhood only before a community word)');
+});
+
+test('tend explore audit 1: a park named for an old town or city hall, school, church or cemetery stays a park', () => {
+  // The neighbourhood's "Old Town" is read past only where a community word follows it at once; before anything else it
+  // names a building, and "Old" there is the notable word (decision 0143: a demotion rests on positive evidence).
+  for (const n of ['Old City Hall Play Area', 'Old Town Hall Playground', 'Old Town Hall Courts', 'Old City Cemetery Playground', 'Old Town School Playground',
+    'Old Village Church Playground', 'Old City Jail Playground', 'Old City Market Playground', 'Old City Wall Playground'])
+    assert.equal(kindOf(read([park(n)]), n), 'parks', n);
+  for (const n of ['Old Town Playground', 'Old City Tot Lot', 'Old and New Ball Field', 'Heritage Hills Playground', 'Old Quarter Courts', 'Old & New Playground'])
+    assert.equal(kindOf(read([park(n)]), n), CP, n);
+  // Presence's own readings are unchanged: a museum in Old Town is not historic, a town hall named "Old Town Hall" is a mark.
+  assert.equal(notableBeyondNeighbourhood('Old Town Hall Museum'), false);
+  assert.equal(notableName('Old Town Hall'), true);
+});
+
+test('tend explore audit 2: a park named for the site of something old stays a park', () => {
+  // "Old City" here names what stood on the site, not a neighbourhood (the landing harness, Cleburne TX, with no archive).
+  for (const n of ['Site of the Old City Spring Ball Fields', 'Site of the Old Town Well Playground', 'Old Village Green Courts'])
+    assert.equal(kindOf(read([park(n)]), n), 'parks', n);
+  assert.equal(kindOf(read([park('Old City Ball Fields')]), 'Old City Ball Fields'), CP, 'the neighbourhood just before a community word');
 });

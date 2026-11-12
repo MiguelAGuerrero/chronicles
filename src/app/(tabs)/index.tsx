@@ -284,6 +284,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   const borders = useMemo(() => bordersFor(drawn, { tinted: outlineIdsOf(walkedTowns, drawn), lined: false }), [drawn, walkedTowns]);
   const summaries = useMemo(() => new Map((data?.summaries ?? []).map((s) => [s.walk_id, s])), [data]);
   const unplaced = useMemo(() => unplacedWalks(data?.walks ?? [], data?.rows ?? []), [data]);
+  const readOpen = useMemo(() => (stored?.walks ?? NONE).some((w) => w.open), [stored]);
   const stars = useMemo(() => {
     if (!view) return [];
     return starsFor(index, levelForZoom(view.zoom, index.multiCountry), view.zoom, view.lat);
@@ -338,6 +339,12 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           onWalkActions={setActionsFor}
           now={now}
           onNavigate={() => showWalk()}
+          // Open by the open walk's keeper, never only by this tab's last read: a walk minimized since then is open (T10,
+          // tabs audit 2). And open while that read still holds it open: a walk just stopped from the bar is this walk
+          // until Chronicle reads it again, so the peek never asks for a walk on the way to its replay (tend tabs audit 2).
+          walkOpen={!!openInfo.walk || readOpen}
+          // Until the first read, nothing is known to be empty (tend tabs audit 1).
+          read={stored !== null}
         />
       </View>
 

@@ -127,31 +127,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T9 [owner] Community parks reads the whole name where presence reads past a neighbourhood** (2026-11-11)
-  Area: explore. Seen: `src/lib/discovery/parkKind.ts:43` (`notablePark`: a word of `parkNotable.json`, or `notableName`
-  over the whole name); the presence-readers review of Nov 11 (F5): "Old Town Playground", "Old City Tot Lot", "Old and New
-  Ball Field" and "Heritage Hills Playground", with nothing notable in or near them, stay Parks, so with Community parks off
-  they still show as "?". Rests on: presence-and-kinds audit 5 ("Old" in a neighbourhood's name says nothing of the place;
-  presence's `notableBeyondNeighbourhood`); `notable.json`'s note, "Generic words that also name neighbourhoods (mission,
-  heritage, landmark, colonial, capitol) are left out"; decisions 0143 (a demotion needs a community word and nothing
-  notable) and 0146 (one notable rule, presence's). Inherited from main; PS8 kept it unchanged.
-  Recommended: community parks judges a name by presence's reading with audit 5's read-past of a neighbourhood ("Old
-  Town", "Old City", "old and new"), not by re-reading the whole name, and "heritage" leaves `parkNotable.json`. Those four
-  become community parks and hide when Community parks is off; nothing else changes; `ATLAS_CODE`'s own part moves on.
-  One commit, its test `tend explore T9: parkNotable.json holds no word notable.json leaves out as a neighbourhood's`.
-  /vision: aligned (earn; "Guidance is structural: where there is a lot, and what makes a place itself"; the same name
-  reads the same for a museum and a park).
-  Otherwise: leave the two readings apart (a neighbourhood's "Old" or "Heritage" keeps a playground a park), or leave it.
-- **T10 [owner] Chronicle's Map peek: one way to act, and a line that is true while you walk** (2026-11-11)
-  Area: tabs. Seen: `tabs-2-chronicle-peek-with-a-walk-minimized-and-none-finished` (the `tabs` journey's picture; `HomeSheet.tsx`
-  ~l.282-370): with a walk minimized and none finished the peek says "Walk somewhere and it is starred here" and offers Days and
-  Navigate. Rests on: VISION.md Always, "Restraint in motion, colour and copy"; NN/g H8 (the peek's Days repeats the section bar's
-  Days, its Navigate the Navigate tab just below, and the recording bar's › is a third way; UX review U8); the line asks you to walk
-  while you are walking (steward S1). `tend tabs 7` already keeps the line whole; this is what it says and what sits beside it.
-  Recommended: with nothing open, the line and Navigate only (Days goes: the section bar holds it); with a walk open and none
-  finished, "This walk is starred here when it ends" and no button (the bar's › is the way back). It amends tabs audit U7 (your
-  call, Nov 2). /vision: aligned (return; restraint).
-  Otherwise: drop the peek's Days alone and keep the line, or leave it.
 - **T11 [owner] Voice and note are two taps away while a walk is minimized, off Memories** (2026-11-11)
   Area: tabs. Seen: `tabs-2-recording-bar`, `probe-explore-minimized` (pictures): on Explore and Chronicle's other sections the
   recording bar offers the camera only. Rests on: VISION.md Always, "Capture is one tap away on every screen you walk or capture
@@ -175,6 +150,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise: no Edit offer on the bar at all (the photo's viewer has Edit), or leave it.
   At 320 px the offer's words are cut today, "Photo save…" on two lines beside Edit (`tabs-9-bar-edit-offer-320`; the run's
   review F9): the pill's layout settles that too.
+  **Answered yes** (`/tend inbox T9 yes, T12 yes`, Nov 12): waits for the next `/tend inbox`, one build per run (T9 was built first).
 - **T13 [phone] The tabs at the largest text size** (2026-11-11)
   Area: tabs. Seen: `probe-minimized-200pct` (the web at zoom 2, a rough stand-in: react-native-web sizes text in px): the section
   bar read "M… / W. / D.", the band lost Note off the screen, the bar's line read "0:07 …" (UX review U6; WCAG 1.4.4).
@@ -209,25 +185,38 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend tabs`** (a sweep from `6b099ea`, its first; rebased on `ed7cd8e` with the presence-readers slice). Seven loop commits and five from the review:
-- `tend tabs 1`: keyboard focus shows a two-tone ring (`webStyles.web.ts`), visible on ink grounds (it was 1:1 on the recording bar); `tend tabs audit 13`: on the bar the tones swap, so the ring shows around its white buttons too.
-- `tend tabs 2`: the tabs journey pictures the recording bar, paused, at 320 px, and Chronicle's empty peek.
-- `tend tabs 3`: the bar's camera is spoken as the band's with a walk open.
-- `tend tabs 6`: the destination's distance and the "?" range follow km or miles (QL14); `audit 5`: the walk screen's range line too; `audit 6`: every range step reads its own value in feet; `audit 7`: the destination converts to miles from its own distance.
-- `tend tabs 7`: the empty peek's line sits on its own row, never cut by Days and Navigate.
-- `tend tabs 8`: a tap on the bar's Stop says "Hold to stop", on one line at 320 px.
-- `tend tabs 9`: the bar's Edit offer is pictured; `audit 14`: the tabs journey puts its viewport back after its 320 px checks.
-Not shipped, dropped after the review: the bar listening for reminders only while unfolded (it lost a reminder fired with the
-page in front) and the bar's Stop warning about a held photo (a stale read, a stuck fill, untrue words, cut at 320 px); both
-are [loop] medium in `docs/DEFERRED.md`. Filed: T10-T12 [owner] (the Map peek's buttons and line; a mic on the recording bar;
-the bar's Edit offer as a pill that stays), T13 [phone] (the largest text size); [loop] items under "Tabs and the recording
-bar" in `docs/DEFERRED.md`, one [owner] item for the next explore sweep; NV9's wording in "Open before the loop". The review:
-one auditor round, 6 accepted, 6 deferred, none rejected. The balance: outgrowing its base (five areas rough: chronicle,
-explore, navigation, tabs, walk-screen), so no G entry. Lenses not whole: real 200% text (phone), offline and an interrupted
-launch were not pictured. Nothing here has run on a phone.
+**Nov 12, `/tend inbox T10 yes, T12 yes`** (from `3fa8c309`; T10 built, T12 waits for the next inbox run, one build per run).
+- `tend tabs T10`: Chronicle's empty peek offers Navigate alone with nothing open (the section bar holds Days); with a
+  walk open and none finished it says "This walk is starred here when it ends" and offers no button (the recording
+  bar's › is the way back). Decision 0148 (amends 0050's U7); the words are `emptyPeek` in `lib/quietLines`.
+- `tend tabs audit 1`: until Chronicle's first read the peek is plain, so opening the Map with walks kept never shows the
+  empty line or its Navigate (the auditor's F1, from before T10); `audit 2`: a walk stopped from the bar on the Map stays
+  this walk in the peek until Chronicle reads it (F2); `audit 3`: the tabs journey measures the peek's height, 76 px with
+  a walk open, 124 px over Navigate (F3); `audit 4`: the walk-open line sits under the grabber as the other does (the UI
+  review's U1).
+The review: one round of the auditor and the ux-reviewer (decision 0145): 4 accepted, 1 deferred (F4, the three texts
+that still say the old peek, in "Open before the loop": the loop edits no decision, spec or rule line), 1 rejected (U2,
+"starred" is the app's word across the Map; a vocabulary change is the owner's). Journeys `tabs`, `days` and `launch`
+pass. Filed: no T or G entry. Not a sweep: no lens ran and no area changed state. Nothing here has run on a phone; the
+peek renders on native too (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **Chronicle's empty peek after T10** (Nov 12; the T10 review's F4): decision 0148 amends 0050, but three texts still
+  say the old peek. `docs/decisions/0050-chronicle-peek.md` line 3 has no "Amended by [0148](0148-the-empty-peek-one-way-and-a-true-line.md)"
+  (as 0030's names 0082); `specs/v0.5-places/spec.md` criterion 19 wants an "Amended (owner, Nov 12, decision 0148): with
+  a walk open and none finished, the line is 'This walk is starred here when it ends'" (as criterion 25's); and
+  `.claude/rules/tabs-and-home.md` lines 123-125 state U7 in the present tense (a "Since T10" line under them says
+  what is true). The loop edits no decision record, no spec and no rule line already there.
+- **Community parks' wording after T9** (Nov 12; the T9 review's F4, F5): `specs/presence-readers/spec.md` line 26 (the
+  read-past "stays only in the step that makes a museum historic"), line 30 and PS3 (parkKind asks `notableName`), and
+  `specs/community-parks/spec.md` PC2 (lists "Heritage" as a keeping word; any `notable.json` word keeps a park). Since
+  `tend explore T9` and `audit 1`, community parks reads presence's `notableName` past a neighbourhood's "Old
+  Town/City/Quarter/Village" or "old and new" only just before a community word, and "heritage" keeps no park. Amend PS3,
+  the Decisions line and PC2 to say so (and PS8: one listed change, Heritage Park Playground); the loop may not edit a spec.
+  `.claude/rules/explore-and-discovery.md` lines 22 and 253 name `a9.p2` and the a9 carry (now `a10.p2`, carrying `a10.p1`),
+  line 196 names `notableName` without the read-past: reword them in the split of that file (its [loop] item in
+  `docs/DEFERRED.md`, "Explore and discovery"); the loop may not reword a rule line and the file has no room for one.
 - **SB3's wording after T6** (Nov 11): `specs/section-bar/spec.md` SB3 says "the bar's Walks still does not, as
   before"; since T6 (decision 0141) it zooms out as the sheet's does. Amend SB3 to "the walks list's zoom-out (0054),
   by either Walks, from the sheet at rest, and once as the map mounts on Walks" and point it to `tend chronicle T6`
