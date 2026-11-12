@@ -1,6 +1,6 @@
 ---
 name: tend-orchestrator
-description: Run /tend again and again as the owner's proxy (decision 0151) - one subagent per run, the auditor, steward and ux-reviewer spawned by the orchestrator at each run's review points, the inbox answered yes only within 0151's limits and after /vision again, every no, reshape and identity question batched to the owner. It keeps running notes and ends with an insights file and a list of its proxy answers for the owner to keep or revert.
+description: Run /tend again and again as the owner's proxy (decision 0155) - one subagent per run, the auditor, steward and ux-reviewer spawned by the orchestrator at each run's review points, the inbox answered yes only within 0155's limits and after /vision again, every no, reshape and identity question batched to the owner. It keeps running notes and ends with an insights file and a list of its proxy answers for the owner to keep or revert.
 when_to_use: The owner asks to "run the loop", "orchestrate /tend", "act as my proxy for /tend" or "keep tending until it stalls". Not for one /tend run (type /tend), one bug (/fix) or one feature (/slice).
 argument-hint: "[--runs=N] [--parallel] [--deploy=main|branch]"
 disable-model-invocation: true
@@ -10,7 +10,7 @@ allowed-tools: Agent, SendMessage, Bash, Read, Write, Edit, Grep, Glob, AskUserQ
 # Tend orchestrator: $ARGUMENTS
 
 You do not tend; you run `/tend` (`.claude/skills/tend/SKILL.md`) through subagents, have their work
-reviewed by other subagents, and stand in for the owner on the answers decision 0151 lets a proxy
+reviewed by other subagents, and stand in for the owner on the answers decision 0155 lets a proxy
 give. Each run follows `/tend` and `.claude/skills/ship.md`; this file is only what the orchestrator
 adds. The texts you send are in `briefs.md` beside this file. Edit and Write are for the scratchpad,
 never the repository: every change to the repository is a run's.
@@ -35,8 +35,8 @@ write the answers at the top of the notes (section 1):
 2. **Stop rule.** Recommended: stop when no open entry is yours to answer (section 2), or the
    balance reads "outgrowing its base" and nothing is yours to answer, or two sweeps in a row ship
    nothing; at most N runs (`--runs`, default 8).
-3. **Authority.** Decision 0151 is the ceiling; the owner may narrow it (for example "`T` entries
-   only, every `G` to me"). Read 0151 aloud in the question: yes only; `/vision` again first; the
+3. **Authority.** Decision 0155 is the ceiling; the owner may narrow it (for example "`T` entries
+   only, every `G` to me"). Read 0155 aloud in the question: yes only; `/vision` again first; the
    classes always the owner's.
 4. **The skills.** Recommended: changes to `/tend`, its scripts and this skill are proposed in the
    closing insights file, never made by the runs (`check:tend` refuses them).
@@ -57,14 +57,14 @@ dead runs' leftovers, reported, never removed by you.
 
 ## 2. Choose the next run
 
-1. **An entry you may answer yes to**, by 0151 and section 0's answer, in the order the entries'
+1. **An entry you may answer yes to**, by 0155 and section 0's answer, in the order the entries'
    dependencies state. For each: run `/vision` on it as `main` holds it (`.claude/skills/vision/SKILL.md`,
    called, returning its block), and say yes only to **aligned** or **no surface** with `Open:` and
    `Touches:` none. A slice-sized entry while the balance reads "outgrowing its base" is held this
    session, and the hold goes to the owner as a recommendation. One build per run (`/tend` section 7):
    give the run every yes so its record carries them; it builds the first.
 2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
-   a recommendation), every class 0151 keeps for the owner, and whatever `/vision` did not clear.
+   a recommendation), every class 0155 keeps for the owner, and whatever `/vision` did not clear.
    One AskUserQuestion, the entry's recommended shape first, four entries at most, asked after the
    next independent run has been launched so the owner's time to answer is not idle time.
 3. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
@@ -102,7 +102,7 @@ prompt the run wrote. The pauses are:
 | a `G` build | after the plan (`steward`, slice step 3); after the diff |
 
 At the diff pause a screen change gets the `ux-reviewer` (0145), every reviewer gets the pictures
-(the auditor too: `ship.md` "Review"), and **a screen the proxy said yes to gets the `steward`** (0151).
+(the auditor too: `ship.md` "Review"), and **a screen the proxy said yes to gets the `steward`** (0155).
 
 1. **Check the paths** a prompt names exist; fix a wrong one before forwarding.
 2. **Spawn every reviewer of the pause in one message**, in the background, each with the relay text
@@ -143,7 +143,7 @@ In a build of an approved entry only:
 - **When a reviewer calls something the owner's, look first for a shape inside the entry's approved
   criteria**; if one exists and what a person sees still matches the entry, rule it; else escalate.
 - **When a reviewer patches one example of a class, rule the fix for the class** if it stays inside
-  the entry; a change to what a person sees is gated again (0151).
+  the entry; a change to what a person sees is gated again (0155).
 - **Settle by honest wording of the record** (the decision, the rule line the run added) when the
   behaviour is acceptable and no screen's words change; list every record narrowed this way in the
   closing report. New words on a screen go to `/vision`.
