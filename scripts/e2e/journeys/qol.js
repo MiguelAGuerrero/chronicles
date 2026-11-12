@@ -3,8 +3,66 @@
 
 const path = require('path');
 
+// The map's credits start closed behind their (i) button, and a real tap on it opens them (owner, Nov 4: maplibre's
+// compact attribution opened itself across the bottom of a phone's map). Tapped where a finger would tap, never
+// dispatched in code (tend map 3: the (i) lay under the walk's strip, the replay's card, Locate and the camera, and a
+// dispatched click never noticed). Opened, they cover no control; closed again after.
+function creditsChecks({ check, shot }) {
+  const credits = (page) => page.evaluate(() => {
+    const els = [...document.querySelectorAll('.maplibregl-ctrl-attrib')].filter((e) => !e.closest('[aria-hidden=true]'));
+    const el = els[els.length - 1];
+    if (!el) return null;
+    const inner = el.querySelector('.maplibregl-ctrl-attrib-inner');
+    const b = el.querySelector('.maplibregl-ctrl-attrib-button');
+    const r = b ? b.getBoundingClientRect() : null;
+    const x = r ? r.left + r.width / 2 : NaN;
+    const y = r ? r.top + r.height / 2 : NaN;
+    // What a finger at the centre, and 18 px each way from it (a 44 px target), would touch.
+    const on = (px, py) => {
+      const hit = document.elementFromPoint(px, py);
+      return !!hit && (hit === b || b.contains(hit));
+    };
+    const box = el.getBoundingClientRect();
+    // The controls the open credits would lie over (any button outside the map's own DOM).
+    const under = [...document.querySelectorAll('[data-testid]')]
+      .filter((c) => !c.closest('[aria-hidden=true]') && !el.contains(c) && (c.tagName === 'BUTTON' || c.getAttribute('role') === 'button'))
+      .filter((c) => {
+        const q = c.getBoundingClientRect();
+        return q.width > 0 && q.left < box.right && q.right > box.left && q.top < box.bottom && q.bottom > box.top;
+      })
+      .map((c) => c.getAttribute('data-testid'));
+    return {
+      // Nothing of the credits is cut: no line runs wider than the box (tend map 3, at 320 px).
+      whole: !inner || inner.scrollWidth <= inner.clientWidth + 1,
+      compact: el.classList.contains('maplibregl-compact'),
+      open: !!inner && getComputedStyle(inner).display !== 'none',
+      text: inner ? inner.textContent : '',
+      x, y,
+      top: r ? on(x, y) : false,
+      target: r ? [[-18, 0], [18, 0], [0, -18], [0, 18]].every(([dx, dy]) => on(x + dx, y + dy)) : false,
+      box: [Math.round(box.left), Math.round(box.top), Math.round(box.right), Math.round(box.bottom)],
+      under,
+    };
+  });
+  return async (page, where, shotName) => {
+    const a = await credits(page);
+    check(a && a.compact && !a.open, `map attribution: ${where} starts with its credits closed behind the (i) button (${JSON.stringify(a && { compact: a.compact, open: a.open })})`);
+    if (!a) return;
+    check(a.top && a.target, `tend map 3: on ${where}, nothing covers the map's credits (i), and its target is 44 px (at ${Math.round(a.x)},${Math.round(a.y)}: centre ${a.top}, 44 px ${a.target})`);
+    await page.mouse.click(a.x, a.y);
+    await page.waitForTimeout(300);
+    const b = await credits(page);
+    check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b && { open: b.open, text: b.text })})`);
+    check(b && b.under.length === 0 && b.whole, `tend map 3: on ${where}, the open credits lie over no control and none of their words is cut (box ${b && b.box}; under ${JSON.stringify(b && b.under)}; whole ${b && b.whole})`);
+    if (shotName) await shot(page, shotName);
+    if (b) await page.mouse.click(b.x, b.y);
+    await page.waitForTimeout(300);
+  };
+}
+
 async function run(h) {
   const { navUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
+    const creditsCheck = creditsChecks(h);
     const { c, pg } = await freshPage('qol');
     await c.addInitScript(() => {
       window.__perf = {};
@@ -104,15 +162,6 @@ async function run(h) {
       }, png.toString('base64'));
     };
 
-    // The map's credits start closed behind their (i) button, and a tap opens them (owner, Nov 4:
-    // maplibre's compact attribution opened itself across the bottom of a phone's map).
-    const attribution = () => pg.evaluate(() => {
-      const els = [...document.querySelectorAll('.maplibregl-ctrl-attrib')].filter((e) => !e.closest('[aria-hidden=true]'));
-      const el = els[els.length - 1];
-      if (!el) return null;
-      const inner = el.querySelector('.maplibregl-ctrl-attrib-inner');
-      return { compact: el.classList.contains('maplibregl-compact'), open: !!inner && getComputedStyle(inner).display !== 'none', text: inner ? inner.textContent : '' };
-    });
     // A real two-finger turn (tend map 1): two touches swung 90° about a point in the map's top third, sent through
     // the DevTools protocol (Playwright has no multi-touch). Touch emulation is on only for the gesture. Returns the
     // map's bearing after it.
@@ -133,18 +182,7 @@ async function run(h) {
       await pg.waitForTimeout(800);
       return Number((await attr('data-bearing')) || 0);
     };
-    const checkAttribution = async (where) => {
-      const a = await attribution();
-      check(a && a.compact && !a.open, `map attribution: ${where} starts with its credits closed behind the (i) button (${JSON.stringify(a)})`);
-      const button = pg.locator('xpath=//*[contains(@class,"maplibregl-ctrl-attrib-button")][not(ancestor::*[@aria-hidden="true"])]').last();
-      // Dispatched: on Navigate the web notice banner lies over the top-right corner until dismissed.
-      await button.dispatchEvent('click');
-      await pg.waitForTimeout(200);
-      const b = await attribution();
-      check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b)})`);
-      await button.dispatchEvent('click');
-      await pg.waitForTimeout(200);
-    };
+    const checkAttribution = (where, shotName) => creditsCheck(pg, where, shotName);
 
     // Navigate: Locate from 1 km away.
     await pg.goto(navUrl);
@@ -340,6 +378,7 @@ async function run(h) {
       check(ends !== null && (ends === '' || ends === '|'), `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
       const turnedChronicle = await twoFingerTurn();
       check(Math.abs(turnedChronicle) < 0.5, `tend map 1: Chronicle's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedChronicle})`);
+      await checkAttribution('Chronicle');
     }
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
@@ -422,6 +461,7 @@ async function run(h) {
         `qol QL8: the walk screen's scale bar sits clear of its bottom strip (bar bottom ${s5 && s5.box && Math.round(s5.box.y + s5.box.height)}, strip from ${stop && Math.round(stop.y)}; ${describe(s5)})`);
     }
     await shot(pg, 'qol-02-walk');
+    await checkAttribution('the walk screen', 'qol-06-walk-credits-open');
 
     // Stopped: both ends, and the bar above the card.
     await holdStop();
@@ -450,6 +490,7 @@ async function run(h) {
       check(Math.abs(turnedReplay) < 0.5, `tend map 1: the replay's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedReplay})`);
     }
     await shot(pg, 'qol-03-replay-card');
+    await checkAttribution('the replay', 'qol-07-replay-credits-open');
     // QL3: the markers never take a tap: the photo and the note were kept where the trace ends, so their
     // pin stands on the end marker, and a tap there opens it.
     await qstep('qol QL3 tap', async () => {
@@ -700,6 +741,46 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
     });
     await c.close();
+
+    // tend map 3 at 320 px: the credits stay reachable, and open over no control, on every map of a narrow phone.
+    {
+      const { c: c3, pg: p3 } = await freshPage('qol-320');
+      await p3.setViewportSize({ width: 320, height: 700 });
+      const fix3 = (p) => c3.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+      await fix3(s0);
+      await p3.goto(navUrl);
+      await p3.waitForSelector('[data-testid=start]');
+      await p3.waitForTimeout(2500);
+      await creditsCheck(p3, 'Navigate at 320', 'qol-08-ready-credits-open-320');
+      await p3.click('[data-testid=start]');
+      await p3.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      for (let k = 1; k <= 4; k++) {
+        await fix3(at(-0.5 + k * 0.05, -0.5));
+        await p3.waitForTimeout(900);
+      }
+      await p3.waitForTimeout(1500);
+      await creditsCheck(p3, 'the walk screen at 320', 'qol-09-walk-credits-open-320');
+      const sb = await p3.locator('[data-testid=stop]').boundingBox();
+      await p3.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+      await p3.mouse.down();
+      await p3.waitForTimeout(1100);
+      await p3.mouse.up();
+      await p3.waitForURL(/replay/, { timeout: 30000 });
+      await p3.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+      await p3.click('[data-testid=skip]');
+      await p3.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await p3.waitForTimeout(1200);
+      await creditsCheck(p3, 'the replay at 320', 'qol-10-replay-credits-open-320');
+      await p3.goto(navUrl);
+      await p3.waitForTimeout(2500);
+      await tabTo(p3, 'explore');
+      await p3.waitForTimeout(2500);
+      await creditsCheck(p3, 'Explore at 320', 'qol-11-explore-credits-open-320');
+      await tabTo(p3, 'chronicle');
+      await p3.waitForTimeout(2500);
+      await creditsCheck(p3, 'Chronicle at 320');
+      await c3.close();
+    }
 
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
     // button that brings the recorder's notice back after it was dismissed.

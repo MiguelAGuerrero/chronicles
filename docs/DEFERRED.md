@@ -175,7 +175,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Native can't tell zoom from pan yet, so a zoom stops following there (Walk screen layout)
 - Map layer order on native: no `beforeId` yet (v1.5 landing, native)
 - No sounds yet (Polish: motion)
-- [loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)
+- ~~[loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)~~: since `tend map 3` its target is 44 px on every map; on Chronicle it stays top right, elsewhere it sits beside the scale bar
 - [loop] The `chronicle` journey's M9 check reads `window.__enters` as soon as `place-title` shows, before the harness's `requestAnimationFrame` has recorded the bounce, and its sheet-drag step can read the sheet before it settles: each failed once in four runs of `/tend inbox`, Nov 11, on code that leaves those screens as they were; wait for the entry (`waitForFunction`) and the settle (low)
   - Since then (`/tend inbox G1 yes`, Nov 11): `npm run e2e:baseline -- chronicle` on `main` (`1912c19`) failed M9 in 3 runs of 3, so it is no longer a flake; `main` fails it, before any change of the run. The cause is not looked for yet.
 
@@ -533,7 +533,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **After a dot's zoom the crowd can run off screen** (whole-towns audit 19, opinion): the map eases around the tapped dot,
   not the places it crowded; fitting them all, or marking the tapped "?" for a moment, is not done.
 - **Android's 48 dp tap reach** (audit 21, in part): a dot's reach is 44 px everywhere.
-- **The back pill covers the scale bar; something peeks under Locate** (audit 23): predates the slice.
+- **The back pill covers the scale bar; something peeks under Locate** (audit 23): predates the slice. The peek was the map's credits (i), under Locate; since `tend map 3` they sit beside the scale bar.
 - **A town past `TILE_BUDGET`** (60 z14 tiles): the nearest 60 are read for its list, as for its card.
 
 ## Explore: a neighborhood with no listed town (fix explore-town-scope, decision 0126)

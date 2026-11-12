@@ -55,5 +55,23 @@ function imperial(maxM: number) {
   return { meters: ft * FT_M, label: `${ft} ft` };
 }
 
+/** The scale bar's padding on each side (`ScaleBar.tsx`), and the gap from its widest extent to the map's credits. */
+const BAR_PAD = 8;
+const CREDITS_GAP = 8;
+/** The widest round button at a map's right edge: the walk's capture stack (`CAP`, `components/walk/layout.ts`). */
+const EDGE_BUTTON = 56;
+
+/**
+ * Where a map's credits (i) sit (tend map 3): on the strip each screen keeps clear for the scale bar (`scaleInset`,
+ * QL8), just right of the bar at its widest, level with its line; opened, they stop short of the column of round
+ * buttons at the map's right edge (Locate and the compass at 44 px, the walk's capture stack at 56, 12 px from the
+ * edge, or from a centred 640 px column on a wide screen). Pure: offsets from the map's bottom-left corner, in px.
+ */
+export function creditsAt(inset: { bottom: number; left?: number }, maxPx: number, mapWidth: number): { left: number; bottom: number; maxWidth: number } {
+  const left = (inset.left ?? 12) + BAR_PAD + maxPx + BAR_PAD + CREDITS_GAP;
+  const column = Math.max(12, (mapWidth - 640) / 2 + 12) + EDGE_BUTTON + 8;
+  return { left, bottom: inset.bottom + 4, maxWidth: Math.max(80, mapWidth - left - column) };
+}
+
 /** Kills the float noise of 5 * 10 ** -1 and friends. */
 const round = (m: number) => +m.toPrecision(12);

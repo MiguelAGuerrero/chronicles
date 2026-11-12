@@ -16,10 +16,10 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
-import { scaleBar } from '../../lib/scaleBar';
+import { creditsAt, scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
-import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
+import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
@@ -153,12 +153,23 @@ const DOUBLE_TAP_MS = 300;
  */
 class ClosedAttribution extends AttributionControl {
   private watch?: MutationObserver;
+  private el?: HTMLElement;
+  /** Beside the scale bar (tend map 3): offsets from the map's bottom-left corner, and the widest it opens. */
+  place(at: { left: number; bottom: number; maxWidth: number }) {
+    if (!this.el) return;
+    this.el.style.margin = `0 0 ${at.bottom}px ${at.left}px`;
+    // maplibre's control is content-box, and opened it pads 8 px and 28 px (the (i)) beside its text.
+    this.el.style.maxWidth = `${at.maxWidth - OPEN_PAD_X}px`;
+  }
   constructor() {
     // Overture is credited beside the map data (AD16).
     super({ compact: true, customAttribution: OVERTURE_CREDIT });
   }
   onAdd(map: MapLibreMap): HTMLElement {
     const el = super.onAdd(map);
+    this.el = el;
+    el.classList.add(CREDITS_CLASS);
+    addCreditsStyle();
     // The first time it turns compact it is also opened: close it then, once, before it paints.
     const close = () => {
       if (!el.classList.contains('maplibregl-compact')) return;
@@ -175,6 +186,25 @@ class ClosedAttribution extends AttributionControl {
     super.onRemove();
   }
 }
+/** maplibre's open credits' side padding in a left corner (8 px, and 28 px for the (i)). */
+const OPEN_PAD_X = 36;
+/** Marks the app's credits control, for the hit area below. */
+const CREDITS_CLASS = 'chronicles-credits';
+/**
+ * The (i) is maplibre's 24 px button; a transparent ring around it makes the target 44 px (X0: "the hit area may
+ * extend past the visual"), once per page.
+ */
+function addCreditsStyle() {
+  if (document.getElementById(CREDITS_CLASS)) return;
+  const style = document.createElement('style');
+  style.id = CREDITS_CLASS;
+  // And a long word ("OpenStreetMap") wraps in the narrow room a 320 px phone leaves, rather than being cut.
+  style.textContent =
+    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-button::after{content:'';position:absolute;inset:-10px}` +
+    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-inner{overflow-wrap:anywhere}`;
+  document.head.appendChild(style);
+}
+
 /** Held this long without moving, a press is a long press. */
 const LONG_PRESS_MS = 500;
 
@@ -235,6 +265,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     fitPadding.current = props.fitPadding;
   });
   const pointerDown = useRef(false);
+  const creditsRef = useRef<ClosedAttribution | null>(null);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   perfCount('render:map');
   // On the live walk the dot, cone and camera glide between fixes. They are
@@ -558,8 +589,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('touchend', up);
     map.on('touchcancel', up);
     map.on('dragend', up);
-    // Top right on the home, where the sheet never covers it (OSM requires it reachable).
-    map.addControl(new ClosedAttribution(), props.attributionTop ? 'top-right' : 'bottom-right');
+    // The credits stay reachable (OSM asks it): top right on Chronicle, where the sheet never covers them; on every
+    // other map beside the scale bar, on the strip its screen keeps clear, placed below (tend map 3). Bottom right,
+    // they lay under the walk's strip, the replay's card, Locate and the capture stack.
+    const credits = new ClosedAttribution();
+    creditsRef.current = credits;
+    map.addControl(credits, props.attributionTop ? 'top-right' : 'bottom-left');
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);
@@ -720,6 +755,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // Where the dot is drawn (QL12), for the e2e; empty with none.
     container.current?.setAttribute('data-walker', fmt(props.walker));
   }, [ready, glideOn, props.walker]);
+  // The credits beside the scale bar (tend map 3), moved with the inset (a sheet's height) and the map's width.
+  const scaleBottom = (props.scaleInset ?? DEFAULT_SCALE_INSET).bottom;
+  const scaleLeft = (props.scaleInset ?? DEFAULT_SCALE_INSET).left;
+  const creditsTop = !!props.attributionTop;
+  useEffect(() => {
+    const map = mapRef.current;
+    const credits = creditsRef.current;
+    if (!ready || !map || !credits || creditsTop) return;
+    const place = () => credits.place(creditsAt({ bottom: scaleBottom, left: scaleLeft }, SCALE_MAX_PX, map.getContainer().clientWidth));
+    place();
+    map.on('resize', place);
+    return () => {
+      map.off('resize', place);
+    };
+  }, [ready, scaleBottom, scaleLeft, creditsTop]);
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
