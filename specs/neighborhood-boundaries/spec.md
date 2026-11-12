@@ -25,15 +25,15 @@ Verb: earn (it raises what you notice: which part of town a neighborhood actuall
 Touches: Never, "Scores, streaks, completion, coverage" and "Badges for neighbourhoods explored" (the shape must carry no walked or unwalked tint, share or count); Never, "Tallies such as '12 of 87'" (no counts on Explore, NV14); Never, "Data leaving the device without a tap" (the same Overture tile reads as town outlines, the accepted class of 0080, 0083, 0093, 0103); Always, "Moments and the trace are truth; areas are recomputed" (areas are cache, re-placed from the trace); decisions 0083 (town outlines decide first, no dataset hard-coded, adapters), 0088 (borders drawn from the tiles), 0132 (hamlets are neighborhoods).
 Verdict: aligned if reshaped
 Shape: A neighborhood's boundary is a line around its own ground, drawn for the one you selected, never a fill by progress, and never for all neighborhoods at once. It names no count, share or score. Where a town has no polygon the line is the edge of the neighborhood's nearest-point share.
-Criteria: HB1-HB12.
-Open: HB6 (a point-only neighborhood inside another's polygon) is the owner's to settle at the plan.
+Criteria: HB1-HB16.
+Open: HB6 (a point-only neighborhood inside another's polygon) and HB1's association names are the owner's to settle at the plan.
 
 ## Criteria
 
 ### What is read
 
-1. **HB1 Neighborhood polygons are read.** From the divisions tiles read for town outlines, a `division_area` of subtype `neighborhood` or `macrohood` on land with a name is a neighborhood polygon; a `microhood`, a maritime area and an unnamed one are not. Counties and localities are not neighborhoods, as before. Tiles stored before this decoder are read again.
-2. **HB2 Never two owners.** A point inside one or more neighborhood polygons belongs to the smallest by area, ties to the nearer representative point. Two neighborhoods never claim one point: of Baltimore's "Downtown" macrohood and the "Downtown West" neighborhood inside it, a point in both is Downtown West, a point only in the macrohood is Downtown.
+1. **HB1 Neighborhood polygons are read.** From the divisions tiles read for town outlines, a `division_area` of subtype `neighborhood` or `macrohood` on land with a name is a neighborhood polygon; a `microhood`, a maritime area and an unnamed one are not. Counties and localities are not neighborhoods, as before. Tiles stored before this decoder are read again. *Open (the owner's, steward S5):* a polygon whose name is an association ("... Homeowners Association", "... Community Association") is (a) not a neighborhood, so the walker's own words stand, or (b) one, under Overture's name, recorded as the owner's call.
+2. **HB2 Never two owners.** A point inside one or more neighborhood polygons belongs to the smallest by area, ties to the nearer representative point. Two neighborhoods never claim one point: of Baltimore's "Downtown" macrohood and the "Downtown West" neighborhood inside it, a point in both is Downtown West, a point only in the macrohood is Downtown. A macrohood's ground, as drawn and as counted (HB9, HB11), excludes every neighborhood polygon inside it: "Downtown"'s card never counts what belongs to "Downtown West" (steward S2).
 3. **HB3 Inside the town, as before.** A polygon counts only for a point whose town is decided and holds the polygon's representative point (TO6). A point in no town takes no neighborhood by polygon.
 
 ### The ground no polygon holds
@@ -50,9 +50,16 @@ Open: HB6 (a point-only neighborhood inside another's polygon) is the owner's to
 ### What is drawn
 
 9. **HB9 Its own ground, as a line.** Selecting a neighborhood on Explore draws its boundary instead of the 800 m ring: its polygon with the smaller polygons inside it cut out, or, with no polygon, the edge of its nearest-point share (bounded by its 1 km reach, its neighbors' nearest-point edges, the town border and the polygons others hold). One neighborhood at a time; it is a line with at most a faint wash, the same for every neighborhood.
-10. **HB10 Nothing says how much.** The boundary carries no walked, unwalked, found or unfound tint, no percentage, no count, no label of a number, and no accessible name with one (NV14).
+10. **HB10 Nothing says how much.** The boundary carries no walked, unwalked, found or unfound tint, no percentage, no count, no label of a number (NV14). The line has no accessible label of its own; the selected neighborhood is announced by its name and "selected", with no digit, and a polygon's area is never rendered (steward S4).
 11. **HB11 What its card counts is what is drawn.** A neighborhood's bars, marks and pockets (the atlas profile) are read across the ground that is drawn, as a town's are across its outline (TP1), not across an 800 m ring around its point.
 
 ### When the read fails
 
-12. **HB12 Quiet and as before.** Where the hood polygons weren't read (offline, the tile missing, more than 12 tiles), Explore and placing behave as today (points and the ring) with no error and no change to the screen's words; a failed read is tried again, never stored as "none". The reads are Overture's divisions host only, on the same screens and cache as town outlines, and a stored tile is never read twice (TO12).
+12. **HB12 Quiet and as before.** Where the hood polygons weren't read (offline, the tile missing, more than 12 tiles), Explore and placing behave as today (points and the ring) with no error and no change to the screen's words; a failed read is tried again, never stored as "none". Selecting a neighborhood makes no network request: the ground is read from the cache only (steward, data). The reads are Overture's divisions host only, on the same screens and cache as town outlines, and a stored tile is never read twice (TO12).
+
+### Added by the steward's findings (Nov 12)
+
+13. **HB13 A moment's place stays whole.** After `AREA_RULES` 5, every walk that had a place still has one: its new neighborhood, or its town where no neighborhood holds its pieces, never a blank. No place name is written onto a Capture or a Walk row (the name stays derived from the trace), and no notice that a name changed is shown (S1).
+14. **HB14 One look, whatever the data.** The ground's style is identical for every neighborhood, has no input from the walker's walks, finds or captures, is gone when the selection is cleared, and at most one is drawn at a time. Its colour is a named token, not a literal (S3).
+15. **HB15 A made-up edge looks like a real one.** A nearest-point share is drawn with the same line as a polygon; nothing on the screen tells the two apart (silent 2).
+16. **HB16 Stars follow placing.** A Chronicle map star is named by the neighborhood a walk is placed in (HB7); a macrohood names a star only where no neighborhood polygon holds the walk's pieces (silent 3).
