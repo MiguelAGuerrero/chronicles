@@ -125,7 +125,7 @@ findings in the report.
   in the same commit, and `docs/STATUS.md` if a slice's state moved
   (`npm run records -- slice row set <match> --file <row>`).
 - `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
-  `npm run records` (decision 0154; a second issue is `deferred item add`). Run `npm run
+  `npm run records` (decision 0156; a second issue is `deferred item add`). Run `npm run
   check:records -- origin/main` before the commit.
 - A fix that settles a trap goes in `.claude/rules/<area>.md`.
 

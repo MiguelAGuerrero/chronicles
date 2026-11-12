@@ -54,7 +54,7 @@ Who hears of it depends on who was typed:
 ## The record documents
 
 `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
-`npm run records -- <op>` (decision 0154; `scripts/records.js`'s header lists the operations: the
+`npm run records -- <op>` (decision 0156; `scripts/records.js`'s header lists the operations: the
 inbox, "Last tend", "Open before the loop", the "In flight" and "Slices" rows, and the items of the
 other two). Each changes one entry and refuses to write if any other byte would move. Write the text
 to a file in the scratchpad and pass `--file`, so nothing needs quoting; never edit these files with

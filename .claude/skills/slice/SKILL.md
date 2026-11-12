@@ -118,7 +118,7 @@ Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state
 (`npm run records -- inflight add --file <row>`; it goes on top, newest first). Later
 changes to the row are `inflight set <match> --file <row>`. Every change to
 `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` is a `npm run
-records` operation (decision 0154, `.claude/skills/ship.md`, "The record documents").
+records` operation (decision 0156, `.claude/skills/ship.md`, "The record documents").
 
 ## 5. Tests first
 

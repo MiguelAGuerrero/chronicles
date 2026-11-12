@@ -45,7 +45,7 @@ shell, and the other two a shell that `.claude/hooks/readonly-bash.sh` keeps to 
   A new session reads these and `git log` first. The copies on `main` are the only ones that count:
   a run reads them from a worktree of `origin/main` and publishes its changes to them with its work.
   The three documents change only through `npm run records -- <op>`, one whole entry at a time, and
-  `npm run check:records` before the commit (decision 0154; `ship.md`, "The record documents").
+  `npm run check:records` before the commit (decision 0156; `ship.md`, "The record documents").
 - **A stopped slice is parked, not lost:** its branch is pushed as `slice/<slug>-parked`, its question
   is a `T` entry on `main`, and the owner's answer resumes it (`/tend`, section 7).
 - **Gates are scripts where they can be:** `check:docs` (a criterion without a test), `check:vision`,

@@ -194,6 +194,15 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] Before a map's style loads, its credits (i) sit flush in the screen's corner, half off it (the replay's reading
   beat, `probe-390r-reading`): `place()` runs only once the map is ready, and `--credits-bottom` and `--credits-left`
   have no fallback in the stylesheet (`WalkMap.web.tsx`; `/tend replay`, call 12, low; the map area's)
+- [owner] The solid end reads smaller than the hollow start: both are 22 px across (MapLibre strokes outside the
+  radius), but the end's white ring is about 1.2:1 on the grey ground and 1:1 on the white street casings, so it
+  reads as a 14 px orange dot (`23-day-card`, `rr-day-card` after `tend map T16`). The pair still reads began and
+  ended. A radius of 9 with a 2 px ring would keep 22 px and show about 18 px of orange; the marker's size is yours
+  (the T16 review's U2, low)
+- [owner] A capture pin standing on a start or end puts its stalk inside the marker: the "2" pin's stalk lands in the
+  solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
+  `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
+  the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 

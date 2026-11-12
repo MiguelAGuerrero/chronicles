@@ -1,4 +1,4 @@
-# 0154. Agents change the record documents only through `scripts/records.js`
+# 0156. Agents change the record documents only through `scripts/records.js`
 
 Date: 2026-11-12 · Status: accepted · Area: process · Amends: 0128, 0129, 0130 (how a run writes its record) · From: the owner, after `/tend replay`'s record commit (Nov 12)
 

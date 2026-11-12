@@ -144,7 +144,7 @@ const FORBIDDEN = [
   /\.baseline\.json$/,
   /^eslint-suppressions\.json$/,
   /^scripts\/(?!e2e\/journeys\/)/,
-  // The record documents' gate (decision 0154): the loop changes them only through scripts/records.js,
+  // The record documents' gate (decision 0156): the loop changes them only through scripts/records.js,
   // and never the script or the tests that hold it (the pattern above covers the script; named for grep).
   /^scripts\/records\.js$/,
   /^src\/lib\/__tests__\/arch\/(records|tend)\.test\.ts$/,
@@ -392,7 +392,7 @@ function next() {
 }
 
 /**
- * The record documents (decision 0154): each loop commit's change to docs/STATUS.md, docs/DEFERRED.md
+ * The record documents (decision 0156): each loop commit's change to docs/STATUS.md, docs/DEFERRED.md
  * and docs/NATIVE_UNVERIFIED.md must be whole operations of scripts/records.js. Read oldest first, so a
  * block an earlier loop commit of the range filed may be amended by a later one (the record after the
  * review). Returns the problems by commit.

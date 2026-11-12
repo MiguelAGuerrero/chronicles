@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 
-// Agents change the record documents only through transactions (decision 0154): each operation changes
+// Agents change the record documents only through transactions (decision 0156): each operation changes
 // one block and leaves every other byte as it was, and `verify` fails a diff that is not whole operations.
 
 const ROOT = join(__dirname, '..', '..', '..', '..');
@@ -371,7 +371,7 @@ test('records: the skills that write the record documents do it through npm run 
     assert.match(text, /npm run records --/, `${rel} names the operations`);
     assert.match(text, /check:records/, `${rel} runs the check before a record commit`);
   }
-  assert.match(read('docs/decisions/README.md'), /\[0154\]\(0154-/);
+  assert.match(read('docs/decisions/README.md'), /\[0156\]\(0156-/);
 });
 
 // The shell: the command line and the CI gate, in a repository of their own.

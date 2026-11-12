@@ -159,7 +159,7 @@ entry per finding, written so a yes or no is enough:
   as above with `T?` (or `G?`) for its number: the script numbers it on from
   `lastT` in the worktree's ledger (which is `main`'s) and writes the new `lastT`
   back. Section 10 renumbers if `main` moved meanwhile. These three documents
-  change only through `npm run records` (decision 0154, `.claude/skills/ship.md`,
+  change only through `npm run records` (decision 0156, `.claude/skills/ship.md`,
   "The record documents"); never with Edit, Write or sed.
 - Run `/vision` on each `[owner]` entry first (it returns its block and asks
   nothing): an **out** is not filed at all (say so in the report, with the

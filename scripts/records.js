@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The record documents, changed only by transactions (decision 0154):
+// The record documents, changed only by transactions (decision 0156):
 //
 //   docs/STATUS.md, docs/DEFERRED.md and docs/NATIVE_UNVERIFIED.md stay markdown the owner reads and
 //   edits by hand. Agents change them only through the operations below. Each one parses the document
@@ -859,7 +859,7 @@ function report(results, label) {
   }
   console.error(`check:records: ${bad.length} change${bad.length > 1 ? 's' : ''} in ${label} that no operation makes:`);
   for (const v of bad) console.error(`- ${v.file} › ${v.where}\n    ${v.block}\n    ${v.change}\n    instead: ${v.fix}`);
-  console.error('Agents change docs/STATUS.md, docs/DEFERRED.md and docs/NATIVE_UNVERIFIED.md only through `npm run records` (decision 0154).');
+  console.error('Agents change docs/STATUS.md, docs/DEFERRED.md and docs/NATIVE_UNVERIFIED.md only through `npm run records` (decision 0156).');
   return 1;
 }
 

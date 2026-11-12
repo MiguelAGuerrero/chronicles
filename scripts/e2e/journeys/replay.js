@@ -356,7 +356,7 @@ async function run(h) {
       await pg.waitForTimeout(1200);
       const cb = await boxOf('[data-testid=replay-card]');
       check(up && cb && cb.y + cb.height <= ht - 44 - 160 && cb.y >= 64, `tend replay 7: at ${w}x${ht} the card stands clear of the bubbles' corner and the top row (${JSON.stringify(cb)})`);
-      await shot(pg, `rr-card-${w}`);
+      await shot(pg, `rr-beat-${w}`);
       if (w === 320) {
         // The memo's bubble keeps its time whole at 320 px; its label gives way first (tend replay 8).
         const memo = await pg.waitForSelector('[data-testid=memo-play]', { timeout: 60000 }).then(() => true, () => false);
@@ -381,6 +381,23 @@ async function run(h) {
       }
       await pg.click('[data-testid=skip]');
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+      // The walk's card at this width, once its title shows, its map drawing both ends of the walk (tend map audit 11:
+      // these pictures showed a moment's beat, so no 320 or 375 picture held either marker). This page has no
+      // window.__project (only contexts with window.__perf do), so where the ends stand is the picture's to show.
+      const titled = await pg.waitForFunction(() => {
+        const more = document.querySelector('[data-testid=card-more]');
+        const head = more && more.parentElement && more.parentElement.querySelector('[role=heading]');
+        return !!(head && head.textContent && head.textContent.trim());
+      }, null, { timeout: 15000 }).then(() => true, () => false);
+      await pg.waitForTimeout(600);
+      const endsHere = await pg.evaluate(() => {
+        const els = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden=true]'));
+        return els.length ? els[els.length - 1].getAttribute('data-ends') : null;
+      });
+      const [endA, endB] = (endsHere ?? '').split('|');
+      check(titled && /^-?\d/.test(endA ?? '') && /^-?\d/.test(endB ?? ''),
+        `tend map audit 11: at ${w} px the walk's card is up with its title, its map drawing both ends of the walk (data-ends ${JSON.stringify(endsHere)})`);
+      await shot(pg, `rr-card-${w}`);
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 

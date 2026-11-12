@@ -13,6 +13,7 @@ import { useMemo } from 'react';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin } from '../../lib/pins';
 import type { Star } from '../../lib/places';
 import type { LngLat, StreetSegment } from '../../lib/types';
+import type { CircleLayerSpecification } from 'maplibre-gl';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -530,8 +531,20 @@ export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollec
 }
 
 /**
- * Where the walk began and ended, as points with a `kind` (QL1, QL2): the
- * start ring is the trace's green, the end ring the walked orange.
+ * The start and end markers' paint, one `ends` circle layer on both maps (QL1, QL2; tend map T16): shape tells
+ * them apart, not colour alone (WCAG 2.2, 1.4.1). The start is hollow, a white disc ringed in the trace's green;
+ * the end is solid, a disc filled in the walked colour with a white ring. No new hue: the end takes the walked
+ * streets' colour (T22, a walked colour apart from the accent, is open).
+ */
+export const ENDS_PAINT = {
+  'circle-color': ['match', ['get', 'kind'], 'start', '#ffffff', COLORS.walked],
+  'circle-radius': 7,
+  'circle-stroke-width': 4,
+  'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, '#ffffff'],
+} satisfies NonNullable<CircleLayerSpecification['paint']>;
+
+/**
+ * Where the walk began and ended, as points with a `kind` (QL1, QL2), drawn with `ENDS_PAINT`.
  */
 export function endsGeoJSON(start: LngLat | null, end: LngLat | null): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
