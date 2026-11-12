@@ -57,7 +57,9 @@ export interface OutlineTile {
  */
 export const OUTLINE_DECODE = 'sub2';
 export const stampRelease = (release: string) => `${release}#${OUTLINE_DECODE}`;
-export const tileCurrent = (t: Pick<OutlineTile, 'release'>) => t.release.endsWith(`#${OUTLINE_DECODE}`);
+/** A z10 border tile holds no neighborhood shapes, so one cut by the decoder before them stands (neighborhood boundaries audit 8). */
+export const tileCurrent = (t: Pick<OutlineTile, 'release'> & { z?: number }) =>
+  t.release.endsWith(`#${OUTLINE_DECODE}`) || (t.z === BORDER_ZOOM && t.release.endsWith('#sub1'));
 
 /** The tiles without the pieces and points of localities known to be wards (fix ward-subdivision audit 1). */
 export const withoutNested = (tiles: OutlineTile[], ids: ReadonlySet<string>): OutlineTile[] =>
@@ -174,6 +176,11 @@ export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | nul
       if (c.level !== 'town' || !sameName(c.name, t.name)) return;
       const mine = inOutline(c.at, t) || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= AREA_REACH_M.town);
       if (!mine) return;
+      // Already joined to this outline: joining again changes nothing (neighborhood boundaries audit 2).
+      if (c.outline?.id === t.id) {
+        matched = true;
+        return;
+      }
       // Of two outlines of one name over a point (never seen), the smaller stands.
       if (c.outline && c.outline.areaM2 <= t.areaM2) return;
       out[i] = { ...c, outline: t };
@@ -194,13 +201,18 @@ export function withHoods(candidates: PlaceCandidate[], set: OutlineSet | null |
   const hoods = set?.hoods;
   if (!set || !hoods?.length) return candidates;
   const out = candidates.slice();
-  for (const h of hoods) {
+  // The smallest shape claims a tile point first, so the join never depends on the order the tiles came in (audit 2).
+  for (const h of [...hoods].sort((x, y) => x.areaM2 - y.areaM2 || x.id.localeCompare(y.id))) {
     let matched = false;
     out.forEach((c, i) => {
-      if (c.level !== 'neighborhood' || !sameName(c.name, h.name)) return;
+      if (c.level !== 'neighborhood') return;
+      // Already joined: to this shape (joining again changes nothing), or to another's.
+      if (c.hoodOutline) {
+        if (c.hoodOutline.id === h.id) matched = true;
+        return;
+      }
+      if (!sameName(c.name, h.name)) return;
       if (!inOutline(c.at, h) && coveredBy(set, c.at)) return;
-      // Of two shapes of one name over a point (never seen), the smaller stands.
-      if (c.hoodOutline && c.hoodOutline.areaM2 <= h.areaM2) return;
       out[i] = { ...c, hoodOutline: h };
       matched = true;
     });

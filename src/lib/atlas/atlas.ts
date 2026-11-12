@@ -629,7 +629,7 @@ export const MARKS_EXPLAINED: readonly string[] = [
 const WHOLE_TOWN_LINE = 'A town is counted across its whole outline, and a neighborhood within about a ten-minute walk of its point, so the same marks mean the same anywhere. Where a town is busiest is listed apart.';
 
 /** HB11: the line a neighborhood counted across its own shape says in place of the ring's. */
-const SHAPE_LINE = 'A neighborhood with a shape on the map is counted across that shape, and one without within about a ten-minute walk of its point, so the same marks mean the same anywhere.';
+const SHAPE_LINE = 'A neighborhood is counted across the ground drawn around it where the map has one, and within about a ten-minute walk of its point where it has not.';
 
 /** TP8: how the marks work for an area: a graded town says it is counted across its outline (no digits, AT11). */
 export const marksExplained = (p: Pick<AtlasProfile, 'extent'> | null | undefined): readonly string[] =>

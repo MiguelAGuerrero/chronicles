@@ -32,7 +32,7 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, shouldDrawRing, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
@@ -575,7 +575,7 @@ export default function Explore() {
           // places under it zooms in first (whole-towns audit 4).
           onDiscoveryPress={pressPin}
           // A neighborhood by its own ground as one line, its ring until the tiles are kept; a town by its tinted border (EC5, HB9).
-          ring={sel?.area.level === 'neighborhood' && !ground ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          ring={sel?.area.level === 'neighborhood' && shouldDrawRing(sel.area.profile?.extent, ground) ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
           ground={ground}
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { assignAreas, placesRead } from '../../areas/assign';
 import { AREA_RULES } from '../../areas/rules';
-import { stepToward } from '../../geo';
+import { distanceM, stepToward } from '../../geo';
+import { withOutlines } from '../../areas/outlines';
 import { areaFor } from '../../explore/explore';
 import type { LngLat } from '../../types';
 import { at, baltimorePoints, baltimoreSet, baltimoreTown, overturePoint, square, testBoundaries, townPoint, townWith, walk, hoodPoint } from './hoodFixture';
@@ -41,13 +42,21 @@ test('HB8: Explore\'s area for a point and the neighborhood a walk piece there i
       const row = rows[0] ?? r.rows.find((x) => r.areas.get(x.area_key)!.level === 'town');
       if (!row) continue;
       const ex = areaFor([row.lon, row.lat], c, set);
-      assert.equal(ex?.level === 'neighborhood' ? ex.name : null, rows.length ? r.areas.get(rows[0].area_key)!.name : null, `at ${row.lon},${row.lat}`);
+      const placedName = rows.length ? r.areas.get(rows[0].area_key)!.name : null;
+      const owner = placedName ? withOutlines(c, set).find((x) => x.level === 'neighborhood' && x.name === placedName) : null;
+      if (owner && distanceM([row.lon, row.lat], owner.at) > 1000) {
+        // Past what its checklist reads around its point, Explore says the town's: never a different neighborhood (audit 3).
+        if (ex?.level === 'neighborhood') assert.equal(ex.name, placedName, `at ${row.lon},${row.lat}`);
+      } else {
+        assert.equal(ex?.level === 'neighborhood' ? ex.name : null, placedName, `at ${row.lon},${row.lat}`);
+      }
       checked++;
     }
   }
   assert.ok(checked >= 28);
   // Ground only a shape knows (the Downtown macrohood has no tile point here): both say Downtown.
-  const downtown: LngLat = [-76.6236, 39.2904];
+  // (Within 1 km of its point: past that, Explore's checklist cannot see it and says the town's, neighborhood-boundaries audit 3.)
+  const downtown: LngLat = set.hoods!.find((h) => h.name === 'Downtown')!.at;
   const piece = assignAreas('w', walk([stepToward(downtown, [downtown[0] - 0.01, downtown[1]], 25), stepToward(downtown, [downtown[0] + 0.01, downtown[1]], 25)]), [], c, testBoundaries, null, [], [], set);
   assert.deepEqual(hoodNames(piece), ['Downtown']);
   assert.equal(areaFor(downtown, c, set)?.name, 'Downtown');

@@ -156,7 +156,9 @@ export function areaFor(at: LngLat, candidates: PlaceCandidate[], outlines: Outl
   const town = townAt(at, cands, outlines, { within: coverM });
   // HB8: the neighborhood is decided as placing decides it, by the town at its own reach; the cap above is for the town returned.
   const hood = hoodAt(at, cands, townAt(at, cands, outlines), outlines, coverM);
-  if (hood) return { level: 'neighborhood', name: hood.name, at: hood.at };
+  // A shape's far corner is past what its checklist reads around its point: that is the town's, or no one's, never dropped (audit 3).
+  const seen = hood && distanceM(at, hood.at) <= coverM(hood) ? hood : null;
+  if (seen) return { level: 'neighborhood', name: seen.name, at: seen.at };
   if (!town || distanceM(at, town.c.at) > coverM(town.c)) return null;
   return { level: 'town', name: town.c.name, at: town.c.at };
 }

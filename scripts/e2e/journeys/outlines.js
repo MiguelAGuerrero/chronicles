@@ -116,12 +116,15 @@ async function run(h) {
         // The ground is drawn once the tiles are kept; the ring stands until then.
         await pg.waitForFunction(() => (document.querySelector('[data-ground]')?.getAttribute('data-ground') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
         await pg.waitForTimeout(500);
-        return { ...(await read()), card: await pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`).first().innerText().catch(() => '') };
+        const got = { ...(await read()), card: await pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`).first().innerText().catch(() => '') };
+        // The tile's tap opened its card over the map: close it, so the picture is the map with the line.
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(800);
+        await shot(pg, `outlines-ground-${name.replace(/\s+/g, '-').toLowerCase()}`);
+        return got;
       };
       const shaped = await select('Point Street');
-      await shot(pg, 'outlines-ground-shape');
       const shared = await select('Wickenden');
-      await shot(pg, 'outlines-ground-share');
       await c.close();
       return { shaped, shared };
     })();

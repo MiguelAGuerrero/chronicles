@@ -1,22 +1,11 @@
 // @layer view
 import { useEffect, useMemo, useState } from 'react';
 import type { LngLat } from '../types';
-import { groundOf, type Ground } from './hoods';
+import { groundOf, hoodProbe, LOOK_MS, lookAgain, type Ground } from './hoods';
 import { outlines } from './outlineReader';
+import { OUTLINE_ZOOM, type OutlineSet } from './outlines';
 import { AREA_REACH_M } from './rules';
-import { coveredBy, OUTLINE_ZOOM, type OutlineSet } from './outlines';
 import type { PlaceCandidate } from './types';
-
-/** How often, and how far apart, the cache is looked in for a neighborhood's tiles. */
-const LOOKS = 8;
-const LOOK_MS = 1500;
-
-/** Points around a neighborhood's own, so its neighbors' shapes in the tiles beside are known too. */
-const around = ([lon, lat]: LngLat): LngLat[] => {
-  const dLat = 1500 / 110_540;
-  const dLon = 1500 / (111_320 * Math.cos((lat * Math.PI) / 180));
-  return [[lon, lat], [lon + dLon, lat], [lon - dLon, lat], [lon, lat + dLat], [lon, lat - dLat]];
-};
 
 /** The neighborhoods and towns listed, as the candidates placing would weigh (HB9). */
 export const candidatesOf = (areas: readonly { level: 'neighborhood' | 'town'; name: string; at: LngLat }[]): PlaceCandidate[] =>
@@ -31,16 +20,20 @@ export function useHoodGround(area: { level: string; name: string; at: LngLat } 
   const key = hood ? `${hood.name}|${hood.at[0].toFixed(5)},${hood.at[1].toFixed(5)}` : '';
   const [read, setRead] = useState<{ key: string; set: OutlineSet } | null>(null);
   // The neighborhood's own read keeps its tiles a moment after it is selected: look in the cache again, a few times, never the network.
-  const [tries, setTries] = useState(0);
+  const [tried, setTried] = useState<{ key: string; n: number }>({ key: '', n: 0 });
+  const tries = tried.key === key ? tried.n : 0;
   useEffect(() => {
     if (!key || !hood) return;
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    outlines.known(around(hood.at), OUTLINE_ZOOM).then(
+    const probes = hoodProbe(hood.at);
+    outlines.known(probes, OUTLINE_ZOOM).then(
       (set) => {
         if (!live) return;
-        setRead({ key, set });
-        if (!coveredBy(set, hood.at) && tries < LOOKS) timer = setTimeout(() => live && setTries((n) => n + 1), LOOK_MS);
+        // The ground is computed again only when a tile arrived (audit 5), never on every look.
+        setRead((was) => (was && was.key === key && was.set.tiles.size === set.tiles.size ? was : { key, set }));
+        // Until every tile beside it is kept too: a neighbor's shape not yet read would let a share run over it.
+        if (lookAgain(set, probes, tries)) timer = setTimeout(() => live && setTried({ key, n: tries + 1 }), LOOK_MS);
       },
       () => {},
     );
@@ -50,7 +43,6 @@ export function useHoodGround(area: { level: string; name: string; at: LngLat } 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, tries]);
-  useEffect(() => setTries(0), [key]);
   // A read for another neighborhood is not this one's.
   const set = read && read.key === key ? read.set : null;
   return useMemo(() => (hood && set ? groundOf(hood, near, set) : null), [hood, set, near]);

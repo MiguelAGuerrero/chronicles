@@ -2,7 +2,7 @@
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { coveredBy, hoodAllowed, inOutline, sameName, townAt, withHoods, withOutlines, type OutlineSet, type TownPick } from './outlines';
-import { bboxOf, representative, type Bbox } from './shapes';
+import { bboxOf, inRing, representative, type Bbox } from './shapes';
 import type { HoodOutline, PlaceCandidate } from './types';
 
 /*
@@ -62,7 +62,8 @@ function shapeGround(shape: HoodOutline, others: HoodOutline[]): Ground {
     if (o === shape || o.id === shape.id || o.areaM2 >= shape.areaM2 || !inOutline(o.at, shape)) continue;
     for (const piece of o.polygons) {
       const outer = piece[0];
-      const host = polygons.find((rings) => inOutline(outer[0], { polygons: [rings], bbox: bboxOf([rings]) }));
+      // Only a shape wholly inside its host is cut out of it: one that pokes out would draw its edge across the host's (audit 7).
+      const host = polygons.find((rings) => outer.every((v) => inRing(v, rings[0])));
       if (host) host.push(outer);
     }
   }
@@ -213,4 +214,33 @@ export function groundOf(area: { level: string; name: string; at: LngLat }, cand
   const cands = withOutlines(candidates, set);
   const c = cands.find((x) => x.level === 'neighborhood' && sameName(x.name, area.name) && distanceM(x.at, area.at) <= 1000);
   return c ? hoodGround(c, cands, set) : null;
+}
+
+/** How many times, and how far apart, the cache is looked in for a neighborhood's tiles (audit 5). */
+export const LOOKS = 8;
+export const LOOK_MS = 1500;
+
+/** The points whose tiles a neighborhood's ground needs: its own and its neighbors' beyond it, about 1.5 km each way (audit 4). */
+export function hoodProbe([lon, lat]: LngLat): LngLat[] {
+  const dLat = 1500 / 110_540;
+  const dLon = 1500 / (111_320 * Math.cos((lat * Math.PI) / 180));
+  return [[lon, lat], [lon + dLon, lat], [lon - dLon, lat], [lon, lat + dLat], [lon, lat - dLat]];
+}
+
+/** Whether the cache is looked in again: a probe's tile is not kept yet, and the tries are not spent (audit 5). */
+export const lookAgain = (set: OutlineSet, probes: LngLat[], tries: number): boolean => tries < LOOKS && !probes.every((p) => coveredBy(set, p));
+
+/**
+ * What a neighborhood's card counts across, the ground its line draws (HB11, audit 4): its shape with the smaller ones cut
+ * out, or its share; null where the tiles were not read, so the ring stands.
+ */
+export function hoodExtent(
+  area: { level: string; name: string; at: LngLat },
+  candidates: PlaceCandidate[],
+  set: OutlineSet | null | undefined,
+): { outline: Ground; partial: boolean } | null {
+  const own = hoodExtentFor(area, set);
+  if (own) return own;
+  const g = groundOf(area, candidates, set);
+  return g ? { outline: g, partial: false } : null;
 }
