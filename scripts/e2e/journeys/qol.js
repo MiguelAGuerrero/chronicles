@@ -329,6 +329,21 @@ async function run(h) {
       const s3 = await scaleBar();
       check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
     }
+    // Locate from the keyboard keeps the focus through its busy state and after (tend map 5; WCAG 2.2, 2.4.3).
+    {
+      const btn = shown('locate').first();
+      await btn.focus();
+      const seen = new Set();
+      const read = () => pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      await pg.keyboard.press('Enter');
+      for (let i = 0; i < 20; i++) {
+        seen.add(await read());
+        await pg.waitForTimeout(50);
+      }
+      await pg.waitForTimeout(1500);
+      seen.add(await read());
+      check(seen.size === 1 && seen.has('locate'), `tend map 5: Locate pressed from the keyboard keeps the focus while it reads the fix and after (${JSON.stringify([...seen])})`);
+    }
     // The compass (CP1-CP5, CP8): none at north-up; turned, it sits above Locate with its needle against
     // the turn; a tap eases the map back to north without moving the centre or zoom.
     {
@@ -796,6 +811,7 @@ async function run(h) {
       await pg2.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
       await pg2.waitForTimeout(2500);
       const loud = await deniedSaid();
+      await shot(pg2, 'qol-13-locate-denied');
       check(quiet.banners === 0 && quiet.chip === 0 && loud >= 1,
         `qol QL21: denied, Navigate's own fix on focus stays quiet; Locate says why (on focus ${JSON.stringify(quiet)}, after Locate ${loud})`);
       for (let i = 0; i < 4 && (await pg2.locator('[data-testid=banner-dismiss]').count()); i++) {

@@ -5,7 +5,10 @@ import { theme } from './ui';
 /**
  * Locate me (QL9, QL11): a round edge button at the map's right edge, inside
  * the 640 column on wide screens (the walk screen's edgeBtn look). While a
- * fix is read it shows busy and takes no tap, but still reads as a button.
+ * fix is read it shows busy and takes no tap, and keeps the keyboard's focus:
+ * react-native-web renders a disabled Pressable as a disabled `<button>`, and
+ * the browser takes the focus off it (tend map 5), so it is never `disabled`;
+ * a press while busy does nothing, and busy is said with `aria-busy`.
  */
 export function LocateButton(props: { busy: boolean; onPress: () => void; bottom: number; right?: number }) {
   const { width } = useWindowDimensions();
@@ -16,8 +19,8 @@ export function LocateButton(props: { busy: boolean; onPress: () => void; bottom
       accessibilityRole="button"
       accessibilityLabel="Center on your position"
       accessibilityState={{ busy: props.busy, disabled: props.busy }}
-      disabled={props.busy}
-      onPress={props.onPress}
+      aria-busy={props.busy}
+      onPress={props.busy ? undefined : props.onPress}
       style={({ pressed }) => [styles.edgeBtn, { right, bottom: props.bottom }, pressed && styles.pressed]}
     >
       {props.busy ? <ActivityIndicator size="small" color={theme.ink} /> : <Icon name="locate-outline" size={22} color={theme.ink} />}
