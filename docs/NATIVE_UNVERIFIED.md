@@ -517,3 +517,9 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with Move map on, pan to another town and tap Show areas here, then a card, then Locate. **Expect:** the row lists the towns around the middle of the map with "Around the middle of the map" as the title; Locate brings the page back to you (FL6, FL7, FL8).
 - [ ] **Do:** with Move map on, press and hold a far spot and tap Walk here. **Expect:** a question, Walk now or When I get there, before anything starts; a drag that pans never starts the hold (FL10, FL12).
 - [ ] **Do:** after a drag on a native map with Move map on, tap a "?" or a dot. **Expect:** the tap acts as usual (onPress after a native drag, FL3).
+
+## Neighborhood boundaries (HB1-HB16, decision 0152)
+
+- [ ] **Do:** on a phone, open Explore in a city with neighborhood shapes (Baltimore), pick a neighborhood from a town's page, and wait a few seconds. **Expect:** the ring gives way to one dark line around that neighborhood's own ground, with no fill and no figure; selecting its neighbor draws that one's line and the first is gone, and the two lines do not cross (HB9, HB14; the native `ground` line layer).
+- [ ] **Do:** update the app over a version with walks already placed (migration 26 adds `outline_tile.hoods`), open Chronicle, then Explore. **Expect:** it opens without error, the walks are placed again in the background and keep a place each, and a tile read before the update is read again (HB7, HB12; the SQLite migration and the `hoods` column on a phone).
+- [ ] **Do:** with airplane mode on, select a neighborhood in a city you have already read. **Expect:** its line draws from the kept tiles with no error; in a city never read the ring stays and nothing is said (HB12).

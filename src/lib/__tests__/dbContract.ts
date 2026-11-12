@@ -782,7 +782,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
     });
 
-    test('HB12 outline tile: neighborhood shapes are kept with the tile, and a tile stored without them reads back with none', { todo: 'test first' }, async () => {
+    test('HB12 outline tile: neighborhood shapes are kept with the tile, and a tile stored without them reads back with none', async () => {
       const db = await fresh();
       const shaped: OutlineTile = {
         ...outlineTile('12/5/6', 1),

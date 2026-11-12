@@ -26,7 +26,7 @@ function source(opts: { fail?: boolean } = {}) {
   return s;
 }
 
-test('HB12: unread shapes leave the set without neighborhoods and are tried again; kept ones answer with no request, and selecting reads the cache only', { todo: 'test first' }, async () => {
+test('HB12: unread shapes leave the set without neighborhoods and are tried again; kept ones answer with no request, and selecting reads the cache only', async () => {
   const p = fakePorts();
   const src = source({ fail: true });
   const o = createOutlines({ ...p, source: src });

@@ -39,6 +39,7 @@ import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoo
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
+import { candidatesOf, useHoodGround } from '../../lib/areas/useHoodGround';
 import { db } from '../../lib/db';
 import type { Find } from '../../lib/explore/explore';
 import { formatDistance } from '../../lib/format';
@@ -275,6 +276,9 @@ export default function Explore() {
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // HB9: the selected neighborhood's own ground, from the kept tiles; its ring until they are known (HB12).
+  const hoodCands = useMemo(() => candidatesOf([...neighborhoods, ...allTowns].map((l) => l.area)), [neighborhoods, allTowns]);
+  const ground = useHoodGround(sel && sel.area.level === 'neighborhood' ? sel.area : null, hoodCands, focused);
   // CX9, CX16: the selected area's complexes, read silently once it is selected, drawn as quiet outlines named at close zoom.
   const { hidden: hiddenKinds } = useHiddenKinds();
   // With every kind switched off nothing would show, so nothing is read (complexes audit 15).
@@ -570,8 +574,9 @@ export default function Explore() {
           // A "?" opens the selected area's card, where its kinds are named (AT7: the map never names them); one with
           // places under it zooms in first (whole-towns audit 4).
           onDiscoveryPress={pressPin}
-          // A neighborhood by its ring; a town by its tinted border (EC5).
-          ring={sel?.area.level === 'neighborhood' ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          // A neighborhood by its own ground as one line, its ring until the tiles are kept; a town by its tinted border (EC5, HB9).
+          ring={sel?.area.level === 'neighborhood' && !ground ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          ground={ground}
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}

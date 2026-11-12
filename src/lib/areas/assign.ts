@@ -2,7 +2,8 @@
 import { distanceM, isBreak, type PauseSpan } from '../geo';
 import { readTrace, smoothKept } from '../rides';
 import type { Fill, LngLat, TracePoint } from '../types';
-import { hoodAllowed, townAt, withOutlines, type OutlineSet } from './outlines';
+import { hoodAt } from './hoods';
+import { townAt, withOutlines, type OutlineSet } from './outlines';
 import { AREA_RULES, AREA_SAMPLE_M } from './rules';
 import type { Area, AreaLevel, BoundarySource, PlaceCandidate, Region, WalkArea } from './types';
 
@@ -107,7 +108,7 @@ export function assignAreas(
       country: inside?.country ?? pointRegion('country'),
       state,
       town: town?.c ?? null,
-      hood: nearest('neighborhood', p, (h) => hoodAllowed(h, town, outlines)),
+      hood: hoodAt(p, candidates, town, outlines),
     });
   };
 

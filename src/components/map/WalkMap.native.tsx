@@ -10,6 +10,7 @@ import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
+import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
@@ -159,6 +160,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
+  const ground = useMemo(() => groundGeoJSON(props.ground ?? null), [props.ground]);
   const complexLines = useMemo(() => (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, [props.complexes]);
   // Town borders (TB1-TB5): rebuilt only when the towns or their roles change (TB9).
   const borderKey = props.borders?.key ?? '';
@@ -471,6 +473,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="ring" data={ring}>
           <Layer id="ring-fill" type="fill" paint={{ 'fill-color': RING_COLOR, 'fill-opacity': 0.12 }} />
           <Layer id="ring" type="line" paint={{ 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] }} />
+        </GeoJSONSource>
+        {/* A selected neighborhood's own ground (HB9): one line, one look for every neighborhood, no fill (HB14). */}
+        <GeoJSONSource id="ground" data={ground}>
+          <Layer id="ground" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': groundStyle().color, 'line-width': groundStyle().width }} />
         </GeoJSONSource>
         {/* The selected area's complexes (CX9): an outline with no fill, in a hue of its own. */}
         <GeoJSONSource id="complexes" data={complexLines}>

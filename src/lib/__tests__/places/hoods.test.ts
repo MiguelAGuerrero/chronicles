@@ -1,10 +1,9 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { hoodAt, withHoods } from '../../areas/hoods';
+import { withHoods } from '../../areas/hoods';
 import { inOutline, outlineSet, withOutlines } from '../../areas/outlines';
-import { areaKey } from '../../areas/assign';
-import { assignAreas } from '../../areas/assign';
+import { areaKey, assignAreas } from '../../areas/assign';
 import { stepToward } from '../../geo';
 import type { LngLat } from '../../types';
 import { at, baltimorePoints, baltimoreSet, baltimoreTown, hoodNameAt, hoodPoint, overturePoint, square, squaresTile, testBoundaries, townPoint, townWith, walk } from './hoodFixture';
@@ -13,7 +12,7 @@ import { at, baltimorePoints, baltimoreSet, baltimoreTown, hoodNameAt, hoodPoint
 
 const baltimoreCands = () => [baltimoreTown(), ...baltimorePoints()];
 
-test('HB2: the smallest shape holding a point owns it, never two (real Baltimore and nested squares)', { todo: 'test first' }, () => {
+test('HB2: the smallest shape holding a point owns it, never two (real Baltimore and nested squares)', () => {
   const set = baltimoreSet();
   const cands = baltimoreCands();
   assert.equal(hoodNameAt(overturePoint('Mount Vernon'), cands, set), 'Mount Vernon');
@@ -37,7 +36,7 @@ test('HB2: the smallest shape holding a point owns it, never two (real Baltimore
   assert.equal(hoodNameAt(at(12, 12), c, sq), 'Big');
 });
 
-test('HB3: a shape counts only inside the point\'s town, and a point in no town takes none by shape', { todo: 'test first' }, () => {
+test('HB3: a shape counts only inside the point\'s town, and a point in no town takes none by shape', () => {
   const set = outlineSet([squaresTile({
     towns: [{ id: 'a', name: 'A', polygons: square(-20, -20, 0, 20) }, { id: 'b', name: 'B', polygons: square(0, -20, 20, 20) }],
     hoods: [{ id: 'h', name: 'Straddler', polygons: square(-5, -5, 15, 5) }], // its middle is in B
@@ -49,7 +48,7 @@ test('HB3: a shape counts only inside the point\'s town, and a point in no town 
   assert.equal(hoodNameAt(at(5, 0), [hoodPoint('Straddler', at(5, 0))], none), null, 'a point in no town takes no neighborhood by shape');
 });
 
-test('HB4: where no shape holds a point the nearest neighborhood point within 1 km takes it; a shaped neighborhood never takes ground outside its shape', { todo: 'test first' }, () => {
+test('HB4: where no shape holds a point the nearest neighborhood point within 1 km takes it; a shaped neighborhood never takes ground outside its shape', () => {
   const set = townWith([{ id: 'p', name: 'Shaped', polygons: square(0, 0, 4, 4) }]);
   const c = [townPoint('Squareton', at(0, 0), 3000), hoodPoint('Shaped', at(2, 2)), hoodPoint('Pointy', at(8, 2))];
   assert.equal(hoodNameAt(at(5, 2), c, set), 'Pointy', 'unclaimed ground goes to the nearest point');
@@ -61,7 +60,7 @@ test('HB4: where no shape holds a point the nearest neighborhood point within 1 
   assert.equal(hoodNameAt(at(4.5, 2), c, unread), 'Shaped');
 });
 
-test('HB5: a shape and a tile point of one name are one candidate and keep the area key; a shape alone is a neighborhood at a point inside it', { todo: 'test first' }, () => {
+test('HB5: a shape and a tile point of one name are one candidate and keep the area key; a shape alone is a neighborhood at a point inside it', () => {
   const set = baltimoreSet();
   const cands = withHoods([baltimoreTown(), hoodPoint('Mount Vernon')], set);
   const mv = cands.filter((c) => c.name === 'Mount Vernon');
@@ -81,7 +80,7 @@ test('HB5: a shape and a tile point of one name are one candidate and keep the a
   assert.equal(keyOf(withShapes), areaKey('neighborhood', 'Mount Vernon', areaKey('town', 'Baltimore', areaKey('state', 'Maryland', areaKey('country', 'United States', null)))));
 });
 
-test('HB6: a point-only neighborhood inside another\'s shape is dropped where shapes were read; elsewhere it stays', { todo: 'test first' }, () => {
+test('HB6: a point-only neighborhood inside another\'s shape is dropped where shapes were read; elsewhere it stays', () => {
   const set = baltimoreSet();
   const mv = overturePoint('Mount Vernon');
   const chinatownAt = stepToward(mv, overturePoint('Seton Hill'), 150);

@@ -223,6 +223,9 @@ const snapDivisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Allentown', division_id: 'allentown', id: 'allentown-area' } },
   { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(18, 4), at(24, 4), at(24, 10), at(18, 10), at(18, 4)]] },
     properties: { subtype: 'locality', class: 'land', '@name': 'Catasauqua', division_id: 'catasauqua', id: 'catasauqua-area' } },
+  // Neighborhood boundaries (HB9): Point Street has a real shape, 800 m across; the other three neighborhoods have only their points.
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-13, -4), at(-5, -4), at(-5, 4), at(-13, 4), at(-13, -4)]] },
+    properties: { subtype: 'neighborhood', class: 'land', '@name': 'Point Street', division_id: 'point-street', id: 'point-street-area' } },
 ];
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';

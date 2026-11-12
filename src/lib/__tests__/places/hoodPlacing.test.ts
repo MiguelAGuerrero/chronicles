@@ -13,7 +13,7 @@ import { at, baltimorePoints, baltimoreSet, baltimoreTown, overturePoint, square
 const cands = () => [baltimoreTown(), ...baltimorePoints()];
 const hoodNames = (r: ReturnType<typeof assignAreas>) => r.rows.map((x) => r.areas.get(x.area_key)!).filter((a) => a.level === 'neighborhood').map((a) => a.name).sort();
 
-test('HB7: AREA_RULES is 5, so every walk is placed again; a walk whose shapes could not be read is placed by points and tried again', { todo: 'test first' }, () => {
+test('HB7: AREA_RULES is 5, so every walk is placed again; a walk whose shapes could not be read is placed by points and tried again', () => {
   assert.equal(AREA_RULES, '5');
   const mv = overturePoint('Mount Vernon');
   const r = assignAreas('w', walk([mv, stepToward(mv, [mv[0] + 0.01, mv[1]], 120)]), [], cands(), testBoundaries, null, [], [], baltimoreSet());
@@ -24,7 +24,7 @@ test('HB7: AREA_RULES is 5, so every walk is placed again; a walk whose shapes c
   assert.equal(placesRead({ needed: true, placed: true, outlinesRead: false }), false);
 });
 
-test('HB8: Explore\'s area for a point and the neighborhood a walk piece there is placed in are the same function', { todo: 'test first' }, () => {
+test('HB8: Explore\'s area for a point and the neighborhood a walk piece there is placed in are the same function', () => {
   const set = baltimoreSet();
   const c = cands();
   const names = ['Mount Vernon', 'Seton Hill', 'Downtown West', 'Federal Hill', 'Little Italy', 'Otterbein', 'Upton'];
@@ -35,10 +35,13 @@ test('HB8: Explore\'s area for a point and the neighborhood a walk piece there i
       const q: LngLat = [p[0] + dx, p[1] + dy];
       const a = stepToward(q, [q[0] - 0.01, q[1]], 25);
       const b = stepToward(q, [q[0] + 0.01, q[1]], 25);
-      const placed = hoodNames(assignAreas('w', walk([a, b]), [], c, testBoundaries, null, [], [], set));
-      const ex = areaFor(q, c, set);
-      const exHood = ex?.level === 'neighborhood' ? ex.name : null;
-      assert.deepEqual(placed.length ? [placed[0]] : [], exHood ? [exHood] : [], `at ${q}`);
+      const r = assignAreas('w', walk([a, b]), [], c, testBoundaries, null, [], [], set);
+      // Ask Explore at the very point the piece was placed at.
+      const rows = r.rows.filter((x) => r.areas.get(x.area_key)!.level === 'neighborhood');
+      const row = rows[0] ?? r.rows.find((x) => r.areas.get(x.area_key)!.level === 'town');
+      if (!row) continue;
+      const ex = areaFor([row.lon, row.lat], c, set);
+      assert.equal(ex?.level === 'neighborhood' ? ex.name : null, rows.length ? r.areas.get(rows[0].area_key)!.name : null, `at ${row.lon},${row.lat}`);
       checked++;
     }
   }
@@ -50,7 +53,7 @@ test('HB8: Explore\'s area for a point and the neighborhood a walk piece there i
   assert.equal(areaFor(downtown, c, set)?.name, 'Downtown');
 });
 
-test('HB13: every walk that had a place before still has one after, its neighborhood or its town, never none; nothing is written onto a capture or walk', { todo: 'test first' }, () => {
+test('HB13: every walk that had a place before still has one after, its neighborhood or its town, never none; nothing is written onto a capture or walk', () => {
   const set = baltimoreSet();
   // From Federal Hill through Downtown ground to Seton Hill and out to unclaimed ground.
   const path = [overturePoint('Federal Hill'), [-76.6236, 39.2904] as LngLat, overturePoint('Seton Hill'), stepToward(overturePoint('Seton Hill'), [-76.7, 39.3], 1500)];
@@ -64,7 +67,7 @@ test('HB13: every walk that had a place before still has one after, its neighbor
   assert.deepEqual(Object.keys(after.rows[0]).sort(), ['area_key', 'first_t', 'last_t', 'lat', 'lon', 'metres', 'walk_id']);
 });
 
-test('HB16: a walk\'s neighborhood is the one placing says; a macrohood names it only where no neighborhood shape holds the pieces', { todo: 'test first' }, () => {
+test('HB16: a walk\'s neighborhood is the one placing says; a macrohood names it only where no neighborhood shape holds the pieces', () => {
   const sq = townWith([
     { id: 'big', name: 'Big', subtype: 'macrohood', polygons: square(-20, -20, 20, 20) },
     { id: 'small', name: 'Small', polygons: square(-3, -3, 3, 3) },

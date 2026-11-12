@@ -1,5 +1,6 @@
 // @layer core
-import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
+import { hoodAt } from '../areas/hoods';
+import { townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
@@ -153,13 +154,8 @@ export const checklistKey = (a: AreaRef): string => JSON.stringify([a.level, a.n
 export function areaFor(at: LngLat, candidates: PlaceCandidate[], outlines: OutlineSet | null = null): AreaRef | null {
   const cands = withOutlines(candidates, outlines);
   const town = townAt(at, cands, outlines, { within: coverM });
-  let hood: PlaceCandidate | null = null;
-  let hoodD = Infinity;
-  for (const c of cands) {
-    if (c.level !== 'neighborhood') continue;
-    const d = distanceM(at, c.at);
-    if (d <= coverM(c) && d < hoodD && hoodAllowed(c, town, outlines)) [hood, hoodD] = [c, d];
-  }
+  // HB8: the neighborhood is decided as placing decides it, by the town at its own reach; the cap above is for the town returned.
+  const hood = hoodAt(at, cands, townAt(at, cands, outlines), outlines, coverM);
   if (hood) return { level: 'neighborhood', name: hood.name, at: hood.at };
   if (!town || distanceM(at, town.c.at) > coverM(town.c)) return null;
   return { level: 'town', name: town.c.name, at: town.c.at };

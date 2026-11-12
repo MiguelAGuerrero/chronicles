@@ -1,44 +1,216 @@
 // @layer core
+import { distanceM } from '../geo';
 import type { LngLat } from '../types';
-import type { OutlineSet, TownPick } from './outlines';
-import type { PlaceCandidate } from './types';
+import { coveredBy, hoodAllowed, inOutline, sameName, townAt, withHoods, withOutlines, type OutlineSet, type TownPick } from './outlines';
+import { bboxOf, representative, type Bbox } from './shapes';
+import type { HoodOutline, PlaceCandidate } from './types';
 
 /*
  * Neighborhood boundaries (HB1-HB16): which neighborhood a point is in, from real shapes where the tiles
- * held them and the nearest point where they did not, and the ground a neighborhood owns for a map to draw.
- * Not written yet: the tests come first.
+ * held them and the nearest point where they did not, and the ground a neighborhood owns for a map to draw
+ * and a card to count across. One function decides (`hoodAt`); placing a walk, Explore's membership and the
+ * share a map draws all call it, so they cannot disagree (HB8).
  */
+
+export { withHoods };
+export const hoodRepresentative = representative;
 
 /** A neighborhood's ground: what a map draws and a card counts across (HB9, HB11). */
 export interface Ground {
   polygons: LngLat[][][];
-  bbox: [number, number, number, number];
+  bbox: Bbox;
 }
 
-const todo = (): never => {
-  throw new Error('neighborhood boundaries: not written yet');
-};
+/**
+ * HB2-HB4: the neighborhood a point is in. Where the shapes were read at the point and the point's town is
+ * known, the smallest shape holding it owns it, never two. Otherwise the nearest neighborhood point within
+ * reach, inside the town (TO6). A neighborhood that has a shape never takes ground by its point where
+ * shapes were read: its shape ends where it ends. Candidates come through `withOutlines` first.
+ */
+export function hoodAt(
+  p: LngLat,
+  candidates: PlaceCandidate[],
+  town: TownPick | null,
+  set: OutlineSet | null | undefined,
+  within: (c: PlaceCandidate) => number = (c) => c.reachM,
+): PlaceCandidate | null {
+  const covered = coveredBy(set, p);
+  if (covered && town) {
+    let owner: PlaceCandidate | null = null;
+    for (const c of candidates) {
+      const h = c.hoodOutline;
+      if (c.level !== 'neighborhood' || !h || !inOutline(p, h) || !hoodAllowed(c, town, set)) continue;
+      const o = owner?.hoodOutline;
+      if (!owner || !o || h.areaM2 < o.areaM2 || (h.areaM2 === o.areaM2 && distanceM(p, c.at) < distanceM(p, owner.at))) owner = c;
+    }
+    if (owner) return owner;
+  }
+  let best: PlaceCandidate | null = null;
+  let bestD = Infinity;
+  for (const c of candidates) {
+    if (c.level !== 'neighborhood' || (covered && c.hoodOutline)) continue;
+    const d = distanceM(p, c.at);
+    if (d <= within(c) && d < bestD && hoodAllowed(c, town, set)) [best, bestD] = [c, d];
+  }
+  return best;
+}
 
-/** A point inside the polygons (HB1). */
-export const hoodRepresentative = (_polygons: LngLat[][][]): LngLat => todo();
-
-/** The candidates with the neighborhood shapes joined in, and the point-only names a shape covers dropped (HB5, HB6). */
-export const withHoods = (_candidates: PlaceCandidate[], _set: OutlineSet | null | undefined): PlaceCandidate[] => todo();
-
-/** The neighborhood a point is in (HB2-HB4): the smallest shape holding it, else the nearest point within reach. */
-export const hoodAt = (
-  _p: LngLat,
-  _candidates: PlaceCandidate[],
-  _town: TownPick | null,
-  _set: OutlineSet | null | undefined,
-  _within?: (c: PlaceCandidate) => number,
-): PlaceCandidate | null => todo();
-
-/** The ground a neighborhood owns (HB9): its shape with the smaller ones cut out, or the edge of its nearest-point share. */
-export const hoodGround = (_hood: PlaceCandidate, _candidates: PlaceCandidate[], _set: OutlineSet | null | undefined): Ground | null => todo();
+/** A shape's polygons with the smaller shapes inside it cut out as holes (HB2, HB9, HB11). */
+function shapeGround(shape: HoodOutline, others: HoodOutline[]): Ground {
+  const polygons: LngLat[][][] = shape.polygons.map((rings) => rings.slice());
+  for (const o of others) {
+    if (o === shape || o.id === shape.id || o.areaM2 >= shape.areaM2 || !inOutline(o.at, shape)) continue;
+    for (const piece of o.polygons) {
+      const outer = piece[0];
+      const host = polygons.find((rings) => inOutline(outer[0], { polygons: [rings], bbox: bboxOf([rings]) }));
+      if (host) host.push(outer);
+    }
+  }
+  return { polygons, bbox: shape.bbox };
+}
 
 /** The extent a neighborhood's card counts across (HB11): its shape with the smaller ones cut out; null without a shape. */
-export const hoodExtentFor = (
-  _area: { level: string; name: string; at: LngLat },
-  _set: OutlineSet | null | undefined,
-): { outline: Ground; partial: boolean } | null => todo();
+export function hoodExtentFor(
+  area: { level: string; name: string; at: LngLat },
+  set: OutlineSet | null | undefined,
+): { outline: Ground; partial: boolean } | null {
+  const hoods = set?.hoods;
+  if (area.level !== 'neighborhood' || !hoods?.length) return null;
+  const shape = hoods.find((h) => sameName(h.name, area.name) && inOutline(area.at, h));
+  return shape ? { outline: shapeGround(shape, hoods), partial: false } : null;
+}
+
+// ---- a point-only neighborhood's share: the cells `hoodAt` gives it, as an outline
+
+/** Cell size of the share's grid, in metres: the line is drawn along its edges. */
+const CELL_M = 20;
+
+/**
+ * The ground a neighborhood owns (HB9): its shape with the smaller ones cut out, or, with no shape, the
+ * edge of its nearest-point share: the ground `hoodAt` gives it, within its reach, found on a grid fixed to
+ * the map (so two shares meet edge to edge) and traced. Null for anything but a neighborhood, or a share with
+ * no ground.
+ */
+export function hoodGround(hood: PlaceCandidate, candidates: PlaceCandidate[], set: OutlineSet | null | undefined): Ground | null {
+  if (hood.level !== 'neighborhood') return null;
+  if (hood.hoodOutline) {
+    return shapeGround(hood.hoodOutline, candidates.flatMap((c) => (c.level === 'neighborhood' && c.hoodOutline ? [c.hoodOutline] : [])));
+  }
+  const lat0 = Math.round(hood.at[1] * 10) / 10;
+  const dLat = CELL_M / 110_540;
+  const dLon = CELL_M / (111_320 * Math.cos((lat0 * Math.PI) / 180));
+  const reach = hood.reachM;
+  const i0 = Math.floor((hood.at[0] - reach / (111_320 * Math.cos((lat0 * Math.PI) / 180))) / dLon);
+  const i1 = Math.ceil((hood.at[0] + reach / (111_320 * Math.cos((lat0 * Math.PI) / 180))) / dLon);
+  const j0 = Math.floor((hood.at[1] - reach / 110_540) / dLat);
+  const j1 = Math.ceil((hood.at[1] + reach / 110_540) / dLat);
+  const owned = new Set<string>();
+  for (let i = i0; i <= i1; i++) {
+    for (let j = j0; j <= j1; j++) {
+      const p: LngLat = [(i + 0.5) * dLon, (j + 0.5) * dLat];
+      if (distanceM(p, hood.at) > reach) continue;
+      if (hoodAt(p, candidates, townAt(p, candidates, set), set) === hood) owned.add(`${i},${j}`);
+    }
+  }
+  if (!owned.size) return null;
+  const rings = traceRings(owned).map((ring) => smooth(ring.map(([i, j]): LngLat => [i * dLon, j * dLat])));
+  const polygons = groupRings(rings);
+  return polygons.length ? { polygons, bbox: bboxOf(polygons) } : null;
+}
+
+type Pt = [number, number];
+
+/** The boundary loops of a set of grid cells: counter-clockwise outer loops, clockwise holes, collinear runs merged. */
+function traceRings(cells: Set<string>): Pt[][] {
+  const has = (i: number, j: number) => cells.has(`${i},${j}`);
+  // Directed edges with the cell on their left; an edge shared by two owned cells is no boundary.
+  const next = new Map<string, Pt[]>();
+  const add = (a: Pt, b: Pt) => {
+    const k = `${a[0]},${a[1]}`;
+    (next.get(k) ?? next.set(k, []).get(k)!).push(b);
+  };
+  for (const key of cells) {
+    const [i, j] = key.split(',').map(Number);
+    if (!has(i, j - 1)) add([i, j], [i + 1, j]);
+    if (!has(i + 1, j)) add([i + 1, j], [i + 1, j + 1]);
+    if (!has(i, j + 1)) add([i + 1, j + 1], [i, j + 1]);
+    if (!has(i - 1, j)) add([i, j + 1], [i, j]);
+  }
+  const rings: Pt[][] = [];
+  for (const [k, outs] of next) {
+    while (outs.length) {
+      const start = k.split(',').map(Number) as Pt;
+      const ring: Pt[] = [start];
+      let cur = start;
+      let dir: Pt | null = null;
+      for (;;) {
+        const ck = `${cur[0]},${cur[1]}`;
+        const options = next.get(ck);
+        if (!options?.length) break;
+        // At a corner where two loops touch, turn left-most first so loops stay simple.
+        let pick = 0;
+        if (options.length > 1 && dir) {
+          const turn = (o: Pt) => dir![0] * (o[1] - cur[1]) - dir![1] * (o[0] - cur[0]);
+          pick = options.reduce((bi, o, i) => (turn(o) > turn(options[bi]) ? i : bi), 0);
+        }
+        const nxt = options.splice(pick, 1)[0];
+        dir = [nxt[0] - cur[0], nxt[1] - cur[1]];
+        cur = nxt;
+        if (cur[0] === start[0] && cur[1] === start[1]) break;
+        ring.push(cur);
+      }
+      if (ring.length >= 3) rings.push(mergeCollinear(ring));
+    }
+  }
+  return rings;
+}
+
+function mergeCollinear(ring: Pt[]): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[(i + ring.length - 1) % ring.length];
+    const b = ring[i];
+    const c = ring[(i + 1) % ring.length];
+    if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) !== 0) out.push(b);
+  }
+  return out;
+}
+
+/** One pass of corner cutting, so a grid's stairs read as a line (the ring stays within its hull and closed). */
+function smooth(ring: LngLat[]): LngLat[] {
+  const out: LngLat[] = [];
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25], [a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+  }
+  out.push(out[0]);
+  return out;
+}
+
+const signedArea = (ring: LngLat[]) => {
+  let s = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) s += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+  return s / 2;
+};
+
+/** Outer loops (counter-clockwise) with the holes (clockwise) they contain, as polygons. */
+function groupRings(rings: LngLat[][]): LngLat[][][] {
+  const outers = rings.filter((r) => signedArea(r) > 0).map((r) => [r]);
+  for (const hole of rings.filter((r) => signedArea(r) < 0)) {
+    const host = outers.find((o) => inOutline(hole[0], { polygons: [[o[0]]], bbox: bboxOf([[o[0]]]) }));
+    if (host) host.push(hole);
+  }
+  return outers;
+}
+
+/**
+ * The ground of a listed neighborhood, from what the cache holds (HB9, HB12): null where the tiles under it were
+ * not read, so a map keeps its ring and nothing is said. `candidates` are the neighborhoods and towns around it.
+ */
+export function groundOf(area: { level: string; name: string; at: LngLat }, candidates: PlaceCandidate[], set: OutlineSet | null | undefined): Ground | null {
+  if (area.level !== 'neighborhood' || !set || !coveredBy(set, area.at)) return null;
+  const cands = withOutlines(candidates, set);
+  const c = cands.find((x) => x.level === 'neighborhood' && sameName(x.name, area.name) && distanceM(x.at, area.at) <= 1000);
+  return c ? hoodGround(c, cands, set) : null;
+}
