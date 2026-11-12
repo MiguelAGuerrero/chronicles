@@ -108,3 +108,15 @@ test('PC23: a subset is a row, one step in, only while its parent is on', () => 
   assert.ok(ids([CP]).includes(`1:${CP}`), 'the subset off alone still shows, off');
   assert.equal(ids([]).length, KINDS.length);
 });
+
+test('fix subcategory-indent audit 1: a grandchild sits two steps in and goes with its grandparent', () => {
+  const kinds = [{ id: 'parks' as Kind }, { id: CP }, { id: 'viewpoints' as Kind }];
+  const reg = [
+    { id: 'a', parent: 'parks' as Kind, child: CP },
+    { id: 'b', parent: CP, child: 'viewpoints' as Kind },
+  ] as unknown as readonly Refinement[];
+  const rows = (h: Kind[]) => kindRows(kinds, new Set<Kind>(h), reg).map((r) => `${r.depth}:${r.kind.id}`);
+  assert.deepEqual(rows([]), ['0:parks', `1:${CP}`, '2:viewpoints']);
+  assert.deepEqual(rows([CP]), ['0:parks', `1:${CP}`], 'the middle off hides its child');
+  assert.deepEqual(rows(['parks']), ['0:parks'], 'the grandparent off hides both');
+});

@@ -38,8 +38,12 @@ export function kindSwitch(hidden: ReadonlySet<Kind>, kind: Kind): { on: boolean
 }
 
 /** PC23: the rows of "What I'm into", in order, each with its depth under its parent; a subset shows only while its parent is on. */
-export function kindRows<T extends { id: Kind }>(kinds: readonly T[], hidden: ReadonlySet<Kind>): { kind: T; depth: number }[] {
+export function kindRows<T extends { id: Kind }>(
+  kinds: readonly T[],
+  hidden: ReadonlySet<Kind>,
+  refinements: readonly Refinement[] = REFINEMENTS,
+): { kind: T; depth: number }[] {
   return kinds
-    .filter((k) => !kindChain(k.id).slice(1).some((p) => hidden.has(p)))
-    .map((kind) => ({ kind, depth: kindChain(kind.id).length - 1 }));
+    .filter((k) => !kindChain(k.id, refinements).slice(1).some((p) => hidden.has(p)))
+    .map((kind) => ({ kind, depth: kindChain(kind.id, refinements).length - 1 }));
 }
