@@ -453,7 +453,28 @@ async function run(h) {
     }), id);
     await step('tabs audit U13, U14, audit 6: the first replay', async () => {
       await north(0.3, 0.5);
-      await holdStop();
+      // tend tabs audit 2: stopped from the bar on Chronicle's Map, the peek never says "Walk somewhere" or offers
+      // Navigate before the replay comes: the walk that just ended is still this walk until Chronicle reads it.
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      await tabTo(pg, 'chronicle');
+      await h.mapUp(pg);
+      await pg.waitForSelector('[data-testid=sheet-empty]', { timeout: 10000 });
+      await pg.waitForTimeout(800);
+      await watchPeek('/replay/');
+      const sb = await pg.locator('[data-testid=bar-stop]').boundingBox();
+      await pg.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 });
+      const stopSeen = await peekSeen();
+      check(stopSeen && stopSeen.nav === 0 && stopSeen.lines.every((l) => l === 'This walk is starred here when it ends'),
+        `tend tabs audit 2: holding the bar's Stop on Chronicle's Map never shows the empty peek's Navigate or "Walk somewhere" before the replay (${JSON.stringify(stopSeen)})`);
+      await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await pg.waitForTimeout(800);
       // tabs audit U13: no big orange count on the card; new streets are a clause in its line.
       const loud = await pg.evaluate(() => [...document.querySelectorAll('div, span')]
         .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
