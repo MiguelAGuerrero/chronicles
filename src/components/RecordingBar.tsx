@@ -62,7 +62,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // decision 0149; ME23's six seconds elsewhere).
   const [offer, setOffer] = useState<BarOffer | null>(null);
   const [editingKept, setEditingKept] = useState<Faced | null>(null);
-  const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
+  // A failed photo ends a waiting offer: no pill says saved over the failure (tend tabs audit 18).
+  const onError = useCallback((e: { message: string }) => {
+    setSaid({ text: e.message, error: true });
+    setOffer((o) => barOfferAfter(o, null));
+  }, []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
   // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
   const path = usePathname();

@@ -60,3 +60,8 @@ test('tend tabs audit 15: a bar photo deleted elsewhere (waiting on Undo, or gon
   assert.equal(barOfferShown(o, ['m0', 'p1'], new Set(['m0'])), true);
   assert.equal(barOfferAfterHidden(null, new Set(['p1'])), null);
 });
+
+test('tend tabs audit 18: a later bar photo that fails to save ends the offer, so no pill says saved over the failure', () => {
+  assert.equal(barOfferAfter(barOffer(photo), null), null);
+  assert.equal(barOfferAfter(null, null), null);
+});

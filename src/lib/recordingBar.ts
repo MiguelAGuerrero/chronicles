@@ -35,8 +35,11 @@ export interface BarOffer {
 
 export const barOffer = (kept: { id: string; kind: 'photo' | 'video' }): BarOffer => ({ id: kept.id, kind: kept.kind });
 
-/** A capture reached the walk: its own leaves the offer standing; any other (Memories' band, the same walk) ends it. */
-export const barOfferAfter = (o: BarOffer | null, keptId: string): BarOffer | null => (o && o.id !== keptId ? null : o);
+/**
+ * The next capture ends the offer: one kept by any path of the walk (Memories' band too), or `null`, one from the bar
+ * that failed to save (tend tabs audit 18). News of its own photo, should it come after the offer, leaves it standing.
+ */
+export const barOfferAfter = (o: BarOffer | null, keptId: string | null): BarOffer | null => (o && o.id !== keptId ? null : o);
 
 /** Shown while its capture is still the walk's and not deleted elsewhere, its Undo waiting or not (tend tabs audit 15). */
 export const barOfferShown = (o: BarOffer | null, captureIds: readonly string[], hidden: ReadonlySet<string>): boolean =>
