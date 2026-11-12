@@ -97,6 +97,12 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Go here.
+- **A neighborhood has its own ground** (neighborhood boundaries, decision 0152): selecting one on Explore draws one thin dark
+  line around where it is, in place of the old 800 m ring: its real shape where the map data has one (Overture's neighborhoods and
+  macrohoods; plazas and homeowners' associations are left out), or the edge of its nearest-point share where it has none. Two
+  neighborhoods never claim one place: the smallest shape holding a point owns it, and a name inside another's shape is not listed.
+  The same rule places a walk (every walk is placed again), Explore names a place, and the card counts across the line it draws.
+  The line is one look for every neighborhood, with no fill, name or figure, and is gone when the selection changes.
 - **The small map moves in steps** (discrete navigation, decision 0092, an
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into

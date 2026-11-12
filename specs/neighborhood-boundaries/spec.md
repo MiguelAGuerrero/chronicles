@@ -84,7 +84,7 @@ The auditor (12 findings: 3 high, 6 medium, 3 low) and the steward (6 drift, 1 t
 12. Nested outlines read as several at once (S6): accept as a clarification and a guard: one feature, the nested shapes its holes (HB9 above).
 13. `data-ground` carries a ring count on the map's container (S7): accept as a guard: no label, title or aria is built from the ground, and the map's label takes none. The attribute stays the e2e's hook.
 
-Deferred (docs/DEFERRED.md): **D1** a shape clipped at a z12 tile edge is judged smaller by the pieces read, so an overlap point can be owned differently by what is kept (F7; as towns); **D2** checklists and finds already built under the old rule keep their area until the next tile build (F10), the owner's call below.
+Deferred (docs/DEFERRED.md): **first**, a shape clipped at a z12 tile edge is judged smaller by the pieces read, so an overlap point can be owned differently by what is kept (F7; as towns); **second**, checklists and finds already built under the old rule keep their area until the next tile build (F10), the owner's call below.
 
 For the owner (the steward's silent questions, none a breach): whether a walk's remembered place name may change silently after the update (HB13 says yes, derived and never written); whether a point-only name such as Chinatown should stay as a place a find can say, without ground; whether the "Association" suffix filter, which loses a real name ending so, needs a way back; whether a macrohood that becomes a big neighborhood wants a size cap; and whether the line beside the card's familiarity words is acceptable.
 
