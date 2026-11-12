@@ -10,6 +10,8 @@ export const SEE_MORE = 'See more';
 export const SEE_MORE_LABEL = 'See more complexes';
 /** The smallest a tap target is, in points: Android's 48 dp, which also covers iOS's 44 (complexes audit 28). */
 export const COMPLEX_TARGET_MIN = 48;
+/** A quiet line under the card's complexes: where the kinds are switched, since Explore has no settings of its own (complexes audit 26). */
+export const COMPLEX_SWITCH_HINT = 'Choose which kinds show in a walk’s settings';
 
 export interface ComplexRow {
   id: string;

@@ -15,7 +15,7 @@ import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES } from '../../lib/atlas/atlas';
-import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
+import { COMPLEX_SWITCH_HINT, COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
 import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
@@ -291,6 +291,7 @@ export function AtlasCard(props: {
                     </Pressable>
                   ) : null}
                 </View>
+                <Text style={[styles.muted, styles.complexHint]} testID="atlas-complexes-hint">{COMPLEX_SWITCH_HINT}</Text>
               </View>
             );
           })()}
@@ -505,6 +506,7 @@ const styles = StyleSheet.create({
   pocket: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   // Room for a wrapped name, Walk to level with its first line; "See more" lines up with the names (the UI review, decision 0145).
   complexRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: COMPLEX_TARGET_MIN, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
+  complexHint: { marginTop: 6 },
   complexMore: { minHeight: COMPLEX_TARGET_MIN, justifyContent: 'center' },
   complexWalk: { minHeight: COMPLEX_TARGET_MIN, minWidth: COMPLEX_TARGET_MIN, justifyContent: 'center', paddingHorizontal: 8 },
   complexText: { flexShrink: 1, flex: 1 },

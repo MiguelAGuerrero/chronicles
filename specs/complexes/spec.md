@@ -204,8 +204,8 @@ The `ux-reviewer` read the card with its longest name and the settings, at 390 x
 ## Audit (decision 0074, 2026-11-12)
 
 The auditor, the steward and the ux-reviewer read the built slice at main `820957a` (the pictures at 390 x 844 on the /chronicles build).
-29 findings: the auditor's 1-12, the steward's 13-20, the ux-reviewer's 21-29. 18 fixed, each behind a test named `complexes audit N`
-in `src/lib/__tests__/complexes/audit.test.ts`; 1 fixed in part; 2 duplicates; 5 deferred; 3 rejected; 1 to the owner.
+29 findings: the auditor's 1-12, the steward's 13-20, the ux-reviewer's 21-29. 19 fixed, each behind a test named `complexes audit N`
+in `src/lib/__tests__/complexes/audit.test.ts`; 1 fixed in part; 2 duplicates; 5 deferred; 3 rejected.
 
 1. A place in two tiles' buffers counted twice, so four restaurants made a mall: fix. Places keep Overture's id and the shell counts one (`audit 1`). The first version of this fix dropped a place seen from a neighbour's buffer before its own tile was read; the `complexes` journey caught it and a second `audit 1` test holds it.
 2. A building needing a tile the area did not read left `partial` false: fix. The read is partial then (`audit 2`).
@@ -232,10 +232,10 @@ in `src/lib/__tests__/complexes/audit.test.ts`; 1 fixed in part; 2 duplicates; 5
 23. The map label's ground and size: fix. A white pill, two lines at most, a capped text scale (`audit 23`); dropping the kind word from the label is opinion and not done.
 24. The outline's brown sat beside History's brown: fix. A deep plum, 55 or more apart from every kind and layer colour (`audit 24`).
 25. "Complexes" is jargon: fix. The settings note says what they are (`audit 25`); the header stays.
-26. The switches are reachable only from the walk's and Navigate's settings: to the owner. A line or link on the card is a navigation choice.
+26. The switches are reachable only from the walk's and Navigate's settings: fix, at the owner's "reasonable defaults". A quiet line under the card's complexes says where they are (`audit 26`).
 27. No icons on the switches, the note's contrast: reject, removed on purpose in the first review; the track contrast is the app's.
 28. Targets under 48 on Android: fix (`audit 28`).
 29. Partial and empty states by design: reject, CX16's silent read.
 
-For the owner: whether the card should say where the kind switches are (26); whether a pull of up to nine `buildings` tiles on mobile data should wait for a tap (15); whether a store of every area browsed is acceptable derived data.
+The owner's open questions were answered with reasonable defaults (Nov 12): the card says where the switches are (26); the reads stay ambient with a metered-connection check deferred (15); the store of areas browsed is acceptable derived data, cleared by a purge (decision 0147).
 

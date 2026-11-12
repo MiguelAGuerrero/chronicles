@@ -6,7 +6,7 @@ import { BORDER, COLORS, FOG_BOLD, HOTSPOT, HOTSPOT_INK, RING_COLOR, WAITING_DOT
 import { KIND_COLOR } from '../../../components/atlas/kinds';
 import { COMPLEX_RETRY_MS, retryIn } from '../../complexes/extent';
 import { COMPLEX_NOTE, readsWanted } from '../../complexes/kinds';
-import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../complexes/lines';
+import { COMPLEX_SWITCH_HINT, COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../complexes/lines';
 import { createComplexLookup } from '../../complexes/lookup';
 import { COMPLEX_STYLE } from '../../complexes/mapLayer';
 import { createOvertureSource } from '../../complexes/overtureReader';
@@ -205,4 +205,12 @@ test('complexes audit 1: a place seen first from a neighbour\'s buffer, before i
   await c.readArea({ at: [-76.8815 - 0.05, 40.2617], reachM: 50 }, RELEASE);
   const r = await c.readArea({ at, reachM: 50 }, RELEASE);
   assert.equal(r.complexes.length, 1);
+});
+
+test('complexes audit 26: the card says where the kinds are switched, in words and no number, under the section only', () => {
+  assert.equal(/\d|\b(one|two|three|four|five|six|seven|eight|nine|ten|dozen|several|few|many|couple)\b/i.test(COMPLEX_SWITCH_HINT), false);
+  assert.ok(/settings/.test(COMPLEX_SWITCH_HINT));
+  const card = read('components/atlas/AtlasCard.tsx');
+  assert.ok(/\{COMPLEX_SWITCH_HINT\}/.test(card), 'the card shows it');
+  assert.ok(card.indexOf('COMPLEX_SWITCH_HINT}') > card.indexOf('atlas-complexes"'), 'inside the complexes section');
 });

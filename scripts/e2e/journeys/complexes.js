@@ -37,6 +37,7 @@ async function run(h) {
       `CX4: the area card lists the complex by name and its kind as a word (${JSON.stringify(text)})`);
     check(found && !/\d/.test(text) && !/\b(restaurants?|shops|food|places)\b/i.test(text) && (await pg.locator('[data-testid=atlas-complexes-more]').count()) === 0,
       `CX4, CX5: no digit and no line about what it holds; with one complex there is no "See more" (${JSON.stringify(text)})`);
+    check((await pg.locator('[data-testid=atlas-complexes-hint]').innerText().catch(() => '')).includes('settings'), 'complexes audit 26: the card says where the kinds are switched, in a quiet line under the section');
     check((await pg.locator('[data-testid=complex-label]').count()) === 0, 'CX9: the map names no complex until it is zoomed close');
     check(overtureAsked.filter((q) => /buildings\.pmtiles$/.test(new URL(q.url).pathname)).length > 0
       && overtureAsked.every((q) => {
