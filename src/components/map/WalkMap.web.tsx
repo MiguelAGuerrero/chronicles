@@ -1021,7 +1021,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const [w, s, e, n] = props.fitBounds;
       const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
       perfCount('fit');
-      mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration });
+      // At the bearing the map has: maplibre's fit turns it back to north unless told (CP1: a fit never changes the
+      // bearing; tend map 2).
+      const map = mapRef.current;
+      map?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: map.getBearing() });
       // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
       const key = props.fitKey ?? 0;
       const t = setTimeout(() => onFitSettled.current?.(key), duration + 150);

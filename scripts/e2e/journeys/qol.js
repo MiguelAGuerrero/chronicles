@@ -322,6 +322,12 @@ async function run(h) {
       // A map with a compass turns under two real fingers (CP1), so the gesture below is a real turn where it is refused.
       const turnedByHand = await twoFingerTurn();
       check(Math.abs(turnedByHand) > 5, `tend map 1: two fingers turn Explore's map, which has a compass (bearing ${turnedByHand})`);
+      // A fit keeps the bearing (CP1): Locate frames the fix with the map still turned.
+      await shown('locate').first().click();
+      await pg.waitForTimeout(2000);
+      const afterLocate = Number((await attr('data-bearing')) || 0);
+      check(Math.abs(afterLocate - turnedByHand) < 1 && (await compass.count()) === 1,
+        `tend map 2: turned by hand, a Locate fit keeps the bearing and the compass (CP1; ${turnedByHand} → ${afterLocate}, ${await compass.count()} compass)`);
       await compass.first().click();
       await pg.waitForTimeout(1500);
     }
