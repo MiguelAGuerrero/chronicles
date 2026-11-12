@@ -118,7 +118,7 @@ async function run(h) {
         await pg.waitForTimeout(500);
         const got = { ...(await read()), card: await pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`).first().innerText().catch(() => '') };
         // The tile's tap opened its card over the map: close it, so the picture is the map with the line.
-        await pg.keyboard.press('Escape');
+        await pg.click('[data-testid=atlas-card-close]').catch(() => {});
         await pg.waitForTimeout(800);
         await shot(pg, `outlines-ground-${name.replace(/\s+/g, '-').toLowerCase()}`);
         return got;
