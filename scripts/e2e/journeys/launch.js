@@ -197,6 +197,7 @@ async function fresh(h) {
           const tr = t.getBoundingClientRect();
           const edit = p.querySelector('[data-testid=capture-edit]')?.getBoundingClientRect();
           const close = p.querySelector('[data-testid=bar-edit-offer-close]');
+          const closeBox = close?.getBoundingClientRect();
           return {
             above: r.bottom <= bar.top + 1,
             oneLine: tr.height - parseFloat(getComputedStyle(t).paddingTop) - parseFloat(getComputedStyle(t).paddingBottom)
@@ -215,6 +216,8 @@ async function fresh(h) {
               return range.getBoundingClientRect().right <= s.getBoundingClientRect().left + s.clientWidth + 1;
             })(),
             inPill: !!(edit && edit.width >= 44 && edit.right <= r.right + 1),
+            // tend tabs audit 20: Edit and Close stand apart, as Undo and its Close do.
+            apart: edit && closeBox ? Math.round(closeBox.left - edit.right) : null,
             close: close?.getAttribute('aria-label') ?? null,
             live: p.getAttribute('aria-live'),
             stats: q('[data-testid=recording-stats]')?.textContent ?? null,
@@ -222,7 +225,7 @@ async function fresh(h) {
             wide: document.documentElement.scrollWidth <= window.innerWidth,
           };
         });
-        const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.close === 'Close, the photo stays as it is'
+        const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.apart >= 4 && m.close === 'Close, the photo stays as it is'
           && m.live === 'polite' && /^\d+:\d\d · \d+ m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
         const at390 = await pill();
         await h.shot(pg, 'tabs-9-bar-edit-offer');
@@ -237,7 +240,7 @@ async function fresh(h) {
           await pg.waitForTimeout(400);
         }
         check(fine(at390) && fine(at320),
-          `tend tabs T12: after a photo the bar's Edit offer is a pill above it, "Photo saved to your walk · Edit · ✕", its words whole on one line at 390 and 320 px, announced politely, the line keeping its time and distance (${JSON.stringify(at390)}, ${JSON.stringify(at320)})`);
+          `tend tabs T12, tend tabs audit 17, tend tabs audit 20: after a photo the bar's Edit offer is a pill above it, Edit and Close apart, "Photo saved to your walk · Edit · ✕", its words whole on one line at 390 and 320 px, announced politely, the line keeping its time and distance (${JSON.stringify(at390)}, ${JSON.stringify(at320)})`);
         // It waits: past ME23's six seconds it is still there; its Close ends it and the line stays.
         await pg.waitForTimeout(Math.max(0, 6800 - (Date.now() - offeredAt)));
         const waited = await pill();

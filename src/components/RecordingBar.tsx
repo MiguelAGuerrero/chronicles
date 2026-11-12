@@ -283,14 +283,15 @@ const styles = StyleSheet.create({
   stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   // The Undo pill's measures (components/UndoToast), a little tighter at the sides so its words stay whole on one
   // line at 320 px.
-  offerWrap: { alignItems: 'center', paddingHorizontal: 6, paddingVertical: 8, backgroundColor: theme.bg },
+  offerWrap: { alignItems: 'center', paddingHorizontal: 4, paddingVertical: 8, backgroundColor: theme.bg },
   offer: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: 14, paddingRight: 2, borderRadius: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: 12, paddingRight: 2, borderRadius: 24,
     backgroundColor: theme.ink, maxWidth: 608,
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   offerText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1, paddingVertical: 12 },
-  offerActions: { flexDirection: 'row', alignItems: 'center' },
+  // Edit and Close apart by Undo's 8 (tend tabs audit 20), paid for from the sides, never the words.
+  offerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   offerEdit: { backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12 },
   offerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
