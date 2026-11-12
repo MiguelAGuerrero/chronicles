@@ -13,7 +13,7 @@ const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) 
 const lum = (h: string) => { const [r, g, b] = hex(h); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const contrast = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 
-test('explore-dense-city ui 1: a stale area\'s names keep 4.5:1 on their halo: a greyer ink at full opacity, never dimmed', { todo: 'test first' }, () => {
+test('explore-dense-city ui 1: a stale area\'s names keep 4.5:1 on their halo: a greyer ink at full opacity, never dimmed', () => {
   const at = (x: number): LngLat => [-76.6 + x * 0.001, 39.29];
   const view: LandingView = { pockets: [], graded: [], labels: [], strips: [{ name: 'Charles Street', lines: [[at(0), at(1)]], at: at(0.5), stale: true }] };
   const f = busyNamesGeoJSON(view).features[0];
@@ -23,7 +23,7 @@ test('explore-dense-city ui 1: a stale area\'s names keep 4.5:1 on their halo: a
   assert.equal(f.properties?.stale, true);
 });
 
-test('explore-dense-city ui 2: a street within 5 degrees of north-south reads bottom to top, whichever way it leans', { todo: 'test first' }, () => {
+test('explore-dense-city ui 2: a street within 5 degrees of north-south reads bottom to top, whichever way it leans', () => {
   const m = (x: number, y: number): LngLat => [-76.6 + x / 86000, 39.29 + y / 111320];
   for (const lean of [-4, -1, 0, 1, 4]) {
     const dx = Math.tan((lean * Math.PI) / 180) * 300;
@@ -33,9 +33,9 @@ test('explore-dense-city ui 2: a street within 5 degrees of north-south reads bo
   assert.equal(alongAngle([[m(0, 0), m(0, 300)]], m(0, 150)), -90, 'north-south is -90: the text reads upwards');
 });
 
-test('explore-dense-city ui 3: on a turned map every name stays upright on screen', { todo: 'test first' }, () => {
+test('explore-dense-city ui 3: on a turned map every name stays upright on screen', () => {
   for (const bearing of [0, 45, 100, 150, 180, -120, -60]) {
-    const expr = createExpression(busyNameRotate(bearing) as never);
+    const expr = createExpression(busyNameRotate(bearing) as never, { type: 'number', 'property-type': 'data-driven', expression: { interpolated: false, parameters: ['zoom', 'feature'] } } as never);
     assert.equal(expr.result, 'success', JSON.stringify(expr));
     for (const angle of [-90, -60, 0, 30, 84]) {
       const r = (expr as unknown as { value: { evaluate(g: unknown, f: unknown): number } }).value.evaluate({ zoom: 15 }, { properties: { angle }, type: 'Point' });

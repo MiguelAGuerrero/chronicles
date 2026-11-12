@@ -30,7 +30,7 @@ import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, busyNameLayers, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -577,6 +577,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
     map.on('rotate', turned);
     map.on('rotateend', turned);
+    // explore-dense-city ui 3: the busy names fold upright for the bearing the map settles on (a turn, resetNorth).
+    let namesBearing = 0;
+    const uprightNames = () => {
+      const b = Math.round(map.getBearing());
+      if (b === namesBearing || !map.getLayer('busy-names')) return;
+      namesBearing = b;
+      map.setLayoutProperty('busy-names', 'text-rotate', busyNameRotate(b) as never);
+    };
+    map.on('rotateend', uprightNames);
+    map.on('moveend', uprightNames);
     // A camera move made in code cancels a drag in progress, and the glide moves
     // the camera every frame. So follow-moves wait while a pointer is down.
     const down = () => { pointerDown.current = true; };

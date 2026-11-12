@@ -435,11 +435,19 @@ export const BUSY_NAME_FONT = ['Noto Sans Bold'];
  */
 export const BASE_FIRST_LABEL = 'waterway_line_label';
 
-/** A stale area's names (explore-dense-city ui 1). Not built yet. */
-export const BUSY_NAME_STALE_INK = '';
-/** The names' turn on a map turned to `bearing` (explore-dense-city ui 3). Not built yet. */
-export function busyNameRotate(_bearing: number): unknown {
-  throw new Error('busyNameRotate: not built (explore-dense-city ui 3)');
+/**
+ * A stale area's names (DC6, explore-dense-city ui 1): a greyer ink at full opacity, 5.4:1 on the halo and 4.5:1 on the
+ * bare base map. Dimming the text would dim its halo too, under 3:1.
+ */
+export const BUSY_NAME_STALE_INK = '#7d6274';
+/**
+ * The names' turn on a map turned to `bearing` (explore-dense-city ui 3): a name is map-aligned, so on screen it turns by
+ * its rotation less the bearing; this folds that into [-95, 85), the same rule as `alongAngle`, so no name is ever upside
+ * down. Only ever half a turn off `angle`, so it still runs along its street. Set again as the map turns.
+ */
+export function busyNameRotate(bearing: number): unknown[] {
+  const b = Math.round(bearing * 10) / 10;
+  return ['+', ['-', ['%', ['+', ['-', ['get', 'angle'], b], 455], 180], 95], b];
 }
 
 /** The busy names' size, the same for every name whatever its street's grade (DC4). */
@@ -451,7 +459,7 @@ const AREA_NAME_ROOM = { size: 12, offsetEm: 0.85, widthEm: 11.5 };
  * The busy names' layer (DC1-DC6, DC14): one name per street at its busiest point, turned along the street there (it turns
  * with the map), or a pocket's name level at its centre. Names collide with each other and with the base map's labels
  * (never overlap, never ignore placement), are placed in their `sort` order, and look the same whatever the grade: only a
- * stale area's names are dimmed. A long name wraps at its width; nothing cuts it.
+ * stale area's names change, to a greyer ink. A long name wraps at its width; nothing cuts it.
  */
 export function busyNameLayers() {
   const reserve = ['get', 'reserve'];
@@ -465,27 +473,27 @@ export function busyNameLayers() {
       'text-ignore-placement': false,
       'text-padding': 4,
       'symbol-sort-key': ['get', 'sort'],
-      'text-rotate': ['get', 'angle'],
+      'text-rotate': busyNameRotate(0),
       'text-rotation-alignment': 'map',
       'text-max-width': ['case', reserve, AREA_NAME_ROOM.widthEm, 9],
       // The reserved area name sits under its dot, as AreaPointView draws it; a busy name is centred on its point.
       'text-anchor': ['case', reserve, 'top', 'center'],
       'text-offset': ['case', reserve, ['literal', [0, AREA_NAME_ROOM.offsetEm]], ['literal', [0, 0]]],
     } as Record<string, unknown>,
-    paint: { 'text-color': HOTSPOT_INK, 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': ['get', 'opacity'] } as Record<string, unknown>,
+    paint: { 'text-color': ['case', ['get', 'stale'], BUSY_NAME_STALE_INK, HOTSPOT_INK], 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': ['get', 'opacity'] } as Record<string, unknown>,
   };
 }
 
 /**
- * The busy names as map points (DC1, DC4): each with its `sort` (the view's order: heavier first), its turn and its
- * opacity (dimmed when stale, DC6). The selected area's name, when given, is drawn at opacity 0 and placed before every
+ * The busy names as map points (DC1, DC4): each with its `sort` (the view's order: heavier first), its turn and whether
+ * it is stale (a greyer ink, DC6). The selected area's name, when given, is drawn at opacity 0 and placed before every
  * busy name, so none is placed under it (DC14).
  */
 export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
-  if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, reserve: true }, geometry: { type: 'Point', coordinates: reserve.at } });
+  if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true }, geometry: { type: 'Point', coordinates: reserve.at } });
   for (const n of busyNames(v))
-    features.push({ type: 'Feature', properties: { name: n.name, sort: n.order, opacity: n.stale ? HOTSPOT_GRADES.staleOpacity : 1, angle: n.angle, reserve: false }, geometry: { type: 'Point', coordinates: n.at } });
+    features.push({ type: 'Feature', properties: { name: n.name, sort: n.order, opacity: 1, angle: n.angle, stale: n.stale, reserve: false }, geometry: { type: 'Point', coordinates: n.at } });
   return { type: 'FeatureCollection', features };
 }
 

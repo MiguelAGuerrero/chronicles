@@ -12,12 +12,12 @@ export interface BusyName {
   at: LngLat;
   /**
    * The text's turn in degrees clockwise from level, so a street's name runs along it where it is placed; kept within
-   * ±90 so it never reads upside down. 0 for a pocket's name.
+   * [-95, 85) so it never reads upside down and a north-south street reads bottom to top. 0 for a pocket's name.
    */
   angle: number;
 }
 
-/** The direction of the piece of `lines` nearest `at`, as a text rotation (DC3): clockwise degrees, within (-90, 90]. */
+/** The direction of the piece of `lines` nearest `at`, as a text rotation (DC3): clockwise degrees, within [-95, 85). */
 export function alongAngle(lines: LngLat[][], at: LngLat): number {
   let best: [LngLat, LngLat] | null = null;
   let bestD = Infinity;
@@ -33,8 +33,9 @@ export function alongAngle(lines: LngLat[][], at: LngLat): number {
   const dy = b[1] - a[1];
   if (dx === 0 && dy === 0) return 0;
   let deg = (-Math.atan2(dy, dx) * 180) / Math.PI;
-  if (deg > 90) deg -= 180;
-  if (deg <= -90) deg += 180;
+  // Upright, and anything within 5 degrees of north-south reads bottom to top (explore-dense-city ui 2): [-95, 85).
+  if (deg >= 85) deg -= 180;
+  if (deg < -95) deg += 180;
   // + 0 turns a -0 into 0.
   return Math.round(deg * 10) / 10 + 0;
 }

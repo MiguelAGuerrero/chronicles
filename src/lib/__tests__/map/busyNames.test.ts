@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { BASE_FIRST_LABEL, BUSY_NAME_FONT, HOTSPOT_GRADES, busyNameLayers, busyNamesGeoJSON } from '../../../components/map/types';
+import { BASE_FIRST_LABEL, BUSY_NAME_FONT, BUSY_NAME_STALE_INK, HOTSPOT_INK, busyNameLayers, busyNamesGeoJSON } from '../../../components/map/types';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
 
@@ -55,10 +55,10 @@ test('DC4: a label is the street\'s name and nothing more, and every name looks 
   assert.ok(names.features.every((f) => f.properties?.reserve === false));
 });
 
-test('DC6: a stale area\'s names are dimmed as its lines are', () => {
-  assert.ok(busyNamesGeoJSON(view(true)).features.every((f) => f.properties?.opacity === HOTSPOT_GRADES.staleOpacity));
-  assert.ok(busyNamesGeoJSON(view(false)).features.every((f) => f.properties?.opacity === 1));
-  assert.deepEqual(busyNameLayers().paint['text-opacity'], ['get', 'opacity']);
+test('DC6: a stale area\'s names are told apart as its lines are (a greyer ink, explore-dense-city ui 1)', () => {
+  assert.ok(busyNamesGeoJSON(view(true)).features.every((f) => f.properties?.stale === true && f.properties?.opacity === 1));
+  assert.ok(busyNamesGeoJSON(view(false)).features.every((f) => f.properties?.stale === false && f.properties?.opacity === 1));
+  assert.deepEqual(busyNameLayers().paint['text-color'], ['case', ['get', 'stale'], BUSY_NAME_STALE_INK, HOTSPOT_INK]);
 });
 
 test('DC14: the selected area\'s name is in the names\' source, invisible, placed first', () => {

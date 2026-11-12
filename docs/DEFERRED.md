@@ -617,7 +617,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore in a dense city (decision 0151)
 
-- **The "?" pins and the area points as map layers** (the owner, Nov 12: next round, if a drag still stutters on the phone). They are still DOM markers, and the busy names, now the map's own text, draw under them.
+- **The "?" pins and the area points as map layers** (the owner, Nov 12: next round, if a drag still stutters on the phone). They are still DOM markers, and the busy names, now the map's own text, draw under them: at Explore's default zoom in the dense journey the pins hide most of the names that won a place (UI review U1, `dense-1-names`). When the pins move to a symbol layer, put them in the names' collision, so a name never lands under a pin.
 - **Raster tiles for the busy lines** (not now): vector until a phone shows the lines themselves are the cost.
 - **Storing street pieces from the worker** (DC10's batches come first): a worker writing IndexedDB would bypass `db`, the one door to storage. The page's batches still cost about 380 ms of IndexedDB copying per first read at desktop speed, in tasks under 50 ms each.
 - **Native's read in a background thread:** no Expo module gives one; native yields a turn per stage instead (DC11).

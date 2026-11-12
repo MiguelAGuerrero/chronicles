@@ -29,7 +29,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, BASE_FIRST_LABEL, busyNameLayers, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, BASE_FIRST_LABEL, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -157,7 +157,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.landing, reserveKey],
   );
-  const nameLayers = useMemo(() => busyNameLayers(), []);
+  // explore-dense-city ui 3: the names fold upright for the bearing the map settled on, to the nearest 5 degrees.
+  const [namesBearing, setNamesBearing] = useState(0);
+  // Set only when it changes: the same value set again still renders (map rules, DC12).
+  const namesBearingNow = useRef(0);
+  const nameLayers = useMemo(() => {
+    const l = busyNameLayers();
+    return { ...l, layout: { ...l.layout, 'text-rotate': busyNameRotate(namesBearing) } };
+  }, [namesBearing]);
   // DC16: over every layer on Explore (the last overlay drawn, placed first); elsewhere under the base map's labels.
   const namesBelow = props.busyNamesOver ? undefined : BASE_FIRST_LABEL;
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
@@ -361,6 +368,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           props.onMoveState?.(false);
           const { zoom, center, bearing } = e.nativeEvent;
           swiper.at([center[0], center[1]], zoom);
+          const nb = typeof bearing === 'number' ? Math.round(bearing / 5) * 5 : 0;
+          if (nb !== namesBearingNow.current) {
+            namesBearingNow.current = nb;
+            setNamesBearing(nb);
+          }
           if (typeof bearing === 'number' && Math.abs(bearing - lastBearing.current) >= 0.5) {
             lastBearing.current = bearing;
             props.onBearingChange?.(bearing);
