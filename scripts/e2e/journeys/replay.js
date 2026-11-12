@@ -283,6 +283,16 @@ async function run(h) {
     await pg.keyboard.press('Escape');
     await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
     check(backOnCard && kept === 'Plums by the bridge', `tend replay 5: Escape on the name step returns to the card, the name typed kept (${backOnCard}, "${kept}")`);
+    // A held Escape stops at the card: its repeats never leave the replay with the words unsaved (tend replay audit 4).
+    await pg.click('[data-testid=to-name]');
+    await pg.waitForSelector('[data-testid=title-input]', { timeout: 3000 }).catch(() => {});
+    await pg.keyboard.down('Escape');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    await pg.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', repeat: true, bubbles: true })));
+    await pg.keyboard.up('Escape');
+    await pg.waitForTimeout(800);
+    const heldStays = /\/replay\//.test(new URL(pg.url()).pathname) && (await pg.locator('[data-testid=to-name]').count()) === 1;
+    check(heldStays, `tend replay audit 4: a held Escape on the name step stops at the card (${new URL(pg.url()).pathname})`);
     await pg.getByRole('button', { name: /\. Open$/ }).first().click();
     const viewerUp = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
     await pg.keyboard.press('Escape');

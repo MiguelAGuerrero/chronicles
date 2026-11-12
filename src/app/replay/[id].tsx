@@ -222,7 +222,8 @@ export default function Replay() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined' || held) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      // A held key's repeats are not more presses: the name step's Escape stops at the card (tend replay audit 4).
+      if (e.key !== 'Escape' || e.repeat) return;
       if (backFrom(beatNow.current) === 'card') go('card');
       else if (!rewatch) toChronicle();
       else if (router.canGoBack()) router.back();
