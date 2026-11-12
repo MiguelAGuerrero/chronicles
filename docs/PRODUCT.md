@@ -417,7 +417,7 @@ recording, and a recording bar brings a minimized walk back.
   Free, Square, 4:5 and 16:9, and Rotate; nine filters a phone's photo app has
   (Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia; photos only);
   drawing like the iPhone's Markup (Pen, Marker, Eraser, three thicknesses, six
-  swatches, Undo, Redo); a text bar; a trim for videos. The file is never changed:
+  swatches, Undo, Redo); a text bar; a trim for videos, and for voice memos (Edit in the viewer opens a trim-only editor: start and end handles, the kept times, Play kept part; the memo then plays only that part everywhere, says "Trimmed · 0:39 of 0:58" in the viewer and its kept length in lists; VT1-VT12). The file is never changed:
   edits are kept with the moment and can be changed or reverted later. Saving out
   renders everything into one photo or video.
 - **Deletes** (a walk, a walk's media, one moment, a thread) hide at once with an
@@ -497,7 +497,7 @@ recording, and a recording bar brings a minimized walk back.
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
-| Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
+| Media editing: crop, rotate, filters, drawing, text, video and voice-memo trim, all saved out (a memo is never saved out) | Shipped on web (native unverified; the video module never compiled) |
 | Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |

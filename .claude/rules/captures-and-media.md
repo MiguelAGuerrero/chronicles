@@ -152,6 +152,13 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 
 ## Voice memos
 
+- **A memo can be trimmed** (voice trim VT1-VT12, Nov 12): Edit in the viewer opens `MediaEditor` on a `voice` kind (`editSession`
+  `TOOLS.voice = ['trim']`, no picture), the same `Capture.edit.trim` a video has, on the untouched recording. Everything that plays
+  a memo or says its length goes through `lib/voiceTrim` (`voiceSpan`, `voiceClock`, `voiceState`, `memoWords`, `trimmedLine`);
+  a test fails when a file calling `useAudioPlayer` does not import it (VT12). A trimmed memo's player asks `updateInterval: 100`
+  (the default 500 ms stops it up to half a second past the end handle), seeks to the start before `play()`, and pauses and says
+  finished at the end handle (`VoicePlayer`, the replay's `MemoBubble`). A player is only mutated from module-level helpers.
+
 - Voice memos stop when the phone locks unless `setAudioModeAsync` gets
   `allowsBackgroundRecording: true` and the expo-audio plugin has
   `enableBackgroundRecording`.

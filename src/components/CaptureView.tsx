@@ -2,7 +2,7 @@ import { type Faced, faced, facedAt, hasMore, pieceKey } from '../lib/moment';
 import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
@@ -44,6 +44,8 @@ import { ResponsesSheet } from './threads/ResponsesSheet';
 import { responseRows, responsesOf } from '../lib/threads/responses';
 import { IN_A_THREAD, MENTIONED, responsesWord } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
+import { trimmedLine, voiceClock, voiceSpan, voiceState } from '../lib/voiceTrim';
+import type { MediaEdit } from '../lib/mediaEdit';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
@@ -69,9 +71,24 @@ const VIEWER_TOP = 64;
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
 
-/** A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. */
-function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number }) {
-  const player = useAudioPlayer(props.uri);
+/** A trimmed memo's player reports every 100 ms, so it stops at the end handle, not up to half a second late (VT6). */
+const TRIMMED_PLAYER = { updateInterval: 100 };
+// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
+function seekMemo(player: AudioPlayer, s: number) {
+  void player.seekTo(s);
+}
+function pauseMemo(player: AudioPlayer) {
+  player.pause();
+}
+
+/**
+ * A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. A trimmed memo
+ * (VT6, VT7) starts at the start handle, stops at the end handle and counts as finished there; its clock and bar
+ * read against the kept part.
+ */
+function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number; edit?: MediaEdit | null }) {
+  const trim = props.edit?.trim ?? null;
+  const player = useAudioPlayer(props.uri, trim ? TRIMMED_PLAYER : undefined);
   const status = useAudioPlayerStatus(player);
   const { autoPlay, onFinished } = props;
   const playing = useRef(false);
@@ -80,12 +97,24 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     playing.current = status.playing;
     finished.current = onFinished;
   }, [status.playing, onFinished]);
+  const wholeMs = status.duration ? status.duration * 1000 : props.durationMs;
+  const span = voiceSpan(trim, wholeMs);
+  const where = voiceState(status.currentTime, span);
+  const atEnd = !!trim && where === 'end';
+  // Once per play: the trim's end and the file's end can both say so.
+  const reported = useRef(false);
+  const report = () => {
+    if (reported.current) return;
+    reported.current = true;
+    finished.current?.();
+  };
   // A browser that refuses to start it without a tap (iOS) leaves the play
   // button showing; a replay that moves on by itself then moves on after a
   // while, instead of waiting for an end that never comes.
   const refused = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!autoPlay || !status.isLoaded) return;
+    if (trim) seekMemo(player, trim.start_ms / 1000);
     player.play();
     if (Platform.OS !== 'web') return;
     const check = setTimeout(() => {
@@ -99,10 +128,25 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.isLoaded]);
   useEffect(() => {
-    if (status.didJustFinish) onFinished?.();
-  }, [status.didJustFinish, onFinished]);
-  const total = status.duration || props.durationMs / 1000;
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    if (status.playing && !atEnd) reported.current = false;
+  }, [status.playing, atEnd]);
+  useEffect(() => {
+    if (status.didJustFinish) report();
+  }, [status.didJustFinish]);
+  // A trimmed memo that reaches its end handle stops and is finished; one found before its start is brought to it.
+  const stopAtEnd = status.playing && atEnd;
+  useEffect(() => {
+    if (!stopAtEnd) return;
+    pauseMemo(player);
+    report();
+  }, [stopAtEnd, player]);
+  const strayed = !!trim && status.playing && where === 'before';
+  useEffect(() => {
+    if (strayed) seekMemo(player, span.startMs / 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strayed, player]);
+  const clock = voiceClock(status.currentTime, span);
+  const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
   return (
     <View style={styles.voice}>
       <Pressable
@@ -112,7 +156,8 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
           if (refused.current) clearTimeout(refused.current);
           if (status.playing) player.pause();
           else {
-            if (status.didJustFinish || (total && status.currentTime >= total - 0.1)) player.seekTo(0);
+            if (atEnd) seekMemo(player, span.startMs / 1000);
+            else if (status.didJustFinish || (!trim && wholeMs && status.currentTime * 1000 >= wholeMs - 100)) player.seekTo(span.startMs / 1000);
             player.play();
           }
         }}
@@ -122,10 +167,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
         <Icon name={status.playing ? 'pause' : 'play'} size={26} color="#ffffff" />
       </Pressable>
       <View style={styles.track}>
-        <View style={[styles.trackFill, { width: `${total ? Math.min(100, (status.currentTime / total) * 100) : 0}%` }]} />
+        <View style={[styles.trackFill, { width: `${clock.ofMs ? Math.min(100, (clock.atMs / clock.ofMs) * 100) : 0}%` }]} />
       </View>
-      <Text style={styles.voiceTime}>
-        {fmt(status.currentTime)} / {fmt(total)}
+      <Text style={styles.voiceTime} testID="voice-time">
+        {fmt(clock.atMs)} / {fmt(clock.ofMs)}
       </Text>
     </View>
   );
@@ -305,7 +350,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           {capture.kind === 'text' &&
             (props.onOpenRef ? <NoteText body={capture.body ?? ''} format={capture.body_format} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
           {capture.kind === 'voice' && uri && (
-            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
+            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} edit={capture.edit ?? null} />
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
@@ -606,7 +651,7 @@ export function CaptureViewer(props: {
     router.navigate('/chronicle');
   };
   const editAction =
-    current && (current.kind === 'photo' || current.kind === 'video') && props.onSaveEdit
+    current && (current.kind === 'photo' || current.kind === 'video' || current.kind === 'voice') && props.onSaveEdit
       ? { label: 'Edit', testID: 'viewer-edit', onPress: () => setEditing(current) }
       : current && current.kind === 'text' && props.onSaveNote
         ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
@@ -659,6 +704,7 @@ export function CaptureViewer(props: {
               inThread,
               mentionedBy.length ? MENTIONED : null,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
+              current.kind === 'voice' ? trimmedLine(current) : null,
               statusOf.get(current.id),
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}

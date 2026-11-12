@@ -155,26 +155,25 @@ test('ME23: the offer lasts 6 s and a new capture replaces it', () => {
   assert.ok(!offerLive(null, 0));
 });
 
-// Voice trim (VT2, VT4, VT5, VT9), written from the criteria before the code. The cast is dropped with the code.
-const VOICE = 'voice' as unknown as 'photo';
-const memo = (edit: MediaEdit | null = null) => openSession(VOICE, { edit, caption: null, caption_y: null });
+// Voice trim (VT2, VT4, VT5, VT9), written from the criteria before the code.
+const memo = (edit: MediaEdit | null = null) => openSession('voice', { edit, caption: null, caption_y: null });
 const MEMO_MS = 58_000;
 const trimTo = (start: number, end: number, duration = MEMO_MS): SessionEvent => ({ type: 'trim', start, end, duration });
 
-test('VT2: a voice memo\u2019s editor opens on Trim with the whole memo kept', { todo: 'test first' }, () => {
+test('VT2: a voice memo\u2019s editor opens on Trim with the whole memo kept', () => {
   const s = memo();
   assert.equal(s.tool, 'trim');
   assert.equal(s.edit.trim, null);
-  assert.deepEqual((TOOLS as Record<string, string[]>).voice, ['trim']);
+  assert.deepEqual(TOOLS.voice, ['trim']);
 });
 
-test('VT2: the trim keeps at least a second, and a memo under a second keeps all of it', { todo: 'test first' }, () => {
+test('VT2: the trim keeps at least a second, and a memo under a second keeps all of it', () => {
   assert.deepEqual(run(memo(), trimTo(2000, 41_000)).state.edit.trim, { start_ms: 2000, end_ms: 41_000 });
   assert.deepEqual(run(memo(), trimTo(2000, 2300)).state.edit.trim, { start_ms: 2000, end_ms: 3000 });
   assert.equal(run(memo(), trimTo(100, 700, 800)).state.edit.trim, null);
 });
 
-test('VT4: done saves the trim; close with a change asks; close or done with none writes nothing; revert clears it', { todo: 'test first' }, () => {
+test('VT4: done saves the trim; close with a change asks; close or done with none writes nothing; revert clears it', () => {
   const done = run(memo(), trimTo(2000, 41_000), { type: 'done' }).effect;
   assert.equal(done?.type, 'save');
   if (done?.type === 'save') assert.deepEqual(done.saved.edit?.trim, { start_ms: 2000, end_ms: 41_000 });
@@ -186,7 +185,7 @@ test('VT4: done saves the trim; close with a change asks; close or done with non
   assert.equal(changed(reverted.state), false);
 });
 
-test('VT5: a trim keeping the whole memo is stored as none, and a saved trim opens again as it was', { todo: 'test first' }, () => {
+test('VT5: a trim keeping the whole memo is stored as none, and a saved trim opens again as it was', () => {
   assert.equal(run(memo(), trimTo(0, MEMO_MS)).state.edit.trim, null);
   const saved = run(memo(), trimTo(2000, 41_000), { type: 'done' }).effect;
   assert.equal(saved?.type, 'save');
@@ -199,7 +198,7 @@ test('VT5: a trim keeping the whole memo is stored as none, and a saved trim ope
   if (cleared?.type === 'save') assert.equal(cleared.saved.edit, null);
 });
 
-test('VT9: a photo\u2019s and a video\u2019s tools and trim rules are as before', { todo: 'test first' }, () => {
+test('VT9: a photo\u2019s and a video\u2019s tools and trim rules are as before', () => {
   assert.deepEqual(TOOLS.photo, ['crop', 'filter', 'draw', 'text']);
   assert.deepEqual(TOOLS.video, ['crop', 'draw', 'text', 'trim']);
   assert.equal(run(fresh(), trimTo(2000, 41_000)).state.edit.trim, null, 'a photo has no trim');

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { formatElapsed } from '../../lib/format';
+import { memoLengthMs } from '../../lib/voiceTrim';
 import { GONE, refIds } from '../../lib/refs';
 import { fromLine } from '../../lib/resurface/views';
 import { refCardLine } from '../../lib/threads/lines';
@@ -29,7 +30,7 @@ export function useMentionCards(body: string): Record<string, MentionCard> | und
       continue;
     }
     const line = refCardLine({ place: v.place, t: v.t, walkLine: fromLine(v.walkId ? pool.walks.get(v.walkId) : undefined) }, now);
-    const what = v.kind === 'text' ? (v.words ?? KIND_WORD.text) : v.kind === 'voice' ? `${KIND_WORD.voice}, ${formatElapsed(Number(v.capture.body) || 0)}` : (v.words ?? KIND_WORD[v.kind]);
+    const what = v.kind === 'text' ? (v.words ?? KIND_WORD.text) : v.kind === 'voice' ? `${KIND_WORD.voice}, ${formatElapsed(memoLengthMs(v.capture))}` : (v.words ?? KIND_WORD[v.kind]);
     out[id] = { gone: false, name: `${KIND_WORD[v.kind]}: ${what}`, line, spoken: `${KIND_WORD[v.kind]}: ${what}. ${line}. Open` };
   }
   return out;
