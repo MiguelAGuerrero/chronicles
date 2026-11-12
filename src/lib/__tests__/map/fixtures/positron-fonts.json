@@ -1,0 +1,9 @@
+{
+ "note": "A copy of the parts of OpenFreeMap Positron (tiles.openfreemap.org/styles/positron, Nov 12, 2026) the busy names depend on: its glyphs URL and the fonts its labels use.",
+ "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+ "fonts": [
+  "Noto Sans Bold",
+  "Noto Sans Italic",
+  "Noto Sans Regular"
+ ]
+}

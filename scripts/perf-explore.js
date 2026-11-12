@@ -1,9 +1,9 @@
 // Explore's pan and neighborhood-switch harness (Baltimore-dense, the owner's iPhone, Nov 12). Test harness only: GPS is
 // mocked and the tiles are a fake dense downtown served through the e2e harness. Run after `npm run export:web`.
 //
-// The world: a 3 km downtown around the start with a named street every 60 m, each cut into blocks as OSM ways are, an
-// unnamed alley between each pair, about 2,000 places (shops, food, museums, galleries) thickest in the middle, a town
-// point and eight neighborhoods on a ring. The Busy layer is switched on, as in the owner's screenshot.
+// The world is the harness's denseWorld: a 3 km downtown around the start (a named street every 60 m cut into blocks, alleys,
+// about 2,000 places thickest in the middle), a city point and neighborhoods on a ring. The Busy layer is switched on, as
+// in the owner's screenshot.
 //
 // What it measures, with the CPU throttled (PERF_RATE, default 4) to stand in for a phone:
 // - switch: the arrow key steps to the next neighborhood (a swipe), PERF_SWITCHES times (default 6), 3 s apart.
@@ -16,50 +16,6 @@ const { createHarness } = require('./e2e/harness');
 const RATE = Number(process.env.PERF_RATE ?? 4);
 const SWITCHES = Number(process.env.PERF_SWITCHES ?? 6);
 const DRAGS = Number(process.env.PERF_DRAGS ?? 6);
-
-function denseDowntown(h) {
-  const { features, at, start } = h;
-  // `at` is in units of 100 m from the harness's origin; the downtown is centred on the start.
-  const [sx, sy] = [-0.5, -0.5];
-  const P = (x, y) => at(sx + x / 100, sy + y / 100);
-  const HALF = 1500;
-  const STEP = 60;
-  let n = 0;
-  for (let v = -HALF; v <= HALF; v += STEP) {
-    n++;
-    for (let b = -HALF; b < HALF; b += STEP) {
-      features.push({ type: 'Feature', properties: { class: n % 5 ? 'minor' : 'tertiary', name: `${n} Avenue` }, geometry: { type: 'LineString', coordinates: [P(v, b), P(v, b + STEP)] } });
-      features.push({ type: 'Feature', properties: { class: n % 5 ? 'minor' : 'tertiary', name: `${n} Street` }, geometry: { type: 'LineString', coordinates: [P(b, v), P(b + STEP, v)] } });
-    }
-    if (v + STEP / 2 <= HALF) {
-      features.push({ type: 'Feature', properties: { class: 'service', subclass: 'alley' }, geometry: { type: 'LineString', coordinates: [P(v + STEP / 2, -HALF), P(v + STEP / 2, HALF)] } });
-      features.push({ type: 'Feature', properties: { class: 'service', subclass: 'alley' }, geometry: { type: 'LineString', coordinates: [P(-HALF, v + STEP / 2), P(HALF, v + STEP / 2)] } });
-    }
-  }
-  let seed = 7;
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
-  const kinds = [['cafe', 'cafe'], ['restaurant', 'restaurant'], ['shop', 'gift'], ['bar', 'bar'], ['clothing_store', 'clothes'], ['museum', 'museum'],
-    ['art_gallery', 'artwork'], ['park', 'park'], ['monument', 'memorial'], ['library', 'library'], ['theatre', 'theatre'], ['bakery', 'bakery']];
-  for (let i = 0; i < 2000; i++) {
-    const [cls, sub] = kinds[i % kinds.length];
-    // Thickest in the middle: a radius drawn toward 0.
-    const r = HALF * Math.pow(rnd(), 1.4);
-    const a = rnd() * 2 * Math.PI;
-    // On a street's side, 8 m off it, clear of the corner, as the grading tests place them.
-    const x = Math.round((r * Math.cos(a)) / STEP) * STEP + 8;
-    const y = r * Math.sin(a);
-    const flip = i % 2;
-    const [px, py] = flip ? [x, y] : [y, x];
-    features.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Place ${i}` }, geometry: { type: 'Point', coordinates: P(px, py) } });
-  }
-  features.push({ type: 'Feature', properties: { class: 'city', name: 'Densburg' }, geometry: { type: 'Point', coordinates: P(0, 0) } });
-  const hoods = ['Old Market', 'Mount Hill', 'Harbor East', 'Little Port', 'Ridge Row', 'Canal Side', 'Upper Fells', 'Station North'];
-  hoods.forEach((name, i) => {
-    const a = (i / hoods.length) * 2 * Math.PI;
-    features.push({ type: 'Feature', properties: { class: 'neighbourhood', name }, geometry: { type: 'Point', coordinates: P(700 * Math.cos(a), 700 * Math.sin(a)) } });
-  });
-  return { start, hoods };
-}
 
 const sampler = () => {
   const pf = { frames: [], longs: [] };
@@ -124,7 +80,9 @@ function summarize(rows) {
 
 (async () => {
   const h = await createHarness();
-  const { hoods } = denseDowntown(h);
+  // The dense downtown lives in the harness (denseWorld), shared with the dense journey.
+  h.denseWorld.serve = true;
+  const hoods = h.DENSE_HOODS;
   const { c, pg } = await h.freshPage('perf-explore');
   await c.addInitScript(sampler);
   await c.addInitScript(() => { window.__perf = {}; });

@@ -5,7 +5,7 @@ import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
-import type { Db } from '../db/types';
+import { SEGMENT_BATCH, type Db } from '../db/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
@@ -579,6 +579,21 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       await db.putSegments([{ ...segment('near'), name: 'Renamed St' }]);
       assert.deepEqual(await db.getSegmentsIn(box), [{ ...segment('near'), name: 'Renamed St' }]);
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
+    });
+
+    test('DC10 putSegments: written in batches; once told to stop, no further batch is written', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      const many = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => segment(`${prefix}${i}`));
+      await db.putSegments(many('a', SEGMENT_BATCH * 2 + 10));
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10, 'every batch written');
+      const db2 = await fresh();
+      let asked = 0;
+      // Told to stop after the first batch is written: the rest are never written.
+      await db2.putSegments(many('b', SEGMENT_BATCH * 2 + 10), () => ++asked > 1);
+      assert.equal((await db2.getSegmentsIn(box)).length, SEGMENT_BATCH);
+      const db3 = await fresh();
+      await db3.putSegments(many('c', 10), () => true);
+      assert.equal((await db3.getSegmentsIn(box)).length, 0, 'stopped before the first batch: nothing written');
     });
 
     test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box, MT11)', async () => {

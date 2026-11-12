@@ -155,7 +155,7 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'dense'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look'],
   },
   {
@@ -179,7 +179,7 @@ const FEATURES = [
     about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
     rule: 'layers',
     source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
-    journeys: ['layers'],
+    journeys: ['layers', 'dense'],
     specs: ['map-layers', 'explore-dense-city'],
   },
   {
@@ -195,7 +195,7 @@ const FEATURES = [
     about: 'what\'s good here: landing analysis, busy streets, activity density',
     rule: 'landing',
     source: ['src/lib/landing/**', 'src/lib/activity/**', 'src/components/LandingMarks.tsx'],
-    journeys: [],
+    journeys: ['dense'],
     specs: ['v1.5-landing', 'activity-density'],
   },
   {
@@ -216,7 +216,7 @@ const FEATURES = [
       'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass,mapTopInset}.ts',
       'src/lib/unitsStore/**',
     ],
-    journeys: ['qol'],
+    journeys: ['qol', 'dense'],
     specs: ['quality-of-life', 'compass'],
   },
   {

@@ -414,6 +414,25 @@ export function stripsGeoJSON(v: LandingView | null | undefined): GeoJSON.Featur
   };
 }
 
+/**
+ * The busy names' font (DC1): one the base style's glyphs serve (Positron's, from `MAP_STYLE_URL`'s host). If OpenFreeMap
+ * renames it, the names stop drawing with a console error; `map/busyNames.test.ts` reads it from a copy of the style.
+ */
+export const BUSY_NAME_FONT = ['Noto Sans Bold'];
+
+/** The busy names' two layers (DC1-DC6, DC14): along a strip's street, and at a pocket's centre. Not built yet. */
+export function busyNameLayers(): { line: { layout: Record<string, unknown>; paint: Record<string, unknown> }; point: { layout: Record<string, unknown>; paint: Record<string, unknown> } } {
+  throw new Error('busyNameLayers: not built (explore-dense-city DC2)');
+}
+
+/**
+ * The busy names as map features (DC1, DC4): lines for strips, points for pockets, and the selected area's name, invisible,
+ * reserving its room (DC14). Not built yet.
+ */
+export function busyNamesGeoJSON(_v: LandingView | null | undefined, _reserve: { name: string; at: LngLat } | null = null): { lines: GeoJSON.FeatureCollection; points: GeoJSON.FeatureCollection } {
+  throw new Error('busyNamesGeoJSON: not built (explore-dense-city DC1)');
+}
+
 /** The range preview's ring (E21), as a 64-sided polygon. */
 export function ringGeoJSON(ring: { center: LngLat; radiusM: number } | null | undefined): GeoJSON.FeatureCollection {
   if (!ring) return { type: 'FeatureCollection', features: [] };

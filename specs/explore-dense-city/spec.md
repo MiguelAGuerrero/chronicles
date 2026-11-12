@@ -18,11 +18,13 @@ Open: none
 
 Explore's Busy layer names its streets with the map's own text, the way the base map names its roads: a name that has no room is left out, a street is named once, and zooming in gives room to more. When names compete, the heavier street keeps its name; nothing says so. Moving between neighborhoods stays smooth: reading a part of town not yet read happens off the page's thread on the web, starts only once the map has stopped moving, and the screen re-renders less per move.
 
-## Decisions (the owner's calls, Nov 12)
+## Decisions (the owner's calls, Nov 12; decision 0151)
 
 - **Measure, then fix** (`scripts/perf-explore.js`, `docs/TESTING.md`): at 4x CPU, a first read of an unread area froze the page for one 4.4 s task (street derivation 1.7 s, the store write 1.7 s, decoding 0.5 s, the density pass 0.4 s); every switch lost about 1 s to long tasks (the map's own camera move about 320 ms, React about 350 ms, Explore rendered 3 to 5 times). Drags were smooth in Chromium, which does not model WebKit's compositing of DOM markers.
 - **Names drawn by the map** (a symbol layer with collision, on web and native), not as DOM markers.
 - **The read in a web worker on the web**, started only once the map settles on both platforms; on native it stays on the JS thread, yielding between stages.
+- **On the walk screen and in Navigate the base map's names keep their room**, and the trace and route draw over the busy names; only Explore gives busy names priority (DC16).
+- **The base map's own name of a busy street stays**; only one that would overlap a busy name gives way (steward S3).
 - **The "?" pins and the area points stay DOM markers this round.** If a drag still stutters on the phone, they move to map layers next (DEFERRED).
 - **No pre-rendered image of the area:** at street zoom a city is several times iOS Safari's canvas limit, baked text can't avoid overlaps or be tapped, and it must be redrawn whenever an area is read again. Raster tiles for the magenta lines alone stay an option for later.
 
@@ -39,7 +41,7 @@ Explore's Busy layer names its streets with the map's own text, the way the base
 
 14. **DC14** No busy name is drawn under the selected area's name on the map (steward S4; 0124: nothing near the selection drawn over its text).
 15. **DC15** A tap on a busy name does what a tap on the bare map there does: no card, no selection, nothing of its own (0034, steward S5).
-16. **DC16** On the walk screen and in Navigate (the same Busy layer), the names follow DC2-DC5 too; there the base map's own street names keep their room and the walker's trace and route draw over the busy names (steward S1; the owner's call, pending).
+16. **DC16** On the walk screen and in Navigate (the same Busy layer), the names follow DC2-DC5 too; there the base map's own street names keep their room and the walker's trace and route draw over the busy names (steward S1; the owner's call, Nov 12).
 
 ### Moving between neighborhoods
 
@@ -53,7 +55,7 @@ Explore's Busy layer names its streets with the map's own text, the way the base
 
 ## Steward (Nov 12, on the spec and plan)
 
-Five drifts, no breaches. S1 (the walk screen and Navigate change too, unreviewed): accepted as DC16, with the base map's names and the trace keeping priority there; the owner's call is asked. S2 (a heavier name could later be made bigger): accepted into DC4. S3 (a street named by the busy layer and by the base map): put to the owner, recommending to keep the base names (collision already hides those that would overlap a busy name; hiding them by name leaves a street nameless wherever its busy name has no room). S4 (a busy name under the selected area's DOM name): accepted as DC14, the area's name reserving its room in the names' layer. S5 (no tap on a name): accepted as DC15. Its silent questions: screen readers lose nothing (today's strip names are `aria-hidden` DOM labels, read by no one; EC18's card says the busiest street); the map's own label fades are off on the web (`fadeDuration: 0`, map rules) and native's is set to 0 too (DC1's native layer, unverified).
+Five drifts, no breaches. S1 (the walk screen and Navigate change too, unreviewed): accepted as DC16, with the base map's names and the trace keeping priority there (the owner's call). S2 (a heavier name could later be made bigger): accepted into DC4. S3 (a street named by the busy layer and by the base map): the owner kept the base names (collision already hides those that would overlap a busy name; hiding them by name leaves a street nameless wherever its busy name has no room). S4 (a busy name under the selected area's DOM name): accepted as DC14, the area's name reserving its room in the names' layer. S5 (no tap on a name): accepted as DC15. Its silent questions: screen readers lose nothing (today's strip names are `aria-hidden` DOM labels, read by no one; EC18's card says the busiest street); the map's own label fades are off on the web (`fadeDuration: 0`, map rules) and native's is set to 0 too (DC1's native layer, unverified).
 
 ## Record
 

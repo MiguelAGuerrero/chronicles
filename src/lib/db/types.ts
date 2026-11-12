@@ -15,6 +15,10 @@ import type { Capture, GapDecision, LngLat, Moment, Pause, Still, StreetSegment,
  * expo-sqlite; web uses IndexedDB. Nothing leaves the device. Writes are
  * serialized so the background recorder and the UI never interleave.
  */
+
+/** Street pieces written per transaction by `putSegments` (DC10): small enough that the page draws between batches. */
+export const SEGMENT_BATCH = 500;
+
 export interface Db {
   createWalk(walk: Walk): Promise<void>;
   updateWalk(id: string, patch: Partial<Omit<Walk, 'id'>>): Promise<void>;
@@ -104,7 +108,11 @@ export interface Db {
   putGapDecision(d: GapDecision): Promise<void>;
 
   /** Caches street segments derived outside a snap (streets around the walker). */
-  putSegments(segments: StreetSegment[]): Promise<void>;
+  /**
+   * Caches street pieces. Written in batches of `SEGMENT_BATCH`, the page drawing between them; once `shouldStop` says so,
+   * no further batch is written (DC10).
+   */
+  putSegments(segments: StreetSegment[], shouldStop?: () => boolean): Promise<void>;
 
   /**
    * Stores freshly derived segments, the walk's visited rows and summary in one
