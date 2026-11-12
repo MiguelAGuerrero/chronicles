@@ -241,7 +241,7 @@ const FEATURES = [
       'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
     ],
-    journeys: ['edit', 'stacks'],
+    journeys: ['edit', 'stacks', 'voicetrim'],
     specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim'],
   },
   {
