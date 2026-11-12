@@ -135,3 +135,33 @@ ui 11. Done is a word beside two icons: defer to the first look on a phone, with
 ui 12. The line on the Threads screen: settled by 15.
 ui 13. "answering …" looks like a dateline: defer.
 ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
+
+## The line and the page: record and review (Nov 12, `/fix`, branch `fix/journal-note-pages`)
+
+- **Why:** `main` shipped note pages (NP1-NP14, decision 0151) while this slice was built. Both owned how a note is written (`useCaptures`, `MomentBar`), and with the band gone Memories had no way to open a note's page. The owner's call: the line for a thought, the page for an entry, one stored note under both; the photo rule stays two rules.
+- **Merged:** the journal onto `main` (three conflicts). The capture bar keeps `main`'s note page for the ready screen and the walk; the line's own methods are `beginLine`, `writeLine`, `dropLine`. The journal's decision is 0154 (0151 is note pages').
+- **Built:** JN25-JN27, tests first at `9313af4`, the code at `aa992a7`, the review's fixes at `9d5a846`. Note pages' own journey opens its pages from the line.
+- **Checked:** typecheck, lint, `npm test` (2,088), and on the `/chronicles` build the journeys `journal`, `notepage`, `capturehome`, `resurface`, `threads`, `stacks`, `responses`, `ready` and `walk`. Reached and not rerun after the merge, since none holds a check on what changed: `chronicle`, `days`, `edit`, `qol`, `reload`, `space`, `tabs`, `upgrade`, `launch`, `gallery` (each green on the journal's branch before it).
+- **Review** (the auditor 1-11, the UX reviewer ui 1-8), 19 findings: 11 fixed, 6 deferred, 2 notes with nothing to change. Tests are named `fix journal-note-pages audit N` or `ui N`: unit tests in `src/lib/__tests__/journal/` (audit 3, 4, 8), checks in the `journal` journey (audit 1, 7, 10; ui 1, 2, 6, 7).
+  1. Words typed after an entry was emptied on its page joined the moment being deleted, and the delete's Undo pill sat over the line (high): accept, the emptied page ends the open entry and the pill waits above the line.
+  2. A URL with `_` or `*` gains backslashes when the page saves it, doubling on each edit (high): defer. It is note pages' own serializer (`notePage/schema.ts`, on `main` before this); filed for the owner (`docs/STATUS.md`).
+  3. A long entry was cut by block count alone: accept, by characters too, and a long plain entry says it goes on.
+  4. The hand-off reset the pen before its write landed and swallowed a failure: accept, the page opens only once the write has landed; a failure is said in the line; a late result on an empty line is ignored.
+  5. A new page from the line reads a fix where the line reads none (a walk with a stale fix; an empty page left): defer, it is the pencil's rule everywhere (note pages' S9).
+  6. The sitting's copy did not know a page's write is Markdown: accept. Covered by typecheck and the flow, no test of its own.
+  7. A checkbox with a mention spoke the raw token: accept.
+  8. A nested list lost its lines, and a private-use character was deleted: accept. A list inside a quote still reads as the quote's lines: defer.
+  9. Hard breaks that look like a heading rule or a table reopen wrongly in the page: defer, with 2.
+  10. Closing an empty page threw you from the threads back to the journal; the page's camera left its photo as the open entry: accept, both. A walk ending while a page is up closes the page (its words are kept): defer.
+  11. Docs drift: accept.
+  ui 1. The taller line covered the sheet's foot: accept, the foot follows the line's measured height.
+  ui 2. Two equal bold words stacked at the right: accept, Open as a page is set lighter than Done.
+  ui 3. The same words are serif on the sheet and sans on the page: defer, the page's type is note pages'; for the owner.
+  ui 4, ui 5. The lone button on an empty line's row; the label from an empty line: notes, no change.
+  ui 6. A list's lines sat as far apart as paragraphs: accept.
+  ui 7. The sheet's checkbox looked live: accept, drawn muted.
+  ui 8. The page's own bar: a pass.
+- **`check:test-first`:** 26 of 27. JN26 reports its todo and its real test in one commit: its journey todo at `9313af4` was written across three lines, which the line-based reader takes for a real check (as HC2 and HC13 once did). Its unit tests were todos at `9313af4` and real at `aa992a7`.
+- **Seen once, not reproduced:** the `journal` journey's "the entry that was on screen stays on screen" check failed in two of five runs while the journey was being changed and passed in the rest; it holds the page's position by adding the height that arrived, on the web. If it recurs, that is where to look.
+- **Native:** none of this has run on a device.
+

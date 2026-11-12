@@ -322,6 +322,11 @@ recording, and a recording bar brings a minimized walk back.
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
     walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
     is today's date and the open line.
+  - **The line and the page**: while you write, the line offers **Open as a page**, which opens the note's page (below) on
+    the same entry with what you typed already there; from an empty line it opens a new page. An entry a page wrote is
+    drawn on the sheet in its shape (a heading, bullets, numbered lines, checkboxes, quotes) as plain text in your
+    serif; a long one is cut with "The entry goes on; open it to read the rest". In the line a photo joins the entry;
+    on the page it is its own moment, mentioned in the note.
   - **A resurfaced moment** as a slip under today's date, different on each open, in the user's own words, with a label
     that says why ("A year ago today", "Last October", "You keep coming back to the water"). A tap opens it; its More
     holds **Relive it** (the replay of its walk, or its day), **Another**, and the two below. Nothing from the last day

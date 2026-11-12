@@ -23,7 +23,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
 | v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
 | v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
-| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; JN1-JN24, decision 0154) | built and audited 2026-11-12 on `claude/vigilant-ptolemy-tdkzm6`; not deployed (web verified by the e2e `journal` and the eighteen journeys covering its files; native unverified) | `9e84f2e` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; JN1-JN27, decision 0154) | built and audited 2026-11-12; merged with note pages and deployed by `/fix` (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |
 | Free look (Explore: Move map frees one-finger panning, Show areas here lists the areas around the map's middle; FL1-FL21, decision 0150, amends EC10) | built 2026-11-11 on `slice/free-look`; not deployed | `slice/free-look` | `specs/free-look/spec.md` | plan audited (16 findings: 15 accepted, 1 rejected); the built slice not audited |
 | Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
@@ -126,6 +126,12 @@ first.
 This section is the owner's inbox (decision 0128). `/tend` files here what it may not ship: additions, phone-only
 findings, opinions and architectural calls, each numbered `T<n>` with a recommended shape, and its proposals for the next iteration (`G<n>`, decision 0129).
 Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
+
+### From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, "The line and the page")
+
+- **Note pages rewrites `_` and `*` in what you wrote** (the review's 2 and 9; on `main` before this fix): a URL such as `https://ex.com/a_b_c` is saved as `a\_b\_c` and gains more backslashes on each edit; a line broken with Shift+Enter that looks like a table row reopens as an empty page. Recommended: `/fix` it next, in `src/lib/notePage/schema.ts`, with round-trip tests.
+- **The page's words are sans; the sheet's are serif** (ui 3). Recommended: set the editor's body in the owner's serif at the sheet's size.
+- **A new page from the line reads a location even on a walk** with a stale fix, where the line reads none. Recommended: the page follows the line's rule when it is opened from the journal.
 
 ### From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)
 

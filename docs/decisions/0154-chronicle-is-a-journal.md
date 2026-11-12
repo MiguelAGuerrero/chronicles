@@ -41,3 +41,7 @@ alike.
   RF1 (`specs/moment-references`).
 - A quiet outing has no replay: the replay needs a trace.
 - VISION.md's Precedents gains this row. No rule on the page changes.
+
+## Added Nov 12: the line and the page
+Note pages (0151) shipped while cut 1 was built. The owner's call when the two were joined: **the line is for a thought, the page is for an entry, and one stored note is under both.** The line's status row offers Open as a page, which carries what was typed onto the note's page for the same entry; an entry the page wrote is drawn on the sheet in its shape, natively; a photo is a piece of the entry in the line and its own mentioned moment on the page (two rules, kept). JN25-JN27.
+

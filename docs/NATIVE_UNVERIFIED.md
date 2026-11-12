@@ -174,6 +174,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** type @ in the open line with the keyboard up and pick a moment. **Expect:** the picker opens in its own Modal over the keyboard, the reference lands at the caret, and the keyboard comes back. (JN16)
 - [ ] **Do:** write three entries, force-quit mid-sentence on the third, and reopen (SQLite, the single write queue). **Expect:** all three are on the page with their words; `beginNote`, `writeNote` and `dropNote` ran in order. Native has no `pagehide`: at most the last 400 ms of typing is missing. (JN13)
 - [ ] **Do:** tap a placed entry's dateline. **Expect:** Chronicle's Map comes up framed about 150 m around that moment (`takeFocus` on MapLibre RN's fit), not on everything walked. (JN6)
+- [ ] **Do:** type a line in the open line, tap Open as a page, add a bullet list and a checkbox, tap Done. **Expect:** the keyboard hands over from the line to the page with the words already there; back on the sheet the entry shows its list and its box as text in the serif, not as marks, and the line is empty. (JN25, JN26)
+- [ ] **Do:** from an empty line tap Open as a page, then take a photo with the page's camera, write a line and tap Done. **Expect:** the system camera opens from inside the page; the photo is its own entry and is mentioned in the note; the next words typed in the line begin a new entry. (JN25, NP14)
+- [ ] **Do:** open a note of several screens on the sheet. **Expect:** it is cut with "The entry goes on; open it to read the rest", and the sheet scrolls smoothly past it (no web view in the list). (JN27)
 - [ ] **Do:** deny the camera to Chronicles, tap the open line's camera, and tap Settings on the message. **Expect:** iOS opens Chronicles' settings (`Linking.openSettings`). (JN18)
 
 ## Quality of life
