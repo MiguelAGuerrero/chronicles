@@ -130,8 +130,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
 - A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0112)
-- Lost toasts on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-memo, unseen; "saved to your walk" goes when the walk stops and the band remounts loose
-- An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
+- A lost toast on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-note, unseen. (The "saved to your walk" toast is gone with the journal, decision 0151.)
+- (Settled by the journal, decision 0151: an open walk's moment made from Memories shows on the page at once, JN8.)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
@@ -615,3 +615,15 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] **Complexes** (0147, UI review): after "See more" the first new row should take a screen reader's focus (`lib/focus`); the pressed button disappears and focus is lost. The map's complex labels (12 px) have no picture to review. The switches' track contrast is the app's, not this slice's.
 - [loop] **Complexes audit** (0147): `neededTiles` lists the tiles that hold a vertex, so a building longer than a z14 tile with no vertex in a middle tile can lose places there (audit 3). A joined outline draws the tiles' clip edges inside a building cut across tiles; it needs a polygon union (audit 9). A release whose `buildings.pmtiles` is missing falls back to no older release the way the places reader does (audit 6). A row for a building that stops qualifying, or is renamed, is never deleted: only a code bump or a purge clears it (audit 7). A fix's accuracy, the antimeridian and label collisions (audit 12). A seeded complex on Memories' card has no journey step (audit 20). After "See more" the first new row should take a screen reader's focus (audit 21).
 - [owner] **Complexes audit** (0147): the card does not say where the kind switches are (the walk's and Navigate's settings only); a line or link on the card is a navigation choice. A pull of up to nine `buildings` tiles on mobile data without a tap. Whether a store of every area browsed is acceptable derived data (it is cleared by a purge).
+
+## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0151)
+
+- **The other three cuts:** walks as chapters with their trace drawn, day pages in place of the Days section, and the section bar going (cut 2); Media as plates, a scrubber by month, jump to a date and search (cut 3); the walk screen's Quiet | Explore naming (cut 4).
+- **A moment's link to its walk as an inference** from time and place (the owner's direction, Nov 12): `Capture.walk_id` is still stored and read by the replay, the walk screen and deletion. It goes through `/vision` and a spec of its own.
+- **Memories still reads every capture row at open** (never media); only the latest page is drawn. Reading a page of rows from the store waits for a store method that reads by time, newest first, with a limit.
+- **Every page a reader loads stays drawn** until Memories is left: the sheet is a plain `ScrollView`, not a recycling list. A reader who scrolls back through a year holds that year's entries.
+- **An entry is 500 characters** (`NOTE_MAX`), as every note is. A longer one from an older build is cut to 24 lines on the page and whole in its viewer.
+- **A reload within a second or two of the first character can lose that entry's place**: its one fix was on its way in the page that went. The entry is kept, and says "No location" after a minute.
+- **A voice note plays from its viewer**, not in place on the page: its line on the page opens the entry.
+- **The "Today" link on old pages** in the approved drawing is not built: the open line is pinned at every scroll position, and a tap in it brings today's foot up.
+- **JN19 on a phone**: the web's arithmetic is unit-tested (`keyboardLift`); a real keyboard over the line is a device check (`docs/NATIVE_UNVERIFIED.md`).

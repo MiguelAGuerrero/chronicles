@@ -372,6 +372,10 @@ const RETIRED = {
   // The test trim (Nov 5, the owner's call): the replay rhythm (decision 0085, RR1) replaced the ride's 4 s squeeze; a
   // ride is a stretch like any other, and still draws dashed (R5).
   rides: ['R10'],
+  // Memories became a journal (the owner, Nov 12, decision 0151): the capture band gave way to the open line, so the
+  // band's button names (HC8), its memo slots (HC11), its restraint (HC12) and its empty state (HC13) are the journal's
+  // JN10, JN14 and JN2 now, checked by the `journal` journey.
+  'capture-from-chronicle': ['HC8', 'HC11', 'HC12', 'HC13'],
   // DN5 (Nov 4): a swipe back lands back by itself, so there is no trail. DN3, DN4, DN6-DN9 (Nov 10, decision 0124): the
   // grid and the directional swipe gave way to a row of cards that a swipe steps; the new criteria are the explore-carousel spec's.
   'discrete-navigation': ['DN3', 'DN4', 'DN5', 'DN6', 'DN7', 'DN8', 'DN9'],

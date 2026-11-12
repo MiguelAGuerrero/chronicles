@@ -83,7 +83,14 @@ Chronicle's Memories (decision 0098)
   resurface/section.ts       which Chronicle section after a route; sectionStore.ts holds it
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
-  chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen, MemoriesBand (the capture band, HC6-HC15), Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+  chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen (the journal's page and its screens), MemoriesMenu (the contents), ThreadsRail, ThreadScreen, MomentCard (a thread's cards), MomentPicture, MemoryMenu
+The journal (specs/chronicle-journal, JN1-JN24, decision 0151): Memories as one sheet in book order, ending in an open line
+  journal/page.ts            journalMoments (the feed's and an open walk's, oldest first), journalPage (rows: day headings, the slip, entries; the latest page)
+  journal/lines.ts           dayHeading, clockTime, dateline (time, then place and walk once read; No location), entrySpoken, the open line's labels
+  journal/pen.ts             the open line's reducer: begin on the first character, save as typed, drop when emptied, Done, a kept capture, a failed save
+  journal/target.ts          where an entry goes: the open walk, a moment of its own, or wait until the keeper knows
+  journal/keyboard.ts        keyboardLift: how far a browser's keyboard hides the foot (used by threads/useKeyboardHeight.web)
+  components/journal/        JournalPage (the sheet: opens at the foot, older entries added above), Entry (dateline and pieces, no card), Slip (the resurfaced moment), OpenLine (the field, camera and mic; runs the pen through useCaptures), type (the owner's serif)
 Media gallery (specs/media-gallery, MG1-MG22, decision 0139)
   gallery/types.ts           Show, Order, Zoom, Size, Shape, GalleryView (what is kept)
   gallery/layout.ts          galleryTiles (one per photo, video and memo piece, in the Sort's order), galleryDays and dayLine (a header per day, where in words), galleryBlocks (months and years: the cover, the place line), dayRows and blockRows (every row's offset known, MG12), tileLabel, withPiecePatch
@@ -319,7 +326,7 @@ Captures and media
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
-  captureBand.ts             Memories' capture band (0112): its layout, where a moment goes (loose or the open walk), its labels and toasts, and whether the recording bar shows its camera
+  captureBand.ts             what is left of capture from Chronicle (0112): a loose moment's toast on the ready screen, and whether the recording bar shows its camera
   moment.ts                  a moment and its pieces (decision 0123): face, faced rows, foldRows (SQLite's joined reads), placeAt (a moment on the trace at stop)
   openMoment.ts              the Add to this moment pill's life as a reducer (MS4, MS5): two minutes, 100 m from the first capture, dismiss, leave, start/stop
   momentPill/                its store on the app's clock (shell.ts, index.ts); the viewer's ask, run by the walk screen (MS12)
