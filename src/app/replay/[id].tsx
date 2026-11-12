@@ -17,7 +17,7 @@ import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import type { StageCtx } from '../../components/ceremony/layout';
+import { STAGE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
@@ -460,14 +460,16 @@ export default function Replay() {
 
       {beat === 'reading' && (
         <View style={[styles.center, StyleSheet.absoluteFill]} pointerEvents="none">
-          <View style={styles.headline}>
+          {/* 16 px in from each edge on a 320 px phone (tend replay 1). */}
+          <View testID="replay-reading" style={[styles.headline, { maxWidth: Math.min(340, width - 32) }]}>
             <Text style={styles.reading}>Reading the streets you walked…</Text>
           </View>
         </View>
       )}
 
       {beat === 'fog' && (
-        <View style={[styles.headline, { top: insets.top + 24 }]} pointerEvents="none">
+        // Below the top row, so Skip never covers its words, and 16 px in from each edge (tend replay 1).
+        <View testID="replay-headline" style={[styles.headline, { top: insets.top + STAGE_TOP, maxWidth: Math.min(340, width - 32) }]} pointerEvents="none">
           <Text style={styles.headlineLabel}>{head.line}</Text>
           {head.note ? <Text style={styles.headlineNote}>{head.note}</Text> : null}
         </View>
@@ -724,10 +726,10 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
   muted: { color: theme.muted, fontSize: 16 },
   missing: { color: theme.ink, fontSize: 18, fontWeight: '600', textAlign: 'center' },
-  reading: { color: theme.ink, fontSize: 17, fontWeight: '600' },
+  reading: { color: theme.ink, fontSize: 17, fontWeight: '600', textAlign: 'center' },
   headline: {
     position: 'absolute', alignSelf: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24, maxWidth: 340,
+    borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24,
   },
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },

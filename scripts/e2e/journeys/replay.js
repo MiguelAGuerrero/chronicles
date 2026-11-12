@@ -111,6 +111,10 @@ async function run(h) {
     await pg.waitForTimeout(1100);
     await pg.mouse.up();
     await pg.waitForURL(/replay/, { timeout: 30000 });
+    // The reading beat can be shorter than a poll with the streets already read: pictured when it shows.
+    if (await pg.waitForSelector('[data-testid=replay-reading]', { timeout: 3000 }).then(() => true, () => false)) await shot(pg, 'rr-reading');
+    await pg.waitForSelector('[data-testid=replay-headline], [data-testid=replay-clock]', { timeout: 60000 }).catch(() => {});
+    if (await pg.locator('[data-testid=replay-headline]').count()) await shot(pg, 'rr-fog');
     await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
     // What the stage shows, recorded in the page every 50 ms: a card is up for about 2 s, quicker than a poll.
     await pg.evaluate(() => {
@@ -260,6 +264,24 @@ async function run(h) {
     await shot(pg, 'rr-landscape');
     await pg.click('[data-testid=skip]');
     await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+    await pg.setViewportSize({ width: 390, height: 844 });
+
+    // The fog's headline stands below the top row, clear of Skip, 16 px in from each edge, at 390 and at 320 (tend replay 1).
+    const boxOf = (sel) => pg.locator(sel).first().boundingBox().catch(() => null);
+    const apart = (a, b) => a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.getByText('Watch again').click();
+      const shown = await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 15000 }).then(() => true, () => false);
+      await pg.waitForTimeout(400);
+      const hb = await boxOf('[data-testid=replay-headline]');
+      const sb = await boxOf('[data-testid=skip]');
+      check(shown && hb && sb && apart(hb, sb) && hb.x >= 16 && hb.x + hb.width <= w - 16,
+        `tend replay 1: at ${w} px the fog's headline clears Skip and keeps 16 px from each edge (${JSON.stringify(hb)}, Skip ${JSON.stringify(sb)})`);
+      await shot(pg, `rr-fog-${w}`);
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+    }
     await pg.setViewportSize({ width: 390, height: 844 });
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
