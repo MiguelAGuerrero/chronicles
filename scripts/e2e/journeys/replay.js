@@ -372,6 +372,19 @@ async function run(h) {
     // The day framed above its card once the fit has settled.
     await pg.waitForTimeout(1200);
     await shot(pg, 'rr-day-card');
+    // The day's card is as quiet as the walk's (tend replay 12, tabs audit U13): its line set as the walk card's, no
+    // large or accent text in it.
+    const quiet = await pg.evaluate(() => {
+      const card = document.querySelector('[data-testid=day-card]');
+      const line = document.querySelector('[data-testid=day-card-line]');
+      const cs = line && getComputedStyle(line);
+      const loud = [...card.querySelectorAll('div, span')]
+        .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
+        .filter((e) => { const s = getComputedStyle(e); return parseFloat(s.fontSize) >= 28 || s.color === 'rgb(194, 65, 12)'; })
+        .map((e) => e.textContent.trim());
+      return { size: cs ? parseFloat(cs.fontSize) : null, weight: cs ? Number(cs.fontWeight) : null, loud };
+    });
+    check(quiet.size === 16 && quiet.weight < 600 && quiet.loud.length === 0, `tend replay 12: the day card's line is set as the walk card's, nothing large or in the accent (${JSON.stringify(quiet)})`);
     // Escape leaves the day's replay as Done does (tend replay 5).
     await pg.keyboard.press('Escape');
     const leftDay = await pg.waitForURL((u) => !u.pathname.includes('/day/'), { timeout: 5000 }).then(() => true, () => false);

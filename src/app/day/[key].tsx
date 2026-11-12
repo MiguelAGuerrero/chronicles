@@ -400,7 +400,8 @@ const styles = StyleSheet.create({
   },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   cardTitle: { fontSize: 22, fontWeight: '700', color: theme.ink },
-  cardLine: { fontSize: 18, color: theme.ink, fontWeight: '600' },
+  // The walk card's line, never louder (tend replay 12; the replay rule's "No accent colour or large number on the card").
+  cardLine: { fontSize: 16, color: theme.ink },
   cardMuted: { fontSize: 15, color: theme.muted },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   flex: { flex: 1 },
