@@ -19,9 +19,9 @@ import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
-import { buildDays, dayCaptures, dayCard, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
+import { buildDays, dayCaptures, dayCard, dayFrame, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
-import { boundsOf, type Bounds } from '../../lib/geo';
+import type { Bounds } from '../../lib/geo';
 import { beatWords } from '../../lib/replay';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
@@ -109,17 +109,14 @@ export default function DayReplay() {
         if (!r) continue;
         plays.set(e.walk.id, r);
       }
-      const points: LngLat[] = [
-        ...dayCaptures(day).filter((c) => c.lat != null && c.lon != null).map((c) => [c.lon!, c.lat!] as LngLat),
-        ...[...plays.values()].flatMap((p) => p.runs.flat()),
-      ];
       const watched = (await db.getMeta(watchedKey(day.key)).catch(() => null)) != null;
       if (!alive) return;
       setData({
         day,
         walks: plays,
         distance: new Map(summaries.map((s) => [s.walk_id, s.distance_m])),
-        bounds: boundsOf(points, 150),
+        // Rides included, as a walk's replay frames them (tend replay 10).
+        bounds: dayFrame(dayCaptures(day), [...plays.values()]),
         watched,
       });
       setStatus('ready');

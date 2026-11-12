@@ -1,7 +1,7 @@
 // @layer core
 import type { Faced } from './moment';
 import { formatDistance } from './format';
-import { distanceM } from './geo';
+import { boundsOf, distanceM, type Bounds } from './geo';
 import type { Units } from './units';
 import type { LngLat, Walk } from './types';
 
@@ -121,6 +121,13 @@ export function spotCount(captures: Faced[]): number {
     if (!spots.some((s) => distanceM(s, p) <= SPOT_M)) spots.push(p);
   }
   return spots.length;
+}
+
+/** The day's frame (RR16): its placed moments and its walks' traces, rides included as a walk's replay frames them (tend replay 10). */
+export function dayFrame(moments: Faced[], walks: { runs: LngLat[][]; rideRuns: LngLat[][] }[]): Bounds | null {
+  const points: LngLat[] = moments.filter((c) => c.lat != null && c.lon != null).map((c) => [c.lon!, c.lat!] as LngLat);
+  for (const w of walks) points.push(...w.runs.flat(), ...w.rideRuns.flat());
+  return boundsOf(points, 150);
 }
 
 /** Meta key set once a day's replay has been watched to its end (M12). */
