@@ -24,8 +24,27 @@ export function metersPerPixel(zoom: number, lat: number): number {
   return (40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
 }
 
-/** Metres in a degree of latitude, on the sphere `distanceM` measures with. */
-const M_PER_DEG_LAT = (6371008.8 * Math.PI) / 180;
+/** The sphere `distanceM` measures on. */
+const R_M = 6371008.8;
+/** Metres in a degree of latitude, on that sphere. */
+const M_PER_DEG_LAT = (R_M * Math.PI) / 180;
+/** Never more cells than this across a band (a reach of 0 m would ask for infinitely many). */
+const MAX_CELLS = 1e9;
+
+/**
+ * How many cells of longitude a band of latitude is cut into, so that two points within `r` metres of each other, both
+ * in this band or the ones beside it, are never more than one cell apart. At latitudes up to `poleward` (in degrees),
+ * two points `dLon` apart are at least 2R asin(cos(poleward) sin(dLon/2)) apart, so a cell at least
+ * 2 asin(sin(r/2R) / cos(poleward)) wide will do; near a pole, the band is one cell.
+ */
+function cellsAcross(row: number, band: number, r: number): number {
+  const poleward = Math.min(90, Math.max(Math.abs((row - 1) * band), Math.abs((row + 2) * band)));
+  const cos = Math.cos((poleward * Math.PI) / 180);
+  const ratio = Math.sin(r / (2 * R_M)) / cos;
+  if (!(ratio < 1) || cos <= 0) return 1;
+  const width = (2 * Math.asin(ratio) * 180) / Math.PI;
+  return Math.max(1, Math.min(MAX_CELLS, Math.floor(360 / width)));
+}
 
 /**
  * Pins for the captures that have a position. A capture joins the nearest
@@ -33,16 +52,29 @@ const M_PER_DEG_LAT = (6371008.8 * Math.PI) / 180;
  * else starts its own. Captures are taken in time order, so the grouping is
  * the same however the list arrives.
  *
- * Pins are kept in bands of latitude `radiusM` tall, and a capture is measured
- * only against the pins of its band and the two beside it: two points within
- * `radiusM` are never further apart in latitude (tend map 4; Chronicle's map
- * groups every placed moment on each half step of zoom).
+ * Pins are kept in cells: bands of latitude `radiusM` tall, each cut into cells
+ * of longitude at least `radiusM` wide at the band's pole-most latitude, wrapping
+ * at ±180. A capture is measured only against the pins of its cell and the eight
+ * around it (tend map 4, tend map audit 5: Chronicle's map groups every placed
+ * moment on each half step of zoom, and along one parallel a band alone held them all).
  */
 export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
   const r = Math.min(radiusM, MAX_GROUP_M);
   const band = Math.max(r, 1e-6) / M_PER_DEG_LAT;
   const pins: CapturePin[] = [];
-  const bands = new Map<number, number[]>();
+  const rows = new Map<number, { n: number; cells: Map<number, number[]> }>();
+  const rowOf = (k: number) => {
+    let got = rows.get(k);
+    if (!got) {
+      got = { n: cellsAcross(k, band, r), cells: new Map() };
+      rows.set(k, got);
+    }
+    return got;
+  };
+  const cellOf = (lon: number, n: number) => {
+    const turn = (((lon + 180) % 360) + 360) % 360;
+    return Math.min(n - 1, Math.floor((turn / 360) * n));
+  };
   for (const c of [...captures].sort((a, b) => a.t - b.t || a.id.localeCompare(b.id))) {
     if (c.lat == null || c.lon == null) continue;
     const at: LngLat = [c.lon, c.lat];
@@ -50,12 +82,20 @@ export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
     let best = -1;
     let bestD = r;
     for (let k = row - 1; k <= row + 1; k++) {
-      for (const i of bands.get(k) ?? []) {
-        const d = distanceM(pins[i].lngLat, at);
-        // The nearest within reach; on a tie, the later pin, as one pass over them all in order would choose.
-        if (d < bestD || (d === bestD && i > best)) {
-          best = i;
-          bestD = d;
+      const { n, cells } = rowOf(k);
+      const cell = cellOf(c.lon, n);
+      const seen = new Set<number>();
+      for (const j of [cell - 1, cell, cell + 1]) {
+        const key = ((j % n) + n) % n;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        for (const i of cells.get(key) ?? []) {
+          const d = distanceM(pins[i].lngLat, at);
+          // The nearest within reach; on a tie, the later pin, as one pass over them all in order would choose.
+          if (d < bestD || (d === bestD && i > best)) {
+            best = i;
+            bestD = d;
+          }
         }
       }
     }
@@ -63,9 +103,11 @@ export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
       pins[best].captures.push(c);
       if (pins[best].kind !== c.kind) pins[best].kind = 'mixed';
     } else {
-      const list = bands.get(row);
+      const { n, cells } = rowOf(row);
+      const key = cellOf(c.lon, n);
+      const list = cells.get(key);
       if (list) list.push(pins.length);
-      else bands.set(row, [pins.length]);
+      else cells.set(key, [pins.length]);
       pins.push({ id: c.id, lngLat: at, captures: [c], kind: c.kind });
     }
   }
