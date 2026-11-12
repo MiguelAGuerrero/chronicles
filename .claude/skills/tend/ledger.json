@@ -1,14 +1,15 @@
 {
-  "lastT": 13,
+  "lastT": 18,
   "lastG": 4,
   "balance": {
-    "date": "2026-11-11",
+    "date": "2026-11-12",
     "days": 14,
     "slicesGrown": [
       "AD",
       "AG",
       "AT",
       "CP",
+      "CX",
       "DN",
       "DW",
       "E",
@@ -67,14 +68,15 @@
       "WT"
     ],
     "commits": {
-      "growth": 128,
-      "refinement": 244,
-      "other": 446
+      "growth": 132,
+      "refinement": 279,
+      "other": 455
     },
     "areas": {
       "rough": [
         "chronicle",
         "explore",
+        "map",
         "navigation",
         "tabs",
         "walk-screen"
@@ -85,13 +87,13 @@
     },
     "neverSwept": [
       "captures",
+      "complexes",
       "deletion",
       "gallery",
       "gaps",
       "kind-walk",
       "landing",
       "layers",
-      "map",
       "memories",
       "moments",
       "motion",
@@ -110,13 +112,13 @@
       "web"
     ],
     "open": {
-      "openT": 4,
-      "phoneT": 1,
+      "openT": 5,
+      "phoneT": 2,
       "openG": 1
     },
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "five areas are rough"
+    "why": "six areas are rough"
   },
   "areas": {
     "chronicle": {
@@ -148,6 +150,12 @@
       "swept": "2026-11-11",
       "main": "6b099ea6f3f46045fcbfbf869bd0f867582c4a27",
       "note": "First sweep, not whole: real 200% text (phone, T13), offline and an interrupted launch were not pictured. Shipped: the focus ring on ink (two-tone, swapped on the recording bar), the bar's spoken camera, units on the destination and the range (with the review's three fixes), the empty peek's cut line, the bar's two-line word at 320, pictures. Dropped after the review and filed [loop] medium: a reminder into the folded bar, the bar's Stop and a held photo. T10-T12 [owner], T13 [phone] open."
+    },
+    "map": {
+      "state": "rough",
+      "swept": "2026-11-12",
+      "main": "617b534735f14d777cd63f8ece070dde4cacd2fe",
+      "note": "First sweep, whole but for the largest text size (web cannot; T18 [phone]) and native. Two high and two medium loop findings shipped (a fit straightened a turned map; the credits (i) unreachable on four maps; compass-less maps turned; pin grouping O(n x pins)), with six low (Locate and the compass dropped keyboard focus, 999.6 m and scale thousands, render on turn, worker version). Filed [loop]: marker culling (medium), handler refs, comments, native motion and latitude, Explore's hint over the open credits and its wrap. T14-T17 [owner], T18 [phone] open."
     }
   },
   "declined": []
