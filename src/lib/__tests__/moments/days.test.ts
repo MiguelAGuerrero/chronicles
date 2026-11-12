@@ -2,7 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildDays, dayCard, dayKey, dayLabel, nextDayStart, spotCount, watchedKey } from '../../days';
+import { buildDays, dayCard, dayFrame, dayKey, dayLabel, nextDayStart, spotCount, watchedKey } from '../../days';
 import { timedRuns } from '../../replay';
 import { dayStory, pathDrawnAt, positionAt, walkStory, type WalkInput } from '../../ceremony/story';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
@@ -160,6 +160,13 @@ test('M13: the card is the weekday, moments, places and any walk distance; no st
   assert.doesNotMatch(JSON.stringify(card), /streak|badge|record/i);
 });
 
+test('tend replay 3: the day card says its distance in the units the walk card uses', () => {
+  const [day] = buildDays([walk('w', at(3, 10), at(3, 11))], [cap('a', at(3, 10, 30), 'w', -71.39)]);
+  assert.equal(dayCard(day, at(20, 9), new Map([['w', 2100]]), 'mi').walked, '1.3 mi walked');
+  assert.equal(dayCard(day, at(20, 9), new Map([['w', 559]]), 'mi').walked, '0.3 mi walked');
+  assert.equal(dayCard(day, at(20, 9), new Map([['w', 999.6]]), 'km').walked, '1.0 km walked');
+});
+
 test('audit (moments 13): a placeless moment first in a group does not pull in a far one', () => {
   const near = cap('nowhere', at(2, 9, 0), null, null, null);
   const here = cap('here', at(2, 9, 1), null, -71.4, 41.812);
@@ -273,4 +280,14 @@ test('traceUntil: runs drawn shorter than timed stop the line, never throw', asy
   const timed = [[{ t: 0, p: [0, 0] as [number, number] }, { t: 10, p: [1, 0] as [number, number] }], [{ t: 20, p: [2, 0] as [number, number] }, { t: 30, p: [3, 0] as [number, number] }]];
   assert.doesNotThrow(() => traceUntil(timed, [], 25));
   assert.doesNotThrow(() => traceUntil(timed, [[[0, 0]]], 25));
+});
+
+test('tend replay 10: the day frames its walks\' rides too, as a walk\'s replay does', () => {
+  // A walk of 300 m that ends on a 3 km bus ride east, and a moment beside its start.
+  const walked = [[-71.4, 41.812], [-71.3964, 41.812]] as [number, number][];
+  const ride = [[-71.3964, 41.812], [-71.36, 41.812]] as [number, number][];
+  const f = dayFrame([cap('a', at(3, 9), null, -71.4, 41.812)], [{ runs: [walked], rideRuns: [ride] }])!;
+  assert.ok(f[2] >= -71.36, `the frame reaches the ride's end (east edge ${f[2]})`);
+  assert.ok(f[0] <= -71.4 && f[1] < 41.812 && f[3] > 41.812, 'and still holds the walk and the moment');
+  assert.equal(dayFrame([cap('b', at(3, 9), null, null, null)], []), null, 'nothing placed: no frame');
 });

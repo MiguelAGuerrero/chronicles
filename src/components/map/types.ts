@@ -85,8 +85,11 @@ export interface WalkMapProps {
   drawing?: LngLat[] | null;
   /** 0 to 1; the replay's first beat shows the trace faintly. */
   traceOpacity?: number;
-  /** The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. */
-  ended?: boolean;
+  /**
+   * The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. Given the walk's
+   * whole runs, the markers sit at their ends however much of `trace` is drawn (a replay telling its path, tend replay 2).
+   */
+  ended?: boolean | LngLat[][];
   /** Where the scale bar sits, from the map's bottom-left corner, clear of the screen's own bottom UI (QL8). */
   scaleInset?: { bottom: number; left?: number };
   walked: StreetSegment[];

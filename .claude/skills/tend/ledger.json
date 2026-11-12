@@ -1,5 +1,5 @@
 {
-  "lastT": 18,
+  "lastT": 24,
   "lastG": 4,
   "balance": {
     "date": "2026-11-12",
@@ -71,8 +71,8 @@
     ],
     "commits": {
       "growth": 138,
-      "refinement": 283,
-      "other": 464
+      "refinement": 301,
+      "other": 465
     },
     "areas": {
       "rough": [
@@ -80,6 +80,7 @@
         "explore",
         "map",
         "navigation",
+        "replay",
         "tabs",
         "walk-screen"
       ],
@@ -104,7 +105,6 @@
       "places",
       "presence",
       "recording",
-      "replay",
       "resurface",
       "rides",
       "storage",
@@ -115,13 +115,13 @@
       "web"
     ],
     "open": {
-      "openT": 5,
-      "phoneT": 2,
+      "openT": 9,
+      "phoneT": 4,
       "openG": 1
     },
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "six areas are rough"
+    "why": "seven areas are rough"
   },
   "areas": {
     "chronicle": {
@@ -159,6 +159,12 @@
       "swept": "2026-11-12",
       "main": "617b534735f14d777cd63f8ece070dde4cacd2fe",
       "note": "First sweep, whole but for the largest text size (web cannot; T18 [phone]) and native. Two high and three medium loop findings (a fit straightened a turned map; the credits (i) unreachable on four maps; compass-less maps turned; pin grouping O(n x pins); markers drawn out of view, filed), with low ones shipped (keyboard focus on Locate and the compass, 999.6 m and scale thousands, render on turn, worker version). The review (one round, auditor and ux-reviewer): audit 1-7 shipped (the credits over Explore's hint, the (i) that moved and split words, its glow, a fit during the compass's ease, pins along a parallel, a compass left after the planner, three checks that could not fail); deferred [loop]: the live walk's compass under following (medium), Chronicle's (i) corner, the strip's line (on main too). T14-T17 [owner], T18 [phone] open."
+    },
+    "replay": {
+      "state": "rough",
+      "swept": "2026-11-12",
+      "main": "5da9460089118733f8b71c2b3c2fc8451a3194a4",
+      "note": "First sweep, not whole: the largest text size and the screen reader are phone-only (T23, T24). One high and seven medium loop findings; fourteen commits shipped (beat one's headline under Skip, the end ring on the walker, the day card's units, Back and Escape on the name step, Tap for sound, a card over the note at 320 and 375, the memo's time, the announcements, the day's frame and rides, landscape's stack, the day card's line, the headline's colour, six checks that could not fail), and the review's audit 2-6 (the memo's time on one line, a card under a status bar, a held Escape, the pills in landscape, the headline under Skip). Filed [loop]: loadReplay's full scans (medium), the caption on one line, the day card's scroll, two comments, the browser's Back on the name step. T19-T22 [owner], T23-T24 [phone] open; decision 0153 holds the owner's answers."
     }
   },
   "declined": []

@@ -191,6 +191,10 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] `tend map 10`'s unit test compares `mapWorkerUrl` with a string built from the same version and never reaches the `setWorkerUrl` call, so reverting `WalkMap.web.tsx`'s call to the old address still passes; reaching it means importing the web map in `npm test` or a journey reading the worker request (`/tend map`'s review, auditor "tests that cannot fail", Nov 12, low)
 - [loop] A dark line runs across the walk's bottom strip at about y 630 in `layers-small` (375 x 667, walkability on), through "0:04 · 0 m" and behind Pause and Hold; the same picture on `main` (`92f021c7`) shows it, so it predates `/tend map`. Make the strip opaque over the map or above that layer (ui-patterns, "Content may run under a bar (T7); a control may not float over it"; `/tend map`'s review, ux U6, Nov 12, low)
 
+- [loop] Before a map's style loads, its credits (i) sit flush in the screen's corner, half off it (the replay's reading
+  beat, `probe-390r-reading`): `place()` runs only once the map is ready, and `--credits-bottom` and `--credits-left`
+  have no fallback in the stylesheet (`WalkMap.web.tsx`; `/tend replay`, call 12, low; the map area's)
+
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
 1. Keep awake on a phone; adds expo-keep-awake (Quality of life, round 4)
@@ -317,6 +321,34 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
 - **Videos under iOS's loading rule, beyond a plain card** (fix ios-video, Nov 5): the `chronicle` journey copies iOS's rule (no `readyToPlay` before a `play()`) for a plain video card only. Not covered: an edited or trimmed card (its view swap and the seek to the trim's start, audit 5), and a viewer opened by a tapped reminder on a video, which carries its time over when the sized view swaps in (audit 2). A journey with a video reminder and an edited, trimmed clip under the rule would cover both. Never tried in WebKit: whether a time set at `readyState` 0 holds, and whether the size probe's detached `<video>` ever reports its metadata on iOS (if not, an edited video shows unturned in the viewer, as before the fix)
 - **Why Chronicle went white after Keep it** (Nov 4, the owner's iPhone): not reproduced in Chromium. The tabs now show `ScreenError` with the message; the cause waits for it. On a tab, its "Back to walks" goes nowhere (Chronicle is already the route, and only `retry` clears the boundary); Try again and the tab bar work (fix ios-video audit 6)
+
+- [loop] `loadReplay` reads whole stores: all summaries (`listSummaries().find`), and on the web all walks and every
+  `visited_segment` row (`streetKeysBefore`, `db/index.web.ts`); the day's replay calls it once per walk, one after
+  another, and uses neither `newStreets` nor the fog (`/tend replay`, the auditor's F3, medium). Not shipped: `summary.ts`
+  imports the app's `db`, so no unit test reaches it; making it a shell with ports (functional-core) is larger than the
+  finding. Then: the day's walks read together, an option that skips the street history, the web's read by `walk_id`
+- [loop] A photo card's caption is cut to one line ("The blue door on W…" at 320 px; `Cards.tsx` `numberOfLines={1}`;
+  the UX review's U7, the steward's S6, low). Two lines need the card's height to count them, which `cardFloor` and
+  `STACK_TOP` (`tend replay 7`, `11`) now place by
+- [loop] The day's card is a plain View with no scroll, where the walk's card is a 70 % ScrollView: at the largest text
+  size or on a landscape phone its buttons could leave the screen (`/tend replay`, call 10, low; see T23)
+- [loop] Stale lines (the auditor's F8, low): `replay.ts`'s `PauseGroup` comment says each capture shows "until the
+  viewer moves on" (RR6: nothing waits); `Cards.tsx` resolves `useMediaUri(o.capture)` for a stack's grid card it never
+  draws, so the first piece is read twice
+- [loop] The browser's own Back on the name step leaves the replay and drops the words typed (the auditor's F2, its web
+  half): the replay's leave runs on unmount, and a browser's Back cannot be held cheaply (`tabs-and-home.md`).
+  Android's Back and Escape return to the card (`tend replay 4`, `5`)
+- [loop] On a landscape phone the card stands under the whole top stack and is 157 px wide (138 with notched insets):
+  standing beside the centred stack instead would give it the height back (`/tend replay`'s review, call 4, low)
+- [loop] On a narrow card (172 px at 320) the 147 x 48 "Tap for sound" pill covers most of the video's top; it could sit
+  in the card's caption strip there (`/tend replay`'s review, call 10, low)
+- [loop] Two or three bubbles stacked (a six-line note and a memo, about 220 px) can still reach a card resting above
+  `BUBBLE_ROOM` (160 px) on a short phone: where `cardFloor` keeps the reserve, the bubbles' column could be capped at it,
+  the oldest leaving from the top (`Bubbles.tsx` `maxHeight: cornerHeight(ctx)`; the UX review's U13, low)
+- [loop] The day's map leaves out the faint stretch the walk's card draws across a gap (`rr-day-card` against `rr-card`,
+  from before the sweep; `day/[key].tsx` draws only `pathDrawnAt`'s trace and rides; the UX review's U14, low)
+- [owner] A card's time can run a minute ahead of the rolling clock as it grows (`rr-path-20`: the clock 4:07 PM, the
+  card 4:08 PM; the UX review's U10, opinion, low): the clock is the rhythm's (RR8)
 
 ## Town presence (TP, decision 0089)
 

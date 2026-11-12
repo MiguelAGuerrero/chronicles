@@ -742,7 +742,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     () => [...new Set(stripsGeoJSON(props.landing).features.map((f) => `${f.properties!.grade}:${f.properties!.width}`))].sort().join(','),
     [props.landing],
   );
-  const ends = traceEnds(props.trace, !!props.ended);
+  const ends = traceEnds(Array.isArray(props.ended) ? props.ended : props.trace, !!props.ended);
   const endsKey = `${fmt(ends.start)}|${fmt(ends.end)}`;
   useEffect(() => {
     if (ready) setData('ends', endsGeoJSON(ends.start, ends.end));
