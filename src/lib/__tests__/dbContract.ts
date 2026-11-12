@@ -581,7 +581,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
     });
 
-    test('DC10 putSegments: written in batches; once told to stop, no further batch is written', { todo: 'test first' }, async () => {
+    test('DC10 putSegments: written in batches; once told to stop, no further batch is written', async () => {
       const db = await fresh();
       const many = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => segment(`${prefix}${i}`));
       await db.putSegments(many('a', SEGMENT_BATCH * 2 + 10));

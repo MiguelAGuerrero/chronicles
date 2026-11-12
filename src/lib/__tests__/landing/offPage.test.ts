@@ -44,13 +44,13 @@ const echo = (): WorkerLike => {
   return w;
 };
 
-test('DC7: a read runs off the page when a worker can be made, with the page\'s result', { todo: 'test first' }, async () => {
+test('DC7: a read runs off the page when a worker can be made, with the page\'s result', async () => {
   const f = ports(echo);
   assert.deepEqual(await createOffPage(f.p).run(input()), computeRead(input()));
   assert.equal(f.workers(), 1);
 });
 
-test('DC8: a worker that can\'t start, errors, answers an error or stays silent falls back to the page, same result', { todo: 'test first' }, async () => {
+test('DC8: a worker that can\'t start, errors, answers an error or stays silent falls back to the page, same result', async () => {
   const want = computeRead(input());
   // Can't start (no workers, or its file is gone after a deploy).
   assert.deepEqual(await createOffPage(ports(() => { throw new Error('404'); }).p).run(input()), want);

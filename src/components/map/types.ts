@@ -129,6 +129,8 @@ export interface WalkMapProps {
    * labels and so under the trace and the route (the walk screen, Navigate).
    */
   busyNamesOver?: boolean;
+  /** The camera started (true) or settled (false), once each, never per frame: Explore's read waits for a settle (DC9). */
+  onMoveState?: (moving: boolean) => void;
   /** DC14: the selected area's name, whose room on the map no busy name takes (Explore). */
   busyNamesReserve?: { name: string; at: LngLat } | null;
   /** Spots to mark: where a route goes, or where a long press landed. */

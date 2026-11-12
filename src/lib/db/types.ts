@@ -17,7 +17,7 @@ import type { Capture, GapDecision, LngLat, Moment, Pause, Still, StreetSegment,
  */
 
 /** Street pieces written per transaction by `putSegments` (DC10): small enough that the page draws between batches. */
-export const SEGMENT_BATCH = 500;
+export const SEGMENT_BATCH = 150;
 
 export interface Db {
   createWalk(walk: Walk): Promise<void>;

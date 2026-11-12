@@ -50,8 +50,6 @@ export const nearKey = (rows: readonly LandingRow[], centre: LngLat | null): str
 
 /**
  * Whether the Busy layer's read starts now (DC9): it is on, no remembered area covers the centre, this place was not tried
- * yet, and the map is still. A move before it starts waits for that move to settle. Not built yet.
+ * yet, and the map is still. A move before it starts waits for that move to settle.
  */
-export function busyReadDue(_s: { on: boolean; needs: boolean; tried: boolean; moving: boolean }): boolean {
-  throw new Error('busyReadDue: not built (explore-dense-city DC9)');
-}
+export const busyReadDue = (s: { on: boolean; needs: boolean; tried: boolean; moving: boolean }): boolean => s.on && s.needs && !s.tried && !s.moving;

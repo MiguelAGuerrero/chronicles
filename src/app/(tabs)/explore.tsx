@@ -327,7 +327,17 @@ export default function Explore() {
   const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
-  const busy = useBusyLayer(layersAt, !!layers.on.busy);
+  // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the busy read waits for a settle.
+  const motion = useRef({ moving: false, waiting: [] as (() => void)[] });
+  const onMoveState = useCallback((moving: boolean) => {
+    motion.current.moving = moving;
+    if (!moving) for (const wake of motion.current.waiting.splice(0)) wake();
+  }, []);
+  const stillness = useCallback(() => ({
+    moving: motion.current.moving,
+    settled: () => new Promise<void>((resolve) => { motion.current.waiting.push(resolve); }),
+  }), []);
+  const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
@@ -583,6 +593,7 @@ export default function Explore() {
           landing={busyView}
           busyNamesOver
           busyNamesReserve={busyReserve}
+          onMoveState={onMoveState}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {

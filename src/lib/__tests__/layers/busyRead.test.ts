@@ -5,7 +5,7 @@ import { busyReadDue } from '../../layers/state';
 
 // Explore in a dense city (DC9), written from specs/explore-dense-city/spec.md before the code.
 
-test('DC9: no read while the map moves; the read waits for the settle', { todo: 'test first' }, () => {
+test('DC9: no read while the map moves; the read waits for the settle', () => {
   const due = { on: true, needs: true, tried: false, moving: false };
   assert.equal(busyReadDue(due), true);
   assert.equal(busyReadDue({ ...due, moving: true }), false, 'never during an ease or a drag');

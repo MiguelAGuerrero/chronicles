@@ -6,7 +6,7 @@ import type { WalkTile } from '../../walk/types';
 import type { AtlasArea } from '../../atlas/atlas';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from '../../db/segmentBounds';
 import { DERIVED_STORES } from '../../db/stores';
-import type { Db } from '../../db/types';
+import { SEGMENT_BATCH, type Db } from '../../db/types';
 import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Place, Recall } from '../../discovery/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
@@ -369,8 +369,11 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       gapFills.put(d);
     },
 
-    async putSegments(ss) {
-      for (const x of ss) segments.put({ ...x, tile: segmentTile(x) });
+    async putSegments(ss, shouldStop) {
+      for (let i = 0; i < ss.length; i += SEGMENT_BATCH) {
+        if (shouldStop?.()) return;
+        for (const x of ss.slice(i, i + SEGMENT_BATCH)) segments.put({ ...x, tile: segmentTile(x) });
+      }
     },
     async saveSnap(walkId, segs, vis, summary, placed, complete = true) {
       const w = walks.get(walkId);

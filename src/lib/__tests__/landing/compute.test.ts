@@ -49,13 +49,13 @@ function before(i: ComputeInput) {
   return { segments, tilePlaces, places, points, towns, transit, analysis };
 }
 
-test('DC13: the compute gives readAround\'s result, measured or not', { todo: 'test first' }, () => {
+test('DC13: the compute gives readAround\'s result, measured or not', () => {
   assert.deepEqual(computeRead(input()), before(input()));
   assert.deepEqual(computeRead(input(null)), before(input(null)));
   assert.ok(before(input()).segments.length > 0 && before(input()).analysis?.strips.length, 'the fixture has busy streets to measure');
 });
 
-test('DC13: the worker\'s side of the exchange gives the same, through a structured clone as a worker\'s message is', { todo: 'test first' }, () => {
+test('DC13: the worker\'s side of the exchange gives the same, through a structured clone as a worker\'s message is', () => {
   const reply = handleComputeMessage(structuredClone(input()));
   assert.equal(reply.ok, true);
   assert.deepEqual(reply.ok && structuredClone(reply.out), before(input()));
@@ -63,7 +63,7 @@ test('DC13: the worker\'s side of the exchange gives the same, through a structu
   assert.equal(bad.ok, false, 'a message it can\'t read answers an error, never throws');
 });
 
-test('DC11: the compute yields between tiles and between stages, with the same result', { todo: 'test first' }, async () => {
+test('DC11: the compute yields between tiles and between stages, with the same result', async () => {
   let pauses = 0;
   const out = await computeReadPaced(input(), async () => { pauses++; });
   assert.deepEqual(out, before(input()));

@@ -5,7 +5,8 @@ import { landingView, type LandingRow, type LandingView } from '../landing/view'
 import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
 import { readBusyAround, rememberedAreas } from './busy';
-import { nearKey, needsBusyRead } from './state';
+import { perfCount, perfMark } from '../perfCount';
+import { busyReadDue, nearKey, needsBusyRead } from './state';
 
 /** A centre to about 1 km, so the one read is tried once per area and again only when the map moves that far (ML9). */
 const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
@@ -15,7 +16,13 @@ const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
  * 1.5 km they are read once (the same read What's good here does); a failure says nothing and waits for a toggle or a
  * move of about 1 km. Nothing is listed or read while off. `reload` lists again after another read (an exploring walk's).
  */
-export function useBusyLayer(centre: LngLat | null, on: boolean): { view: LandingView | null; reading: boolean; failed: boolean; reload: () => void } {
+/**
+ * Whether the map is moving now, and a promise for its next settle (DC9). Explore keeps it in a ref fed by the map's
+ * movestart and moveend, so a move never re-renders the screen.
+ */
+export type Stillness = () => { moving: boolean; settled: () => Promise<void> };
+
+export function useBusyLayer(centre: LngLat | null, on: boolean, stillness?: Stillness): { view: LandingView | null; reading: boolean; failed: boolean; reload: () => void } {
   const release = useOvertureRelease();
   const [rows, setRows] = useState<LandingRow[]>([]);
   const [build, setBuild] = useState<string | null>(null);
@@ -23,6 +30,11 @@ export function useBusyLayer(centre: LngLat | null, on: boolean): { view: Landin
   const [failed, setFailed] = useState(false);
   const [tick, setTick] = useState(0);
   const tried = useRef(new Set<string>());
+  // Read in the effect, never in render; the callback changes identity only if Explore's does.
+  const stillnessRef = useRef(stillness);
+  useEffect(() => {
+    stillnessRef.current = stillness;
+  });
   const key = centre ? areaKey(centre) : '';
   useEffect(() => {
     if (!on) tried.current = new Set();
@@ -35,8 +47,17 @@ export function useBusyLayer(centre: LngLat | null, on: boolean): { view: Landin
       if (!live) return;
       setRows(list);
       setBuild(b);
-      if (centre && needsBusyRead(list, centre) && !tried.current.has(key)) {
+      const needs = !!centre && needsBusyRead(list, centre);
+      // DC9: never while the map moves (a switch's ease, a drag): wait for it to settle, then decide again.
+      const moving = () => stillnessRef.current?.().moving ?? false;
+      while (needs && !tried.current.has(key) && moving()) {
+        await stillnessRef.current!().settled();
+        if (!live) return;
+      }
+      if (centre && busyReadDue({ on, needs, tried: tried.current.has(key), moving: moving() })) {
         tried.current.add(key);
+        perfCount('busy:read');
+        perfMark('mark:busy-read');
         setReading(true);
         const ok = await readBusyAround(centre, () => !live);
         if (!live) return;

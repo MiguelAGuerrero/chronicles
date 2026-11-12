@@ -4,7 +4,7 @@ import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type Circ
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { perfCount } from '../../lib/perfCount';
+import { perfCount, perfMark } from '../../lib/perfCount';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
@@ -226,6 +226,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onSwipe = useRef(props.onSwipe);
   const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
+  const onMoveState = useRef(props.onMoveState);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
@@ -237,6 +238,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onSwipe.current = props.onSwipe;
     freePan.current = !!props.freePan;
     fitPadding.current = props.fitPadding;
+    onMoveState.current = props.onMoveState;
   });
   const pointerDown = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
@@ -587,6 +589,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('dragend', up);
     // Top right on the home, where the sheet never covers it (OSM requires it reachable).
     map.addControl(new ClosedAttribution(), props.attributionTop ? 'top-right' : 'bottom-right');
+    // DC9: the camera's moves, once at their start and once at their settle (Explore's busy read waits for the settle).
+    map.on('movestart', () => {
+      perfMark('mark:moved');
+      onMoveState.current?.(true);
+    });
+    map.on('moveend', () => {
+      perfMark('mark:settled');
+      onMoveState.current?.(false);
+    });
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);

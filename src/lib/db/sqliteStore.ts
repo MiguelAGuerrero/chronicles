@@ -22,7 +22,7 @@ import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment,
 import { segmentBbox } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
-import type { Db } from './types';
+import { SEGMENT_BATCH, type Db } from './types';
 import { serializeEdit } from '../mediaEdit';
 import { foldRows, type JoinedRow } from '../moment';
 
@@ -350,21 +350,25 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       );
     },
 
-    putSegments(segments) {
-      if (segments.length === 0) return Promise.resolve();
-      return write(async (t) => {
-        const seg = await t.prepareAsync(
-          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        );
-        try {
-          for (const x of segments) {
-            const [w, so, e, n] = segmentBbox(x);
-            await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+    async putSegments(segments, shouldStop) {
+      // DC10: one queued write per batch, so other writes can go between them; none once the caller says stop.
+      for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
+        if (shouldStop?.()) return;
+        const batch = segments.slice(i, i + SEGMENT_BATCH);
+        await write(async (t) => {
+          const seg = await t.prepareAsync(
+            'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          );
+          try {
+            for (const x of batch) {
+              const [w, so, e, n] = segmentBbox(x);
+              await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+            }
+          } finally {
+            await seg.finalizeAsync();
           }
-        } finally {
-          await seg.finalizeAsync();
-        }
-      });
+        });
+      }
     },
 
     saveSnap(walkId, segments, visited, snapSummary, placed, complete = true) {

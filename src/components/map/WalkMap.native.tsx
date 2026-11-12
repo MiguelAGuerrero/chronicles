@@ -350,6 +350,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         }}
         onRegionWillChange={(e) => {
           if (e.nativeEvent.userInteraction) props.onUserMove?.();
+          props.onMoveState?.(true);
         }}
         // Two fingers turn the map (CP1); a tilt never does.
         touchRotate
@@ -357,6 +358,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         dragPan={!props.onSwipe || !!props.freePan}
         onRegionDidChange={(e) => {
           regionChanged.current?.();
+          props.onMoveState?.(false);
           const { zoom, center, bearing } = e.nativeEvent;
           swiper.at([center[0], center[1]], zoom);
           if (typeof bearing === 'number' && Math.abs(bearing - lastBearing.current) >= 0.5) {
