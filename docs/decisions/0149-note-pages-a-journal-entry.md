@@ -22,10 +22,12 @@ while typing needs either a native module (iOS and Android only) or a web editor
   web, one code path for all three. TenTap was set aside because it has no web build; Lexical because its mentions are
   only in its playground.
 - **The body stays text**: Markdown as `@tiptap/markdown` writes it, plus the mention token `@[id|words]` (0125).
-  No migration. Plain-text readers (Lately, the replay, threads, search) parse with `marked`, the lexer
+  Plain-text readers (Lately, the replay, threads, search) parse with `marked`, the lexer
   `@tiptap/markdown` uses, which joins core's pure packages (`scripts/layers.js`).
-- **Notes written before** are read through the same parser by default; the stored text changes only when a note is
-  next written in. The steward (S10) asks to keep them literal; that call is the owner's and is open.
+- **Notes written before stay literal** (the steward's S10, the owner's call): a note is read as Markdown only when the
+  page wrote it, which a new field says (`body_format`, SQLite migration 25; IndexedDB stores the record whole).
+- **A camera on the page** (the steward's S12, the owner's call): beside Aa and @, it keeps a photo as its own moment
+  and mentions it in the note, so capture stays one tap away while writing.
 
 ## Consequences
 - A WebView per open page on phones; never run on a device (`docs/NATIVE_UNVERIFIED.md`). The web bundle grows by

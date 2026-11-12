@@ -33,8 +33,10 @@ plain-text reader in core that parses with `marked`, the same lexer `@tiptap/mar
 | `src/lib/notePage/autosave.ts` (new) | The reducer (`step(state, event, now)`): new and empty, created, dirty, saving, failed; a pause, leave, background, empty-on-leave → effects `create`, `save`, `deleteWithUndo`, `nothing` (NP9). A reducer because its timers, retries and phases tangle (functional-core rule) | core |
 | `src/lib/notePage/context.ts` (new) | The head: the day, and the context line from Lately's words (`contextFor`); the short form (NP2) | core |
 | `src/lib/notePage/room.ts` (new) | Characters as shown (a mention counts as its words), and "room left" in words (NP8) | core |
-| `src/lib/notePage/plain.ts` (new) | `stripMarks(markdown)` with `marked`'s lexer: text tokens out, lines kept (NP10) | core |
-| `src/lib/refs.ts` | `plainNote` = `stripMarks(plainRefs(body))`: every reader in NP10 changes in one place | core |
+| `src/lib/notePage/plain.ts` (new) | `stripMarks(markdown)` with `marked`'s lexer: text tokens out, lines kept (NP10); `escapeLiteral(body)` for an older note opened on the page (NP7) | core |
+| `src/lib/refs.ts` | `plainNote(body, format)` = `stripMarks(plainRefs(body))` when `format === 'md'`, else `plainRefs(body)` as today; every reader passes the capture's `body_format` (NP7, NP10) | core |
+| `src/lib/types.ts`, `src/lib/db/{migrations,sqliteStore,index.web}.ts`, `src/lib/__tests__/fakes` | `body_format` (migration 25) | core, adapter |
+| `src/components/notePage/` camera button | Calls the screen's own `takePhoto` (a new moment, `into` null) and inserts the mention when it is kept (NP14) | view |
 | `src/lib/noteEdit.ts` | `NOTE_MAX` 20,000; `noteText` no longer trims inner structure | core |
 | `src/lib/ceremony/rhythm.ts`, `components/ceremony/StepThrough.tsx` | The note's pause counts words via `plainNote`; the steps read 300 characters (NP10) | core, view |
 | `src/components/MomentBar.tsx`, `src/app/walk.tsx` | The pencil opens `NotePage` in place of the card's Modal content (NP1) | view |
@@ -46,8 +48,14 @@ Saving reuses the paths there are today: `useCaptures.saveNote` creates, and `on
 
 ### Data
 
-- **Truth:** unchanged in kind. A note is a `Capture` of kind `text`, and its `body` is text: Markdown, up to 20,000
-  characters. No SQLite migration and no IndexedDB version. No tile code changes.
+- **Truth:** a note is still a `Capture` of kind `text` whose `body` is text, up to 20,000 characters. One new field,
+  `body_format: 'md' | null` (NP7, steward S10): set when the page writes the body; absent or null means literal.
+  **SQLite migration 25** (`ALTER TABLE capture ADD COLUMN body_format TEXT`, appended to `MIGRATIONS`). **IndexedDB**
+  stores the record whole, so no `VERSION` bump, as `thumb_path` did (migration 12). `updatePiece` takes it; a
+  `dbContract.ts` case first (FC7). The backup bundle carries it. No tile code changes.
+- **An older note opened on the page** is given to TipTap as escaped Markdown (`marked`'s escaping of `\`, `*`, `_`,
+  `#`, `>`, `-`, digits followed by `.`), so it shows literally; its first save writes that Markdown and sets the mark.
+  Opening without writing writes nothing.
 - **Cache:** none. Threads found from words (0098) read `plainNote`, so notes without marks find the same threads.
 - Saving as you write calls `updatePiece` about once a second while typing. The replay's story rebuilds on a note's
   change (replay rule, audit 22), but the page is never open over a playing replay (the viewer pauses it).
@@ -72,6 +80,8 @@ New feature **`notes`**: folder `src/lib/__tests__/notes/`, a row in `scripts/fe
 | NP10 | unit: `plainNote` over every mark, lines kept; resurface's extractors find no mark as a word; the rhythm's pause ignores marks; the steps' 300 characters and the line after them | `notes/plain.test.ts` |
 | NP11 | journey: the page's computed colours are `theme.ink` and `theme.muted` only; no image, emoji, digit-with-"words" or prompt text; the placeholder is the one line | journey |
 | NP12 | journey: the head first in reading order; roles and names (`heading`, `listitem`, `checkbox` with `aria-checked`); the editor's font size ≥ 16 px | journey |
+| NP14 | journey: the page's camera (the e2e's file chooser, as `edit` does) keeps a separate moment with its own time; the note holds `@[that id|…]` at the cursor; a failed save (the journey's storage fault) adds no mention and shows Retry | journey |
+| NP7 (data) | contract: `updatePiece` stores and reads `body_format` in every store; migration 25 over a database at 24 keeps every note's body and leaves the mark null | `src/lib/__tests__/storage/dbContract.ts` |
 | NP13 | journey: the request log holds nothing beyond the app's own origin while a page with a URL is opened, written in and read; the URL is not an `a`; pasted HTML with an `img`, `iframe` and link leaves none in the page or the body | journey |
 
 Journeys touched by the changed screens, run at the end as `check:affected` names them: `notepage` (new), `qol`
@@ -86,6 +96,7 @@ Journeys touched by the changed screens, run at the end as `check:affected` name
 | Write | Every page | The editor, focused, keyboard up | 18 (long text: full screen) |
 | Format | While writing; occasional | Aa in a toolbar above the keyboard, opening a panel | Journal's "Format button" (§2, verified by name) ; T5 (icons with spoken names, one style in the bar) |
 | Mention | While writing; occasional | @ in the toolbar, or typed: the existing picker | 16 |
+| Take a photo mid-entry | Walking, something catches the eye; occasional | A camera in the toolbar beside Aa and @ | 22 (capture one tap); Journal's "Take Photo or Video button" in its toolbar (§2, verified by name) |
 | Tick a box | Writing; occasional | The checkbox, 44 pt | 14 (effective at once) |
 | Leave | Every page | Done (trailing, the one primary) and Back (leading); both keep | 18 ("Cancel and Done"), 23 |
 | Remove what was written | Rare | Empty the page and leave, with Undo; or More → Delete in the viewer (unchanged) | 7 |
@@ -108,6 +119,9 @@ apply, since nothing is ever lost.
 - The DOM component's WebView: focus and the keyboard on open (NP1), the toolbar above the keyboard on iOS and
   Android (NP4), scrolling to the cursor, a tick inside the viewer's Modal (NP5, NP6).
 - Saving on AppState `background` (NP9).
+- The page's camera handing back to the WebView with the keyboard and cursor where they were (NP14).
+- The WebView's navigation lock (`onShouldStartLoadWithRequest`) and paste cleaning (NP13).
+- Migration 25 on an existing SQLite database.
 - Each goes into `docs/NATIVE_UNVERIFIED.md` as a `**Do:** … **Expect:** …` item.
 
 ## The steward's findings and their triage (first plan, Nov 12)
@@ -115,7 +129,7 @@ apply, since nothing is ever lost.
 | # | Finding | Triage |
 |---|---|---|
 | S1 | Ticks on the moment's face (0114) | **Accepted**: ticks only on the page; in the viewer and the thread a tap on a box changes nothing (NP5, NP6, NP10) |
-| S2 | Old notes reinterpreted as formatted | **Rejected for now** (default in the spec's Decisions, the owner may reverse): their stored text never changes until written in (NP7). Keeping them literal would need a stored mark |
+| S2 | Old notes reinterpreted as formatted | **Accepted** at the second pass (S10, the owner's call) |
 | S3 | Canonical rewriting of `*` and numbers | **Yields to the library** (0149): `@tiptap/markdown` writes canonical Markdown on the first save in the page. What is shown never changes, and a note never written in keeps its bytes (NP7) |
 | S4 | The head lacks time into the walk and what came before, and scrolls away | **Accepted** (NP2) |
 | S5 | Nothing leaves the device | **Accepted** (NP13), more pressing with a web editor |
@@ -131,8 +145,8 @@ apply, since nothing is ever lost.
 |---|---|---|
 | S8 | A pause could store an emptied body | **Accepted** (NP9): a pause never writes an empty body; only leaving empty deletes, with Undo. The reducer test covers it |
 | S9 | The stamp would move to the first save | **Accepted** (NP1): the page takes `stampNow` at the pencil's tap and hands it to `saveNote` |
-| S10 | Older notes are re-read as Markdown in every reader at once | **To the owner** (spec, "Waiting on the owner") |
+| S10 | Older notes are re-read as Markdown in every reader at once | **Accepted by the owner** (NP7): a stored mark, migration 25 |
 | S11 | NP13 tested only on the web | **Accepted** (NP13): the WebView's `onShouldStartLoadWithRequest` allows only its bundle; TipTap's paste rules keep only the page's schema (no `img`, `iframe`, link). The phone side goes into `docs/NATIVE_UNVERIFIED.md` |
-| S12 | The camera is a tap further while writing | **To the owner** |
+| S12 | The camera is a tap further while writing | **Accepted by the owner** (NP14): a camera beside Aa and @ |
 | S13 | The placeholder is a prompt | **Accepted** (NP11): "Start writing" |
 | silent | iOS Writing Tools in WKWebView | **Deferred**: the system offers it on a selection the owner makes, which is a tap, not the app writing for them. Turning it off needs `writingToolsBehavior`, which react-native-webview may not expose; checked when the module is installed |

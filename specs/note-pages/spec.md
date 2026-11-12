@@ -41,7 +41,7 @@ always a moment's note, started from the capture stack, Respond or a note that e
 or made into reminders. It has none of Journal's streaks, insights, word counts, prompts or suggestions, and no
 covers, colours or highlights. Everywhere outside the page, a note reads as its words without marks. The editor
 loads nothing from a network.
-Criteria: NP1 (one tap), NP2 (context heads the page), NP6 (no count of ticked boxes, no reminder from one), NP10
+Criteria: NP1 and NP14 (one tap, the camera on the page too), NP2 (context heads the page), NP6 (no count of ticked boxes, no reminder from one), NP10
 (marks never read as words elsewhere), NP11 (no streak, count, prompt, colour or cover), NP13 (nothing leaves the
 device).
 Open: none (the owner's calls below).
@@ -56,9 +56,12 @@ Open: none (the owner's calls below).
 - **2026-11-12 (decision 0149):** the reference is Apple Journal; the pencil opens the page straight away (the small
   card goes, and with it the earlier "card + Expand"); the page saves as you write; the editor is TipTap in Expo DOM
   components, an established library rather than our own.
+- **2026-11-12, older notes stay literal** (steward S10): a note is read as Markdown only once the page has written
+  it, which the note says by a stored mark. Notes written before read character for character.
+- **2026-11-12, a camera on the page** (steward S12): beside Aa and @, it keeps a photo as its own moment and mentions
+  it in the note.
 - **2026-11-12, defaults in the plan, the owner may still change them:** no separate title field (the vision is
-  silent); notes written before are read through the same parser; checkboxes tick only on the page, not in the
-  viewer (steward S1, 0114).
+  silent); checkboxes tick only on the page, not in the viewer (steward S1, 0114).
 
 ## Acceptance criteria
 
@@ -91,11 +94,13 @@ Open: none (the owner's calls below).
    any writing is (NP9). Nothing anywhere says how many boxes are ticked or left: no "2 of 5", no progress bar or ring.
    A box never makes a reminder, a notification or a badge. The resurfaced card and recall never choose a note by its
    boxes.
-7. **NP7 · What is kept is what is shown.** The body holds Markdown, written by the editor, with mentions as
-   `@[id|words]` (0125). A page reopens exactly as it was left: formatting, ticks, mentions and line breaks. A note
-   never written on the page keeps its stored text byte for byte, however often it is opened. A note written before
-   this slice opens with its words and line breaks whole. Markdown outside what the page makes (a link, a table,
-   `~~`) is shown and kept as the text that was typed, never dropped.
+7. **NP7 · What is kept is what is shown, and older notes stay literal.** A note the page has written holds Markdown,
+   with mentions as `@[id|words]` (0125), and says so by a stored mark. It reopens exactly as it was left:
+   formatting, ticks, mentions and line breaks. A note without the mark (every note written before this slice) reads
+   character for character everywhere, on the page too: `> 5 km`, `*sigh*`, `snake_case` and `# 3` stay as typed.
+   Its stored text is never changed by being opened. Written in on the page, it is kept as Markdown that shows the
+   same characters, and the mark is set. Markdown outside what the page makes (a link, a table, `~~`) is shown and
+   kept as the text that was typed, never dropped (steward S10).
 8. **NP8 · Room for a long entry.** A note holds up to 20,000 characters, counted as they are shown (a mention counts
    as its words). With fewer than 1,000 left, the page says "Room for a few more lines"; at the limit it takes no more
    and says "This note is full". No number is shown. A mention picked at the end never takes the note past the limit
@@ -106,8 +111,8 @@ Open: none (the owner's calls below).
    leaves the stored text as it was, and a killed app reopens the note with its last words. Only leaving it empty
    deletes an existing note, with the usual Undo (matrix 7; steward S8). A save that fails leaves everything on the page, says "Not saved yet" in the top bar, and tries again
    on the next change and on the way out. If the app is killed, at most the last second of writing is lost.
-10. **NP10 · Elsewhere a note reads as its words.** Everywhere a note is shown outside its page, it reads as its words
-    with the marks dropped and its lines kept: Lately, the resurfaced card, the replay's bubbles and its pause, the
+10. **NP10 · Elsewhere a note reads as its words.** Everywhere a note the page wrote is shown outside its page, it
+    reads as its words with the marks dropped and its lines kept (a note without the mark reads as stored, NP7): Lately, the resurfaced card, the replay's bubbles and its pause, the
     screen reader's steps, the home sheet, a memory preview, the responses sheet, the owner's thread's bubble, the
     moment picker and its search, notifications and shares. So `# Bakery` reads "Bakery", `- [x] rye` reads "rye" and
     `**warm**` reads "warm". A heading is drawn at the row's own size (steward S6). The Chronicle's threads (0098)
@@ -125,16 +130,11 @@ Open: none (the owner's calls below).
     code is bundled with the app. A URL in a note is text; it is never fetched, previewed or made a link (steward S5).
     On a phone the WebView navigates nowhere but its own bundle, and pasted HTML keeps only the page's own marks: no
     `img`, `iframe`, link or remote style survives a paste (steward S11).
-
-## Waiting on the owner (the steward's second pass)
-
-- **Notes written before this slice** (S10): read through the parser, an older note's `> 5 km` reads "5 km",
-  `*sigh*` turns italic and `snake_case` loses its underscores, everywhere at once. Keeping them literal needs a
-  stored mark on the notes the page writes: a new field, so a SQLite migration. The plan's default is to format them
-  anyway.
-- **The camera while writing on a walk** (S12): the page covers the capture stack, so a photo needs Done first. One
-  shape: a camera beside Aa and @ that keeps the photo as its own moment and mentions it in the note, as Journal's
-  toolbar has a camera.
+14. **NP14 · A camera on the page.** Beside Aa and @, a camera takes a photo or a video as the stack's camera does,
+    one tap. It is kept as its own moment, with its own time, fix and walk (never a piece of the note), and the note
+    gets an @-mention card of it where the cursor was, as if it had been picked (NP5, RF4). The page stays open with
+    the keyboard back. A photo whose save fails is held with Retry, as on the walk (SA8), and no mention is added until
+    it is kept. Cancelled, nothing changes (steward S12; Always, "Capture is one tap away").
 
 ## Retired or amended
 
