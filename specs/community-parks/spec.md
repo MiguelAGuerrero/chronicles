@@ -130,8 +130,9 @@ subsets"; the owner chose a registry of pure refinements and kinds that know the
     `green`) imports a shell, the db, `ports`, a recorder, a notifier or React Native.
 22. **PC22 One reader of the hierarchy.** Every consumer tests a kind against the switches through `isKindHidden`
     (`visibleMarks`, `routeMarks`, `passedPlaces`, `waitingKinds`, `waitingMarks`): with Parks off, community parks are off too.
-23. **PC23 The settings row says so.** With Parks off, the Community parks row reads off and cannot be switched on (a
-    disabled switch); with Parks on it follows its own switch. Nothing else in "What I'm into" changes.
+23. **PC23 The settings row says so.** The Community parks row sits right under Parks and gardens, indented a step to
+    show it belongs to it, and only while Parks is on; with Parks off the row is not shown (the owner, Nov 12, replacing
+    "reads off and cannot be switched on"). Its own choice is kept meanwhile. Nothing else in "What I'm into" changes.
 
 ## Not in this slice
 

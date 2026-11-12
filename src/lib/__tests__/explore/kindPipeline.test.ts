@@ -6,7 +6,7 @@ import { waitingKinds, waitingMarks } from '../../atlas/atlas';
 import { mergePlaces } from '../../discovery/archiveMerge';
 import { archivePlace } from '../../discovery/archivePois';
 import { refine, type Refinement } from '../../discovery/refine';
-import { isKindHidden, kindChain, kindParent, kindSwitch, refineRead, REFINEMENTS } from '../../discovery/refinements';
+import { isKindHidden, kindChain, kindRows, kindParent, kindSwitch, refineRead, REFINEMENTS } from '../../discovery/refinements';
 import { placesFromTilePois } from '../../discovery/tilePois';
 import type { Kind, Place } from '../../discovery/types';
 import { KINDS, passedPlaces, routeMarks, visibleMarks, type ChecklistItem } from '../../explore/explore';
@@ -98,4 +98,13 @@ test('PC23: the settings row reads off and locked while Parks is off', () => {
   assert.deepEqual(kindSwitch(new Set<Kind>(['parks']), CP), { on: false, locked: true });
   assert.deepEqual(kindSwitch(new Set<Kind>(), CP), { on: true, locked: false });
   assert.deepEqual(kindSwitch(new Set<Kind>(['parks']), 'viewpoints'), { on: true, locked: false }, 'no other row changes');
+});
+
+test('PC23: a subset is a row, one step in, only while its parent is on', () => {
+  const ids = (h: Kind[]) => kindRows(KINDS, new Set<Kind>(h)).map((r) => `${r.depth}:${r.kind.id}`);
+  assert.ok(ids([]).includes(`1:${CP}`) && ids([]).includes('0:parks'));
+  assert.equal(ids([]).indexOf(`1:${CP}`), ids([]).indexOf('0:parks') + 1, 'right under its parent');
+  assert.ok(!ids(['parks']).some((r) => r.endsWith(CP)), 'parent off: the subset is not shown');
+  assert.ok(ids([CP]).includes(`1:${CP}`), 'the subset off alone still shows, off');
+  assert.equal(ids([]).length, KINDS.length);
 });
