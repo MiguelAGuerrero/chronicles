@@ -257,6 +257,29 @@ async function run(h) {
     check(rec.awakeOnPath && wake.held === 0, `RR24: the screen is held awake through the replay and let go on the card (${JSON.stringify(wake)})`);
     check(rec.memoPlay && rec.memoPlay[0] >= 44 && rec.memoPlay[1] >= 44, `RR10, replay-rhythm audit 27: the memo's bubble shows, its play button 44 px (${JSON.stringify(rec.memoPlay)})`);
 
+    // Escape (web) is Back's sibling (tend replay 5): from the name step back to the card, the name typed kept; with a
+    // viewer open from a pin it leaves nothing (the web's viewer takes no Escape itself: captures-and-media.md).
+    await pg.waitForTimeout(800);
+    await shot(pg, 'rr-card');
+    await pg.click('[data-testid=to-name]');
+    await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
+    await shot(pg, 'rr-name');
+    await pg.keyboard.press('Escape');
+    const backOnCard = await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).then(() => true, () => false);
+    await pg.click('[data-testid=to-name]').catch(() => {});
+    const kept = await pg.inputValue('[data-testid=title-input]').catch(() => null);
+    await pg.keyboard.press('Escape');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    check(backOnCard && kept === 'Plums by the bridge', `tend replay 5: Escape on the name step returns to the card, the name typed kept (${backOnCard}, "${kept}")`);
+    await pg.getByRole('button', { name: /\. Open$/ }).first().click();
+    const viewerUp = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(800);
+    const stayed = /\/replay\//.test(new URL(pg.url()).pathname) && (await pg.locator('[data-testid=to-name]').count()) === 1;
+    check(viewerUp && stayed, `tend replay 5: Escape with a viewer open from a pin leaves neither the replay nor its card (${viewerUp}, ${stayed}, ${new URL(pg.url()).pathname})`);
+    await pg.click('[data-testid=viewer-close]').catch(() => {});
+    await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 3000 }).catch(() => {});
+
     // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).
     await pg.setViewportSize({ width: 844, height: 390 });
     await pg.getByText('Watch again').click();
@@ -309,6 +332,13 @@ async function run(h) {
     check((await pg.locator('[data-testid=day-card]').count()) === 1 && !dayCont && dayNote, `RR16: the day's replay reaches its card with no taps, its note on the way (${dayNote}, ${dayCont})`);
     const dayWake = await pg.evaluate(() => window.__wake);
     check(dayWake.log.length > wakesBefore && dayWake.held === 0, `RR24: the day's replay holds the screen awake too, and lets it go on its card (${JSON.stringify(dayWake)})`);
+    // The day framed above its card once the fit has settled.
+    await pg.waitForTimeout(1200);
+    await shot(pg, 'rr-day-card');
+    // Escape leaves the day's replay as Done does (tend replay 5).
+    await pg.keyboard.press('Escape');
+    const leftDay = await pg.waitForURL((u) => !u.pathname.includes('/day/'), { timeout: 5000 }).then(() => true, () => false);
+    check(leftDay, `tend replay 5: Escape leaves the day's replay from its card (${new URL(pg.url()).pathname})`);
     await c.close();
     // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.
     for (let i = errors.length - 1; i >= 0; i--) if (/NotAllowedError: refused/.test(errors[i])) errors.splice(i, 1);

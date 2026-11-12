@@ -216,6 +216,22 @@ export default function Replay() {
       if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
   }, [rewatch, toChronicle, go]);
+  // Escape on the web is Back's sibling (tend replay 5): the name step returns to the card; anywhere else the replay
+  // is left as Not now or Done leaves it. Nothing while a viewer, the walk's menu or a gap's card holds the key.
+  const held = viewing != null || here != null || actionsOpen || gapOpen != null || isDrawing;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || held) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (backFrom(beatNow.current) === 'card') go('card');
+      else if (!rewatch) toChronicle();
+      else if (router.canGoBack()) router.back();
+      else router.dismissTo('/');
+    };
+    // In the capture phase: react-native-web's TextInput stops a key's propagation (the name step's fields).
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [held, rewatch, toChronicle, go]);
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {

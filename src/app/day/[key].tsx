@@ -132,6 +132,21 @@ export default function DayReplay() {
     };
   }, [key]);
 
+  // Escape on the web leaves the day's replay as Done does (tend replay 5), the sibling of Android's Back; not while
+  // the viewer holds the key.
+  const viewerOpen = viewing != null;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || viewerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (router.canGoBack()) router.back();
+      else router.dismissTo('/');
+    };
+    // In the capture phase: react-native-web's TextInput stops a key's propagation (the name step's fields).
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [viewerOpen]);
+
   // What happened that day, less any moment just deleted (D3), read once; the ceremony tells it (RR20, RR21).
   // The story and the card read the same day, less what was deleted (audit 26).
   const day = useMemo(() => (data ? dayWithout(data.day, hidden) : null), [data, hidden]);
