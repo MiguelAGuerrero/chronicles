@@ -387,6 +387,15 @@ function insert(doc, at, lines) {
 
 const replaceBlock = (b, lines) => ({ at: b.start, remove: b.end - b.start, lines });
 
+/** A block taken out, with one of the blank lines around it when it stood between two (no double blank). */
+function removeBlock(doc, b) {
+  const blank = (k) => k >= 0 && k < doc.lines.length && doc.lines[k].trim() === '';
+  if (blank(b.start - 1) && (blank(b.end) || b.end === doc.lines.length)) {
+    return blank(b.end) ? { at: b.start, remove: b.end + 1 - b.start, lines: [] } : { at: b.start - 1, remove: b.end - b.start + 1, lines: [] };
+  }
+  return { at: b.start, remove: b.end - b.start, lines: [] };
+}
+
 const isItem = (kind, where) => (b) => b.kind === kind && Object.entries(where).every(([k, v]) => b[k] === v);
 /** `mid` checks: the region an operation wrote parses to exactly these blocks. */
 const oneItem = (where, text) => (mid) => mid.length === 1 && isItem('item', where)(mid[0]) && (text === undefined || mid[0].text === text);
@@ -470,7 +479,7 @@ const OPS = {
     const alone = sec.inner.filter((x) => x.kind === 'item').length === 1;
     const placeholder = alone && b.h3 === INBOX;
     return {
-      edit: replaceBlock(b, placeholder ? ['Nothing open.'] : []),
+      edit: placeholder ? replaceBlock(b, ['Nothing open.']) : removeBlock(doc, b),
       mid: placeholder ? (mid) => mid.length === 1 && mid[0].kind === 'para' && PLACEHOLDER.test(mid[0].text) : nothing,
       step: { kind: 'remove', section: b.h3, key: `id:${b.id}`, what: first(b) },
     };
@@ -505,13 +514,13 @@ const OPS = {
   },
   'open remove'(doc, { match }) {
     const b = only(openItems(doc), match, 'open item');
-    return { edit: replaceBlock(b, []), mid: nothing, step: { kind: 'remove', section: OPEN, key: openKey(b.text), what: first(b) } };
+    return { edit: removeBlock(doc, b), mid: nothing, step: { kind: 'remove', section: OPEN, key: openKey(b.text), what: first(b) } };
   },
   'inflight add': (doc, { body, after, end }) => rowAdd(doc, INFLIGHT, body, { top: !end, after }),
   'inflight set': (doc, { match, body }) => rowSet(doc, INFLIGHT, match, body),
   'inflight remove'(doc, { match }) {
     const b = only(section(doc, INFLIGHT).inner.filter((x) => x.kind === 'row'), match, 'In flight row');
-    return { edit: replaceBlock(b, []), mid: nothing, step: { kind: 'other' } };
+    return { edit: removeBlock(doc, b), mid: nothing, step: { kind: 'other' } };
   },
   'slice row add': (doc, { body, after, top }) => rowAdd(doc, SLICES, body, { top, after }),
   'slice row set': (doc, { match, body }) => rowSet(doc, SLICES, match, body),
@@ -579,7 +588,7 @@ const OPS = {
   },
   'item remove'(doc, { match }) {
     const b = anItem(doc, match);
-    return { edit: replaceBlock(b, []), mid: nothing, step: { kind: 'remove', section: b.h2, key: itemKey(b), oldTag: itemParts(b.text).tag, untagged: untagged(b.text), what: first(b) } };
+    return { edit: removeBlock(doc, b), mid: nothing, step: { kind: 'remove', section: b.h2, key: itemKey(b), oldTag: itemParts(b.text).tag, untagged: untagged(b.text), what: first(b) } };
   },
   'item note'(doc, { match, body }) {
     const b = anItem(doc, match);

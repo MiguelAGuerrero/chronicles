@@ -241,6 +241,8 @@ test('records: inbox note, set and remove name an entry by its number alone', ()
   assert.ok(!gone.includes('T11') && gone.includes('- **T13'));
   const none = records.apply('status', 'inbox remove', records.apply('status', 'inbox remove', gone, { match: 'T13' }).text, { match: 'T14' }).text;
   assert.ok(none.includes('### From /tend\n\nNothing open.\n\n### Next evolutions'), 'the last entry leaves the placeholder');
+  assert.ok(records.apply('status', 'inbox remove', STATUS, { match: 'G2' }).text.includes('three at most).\n\n### Last tend'), 'the last entry of a section leaves no double blank line');
+  assert.ok(records.apply('native', 'item remove', NATIVE.replace('north.\n', 'north.\n\n- [ ] x\n'), { match: '- [ ] x' }).text.endsWith('north.\n'), 'nor a blank line at the end of the file');
   assert.throws(() => records.apply('status', 'inbox remove', STATUS, { match: 'T1' }), /not in the inbox/, 'T1 is not a prefix of T11');
   assert.throws(() => records.apply('status', 'inbox remove', STATUS, { match: 'Voice' }), /by its number/);
 });
