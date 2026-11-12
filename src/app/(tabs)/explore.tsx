@@ -644,7 +644,7 @@ export default function Explore() {
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
       <View style={[styles.titleWrap, { top: topInset + 8, left: 12 }]} pointerEvents="box-none">
-        <View style={styles.titleCard}>
+        <View style={styles.titleCard} testID="atlas-title-card">
           <View accessibilityRole="header" style={styles.titleText} testID="atlas-title">
             <View style={styles.titleRow}>
               <Text testID="explore-area" style={styles.title} numberOfLines={lookOn && !town ? 2 : 1}>{title}</Text>

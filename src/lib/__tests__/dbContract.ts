@@ -596,6 +596,14 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db3.getSegmentsIn(box)).length, 0, 'stopped before the first batch: nothing written');
     });
 
+    test('explore-dense-city audit 5 putSegments: a write once started finishes, so no tile is left half stored', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      const many = Array.from({ length: SEGMENT_BATCH * 2 + 10 }, (_, i) => segment(`s${i}`));
+      let asked = 0;
+      await db.putSegments(many, () => ++asked > 1);
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10);
+    });
+
     test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box, MT11)', async () => {
       // The web store files pieces under one z14 tile and reads the bounds' tiles widened by 250 m
       // (pieces are at most 200 m); SQLite compares each piece's box.

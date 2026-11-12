@@ -38,8 +38,12 @@ async function run(h) {
     // The first read: the Busy layer on. Its window here also holds tasks of about 800 ms that perf-explore's same read
     // at normal speed doesn't show (its longest is about 130 ms); not yet explained (spec record), so DC7 times a later
     // read, Far Point's, below.
+    const first0 = await pg.evaluate(() => performance.now());
     await h.switchLayer(pg, 'busy');
     await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 120000 }));
+    await pg.waitForTimeout(1500);
+    const firstLongs = await pg.evaluate((a) => window.__longs.filter(([s]) => s >= a).map(([s, d]) => [Math.round(s - a), Math.round(d)]).sort((x, y) => y[1] - x[1]), first0);
+    check.todo((firstLongs[0]?.[1] ?? 0) <= 250, `explore-dense-city audit 2: the first Busy switch-on holds no task on the page past 250 ms (longest ${firstLongs.slice(0, 3).map(([at, d]) => `${d} ms at +${at}`).join(', ') || 'none'})`);
     // DC17 at street zoom (15): in this downtown the "?" pins cover the screen, and no name is drawn under any of them.
     const mid = (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
     await pg.evaluate(([at]) => window.__zoomTo?.(at, 15), [mid]);
@@ -73,6 +77,21 @@ async function run(h) {
     const under = label ? await pg.evaluate((b) => window.__busyNamesIn?.(b.x, b.y, b.x + b.width, b.y + b.height) ?? ['(no hook)'], label) : ['(no selected label)'];
     check(under.length === 0, `DC14: no busy name under the selected area's name (${under.join(', ')})`);
 
+    // audit 11: no busy name under one of Explore's controls, and none cut by the map's edge.
+    const clearOfControls = async () => {
+      const ids = ['atlas-title-card', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'];
+      const rects = await pg.evaluate((list) => list.flatMap((id) => [...document.querySelectorAll(`[data-testid="${id}"]`)].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0).map((r) => [id, r.x, r.y, r.right, r.bottom])), ids);
+      const under = await pg.evaluate((rs) => rs.flatMap(([id, x0, y0, x1, y1]) => (window.__busyNamesIn?.(x0, y0, x1, y1) ?? []).map((n) => `${n} under ${id}`)), rects);
+      const cut = await pg.evaluate(() => {
+        const r = document.querySelector('.maplibregl-canvas').getBoundingClientRect();
+        const band = (x0, y0, x1, y1) => window.__busyNamesIn?.(x0, y0, x1, y1) ?? [];
+        return [...band(r.left, r.top, r.left + 2, r.bottom), ...band(r.right - 2, r.top, r.right, r.bottom), ...band(r.left, r.top, r.right, r.top + 2), ...band(r.left, r.bottom - 2, r.right, r.bottom)].map((n) => `${n} cut by the edge`);
+      });
+      return [...under, ...cut];
+    };
+    const crowded16 = await clearOfControls();
+    check.todo(crowded16.length === 0, `explore-dense-city audit 11: at zoom 16 no busy name under a control or cut by the edge (${crowded16.join(', ')})`);
+
     // DC17 close in: no busy name under any "?" pin either.
     const at17 = await underPinsAt();
     check(at17.pins > 0 && at17.under.length === 0, `DC17: at zoom 16 no busy name under any of ${at17.pins} "?" pins (${at17.under.join(', ')})`);
@@ -95,6 +114,8 @@ async function run(h) {
     }
     check(!!left && (await drawn()).includes(left.name), `DC5: "${left?.name}", left out at ${zoom0.toFixed(1)}, is drawn two levels in`);
     await shot(pg, 'dense-2-zoomed-in');
+    const crowded18 = await clearOfControls();
+    check.todo(crowded18.length === 0, `explore-dense-city audit 11: zoomed in two more, no busy name under a control or cut by the edge (${crowded18.join(', ')})`);
     // explore-dense-city ui 3: turned past a quarter turn, every name still reads upright (a picture for the review).
     await pg.evaluate(() => window.__turn?.(150));
     await idle();

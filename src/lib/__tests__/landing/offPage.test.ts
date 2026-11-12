@@ -72,3 +72,24 @@ test('DC8: a worker that can\'t start, errors, answers an error or stays silent 
   assert.deepEqual(await run, want);
   assert.ok(ended, 'the silent worker is ended');
 });
+
+test('explore-dense-city audit 9: a cancelled read ends its worker and never computes on the page', { todo: 'test first' }, async () => {
+  let ended = false;
+  let paused = 0;
+  const silent = (): WorkerLike => ({ onmessage: null, onerror: null, terminate() { ended = true; }, postMessage() {} });
+  const f = ports(silent);
+  f.p.pause = async () => { paused++; };
+  let stop = false;
+  const run = createOffPage(f.p).run(input(), () => stop);
+  stop = true;
+  // The runner looks again on its own timer (the fake fires what is due).
+  await new Promise((r) => setImmediate(r));
+  f.fire();
+  await assert.rejects(run, /cancelled/i);
+  assert.ok(ended, 'the worker is ended');
+  assert.equal(paused, 0, 'the page computed nothing');
+  // Stopped before it starts: no worker made at all.
+  let made = 0;
+  await assert.rejects(createOffPage(ports(() => { made++; return silent(); }).p).run(input(), () => true), /cancelled/i);
+  assert.equal(made, 0);
+});

@@ -26,7 +26,7 @@ export interface OffPagePorts {
  * can't be made (none on this platform, or its file gone after a deploy), errors, answers an error or stays silent past
  * `timeoutMs` leaves the read to the page, which gives the same result (the same `computeRead`).
  */
-export function createOffPage(p: OffPagePorts, timeoutMs = 60000): { run(input: ComputeInput): Promise<ComputeOutput> } {
+export function createOffPage(p: OffPagePorts, timeoutMs = 60000): { run(input: ComputeInput, shouldStop?: () => boolean): Promise<ComputeOutput> } {
   const onPage = (input: ComputeInput) => computeReadPaced(input, p.pause);
   const offPage = (input: ComputeInput, w: WorkerLike) =>
     new Promise<ComputeOutput | null>((resolve) => {

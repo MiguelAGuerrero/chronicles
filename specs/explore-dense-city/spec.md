@@ -37,7 +37,7 @@ Explore's Busy layer names its streets with the map's own text, the way the base
 2. **DC2** No two busy names overlap each other on screen, and a busy name never overlaps a base-map label: a name with no room is not drawn.
 3. **DC3** A street is named at most once in its area: one name per busy street (or pocket), never one per block, and never twice for one street read by two remembered areas (fix street-label-double holds).
 4. **DC4** Where names compete for room, a heavier busy street's name is placed before a lighter one's. The map shows each name exactly as the street is called: no rank, number, count or "busiest" in any label, and every busy name has the same font, size, colour and halo whatever its street's grade; only staleness changes its look (DC6) (steward S2).
-5. **DC5** Zooming in never takes a busy name away that had room: a name left out for room at one zoom is drawn once zooming in gives it room.
+5. **DC5** Zooming in never takes a busy name away that had room, except to a "?" pin that zooming in gave room (DC17 wins, audit 3): a name left out for room at one zoom is drawn once zooming in gives it room.
 6. **DC6** EC7 and EC18 hold: names only near the selected area (a neighborhood's ring, a town's own reach) and only from zoom 13; every area's busiest street stays named on its card whether or not the map draws it. Stale areas' names are drawn as their lines are, dimmed.
 
 14. **DC14** No busy name is drawn under the selected area's name on the map (steward S4; 0124: nothing near the selection drawn over its text).
@@ -45,12 +45,15 @@ Explore's Busy layer names its streets with the map's own text, the way the base
 17. **DC17** No busy name is drawn under a "?" pin: every pin on the map keeps the room it covers (48 px wide, standing above its point), and a name with no other room is not drawn (the owner, Nov 12: "Ensure there is no clutter as shown"; UI review U1).
 16. **DC16** On the walk screen and in Navigate (the same Busy layer), the names follow DC2-DC5 too; there the base map's own street names keep their room and the walker's trace and route draw over the busy names (steward S1; the owner's call, Nov 12).
 
+18. **DC18** On the walk screen and Navigate, busy names are drawn only within 800 m of you (Explore's ring) and only from zoom 13; the magenta lines draw everywhere as before (the owner, Nov 12, at the audit).
+19. **DC19** Where names compete for room, a current area's names are placed before a stale area's; within each, the heavier street first (the owner, Nov 12, at the audit).
+
 ### Moving between neighborhoods
 
 7. **DC7** On the web, while the Busy layer reads an area, the page keeps drawing: decoding, deriving the streets and measuring density run off the page's thread, and no single task on the page's thread during the read is longer than 250 ms at the e2e's speed.
 8. **DC8** If the background reader can't start or fails (a page left open across a deploy, a browser without workers), the read runs on the page as before and still finishes with the same result.
 9. **DC9** A read the Busy layer needs (no remembered area within 1.5 km, ML9) starts only once the map has stopped moving: never during a switch's ease or a drag; a further move before it starts waits for that one to settle.
-10. **DC10** Storing an area's street pieces never holds the page in one long write: on the web they are written in batches, the page drawing between them, and a read that is cancelled or replaced writes no further batch.
+10. **DC10** Storing an area's street pieces never holds the page in one long write: on the web they are written in batches, the page drawing between them. A read cancelled before its write starts writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
 11. **DC11** On native the read yields between tiles and between its stages, so a read never holds the JS thread for the whole read at once (device: unverified).
 12. **DC12** A switch to the next neighborhood renders Explore at most twice, and a Move map drag renders it at most once, at the drag's end.
 13. **DC13** A busy read off the page gives the same busy streets, pockets, names and stored pieces as one on the page (one function computes both).
@@ -62,6 +65,29 @@ Five drifts, no breaches. S1 (the walk screen and Navigate change too, unreviewe
 ## UI review (decision 0145, Nov 12, on the `dense` journey's pictures)
 
 U2 accepted (`explore-dense-city ui 1`: stale names keep full opacity in `#7d6274`, 5.4:1 on the halo; dimmed they were about 2.3:1). U3 accepted (`ui 2`: within 5 degrees of north-south a name reads bottom to top). Its turned-map note accepted (`ui 3`: the names' turn folds upright for the map's bearing). U1 (pins hide names) became DC17 at the owner's word ("Ensure there is no clutter as shown"). U4 rejected: the dot and trace are over the names by DC16, and the edge column is the capture stack. U5 was the picture's resolution.
+
+## Audit (Nov 12, decision 0074: the auditor, the steward and the UX review, on the pictures in the `dense` journey)
+
+1. A crowded north-south name slides across its street onto the next (maplibre shifts a variable anchor in screen x, never along `text-rotate`): accept. Only near-level names slide; a turned one is centred or left out.
+2. The first Busy switch-on holds tasks of about 800 ms; DC7 was shown only on a later read: accept. Find and fix the cause; DC7 times the first switch-on too.
+3. Zooming past `PIN_ROOM.townPinZoom` turns dots into "?" pins whose room takes names already drawn: reject. DC17 is the owner's call ("no clutter"): a name gives way to a pin. DC5 says so.
+4. One street named twice within one area (two strips of one name): accept (with 14 and 16). One name per street within 300 m, one area or two (the owner's call at the audit: once per 300 m).
+5. A cancelled read leaves a half-written street cache, and a card says "No street or path close by" (RP20): accept. A started write finishes; places are not written after a cancel. DC10 says so.
+6. Native draws the busy names under the magenta lines: accept. Native puts the pockets and strips under the base labels, as the web does, and the names over them.
+7. A map taken down mid-ease leaves the busy read waiting for a settle that never comes: accept. A map going away reports its settle; the motion is a small tested store.
+8. With Busy off the invisible pin rooms still hide base-map labels: accept. No busy names, no rooms.
+9. A cancelled read keeps computing, in its worker or on the page: accept for a cancel (it ends the worker and never falls back to the page); defer iOS suspending a page past the 60 s timeout (DEFERRED).
+10. An empty complexes result no longer clears an earlier result for the same area: accept. Only a result for another area than the one shown is skipped.
+11. Names cut by the screen's edge ("21 Street" read as "1 Street") or under a control: accept on the web (with 15 and 17): Explore's controls and the canvas's edges keep their room after each move; defer native (DEFERRED).
+12. A zero-length street piece can lay a north-south name level: accept.
+13. The font fixture links to its licence instead of shipping it: accept. `OFL.txt` with Noto's copyright beside it.
+14. Steward S1, one street named twice: see 4.
+15. Steward S2, controls and the edge cut names: see 11.
+16. UX X1, Navigate names one street two or three times: see 4.
+17. UX X2, names cut at the edge or under the edge buttons: see 11.
+18. UX X3, few names at street zoom, and not the card's street: defer. Choosing a point along each street clear of the pins is a larger change (DEFERRED).
+19. UX X4, the pins are now the clutter: defer, the owner's next round (DEFERRED).
+- Steward's silent questions, answered by the owner at the audit: the walk maps name only near you (DC18); current areas first (DC19); one name per street within 300 m (4).
 
 ## Record
 

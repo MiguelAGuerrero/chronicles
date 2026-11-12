@@ -457,6 +457,18 @@ export function busyNameRotate(bearing: number): unknown[] {
 const PIN_ROOM_TEXT = 'W';
 const PIN_ROOM = { size: 40, offsetEm: 0.15, padding: 5 };
 
+/**
+ * Where the busy names and the busy lines sit among the layers on native (explore-dense-city DC16, audit 6). Not built yet.
+ */
+export function busyLayerOrder(_over: boolean): { lines: string | undefined; names: string | undefined } {
+  throw new Error('busyLayerOrder: not built (explore-dense-city audit 6)');
+}
+
+/** Room points covering a screen rectangle, for a control the names keep clear of (audit 11). Not built yet. */
+export function roomCells(_rect: { x: number; y: number; w: number; h: number }): [number, number][] {
+  throw new Error('roomCells: not built (explore-dense-city audit 11)');
+}
+
 /** The busy names' size, the same for every name whatever its street's grade (DC4). */
 const BUSY_NAME_SIZE = 13;
 /** How far a name slides along its street off a point it can't sit on (DC17): 34 px at 13 px, past a pin's half width. */
@@ -524,7 +536,8 @@ export function busyNameLayers() {
  * it is stale (a greyer ink, DC6). The selected area's name, when given, is drawn at opacity 0 and placed before every
  * busy name, so none is placed under it (DC14).
  */
-export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null, pins: readonly LngLat[] = []): GeoJSON.FeatureCollection {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null, pins: readonly LngLat[] = [], _near: { at: LngLat; m: number } | null = null): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
   if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true, box: false }, geometry: { type: 'Point', coordinates: reserve.at } });
   // DC17: each "?" pin's room, an invisible box standing over its point as the pin does.
