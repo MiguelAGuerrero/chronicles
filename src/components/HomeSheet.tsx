@@ -225,6 +225,9 @@ export function HomeSheet(props: {
   onNavigate?: () => void;
   /** A walk is open (minimized): the empty peek says this walk is starred when it ends, and offers no button (T10, 0148). */
   walkOpen?: boolean;
+  /** False until the screen's first read of walks: the peek then says nothing and offers nothing, so a walker with walks
+   *  never sees the empty line or its Navigate while they load (tend tabs audit 1). */
+  read?: boolean;
   /** False while the sheet is out of sight or covered (another route, a viewer, a menu): Back and Escape are then
    *  the cover's, never the sheet's, and never move Chronicle's section (section-bar audit 1). */
   ownKeys?: boolean;
@@ -255,10 +258,12 @@ export function HomeSheet(props: {
   const noWalks = index.walkCount === 0;
   // Nothing walked: one way to act, and a line true while you walk (tend tabs T10, decision 0148).
   const peekEmpty = emptyPeek(!!props.walkOpen);
-  const peekNavigate = peekEmpty.navigate && !!props.onNavigate;
+  // Before the first read nothing is known to be empty: the peek stays plain (tend tabs audit 1).
+  const showEmpty = noWalks && !expanded && props.read !== false;
+  const peekNavigate = showEmpty && peekEmpty.navigate && !!props.onNavigate;
   // With nothing walked, the peek's line sits on its own row above its button, so it never cuts it short (tend tabs 7);
   // with no button (a walk open) the line has the row to itself.
-  const stacked = noWalks && !expanded && peekNavigate;
+  const stacked = showEmpty && peekNavigate;
   const listTitle = props.mode.kind === 'days' ? 'Your days' : 'Walks';
   const nowT = props.now;
 
@@ -290,9 +295,11 @@ export function HomeSheet(props: {
             </View>
           ) : noWalks && !expanded ? (
             // Nothing walked yet (tabs audit U7): how walks get here, or, with a walk open, that it is starred when it ends (T10).
-            <Text testID="sheet-empty" style={[styles.empty, !stacked && styles.headerText]} numberOfLines={2}>
-              {peekEmpty.line}
-            </Text>
+            showEmpty ? (
+              <Text testID="sheet-empty" style={[styles.empty, !stacked && styles.headerText]} numberOfLines={2}>
+                {peekEmpty.line}
+              </Text>
+            ) : null
           ) : noWalks ? (
             <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>{listTitle}</Text>
           ) : (

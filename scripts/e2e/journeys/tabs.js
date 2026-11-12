@@ -120,6 +120,25 @@ async function run(h) {
     });
     // Chronicle with no walks (tabs audit U7, amended by T10, decision 0148): with nothing open, the empty line and
     // Navigate alone; with a walk open, a line about this walk and no button (the recording bar's › is the way back).
+    // From now until the path holds `stopAt`, every empty line and Navigate the peek draws (tend tabs audit 1, 2).
+    const watchPeek = (stopAt) => pg.evaluate((stop) => {
+      const seen = { lines: [], nav: 0 };
+      window.__peekSeen = seen;
+      const look = () => {
+        if (stop && location.pathname.includes(stop)) return;
+        const e = document.querySelector('[data-testid=sheet-empty]');
+        if (e && !seen.lines.includes(e.textContent)) seen.lines.push(e.textContent);
+        if (document.querySelector('[data-testid=sheet-navigate]')) seen.nav += 1;
+      };
+      const mo = new MutationObserver(look);
+      mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+      window.__peekStop = () => mo.disconnect();
+      look();
+    }, stopAt ?? null);
+    const peekSeen = () => pg.evaluate(() => {
+      window.__peekStop?.();
+      return window.__peekSeen;
+    });
     const emptyPeek = async (when, open) => {
       const sheet = await pg.locator('[data-testid=home-sheet]').boundingBox();
       {
@@ -468,6 +487,18 @@ async function run(h) {
       }
     });
     await step('tabs audit U8, U13, U15: Chronicle after a walk', async () => {
+      // tend tabs audit 1: with a walk kept, opening the Map never draws the empty peek or its Navigate, even before its first read.
+      if (await pg.locator('[data-testid=section-memories]').count()) {
+        await pg.click('[data-testid=section-memories]');
+        await pg.waitForSelector('[data-testid=home-sheet]', { state: 'detached', timeout: 10000 }).catch(() => {});
+        await pg.waitForTimeout(800);
+        await watchPeek(null);
+        await pg.click('[data-testid=section-map]');
+        await pg.waitForSelector('[data-testid=sheet-walks]', { timeout: 15000 });
+        const mountSeen = await peekSeen();
+        check(mountSeen && mountSeen.nav === 0 && mountSeen.lines.length === 0,
+          `tend tabs audit 1: opening Chronicle's Map with a walk kept never shows the empty peek or its Navigate (${JSON.stringify(mountSeen)})`);
+      } else check(false, 'tend tabs audit 1: the section bar has Memories');
       await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(2500);
