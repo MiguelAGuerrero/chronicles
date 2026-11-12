@@ -211,8 +211,22 @@ async function run(h) {
       const cdp = await c.newCDPSession(pg);
       await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
       const box = await pg.locator('xpath=//canvas[contains(@class,"maplibregl-canvas")][not(ancestor::*[@aria-hidden="true"])]').last().boundingBox();
-      const cx = box.x + box.width / 2, cy = box.y + box.height / 4, r = 60;
+      const r = 60;
+      let cx = box.x + box.width / 2, cy = box.y + box.height / 4;
       const pts = (a) => [{ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), id: 1 }, { x: cx - r * Math.cos(a), y: cy - r * Math.sin(a), id: 2 }];
+      // Both touches land on the map's canvas, so a bearing of 0 after them is a refused turn, never a missed one: the
+      // first spot down the map's middle where nothing (a pin, a marker, a card) lies under them (tend map audit 7).
+      const hits = (ps) => pg.evaluate((qs) => qs.map((q) => {
+        const el = document.elementFromPoint(q.x, q.y);
+        return el?.classList.contains('maplibregl-canvas') ? null : (el?.closest('[data-testid]')?.getAttribute('data-testid') ?? el?.className?.toString().slice(0, 30) ?? 'nothing');
+      }), ps);
+      let off = [];
+      for (const f of [1 / 4, 1 / 3, 1 / 5, 2 / 5, 1 / 6]) {
+        cy = box.y + box.height * f;
+        off = (await hits([...pts(0), ...pts(Math.PI / 2)])).filter(Boolean);
+        if (!off.length) break;
+      }
+      check(!off.length, `tend map audit 7: the two-finger turn's touches land on the map's canvas (centre ${Math.round(cx)},${Math.round(cy)}; on ${JSON.stringify(off)})`);
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
       for (let i = 1; i <= 12; i++) {
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts((i * Math.PI) / 24) });
@@ -377,6 +391,15 @@ async function run(h) {
       await btn.focus();
       const seen = new Set();
       const read = () => pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      // Locate's busy state is seen, however briefly, so the focus is held through it (tend map audit 7).
+      await pg.evaluate(() => {
+        window.__busySeen = false;
+        const o = new MutationObserver(() => {
+          if (document.querySelector('[data-testid=locate][aria-busy=true]')) window.__busySeen = true;
+        });
+        o.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['aria-busy'], childList: true });
+        window.__busyWatch = o;
+      });
       await pg.keyboard.press('Enter');
       for (let i = 0; i < 20; i++) {
         seen.add(await read());
@@ -385,6 +408,8 @@ async function run(h) {
       await pg.waitForTimeout(1500);
       seen.add(await read());
       check(seen.size === 1 && seen.has('locate'), `tend map 5: Locate pressed from the keyboard keeps the focus while it reads the fix and after (${JSON.stringify([...seen])})`);
+      const busySeen = await pg.evaluate(() => { window.__busyWatch?.disconnect(); return window.__busySeen; });
+      check(busySeen === true, `tend map audit 7: Locate said busy (aria-busy="true") while it read the fix (${busySeen})`);
     }
     // The compass (CP1-CP5, CP8): none at north-up; turned, it sits above Locate with its needle against
     // the turn; a tap eases the map back to north without moving the centre or zoom.
@@ -544,14 +569,16 @@ async function run(h) {
       await pg.waitForTimeout(600);
       const shownW = await compassW.count();
       await shot(pg, 'qol-02a-walk-compass');
+      // The button below the compass in this state: Walk me back while it shows, else the unwalked switch (tend map audit 7).
+      const expectW = (await pg.locator('[data-testid=walk-back]').filter({ visible: true }).count()) ? 'walk-back' : 'unwalked';
       if (shownW) {
         await compassW.first().focus();
         await pg.keyboard.press('Enter');
         await pg.waitForTimeout(1500);
       }
       const focusedW = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
-      check(shownW === 1 && (await compassW.count()) === 0 && (focusedW === 'walk-back' || focusedW === 'unwalked'),
-        `tend map 6: on the walk, turned, the compass shows; pressed from the keyboard it leaves and the focus goes to the column's next button (shown ${shownW}, focus on ${focusedW})`);
+      check(shownW === 1 && (await compassW.count()) === 0 && focusedW === expectW,
+        `tend map 6: on the walk, turned, the compass shows; pressed from the keyboard it leaves and the focus goes to the column's next button (shown ${shownW}, focus on ${focusedW}, expected ${expectW}; tend map audit 7)`);
     }
     await checkAttribution('the walk screen', 'qol-06-walk-credits-open');
 
