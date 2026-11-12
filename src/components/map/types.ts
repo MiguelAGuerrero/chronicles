@@ -435,6 +435,13 @@ export const BUSY_NAME_FONT = ['Noto Sans Bold'];
  */
 export const BASE_FIRST_LABEL = 'waterway_line_label';
 
+/** A stale area's names (explore-dense-city ui 1). Not built yet. */
+export const BUSY_NAME_STALE_INK = '';
+/** The names' turn on a map turned to `bearing` (explore-dense-city ui 3). Not built yet. */
+export function busyNameRotate(_bearing: number): unknown {
+  throw new Error('busyNameRotate: not built (explore-dense-city ui 3)');
+}
+
 /** The busy names' size, the same for every name whatever its street's grade (DC4). */
 const BUSY_NAME_SIZE = 13;
 /** The selected area's name on the map (AreaPointView: 11 px bold under a 14 px dot, 140 px wide), as the room it reserves (DC14). */
