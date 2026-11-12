@@ -339,12 +339,35 @@ async function run(h) {
     await pg.waitForTimeout(1000);
   };
   for (let i = 0; i < 6; i++) await step(i);
-  // tend tabs audit 21: a photo from the bar on Explore leaves its Edit pill up (T12), and it follows to Memories.
-  await tabTo(pg, 'explore');
-  await pg.waitForSelector('[data-testid=bar-photo]', { timeout: 10000 }).catch(() => {});
-  const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=bar-photo]').catch(() => {})]);
-  await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
-  const pillUp = await pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
+  // A photo from the bar on Explore, which leaves its Edit pill up (T12).
+  const barPhoto = async () => {
+    await tabTo(pg, 'explore');
+    await pg.waitForSelector('[data-testid=bar-photo]', { timeout: 10000 }).catch(() => {});
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=bar-photo]').catch(() => {})]);
+    await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    return pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
+  };
+  // tend tabs audit 16: the offer lives with the bar, so a screen opened over the tabs (a day's replay) ends it, as
+  // decision 0149 says; back on the tabs the bar is whole and nothing breaks.
+  {
+    const up = await barPhoto();
+    await tabTo(pg, 'chronicle', 'days');
+    await pg.waitForSelector('[data-testid=day-row]', { timeout: 10000 }).catch(() => {});
+    await pg.locator('[data-testid=day-row]').first().click().catch(() => {});
+    await pg.waitForSelector('[data-testid=day-replay]', { timeout: 10000 }).catch(() => {});
+    await pg.click('[data-testid=day-replay]').catch(() => {});
+    const overTabs = await pg.waitForURL(/\/day\//, { timeout: 15000 }).then(() => true, () => false);
+    await pg.waitForTimeout(800);
+    await pg.goBack();
+    const barBack = await pg.waitForSelector('[data-testid=recording-stats]', { timeout: 15000 }).then(() => true, () => false);
+    await pg.waitForTimeout(600);
+    const pillAfter = await pg.locator('[data-testid=bar-edit-offer]').count();
+    const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
+    check(up && overTabs && barBack && pillAfter === 0 && /^\d+:\d\d · \d/.test(stats),
+      `tend tabs audit 16: a day opened over the tabs ends the bar's Edit offer; back on the tabs the bar keeps its line and no pill is left (${up}, ${overTabs}, ${barBack}, ${pillAfter}, "${stats}")`);
+  }
+  // tend tabs audit 21: a photo from the bar on Explore leaves its Edit pill up, and it follows to Memories.
+  const pillUp = await barPhoto();
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector(band, { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(600);
