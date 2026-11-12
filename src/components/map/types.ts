@@ -15,6 +15,15 @@ import type { Star } from '../../lib/places';
 import type { LngLat, StreetSegment } from '../../lib/types';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+
+/**
+ * Where the web map's worker is served from (`scripts/copy-maplibre-worker.js` copies it into `public/`), under the
+ * site's base path, with maplibre-gl's version as maplibre's own default address carries it: a browser that cached
+ * the worker of an older maplibre-gl fetches the new one with the new bundle (tend map 10).
+ */
+export function mapWorkerUrl(base: string, version: string): string {
+  return `${base}/maplibre-gl-worker.mjs?v=${encodeURIComponent(version)}`;
+}
 /** OpenMapTiles tops out at z14; road detail is only complete from there. */
 export const DERIVE_ZOOM = 14;
 /** Upper bound on camera stops while collecting roads for one walk. */

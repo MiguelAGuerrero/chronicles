@@ -1,5 +1,5 @@
 import type { Faced } from '../../lib/moment';
-import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
@@ -32,7 +32,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
   alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
-  type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VECTOR_SOURCE = 'openmaptiles';
@@ -40,8 +40,8 @@ const VECTOR_SOURCE = 'openmaptiles';
 const VIEW_TIMEOUT_MS = 4000;
 
 // Copied into public/ by scripts/copy-maplibre-worker.js on install, and served
-// under the site's base path (set by experiments.baseUrl) when it has one.
-setWorkerUrl(`${process.env.EXPO_BASE_URL ?? ''}/maplibre-gl-worker.mjs`);
+// under the site's base path (set by experiments.baseUrl) when it has one, with its version (tend map 10).
+setWorkerUrl(mapWorkerUrl(process.env.EXPO_BASE_URL ?? '', getVersion()));
 
 /** The trace's end joins the live dot only this close; farther, it's a pause or gap, not lag. */
 const LINK_MAX_M = 60;
