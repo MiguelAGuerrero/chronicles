@@ -150,17 +150,20 @@ export default function JournalEditor(props: Props) {
 
   const p = props.palette;
   const css = `
-    .page { outline: none; font-size: 17px; line-height: 1.5; color: ${p.ink}; min-height: 40vh; padding-bottom: 96px; }
+    .page, .page:focus, .page:focus-visible { outline: none; }
+    .page { font-size: 17px; line-height: 1.5; color: ${p.ink}; min-height: 40vh; padding-bottom: 96px; }
     .page p { margin: 0 0 10px; }
     .page h1 { font-size: 26px; line-height: 1.25; margin: 18px 0 8px; font-weight: 700; }
     .page h2 { font-size: 20px; line-height: 1.3; margin: 16px 0 6px; font-weight: 650; }
     .page ul, .page ol { padding-left: 24px; margin: 0 0 10px; }
     .page ul[data-type=taskList] { list-style: none; padding-left: 0; }
-    .page li[data-type=taskItem] { display: flex; gap: 10px; align-items: flex-start; }
-    .page li[data-type=taskItem] > label { flex: 0 0 auto; min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center; margin-top: -1px; }
-    .page li[data-type=taskItem] > label input { width: 20px; height: 20px; accent-color: ${p.ink}; margin: 0; }
-    .page li[data-type=taskItem] > div { flex: 1; }
-    .page li[data-checked=true] > div { text-decoration: line-through; text-decoration-color: ${p.muted}; }
+    .page ul[data-type=taskList] > li { display: flex; gap: 10px; align-items: flex-start; }
+    .page ul[data-type=taskList] > li > label { flex: 0 0 auto; min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center; }
+    .page ul[data-type=taskList] > li > label input { width: 20px; height: 20px; accent-color: ${p.ink}; margin: 0; }
+    .page ul[data-type=taskList] > li > label span { display: none; }
+    .page ul[data-type=taskList] > li > div { flex: 1; min-width: 0; padding-top: 1px; }
+    .page ul[data-type=taskList] > li > div p { margin: 0 0 6px; }
+    .page ul[data-type=taskList] > li[data-checked=true] > div { text-decoration: line-through; text-decoration-color: ${p.muted}; }
     .page blockquote { margin: 0 0 10px; padding-left: 14px; border-left: 3px solid ${p.muted}; }
     .page .mention { border: 1px solid ${p.line}; border-radius: 8px; padding: 1px 6px; background: ${p.surface}; white-space: nowrap; cursor: pointer; }
     .page p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: ${p.muted}; float: left; height: 0; pointer-events: none; }
