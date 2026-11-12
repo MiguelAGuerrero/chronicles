@@ -84,8 +84,8 @@ test('PS3: one word list and one name rule, for marks and bars alike; only the m
   // T8: community parks (main's first refinement) asks presence whether a name is notable; its park words (`parkNotable.json`,
   // `communityWords.json`) are the refinement's own curation, never a second notable rule.
   const park = src('discovery/parkKind.ts');
-  // tend explore T9: as presence reads a museum's name, past a neighbourhood's "Old Town" (presence-and-kinds audit 5).
-  assert.ok(/import \{[^}]*\bnotableBeyondNeighbourhood\b[^}]*\} from '\.\.\/presence\/notable'/.test(park), 'parkKind reads presence\'s rule');
+  // tend explore T9 and audit 1: parkKind reads past a neighbourhood's "Old Town" only just before a community word.
+  assert.ok(/import \{[^}]*\bnotableName\b[^}]*\} from '\.\.\/presence\/notable'/.test(park), 'parkKind reads notableName from presence');
   assert.ok(!/function notableName|const notableName/.test(park), 'parkKind defines no notable rule of its own');
   for (const f of libFiles()) assert.ok(!/['/]notable\.json/.test(readFileSync(f, 'utf8')), `${relative(lib, f)} reads notable.json`);
   assert.ok(p.named(['civic_hall'], 'Old Town Hall').includes('historic_name'), 'a historic name, for marks');
