@@ -54,7 +54,15 @@ const viewOf = (c: Faced): MomentView => ({ id: c.id, t: c.t, kind: c.kind, walk
  * writing is the capture. Threads, Hidden and the resurfacing choices are behind the contents button.
  */
 export function MemoriesScreen() {
-  const { state, feed, now, hidden: deletedIds } = useResurface();
+  const { state, feed, now: readAt, hidden: deletedIds } = useResurface();
+  // The page's own clock (audit 11): the read's `now` is set when Memories comes to the front, and a page left open
+  // would date a new entry against it (no "No location" after its minute, yesterday's heading past midnight).
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const now = Math.max(readAt, tick);
   const index = useStore(resurface.store, stepIndex);
   const [limit, setLimit] = useState(JOURNAL_PAGE);
   // The contents' Threads (JN21): the Chronicle's threads and the owner's, off the page.
@@ -225,8 +233,35 @@ export function MemoriesScreen() {
     if (state === 'kept' || state === 'placed') void resurface.refresh();
     else setReasons((prev) => ({ ...prev, [c.id]: state }));
   }, []);
-  const onChanged = useCallback(() => void resurface.refresh(), []);
+  const onChanged = useCallback(() => {
+    setTick(Date.now());
+    void resurface.refresh();
+  }, []);
+  // What the line wrote or removed, in this sitting's own copy, so the page is whole before a read and when one fails (audit 6).
+  const onWritten = useCallback((e: { momentId: string; pieceId: string }, body: string) => {
+    setSession((prev) => prev.map((m) => {
+      if (m.id !== e.momentId) return m;
+      const pieces = m.capture.pieces.map((p) => (p.id === e.pieceId ? { ...p, body } : p));
+      const capture = { ...m.capture, pieces, ...(m.capture.piece_id === e.pieceId ? { body } : null) };
+      return { ...m, capture, words: wordsOf(capture) };
+    }));
+  }, []);
+  const onDropped = useCallback((e: { momentId: string; pieceId: string }, gone: 'moment' | 'piece') => {
+    setSession((prev) => (gone === 'moment'
+      ? prev.filter((m) => m.id !== e.momentId)
+      : prev.map((m) => (m.id === e.momentId ? { ...m, capture: { ...m.capture, pieces: m.capture.pieces.filter((p) => p.id !== e.pieceId) } } : m))));
+  }, []);
+  // A tap in the line brings today's foot into view (JN9, JN11).
   const toFoot = useCallback(() => pageRef.current?.toFoot(), []);
+  // Something was kept from the line: from a thread, the threads or Hidden that means back to the page, which opens
+  // at its foot, so what was kept is seen (audit 15). Not on the tap itself: the field must keep its focus.
+  const onSeen = useCallback(() => {
+    setThreadTerm(null);
+    setOwnId(null);
+    setThreadsOpen(false);
+    setHiddenOpen(false);
+    pageRef.current?.toFoot();
+  }, []);
   // Every list scrolls its last entry clear above the open line (JN9), and messages sit above it (JN18).
   const clear = { paddingBottom: LINE_REST_H + 24 };
   // Memories' own toast (Undo) goes in the band's column, above its pills, so the two never cover each other (audit 2).
@@ -318,7 +353,7 @@ export function MemoriesScreen() {
           onBack={() => setThreadTerm(null)}
           onOpen={open}
           onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
-          onMore={(m) => setMenuFor(m.id)}
+          onMore={(m) => { setMenuFromSlip(false); setMenuFor(m.id); }}
           onKeep={() => {
             // A tap copies the Chronicle's thread into one of the owner's; the Chronicle's own is untouched (OT19).
             // No name is kept for the owner: the Chronicle's is only offered in the name field (audit 13). One tap, one thread (audit 12).
@@ -403,8 +438,8 @@ export function MemoriesScreen() {
 
   const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
   const bandLayer = (
-    <View style={styles.bandLayer} pointerEvents="box-none">
-      <OpenLine focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onRecording={setMemoOn} onFoot={toFoot} above={undoToast} />
+    <View key="line" style={styles.bandLayer} pointerEvents="box-none">
+      <OpenLine focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} above={undoToast} />
     </View>
   );
 
@@ -413,15 +448,14 @@ export function MemoriesScreen() {
       {ready && !subScreen && (
         <View style={styles.bar}>
           <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Contents: threads, hidden and options" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
-            <Icon name="list-outline" size={22} color={theme.muted} />
+            <Text style={styles.menuText}>Contents</Text>
           </Pressable>
         </View>
       )}
       {/* First after the options button, so a screen reader reaches the band before the feed (HC8); drawn at the foot.
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
-      {!subScreen && bandLayer}
-      {body}
-      {subScreen && bandLayer}
+      {/* Keyed, so the line is the same line when it moves after the screen: a walk of its state survives (audit 10). */}
+      {subScreen ? [<View key="body" style={styles.body}>{body}</View>, bandLayer] : [bandLayer, <View key="body" style={styles.body}>{body}</View>]}
       <MemoriesMenu
         open={menuOpen}
         off={state.prefs.off}
@@ -466,6 +500,11 @@ export function MemoriesScreen() {
           setMenuFor(null);
           if (m) open(m);
         }}
+        onMap={menuMoment && menuMoment.capture.lat != null && menuMoment.capture.lon != null ? () => {
+          const c = menuMoment.capture;
+          setMenuFor(null);
+          chronicleSection.showMoment([c.lon as number, c.lat as number]);
+        } : undefined}
         onRelive={menuFromSlip && menuMoment ? () => {
           const m = menuMoment;
           setMenuFor(null);
@@ -528,12 +567,14 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   bandLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2 },
   scroll: { flex: 1 },
+  body: { flex: 1 },
   pad: { paddingHorizontal: 16, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   threads: { gap: 22 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, alignSelf: 'flex-start', paddingRight: 12 },
   backText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   bar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  menuBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  menuBtn: { minWidth: 44, height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  menuText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   hint: { color: theme.muted, fontSize: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.line, borderRadius: 14, padding: 12 },
   quiet: { paddingVertical: 8, gap: 14, alignItems: 'flex-start' },
   quietText: { color: theme.ink, fontSize: 16, lineHeight: 23 },

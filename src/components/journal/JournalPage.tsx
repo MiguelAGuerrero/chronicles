@@ -31,7 +31,11 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const at = useRef({ y: 0, height: 0, view: 0 });
   // Until the first layout has been taken to the foot, and whenever the reader is at the foot, new content keeps it there.
   const pinned = useRef(true);
+  // Older entries were asked for, with the rows there were: a size change with the same rows is not their arrival
+  // (a dateline wrapping as its place is read), and must not be taken for it (audit 13).
   const adding = useRef(false);
+  const askedAt = useRef(0);
+  const count = props.rows.length;
   // Older entries are asked for only once the page has first been taken to its foot: it opens there, not at the top.
   const opened = useRef(false);
   useImperativeHandle(ref, () => ({
@@ -48,22 +52,30 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     if (pinned.current) opened.current = true;
     if (opened.current && contentOffset.y < NEAR_TOP && contentSize.height > layoutMeasurement.height && more && !adding.current) {
       adding.current = true;
+      askedAt.current = count;
       onMore();
     }
   };
   const onContentSizeChange = (_w: number, h: number) => {
     const before = at.current.height;
     at.current.height = h;
+    if (adding.current && count === askedAt.current) {
+      if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
+      return;
+    }
     if (adding.current) {
       adding.current = false;
+      // A reader at the foot stays there (a short page that asked for more, a page read again after it failed: ui 8).
+      if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
       // Entries were added above: the ones on screen keep their place. Native holds it itself (below).
-      if (Platform.OS === 'web' && before > 0 && h > before) scroll.current?.scrollTo({ y: at.current.y + (h - before), animated: false });
+      else if (Platform.OS === 'web' && before > 0 && h > before) scroll.current?.scrollTo({ y: at.current.y + (h - before), animated: false });
       return;
     }
     if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
     // A page shorter than the screen never scrolls, so it never reaches "the top": older entries are asked for here.
     if (more && at.current.view > 0 && h <= at.current.view) {
       adding.current = true;
+      askedAt.current = count;
       onMore();
     }
   };

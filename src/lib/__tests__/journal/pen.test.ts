@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../journal/pen';
 import { OPEN_MS, WALK_ON_M, initial, openId, step } from '../../openMoment';
-import { keyboardLift } from '../../journal/keyboard';
+import { keyboardLift, lineLift } from '../../journal/keyboard';
+import { spareFresh } from '../../journal/target';
 import { refToken } from '../../refs';
 
 const run = (events: PenEvent[], from: PenState = PEN_START) => {
@@ -45,7 +46,7 @@ test('JN13: a failed save is said, the words held, and Retry writes them', () =>
   assert.equal(failed.state.failed, true);
   assert.equal(failed.state.body, 'A heron');
   const retried = run([{ k: 'retry' }], failed.state);
-  assert.deepEqual(retried.effects, [{ k: 'save', ...E, body: 'A heron' }]);
+  assert.deepEqual(retried.effects, [{ k: 'save', ...E, body: 'A heron', now: true }]);
   assert.equal(run([{ k: 'saved', body: 'A heron' }], retried.state).state.failed, false);
   // A begin that failed holds the words too, and Retry begins again.
   const noBegin = run([{ k: 'type', body: 'A' }, { k: 'beginFailed' }]);
@@ -55,18 +56,20 @@ test('JN13: a failed save is said, the words held, and Retry writes them', () =>
 
 test('JN15: Done writes what is typed, empties the line and ends the entry', () => {
   const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
+  // What is typed is written at once, and the line empties only once it is known to be kept (audit 4).
   const done = run([{ k: 'done' }], typed.state);
-  assert.deepEqual(done.effects.slice(-3), [{ k: 'save', ...E, body: 'A heron' }, { k: 'clear' }, { k: 'end' }]);
-  assert.deepEqual(done.state, PEN_START);
+  assert.deepEqual(done.effects, [{ k: 'save', ...E, body: 'A heron', now: true }]);
+  const kept = run([{ k: 'saved', body: 'A heron' }], done.state);
+  assert.deepEqual(kept.effects, [{ k: 'clear' }, { k: 'end' }]);
+  assert.deepEqual(kept.state, PEN_START);
   // Done with nothing written ends the open entry all the same (a photo's entry, closed by hand).
   assert.deepEqual(run([{ k: 'done' }]).effects, [{ k: 'end' }]);
 });
 
 test('JN15: a photo or memo kept leaves the words as their own piece, and the entry open', () => {
   const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
-  const kept = run([{ k: 'kept' }], typed.state);
-  assert.deepEqual(kept.effects.slice(-2), [{ k: 'save', ...E, body: 'A heron' }, { k: 'clear' }]);
-  assert.ok(!kept.effects.some((e) => e.k === 'end'));
+  const kept = run([{ k: 'kept' }, { k: 'saved', body: 'A heron' }], typed.state);
+  assert.deepEqual(kept.effects, [{ k: 'save', ...E, body: 'A heron', now: true }, { k: 'clear' }]);
   assert.deepEqual(kept.state, PEN_START);
 });
 
@@ -78,8 +81,8 @@ test('JN15: Done while the begin is on its way still ends the entry once it is s
 
 test('JN15: the entry that closed by itself lets go of the line', () => {
   const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
-  const closed = run([{ k: 'closed' }], typed.state);
-  assert.deepEqual(closed.effects, [{ k: 'save', ...E, body: 'A heron' }, { k: 'clear' }]);
+  const closed = run([{ k: 'closed' }, { k: 'saved', body: 'A heron' }], typed.state);
+  assert.deepEqual(closed.effects, [{ k: 'save', ...E, body: 'A heron', now: true }, { k: 'clear' }]);
   assert.deepEqual(closed.state, PEN_START);
 });
 
@@ -107,4 +110,42 @@ test('JN19: the foot lifts by what the keyboard hides, and never while zoomed', 
   assert.equal(keyboardLift(844, 508, 40), 296);
   assert.equal(keyboardLift(844, 900, 0), 0);
   assert.equal(keyboardLift(844, 422, 100, 2), 0);
+});
+
+test('chronicle-journal audit 4: a save that fails as the line lets go keeps the words in the line, for Retry', () => {
+  const typed = run([{ k: 'type', body: 'A' }, { k: 'began', ...E, body: 'A' }, { k: 'type', body: 'A heron' }]);
+  const failed = run([{ k: 'done' }, { k: 'saveFailed' }], typed.state);
+  assert.ok(!failed.effects.some((e) => e.k === 'clear' || e.k === 'end'), 'the line is not emptied');
+  assert.equal(failed.state.body, 'A heron');
+  assert.equal(failed.state.failed, true);
+  // Retry writes them; kept, the line stays as it is for the owner to go on or tap Done again.
+  const retried = run([{ k: 'retry' }, { k: 'saved', body: 'A heron' }], failed.state);
+  assert.deepEqual(retried.effects, [{ k: 'save', ...E, body: 'A heron', now: true }]);
+  assert.equal(retried.state.failed, false);
+  assert.equal(retried.state.body, 'A heron');
+});
+
+test('chronicle-journal audit 4: after a begin failed, the next words begin again by themselves', () => {
+  const r = run([{ k: 'type', body: 'A' }, { k: 'beginFailed' }, { k: 'type', body: 'A h' }]);
+  assert.deepEqual(r.effects, [{ k: 'begin', body: 'A' }, { k: 'begin', body: 'A h' }]);
+});
+
+test('chronicle-journal audit 10: an entry that closed while its begin was on its way is let go once it is stored', () => {
+  const r = run([{ k: 'type', body: 'A heron' }, { k: 'closed' }, { k: 'began', ...E, body: 'A heron' }]);
+  assert.deepEqual(r.effects.at(-1), { k: 'clear' });
+  assert.deepEqual(r.state, PEN_START);
+});
+
+test('chronicle-journal audit 5: a location read left by an emptied entry is aged from when it was read', () => {
+  // Begun at 9:00, emptied at 9:20: a minute later the read is twenty-one minutes old, and not used.
+  const read = 0;
+  assert.equal(spareFresh(read, read + 21 * 60_000), false);
+  assert.equal(spareFresh(read, read + 60_000), true);
+});
+
+test('chronicle-journal audit 1: the line lifts by what the keyboard covers above what sits under it', () => {
+  // A 336 px keyboard over a line with an 82 px tab bar beneath it: the line rises 254.
+  assert.equal(lineLift(336, 82), 254);
+  assert.equal(lineLift(0, 82), 0);
+  assert.equal(lineLift(60, 82), 0);
 });

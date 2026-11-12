@@ -34,7 +34,10 @@ export function journalMoments(feed: MomentView[], inOpenWalk: MomentView[], hid
  */
 export function journalPage(moments: MomentView[], now: number, limit: number, opts: { slip?: boolean } = {}): { rows: JournalRow[]; more: boolean } {
   const shown = moments.slice(Math.max(0, moments.length - limit));
-  const today = dayKey(now);
+  // `now` is the page's clock, which can trail an entry just written (the page left open past midnight) or a clock
+  // set back: today is the later of the two days, so its heading and the slip are never drawn twice (audit 2).
+  const last = shown.length ? dayKey(shown[shown.length - 1].t) : '';
+  const today = last > dayKey(now) ? last : dayKey(now);
   const rows: JournalRow[] = [];
   let day: string | null = null;
   const heading = (key: string, t: number) => {

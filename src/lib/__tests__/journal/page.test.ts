@@ -60,3 +60,13 @@ test('JN20: the slip sits under today\'s heading, above today\'s entries', () =>
   assert.deepEqual(rows.map((r) => r.k), ['day', 'entry', 'day', 'slip', 'entry']);
   assert.deepEqual(journalPage([], NOW, JOURNAL_PAGE, { slip: false }).rows.map((r) => r.k), ['day']);
 });
+
+test('chronicle-journal audit 2: an entry after now never repeats today\'s heading or the slip', () => {
+  // Memories left open at 23:50; an entry written at 00:05 the next day, with `now` still the evening before.
+  const evening = new Date(2026, 10, 12, 23, 50).getTime();
+  const ms = [moment(evening - HOUR, 'before midnight', { id: 'a' }), moment(evening + 15 * 60_000, 'after midnight', { id: 'b' })];
+  const rows = journalPage(journalMoments(ms, [], none), evening, JOURNAL_PAGE, { slip: true }).rows;
+  assert.deepEqual(rows.map((r) => r.k), ['day', 'entry', 'day', 'slip', 'entry']);
+  assert.equal(new Set(rows.map((r) => r.key)).size, rows.length, 'every row has its own key');
+  assert.deepEqual(rows.filter((r) => r.k === 'day').map((r) => r.k === 'day' && r.today), [false, true]);
+});

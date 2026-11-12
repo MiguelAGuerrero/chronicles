@@ -40,7 +40,7 @@ export function Slip(props: { pick: Pick; now: number; context?: ContextEntry; o
 }
 
 const styles = StyleSheet.create({
-  slip: { flexDirection: 'row', alignItems: 'flex-start', borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.edge, marginTop: 6, marginBottom: 4 },
+  slip: { flexDirection: 'row', alignItems: 'flex-start', borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.edge, marginTop: 14, marginBottom: 4 },
   body: { flex: 1, paddingVertical: 12, gap: 6, minHeight: 44 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   picture: { width: 56, height: 56 },

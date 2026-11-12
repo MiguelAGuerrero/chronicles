@@ -19,7 +19,8 @@ const INIT = () => {
   g.clearWatch = (id) => { window.__geo.watching = Math.max(0, window.__geo.watching - 1); return clear(id); };
   const getAll = IDBIndex.prototype.getAll;
   IDBIndex.prototype.getAll = function (...a) {
-    if (window.__breakReads) throw new DOMException('broken for the test', 'UnknownError');
+    // `true` breaks every index read; a name breaks that index alone (the page's listing, not a delete's own reads).
+    if (window.__breakReads === true || window.__breakReads === this.name) throw new DOMException('broken for the test', 'UnknownError');
     return getAll.apply(this, a);
   };
 };
@@ -60,7 +61,7 @@ const box = async (pg, sel) => {
 const same = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
 
 async function run(h) {
-  const { url, BASE, check, shot, tabTo } = h;
+  const { url, BASE, check, shot, tabTo, iconOf } = h;
   const { c, pg } = await h.freshPage('journal', { permissions: ['geolocation', 'microphone'] });
   await c.addInitScript(INIT);
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
@@ -73,7 +74,6 @@ async function run(h) {
     await pg.keyboard.type(text, { delay: 15 });
   };
   const done = () => pg.click('[data-testid=line-done]').catch(() => {});
-  const entryTexts = () => pg.locator(entries).evaluateAll((els) => els.map((e) => e.innerText));
   const scrollTo = (where) => pg.evaluate((w) => {
     const root = document.querySelector('[data-testid=journal-page]');
     const s = root && [root, ...root.querySelectorAll('*')].find((x) => x.scrollHeight > x.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(x).overflowY));
@@ -133,6 +133,31 @@ async function run(h) {
   check(order === 'line-input', `JN23: after the contents button, the open line comes next for a screen reader (${order})`);
   await shot(pg, 'journal-01-empty');
 
+  // ui 5, ui 6: the line has a boundary that reads as a control's edge, and the contents button says what it is.
+  const edge = await pg.locator(line).evaluate((e) => getComputedStyle(e).borderTopColor).catch(() => '');
+  check(edge === 'rgb(138, 133, 125)', `chronicle-journal ui 5: the open line's boundary is the control edge colour, 3:1 on the ground (${edge})`);
+  const contentsWord = (await pg.locator('[data-testid=memories-menu]').innerText().catch(() => '')).trim();
+  check(contentsWord === 'Contents', `chronicle-journal ui 6: the contents button is labelled in words ("${contentsWord}")`);
+
+  // chronicle-journal audit 1: the line rides above the keyboard. Headless has none: the visual viewport is made to
+  // report one, as iOS Safari does, and the line must rise by what it covers above the tab bar.
+  const kb = async (px) => {
+    await pg.evaluate((k) => {
+      const vv = window.visualViewport;
+      Object.defineProperty(vv, 'height', { configurable: true, get: () => window.innerHeight - k });
+      vv.dispatchEvent(new Event('resize'));
+    }, px);
+    await pg.waitForTimeout(300);
+  };
+  const down0 = await box(pg, line);
+  await kb(336);
+  const up = await box(pg, line);
+  await kb(0);
+  const down1 = await box(pg, line);
+  const belowLine = down0 ? 844 - (down0.y + down0.h) : -1;
+  check(!!down0 && !!up && up.y === down0.y - (336 - belowLine) && up.y + up.h === 844 - 336 && same(down0, down1),
+    `chronicle-journal audit 1: with a keyboard up the line sits just above it, and comes back down (${JSON.stringify({ down0, up, down1, belowLine })})`);
+
   // JN12, JN13: the first character begins an entry with one fix; it is kept as it is written; no walk starts.
   const lineAtRest = await box(pg, line);
   await type('A heron');
@@ -175,6 +200,28 @@ async function run(h) {
   check(placed && lines1.length === 2 && lines1.every((l) => /^\d{1,2}:\d{2} this (morning|afternoon|evening)|^\d{1,2}:\d{2} tonight/.test(l)),
     `JN5: today's entries are dated by the time and part of the day, and gain their place by their one fix (${JSON.stringify(lines1)})`);
 
+  // chronicle-journal audit 3: emptied and written again at once, the new words are kept in an entry of their own.
+  const beforeQuick = (await stored(pg)).moments.length;
+  await pg.click(input).catch(() => {});
+  await pg.keyboard.type('q');
+  await pg.keyboard.press('Backspace');
+  await pg.keyboard.type('Quick again.', { delay: 5 });
+  await pg.waitForTimeout(1500);
+  const quickStatus = (await pg.locator('[data-testid=line-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
+  await done();
+  await pg.waitForTimeout(800);
+  const afterQuick = (await stored(pg)).moments;
+  check(afterQuick.length === beforeQuick + 1 && afterQuick.some((m) => m.pieces.length === 1 && m.pieces[0].body === 'Quick again.') && quickStatus === 'Kept as you write',
+    `chronicle-journal audit 3: words typed right after emptying the line are kept, in one new entry (${afterQuick.length - beforeQuick} new, "${quickStatus}")`);
+  // ui 4: an entry's More sits on its dateline's row, trailing.
+  const headRow = await pg.locator(entries).last().evaluate((e) => {
+    const d = e.querySelector('[data-testid=entry-dateline]').getBoundingClientRect();
+    const m = e.querySelector('[data-testid=moment-more]').getBoundingClientRect();
+    return { dateline: Math.round(d.y + d.height / 2), more: Math.round(m.y + m.height / 2), right: Math.round(m.right), w: Math.round(m.width), h: Math.round(m.height) };
+  }).catch(() => null);
+  check(!!headRow && Math.abs(headRow.dateline - headRow.more) <= 22 && headRow.w >= 44 && headRow.h >= 44,
+    `chronicle-journal ui 4: More trails the dateline on the entry's first row, a thumb's target (${JSON.stringify(headRow)})`);
+
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
     const e = document.querySelector(sel);
@@ -210,9 +257,14 @@ async function run(h) {
   const rec = {
     field: await box(pg, input), photo: await box(pg, '[data-testid=band-photo]'), save: await box(pg, '[data-testid=band-voice-save]'),
     discard: await shown('[data-testid=band-voice-discard]'), timer: await shown('[data-testid=band-voice-timer]'), text: await pg.locator(input).inputValue().catch(() => null),
+    onPage: await pg.locator(entries).last().locator('[data-testid=entry-words]').filter({ hasText: 'Same post as last week.' }).count(),
+    camera: await pg.locator('[data-testid=band-photo]').getAttribute('aria-disabled').catch(() => 'missing'),
   };
-  check(photoOn && same(restBoxes.field, rec.field) && same(restBoxes.photo, rec.photo) && rec.discard && rec.timer && !!rec.save && rec.text === 'Same post as last week.',
-    `JN14: while a note records, only the mic's place changes: the field, its words and the camera keep their boxes (${JSON.stringify({ restBoxes, rec })})`);
+  check(photoOn && same(restBoxes.field, rec.field) && same(restBoxes.photo, rec.photo) && rec.discard && rec.timer && !!rec.save,
+    `JN14: while a note records, only the mic's place changes: the field and the camera keep their boxes (${JSON.stringify({ restBoxes, rec })})`);
+  check(rec.text === '' && rec.onPage === 1,
+    `chronicle-journal audit 3: the words typed before the mic stand on the page as their own piece once the note starts, so emptying the line cannot remove the entry it records into (${JSON.stringify({ text: rec.text, onPage: rec.onPage })})`);
+  check(rec.camera !== 'true', `chronicle-journal audit 14: mid-note the camera is still one tap, not dimmed (aria-disabled ${rec.camera})`);
   await pg.waitForTimeout(1600);
   await pg.click('[data-testid=band-voice-save]').catch(() => {});
   await pg.waitForTimeout(1500);
@@ -229,6 +281,8 @@ async function run(h) {
   check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.digits === 0,
     `JN15: a photo, the line under it and a voice note are one entry under one dateline, every piece shown, no count (${JSON.stringify({ kinds, lastEntry, moments: s3.moments.length - before3 })})`);
   check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with every piece shown (${JSON.stringify(lastEntry)})`);
+  const memoGlyph = await pg.locator(entries).last().locator('[data-testid=entry-piece-voice]').innerText().then((t) => iconOf(t.trim()[0] ?? ''), () => '');
+  check(!!memoGlyph && !/play/.test(memoGlyph), `chronicle-journal ui 2: a voice note's line wears a mic, not a play button it does not have (${memoGlyph})`);
   // JN15: after Done the next piece begins a new entry.
   await type('A new entry after Done.');
   await pg.waitForTimeout(1200);
@@ -302,6 +356,7 @@ async function run(h) {
     if (!s) return null;
     const heads = [...document.querySelectorAll('[data-testid=day-heading]')];
     const todayHead = heads[heads.length - 1];
+    window.__slipGap = todayHead ? Math.round(s.getBoundingClientRect().top - todayHead.getBoundingClientRect().bottom) : -1;
     const firstToday = [...document.querySelectorAll('[data-testid=moment-card]')].find((e) => todayHead && (todayHead.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING));
     return {
       afterHeading: !!todayHead && !!(todayHead.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING),
@@ -312,6 +367,8 @@ async function run(h) {
   });
   check(!!slip && slip.afterHeading && slip.beforeEntries && slip.label.length > 0 && slip.buttons === 2 && slip.focused !== 'line-input',
     `JN20: the resurfaced moment is a slip under today's date, above today's entries, with one tap to open and More (${JSON.stringify(slip)})`);
+  const slipGap = await pg.evaluate(() => window.__slipGap);
+  check(slipGap >= 12, `chronicle-journal ui 10: the slip's rule stands clear of the date above it, not under it like an underline (${slipGap} px)`);
   await shot(pg, 'journal-04-long-foot');
   const fixedAtFoot = await box(pg, line);
   const anchor = await pg.locator(entries).first().evaluate((e) => ({ text: e.innerText.slice(0, 60) }));
@@ -338,6 +395,19 @@ async function run(h) {
   // JN6, JN7: a placed entry's dateline opens Chronicle's Map; an unplaced one is not a button.
   const unplaced = await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=entry-map]').count();
   const placedEntry = pg.locator(entries).filter({ hasText: 'Second entry of the day.' });
+  // ui 3: the map is also in the entry's More, and a placed dateline wears a pin.
+  const pinGlyph = await placedEntry.locator('[data-testid=entry-map]').innerText().then((t) => iconOf(t.trim()[0] ?? ''), () => '');
+  await placedEntry.locator('[data-testid=moment-more]').click().catch(() => {});
+  await there('[data-testid=memory-menu]', 4000);
+  const mapInMore = await pg.locator('[data-testid=menu-map]').count();
+  await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
+  await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=moment-more]').click().catch(() => {});
+  await there('[data-testid=memory-menu]', 4000);
+  const mapForUnplaced = await pg.locator('[data-testid=menu-map]').count();
+  await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
+  await pg.waitForTimeout(400);
+  check(mapInMore === 1 && mapForUnplaced === 0 && /location/.test(pinGlyph),
+    `chronicle-journal ui 3: Show on the map is in a placed entry's More, and its dateline wears a pin (${JSON.stringify({ mapInMore, mapForUnplaced, pinGlyph })})`);
   await placedEntry.locator('[data-testid=entry-map]').click().catch(() => {});
   const onMap = await pg.waitForSelector('[data-testid=section-map][aria-selected=true]', { timeout: 6000 }).then(() => true, () => false);
   await pg.waitForTimeout(2500);
@@ -376,6 +446,21 @@ async function run(h) {
   await pg.locator('[data-testid=threads-rail] [role=button]').first().click().catch(() => {});
   const inThread = await there('[data-testid=thread-screen]', 5000);
   const lineInThread = same(await box(pg, line), lineAtRest);
+  // audit 8: a moment's menu inside a thread never offers the slip's Another, even after the slip's More was open.
+  await pg.locator('[data-testid=thread-screen] [data-testid=moment-more]').first().click().catch(() => {});
+  await there('[data-testid=memory-menu]', 4000);
+  const anotherInThread = await pg.locator('[data-testid=memory-menu] [data-testid=resurfaced-another], [data-testid=memory-menu] [data-testid=resurfaced-relive]').count();
+  await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
+  await pg.waitForTimeout(400);
+  check(inThread && anotherInThread === 0, `chronicle-journal audit 8: a thread moment's menu has no Another or Relive it (${anotherInThread})`);
+  // audit 15: writing from inside a thread goes back to the page at its foot, where the entry is seen.
+  await pg.click(input).catch(() => {});
+  await pg.keyboard.type('Written from inside a thread.', { delay: 10 });
+  await pg.waitForTimeout(1200);
+  await done();
+  await pg.waitForTimeout(1000);
+  const seenAfterThread = await pg.locator(entries).last().evaluate((e) => { const r = e.getBoundingClientRect(); return e.innerText.includes('Written from inside a thread.') && r.top >= 0 && r.bottom <= window.innerHeight; }).catch(() => false);
+  check(seenAfterThread && !(await shown('[data-testid=thread-screen]')), `chronicle-journal audit 15: an entry written from a thread is seen on the page, at its foot (${seenAfterThread})`);
   await pg.locator('[data-testid=thread-back]').click().catch(() => {});
   await pg.locator('[data-testid=threads-back]').click().catch(() => {});
   const backOnPage = await there('[data-testid=journal-page]', 5000);
@@ -455,19 +540,37 @@ async function run(h) {
   check(/^Note, A long entry, .+, \d{1,2}:\d{2} (am|pm) · No location\. Open$/.test(spoken ?? ''), `JN23: an entry is spoken as its kind, its words and its dateline ("${(spoken ?? '').slice(0, 40)}…${(spoken ?? '').slice(-40)}")`);
 
   // JN9: the line still keeps an entry when the page failed to read, and the entry is drawn there.
-  await pg.evaluate(() => { window.__breakReads = true; });
+  await pg.evaluate(() => { window.__breakReads = 't'; });
   await tabTo(pg, 'explore');
   await tabTo(pg, 'chronicle', 'memories');
   const failed = await there('[data-testid=memories-failed]', 8000);
-  await pg.evaluate(() => { window.__breakReads = false; });
+  // The reads stay broken while the entry is written (audit 6): the page must draw it whole from what the line told it.
+  const cardsDown = await pg.locator('[data-testid=memories] [data-testid=moment-card]').count();
+  await type('zz');
+  await pg.waitForTimeout(800);
+  await pg.keyboard.press('Backspace');
+  await pg.keyboard.press('Backspace');
+  await pg.waitForTimeout(1200);
+  const emptiedLeft = (await pg.locator('[data-testid=memories] [data-testid=moment-card]').count()) - cardsDown;
   await type('Kept while the page was down.');
   await pg.waitForTimeout(1500);
   await done();
   await pg.waitForTimeout(1200);
+  const stillFailed = await shown('[data-testid=memories-failed]');
   const keptDown = (await stored(pg)).moments.some((m) => m.pieces.some((p) => p.body === 'Kept while the page was down.'));
   const drawnDown = await pg.locator('[data-testid=memories] [data-testid=moment-card]').filter({ hasText: 'Kept while the page was down.' }).count();
   check(failed && keptDown && drawnDown === 1, `JN9: on the failed page the line keeps an entry, and it is drawn there (${JSON.stringify({ failed, keptDown, drawnDown })})`);
+  check(stillFailed && drawnDown === 1 && emptiedLeft === 0,
+    `chronicle-journal audit 6: with reads still failing, the entry drawn holds every word, and an emptied one leaves (${JSON.stringify({ stillFailed, drawnDown, emptiedLeft })})`);
+  await pg.waitForTimeout(600);
   await shot(pg, 'journal-10-failed-page');
+  // ui 8: read again, the page comes back whole and at its foot.
+  await pg.evaluate(() => { window.__breakReads = false; });
+  await pg.locator('[data-testid=memories-failed] [role=button]').click().catch(() => {});
+  await pg.waitForSelector('[data-testid=memories-failed]', { state: 'detached', timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  const atFootAgain = await pg.locator(entries).last().evaluate((e) => { const r = e.getBoundingClientRect(); return e.innerText.includes('Kept while the page was down.') && r.bottom <= window.innerHeight && r.bottom > 0; }).catch(() => false);
+  check(atFootAgain, `chronicle-journal ui 8: after Try again the page is back at its foot, on the latest entry (${atFootAgain})`);
 
   // JN24: the section bar and its other sections are as before; none shows the line.
   const sections = {};
@@ -506,6 +609,9 @@ async function run(h) {
   const lineBox = await box(pg, line);
   const barBox = await box(pg, '[data-testid=recording-bar]');
   const toast = await shown('[data-testid=band-toast]');
+  const geoOnWalk = await pg.evaluate(() => window.__geo.reads);
+  const walkLine = await pg.locator(entries).filter({ hasText: 'Written on the walk.' }).locator('[data-testid=entry-dateline]').innerText().catch(() => '');
+  check(geoOnWalk === 0 && !/No location/.test(walkLine), `chronicle-journal audit 7: an entry on an open walk asks for no fix and never says No location (${geoOnWalk} reads, "${walkLine}")`);
   check(onPage === 1 && !!walk && walkRow?.walk_id === walk.id && !toast,
     `JN8: an entry written with a walk minimized is on the page at once and is the walk's, with no toast (${JSON.stringify({ onPage, walk: walk?.id, row: walkRow?.walk_id, toast })})`);
   check(!barCam && !!lineBox && !!barBox && lineBox.y + lineBox.h <= barBox.y + 1, `JN24: the line sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ barCam, lineBox, barBox })})`);

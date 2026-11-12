@@ -52,3 +52,12 @@ test('JN23: an entry spoken as its kind, its words, its dateline', () => {
   assert.equal(entrySpoken('text', 'A heron on the pier.', '8:15 this morning · Elm Street', false), 'Note, A heron on the pier., 8:15 this morning · Elm Street');
   assert.equal(entrySpoken('photo', null, '2:10 pm', true), 'Photo, with more in this moment, 2:10 pm');
 });
+
+test('chronicle-journal audit 7: an entry on a walk still open makes no place claim: the trace places it at Stop', () => {
+  const t = NOW - 5 * 60_000;
+  const line = dateline({ t, now: NOW, placed: false, context: { place: null, into: 'Forty minutes in' }, onOpenWalk: true });
+  assert.doesNotMatch(line, /No location/);
+  assert.match(line, / · Forty minutes in$/);
+  // Off a walk, the same entry does say so.
+  assert.match(dateline({ t, now: NOW, placed: false, context: null }), /No location/);
+});

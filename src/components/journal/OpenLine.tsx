@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { lineLift } from '../../lib/journal/keyboard';
+import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { KEPT_AS_YOU_WRITE, LINE_LABELS, NOT_KEPT } from '../../lib/journal/lines';
 import { PEN_START, penStep, type PenEffect, type PenEvent, type PenState } from '../../lib/journal/pen';
 import { captureTarget } from '../../lib/journal/target';
@@ -47,10 +49,15 @@ type LineProps = {
   onMoment: (c: Faced, state: MomentState) => void;
   /** The piece the line is writing, drawn here and not on the page; null when none. */
   onWriting: (pieceId: string | null) => void;
+  /** What the line wrote to a piece, and a piece (or its whole moment) it removed: the page's own copy follows (audit 6). */
+  onWritten?: (e: { momentId: string; pieceId: string }, body: string) => void;
+  onDropped?: (e: { momentId: string; pieceId: string }, gone: 'moment' | 'piece') => void;
   /** Whether a voice note is recording: the page holds a viewer back until it stops. */
   onRecording?: (on: boolean) => void;
   /** A tap in the line, or a capture from it: today's foot comes into view (JN9, JN11). */
   onFoot: () => void;
+  /** Something was kept and should be seen (an entry let go, a photo, a voice note): from a thread or Hidden the page comes back (audit 15). */
+  onSeen?: () => void;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
   above?: ReactNode;
 };
@@ -76,6 +83,10 @@ function WalkLine(props: LineProps) {
 
 function Line(props: LineProps & { walk: { id: string; here: LngLat | null; lastFixAt: number | null; distanceM: number } | null; disabled?: boolean }) {
   const { walk, onChanged, onMoment, onWriting, onFoot, onRecording, focused } = props;
+  const told = useRef({ written: props.onWritten, dropped: props.onDropped });
+  useEffect(() => {
+    told.current = { written: props.onWritten, dropped: props.onDropped };
+  });
   const [error, setError] = useState<{ message: string; openSettings?: boolean } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const onError = useCallback((e: { message: string; openSettings?: boolean }) => setError(e), []);
@@ -92,8 +103,10 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
   }, [toast]);
 
   const changed = useRef(onChanged);
+  const seen = useRef(props.onSeen);
   useEffect(() => {
     changed.current = onChanged;
+    seen.current = props.onSeen;
   });
   const cap = useCaptures(walk?.id ?? null, walk?.here ?? null, walk?.lastFixAt ?? null, onError, {
     loose: !walk,
@@ -142,7 +155,10 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     const write = (save: Extract<PenEffect, { k: 'save' }>) => {
       queue.current = queue.current.then(() =>
         capRef.current.writeNote(save, save.body).then(
-          () => send.current({ k: 'saved', body: save.body }),
+          () => {
+            told.current.written?.(save, save.body);
+            send.current({ k: 'saved', body: save.body });
+          },
           () => send.current({ k: 'saveFailed' }),
         ),
       );
@@ -157,9 +173,10 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     const run = (fx: PenEffect) => {
       switch (fx.k) {
         case 'begin': {
-          const into = momentPill.target();
+          // The open entry is read when the begin runs, after any drop or write queued before it (audit 3): a
+          // moment an emptied line just removed is never begun into.
           queue.current = queue.current.then(() =>
-            capRef.current.beginNote(fx.body, into).then(
+            capRef.current.beginNote(fx.body, momentPill.target()).then(
               (e) => {
                 if (!e) return send.current({ k: 'beginFailed' });
                 onWriting(e.pieceId);
@@ -174,7 +191,10 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
           // A keystroke is the entry's last piece: its two minutes start again (JN15).
           momentPill.piece(fx.momentId);
           if (pending.current) clearTimeout(pending.current.timer);
-          pending.current = { save: fx, timer: setTimeout(flush, SAVE_AFTER_MS) };
+          pending.current = null;
+          // Letting go, or Retry: written at once, so the line knows whether it was kept (audit 4).
+          if (fx.now) write(fx);
+          else pending.current = { save: fx, timer: setTimeout(flush, SAVE_AFTER_MS) };
           return;
         }
         case 'drop': {
@@ -186,6 +206,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
             .then((gone) => {
               // The moment went with its only piece: the next capture begins another.
               if (gone === 'moment') momentPill.newMoment();
+              told.current.dropped?.(fx, gone);
             }, () => {})
             .then(() => changed.current());
           return;
@@ -199,11 +220,13 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
           queue.current = queue.current.then(() => {
             onWriting(null);
             changed.current();
+            seen.current?.();
           });
           return;
         }
         case 'end':
-          queue.current = queue.current.then(() => momentPill.newMoment());
+          // At once: a capture begun right after Done starts its own entry (audit 3).
+          momentPill.newMoment();
           return;
       }
     };
@@ -221,6 +244,8 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     }
     return () => {
       flush();
+      // The line is going (a walk began or ended, the screen changed): the page draws every piece again (audit 10).
+      onWriting(null);
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.removeEventListener('pagehide', hide);
         document.removeEventListener('visibilitychange', hide);
@@ -240,6 +265,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     if (r === 'saved') {
       feedback('tap');
       send.current({ k: 'kept' });
+      seen.current?.();
     } else if (r === 'dropped') setToast('Too short, not kept');
   };
   const saveVoiceRef = useRef(saveVoice);
@@ -298,24 +324,33 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
   // The camera and the mic: what they keep joins the open entry, and the words typed so far stand as their own piece.
   const editOffer = useEditOffer();
   const [editing, setEditing] = useState<Faced | null>(null);
-  const photo = () => {
+  const photo = async () => {
     onFoot();
+    // Mid-note, the camera is still one tap (audit 1): the note is saved first, then the camera opens.
+    if (recording) await saveVoice();
     void cap.takePhoto(momentPill.target()).then((k) => {
       if (!k) return;
       feedback('tap');
       send.current({ k: 'kept' });
+      seen.current?.();
       if (k.id === k.momentId) editOffer.show(k);
     });
   };
   const voice = () => {
     onFoot();
-    void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'));
+    void cap.startVoice(momentPill.target()).then((ok) => {
+      if (!ok) return;
+      feedback('tap');
+      // The words typed so far stand as their own piece from here: emptying the line can no longer remove the
+      // moment the note is being recorded into (audit 3).
+      send.current({ k: 'kept' });
+    });
   };
   // The viewer's Add to this moment (MS12) is run here, where the camera, the mic and the line are.
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
-    onAsk.current = (kind) => (kind === 'photo' ? photo() : kind === 'voice' ? voice() : input.current?.focus());
+    onAsk.current = (kind) => (kind === 'photo' ? void photo() : kind === 'voice' ? voice() : input.current?.focus());
   });
   useEffect(() => {
     const ask = momentPill.store.get().ask;
@@ -324,6 +359,17 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     onAsk.current(ask.kind);
   }, [asked]);
 
+  // The line rides above the keyboard (JN19, audit 1): it rises by what the keyboard covers above whatever sits
+  // under it (the tab bar, the recording bar), measured while the keyboard is down.
+  const keyboard = useKeyboardHeight();
+  const { height: windowH } = useWindowDimensions();
+  const wrap = useRef<ComponentRef<typeof View>>(null);
+  const [below, setBelow] = useState(0);
+  const measure = () => {
+    if (keyboard > 0) return;
+    wrap.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => setBelow(Math.max(0, Math.round(windowH - (y + h)))));
+  };
+  const lift = lineLift(keyboard, below);
   const writing = text.length > 0 || pen.beginning || !!pen.entry;
   const entryOpen = writing || !!openId;
   const showDone = typing || entryOpen;
@@ -348,7 +394,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
   );
 
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View ref={wrap} onLayout={measure} style={[styles.wrap, { bottom: lift }]} pointerEvents="box-none" testID="open-line-wrap">
       {/* Messages sit above the line, in one column, so nothing covers it or each other (JN18). */}
       <View style={styles.above} pointerEvents="box-none">
         {props.above}
@@ -424,7 +470,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
               style={[styles.field, { height: text.length ? fieldH : FIELD_MIN }]}
             />
           </View>
-          <IconButton testID="band-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={photo} busy={cap.busy === 'photo'} disabled={props.disabled || cap.busy === 'voice' || recording} />
+          <IconButton testID="band-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
           {recording ? (
             <IconButton testID="band-voice-save" icon="stop" label="Stop and save voice note" onPress={() => void saveVoice()} busy={cap.busy === 'voice'} voice />
           ) : (
@@ -476,7 +522,8 @@ function IconButton(props: { testID: string; icon: IconName; label: string; onPr
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   above: { paddingHorizontal: 16, paddingBottom: 10, gap: 8, alignItems: 'center' },
-  line: { backgroundColor: theme.bg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line, paddingHorizontal: 12, paddingVertical: 8 },
+  // An edge that reads as a control's boundary (3:1 on the ground): shape says "write here", with no hint (ui 5).
+  line: { backgroundColor: theme.bg, borderTopWidth: 1, borderTopColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, paddingHorizontal: 12, width: '100%', maxWidth: 616, alignSelf: 'center' },
   status: { color: theme.muted, fontSize: 13 },
   row: { flexDirection: 'row', alignItems: 'flex-end', width: '100%', maxWidth: 616, alignSelf: 'center' },

@@ -8,3 +8,11 @@ export function captureTarget(openWalk: { id: string } | null, known = true): { 
   if (!known) return { wait: true };
   return openWalk ? { walkId: openWalk.id } : { loose: true };
 }
+
+/** How long a location read serves: an emptied entry's read is used by the next one only this soon after it was asked (JN12, audit 5). */
+export const SPARE_FIX_MS = 120_000;
+
+/** Whether a read asked at `readAt` may still place an entry begun at `now`. */
+export function spareFresh(readAt: number, now: number): boolean {
+  return now - readAt >= 0 && now - readAt < SPARE_FIX_MS;
+}

@@ -48,19 +48,33 @@ export function Entry(props: {
     placed,
     context: props.context?.state === 'done' ? { place: props.context.place, into: props.context.into } : null,
     reason: props.reason,
+    // Its walk is not among the finished ones: still recording (audit 3).
+    onOpenWalk: !!m.walkId && !walk,
   });
   const from = fromLine(walk);
   const pieces = c.pieces.filter((p) => p.id !== props.writing);
-  const lineText = <Text style={styles.app} testID="entry-dateline">{line}</Text>;
+  // A placed dateline wears a small pin, so it reads as the way to the map (ui 3); an unplaced one is plain words.
+  const lineText = (
+    <View style={styles.lineRow}>
+      {placed && props.onMap ? <Icon name="location-outline" size={13} color={theme.muted} /> : null}
+      <Text style={styles.app} testID="entry-dateline">{line}</Text>
+    </View>
+  );
   return (
     <View style={styles.entry} testID="moment-card">
-      {placed && props.onMap ? (
-        <Pressable testID="entry-map" accessibilityRole="button" accessibilityLabel={`${line}. Show on the map`} onPress={props.onMap} style={styles.dateline}>
-          {lineText}
+      {/* The dateline's row is the entry's header: where and when, and More trailing (ui 4). */}
+      <View style={styles.head}>
+        {placed && props.onMap ? (
+          <Pressable testID="entry-map" accessibilityRole="button" accessibilityLabel={`${line}. Show on the map`} onPress={props.onMap} style={styles.dateline}>
+            {lineText}
+          </Pressable>
+        ) : (
+          <View style={styles.dateline}>{lineText}</View>
+        )}
+        <Pressable testID="moment-more" accessibilityRole="button" accessibilityLabel="More about this moment" onPress={props.onMore} style={styles.more}>
+          <Icon name="ellipsis-horizontal" size={18} color={theme.muted} />
         </Pressable>
-      ) : (
-        <View style={styles.dateline}>{lineText}</View>
-      )}
+      </View>
       {pieces.length > 0 && (
         <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
           {pieces.map((p) => (
@@ -68,17 +82,12 @@ export function Entry(props: {
           ))}
         </Pressable>
       )}
-      {props.answering ? <Text style={styles.app} testID="moment-answering">{props.answering}</Text> : null}
-      <View style={styles.foot}>
-        {from && walk ? (
-          <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} style={styles.from}>
-            <Text style={styles.app} numberOfLines={1}>{from}</Text>
-          </Pressable>
-        ) : <View style={styles.from} />}
-        <Pressable testID="moment-more" accessibilityRole="button" accessibilityLabel="More about this moment" onPress={props.onMore} style={styles.more}>
-          <Icon name="ellipsis-horizontal" size={18} color={theme.muted} />
+      {props.answering ? <Text style={[styles.app, styles.answering]} testID="moment-answering">{props.answering}</Text> : null}
+      {from && walk ? (
+        <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} style={styles.from}>
+          <Text style={styles.app} numberOfLines={1}>{from}</Text>
         </Pressable>
-      </View>
+      ) : null}
     </View>
   );
 }
@@ -102,7 +111,8 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
     const ms = Number(p.body);
     return (
       <View style={styles.memo} testID="entry-piece-voice">
-        <Icon name="play-circle-outline" size={22} color={theme.ink} />
+        {/* A mic, not a play button: the row opens the entry, where the note plays (ui 2). */}
+        <Icon name="mic-outline" size={20} color={theme.ink} />
         <Text style={styles.memoText}>{Number.isFinite(ms) && ms > 0 ? `Voice note, ${formatElapsed(ms)}` : 'Voice note'}</Text>
       </View>
     );
@@ -116,17 +126,19 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
 }
 
 const styles = StyleSheet.create({
-  entry: { paddingBottom: 6 },
+  entry: { paddingBottom: 14 },
+  head: { flexDirection: 'row', alignItems: 'flex-end' },
   // A thumb's target for the map (JN6), and the breath between entries.
-  dateline: { minHeight: 44, justifyContent: 'flex-end', paddingBottom: 6 },
-  app: { color: theme.muted, fontSize: 13, lineHeight: 18 },
+  dateline: { flex: 1, minHeight: 44, justifyContent: 'flex-end', paddingBottom: 6 },
+  lineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  app: { color: theme.muted, fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  answering: { paddingTop: 8 },
   pieces: { gap: 10 },
   words: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 28 },
   plate: { gap: 8 },
   picture: { height: 200, width: '100%' },
   memo: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
   memoText: { color: theme.ink, fontSize: 15 },
-  foot: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
-  from: { flex: 1, minHeight: 44, justifyContent: 'center' },
+  from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
 });

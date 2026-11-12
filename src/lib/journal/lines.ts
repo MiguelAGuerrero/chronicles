@@ -21,6 +21,8 @@ export interface DatelineInput {
   context: { place: string | null; into: string | null } | null;
   /** Why no fix came, when the screen was told. */
   reason?: 'denied' | 'timeout' | 'unavailable' | null;
+  /** Its walk is still being recorded: unplaced, it waits for the trace, which places it at Stop (audit 3). */
+  onOpenWalk?: boolean;
 }
 
 const sameDay = (a: number, b: number) => {
@@ -58,7 +60,7 @@ export function dateline(o: DatelineInput): string {
   const when = sameDay(o.t, o.now) ? todayTime(o.t) : clockTime(o.t);
   if (!o.placed) {
     // Until the fix could have come, no claim either way; told why, or after its time, it says so.
-    const waited = o.reason != null || o.now - o.t > FIX_WAIT_MS;
+    const waited = !o.onOpenWalk && (o.reason != null || o.now - o.t > FIX_WAIT_MS);
     const none = !waited ? null : o.reason === 'denied' ? 'No location (location is off)' : 'No location';
     return [when, none, o.context?.into ?? null].filter(Boolean).join(' · ');
   }

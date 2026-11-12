@@ -13,6 +13,7 @@ import { newId } from './id';
 import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
+import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
@@ -38,8 +39,6 @@ const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
 const STOP_TIMEOUT_MS = 3000;
-/** How long a location read left by an emptied entry serves the next one (chronicle journal JN12). */
-const SPARE_FIX_MS = 120_000;
 /** How long a discarded memo can be brought back. */
 export const UNDO_MS = 5000;
 
@@ -191,10 +190,11 @@ export function useCaptures(
     // so nothing is read twice for one kept entry (chronicle journal JN12).
     const left = spare.current;
     spare.current = null;
-    s.locating = left && clockNow() - left.at < SPARE_FIX_MS ? left.fix : locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    // Aged from when it was read, never from when its entry was emptied (audit 5).
+    s.locating = left && spareFresh(left.at, clockNow()) ? left.fix : locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
   /** The location read of the moment begun last, on its way or answered, and the moments an emptied line removed (JN12, JN13). */
-  const lastLocate = useRef<{ id: string; fix: Promise<LocateResult> } | null>(null);
+  const lastLocate = useRef<{ id: string; fix: Promise<LocateResult>; at: number } | null>(null);
   const dropped = useRef(new Set<string>());
   const spare = useRef<{ fix: Promise<LocateResult>; at: number } | null>(null);
   const folder = () => walkId ?? LOOSE_FOLDER;
@@ -241,7 +241,7 @@ export function useCaptures(
     captureBus.emit(shown, self);
     if (!walkId) onMoment.current?.(c, 'kept');
     onKept.current?.(c.id, false);
-    if (stamp.locating) lastLocate.current = { id: c.id, fix: stamp.locating };
+    if (stamp.locating) lastLocate.current = { id: c.id, fix: stamp.locating, at: stamp.t };
     placeMoment(c, stamp);
     // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
     if (kind !== 'text') void space.afterKept({ recording: walkId != null });
@@ -659,7 +659,8 @@ export function useCaptures(
    */
   const beginNote = async (body: string, into: string | null = null): Promise<{ momentId: string; pieceId: string } | null> => {
     if (!enabled) return null;
-    const stamp = stampNow(true, into);
+    // On a walk no fix is read for an entry (JN12; audit 4): the walk's last fix or, at Stop, its trace places it.
+    const stamp = stampNow(walkId == null, into);
     if (stamp.into) return addPiece(stamp.into, 'text', stamp, null, body);
     const id = await add('text', stamp, null, body);
     return id ? { momentId: id, pieceId: id } : null;
@@ -687,7 +688,7 @@ export function useCaptures(
     }
     dropped.current.add(e.momentId);
     // Its read, answered or not, serves the next entry of the sitting: the place is where the writing began.
-    if (lastLocate.current?.id === e.momentId) spare.current = { fix: lastLocate.current.fix, at: clockNow() };
+    if (lastLocate.current?.id === e.momentId) spare.current = { fix: lastLocate.current.fix, at: lastLocate.current.at };
     await db.deleteMoments([e.momentId]);
     if (alive.current) setCaptures((prev) => prev.filter((x) => x.id !== e.momentId));
     return 'moment';
