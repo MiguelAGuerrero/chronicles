@@ -462,7 +462,7 @@ test('records audit 4: replacing an item the run did not file needs a stated rea
 });
 
 test('records audit 5: an [owner] item re-tagged [loop] by moving it fails, in one commit or across the range', () => {
-  const remove: Op = { argv: ['deferred', 'item', 'remove', 'route preview', '--reason', 'moved'] };
+  const remove: Op = { argv: ['deferred', 'item', 'remove', '[owner] The route preview', '--reason', 'moved'] };
   const addLoop: Op = { argv: ['deferred', 'item', 'add', 'Navigation and routes', '--top'], body: "[loop] The route preview's selected row shows by a border alone." };
   assert.match(problems(DOCS0, [remove, addLoop]).join('\n'), /\[owner\] to \[loop\]/);
   assert.match(problems(DOCS0, [addLoop, remove]).join('\n'), /\[owner\] to \[loop\]/, 'added first, removed after');
@@ -670,8 +670,9 @@ test('records: the command line stages each operation in a pending sidecar, prin
   assert.equal(added.status, 0, added.stderr);
   assert.match(r.read('docs/STATUS.md'), /- \*\*T19 \[owner\] Map: a bare numeral\*\*/);
   assert.match(r.read('.claude/skills/tend/ledger.json'), /"lastT": 19,/);
-  r.write('note.md', 'Since Nov 12: two places.\n');
-  assert.equal(r.node('scripts/records.js', 'deferred', 'item', 'note', 'GPX export', '--file', 'note.md').status, 0);
+  const note = join(tmp, 'cli-note.md');
+  writeFileSync(note, 'Since Nov 12: two places.\n');
+  assert.equal(r.node('scripts/records.js', 'deferred', 'item', 'note', 'GPX export', '--file', note).status, 0);
   const pending = readdirSync(join(r.dir, '.claude', 'records'));
   assert.equal(pending.length, 1, 'one pending sidecar');
   assert.match(pending[0], /^\d{8}-\d{6}-[0-9a-f]{8}\.json$/);
