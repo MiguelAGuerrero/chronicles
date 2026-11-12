@@ -118,7 +118,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
     // What the stage shows, recorded in the page every 50 ms: a card is up for about 2 s, quicker than a poll.
     await pg.evaluate(() => {
-      window.__rrSeen = { cards: [], later: [], notes: [], counted: [], memoPlay: null, videoEndedInCard: false, videoSkeleton: false, memoSkeleton: false, awakeOnPath: false };
+      window.__rrSeen = { cards: [], later: [], notes: [], counted: [], memoPlay: null, videoEndedInCard: false, videoSkeleton: false, memoSkeleton: false, awakeOnPath: false, ends: [] };
       const add = (list, v) => v && !list.includes(v) && list.push(v);
       window.__rrTimer = setInterval(() => {
         document.querySelectorAll('[data-testid=replay-card]').forEach((e) => add(window.__rrSeen.cards, e.getAttribute('aria-label')));
@@ -133,6 +133,9 @@ async function run(h) {
         if (document.querySelector('[data-testid=replay-card] [data-testid=media-skeleton]') && document.querySelector('[data-testid=replay-card] video')) window.__rrSeen.videoSkeleton = true;
         if (document.querySelector('[data-testid=memo-skeleton]')) window.__rrSeen.memoSkeleton = true;
         if (window.__wake.held > 0) window.__rrSeen.awakeOnPath = true;
+        // Where the end marker sits while the path is told (tend replay 2).
+        const ends = document.querySelector('[data-ends]')?.getAttribute('data-ends');
+        if (ends != null && document.querySelector('[data-testid=replay-clock]')) add(window.__rrSeen.ends, ends.split('|')[1] || 'none');
         // The video reached its end while its card was still up (audit 20).
         const v = document.querySelector('[data-testid=replay-card] video');
         if (v && v.ended) window.__rrSeen.videoEndedInCard = true;
@@ -230,6 +233,9 @@ async function run(h) {
     seen.later = rec.later.join(' | ');
     seen.counted = rec.counted.join(' | ');
     const onCard = (await pg.locator('[data-testid=to-name]').count()) === 1;
+    // The end marker stands where the whole trace ends through the path, as on the card: never on the walker (tend replay 2, QL2).
+    const cardEnd = ((await pg.locator('[data-ends]').first().getAttribute('data-ends')) ?? '').split('|')[1];
+    check(cardEnd && rec.ends.length === 1 && rec.ends[0] === cardEnd, `tend replay 2: through the path the end marker stays at the trace's last point (${rec.ends.length} places: ${rec.ends.slice(0, 4).join(' ; ')}; the card's ${cardEnd})`);
     check(onCard && !seen.cont, `RR6: the replay reaches its card with no Continue (${onCard}, ${seen.cont})`);
     check(clocks.size >= 3, `RR8: the clock rolls through the walk (${[...clocks].join(', ')})`);
     check((await pg.locator('[data-testid=replay-clock]').count()) === 0, 'RR8: the clock goes when the card comes');
