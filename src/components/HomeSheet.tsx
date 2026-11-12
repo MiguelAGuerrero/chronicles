@@ -261,9 +261,10 @@ export function HomeSheet(props: {
   // Before the first read nothing is known to be empty: the peek stays plain (tend tabs audit 1).
   const showEmpty = noWalks && !expanded && props.read !== false;
   const peekNavigate = showEmpty && peekEmpty.navigate && !!props.onNavigate;
-  // With nothing walked, the peek's line sits on its own row above its button, so it never cuts it short (tend tabs 7);
-  // with no button (a walk open) the line has the row to itself.
-  const stacked = showEmpty && peekNavigate;
+  // With nothing walked, the peek's line sits on its own row under the grabber, above its button, so it never cuts it
+  // short (tend tabs 7), and in the same place with no button, a walk open (tend tabs audit 4); only Navigate makes the
+  // peek taller (T10).
+  const stacked = showEmpty;
   const listTitle = props.mode.kind === 'days' ? 'Your days' : 'Walks';
   const nowT = props.now;
 
@@ -278,7 +279,7 @@ export function HomeSheet(props: {
       height={props.height}
       bottomInset={props.bottomInset}
       areaHeight={props.areaHeight}
-      peek={stacked ? SHEET_PEEK + STACKED_EXTRA : undefined}
+      peek={peekNavigate ? SHEET_PEEK + STACKED_EXTRA : undefined}
       header={
         <View style={[styles.header, stacked && styles.headerStacked]}>
           {day ? (
@@ -296,7 +297,7 @@ export function HomeSheet(props: {
           ) : noWalks && !expanded ? (
             // Nothing walked yet (tabs audit U7): how walks get here, or, with a walk open, that it is starred when it ends (T10).
             showEmpty ? (
-              <Text testID="sheet-empty" style={[styles.empty, !stacked && styles.headerText]} numberOfLines={2}>
+              <Text testID="sheet-empty" style={styles.empty} numberOfLines={2}>
                 {peekEmpty.line}
               </Text>
             ) : null

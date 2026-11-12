@@ -139,12 +139,18 @@ async function run(h) {
       window.__peekStop?.();
       return window.__peekSeen;
     });
+    // tend tabs audit 4: the empty line's top under the grabber, the same in both states.
+    let lineTopNothingOpen = null;
     const emptyPeek = async (when, open) => {
       const sheet = await pg.locator('[data-testid=home-sheet]').boundingBox();
       {
         // tend tabs audit 3: with Navigate the peek is the stacked height; with no button, the plain peek's (SHEET_PEEK, 76).
         const want = open ? 76 : 76 + 48;
         check(sheet && Math.abs(sheet.height - want) <= 1, `tend tabs audit 3: ${when}, the empty peek is ${want} px tall, ${open ? 'with no gap for a button' : 'its line above Navigate'} (${sheet && Math.round(sheet.height)})`);
+        const top = await pg.locator('[data-testid=sheet-empty]').boundingBox().then((b) => b && sheet && b.y - sheet.y).catch(() => null);
+        if (!open) lineTopNothingOpen = top;
+        else check(top != null && lineTopNothingOpen != null && Math.abs(top - lineTopNothingOpen) <= 1,
+          `tend tabs audit 4: ${when}, the line sits under the grabber as it does with nothing open (${top && Math.round(top)} vs ${lineTopNothingOpen && Math.round(lineTopNothingOpen)} px)`);
       }
       const nav = await pg.locator('[data-testid=sheet-navigate]').boundingBox().catch(() => null);
       const line = (await pg.locator('[data-testid=sheet-empty]').innerText().catch(() => '')).trim();
