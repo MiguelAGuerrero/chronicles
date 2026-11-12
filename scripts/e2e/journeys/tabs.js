@@ -122,6 +122,11 @@ async function run(h) {
     // Navigate alone; with a walk open, a line about this walk and no button (the recording bar's › is the way back).
     const emptyPeek = async (when, open) => {
       const sheet = await pg.locator('[data-testid=home-sheet]').boundingBox();
+      {
+        // tend tabs audit 3: with Navigate the peek is the stacked height; with no button, the plain peek's (SHEET_PEEK, 76).
+        const want = open ? 76 : 76 + 48;
+        check(sheet && Math.abs(sheet.height - want) <= 1, `tend tabs audit 3: ${when}, the empty peek is ${want} px tall, ${open ? 'with no gap for a button' : 'its line above Navigate'} (${sheet && Math.round(sheet.height)})`);
+      }
       const nav = await pg.locator('[data-testid=sheet-navigate]').boundingBox().catch(() => null);
       const line = (await pg.locator('[data-testid=sheet-empty]').innerText().catch(() => '')).trim();
       if (!open) {
