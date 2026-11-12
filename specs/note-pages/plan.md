@@ -1,144 +1,138 @@
 # Note pages: the plan
 
-For the owner to review before any code. Spec: `specs/note-pages/spec.md` (NP1-NP13).
-
-## Questions for the owner (answer before code)
-
-1. **The editor's technology (architecture).** React Native has no rich-text input: a `TextInput` shows one style.
-   - **A. A page of native lines (recommended).** Each line of the note is its own `TextInput`, styled by its kind:
-     heading, bullet, numbered, checkbox or quote. This is how Notion's own mobile editor is built: blocks. No new
-     dependency. It works the same on iPhone, Android and the web (each line is a textarea). Two limits: bold and
-     italic show their `**` and `_` while that line is being typed and are drawn when reading or once the cursor
-     leaves the line; and you cannot drag one selection across several lines (selection is per line).
-   - **B. A web editor inside the page.** Expo's DOM components (`'use dom'`), which on a phone means a WebView,
-     with Lexical or TipTap. True inline bold while typing, and selection across lines. The costs are two new
-     dependencies, a WebView per open note, mentions bridged across the boundary, and keyboard and focus behaviour
-     that has never run on a phone. It also departs from "native first" (AGENTS.md) and would need an entry in the
-     web exceptions.
-2. **A title.** The vision is silent. Recommended: **no separate title field**. The context line (NP2) heads the
-   page. A first line written as a heading is only the first words where they show, at the row's size (NP10).
-3. **A draft through a closed app.** Recommended: **deferred**. Today a draft survives only while the app is open, as
-   the card's does. A long entry lost to a killed app hurts more than a lost line, so this is the first follow-up
-   (`docs/DEFERRED.md`). Keeping a draft in `meta` as it is typed would be a few hours more in this slice.
+For the owner to review before any code. Spec: `specs/note-pages/spec.md` (NP1-NP13). Decision 0149.
 
 ## Shape of the work
 
-The note's body stays one string (Markdown subset). One core module reads it into lines and writes it back. The
-page edits lines. Every other screen keeps reading the body through `plainNote`, which now also drops the marks.
+The editor is an established library, TipTap v3, running in an Expo DOM component. Markdown comes in and goes out
+through `@tiptap/markdown`, the mention picker through `@tiptap/extension-mention`, and the typing shortcuts are
+TipTap's own input rules. Our code is the glue: the page's frame (head, toolbar, autosave) in React Native, and a
+plain-text reader in core that parses with `marked`, the same lexer `@tiptap/markdown` uses.
+
+### Dependencies (installed with `EXPO_OFFLINE=1 npx expo install`, exact versions pinned)
+
+| Package | Why |
+|---|---|
+| `react-native-webview` (the version Expo 58 pins), plus whatever `node_modules/expo/build/dom/*.d.ts` names | Expo DOM components on phones. Read from the installed `expo` before writing any code (AGENTS.md: Expo has changed) |
+| `@tiptap/react`, `@tiptap/pm`, `@tiptap/core`, `@tiptap/starter-kit` | The editor: headings (levels 1 and 2), lists, blockquote, bold, italic, history (code, strike, link, underline, rule and code block turned off) |
+| `@tiptap/extension-list` | Task lists (checklists) |
+| `@tiptap/extension-mention`, `@tiptap/suggestion`, `@floating-ui/dom` (its peer) | `@` mentions; its suggestion opens the app's own `MomentPicker`, not a popup of its own |
+| `@tiptap/markdown` | Markdown in and out of the body |
+| `@tiptap/extensions` | Placeholder |
+| `marked` (the major `@tiptap/markdown` uses) | Core's plain-text reader; added to `PURE_PACKAGES` in `scripts/layers.js` |
 
 ### Files
 
 | File | What | Layer |
 |---|---|---|
-| `src/lib/notePage/blocks.ts` (new) | `parseNote(body) -> Line[]` and `writeNote(Line[]) -> body` (kinds: text, h1, h2, bullet, numbered, check {done}, quote); inline runs (bold, italic, mention token, plain); the subset and nothing else (NP7) | core |
-| `src/lib/notePage/edit.ts` (new) | The page's reducer, `step(state, event)`: typing in a line (shortcuts, NP3), Return (split, continue or end a list), Backspace at a line's start (unformat or join), a bar button (NP4), a tick (NP6), a mention picked, the limit (NP8) | core |
-| `src/lib/notePage/room.ts` (new) | Characters as shown (mention = its words) and "room left" in words, never a number (NP8) | core |
-| `src/lib/notePage/context.ts` (new) | The head line from a moment's time, place and walk, or a draft's "now" and walk (NP2); built on `refCardLine` and `fromLine` | core |
-| `src/lib/refs.ts` | `plainNote` also drops the marks (`stripMarks`, from `blocks.ts`), so every reader in NP10 changes in one place | core |
-| `src/lib/noteEdit.ts` | `NOTE_MAX` 500 → 20,000; `noteText` keeps the body's line structure (QL25 amended) | core |
-| `src/lib/ceremony/rhythm.ts` | A note's pause counts its words through `plainNote`, not its marks (NP10) | core |
-| `src/components/notePage/NotePage.tsx` (new) | The full page: head (NP2), lines, the bar, Done, Back; read and edit modes (NP5, NP9). Drawn inside whichever Modal is open, never as a Modal of its own (iOS: no Modal over a Modal) | view |
-| `src/components/notePage/NoteLine.tsx` (new) | One line: its `TextInput` while editing, its drawn form while reading; the checkbox (NP6, NP13) | view |
-| `src/components/notePage/FormatBar.tsx` (new) | The bar above the keyboard (NP4); `InputAccessoryView` on iOS, pinned above `useKeyboardHeight` on Android and the web | view |
-| `src/components/notePage/NoteRender.tsx` (new) | The read-only drawing, shared by the page and the owner's thread's bubble (NP5, NP11) | view |
-| `src/components/NoteEditor.tsx` | Expand (NP1); Edit on an existing note opens the page straight away | view |
-| `src/components/MomentBar.tsx`, `src/app/walk.tsx` | The quick card's Expand (NP1); the page in the same Modal; limit from `NOTE_MAX` | view |
-| `src/components/CaptureView.tsx`, `threads/ReplyDock.tsx` | A note in the viewer shows `NoteRender` in a scroll (NP5); ticks save through `onSaveNote` (NP6) | view |
-| `src/components/threads/NoteBubble.tsx`, `OwnThreadScreen.tsx` | The bubble draws `NoteRender` (NP11) | view |
+| `src/components/notePage/JournalEditor.tsx` (new, `'use dom'`) | TipTap with the extensions above; props: `markdown`, `editable`, `onChange(markdown)`, `onMentionQuery`, `onState(active formats)`; commands from the toolbar through Expo DOM's imperative handle. Styles in `theme` tokens only (NP11) | view |
+| `src/components/notePage/mentionNode.ts` (new) | Mention's Markdown: `renderMarkdown` writes `@[id|words]`, a tokenizer reads it back (0125). The only parsing glue we write | view |
+| `src/components/notePage/NotePage.tsx` (new) | The page: top bar (Back, the short head once scrolled, "Not saved yet", Done), the head (NP2), the editor, the room line (NP8). Read-only or writing. Drawn inside whichever Modal is open, never a Modal of its own (iOS: no Modal over a Modal) | view |
+| `src/components/notePage/FormatBar.tsx`, `FormatPanel.tsx` (new) | Aa and @ above the keyboard (`useKeyboardHeight`, `KeyboardAvoidingView`); the panel (NP4) | view |
+| `src/components/notePage/useNoteAutosave.ts` (new) | Runs `autosave.ts`'s effects through the screen's create, update and delete callbacks; flushes on blur and on AppState `background` (NP9) | view |
+| `src/lib/notePage/autosave.ts` (new) | The reducer (`step(state, event, now)`): new and empty, created, dirty, saving, failed; a pause, leave, background, empty-on-leave → effects `create`, `save`, `deleteWithUndo`, `nothing` (NP9). A reducer because its timers, retries and phases tangle (functional-core rule) | core |
+| `src/lib/notePage/context.ts` (new) | The head: the day, and the context line from Lately's words (`contextFor`); the short form (NP2) | core |
+| `src/lib/notePage/room.ts` (new) | Characters as shown (a mention counts as its words), and "room left" in words (NP8) | core |
+| `src/lib/notePage/plain.ts` (new) | `stripMarks(markdown)` with `marked`'s lexer: text tokens out, lines kept (NP10) | core |
+| `src/lib/refs.ts` | `plainNote` = `stripMarks(plainRefs(body))`: every reader in NP10 changes in one place | core |
+| `src/lib/noteEdit.ts` | `NOTE_MAX` 20,000; `noteText` no longer trims inner structure | core |
+| `src/lib/ceremony/rhythm.ts`, `components/ceremony/StepThrough.tsx` | The note's pause counts words via `plainNote`; the steps read 300 characters (NP10) | core, view |
+| `src/components/MomentBar.tsx`, `src/app/walk.tsx` | The pencil opens `NotePage` in place of the card's Modal content (NP1) | view |
+| `src/components/NoteEditor.tsx`, `threads/ReplyDock.tsx`, `CaptureView.tsx` | Respond → Note and Edit open `NotePage`; the viewer's note shows `NotePage` read-only (NP5). `NoteEditor` goes once nothing imports it | view |
 
-No new shell: saving goes through the existing `onSaveNote` / `useCaptures.setNote` / `captureBus.patch` paths
-(captures-and-media rule, "Edit a note").
+Saving reuses the paths there are today: `useCaptures.saveNote` creates, and `onSaveNote` / `useCaptures.setNote` /
+`captureBus.patch` update ("Edit a note", captures-and-media rule). Deleting goes through the one Undo window
+(`deletion/`).
 
 ### Data
 
-- **Truth:** unchanged. A note is still a `Capture` of kind `text` whose `body` is text; only what the text may
-  contain grows (the Markdown subset, up to 20,000 characters).
-- **Cache:** none. No SQLite migration, no IndexedDB version bump. No tile code changes (`SNAP_RULES`,
-  `STREET_CODE` and `LANDING_CODE` stay).
-- The Chronicle's threads read words from `plainNote`. Marks are dropped before words are found, so threads already
-  found are unchanged for notes with no marks.
-
-### The subset (NP7)
-
-Line starts: `# `, `## `, `- `, `* `, `1. ` (any number, shown as typed), `- [ ] `, `- [x] `, `> `. Inline:
-`**bold**`, `_italic_`, the mention token `@[id|words]`. Anything else is text. Each line keeps the marker it was
-typed with, so any body round-trips byte for byte (NP7, steward S3). A shortcut typed on the page writes `- `,
-`1. `, `- [ ] `.
+- **Truth:** unchanged in kind. A note is a `Capture` of kind `text`, and its `body` is text: Markdown, up to 20,000
+  characters. No SQLite migration and no IndexedDB version. No tile code changes.
+- **Cache:** none. Threads found from words (0098) read `plainNote`, so notes without marks find the same threads.
+- Saving as you write calls `updatePiece` about once a second while typing. The replay's story rebuilds on a note's
+  change (replay rule, audit 22), but the page is never open over a playing replay (the viewer pauses it).
 
 ## Tests per criterion
 
 New feature **`notes`**: folder `src/lib/__tests__/notes/`, a row in `scripts/features.js` (source
 `src/lib/notePage/**`, `src/components/notePage/**`, `src/lib/noteEdit.ts`; rule `captures-and-media`; journey
-`notepage`; spec `note-pages`). The QL25 test moves with `noteEdit.ts`, via `npm run move-test`.
+`notepage`; spec `note-pages`). `chronicle/noteEdit.test.ts` moves there with `npm run move-test`.
 
 | Id | Test | File |
 |---|---|---|
-| NP1 | journey: the pencil's card Saves in one tap (unchanged); Expand carries text, cursor and a mention; Done keeps it as one moment | `scripts/e2e/journeys/notepage.js` |
-| NP2 | unit: the head line for a placed, a placing and a placeless moment, on and off a walk, and a draft; no digit but date and time | `notes/context.test.ts` |
-| NP3 | unit: each shortcut, Return continues and ends a list, Backspace unformats; journey: `# ` typed shows a heading | `notes/edit.test.ts`, journey |
-| NP4 | unit: each bar event toggles its kind or mark; journey: the bar's eight named buttons, pressed state, no wrap at 320 px | `notes/edit.test.ts`, journey |
-| NP5 | journey: a seeded formatted note opens read-only, drawn, scrolls to its last line; Edit and a tap enter editing | journey |
-| NP6 | unit: a tick toggles only that line's `[ ]`/`[x]`; journey: a tick in reading is kept after reopening; no digit or "of" near the page; no notification scheduled | `notes/edit.test.ts`, journey |
-| NP7 | unit: round trip over a table of canonical notes; a plain old note is unchanged; `~~`, links and tables are kept as typed; mention tokens survive | `notes/blocks.test.ts` |
-| NP8 | unit: counted as shown; room words at the thresholds; the limit refuses input and a mention past it (DEFERRED 12) | `notes/room.test.ts`, `notes/edit.test.ts` |
-| NP9 | journey: Back on a new page returns to the card with the draft; Back after an edit asks, Discard leaves it unchanged; a failed save keeps the page (save forced to fail in the page's own seam) | journey |
-| NP10 | unit: `plainNote` over every mark; threads (resurface extractors) find no `#`/`[x]`/`**` word; the rhythm's word count ignores marks | `notes/plain.test.ts` (plus one case in `resurface/`) |
-| NP11 | journey (`threads`): a formatted note in the owner's thread draws a heading and a ticking checkbox | `scripts/e2e/journeys/threads.js` |
-| NP12 | journey: no colour other than ink on the page's text, no image or emoji in the head, the placeholder only | journey |
-| NP14 | journey: no request leaves the page's origin while a page with a URL is opened, edited and read (the journey's request log) | journey |
-| NP13 | journey: each line's role and name (`heading`, `checkbox` with `aria-checked`), the head first in order; inputs ≥ 16 px | journey |
+| NP1 | journey: each pencil (ready, walk, band), Respond → Note and Add to this moment open the page in one tap with focus in it; the text written is one moment, placed, in the right walk or thread | `scripts/e2e/journeys/notepage.js` |
+| NP2 | unit: the head for a placed, a placing and a placeless moment, on and off a walk, just after a photo, and a page being written; journey: the short head appears in the top bar after a scroll | `notes/context.test.ts`, journey |
+| NP3 | journey: each shortcut typed becomes its element (`h1`, `h2`, `ul`, `ol`, `ul[data-type=taskList]`, `blockquote`, `strong`, `em`), Return and Backspace as said | journey |
+| NP4 | journey: Aa and @ named, the panel's nine buttons named with `aria-pressed`, ≥ 44 px, no wrap at 320 px; each applies its format | journey |
+| NP5 | journey: a seeded formatted note opens read-only, drawn, scrolls to its last line; a tap on a checkbox there changes nothing in the stored body; Edit opens it writable | journey |
+| NP6 | journey: a tick on the page is kept after reopening; no digit, "of" or progressbar role on the page; no notification scheduled; unit: the resurface pick ignores boxes | journey, `notes/plain.test.ts` |
+| NP7 | unit: `mentionNode`'s tokenizer and renderer round-trip `@[id|words]`; journey: a table of bodies (formatted, mention, plain old note, `~~`, a link, a table) opened and left unchanged keep their bytes; opened, written in and reopened, they show the same | `notes/mention.test.ts`, journey |
+| NP8 | unit: counting as shown, the two lines at their thresholds, a mention refused past the limit | `notes/room.test.ts` |
+| NP9 | unit: the reducer over every phase (pause, leave, background, empty new, emptied existing paused and left, a failure then a retry); journey: written text is in the store a second later with no tap; Back keeps it; an empty new page keeps nothing; an emptied note shows Undo | `notes/autosave.test.ts`, journey |
+| NP10 | unit: `plainNote` over every mark, lines kept; resurface's extractors find no mark as a word; the rhythm's pause ignores marks; the steps' 300 characters and the line after them | `notes/plain.test.ts` |
+| NP11 | journey: the page's computed colours are `theme.ink` and `theme.muted` only; no image, emoji, digit-with-"words" or prompt text; the placeholder is the one line | journey |
+| NP12 | journey: the head first in reading order; roles and names (`heading`, `listitem`, `checkbox` with `aria-checked`); the editor's font size ≥ 16 px | journey |
+| NP13 | journey: the request log holds nothing beyond the app's own origin while a page with a URL is opened, written in and read; the URL is not an `a`; pasted HTML with an `img`, `iframe` and link leaves none in the page or the body | journey |
 
-Journeys likely touched by changed testIDs, run at the end only as `check:affected` names them: `notepage` (new),
-`threads`, `responses`, `qol` (QL24, QL25 edit a note), `capturehome`, `stacks`, `walk`. Existing testIDs
-(`note-input`, `note-save`, `note-editor`, `note-edit-input`, `note-edit-save`) are kept.
+Journeys touched by the changed screens, run at the end as `check:affected` names them: `notepage` (new), `qol`
+(Edit note), `capturehome`, `stacks`, `walk`, `threads`, `responses`, `replay`. Their note steps change from the card
+(`note-input` + `note-save`) to the page (`note-page` with the same `note-input` on its editor, and Done).
 
 ## The screen: goal, frequency, control, matrix row
 
 | Action | Goal and situation | Control | Matrix row, precedent |
 |---|---|---|---|
-| Expand the card | Mid-capture, a line is turning into more; occasional | A labelled "Expand" button in the card's action row, beside Close and Save | 18 (long text: a full-screen dialog) ; Apple Journal's entry is full-screen |
-| Done | Keep the page; every page | The top bar's trailing "Done" (one primary action) | 18 ("Cancel and Done", iOS) ; 1 |
-| Back / Close | Leave; every page | Top bar's leading Back (a chevron with a spoken name), system Back, Escape | 23 ; 9 (asks only with changes) |
-| Discard or keep editing | Leaving with changes; rare | A dialog of two actions, "Discard changes" and "Keep editing" | 9, 6 (two choices: basic dialog) |
-| Format a line or words | While writing; frequent on long entries | The bar above the keyboard: eight icon buttons, each named (X4), scrolling sideways | Apple Journal's "Format button" in its toolbar (`ui-teardown.md` §2, partly verified); rule T5 (icons only, consistent within the bar) |
-| Tick a checkbox | Reading or writing; occasional | The checkbox itself, 44 pt target | 14 (state on tap, no separate Save) |
-| Mention a moment | While writing; occasional | `@` typed, or the bar's Mention: the existing picker | 16 (a long list with search) |
-| Edit from reading | Reading a note; occasional | The viewer's toolbar Edit (exists), or a tap on the words | 1 |
+| Start a note | Capture a thought; very frequent, walking | The pencil (unchanged) opens the page | 22, 5 ; Journal's + opens an entry (`ui-teardown.md` §2) |
+| Write | Every page | The editor, focused, keyboard up | 18 (long text: full screen) |
+| Format | While writing; occasional | Aa in a toolbar above the keyboard, opening a panel | Journal's "Format button" (§2, verified by name) ; T5 (icons with spoken names, one style in the bar) |
+| Mention | While writing; occasional | @ in the toolbar, or typed: the existing picker | 16 |
+| Tick a box | Writing; occasional | The checkbox, 44 pt | 14 (effective at once) |
+| Leave | Every page | Done (trailing, the one primary) and Back (leading); both keep | 18 ("Cancel and Done"), 23 |
+| Remove what was written | Rare | Empty the page and leave, with Undo; or More → Delete in the viewer (unchanged) | 7 |
+| Read | Opening a note | The viewer shows the page read-only; Edit in its toolbar (unchanged) | 1 |
+| Know it saved | Passive | Nothing while it saves; "Not saved yet" in the top bar only on a failure | 19, 20 (no routine success), 21 |
 
-Nothing here is a control the matrix says to avoid. On Android, Material asks "Save" rather than "Done" for a
-full-screen dialog's confirm (row 18). The app is one design on both platforms, so **Done** is kept. The steward or
-the owner may ask for "Save".
+The matrix's "Avoid" for row 18 is a popover on a phone; nothing here is one. Row 9 (ask before losing work) does not
+apply, since nothing is ever lost.
 
 ## Deferred, and why
 
-- **A draft that outlives a killed app** (question 3, if the owner agrees).
-- **Selection across lines, drag to reorder, a "/" menu, toggles, dividers, tables, links:** out by the owner's call
-  (structure), or past the subset.
-- **Undo and Redo across lines:** each line keeps its own platform undo. One history for the page is a follow-up.
-- **Inline bold and italic drawn while their line is being typed** (only with option A).
-- **Searching inside a long note's formatting:** the picker searches its words (marks dropped), not its structure.
+- **"Added to on Nov 30"**: words added weeks later carry the note's first time (steward, silent 1). Saying so needs a
+  stored edit time, a data change of its own.
+- **Selection across a whole page, drag to reorder, a "/" menu, links, tables, photos inline:** out by the owner's
+  calls.
+- **Undo of a whole session's writing:** TipTap's history covers the open page only.
 
 ## Native paths that will not run on a device
 
-- `InputAccessoryView` for the bar on iOS; the bar above the keyboard on Android (`adjustResize`).
-- A page of many `TextInput`s: focus moving from line to line on Return and Backspace, and scrolling to the focused
-  line while the keyboard is up.
-- Ticking a checkbox inside the viewer's Modal on iOS.
-- Each goes into `docs/NATIVE_UNVERIFIED.md` as a `**Do:** … **Expect:** …` item (NP1, NP3, NP4, NP6).
+- The DOM component's WebView: focus and the keyboard on open (NP1), the toolbar above the keyboard on iOS and
+  Android (NP4), scrolling to the cursor, a tick inside the viewer's Modal (NP5, NP6).
+- Saving on AppState `background` (NP9).
+- Each goes into `docs/NATIVE_UNVERIFIED.md` as a `**Do:** … **Expect:** …` item.
 
-## The steward's findings and their triage
-
-Seven findings (six drifts, one tone; no breaches), Nov 12.
+## The steward's findings and their triage (first plan, Nov 12)
 
 | # | Finding | Triage |
 |---|---|---|
-| S1 | Ticks and tap-to-edit on the moment's face (0114) | **Accepted in part.** The owner's thread's bubble never ticks (NP11). Ticking in the viewer while reading goes **to the owner** (spec, "Waiting on the owner"). A tap on the words only enters editing and changes nothing, by the owner's call (Nov 12); it is recorded as a decision beside 0114 when the build starts |
-| S2 | Old notes reinterpreted as formatted | **To the owner**: keeping them literal needs a mark on the notes the page saved (a data model call) |
-| S3 | Canonical rewriting of `* ` and numbers | **Accepted**: byte-for-byte round trip, markers and numbers as typed (NP7) |
-| S4 | The head lacks time into the walk and what came before, and scrolls away | **Accepted** (NP2): Lately's words; a short head stays in the top bar |
-| S5 | No criterion for nothing leaving the device | **Accepted** (NP14) |
-| S6 | A heading outside the page reads as a journal title | **Accepted** (NP10): the row's own size, after place and time. Question 2 no longer calls a heading the page's "name" |
-| S7 | Untestable wording | **Accepted**: NP1 names its green tests, NP8 its thresholds and words, NP10 the replay's 300 characters, NP12 its tokens |
-| silent 1 | Words added weeks later carry the original time | **Deferred** to `docs/DEFERRED.md`: saying "added to on Nov 30" needs a stored edit time, a data model change of its own |
-| silent 2 | A long draft lost to a killed app | Question 3 |
+| S1 | Ticks on the moment's face (0114) | **Accepted**: ticks only on the page; in the viewer and the thread a tap on a box changes nothing (NP5, NP6, NP10) |
+| S2 | Old notes reinterpreted as formatted | **Rejected for now** (default in the spec's Decisions, the owner may reverse): their stored text never changes until written in (NP7). Keeping them literal would need a stored mark |
+| S3 | Canonical rewriting of `*` and numbers | **Yields to the library** (0149): `@tiptap/markdown` writes canonical Markdown on the first save in the page. What is shown never changes, and a note never written in keeps its bytes (NP7) |
+| S4 | The head lacks time into the walk and what came before, and scrolls away | **Accepted** (NP2) |
+| S5 | Nothing leaves the device | **Accepted** (NP13), more pressing with a web editor |
+| S6 | A heading outside the page reads as a journal title | **Accepted** (NP10); no title field |
+| S7 | Untestable wording | **Accepted**: NP8's thresholds and words, NP10's 300 characters, NP11's tokens; NP1 is now a journey of each entry point |
+| silent 1 | Later words carry the first time | **Deferred** (above) |
+| silent 2 | A long draft lost to a killed app | **Answered** by saving as you write (NP9) |
 | silent 3 | Resurfacing could pick unticked lists | **Accepted** (NP6) |
+
+## The steward's second pass (Nov 12, after decision 0149)
+
+| # | Finding | Triage |
+|---|---|---|
+| S8 | A pause could store an emptied body | **Accepted** (NP9): a pause never writes an empty body; only leaving empty deletes, with Undo. The reducer test covers it |
+| S9 | The stamp would move to the first save | **Accepted** (NP1): the page takes `stampNow` at the pencil's tap and hands it to `saveNote` |
+| S10 | Older notes are re-read as Markdown in every reader at once | **To the owner** (spec, "Waiting on the owner") |
+| S11 | NP13 tested only on the web | **Accepted** (NP13): the WebView's `onShouldStartLoadWithRequest` allows only its bundle; TipTap's paste rules keep only the page's schema (no `img`, `iframe`, link). The phone side goes into `docs/NATIVE_UNVERIFIED.md` |
+| S12 | The camera is a tap further while writing | **To the owner** |
+| S13 | The placeholder is a prompt | **Accepted** (NP11): "Start writing" |
+| silent | iOS Writing Tools in WKWebView | **Deferred**: the system offers it on a selection the owner makes, which is a tap, not the app writing for them. Turning it off needs `writingToolsBehavior`, which react-native-webview may not expose; checked when the module is installed |
