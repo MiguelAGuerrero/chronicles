@@ -582,6 +582,9 @@ const OPS = {
     const all = new Set(parts.flatMap((x) => [...tokens(x.text)]));
     const missing = [...tokens(b.text)].filter((w) => !all.has(w));
     if (missing.length) fail(`a split keeps every word of the bullet; missing: ${missing.join(', ')}`);
+    const had = tokens(b.text);
+    const extra = [...all].filter((w) => !had.has(w));
+    if (extra.length) fail(`a split is the bullet's own words, a tag on each part at most; it adds words: ${extra.join(', ')} (a rewrite is \`item set\` with its reason)`);
     const lines = parts.flatMap((x) => x.text.split('\n'));
     return {
       edit: replaceBlock(b, lines),
