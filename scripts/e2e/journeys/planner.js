@@ -20,6 +20,28 @@ async function run(h) {
   await pg.goto(exploreUrl);
   const tile = pg.locator('[data-testid=atlas-tile][data-name="Green Row"]');
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Green Row"][data-read="1"]', { timeout: 60000 }).catch(() => {});
+  // Turned, through the planner and back, Explore's map comes back north-up with no compass left over it (CP8; tend map
+  // audit 6: the map unmounted under the planner and its last bearing stayed with the compass).
+  const compass = pg.locator('[data-testid=compass]').filter({ visible: true });
+  let turnOn = null;
+  {
+    // Two real touches swung 90° in the map's top quarter (as qol's turn), through the DevTools protocol.
+    const cdp = await c.newCDPSession(pg);
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    const mb = await pg.locator('xpath=//canvas[contains(@class,"maplibregl-canvas")][not(ancestor::*[@aria-hidden="true"])]').last().boundingBox();
+    const cx = mb.x + mb.width / 2, cy = mb.y + mb.height / 4, r = 60;
+    const pts = (a) => [{ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), id: 1 }, { x: cx - r * Math.cos(a), y: cy - r * Math.sin(a), id: 2 }];
+    turnOn = await pg.evaluate((ps) => ps.map((q) => document.elementFromPoint(q.x, q.y)?.className?.toString().slice(0, 30) ?? null), pts(0));
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
+    for (let i = 1; i <= 12; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts((i * Math.PI) / 24) });
+      await pg.waitForTimeout(16);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await cdp.detach();
+    await pg.waitForTimeout(800);
+  }
   await tile.click().catch(() => {});
   await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
   const before = pg.url();
@@ -32,6 +54,9 @@ async function run(h) {
   check((await btn.getAttribute('aria-label').catch(() => '')) === 'Suggest a walk through green', 'KW15: the button reads as one to a screen reader');
   const cardBox = await pg.locator('[data-testid=atlas-card-pull]').boundingBox().catch(() => null);
   check(!!box && !!cardBox && Math.abs(box.x + box.width - (cardBox.x + cardBox.width - 18)) <= 6, 'KW15: the button is aligned right in its row');
+
+  const turnedBefore = await compass.count();
+  const bearingTurned = await pg.evaluate(() => [...document.querySelectorAll('[data-bearing]')].filter((e) => !e.closest('[aria-hidden=true]')).map((e) => e.getAttribute('data-bearing')));
 
   await btn.click();
   // Green Row has one street, so a loop (the default) cannot be made there without going back the way it came (KW16): said so, and
@@ -49,6 +74,9 @@ async function run(h) {
   await pg.click('[data-testid=plan-close]');
   await pg.waitForTimeout(600);
   check((await pg.locator('[data-testid=atlas-card]').count()) === 1 && !(await tabBarShown(pg)), 'walk-planner audit 12: closing the planner leaves the tabs hidden while the area card is open');
+  await pg.waitForTimeout(1200);
+  const bearingBack = await pg.evaluate(() => [...document.querySelectorAll('[data-bearing]')].filter((e) => !e.closest('[aria-hidden=true]')).map((e) => e.getAttribute('data-bearing')));
+  check(turnedBefore === 1 && (await compass.count()) === 0, `tend map audit 6: turned, through the planner and back, Explore shows no compass (before ${turnedBefore} at ${JSON.stringify(bearingTurned)} on ${JSON.stringify(turnOn)}, after ${await compass.count()}; bearing ${JSON.stringify(bearingBack)})`);
   await btn.click();
   await pg.waitForSelector('[data-testid=plan-row-0]', { timeout: 90000 }).catch(() => {});
   await pg.waitForTimeout(500);

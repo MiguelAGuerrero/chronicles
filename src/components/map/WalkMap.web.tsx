@@ -641,6 +641,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       clearTimeout(pressTimer);
       clearTimeout(holdTimer);
       dropSwipe();
+      // A map that comes back opens north-up (CP8), so its screen hears north as it goes: a map taken down under the
+      // planner left its last turn with the compass (tend map audit 6).
+      if (sentBearing !== 0) onBearingChange.current?.(0);
       map.remove();
       mapRef.current = null;
     };
