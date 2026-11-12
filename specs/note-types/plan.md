@@ -1,4 +1,4 @@
-# Note types: plan (NY1-NY14)
+# Note types: plan (NY1-NY16)
 
 For the owner's review before any code. Nothing is built yet.
 
@@ -8,9 +8,9 @@ For the owner's review before any code. Nothing is built yet.
 |---|---|
 | NY1, NY2, NY3, NY13 | `src/lib/noteType.ts` (new, `@layer core`): `NOTE_TYPES`, `noteTypeOf(raw)` (null for anything outside the set), `markOf(capture)` (glyph name and spoken name for a note with a type, null otherwise) |
 | NY4, NY5, NY14 | `src/lib/types.ts` (`Capture.note_type?: NoteType \| null`), `src/lib/moment.ts` (`PieceRow.p_note_type`, `facePiece`, `Faced.note_type`), `src/lib/db/migrations.ts` (entry 25: `ALTER TABLE capture ADD COLUMN note_type TEXT`), `src/lib/db/sqliteStore.ts` (`PIECE_COLUMNS`, the SELECT list, both INSERTs), `src/lib/db/index.web.ts` (`VERSION` 20, `oldVersion < 20` step that changes no data: pieces live inside the moment record, so only the version moves), `src/lib/captureBus.ts` (`CapturePatch` gains `note_type`) |
-| NY6-NY8 | `src/components/NoteEditor.tsx` (a "Type" row: current glyph and name; opens a menu of the five and "No type"; `onSave(body, type)`), `src/components/CaptureView.tsx` (passes the type through `onSaveNote(c, body, type)`; rolls it back on failure beside the text), `src/lib/resurface/shell.ts`, `src/lib/ready/shell.ts`, `src/lib/useCaptures.ts` (`setNote`), `src/app/day/[key].tsx`, `src/app/walk.tsx`, `MediaScreen.tsx`, `MemoriesScreen.tsx` (the six callers of `onSaveNote`: each writes `{ body, note_type }` through `db.updatePiece`). `ReplyDock` (Respond → Note) keeps its composer; a response note is made with no type and takes one through Edit |
+| NY6-NY8 | `src/components/NoteEditor.tsx` (a "Type" row: current glyph and name; opens a menu of the five and "No type"; `onSave(body, type)`), `src/components/CaptureView.tsx` (passes the type through `onSaveNote(c, body, type)`; rolls it back on failure beside the text), `src/lib/resurface/shell.ts`, `src/lib/ready/shell.ts`, `src/lib/useCaptures.ts` (`setNote`), `src/app/day/[key].tsx`, `src/app/walk.tsx`, `MediaScreen.tsx`, `MemoriesScreen.tsx` (the twelve call sites of `onSaveNote` (steward): `walk/useReady.tsx:323`, `replay/[id].tsx` (2), `(tabs)/index.tsx` (2), `walk.tsx` (2), `MemoriesScreen.tsx` (2), `MediaScreen.tsx`, `day/[key].tsx`; each writes `{ body, note_type }` through `db.updatePiece`). `ReplyDock` (Respond → Note) keeps its composer; a response note is made with no type and takes one through Edit |
 | NY9 | `src/components/CaptureView.tsx` (the note card: glyph and spoken name above the text) |
-| NY10 | `src/components/icons.tsx` (`captureIcon(c)`: `KIND_ICON[kind]`, or the type's glyph for a note), `CapturePinView.tsx`, `chronicle/MomentPicture.tsx`; `src/lib/pins.ts` carries `note_type` on a pin's single capture if it does not already |
+| NY10 | `src/components/icons.tsx` (`captureIcon(c)`: `KIND_ICON[kind]`, or the type's glyph for a note), `CapturePinView.tsx`, `chronicle/MomentPicture.tsx`; `src/lib/pins.ts`: only a pin of exactly one capture that is a note wears a type; a pin of several keeps its kind (or mixed) glyph and its count |
 | NY11 | spoken names on the glyphs (`accessibilityLabel` where a glyph stands alone; the pin's and the card's labels read "Question note" etc.) |
 | NY12 | nothing is built: a test asserts no module under `src/lib` counts or filters by `note_type` (a grep-style core test) |
 
@@ -25,7 +25,8 @@ For the owner's review before any code. Nothing is built yet.
 - `noteTypeStore.test.ts` (new, runs against `dbContract.ts` on both fakes): **NY4** (set, change, clear, a pre-slice row reads null), **NY5** (two notes in one stacked moment hold different types), and the migration list test that already pins `MIGRATIONS.length`.
 - `bundle.test.ts` (extended): **NY14**.
 - `noteSave.test.ts` (new, a shell over `fakePorts()`): **NY7** (text and type written together; a failed write leaves both as they were), **NY8** (saving with the type untouched keeps it; the composers' `saveNote` writes no type).
-- `noteType.noCount.test.ts` (new, core): **NY12** (a scan of `src/lib` and `src/components` for `note_type` reads: only the files listed in the plan may mention it; none sorts, filters or counts).
+- `noteType.noCount.test.ts` (new, core): **NY12** (no exported function takes types and returns a count, a filter or a sort key; no lens or search input accepts a type), **NY16** (a scan of `onSaveNote` call sites: each passes the type on).
+- `noteSave.test.ts` also holds **NY15** (Respond's `saveNote` writes no type).
 - On screen, in the `chronicle` journey (`scripts/e2e/journeys/chronicle.js`, already covers `NoteEditor`): **NY6** (the Type row, the menu of six, the choice shown), **NY9** (the card's glyph and name, none without a type), **NY10** (the picture's glyph; the pin's, through the map's captured markers if the journey can reach them, otherwise `CapturePinView` is checked by a render of its label). Screenshots at 390 x 844 with the longest note text for the UI review.
 
 ## Screens and their controls (matrix: `docs/research/ui-references.md`, section 2)
@@ -49,6 +50,6 @@ Each goes in `docs/NATIVE_UNVERIFIED.md` as a first-phone-run item.
 
 ## Questions the owner may want to overrule
 
-1. The five glyphs and their names: question (`help-circle-outline`), important (`alert-circle-outline`), idea (`bulb-outline`), joy (`happy-outline`), low (`sad-outline`).
+1. The five glyphs and their names: question (`help-circle-outline`), important (`alert-circle-outline`), idea (`bulb-outline`), joy (`happy-outline`), low (`arrow-down-circle-outline`, a plain arrow, not a face).
 2. A menu in the editor (matrix) rather than a row of five glyph buttons.
 3. The thread screen's bubbles carrying no mark.
