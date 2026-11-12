@@ -1,1 +1,10 @@
-{}
+{
+  "atlas": [
+    {
+      "check": "AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring (1 points for 1 tiles, ring \"\" → 800, Fox Point at (0.0, 2.5) px from the middle)",
+      "fails": "2/3",
+      "base": "2e47bf94",
+      "seen": "2026-11-12"
+    }
+  ]
+}

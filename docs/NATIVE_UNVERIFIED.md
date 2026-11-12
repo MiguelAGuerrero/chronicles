@@ -135,6 +135,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Navigation and tabs
 
+- [ ] **Do:** on Android with TalkBack on, minimize a walk, go to Explore and take a photo with the recording bar's camera. **Expect:** the pill above the bar ("Photo saved to your walk", Edit, ✕) is read once by its polite live region, which is on an `Animated.View` that mounts with its text already in it (`LiftIn`): TalkBack may not read a region that never changed; focus stays where it was, and the line reads its time and distance (T12, decision 0149; the T12 review's native list).
+- [ ] **Do:** with the bar's Edit pill up, tap the ✕ at its left edge, next to Edit, with a thumb. **Expect:** the pill closes and the editor does not open: `EditButton` has `hitSlop` 10 and the ✕ sits 8 px away, so on native Edit's touch area reaches 2 px into the ✕'s (react-native-web has no hitSlop) (`tend tabs audit 20`).
+- [ ] **Do:** with the bar's Edit pill up on Explore, watch the map as it appears and as it goes. **Expect:** the tab bar's measured height (`tab-bar-wrap` `onLayout`) grows by the pill and the MapLibre view resizes once each way, with no blank frame or jump of the camera (T12).
+- [ ] **Do:** with VoiceOver on, minimize a walk, go to Explore and take a photo with the recording bar's camera; wait ten seconds, then swipe to the pill and use its Close. **Expect:** "Photo saved to your walk. Edit is available." is read once without moving focus (`announceForAccessibility`, iOS reads no live region); the pill above the bar stays past six seconds, its ✕ reads "Close, the photo stays as it is", and the bar's line reads its time and distance throughout; with TalkBack the polite live region reads the same (T12, decision 0149).
 - [ ] **Do:** on an iPhone with a notch and a home indicator, open Chronicle, Navigate, a replay and a day. **Expect:** the tab bar still sits above the home indicator (its height includes the bottom inset) and no screen draws under the notch: the root layout now nests `SafeInsets`, a passthrough on phones, inside `SafeAreaProvider` (fix memories-weird-state).
 - [ ] **Do:** on an iPhone, set a destination, then tap Open in Maps in the navigation bar. **Expect:** Apple Maps opens from the app (`nav/openInMaps.ts`) with walking directions to the destination; back in Chronicles the route and the walk are as they were (Open in Maps). (NH1, NH2, NH7)
 - [ ] **Do:** on Android, set a destination, then tap Open in Maps. **Expect:** the `geo:` chooser opens and the chosen maps app shows the destination; back in Chronicles nothing changed (Open in Maps). (NH1, NH2)
@@ -482,12 +486,12 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Community parks (PC1-PC17, decision 0143)
 
 - [ ] **Do:** on a phone, switch Community parks off in "What I'm into", then walk (Explore on) past a playground and a park with a monument or sculpture. **Expect:** the playground is no "?" and no alert; the park with the monument is; switching the kind back on shows the playground at once (PC8; the explore read decodes the tiles' `landcover` in code on every platform, so the outline is known; whether the native map view's own read carries it is unknown, in which case a park is judged by its name and what lies within 60 m of its point).
-- [ ] **Do:** open Explore near a mall and select its neighborhood. **Expect:** a quiet brown outline with no fill around the mall on the MapLibre RN map, under the trace; its name and kind ("Strawberry Square · Shopping") appear as a Marker only from zoom 15, and no label shows at lower zoom (`WalkMap.native.tsx` `complexes` source and Markers; CX9)
+- [ ] **Do:** open Explore near a mall and select its neighborhood. **Expect:** a quiet plum outline with no fill around the mall on the MapLibre RN map, under the trace; its name and kind ("Strawberry Square · Shopping") appear as a Marker only from zoom 15, and no label shows at lower zoom (`WalkMap.native.tsx` `complexes` source and Markers; CX9)
 - [ ] **Do:** upgrade from a build before the complexes migration, open Explore on a neighborhood with a mall, then open an old moment taken inside it. **Expect:** the app opens (SQLite migration 23 makes the `complex` table), Explore's card lists the complex with its kind and Walk to, and the moment's line leads with it and keeps the street once the complex is cached; a moment taken before it was cached shows its street line only, and viewing makes no request (CX11, CX12, CX14)
 - [ ] **Do:** on an iPhone, open Navigate's settings with Explore on and switch Shopping off, then look at Explore's card and map. **Expect:** the Complexes group shows five switches beside What I'm into; with Shopping off the mall leaves the card and the map and comes back when switched on, with no new read (CX10)
 - [ ] **Do:** on a phone's mobile data, select a neighborhood next to a mall and watch the network. **Expect:** Overture's `buildings` and `places` tiles come by byte range from the one host the app already uses, one tile once per release, a failed read shows nothing and no pill (the PMTiles reader over `net.source`; CX16)
 
-## Note pages (NP1-NP14, decision 0149)
+## Note pages (NP1-NP14, decision 0151)
 
 The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@expo/dom-webview`) that has never run.
 
@@ -502,3 +506,14 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** open a note's page, type a long entry (a few thousand characters) quickly. **Expect:** no lag as each change crosses to the app (the whole Markdown body is sent per change), and the Content-Security-Policy added after load does not stop the editor answering Aa, @ or the camera (the DOM bridge). (NP9, NP13)
 - [ ] **Do:** in the viewer, scroll a long note with a finger, then tap its words and a checkbox. **Expect:** a scroll never opens the page; a tap on the words or a box does, and the box is not ticked; a mention's card opens its moment. (NP5, NP6)
 
+- [ ] **Do:** on a phone, open Memories with a hundred moments taken in and around a mall that is already cached, and scroll it. **Expect:** each moment's line leads with the complex only for those inside or within 40 m of its outline, the list scrolls smoothly (one store read for a kilometre cell, `complexes/lookup.ts`), and the gallery's day headers and tiles never name a complex (complexes audit 10, 13)
+- [ ] **Do:** with a screen reader on, press "See more" in a card with more than four complexes, and open a row's Walk to. **Expect:** the button is read as "See more complexes"; the new rows are reachable and each Walk to is named "Walk to <name>"; the row itself is not read twice (complexes audit 21, 22)
+- [ ] **Do:** on a phone, zoom a map past 15 beside two complexes with long names. **Expect:** each name shows on a white pill of at most two lines in plum, not scaling past one and a third at the largest text size, and the outline in plum is distinct from History's brown dots (complexes audit 23, 24)
+
+
+## Free look (FL1-FL21, decision 0150)
+
+- [ ] **Do:** on a phone, open Explore, tap Move map, then drag the map a long way with one finger and let it coast. **Expect:** the map pans and coasts, the row does not step, and pinch and the two-finger turn still work (FL3; `dragPan` switches at runtime on MapLibre RN, and the swiper's handlers are off while it is on).
+- [ ] **Do:** with Move map on, pan to another town and tap Show areas here, then a card, then Locate. **Expect:** the row lists the towns around the middle of the map with "Around the middle of the map" as the title; Locate brings the page back to you (FL6, FL7, FL8).
+- [ ] **Do:** with Move map on, press and hold a far spot and tap Walk here. **Expect:** a question, Walk now or When I get there, before anything starts; a drag that pans never starts the hold (FL10, FL12).
+- [ ] **Do:** after a drag on a native map with Move map on, tap a "?" or a dot. **Expect:** the tap acts as usual (onPress after a native drag, FL3).

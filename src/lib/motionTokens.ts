@@ -72,7 +72,7 @@ export const webFeedbackPlays = (kind: FeedbackKind, offered: boolean): boolean 
 /** Large buttons shrink to this while pressed (M4). */
 export const PRESS_SCALE = 0.97;
 
-/** A note page is kept this long after the last keystroke (NP9, decision 0149): Journal's save-as-you-write. */
+/** A note page is kept this long after the last keystroke (NP9, decision 0151): Journal's save-as-you-write. */
 export const NOTE_SAVE_PAUSE = 1000;
 
 /** With reduce motion on, every effect is instant (M2). */

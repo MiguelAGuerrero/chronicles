@@ -54,9 +54,12 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   (`paddingHorizontal: max(left, right)` squeezed its three tabs into one point) and Memories' list shrank
   to nothing until a reload. Never read `useSafeAreaInsets` from above `SafeInsets` in the root layout.
   The tabs journey replays it: it halves `innerWidth/innerHeight` and fires a resize, then puts the real
-  viewport back with only a `visualViewport` resize, as iOS ends a zoom. `env()` is 0 today (no
-  `viewport-fit=cover`); adding it means `SafeInsets` must also hear an `env()` change that comes with no resize
-  (the library's `transitionend` probe), and a test with a non-zero inset (fix memories-weird-state audit 6).
+  viewport back with only a `visualViewport` resize, as iOS ends a zoom.
+- **The page covers the whole screen** (`viewport-fit=cover`, set by `components/pwa.web.ts` through `coverViewport`
+  in `lib/safeInsets`; fix home-indicator, the owner's Home Screen app, Nov 12). Without it iOS reports every inset
+  as 0 and every bottom bar (the tab bar, Memories' capture band) sat in the home-indicator strip. `SafeInsets` hears
+  an `env()` change with no resize through its probe's `transitionend` (the fit is set after the HTML loads).
+  Chromium's `env()` is 0, so the e2e can't show a real inset; the owner's phone is the check.
 - **e2e:** `url` opens Chronicle's Memories; `exploreUrl` (`${url}explore`) opens the
   scenarios that begin on Explore, and `navUrl` (`${url}navigate`) those on Navigate.
 
@@ -86,6 +89,16 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
     Never reproduced (desktop, phone emulation, `/chronicles`, reloads,
     browser Back: `E2E_ONLY=reload`, `E2E_MOBILE=1`); these are the only two
     ways the › can do nothing.
+  - **The bar's Edit offer waits** (T12, decision 0149; ME23's six seconds stay on the walk screen and Navigate's ready
+    screen): after the bar's photo, a pill above the bar (`bar-edit-offer`, the Undo pill's look on the page's ground,
+    in flow so it covers no screen's controls) says "Photo saved to your walk" with Edit (`capture-edit`) and ✕
+    (`bar-edit-offer-close`), until Edit, ✕ or the next capture of the walk from any path (`captureBus`; Memories'
+    band too); its photo deleted or waiting on Undo (`deletions`), a failed bar photo and the walk stopping end it
+    too. Paused, the line reads "0:05 · 18 m · Paused" (numbers first, so a cut at 320 px takes the word). The line keeps its time and distance; the words, the spoken line and the rule are `barOffer*` in
+    `lib/recordingBar`. The offer is the bar's own state, and the bar unmounts whenever the tabs lose focus, so
+    returning to the walk or opening any screen over the tabs (a day, a replay) ends it too; Edit stays in the
+    photo's viewer. No store keeps it (the coordinator's ruling on the review's F2). At 320 px the
+    pill fits one line with 8 px to spare in the e2e's font: its measures are tighter than Undo's at the sides.
   - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
     tap says to hold), beside its camera: a way out even when the walk screen
     can't be reached (the owner's quick fix, Nov 2). It refuses under a memo

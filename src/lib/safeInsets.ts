@@ -22,3 +22,16 @@ export function insetsFromPaddings(p: Paddings): Insets {
 }
 
 export const sameInsets = (a: Insets, b: Insets) => a.top === b.top && a.right === b.right && a.bottom === b.bottom && a.left === b.left;
+
+/**
+ * The page's viewport with `viewport-fit=cover` (fix home-indicator, the owner's Home Screen app, Nov 12). Without it
+ * iOS reports every `env(safe-area-inset-*)` as 0, so the bottom bars sat in the home-indicator strip. The page's own
+ * width and scale are kept; an existing fit is replaced.
+ */
+export function coverViewport(content: string | null): string {
+  const parts = (content ?? 'width=device-width, initial-scale=1')
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p && !/^viewport-fit\s*=/i.test(p));
+  return [...parts, 'viewport-fit=cover'].join(', ');
+}

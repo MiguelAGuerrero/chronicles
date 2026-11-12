@@ -2,7 +2,7 @@
 import { NOTE_SAVE_PAUSE } from '../motionTokens';
 import { stripMarks } from './plain';
 /**
- * Saving a page as it is written (NP9, decision 0149): a reducer, because pauses, leaving, the background, a save
+ * Saving a page as it is written (NP9, decision 0151): a reducer, because pauses, leaving, the background, a save
  * in flight and a failed one tangle (functional-core rule). The view runs its effects through the screen's own
  * create, save and delete. Time is an argument.
  */

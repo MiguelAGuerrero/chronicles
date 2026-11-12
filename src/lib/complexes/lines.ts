@@ -6,6 +6,10 @@ import type { Complex, ComplexKind } from './types';
 /** How many rows show before "See more" (CX4). A constant, tuned by the owner; never said aloud. */
 export const FIRST_SHOWN = 4;
 export const SEE_MORE = 'See more';
+/** The spoken name of the button: what it shows, so the visible words stay in the name (complexes audit 21). */
+export const SEE_MORE_LABEL = 'See more complexes';
+/** The smallest a tap target is, in points: Android's 48 dp, which also covers iOS's 44 (complexes audit 28). */
+export const COMPLEX_TARGET_MIN = 48;
 
 export interface ComplexRow {
   id: string;

@@ -211,7 +211,7 @@ recording, and a recording bar brings a minimized walk back.
 - Capture buttons (camera, mic, pencil) are stacked at the right edge, above the strip. Photos and
   videos come from the system camera (video capped at 30 s), memos from the
   mic, notes from the pencil. Captions can be added to photos later.
-- **A note is a page** (note pages, decision 0149), in Apple Journal's manner: the pencil opens it full screen in
+- **A note is a page** (note pages, decision 0151), in Apple Journal's manner: the pencil opens it full screen in
   one tap, headed by the day in large type and a line of when, where and which walk (the short form stays in the
   top bar once that scrolls away). Headings, lists, checklists, quotes, bold and italic come from typing (`# `,
   `- `, `[ ] `, `1. `, `> `, `**`) or from **Format** above the keyboard; **Mention** mentions a moment, and the
@@ -411,7 +411,9 @@ recording, and a recording bar brings a minimized walk back.
   saves a keeper to the photo library (every edit and the caption baked in), edits a note's
   words, or deletes the moment. Remind me here lives here too.
 - **Editing a photo or video** (Media editing, ME1-ME23): one Edit screen, from the
-  viewer or from the Edit pill shown for 6 s after every photo or video. Crop with
+  viewer or from the Edit pill shown for 6 s after every photo or video (on the recording bar, a pill above the
+  bar that waits for Edit, Close or the next capture, or until you leave the tabs, its line keeping time and
+  distance: T12, decision 0149). Crop with
   Free, Square, 4:5 and 16:9, and Rotate; nine filters a phone's photo app has
   (Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia; photos only);
   drawing like the iPhone's Markup (Pen, Marker, Eraser, three thicknesses, six
@@ -474,6 +476,7 @@ recording, and a recording bar brings a minimized walk back.
 | Presence (what a place is, classified once and read by the map's density, the marks, the bars, scenic greens and the planner alike, the places archive included; memorials and nature reserves join the notable classes) | Shipped (both slices: PR1-PR8, PS1-PS11) |
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map never pans by one finger, DN1, DN10-DN13; the directional step retired by the carousel) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
+| Free look (Explore: a Move map toggle frees one-finger panning; Show areas here lists the areas around the map's middle as its own page; Locate returns; FL1-FL21, decision 0150) | Built, web verified by the e2e (`freelook`); native unverified; not audited |
 | Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
 | Explore one level per row (near you the towns, yours leading and selected; a town's page its own card, then its neighborhoods; the title names the level, the back pill reads "Towns"; decision 0126, fix explore-town-scope) | Shipped 2026-11-10 (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |

@@ -175,6 +175,11 @@ export interface WalkMapProps {
    * On web the arrow keys report swipes too. Pinch, wheel, double tap, the turn and the long press stay.
    */
   onSwipe?: (swipe: { dx: number; dy: number; vx: number; vy: number; center: LngLat; mpp: number }) => void;
+  /**
+   * Free look (FL3): with `onSwipe` set, true frees one finger (or the mouse) to pan the map, as any other
+   * map does, and the arrow keys pan it; a drag is no swipe while it is on. Changes at runtime.
+   */
+  freePan?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 

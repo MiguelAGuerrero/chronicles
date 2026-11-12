@@ -23,6 +23,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
 | v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
 | v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
+| Free look (Explore: Move map frees one-finger panning, Show areas here lists the areas around the map's middle; FL1-FL21, decision 0150, amends EC10) | built 2026-11-11 on `slice/free-look`; not deployed | `slice/free-look` | `specs/free-look/spec.md` | plan audited (16 findings: 15 accepted, 1 rejected); the built slice not audited |
 | Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
 | Rides | shipped | `8e49c9c` 2026-11-01 rides audit fixes | `specs/rides/spec.md` | yes (14 findings, 11 fixed, `8e49c9c`) |
@@ -138,19 +139,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   decision 0048 and reverses neither. More than one commit: on a yes it is built as a slice. /vision: aligned (honour), with no
   accent and no count on the bar.
   Otherwise: the mic and the pencil both; or record the camera as the bar's whole stack in VISION.md's Shapes; or leave it.
-- **T12 [owner] The recording bar's Edit offer goes after six seconds** (2026-11-11)
-  Area: tabs. Seen: `tabs-9-bar-edit-offer`, `tabs-9-bar-edit-offer-320` (the `launch` journey's pictures): after a photo from the
-  bar, "Photo saved to your walk" and an Edit button replace the time and distance for ME23's six seconds. Rests on:
-  `.claude/rules/ui-patterns.md`, "Undo stays until it is used or dismissed" (F3; M3, "Snackbars with actions shouldn't
-  auto-dismiss"; decision 0113), and decision 0114 (an action on a moment lives in its toolbar or menu; the viewer has Edit)
-  (UX review U7).
-  Recommended: on the bar only, the offer becomes a pill above it, "Photo saved to your walk · Edit · ✕", that stays until Edit,
-  Close or the next capture, announced politely; the bar's line keeps its time and distance throughout. ME23's other places are
-  unchanged. /vision: aligned (honour).
-  Otherwise: no Edit offer on the bar at all (the photo's viewer has Edit), or leave it.
-  At 320 px the offer's words are cut today, "Photo save…" on two lines beside Edit (`tabs-9-bar-edit-offer-320`; the run's
-  review F9): the pill's layout settles that too.
-  **Answered yes** (`/tend inbox T9 yes, T12 yes`, Nov 12): waits for the next `/tend inbox`, one build per run (T9 was built first).
 - **T13 [phone] The tabs at the largest text size** (2026-11-11)
   Area: tabs. Seen: `probe-minimized-200pct` (the web at zoom 2, a rough stand-in: react-native-web sizes text in px): the section
   bar read "M… / W. / D.", the band lost Note off the screen, the bar's line read "0:07 …" (UX review U6; WCAG 1.4.4).
@@ -185,23 +173,31 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 12, `/tend inbox T10 yes, T12 yes`** (from `3fa8c309`; T10 built, T12 waits for the next inbox run, one build per run).
-- `tend tabs T10`: Chronicle's empty peek offers Navigate alone with nothing open (the section bar holds Days); with a
-  walk open and none finished it says "This walk is starred here when it ends" and offers no button (the recording
-  bar's › is the way back). Decision 0148 (amends 0050's U7); the words are `emptyPeek` in `lib/quietLines`.
-- `tend tabs audit 1`: until Chronicle's first read the peek is plain, so opening the Map with walks kept never shows the
-  empty line or its Navigate (the auditor's F1, from before T10); `audit 2`: a walk stopped from the bar on the Map stays
-  this walk in the peek until Chronicle reads it (F2); `audit 3`: the tabs journey measures the peek's height, 76 px with
-  a walk open, 124 px over Navigate (F3); `audit 4`: the walk-open line sits under the grabber as the other does (the UI
-  review's U1).
-The review: one round of the auditor and the ux-reviewer (decision 0145): 4 accepted, 1 deferred (F4, the three texts
-that still say the old peek, in "Open before the loop": the loop edits no decision, spec or rule line), 1 rejected (U2,
-"starred" is the app's word across the Map; a vocabulary change is the owner's). Journeys `tabs`, `days` and `launch`
-pass. Filed: no T or G entry. Not a sweep: no lens ran and no area changed state. Nothing here has run on a phone; the
-peek renders on native too (`docs/NATIVE_UNVERIFIED.md`).
+**Nov 12, `/tend inbox T12 yes`** (from `2e47bf94`; T12 built, the yes given Nov 12 and carried from the last inbox run).
+- `tend tabs T12`: after a photo from the recording bar, the Edit offer is a pill above the bar, "Photo saved to your
+  walk · Edit · ✕", in the Undo pill's look, that waits for Edit, Close or the next capture of the walk, announced
+  politely; the bar's line keeps its time and distance, and the words are whole on one line at 320 px (they were cut to
+  "Photo save…"). ME23's other places keep 6 s. Decision 0149 (amends ME23 on the bar); `barOffer*` in `lib/recordingBar`.
+- The review's fixes: `audit 15`, a bar photo deleted elsewhere ends the offer (F1); `audit 16`, the capturehome journey
+  pins that a screen over the tabs ends it, as 0149 now says (F2, settled by wording); `audit 17`, paused, the line reads
+  "0:05 · 18 m · Paused", so 320 px cuts the word, never the numbers (F3, U1); `audit 18`, a failed bar photo ends the
+  offer (F4); `audit 19`, the pill goes while the walk is stopping (F5); `audit 20`, Undo's 8 px between Edit and Close
+  (F7, U2); `audit 21`, a note from Memories' band ends the pill, in the capturehome journey (F8).
+The review: one round of the auditor and the ux-reviewer (decision 0145): 7 accepted (U1 and U2 merged into F3 and F7),
+1 deferred (F6, the walker's dot under Explore's hint at 320 px with the pill up, `[loop]` in `docs/DEFERRED.md`), none
+rejected. Pictured, not before: the pill left up on Memories (390 and 320 px), where a second dark pill (the storage
+notice) stood over it at once (`[loop]` in `docs/DEFERRED.md`); the pill with the bar's reminder card was not pictured
+(a reminder needs a fired recall). Journeys `launch`, `edit`, `tabs` and `capturehome` pass; `reload` was reached and
+skipped (its check is the bar's "Hold to stop", unchanged). Filed: no T or G entry. Not a sweep: no lens ran and no area
+changed state. Nothing here has run on a phone; the pill, its announcement and the editor it opens are native view
+code too (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **ME23's wording after T12** (Nov 12): `specs/media-editing/spec.md` ME23 says every place offers Edit for 6 seconds;
+  since `tend tabs T12` (decision 0149) the recording bar's offer is a pill above the bar that waits for Edit, Close or
+  the next capture (or the tabs leaving the screen). Amend ME23 with "Amended (owner, Nov 12, decision 0149): on the
+  recording bar, a pill above it that waits", in the doc and the mirror; the loop may not edit a spec.
 - **Chronicle's empty peek after T10** (Nov 12; the T10 review's F4): decision 0148 amends 0050, but three texts still
   say the old peek. `docs/decisions/0050-chronicle-peek.md` line 3 has no "Amended by [0148](0148-the-empty-peek-one-way-and-a-true-line.md)"
   (as 0030's names 0082); `specs/v0.5-places/spec.md` criterion 19 wants an "Amended (owner, Nov 12, decision 0148): with
@@ -290,9 +286,9 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Note pages (a note is a journal entry in Apple Journal's manner: the pencil opens its page, TipTap through Expo DOM, Aa Format and @ and a camera above the keyboard, kept as it is written, older notes literal; NP1-NP14, decision 0149) | `claude/blissful-ptolemy-o3q79x` | built 2026-11-12, test-first by history (14 of 14): unit tests, typecheck, lint, docs and vision checks; the `notepage` journey and the 30 journeys `check:affected` named pass on the web build (one batch on the first build, then the twelve the audit's fixes touched, once, on the final build; `notepage` ran nine times in all while the audit's checks were written, its NP9 Undo check failing once); audited at the owner's request (27 findings: 20 fixed, two in part; 3 deferred; 4 merged; `note-pages audit N`); native unverified (a WebView editor never run on a phone); not merged or deployed; spec `specs/note-pages/spec.md` |
+| Note pages (a note is a journal entry in Apple Journal's manner: the pencil opens its page, TipTap through Expo DOM, Aa Format and @ and a camera above the keyboard, kept as it is written, older notes literal; NP1-NP14, decision 0151) | `claude/blissful-ptolemy-o3q79x` | built 2026-11-12, test-first by history (14 of 14): unit tests, typecheck, lint, docs and vision checks; the `notepage` journey and the 30 journeys `check:affected` named pass on the web build (one batch on the first build, then the twelve the audit's fixes touched, once, on the final build; `notepage` ran nine times in all while the audit's checks were written, its NP9 Undo check failing once); audited at the owner's request (27 findings: 20 fixed, two in part; 3 deferred; 4 merged; `note-pages audit N`); native unverified (a WebView editor never run on a phone); not merged or deployed; spec `specs/note-pages/spec.md` |
 | Community parks and the kind pipeline (Parks gets a subset, "Community parks", the reader can switch off: a park whose name says playground or the like with nothing notable in or near it; size never demotes; never described; built as the first entry of a registry of pure refinements, kinds know their parent so a parent switch hides its children; PC1-PC23, decisions 0143, 0144) | `claude/confident-mendel-gf0ck0` | built 2026-11-11, test-first by history (23 of 23): unit tests, typecheck, lint, layers; merged with main (presence); the journeys `check:affected` names pass on the web build (marks, with its new PC6 check, atlas, grading, curiosities, outlines, replay, nudge) except `scenic`, whose check "fix preview-clutter audit 1" (the trace drawn again as the preview closes) fails the same way on `origin/main` (3 of 3 runs of `e2e:baseline`), so it is main's, not this slice's; steward read once (10 findings, triaged in the plan); the sub-path build passes marks, atlas, grading, curiosities, outlines, chronicle, replay, scenic and nudge, where nudge's PA2 counted the double-tap's taps at the instant the first "?" showed and read 1 when its 1 s poll fell between the two (about 150 ms apart): it now counts after the pair, 8 of 8 runs; native unverified; not audited (decision 0074); spec `specs/community-parks/spec.md` |
-| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0147) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; not audited (decision 0074); not merged or deployed; native unverified; spec `specs/complexes/spec.md` |
+| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0147) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; audited 2026-11-12 (29 findings: 18 fixed, 1 in part, 2 duplicates, 5 deferred, 3 rejected, 1 to the owner; tests `complexes audit 1-28`); deployed 2026-11-11 (main `820957a`, Pages run 215), the audit's fixes not yet deployed; native unverified; spec `specs/complexes/spec.md` |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in an edge-to-edge grid under pinned day headers; Years, Months, Days; Sort, Show, Zoom and pinch, Square or Aspect; MG1-MG22, decision 0139) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-11, test-first by history (22 of 22): unit tests (1814), typecheck, lint, docs and vision checks; the eleven journeys `check:affected` names (gallery, capturehome, chronicle, edit, qol, responses, resurface, stacks, tabs, threads, walk) pass on the /chronicles build, `resurface` run twice (its RM1 check counted four sections; now five); steward read twice (S1-S14 accepted); merged with main and deployed 2026-11-11 (`498e412`, Pages run 43050937634, the live page shows Media); not audited (decision 0074); native unverified. Video thumbnails are the next slice (the owner, Nov 11); spec `specs/media-gallery/spec.md` |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14, decision 0131) | `claude/elegant-cannon-gs9yrk` | built 2026-11-11: RT1-RT14 tested first (unit and the `responses` journey), typecheck, lint, 1741 unit tests; the nine journeys `check:affected` names pass on the /chronicles build; deployed 2026-11-11 (`9ed9a15`, Pages run 42957716629); not audited; native unverified; spec `specs/response-thread/spec.md` |
 | Presence and kinds (a museum the data calls historic lights History too, the bars kept apart; routes from a bar lean on places you pass; a Community spaces kind; the needsOpen gate measured; PK1-PK19, after the Coplay Kilns diagnosis) | `claude/dazzling-fermat-ws5c6a` | built 2026-11-10, test-first by history (19 of 19): PK1-PK19 pass (1715 unit tests with main's, merged at `0f3f216`); typecheck, lint, docs and vision checks clean; journeys atlas, curiosities, grading, marks, nudge, outlines, planner, replay pass, and scenic on the merged tree (its one failure before the merge was the old base's, passing 3 of 3 on main); audited 2026-11-11 at the owner's request (14 findings: 8 fixed, one in part, two at the owner's call (the icons); 3 deferred; 3 rejected, one at the owner's call (the label kept); tests `presence-and-kinds audit 1-3, 5, 6, 8, 10, 13`); nothing native new; not merged or deployed. For the owner: the live places archive is still v1, so the Kilns show only once a v2 archive publishes; decision 0127. Spec `specs/presence-and-kinds/spec.md` |

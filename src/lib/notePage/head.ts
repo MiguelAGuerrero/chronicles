@@ -1,6 +1,6 @@
 // @layer core
 /**
- * The head of a note's page (NP2, decision 0149), as Apple Journal heads an entry: the day in large type, then one
+ * The head of a note's page (NP2, decision 0151), as Apple Journal heads an entry: the day in large type, then one
  * line of when, where and which walk; and a short form for the top bar once the head has scrolled away.
  */
 export type NoteHeadInput = {

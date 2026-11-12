@@ -2,7 +2,7 @@
 import { Lexer, type Token, type Tokens } from 'marked';
 
 /**
- * Note pages (NP10, decision 0149): a note the page wrote, as words. Its Markdown is read with `marked`, the lexer
+ * Note pages (NP10, decision 0151): a note the page wrote, as words. Its Markdown is read with `marked`, the lexer
  * `@tiptap/markdown` writes it with, and only the text is kept: no `#`, `-`, `[x]`, `>`, `**` or `*`, and the
  * entities the editor writes (`&gt;`) read as their characters. Each block is a line; a line break stays one.
  */

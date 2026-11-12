@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { NOTE_SAVE_PAUSE } from '../../motionTokens';
 import { startSave, stepSave, type SaveEvent, type SaveState } from '../../notePage/autosave';
 
-// Note pages NP9 (specs/note-pages, decision 0149): what is written is kept as it is written, with no question.
+// Note pages NP9 (specs/note-pages, decision 0151): what is written is kept as it is written, with no question.
 
 const run = (s: SaveState, ...events: SaveEvent[]) => {
   const effects = [];

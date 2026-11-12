@@ -1,5 +1,5 @@
 // @layer core
-/** A note's text at most (QL24; 20,000 since note pages NP8, decision 0149), counted as shown. */
+/** A note's text at most (QL24; 20,000 since note pages NP8, decision 0151), counted as shown. */
 export const NOTE_MAX = 20000;
 
 /**
@@ -12,5 +12,5 @@ export function noteText(body: string): string | null {
   return text ? text : null;
 }
 
-/** What a note written on its page stores (NP7, decision 0149): its body, and the mark that the body is Markdown. */
+/** What a note written on its page stores (NP7, decision 0151): its body, and the mark that the body is Markdown. */
 export const notePatch = (body: string): { body: string; body_format: 'md' } => ({ body, body_format: 'md' });

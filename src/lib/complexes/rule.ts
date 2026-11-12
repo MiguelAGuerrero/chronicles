@@ -36,11 +36,25 @@ export function neededTiles(pieces: readonly BuildingPiece[]): [number, number][
 /** The kind of a joined building and what it holds, or null when it fits none (CX3). First match: markets, stations, campuses, civic, shopping. */
 export function kindOf(b: { subtype: string | null; class: string | null }, inside: readonly PlaceIn[]): ComplexKind | null {
   if (inside.filter((p) => p.hierarchy.some((h) => MARKET_CATEGORIES.has(h))).length >= MIN_MARKET) return 'markets';
-  if (b.subtype === 'transportation' && b.class !== 'parking' && inside.length >= 1) return 'stations';
+  // A station says so in its class (complexes audit 8): a garage, a hangar or a building with no class is no station.
+  if (b.subtype === 'transportation' && b.class != null && (b.class === 'transportation' || /station|terminal/.test(b.class)) && inside.length >= 1) return 'stations';
   if ((b.subtype === 'medical' || b.subtype === 'education') && inside.length >= MIN_CAMPUS) return 'campuses';
   if (b.subtype === 'civic' && inside.length >= MIN_CIVIC) return 'civic';
   if (inside.filter((p) => densityWeight(classesOfOverture(p.hierarchy)) >= 1).length >= MIN_GO) return 'shopping';
   return null;
+}
+
+/** Whether any building among these pieces has a tile it needs that was not read: the read did not cover it (complexes audit 2). */
+export function hasIncomplete(pieces: readonly BuildingPiece[], readTiles: readonly [number, number][]): boolean {
+  const read = new Set(readTiles.map(([x, y]) => `${x}/${y}`));
+  const groups = new Map<string, BuildingPiece[]>();
+  for (const p of pieces) {
+    const g = groups.get(p.id);
+    if (g) g.push(p);
+    else groups.set(p.id, [p]);
+  }
+  for (const group of groups.values()) if (!neededTiles(group).every(([x, y]) => read.has(`${x}/${y}`))) return true;
+  return false;
 }
 
 /** The complexes among these pieces and places: pieces joined by id, judged only when every needed tile is in `readTiles` (CX1-CX3, CX14). */

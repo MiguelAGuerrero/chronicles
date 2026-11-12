@@ -1,7 +1,7 @@
 'use dom';
 
 /**
- * The note page's editor (NP3-NP7, NP12, NP13; decision 0149): TipTap, run by Expo's DOM components, a WebView on
+ * The note page's editor (NP3-NP7, NP12, NP13; decision 0151): TipTap, run by Expo's DOM components, a WebView on
  * phones and plain DOM on the web. It draws the page's head and its words; the app around it holds the bars, the
  * picker, the camera and the saving. Everything it says back is plain data: the body as Markdown, the words as shown,
  * which formats are on, that @ was typed.

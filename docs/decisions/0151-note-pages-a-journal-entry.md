@@ -1,4 +1,4 @@
-# 0149. Note pages: a note is a journal entry, written in TipTap through Expo's DOM components
+# 0151. Note pages: a note is a journal entry, written in TipTap through Expo's DOM components
 
 Date: 2026-11-12 · Status: accepted · Area: captures, chronicle · Amends: QL24, QL25 (the note card, its 500 characters) · From: `/slice note-pages`
 

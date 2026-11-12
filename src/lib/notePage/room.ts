@@ -2,7 +2,7 @@
 import { NOTE_MAX } from '../noteEdit';
 import { plainRefs } from '../refs';
 /**
- * Room in a note (NP8, decision 0149): up to `NOTE_MAX` characters counted as they are shown, a mention as its words.
+ * Room in a note (NP8, decision 0151): up to `NOTE_MAX` characters counted as they are shown, a mention as its words.
  * Room left is said in words, never a number.
  */
 export type Room = { full: boolean; line: string | null };

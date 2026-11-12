@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import type { JSONContent } from '@tiptap/core';
 import { toBody, toDoc } from '../../notePage/schema';
 
-// Note pages NP7 (specs/note-pages, decision 0149): what is kept is what is shown, and older notes stay literal.
+// Note pages NP7 (specs/note-pages, decision 0151): what is kept is what is shown, and older notes stay literal.
 
 /** The text a document shows, line by line: what a person reads, whatever the marks. */
 const shown = (doc: JSONContent): string => {

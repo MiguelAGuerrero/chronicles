@@ -105,7 +105,7 @@ Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
   OpenWalk.tsx               the open walk kept above the tabs: walk, pauses, live trace, useOpenWalk / useOpenWalkInfo
-  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk
+  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk; its photo's Edit pill above it
   MomentBar.tsx              MomentBar (loose moments from Navigate and Memories, or the open walk's from Memories' band) and CaptureRow (the controls, as a stack or a band)
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
@@ -117,7 +117,7 @@ Home / tabs
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
-  notePage/                  a note as a page (NP1-NP14, decision 0149): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @ and the camera; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap)
+  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @ and the camera; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap)
   CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
   Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
@@ -307,7 +307,7 @@ Memories, moments, days
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
-  notePage/                  note pages (decision 0149): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
+  notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
@@ -355,7 +355,7 @@ Session, screens and small helpers
   useTabMap.ts               a tab's map taken down while the tab isn't in front
   memoGate.ts                a memo recording anywhere blocks a start
   settleWithin.ts            await a promise, but never longer than ms
-  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line, counts as words, distances and times, the scale bar's length
+  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web
   focus.ts                   focusOn(ref) (findNodeHandle doesn't exist on web)
   perfCount.ts               opt-in counters when window.__perf is set
@@ -537,7 +537,7 @@ Truth (`lib/types.ts`):
   lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
   object; `parseEdit` reads both, decision 0090), body_format (a note's body is
   Markdown the note page wrote: 'md'; null or absent, it reads as stored;
-  SQLite migration 25, IndexedDB keeps the record whole; decision 0149). Media
+  SQLite migration 25, IndexedDB keeps the record whole; decision 0151). Media
   files and small copies are named by the piece's id.
 - Screens read `Faced` moments (`lib/moment.ts`): the moment's own fields with
   its face's media (`face`: the first photo or video, else the first piece),

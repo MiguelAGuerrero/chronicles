@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { NOTE_MAX } from '../../noteEdit';
 import { fits, roomOf, shownLength } from '../../notePage/room';
 
-// Note pages NP8 (specs/note-pages, decision 0149): room for a long entry, said in words.
+// Note pages NP8 (specs/note-pages, decision 0151): room for a long entry, said in words.
 
 test('NP8: a note holds 20,000 characters', () => {
   assert.equal(NOTE_MAX, 20000);

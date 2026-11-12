@@ -112,7 +112,7 @@ export async function planPiece(m: Faced, pieceId: string): Promise<ConfirmText>
 }
 
 /**
- * A note page left empty (NP9, decision 0149): its note goes, with the usual Undo. A one-piece moment is the moment;
+ * A note page left empty (NP9, decision 0151): its note goes, with the usual Undo. A one-piece moment is the moment;
  * a note added to another moment is that piece (MS13).
  */
 export function deleteNoteNow(n: { id: string; piece_id: string }) {

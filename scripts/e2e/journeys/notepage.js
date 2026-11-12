@@ -1,4 +1,4 @@
-// Note pages (NP1-NP14, decision 0149): a note is a journal entry. The pencil opens its page, written in TipTap
+// Note pages (NP1-NP14, decision 0151): a note is a journal entry. The pencil opens its page, written in TipTap
 // (Expo DOM: plain DOM on the web), kept as it is written; the viewer reads it; an older note stays literal.
 // Seeded straight into IndexedDB. E2E_ONLY=notepage runs it alone.
 

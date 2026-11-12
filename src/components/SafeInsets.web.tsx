@@ -9,7 +9,10 @@ function probe(): HTMLElement {
   el.setAttribute('aria-hidden', 'true');
   el.style.cssText =
     'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
-    'padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+    'padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);' +
+    // A change to env() with no resize (the viewport's fit set after the first paint, the status bar) still
+    // ends a transition on the padding, which is heard below (the library's own probe).
+    'transition:padding 1ms';
   return el;
 }
 
@@ -33,7 +36,8 @@ function first(): Insets {
  * `env(safe-area-inset-*)` values alone (`lib/safeInsets`). The library clamps them against
  * `window.innerWidth/innerHeight`, which iOS Safari reports as the visual viewport, so a resize during
  * a pinch-zoom left the tab bar half the screen tall until a reload. Read again on every resize, a
- * rotation, and the visual viewport's resize, which is how a zoom's end is heard.
+ * rotation, the visual viewport's resize, which is how a zoom's end is heard, and the probe's own transition,
+ * which is how an env() change with no resize is heard.
  */
 export function SafeInsets({ children }: { children: ReactNode }) {
   const [insets, setInsets] = useState<Insets>(first);
@@ -47,11 +51,13 @@ export function SafeInsets({ children }: { children: ReactNode }) {
     // A frame later, in case env() moved between the first render and now; never setState in the effect body.
     const frame = requestAnimationFrame(update);
     const vv = window.visualViewport;
+    el.addEventListener('transitionend', update);
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
     vv?.addEventListener('resize', update);
     return () => {
       cancelAnimationFrame(frame);
+      el.removeEventListener('transitionend', update);
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
       vv?.removeEventListener('resize', update);

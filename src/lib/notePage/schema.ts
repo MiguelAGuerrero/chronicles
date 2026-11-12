@@ -1,6 +1,6 @@
 // @layer adapter
 /**
- * The note page's document (NP3, NP7, NP13, decision 0149): TipTap's extensions, and the Markdown a note's body
+ * The note page's document (NP3, NP7, NP13, decision 0151): TipTap's extensions, and the Markdown a note's body
  * holds, through `@tiptap/markdown`. A mention is `@[id|words]` (0125). A note without the mark (`body_format`
  * null, every note written before) is read literally: each of its lines a paragraph of plain text, so `# 3 buses`
  * stays as typed, and once written in it is kept as Markdown that shows the same characters.

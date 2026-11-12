@@ -15,7 +15,7 @@ import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES } from '../../lib/atlas/atlas';
-import { SEE_MORE } from '../../lib/complexes/lines';
+import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
 import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
@@ -57,6 +57,10 @@ export function AtlasCard(props: {
   area: AtlasArea;
   parent: string | null;
   distanceM: number;
+  /** FL12: a looked card with no fresh fix of yours says no distance. */
+  unplaced?: boolean;
+  /** While looking, a distance is yours, said so (free-look ui 3). */
+  fromYou?: boolean;
   here: boolean;
   fam: Familiarity;
   walked: Set<string>;
@@ -191,7 +195,7 @@ export function AtlasCard(props: {
               <Text style={[styles.you, fam.walks ? styles.known : null]}>
                 {familiarityWords(fam)}{last ? ` · last ${last}` : ''}
               </Text>
-              <Text style={styles.muted}> · {distanceWords(props.distanceM, props.here, fmt)}</Text>
+              {props.unplaced ? null : <Text style={styles.muted}> · {props.fromYou ? distanceWords(props.distanceM, props.here, fmt).replace(/ away$/, ' from you') : distanceWords(props.distanceM, props.here, fmt)}</Text>}
             </View>
           </View>
           <Pressable testID="atlas-card-close" accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.close}>
@@ -273,20 +277,20 @@ export function AtlasCard(props: {
                 <Text style={styles.secTitle} accessibilityRole="header">{cx.title}</Text>
                 <View testID="atlas-complexes">
                   {cx.rows.map((r) => (
-                    <View key={r.id} style={styles.complexRow} testID="atlas-complex" accessibilityLabel={r.label}>
+                    <View key={r.id} style={styles.complexRow} testID="atlas-complex">
                       <View style={styles.complexText}>
                         <Text style={styles.pocketName}>{r.name}</Text>
                         <Text style={styles.muted}>{r.word}</Text>
                       </View>
                       {r.walkable ? (
-                        <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.pocketWalk}>
+                        <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.complexWalk}>
                           <Text style={styles.howText}>Walk to</Text>
                         </Pressable>
                       ) : null}
                     </View>
                   ))}
                   {cx.more ? (
-                    <Pressable testID="atlas-complexes-more" accessibilityRole="button" onPress={() => setMoreComplexes(true)} style={styles.complexMore}>
+                    <Pressable testID="atlas-complexes-more" accessibilityRole="button" accessibilityLabel={SEE_MORE_LABEL} onPress={() => setMoreComplexes(true)} style={styles.complexMore}>
                       <Text style={styles.howText}>{SEE_MORE}</Text>
                     </Pressable>
                   ) : null}
@@ -504,8 +508,9 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pocket: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   // Room for a wrapped name, Walk to level with its first line; "See more" lines up with the names (the UI review, decision 0145).
-  complexRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: 44, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
-  complexMore: { minHeight: 44, justifyContent: 'center' },
+  complexRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: COMPLEX_TARGET_MIN, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
+  complexMore: { minHeight: COMPLEX_TARGET_MIN, justifyContent: 'center' },
+  complexWalk: { minHeight: COMPLEX_TARGET_MIN, minWidth: COMPLEX_TARGET_MIN, justifyContent: 'center', paddingHorizontal: 8 },
   complexText: { flexShrink: 1, flex: 1 },
   pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
   pocketWalk: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },

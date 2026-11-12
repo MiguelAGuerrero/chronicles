@@ -8,7 +8,7 @@ import type { Faced } from '../../moment';
 import { termsOf } from '../../resurface/terms';
 import { wordsOf } from '../../resurface/views';
 
-// Note pages (specs/note-pages, decision 0149), written from the criteria before the code.
+// Note pages (specs/note-pages, decision 0151), written from the criteria before the code.
 
 const PAGE = '# Bakery\n\nSmelled it **two** blocks *off*.\n\n- rye\n- warm\n\n1. one\n2. two\n\n- [ ] come back\n- [x] ask her name\n\n> the queue went round the corner';
 

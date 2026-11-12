@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { noteHead } from '../../notePage/head';
 
-// Note pages NP2 (specs/note-pages, decision 0149): the page is headed by its context, as Journal heads an entry.
+// Note pages NP2 (specs/note-pages, decision 0151): the page is headed by its context, as Journal heads an entry.
 
 const T = new Date(2026, 10, 12, 16, 12).getTime(); // Thursday, November 12, 2026, 4:12 pm
 const NOW = new Date(2026, 10, 12, 18, 0).getTime();

@@ -140,7 +140,7 @@ function Tool(props: { testID: string; label: string; caption?: string; onPress:
 }
 
 /**
- * A note's page (NP1-NP14, decision 0149), in Apple Journal's manner: the day and the moment's context at its head,
+ * A note's page (NP1-NP14, decision 0151), in Apple Journal's manner: the day and the moment's context at its head,
  * the words under them, kept as they are written. Done is the one way out, and keeps (so do Escape and Back; note-pages
  * audit 19). Aa opens the format panel, @
  * the moment picker, the camera (where the page was opened to capture) a photo kept as its own moment and mentioned.

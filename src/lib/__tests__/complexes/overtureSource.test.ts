@@ -21,7 +21,7 @@ test('CX15: the adapter keeps named buildings with their polygons as given, and 
   assert.deepEqual(pieces[0].polygons, t.buildings[0].polygons, 'the geometry is as the tile gave it');
   assert.deepEqual(pieces[0].tile, [4693, 6187]);
   const p = placesFromPlacesTile([{ geometry: { type: 'Point', coordinates: [-76.88, 40.26] }, properties: { id: 'p', taxonomy: JSON.stringify({ hierarchy: ['shopping', 'market', 'farmers_market'] }) } }]);
-  assert.deepEqual(p, [{ at: [-76.88, 40.26], hierarchy: ['shopping', 'market', 'farmers_market'] }]);
+  assert.deepEqual(p, [{ id: 'p', at: [-76.88, 40.26], hierarchy: ['shopping', 'market', 'farmers_market'] }]);
 });
 
 test('CX15: the core imports no adapter and holds no place name or coordinate', () => {

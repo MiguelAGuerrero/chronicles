@@ -38,7 +38,8 @@ export function placesFromPlacesTile(features: TileFeatureIn[]): PlaceIn[] {
       try { tax = JSON.parse(tax); } catch { tax = null; }
     }
     const h = (tax as { hierarchy?: unknown } | null)?.hierarchy;
-    out.push({ at: [c[0], c[1]], hierarchy: Array.isArray(h) ? h.map(String) : [] });
+    const id = text(f.properties?.id);
+    out.push({ ...(id ? { id } : {}), at: [c[0], c[1]], hierarchy: Array.isArray(h) ? h.map(String) : [] });
   }
   return out;
 }

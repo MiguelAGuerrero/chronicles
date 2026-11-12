@@ -21,3 +21,11 @@ export const hiddenToMeta = (hidden: readonly ComplexKind[]): string => hidden.j
 
 /** CX10: what the card and the map show: a kind switched off leaves the view, never the data. */
 export const shown = (complexes: readonly Complex[], hidden: readonly ComplexKind[]): Complex[] => complexes.filter((c) => !hidden.includes(c.kind));
+
+/** Whether Explore reads complexes at all: with every kind switched off nothing is shown, so nothing is fetched (complexes audit 15). */
+export function readsWanted(hidden: readonly ComplexKind[]): boolean {
+  return COMPLEX_KINDS.some((k) => !hidden.includes(k));
+}
+
+/** The line under the settings group's heading: what the switches are and where they act, in words and no number (complexes audit 25). */
+export const COMPLEX_NOTE = 'Malls, markets, campuses, stations and civic sites, shown on area cards and the map';

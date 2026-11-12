@@ -1,5 +1,5 @@
 <!-- Note pages. Written in the repo first (2026-11-12) from the owner's /slice request and their calls in the
-     conversation (decision 0149). Not a concept-doc tab. -->
+     conversation (decision 0151). Not a concept-doc tab. -->
 
 # Note pages (NP)
 
@@ -7,7 +7,7 @@ A note was a few lines: plain text, 500 characters at most, typed into a small c
 here", Edit note). The owner wants a note to be a page that "will feel like a journal or an actual document entry",
 "exactly like a journal app", built on established libraries. The reference is Apple Journal: the pencil opens the
 entry full screen, it is headed by its date and place, formatting sits under an Aa button above the keyboard, and
-what you write is kept as you write it (decision 0149).
+what you write is kept as you write it (decision 0151).
 
 ## Vision
 
@@ -53,7 +53,7 @@ Open: none (the owner's calls below).
   dragging of blocks and no "/" menu.
 - **2026-11-12, media:** a page holds photos only as @-mention cards of other moments, as today.
 - **2026-11-12, storage:** the note's `body` holds Markdown. No migration and no new table.
-- **2026-11-12 (decision 0149):** the reference is Apple Journal; the pencil opens the page straight away (the small
+- **2026-11-12 (decision 0151):** the reference is Apple Journal; the pencil opens the page straight away (the small
   card goes, and with it the earlier "card + Expand"); the page saves as you write; the editor is TipTap in Expo DOM
   components, an established library rather than our own.
 - **2026-11-12, older notes stay literal** (steward S10): a note is read as Markdown only once the page has written
@@ -139,7 +139,7 @@ Open: none (the owner's calls below).
 ## Retired or amended
 
 The quality-of-life spec's note card and its 500-character cut (the composer's limit, and Edit note's card) are
-amended by NP1 and NP8 (decision 0149). Their test reads the limit from `NOTE_MAX` (20,000), and Edit opens the page.
+amended by NP1 and NP8 (decision 0151). Their test reads the limit from `NOTE_MAX` (20,000), and Edit opens the page.
 
 ## Record
 

@@ -1,6 +1,6 @@
 # Note pages: the plan
 
-For the owner to review before any code. Spec: `specs/note-pages/spec.md` (NP1-NP13). Decision 0149.
+For the owner to review before any code. Spec: `specs/note-pages/spec.md` (NP1-NP13). Decision 0151.
 
 ## Shape of the work
 
@@ -130,7 +130,7 @@ apply, since nothing is ever lost.
 |---|---|---|
 | S1 | Ticks on the moment's face (0114) | **Accepted**: ticks only on the page; in the viewer and the thread a tap on a box changes nothing (NP5, NP6, NP10) |
 | S2 | Old notes reinterpreted as formatted | **Accepted** at the second pass (S10, the owner's call) |
-| S3 | Canonical rewriting of `*` and numbers | **Yields to the library** (0149): `@tiptap/markdown` writes canonical Markdown on the first save in the page. What is shown never changes, and a note never written in keeps its bytes (NP7) |
+| S3 | Canonical rewriting of `*` and numbers | **Yields to the library** (0151): `@tiptap/markdown` writes canonical Markdown on the first save in the page. What is shown never changes, and a note never written in keeps its bytes (NP7) |
 | S4 | The head lacks time into the walk and what came before, and scrolls away | **Accepted** (NP2) |
 | S5 | Nothing leaves the device | **Accepted** (NP13), more pressing with a web editor |
 | S6 | A heading outside the page reads as a journal title | **Accepted** (NP10); no title field |
@@ -139,7 +139,7 @@ apply, since nothing is ever lost.
 | silent 2 | A long draft lost to a killed app | **Answered** by saving as you write (NP9) |
 | silent 3 | Resurfacing could pick unticked lists | **Accepted** (NP6) |
 
-## The steward's second pass (Nov 12, after decision 0149)
+## The steward's second pass (Nov 12, after decision 0151)
 
 | # | Finding | Triage |
 |---|---|---|
