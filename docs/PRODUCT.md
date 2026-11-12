@@ -401,7 +401,9 @@ recording, and a recording bar brings a minimized walk back.
   saves a keeper to the photo library (every edit and the caption baked in), edits a note's
   words, or deletes the moment. Remind me here lives here too.
 - **Editing a photo or video** (Media editing, ME1-ME23): one Edit screen, from the
-  viewer or from the Edit pill shown for 6 s after every photo or video. Crop with
+  viewer or from the Edit pill shown for 6 s after every photo or video (on the recording bar, a pill above the
+  bar that waits for Edit, Close or the next capture, or until you leave the tabs, its line keeping time and
+  distance: T12, decision 0149). Crop with
   Free, Square, 4:5 and 16:9, and Rotate; nine filters a phone's photo app has
   (Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia; photos only);
   drawing like the iPhone's Markup (Pen, Marker, Eraser, three thicknesses, six

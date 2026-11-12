@@ -135,6 +135,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Navigation and tabs
 
+- [ ] **Do:** with VoiceOver on, minimize a walk, go to Explore and take a photo with the recording bar's camera; wait ten seconds, then swipe to the pill and use its Close. **Expect:** "Photo saved to your walk. Edit is available." is read once without moving focus (`announceForAccessibility`, iOS reads no live region); the pill above the bar stays past six seconds, its ✕ reads "Close, the photo stays as it is", and the bar's line reads its time and distance throughout; with TalkBack the polite live region reads the same (T12, decision 0149).
 - [ ] **Do:** on an iPhone with a notch and a home indicator, open Chronicle, Navigate, a replay and a day. **Expect:** the tab bar still sits above the home indicator (its height includes the bottom inset) and no screen draws under the notch: the root layout now nests `SafeInsets`, a passthrough on phones, inside `SafeAreaProvider` (fix memories-weird-state).
 - [ ] **Do:** on an iPhone, set a destination, then tap Open in Maps in the navigation bar. **Expect:** Apple Maps opens from the app (`nav/openInMaps.ts`) with walking directions to the destination; back in Chronicles the route and the walk are as they were (Open in Maps). (NH1, NH2, NH7)
 - [ ] **Do:** on Android, set a destination, then tap Open in Maps. **Expect:** the `geo:` chooser opens and the chosen maps app shows the destination; back in Chronicles nothing changed (Open in Maps). (NH1, NH2)
