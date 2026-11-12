@@ -96,10 +96,10 @@ async function run(h) {
     line: await shown(line),
     buttons: await pg.locator('[data-testid=journal-page] [role=button], [data-testid=journal-page] button').filter({ visible: true }).count(),
   };
-  check.todo(empty.path === `${BASE}/` && empty.headings.length === 1 && empty.headings[0] === today && empty.entries === 0 && empty.line && empty.buttons === 0,
+  check(empty.path === `${BASE}/` && empty.headings.length === 1 && empty.headings[0] === today && empty.entries === 0 && empty.line && empty.buttons === 0,
     `JN2: a journal with nothing kept is today's date and the open line (${JSON.stringify(empty)})`);
   const geoAtLaunch = await pg.evaluate(() => window.__geo.reads);
-  check.todo(geoAtLaunch === 0, `JN11: opening the journal reads no location (${geoAtLaunch} reads)`);
+  check(geoAtLaunch === 0, `JN11: opening the journal reads no location (${geoAtLaunch} reads)`);
   const rest = await pg.evaluate(({ sel, accent }) => {
     const root = document.querySelector(sel);
     if (!root) return null;
@@ -117,9 +117,9 @@ async function run(h) {
     return out;
   }, { sel: line, accent: ACCENT });
   const notices = await pg.evaluate(() => (window.__notified ?? []).length);
-  check.todo(!!rest && rest.placeholder === '' && !rest.focused && rest.loud.length === 0 && !/[0-9?]/.test(rest.text) && notices === 0,
+  check(!!rest && rest.placeholder === '' && !rest.focused && rest.loud.length === 0 && !/[0-9?]/.test(rest.text) && notices === 0,
     `JN10: at rest the line has no hint, no accent, no number, no question, and the keyboard is not raised (${JSON.stringify(rest)})`);
-  check.todo(!!rest && rest.labels.every((l) => l.w >= 44 && l.h >= 44) && rest.labels.map((l) => l.label).join('|') === 'Write an entry|Add a photo or video|Record a voice note'
+  check(!!rest && rest.labels.every((l) => l.w >= 44 && l.h >= 44) && rest.labels.map((l) => l.label).join('|') === 'Write an entry|Add a photo or video|Record a voice note'
     && rest.labels[0].x < rest.labels[1].x && rest.labels[1].x < rest.labels[2].x,
     `JN10: the field, the camera and the mic, in that order, each a thumb's target with its spoken name (${JSON.stringify(rest?.labels)})`);
   // JN23: the contents button first, then the line, for a screen reader.
@@ -130,7 +130,7 @@ async function run(h) {
     order = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
     await pg.evaluate(() => document.activeElement?.blur?.());
   }
-  check.todo(order === 'line-input', `JN23: after the contents button, the open line comes next for a screen reader (${order})`);
+  check(order === 'line-input', `JN23: after the contents button, the open line comes next for a screen reader (${order})`);
   await shot(pg, 'journal-01-empty');
 
   // JN12, JN13: the first character begins an entry with one fix; it is kept as it is written; no walk starts.
@@ -141,7 +141,7 @@ async function run(h) {
     req.onsuccess = () => { const g = req.result.transaction('moment').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''))); };
   }), null, { timeout: 6000 }).then(() => true, () => false);
   const status = (await pg.locator('[data-testid=line-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
-  check.todo(begun && status === 'Kept as you write' && (await shown('[data-testid=line-done]')),
+  check(begun && status === 'Kept as you write' && (await shown('[data-testid=line-done]')),
     `JN13: what is typed is stored with no Save, and the line says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
   await pg.keyboard.type(' on the old pier.', { delay: 15 });
   await pg.waitForTimeout(1500);
@@ -149,11 +149,11 @@ async function run(h) {
   await there('[data-testid=memories]', 20000);
   const afterReload = await pg.waitForFunction((sel) => [...document.querySelectorAll(sel)].some((e) => e.innerText.includes('A heron on the old pier.')), entries, { timeout: 10000 }).then(() => true, () => false);
   const lineAfterReload = await pg.locator(input).inputValue().catch(() => null);
-  check.todo(afterReload && lineAfterReload === '', `JN13: after a reload mid-sentence the words sit on the page as an entry and the line is empty (${JSON.stringify({ afterReload, lineAfterReload })})`);
+  check(afterReload && lineAfterReload === '', `JN13: after a reload mid-sentence the words sit on the page as an entry and the line is empty (${JSON.stringify({ afterReload, lineAfterReload })})`);
   await pg.waitForTimeout(6000);
   const geo1 = await pg.evaluate(() => ({ ...window.__geo }));
   const s1 = await stored(pg);
-  check.todo(s1.moments.length === 1 && s1.walks.length === 0, `JN12: writing began one entry and no walk (${s1.moments.length} moments, ${s1.walks.length} walks)`);
+  check(s1.moments.length === 1 && s1.walks.length === 0, `JN12: writing began one entry and no walk (${s1.moments.length} moments, ${s1.walks.length} walks)`);
 
   // JN12: typing then deleting everything keeps nothing, and writing again in the same sitting asks no second fix.
   await pg.evaluate(() => { window.__geo.reads = 0; });
@@ -168,11 +168,11 @@ async function run(h) {
   await pg.waitForTimeout(6000);
   const geo2 = await pg.evaluate(() => ({ ...window.__geo }));
   const s2 = await stored(pg);
-  check.todo(afterEmpty === 1 && s2.moments.length === 2 && geo2.reads === 1 && geo2.watching === 0,
+  check(afterEmpty === 1 && s2.moments.length === 2 && geo2.reads === 1 && geo2.watching === 0,
     `JN12: an emptied entry is not kept, one fix is read for the entry that is, and nothing watches after (${JSON.stringify({ afterEmpty, kept: s2.moments.length, geo1, geo2 })})`);
   const placed = s2.moments.every((m) => m.lat != null);
   const lines1 = await pg.locator('[data-testid=entry-dateline]').filter({ visible: true }).allInnerTexts();
-  check.todo(placed && lines1.length === 2 && lines1.every((l) => /^\d{1,2}:\d{2} this (morning|afternoon|evening)|^\d{1,2}:\d{2} tonight/.test(l)),
+  check(placed && lines1.length === 2 && lines1.every((l) => /^\d{1,2}:\d{2} this (morning|afternoon|evening)|^\d{1,2}:\d{2} tonight/.test(l)),
     `JN5: today's entries are dated by the time and part of the day, and gain their place by their one fix (${JSON.stringify(lines1)})`);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
@@ -191,9 +191,9 @@ async function run(h) {
     };
   }, entries);
   const serif = (f) => !!f && /serif/i.test(f) && !/sans-serif/i.test(f.replace(/ui-serif|serif\b(?!-)/gi, '')) && /(ui-serif|Georgia|(^|,\s*)serif)/i.test(f);
-  check.todo(!!look && look.border === 0 && look.radius === 0 && look.image === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(look.bg),
+  check(!!look && look.border === 0 && look.radius === 0 && look.image === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(look.bg),
     `JN3: an entry has no card, border or tile around it (${JSON.stringify(look)})`);
-  check.todo(!!look && serif(look.words) && serif(look.field) && !serif(look.dateline) && !serif(look.heading),
+  check(!!look && serif(look.words) && serif(look.field) && !serif(look.dateline) && !serif(look.heading),
     `JN4: the owner's words and the open line are in the serif; the dateline and the day's heading are in the app's sans (${JSON.stringify(look)})`);
   await shot(pg, 'journal-02-two-entries');
 
@@ -211,7 +211,7 @@ async function run(h) {
     field: await box(pg, input), photo: await box(pg, '[data-testid=band-photo]'), save: await box(pg, '[data-testid=band-voice-save]'),
     discard: await shown('[data-testid=band-voice-discard]'), timer: await shown('[data-testid=band-voice-timer]'), text: await pg.locator(input).inputValue().catch(() => null),
   };
-  check.todo(photoOn && same(restBoxes.field, rec.field) && same(restBoxes.photo, rec.photo) && rec.discard && rec.timer && !!rec.save && rec.text === 'Same post as last week.',
+  check(photoOn && same(restBoxes.field, rec.field) && same(restBoxes.photo, rec.photo) && rec.discard && rec.timer && !!rec.save && rec.text === 'Same post as last week.',
     `JN14: while a note records, only the mic's place changes: the field, its words and the camera keep their boxes (${JSON.stringify({ restBoxes, rec })})`);
   await pg.waitForTimeout(1600);
   await pg.click('[data-testid=band-voice-save]').catch(() => {});
@@ -226,16 +226,16 @@ async function run(h) {
     pieces: [...e.querySelectorAll('[data-testid^=entry-piece-]')].map((p) => p.dataset.testid.replace('entry-piece-', '')),
     digits: [...e.querySelectorAll('[data-testid=stack-mark]')].length,
   })).catch(() => null);
-  check.todo(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.digits === 0,
+  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.digits === 0,
     `JN15: a photo, the line under it and a voice note are one entry under one dateline, every piece shown, no count (${JSON.stringify({ kinds, lastEntry, moments: s3.moments.length - before3 })})`);
-  check.todo(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with every piece shown (${JSON.stringify(lastEntry)})`);
+  check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with every piece shown (${JSON.stringify(lastEntry)})`);
   // JN15: after Done the next piece begins a new entry.
   await type('A new entry after Done.');
   await pg.waitForTimeout(1200);
   await done();
   await pg.waitForTimeout(800);
   const s3b = await stored(pg);
-  check.todo(s3b.moments.length === before3 + 2, `JN15: Done ends the entry, and the next words begin a new one (${s3b.moments.length - before3} since the photo)`);
+  check(s3b.moments.length === before3 + 2, `JN15: Done ends the entry, and the next words begin a new one (${s3b.moments.length - before3} since the photo)`);
   // JN14: a note under a second is dropped, and opening an entry mid-note saves it first.
   await pg.click('[data-testid=band-voice]').catch(() => {});
   await there('[data-testid=band-voice-save]', 8000);
@@ -249,7 +249,7 @@ async function run(h) {
   await pg.locator(`${entries} [data-testid=moment-open]`).first().click().catch(() => {});
   await pg.waitForTimeout(2500);
   const voices1 = (await stored(pg)).moments.flatMap((m) => m.pieces).filter((p) => p.kind === 'voice').length;
-  check.todo(short && voices1 === voices0 + 1 && !(await shown('[data-testid=band-voice-save]')),
+  check(short && voices1 === voices0 + 1 && !(await shown('[data-testid=band-voice-save]')),
     `JN14: a note under a second is dropped with "Too short, not kept", and opening an entry mid-note saves it first (${JSON.stringify({ short, voices0, voices1 })})`);
   await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
@@ -275,7 +275,7 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   const refCard = await pg.locator(entries).last().locator('[data-testid=ref-card]').count();
   const refBody = (await stored(pg)).moments.flatMap((m) => m.pieces).some((p) => /Back to @\[[^\]]+\]/.test(p.body ?? ''));
-  check.todo(picker && /^Back to @.+/.test(withRef) && refGone === 'Back to ' && refCard === 1 && refBody,
+  check(picker && /^Back to @.+/.test(withRef) && refGone === 'Back to ' && refCard === 1 && refBody,
     `JN16: @ opens the picker, the reference is one delete in the line, a card on the page and a token in the note (${JSON.stringify({ picker, withRef, refGone, refCard, refBody })})`);
   await shot(pg, 'journal-03-reference');
 
@@ -292,10 +292,10 @@ async function run(h) {
     const ys = cards.map((e) => e.getBoundingClientRect().y);
     return { drawn: cards.length, lastBottom: last ? Math.round(last.bottom) : null, lineTop: lineBox ? Math.round(lineBox.top) : null, inOrder: ys.every((y, i) => i === 0 || y >= ys[i - 1]), lastText: cards[cards.length - 1]?.innerText ?? '' };
   }, { sel: entries, lineSel: line });
-  check.todo(opened.drawn > 0 && opened.drawn <= 40 && opened.inOrder && /Back to/.test(opened.lastText) && opened.lastBottom != null && opened.lastBottom <= opened.lineTop + 1 && opened.lastBottom > 300,
+  check(opened.drawn > 0 && opened.drawn <= 40 && opened.inOrder && /Back to/.test(opened.lastText) && opened.lastBottom != null && opened.lastBottom <= opened.lineTop + 1 && opened.lastBottom > 300,
     `JN1: a long journal opens at its foot with the latest entry above the line, and draws only its latest page (${JSON.stringify(opened)})`);
   const heads = await pg.locator('[data-testid=day-heading]').allInnerTexts();
-  check.todo(heads.length >= 3 && heads.at(-1) === today && new Set(heads).size === heads.length && heads.every((x) => /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}(, \d{4})?$/.test(x)),
+  check(heads.length >= 3 && heads.at(-1) === today && new Set(heads).size === heads.length && heads.every((x) => /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}(, \d{4})?$/.test(x)),
     `JN2: each day with an entry has its date in full once, today's last, and no empty day appears (${heads.slice(-4).join(' | ')})`);
   const slip = await pg.evaluate(() => {
     const s = document.querySelector('[data-testid=resurfaced]');
@@ -310,7 +310,7 @@ async function run(h) {
       focused: document.activeElement?.getAttribute('data-testid') ?? null,
     };
   });
-  check.todo(!!slip && slip.afterHeading && slip.beforeEntries && slip.label.length > 0 && slip.buttons === 2 && slip.focused !== 'line-input',
+  check(!!slip && slip.afterHeading && slip.beforeEntries && slip.label.length > 0 && slip.buttons === 2 && slip.focused !== 'line-input',
     `JN20: the resurfaced moment is a slip under today's date, above today's entries, with one tap to open and More (${JSON.stringify(slip)})`);
   await shot(pg, 'journal-04-long-foot');
   const fixedAtFoot = await box(pg, line);
@@ -321,19 +321,19 @@ async function run(h) {
   const after = await pg.locator(entries).count();
   const anchorVisible = await pg.locator(entries).evaluateAll((els, text) => els.some((e) => e.innerText.startsWith(text) && e.getBoundingClientRect().top >= 0 && e.getBoundingClientRect().bottom <= window.innerHeight), anchor.text);
   const fixedAtTop = await box(pg, line);
-  check.todo(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
-  check.todo(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
+  check(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
+  check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
   await shot(pg, 'journal-05-scrolled-back');
   // JN9, JN11: a tap in the line, scrolled back, brings today's foot into view.
   await pg.click(input).catch(() => {});
   await pg.waitForTimeout(900);
   const backAtFoot = await pg.evaluate((sel) => { const all = document.querySelectorAll(sel); const r = all[all.length - 1]?.getBoundingClientRect(); return !!r && r.bottom <= window.innerHeight && r.bottom > 0; }, entries);
-  check.todo(backAtFoot, 'JN11: a tap in the line brings today\'s page to the foot');
+  check(backAtFoot, 'JN11: a tap in the line brings today\'s page to the foot');
   await pg.evaluate(() => document.activeElement?.blur?.());
 
   // JN5: an earlier day's entry is dated by the clock, with "No location" when no fix ever came.
   const oldLine = await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=entry-dateline]').innerText().catch(() => '');
-  check.todo(/^\d{1,2}:\d{2} (am|pm) · No location$/.test(oldLine), `JN5: an earlier day's entry gives the clock time, and "No location" when none was kept ("${oldLine}")`);
+  check(/^\d{1,2}:\d{2} (am|pm) · No location$/.test(oldLine), `JN5: an earlier day's entry gives the clock time, and "No location" when none was kept ("${oldLine}")`);
 
   // JN6, JN7: a placed entry's dateline opens Chronicle's Map; an unplaced one is not a button.
   const unplaced = await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=entry-map]').count();
@@ -342,7 +342,7 @@ async function run(h) {
   const onMap = await pg.waitForSelector('[data-testid=section-map][aria-selected=true]', { timeout: 6000 }).then(() => true, () => false);
   await pg.waitForTimeout(2500);
   const canvas = await pg.locator('canvas.maplibregl-canvas').count();
-  check.todo(unplaced === 0 && onMap && canvas === 1, `JN6: a placed entry's dateline shows it on Chronicle's Map; an unplaced entry offers none (${JSON.stringify({ unplaced, onMap, canvas })})`);
+  check(unplaced === 0 && onMap && canvas === 1, `JN6: a placed entry's dateline shows it on Chronicle's Map; an unplaced entry offers none (${JSON.stringify({ unplaced, onMap, canvas })})`);
   await shot(pg, 'journal-06-on-the-map');
   await pg.click('[data-testid=section-memories]').catch(() => {});
   await there(line, 8000);
@@ -358,7 +358,7 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   const slipStays = await shown('[data-testid=resurfaced]');
   await done();
-  check.todo(['Relive it', 'Another', 'Show less like this', 'Not this one'].every((w) => more.some((m) => m.includes(w))) && slipStays,
+  check(['Relive it', 'Another', 'Show less like this', 'Not this one'].every((w) => more.some((m) => m.includes(w))) && slipStays,
     `JN20: More holds Relive it, Another, fewer and hide, and the slip keeps its place while an entry is written (${JSON.stringify({ more: more.map((m) => m.split('\n')[0]), slipStays })})`);
 
   // JN21: the contents opens Threads, Your threads and Hidden, with a way back, and no count.
@@ -379,9 +379,9 @@ async function run(h) {
   await pg.locator('[data-testid=thread-back]').click().catch(() => {});
   await pg.locator('[data-testid=threads-back]').click().catch(() => {});
   const backOnPage = await there('[data-testid=journal-page]', 5000);
-  check.todo(/Threads/.test(contents) && /Hidden/.test(contents) && !/[0-9]/.test(contents) && threadsUp && rail && mine && inThread && backOnPage,
+  check(/Threads/.test(contents) && /Hidden/.test(contents) && !/[0-9]/.test(contents) && threadsUp && rail && mine && inThread && backOnPage,
     `JN21: the contents lists Threads and Hidden with no count; Threads holds the Chronicle's and yours, and Back returns to the page (${JSON.stringify({ contents, threadsUp, rail, mine, inThread, backOnPage })})`);
-  check.todo(lineInThreads && lineInThread, `JN9: the open line stays, unmoved, in the threads and in a thread (${JSON.stringify({ lineInThreads, lineInThread })})`);
+  check(lineInThreads && lineInThread, `JN9: the open line stays, unmoved, in the threads and in a thread (${JSON.stringify({ lineInThreads, lineInThread })})`);
 
   // JN17: nothing inserts on a past page; a response lands at the end and says what it answers.
   const inserts = await pg.locator('[data-testid=journal-page] [data-testid*=insert], [data-testid=journal-page] input, [data-testid=journal-page] textarea').count();
@@ -398,7 +398,7 @@ async function run(h) {
   await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1500);
   const lastNow = await pg.locator(entries).last().evaluate((e) => ({ text: e.innerText, answering: e.querySelector('[data-testid=moment-answering]')?.innerText ?? null })).catch(() => null);
-  check.todo(inserts === 0 && (await stored(pg)).moments.length === countBefore + 1 && !!lastNow && lastNow.text.includes('He never did play.') && !!lastNow.answering,
+  check(inserts === 0 && (await stored(pg)).moments.length === countBefore + 1 && !!lastNow && lastNow.text.includes('He never did play.') && !!lastNow.answering,
     `JN17: a past page has no way to insert, and a response is a new entry at the end that says what it answers (${JSON.stringify({ inserts, lastNow })})`);
 
   // JN18: a refused microphone says so above the line, and the line keeps its box; Undo sits above it too.
@@ -414,7 +414,7 @@ async function run(h) {
   const err = await there('[data-testid=band-error]', 8000);
   const errBox = await box(pg, '[data-testid=band-error]');
   const lineWithErr = await box(pg, line);
-  check.todo(err && !!errBox && errBox.y + errBox.h <= lineWithErr.y && same(lineWithErr, lineAtRest),
+  check(err && !!errBox && errBox.y + errBox.h <= lineWithErr.y && same(lineWithErr, lineAtRest),
     `JN18: a refused microphone is said above the line, which keeps its box (${JSON.stringify({ errBox, lineWithErr })})`);
   await pg.evaluate(() => {
     if (window.__gum) navigator.mediaDevices.getUserMedia = window.__gum;
@@ -424,7 +424,7 @@ async function run(h) {
   await pg.locator(entries).last().locator('[data-testid=moment-more]').click().catch(() => {});
   await pg.locator('[data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
   const undoBox = await pg.waitForSelector('[data-testid=memories-toast]', { timeout: 5000 }).then(() => box(pg, '[data-testid=memories-toast]'), () => null);
-  check.todo(!!undoBox && undoBox.y + undoBox.h <= lineAtRest.y && same(await box(pg, line), lineAtRest), `JN18: Undo for a hide sits above the line (${JSON.stringify({ undoBox, lineAtRest })})`);
+  check(!!undoBox && undoBox.y + undoBox.h <= lineAtRest.y && same(await box(pg, line), lineAtRest), `JN18: Undo for a hide sits above the line (${JSON.stringify({ undoBox, lineAtRest })})`);
   await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
 
   // JN22: no texture, no accent, and outside the owner's words only dates, times and a memo's length are digits.
@@ -447,12 +447,12 @@ async function run(h) {
     }
     return out;
   }, { accent: ACCENT });
-  check.todo(restraint.accent.length === 0 && restraint.image.length === 0 && restraint.digits.length === 0,
+  check(restraint.accent.length === 0 && restraint.image.length === 0 && restraint.digits.length === 0,
     `JN22: no accent colour, no texture, and only dates, times and a memo's length are digits (${JSON.stringify(restraint)})`);
 
   // JN23: an entry is spoken as its kind, its words and its dateline.
   const spoken = await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=moment-open]').getAttribute('aria-label').catch(() => '');
-  check.todo(/^Note, A long entry, .+, \d{1,2}:\d{2} (am|pm) · No location\. Open$/.test(spoken ?? ''), `JN23: an entry is spoken as its kind, its words and its dateline ("${(spoken ?? '').slice(0, 40)}…${(spoken ?? '').slice(-40)}")`);
+  check(/^Note, A long entry, .+, \d{1,2}:\d{2} (am|pm) · No location\. Open$/.test(spoken ?? ''), `JN23: an entry is spoken as its kind, its words and its dateline ("${(spoken ?? '').slice(0, 40)}…${(spoken ?? '').slice(-40)}")`);
 
   // JN9: the line still keeps an entry when the page failed to read, and the entry is drawn there.
   await pg.evaluate(() => { window.__breakReads = true; });
@@ -466,7 +466,7 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   const keptDown = (await stored(pg)).moments.some((m) => m.pieces.some((p) => p.body === 'Kept while the page was down.'));
   const drawnDown = await pg.locator('[data-testid=memories] [data-testid=moment-card]').filter({ hasText: 'Kept while the page was down.' }).count();
-  check.todo(failed && keptDown && drawnDown === 1, `JN9: on the failed page the line keeps an entry, and it is drawn there (${JSON.stringify({ failed, keptDown, drawnDown })})`);
+  check(failed && keptDown && drawnDown === 1, `JN9: on the failed page the line keeps an entry, and it is drawn there (${JSON.stringify({ failed, keptDown, drawnDown })})`);
   await shot(pg, 'journal-10-failed-page');
 
   // JN24: the section bar and its other sections are as before; none shows the line.
@@ -477,7 +477,7 @@ async function run(h) {
     sections[s] = { selected: await pg.locator(`[data-testid=section-${s}][aria-selected=true]`).count(), line: await shown(line) };
   }
   await pg.click('[data-testid=section-memories]').catch(() => {});
-  check.todo(Object.values(sections).every((v) => v.selected === 1 && v.line === false), `JN24: Walks, Days, Map and Media open as before, without the open line (${JSON.stringify(sections)})`);
+  check(Object.values(sections).every((v) => v.selected === 1 && v.line === false), `JN24: Walks, Days, Map and Media open as before, without the open line (${JSON.stringify(sections)})`);
 
   // JN8, JN7: with a walk minimized, an entry written in the journal shows on the page at once, belongs to the
   // walk, and stays when the walk stops; then its "From ..." line opens the replay.
@@ -506,9 +506,9 @@ async function run(h) {
   const lineBox = await box(pg, line);
   const barBox = await box(pg, '[data-testid=recording-bar]');
   const toast = await shown('[data-testid=band-toast]');
-  check.todo(onPage === 1 && !!walk && walkRow?.walk_id === walk.id && !toast,
+  check(onPage === 1 && !!walk && walkRow?.walk_id === walk.id && !toast,
     `JN8: an entry written with a walk minimized is on the page at once and is the walk's, with no toast (${JSON.stringify({ onPage, walk: walk?.id, row: walkRow?.walk_id, toast })})`);
-  check.todo(!barCam && !!lineBox && !!barBox && lineBox.y + lineBox.h <= barBox.y + 1, `JN24: the line sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ barCam, lineBox, barBox })})`);
+  check(!barCam && !!lineBox && !!barBox && lineBox.y + lineBox.h <= barBox.y + 1, `JN24: the line sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ barCam, lineBox, barBox })})`);
   await shot(pg, 'journal-11-walk-minimized');
   await pg.click('[data-testid=recording-return]').catch(() => {});
   await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 }).catch(() => {});
@@ -536,8 +536,8 @@ async function run(h) {
   const dl = await walkEntry.locator('[data-testid=entry-dateline]').innerText().catch(() => '');
   await walkEntry.locator('[data-testid=moment-walk]').click().catch(() => {});
   const replay = await pg.waitForURL(/\/replay\//, { timeout: 8000 }).then(() => true, () => false);
-  check.todo(stays === 1 && onWalkScreen >= 1, `JN8: the entry stays on the page when the walk stops, and showed on the walk screen (${JSON.stringify({ stays, onWalkScreen })})`);
-  check.todo(/^From /.test(from) && replay && /(At the start| in)\b/.test(dl), `JN7: an entry from a finished walk says how far in it was made and links to its walk's replay (${JSON.stringify({ from, dl, replay })})`);
+  check(stays === 1 && onWalkScreen >= 1, `JN8: the entry stays on the page when the walk stops, and showed on the walk screen (${JSON.stringify({ stays, onWalkScreen })})`);
+  check(/^From /.test(from) && replay && /(At the start| in)\b/.test(dl), `JN7: an entry from a finished walk says how far in it was made and links to its walk's replay (${JSON.stringify({ from, dl, replay })})`);
 
   await c.close();
 }

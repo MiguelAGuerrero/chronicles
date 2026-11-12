@@ -2,7 +2,7 @@ import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { bandLabels, barCamera } from '../lib/captureBand';
+import { barCamera } from '../lib/captureBand';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { useStore } from '../lib/useStore';
 import { useUnits } from '../lib/useUnits';
@@ -234,7 +234,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           testID="bar-photo"
           accessibilityRole="button"
           // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3).
-          accessibilityLabel={bandLabels(true).photo}
+          accessibilityLabel="Add to your walk: take a photo or video"
           accessibilityState={{ busy: cap.busy === 'photo', disabled: cap.busy != null }}
           disabled={cap.busy != null}
           onPress={photo}
