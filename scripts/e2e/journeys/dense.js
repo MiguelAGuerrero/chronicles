@@ -95,6 +95,12 @@ async function run(h) {
     }
     check(!!left && (await drawn()).includes(left.name), `DC5: "${left?.name}", left out at ${zoom0.toFixed(1)}, is drawn two levels in`);
     await shot(pg, 'dense-2-zoomed-in');
+    // explore-dense-city ui 3: turned past a quarter turn, every name still reads upright (a picture for the review).
+    await pg.evaluate(() => window.__turn?.(150));
+    await idle();
+    await shot(pg, 'dense-2b-turned');
+    await pg.evaluate(() => window.__turn?.(0));
+    await idle();
 
     // DC6: zoomed out to 12, no busy name (EC7: names from zoom 13).
     const centre = (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
