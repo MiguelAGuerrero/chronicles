@@ -15,6 +15,7 @@
       "E",
       "EC",
       "FC",
+      "FL",
       "G",
       "GT",
       "GW",
@@ -34,6 +35,7 @@
       "N",
       "NB",
       "NH",
+      "NP",
       "NR",
       "NV",
       "OT",
@@ -68,9 +70,9 @@
       "WT"
     ],
     "commits": {
-      "growth": 132,
-      "refinement": 279,
-      "other": 455
+      "growth": 138,
+      "refinement": 283,
+      "other": 464
     },
     "areas": {
       "rough": [
@@ -97,6 +99,7 @@
       "memories",
       "moments",
       "motion",
+      "notes",
       "notify",
       "places",
       "presence",
@@ -155,7 +158,7 @@
       "state": "rough",
       "swept": "2026-11-12",
       "main": "617b534735f14d777cd63f8ece070dde4cacd2fe",
-      "note": "First sweep, whole but for the largest text size (web cannot; T18 [phone]) and native. Two high and two medium loop findings shipped (a fit straightened a turned map; the credits (i) unreachable on four maps; compass-less maps turned; pin grouping O(n x pins)), with six low (Locate and the compass dropped keyboard focus, 999.6 m and scale thousands, render on turn, worker version). Filed [loop]: marker culling (medium), handler refs, comments, native motion and latitude, Explore's hint over the open credits and its wrap. T14-T17 [owner], T18 [phone] open."
+      "note": "First sweep, whole but for the largest text size (web cannot; T18 [phone]) and native. Two high and three medium loop findings (a fit straightened a turned map; the credits (i) unreachable on four maps; compass-less maps turned; pin grouping O(n x pins); markers drawn out of view, filed), with low ones shipped (keyboard focus on Locate and the compass, 999.6 m and scale thousands, render on turn, worker version). The review (one round, auditor and ux-reviewer): audit 1-7 shipped (the credits over Explore's hint, the (i) that moved and split words, its glow, a fit during the compass's ease, pins along a parallel, a compass left after the planner, three checks that could not fail); deferred [loop]: the live walk's compass under following (medium), Chronicle's (i) corner, the strip's line (on main too). T14-T17 [owner], T18 [phone] open."
     }
   },
   "declined": []

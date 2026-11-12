@@ -228,24 +228,44 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 - `tend map 7`: 999.6 m reads "1.0 km", and the scale bar marks thousands ("2,000 km").
 - `tend map 8`: a turn of the map re-renders the compass, not the screen.
 - `tend map 10`: the web map's worker address carries maplibre-gl's version.
+The review's fixes (one round of the auditor and the ux-reviewer, decision 0145, on the branch rebased onto Free look and
+Note pages):
+- `tend map audit 1`: Explore's hint steps aside while the map's credits are open (they grew up into its row; F1, U2).
+- `tend map audit 2`: the open credits keep their (i) where it was tapped, start further left clear of Layers, and break
+  no word at 320 px (F6, U1, U3).
+- `tend map audit 3`: a tap leaves the (i) with no focus glow; the keyboard keeps the app's ring (U4).
+- `tend map audit 4`: a fit while the compass turns the map north ends north-up (F5, new with `tend map 2`).
+- `tend map audit 5`: pins along one parallel are grouped in near-linear time (F4).
+- `tend map audit 6`: a map taken down says north, so no compass outlives its turn under the planner (F2).
+- `tend map audit 7`: three of the run's checks can now fail (`tend map 1`'s touches, `5`'s busy, `6`'s walk button).
+Review: 8 accepted (F1, F2, F4, F5, F6, F7, U4 and the tests that could not fail; U1, U2, U3 folded into F1 and F6;
+F7's native items in `docs/NATIVE_UNVERIFIED.md`), 3 deferred (F3, the live walk's follow cutting the compass's ease,
+`[loop]` medium; U5, Chronicle's (i) corner; U6, a line through the walk's strip that `main` shows too), none rejected.
+Left of accepted items and filed `[loop]` low: `tend map 10`'s unit test, which never reaches `setWorkerUrl`, and the
+replay's open credits stopping short of a column it does not have (U3's last part).
 Filed: T14-T17 `[owner]` (the pin's bare numeral, Chronicle's accent stars, the ends told by colour alone, the
 refusal read as a fault), T18 `[phone]` (the map at the largest text size); `[loop]` in `docs/DEFERRED.md`: markers
-drawn out of view (medium; finding 9's handler refs, comments, native motion and latitude, low), Explore's hint over the
-open credits and its wrap at 320 (low); spec and rule wording under "Open before the loop". The balance: outgrowing its
+drawn out of view (medium), the live walk's compass under following (medium), finding 9's handler refs, comments,
+native motion and latitude, Explore's hint wrapping at 320, Chronicle's (i) corner, the replay's open credits, the
+worker test, the strip's line (low); spec and rule wording under "Open before the loop". The balance: outgrowing its
 base (six areas rough, map among them), so no `G` entry. Lenses: all seven; the largest text size is not pictured (web
 cannot; T18) and nothing here has run on a phone (`docs/NATIVE_UNVERIFIED.md`, Compass).
 
 ### Open before the loop
 
 - **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
-  bearing in maplibre; never pass a bearing to a follow or a fit", but maplibre-gl 6's fit turns the map to north
-  unless given one; since `tend map 2` the web's fit passes the map's own bearing. Reword it to "a fit keeps the
-  bearing the map has (the web passes `bearing: map.getBearing()`; maplibre's default is north); never a fixed one".
+  bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
+  north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`
+  north while the compass's ease runs. Reword it to "a fit keeps the bearing the map has (the web passes
+  `map.getBearing()`, or 0 while the compass turns it north; maplibre's default is north); never a fixed one".
   Its scale-bar line says the walk screen's map "bottom edge is the strip's top", but the live walk's runs under the
   strip (`mapEndsAtStrip: false`, `walk.tsx`; only the ready screen's ends there). And it has no line yet for two
   things this run shipped: only a map given `onBearingChange` (one with a compass) turns (`tend map 1`), and the credits
-  (i) sit beside the scale bar on every map but Chronicle's, with a 44 px target (`creditsAt`, `tend map 3`). The loop
-  rewords no rule line, and adds none to a file its commits cite.
+  (i) sit beside the scale bar on every map but Chronicle's, with a 44 px target (`creditsAt`, `tend map 3`); opened,
+  the box starts at `openLeft`, clear of a 44 px control over the scale bar, keeps the (i) on its bottom row and says so
+  through `onCreditsOpen` (`tend map audit 1`, `2`); and a trap: `window.__turn` turns the map mounted last, which on
+  Explore can be another screen's, so a journey turns Explore with two real touches. The loop rewords no rule line, and
+  adds none to a file its commits cite.
 - **QL8's and QL11's wording** (Nov 12; `/tend map`): QL8 says the scale bar "reads at AA: ink text on a white pill,
   like the status chips"; the owner chose a white halo with no background (Nov 4, `ScaleBar.tsx`). QL11 says Locate is
   "disabled" while it reads the fix; since `tend map 5` it is not `disabled` (a disabled button loses the keyboard's
