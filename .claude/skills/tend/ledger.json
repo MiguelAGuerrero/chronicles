@@ -164,7 +164,7 @@
       "state": "rough",
       "swept": "2026-11-12",
       "main": "5da9460089118733f8b71c2b3c2fc8451a3194a4",
-      "note": "First sweep, not whole: the largest text size and the screen reader are phone-only (T23, T24). One high and seven medium loop findings; fourteen commits shipped (beat one's headline under Skip, the end ring on the walker, the day card's units, Back and Escape on the name step, Tap for sound, a card over the note at 320 and 375, the memo's time, the announcements, the day's frame and rides, landscape's stack, the day card's line, the headline's colour, six checks that could not fail). Filed [loop]: loadReplay's full scans (medium), the caption on one line, the day card's scroll, two comments, the browser's Back on the name step. T19-T22 [owner], T23-T24 [phone] open; decision 0153 holds the owner's answers."
+      "note": "First sweep, not whole: the largest text size and the screen reader are phone-only (T23, T24). One high and seven medium loop findings; fourteen commits shipped (beat one's headline under Skip, the end ring on the walker, the day card's units, Back and Escape on the name step, Tap for sound, a card over the note at 320 and 375, the memo's time, the announcements, the day's frame and rides, landscape's stack, the day card's line, the headline's colour, six checks that could not fail), and the review's audit 2-6 (the memo's time on one line, a card under a status bar, a held Escape, the pills in landscape, the headline under Skip). Filed [loop]: loadReplay's full scans (medium), the caption on one line, the day card's scroll, two comments, the browser's Back on the name step. T19-T22 [owner], T23-T24 [phone] open; decision 0153 holds the owner's answers."
     }
   },
   "declined": []

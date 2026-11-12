@@ -279,14 +279,22 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 - `tend replay 4`: Android's Back on the name step returns to the card with the words kept.
 - `tend replay 5`: Escape on the web is Back's sibling on both replays (not while a viewer holds the key).
 - `tend replay 6`: a video card's Tap for sound is a 44 px target on solid ink, spoken as it reads.
-- `tend replay 7`: on a 320 or 375 px phone a card stands clear of the note being read.
-- `tend replay 8`: the memo's bubble keeps its time whole at 320 px.
+- `tend replay 7`: on a 320 or 375 px phone a card stands clear of the note being read (with a status bar too, audit 3).
+- `tend replay 8`: the memo's bubble keeps its time whole and on one line at 320 px (audit 2).
 - `tend replay 9`: each beat is said once as it begins; a skipped day's card is said too (native only).
 - `tend replay 10`: the day's replay frames its walks' rides.
 - `tend replay 11`: a card stands under the clock's line and the Held pill (landscape).
 - `tend replay 12`: the day card's line is set as the walk card's (16 px regular).
 - `tend replay 13`: the fog's headline takes its ground from the theme; the colour scan covers both screens.
 - `tend replay 14`: six replay checks that could not fail now can (the auditor's T1, T2, T4-T7; T3 in 11).
+The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
+- `tend replay audit 2`: the memo's time keeps one line (it wrapped "5:38 / PM"; F2, U12).
+- `tend replay audit 3`: under a 20 px status bar a card still clears the note (the reserve fell away; F3).
+- `tend replay audit 4`: a held Escape on the name step stops at the card (its repeat left unsaved; F4).
+- `tend replay audit 5`: in landscape, held, the pills are measured clear of the card (F5).
+- `tend replay audit 6`: the fog's headline starts 8 px below Skip (F6).
+Review: 7 accepted (F1, the record's draft dropping "Open before the loop", restored; F2 with U12; F3-F6; F7, a native
+check reworded), 4 deferred `[loop]` low (call 4, call 10, U13, U14), 0 rejected.
 Filed: T19-T22 `[owner]` (the cards' counts in words, "Back to Chronicle", the name step's way back, the walked
 colour apart from the accent), T23-T24 `[phone]` (the largest text size; the screen reader and Back); `[loop]` in
 `docs/DEFERRED.md`: `loadReplay`'s full scans (medium), the caption on one line, the day card's scroll, two stale

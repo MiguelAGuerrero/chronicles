@@ -338,6 +338,15 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] The browser's own Back on the name step leaves the replay and drops the words typed (the auditor's F2, its web
   half): the replay's leave runs on unmount, and a browser's Back cannot be held cheaply (`tabs-and-home.md`).
   Android's Back and Escape return to the card (`tend replay 4`, `5`)
+- [loop] On a landscape phone the card stands under the whole top stack and is 157 px wide (138 with notched insets):
+  standing beside the centred stack instead would give it the height back (`/tend replay`'s review, call 4, low)
+- [loop] On a narrow card (172 px at 320) the 147 x 48 "Tap for sound" pill covers most of the video's top; it could sit
+  in the card's caption strip there (`/tend replay`'s review, call 10, low)
+- [loop] Two or three bubbles stacked (a six-line note and a memo, about 220 px) can still reach a card resting above
+  `BUBBLE_ROOM` (160 px) on a short phone: where `cardFloor` keeps the reserve, the bubbles' column could be capped at it,
+  the oldest leaving from the top (`Bubbles.tsx` `maxHeight: cornerHeight(ctx)`; the UX review's U13, low)
+- [loop] The day's map leaves out the faint stretch the walk's card draws across a gap (`rr-day-card` against `rr-card`,
+  from before the sweep; `day/[key].tsx` draws only `pathDrawnAt`'s trace and rides; the UX review's U14, low)
 - [owner] A card's time can run a minute ahead of the rolling clock as it grows (`rr-path-20`: the clock 4:07 PM, the
   card 4:08 PM; the UX review's U10, opinion, low): the clock is the rhythm's (RR8)
 
