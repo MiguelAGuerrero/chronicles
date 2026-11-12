@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { insetsFromPaddings, sameInsets } from '../../safeInsets';
+import { coverViewport, insetsFromPaddings, sameInsets } from '../../safeInsets';
 
 test('fix memories-weird-state 1: the web insets are read from the env() paddings alone', () => {
   // The rule takes no viewport: on iOS Safari, window.innerWidth/innerHeight are the visual viewport, halved under
@@ -35,4 +35,13 @@ test('fix memories-weird-state audit 3: a change to lib/safeInsets names the tab
   for (const file of ['src/lib/safeInsets.ts', 'src/components/SafeInsets.web.tsx']) {
     assert.ok(e2eFor([file]).scenarios.some((s) => s.name === 'tabs'), `${file} names the tabs journey`);
   }
+});
+
+test('fix home-indicator 1: the viewport covers the whole screen, so iOS reports the home-indicator inset', () => {
+  // Without viewport-fit=cover, env(safe-area-inset-bottom) is 0 and every bottom bar sat in the home-indicator strip
+  // of the owner's Home Screen app (Nov 12). The fit is added to what the page has, never replacing its width or scale.
+  assert.equal(coverViewport('width=device-width, initial-scale=1, shrink-to-fit=no'), 'width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover');
+  assert.equal(coverViewport(null), 'width=device-width, initial-scale=1, viewport-fit=cover');
+  assert.equal(coverViewport('width=device-width, viewport-fit=auto'), 'width=device-width, viewport-fit=cover');
+  assert.equal(coverViewport('width=device-width,viewport-fit=cover'), 'width=device-width, viewport-fit=cover');
 });

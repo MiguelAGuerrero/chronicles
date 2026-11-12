@@ -5,6 +5,8 @@
  * template can't follow on deeper routes. iOS shows web notifications only
  * for an app added to the Home Screen.
  */
+import { coverViewport } from '../lib/safeInsets';
+
 const base = process.env.EXPO_BASE_URL ?? '';
 
 function add(tag: 'link' | 'meta', attrs: Record<string, string>) {
@@ -23,6 +25,10 @@ if (typeof document !== 'undefined') {
   add('meta', { name: 'apple-mobile-web-app-title', content: 'Chronicles' });
   add('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'default' });
   add('meta', { name: 'theme-color', content: '#f4f2ee' });
+  // The whole screen, so iOS reports the safe-area insets and every bottom bar clears the home indicator (fix home-indicator).
+  const viewport = document.head.querySelector('meta[name="viewport"]');
+  if (viewport) viewport.setAttribute('content', coverViewport(viewport.getAttribute('content')));
+  else add('meta', { name: 'viewport', content: coverViewport(null) });
 }
 
 export {};

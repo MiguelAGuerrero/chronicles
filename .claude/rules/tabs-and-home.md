@@ -54,9 +54,12 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   (`paddingHorizontal: max(left, right)` squeezed its three tabs into one point) and Memories' list shrank
   to nothing until a reload. Never read `useSafeAreaInsets` from above `SafeInsets` in the root layout.
   The tabs journey replays it: it halves `innerWidth/innerHeight` and fires a resize, then puts the real
-  viewport back with only a `visualViewport` resize, as iOS ends a zoom. `env()` is 0 today (no
-  `viewport-fit=cover`); adding it means `SafeInsets` must also hear an `env()` change that comes with no resize
-  (the library's `transitionend` probe), and a test with a non-zero inset (fix memories-weird-state audit 6).
+  viewport back with only a `visualViewport` resize, as iOS ends a zoom.
+- **The page covers the whole screen** (`viewport-fit=cover`, set by `components/pwa.web.ts` through `coverViewport`
+  in `lib/safeInsets`; fix home-indicator, the owner's Home Screen app, Nov 12). Without it iOS reports every inset
+  as 0 and every bottom bar (the tab bar, Memories' capture band) sat in the home-indicator strip. `SafeInsets` hears
+  an `env()` change with no resize through its probe's `transitionend` (the fit is set after the HTML loads).
+  Chromium's `env()` is 0, so the e2e can't show a real inset; the owner's phone is the check.
 - **e2e:** `url` opens Chronicle's Memories; `exploreUrl` (`${url}explore`) opens the
   scenarios that begin on Explore, and `navUrl` (`${url}navigate`) those on Navigate.
 
