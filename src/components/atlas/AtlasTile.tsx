@@ -62,8 +62,8 @@ export const AtlasTile = memo(function AtlasTile(props: {
               <Text style={styles.character} numberOfLines={2} testID="atlas-character">{characterLine(a.profile!.steps)}</Text>
             )}
             <Text style={styles.metaText} numberOfLines={2}>
-              <Text style={listed.here ? styles.here : null}>{distanceWords(listed.distanceM, listed.here, fmt)}</Text>
-              {' · '}
+              {listed.unplaced ? null : <Text style={listed.here ? styles.here : null}>{distanceWords(listed.distanceM, listed.here, fmt)}</Text>}
+              {listed.unplaced ? null : ' · '}
               <Text style={fam.walks ? styles.known : null}>{familiarityWords(fam)}</Text>
             </Text>
             {a.profile?.strips[0] ? (

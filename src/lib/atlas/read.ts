@@ -77,6 +77,8 @@ async function wholeBorder(town: { name: string; at: LngLat }, shouldStop: () =>
 export function readNear(
   at: LngLat, level: AtlasLevel, build: string, reach: number, shouldStop: () => boolean,
   town: { key: string; name: string; at: LngLat } | null = null,
+  /** FL15: a read made for a look (Show areas here), kept apart from the reads around you. */
+  look = false,
 ): Promise<boolean | null> {
   return one(async () => {
     const url = await db.getMeta('tile_url');
@@ -108,7 +110,7 @@ export function readNear(
     }
     const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, Date.now());
     await db.putAtlasAreas(rows);
-    const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach, ...(town && level === 'neighborhood' ? { town: town.key } : {}) };
+    const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach, ...(town && level === 'neighborhood' ? { town: town.key } : {}), ...(look ? { look: true } : {}) };
     await db.setMeta(nearKey(level), JSON.stringify(withNear(await nearReads(level), near)));
     return true;
   });

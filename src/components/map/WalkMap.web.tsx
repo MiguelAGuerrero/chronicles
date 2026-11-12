@@ -23,6 +23,7 @@ import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
+import { mapLabel } from '../../lib/atlas/freeLook';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
@@ -219,6 +220,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCameraChange = useRef(props.onCameraChange);
   const onFitSettled = useRef(props.onFitSettled);
   const onSwipe = useRef(props.onSwipe);
+  const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
@@ -229,6 +231,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onCameraChange.current = props.onCameraChange;
     onFitSettled.current = props.onFitSettled;
     onSwipe.current = props.onSwipe;
+    freePan.current = !!props.freePan;
     fitPadding.current = props.fitPadding;
   });
   const pointerDown = useRef(false);
@@ -297,8 +300,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       pitchWithRotate: false,
       touchPitch: false,
       // Explore steps from area to area (DN1, DN11): one finger never pans, and the arrow keys are ours.
-      dragPan: !props.onSwipe,
-      keyboard: !props.onSwipe,
+      dragPan: !props.onSwipe || !!props.freePan,
+      keyboard: !props.onSwipe || !!props.freePan,
     });
     mapRef.current = map;
     map.on('load', () => {
@@ -433,9 +436,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       map.getCanvas().style.touchAction = 'none';
       map.getCanvasContainer().style.touchAction = 'none';
       // The arrow keys are findable (discrete-navigation audit 11): maplibre labels the canvas "Map".
-      map.getCanvas().setAttribute('aria-label', 'Map. The arrow keys move between areas.');
+      map.getCanvas().setAttribute('aria-label', mapLabel(!!props.freePan));
       map.on('mousedown', (e: MapMouseEvent) => {
-        if (!onSwipe.current || e.originalEvent.button !== 0) return;
+        if (!onSwipe.current || freePan.current || e.originalEvent.button !== 0) return;
         dropSwipe();
         // Shift and drag is maplibre's box zoom, never a swipe (audit 2).
         if (zoomStart({ shift: e.originalEvent.shiftKey, sinceTapMs: Infinity })) return;
@@ -448,7 +451,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         window.addEventListener('blur', dropSwipe, { once: true });
       });
       map.on('touchstart', (e: MapTouchEvent) => {
-        if (!onSwipe.current) return;
+        if (!onSwipe.current || freePan.current) return;
         if (e.originalEvent.touches.length > 1) {
           swipeMulti = true;
           return;
@@ -464,6 +467,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         trail = [];
       });
       map.on('touchmove', (e: MapTouchEvent) => {
+        if (freePan.current) return;
         if (e.originalEvent.touches.length > 1) swipeMulti = true;
         else dragTo({ x: e.point.x, y: e.point.y });
       });
@@ -478,7 +482,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       });
       // DN11: the arrow keys step like swipes; + and - still zoom (maplibre's keyboard handler is off).
       map.getCanvas().addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        // Free look: maplibre's own keyboard handler is on, the arrows pan and + and - zoom one level (FL3, audit 5).
+        if (freePan.current || e.altKey || e.ctrlKey || e.metaKey) return;
         const swipe = arrowSwipe(e.key);
         if (swipe) {
           e.preventDefault();
@@ -568,6 +573,26 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     perfCount(`setData:${id}`);
     (mapRef.current?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData(data);
   };
+
+  // Free look (FL3): one finger pans while it is on. maplibre's own handlers take over and ours stand down;
+  // the inline touch-action goes back to its class, which leaves the pan to the map (the swipe sets `none`).
+  const freeOn = !!props.freePan;
+  const swipes = !!props.onSwipe;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !swipes) return;
+    if (freeOn) {
+      map.dragPan.enable();
+      map.keyboard.enable();
+    } else {
+      map.dragPan.disable();
+      map.keyboard.disable();
+    }
+    const touchAction = freeOn ? '' : 'none';
+    map.getCanvas().style.touchAction = touchAction;
+    map.getCanvasContainer().style.touchAction = touchAction;
+    map.getCanvas().setAttribute('aria-label', mapLabel(freeOn));
+  }, [ready, freeOn, swipes]);
 
   useEffect(() => { if (ready) setData('fog', segmentsGeoJSON(props.fog)); }, [ready, props.fog]);
   useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
