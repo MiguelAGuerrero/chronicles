@@ -208,8 +208,8 @@ recording, and a recording bar brings a minimized walk back.
 - The map follows a live dot, with the walked trace in green and rides (bus,
   train) dashed. The map stays north-up unless you turn it with two fingers (a compass then
   shows above the edge buttons and sets north again, decision 0082); a soft cone on the dot shows the way
-  you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds an
-  orange ring where it ended. Every map has a scale bar in its bottom-left
+  you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds a
+  solid orange disc with a white ring where it ended (shape, not colour alone, tells them apart; decision 0154). Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
   out. A pin of one photo shows the photo itself, small and round. Faint
   pins with a clock badge show earlier walks' captures nearby (memories on
