@@ -102,3 +102,17 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   replay skips the fog and path and steps through the story's moments, then the card.
 - The replay sets `playsInSilentMode` when it mounts, or memos are silent with the
   iPhone's ringer switch off.
+- **Back and Escape** (`tend replay 4`, `5`): `backFrom(beat)` (`lib/replay.ts`) decides: the name step returns to
+  the card with the words kept, any other beat leaves. Escape is heard on `window` in the capture phase, since
+  react-native-web's TextInput stops a key's propagation; a held key's repeats are ignored (`tend replay audit 4`); and
+  not at all while a viewer, the walk's menu, a gap's card or a gap's way being drawn is open (the web's viewer takes no
+  Escape itself).
+- **A card's room** (`components/ceremony/layout.ts`): under `STACK_TOP` (the clock, "N min later" and "Held",
+  `tend replay 11`), and above a six-line note's bubble wherever a card of `MIN_CARD` (80 px) still fits: the card
+  shrinks before the bubbles lose their room, a status bar included (`cardFloor`, `tend replay 7`, `audit 3`);
+  `restCenter(ctx, h)` raises a card only as far as it must. Fog's headline: 8 px under Skip's foot (`audit 6`).
+- **The end ring reads the whole trace** (`ended={data.runs}`, the day's whole paths; `tend replay 2`), never the
+  drawn one, or it rides the walker and the map re-sends it every trace bucket.
+- **Words for a screen reader, once per beat** (`beatWords`, keyed on `phase.t0`, `tend replay 9`): the walk is read
+  again while its streets snap and when a note is edited, and an effect keyed on the data said each beat again.
+

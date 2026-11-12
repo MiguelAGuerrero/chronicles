@@ -524,3 +524,10 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with Move map on, pan to another town and tap Show areas here, then a card, then Locate. **Expect:** the row lists the towns around the middle of the map with "Around the middle of the map" as the title; Locate brings the page back to you (FL6, FL7, FL8).
 - [ ] **Do:** with Move map on, press and hold a far spot and tap Walk here. **Expect:** a question, Walk now or When I get there, before anything starts; a drag that pans never starts the hold (FL10, FL12).
 - [ ] **Do:** after a drag on a native map with Move map on, tap a "?" or a dot. **Expect:** the tap acts as usual (onPress after a native drag, FL3).
+
+## The replay sweep (`/tend replay`, Nov 12)
+
+- [ ] **Do:** on Android, finish a walk, Name it, type a name, press Back; press Back again on the card. **Expect:** the first Back returns to the card with the name kept; the second leaves for Chronicle (`tend replay 4`, `BackHandler`).
+- [ ] **Do:** with VoiceOver or TalkBack on, let a first replay play while its streets are read; on the card edit a note; open the day's replay and Skip. **Expect:** "Reading the streets you walked" and "Summary" are said once each; the day's card is said after Skip (`tend replay 9`).
+- [ ] **Do:** on a phone, watch a replay through its path. **Expect:** the end ring stands at the walk's last point from the fog to the card, never on the walker (`WalkMap.native.tsx` reads `ended`'s whole runs, `tend replay 2`).
+- [ ] **Do:** on an iPhone, watch a replay whose video plays muted. **Expect:** "Tap for sound" is a 48 pt pill on solid ink at the card's top right, and VoiceOver reads it as "Tap for sound" (`tend replay 6`).
