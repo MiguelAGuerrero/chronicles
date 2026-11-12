@@ -28,7 +28,7 @@ Open: none
 The editor
 
 1. **VT1** A voice memo shows an Edit button in the viewer's toolbar (`testID` `viewer-edit`, label "Edit"), wherever the viewer already offers Edit on a photo or video. It opens the one editor inside the viewer (never a second Modal) with Trim as its only tool and no picture; Done, Close and Revert are as for photos and videos.
-2. **VT2** The editor opens with the whole memo kept, however long. Trim shows a bar the length of the memo with a start and an end handle, and the kept times ("0:02 – 0:41"). At least one second is kept; a memo under a second keeps all of it. Handles can be moved by a screen reader, half a second a step.
+2. **VT2** The editor opens with the whole memo kept, however long. Trim shows a bar the length of the memo with a start and an end handle, and the kept times ("0:02 – 0:41"). At least one second is kept; a memo under a second keeps all of it. Handles can be moved by a screen reader, half a second a step. At the one-second minimum the handle simply stops: no message, toast or colour change.
 3. **VT3** A Play button in the editor plays only the kept part: it starts at the start handle and stops at the end handle; dragging a handle moves the playing position to it. Pressing it again plays from the start.
 4. **VT4** Nothing is saved until Done. Close with changes asks "Discard these edits?" (Keep editing, Discard); Close with none, or Done with none, writes nothing. Revert clears the trim.
 5. **VT5** The recording file is never changed. The trim is kept as `edit.trim` on the memo's piece, survives a reload, and a trim that keeps the whole memo is stored as none. Reverting and pressing Done brings the whole memo back.
@@ -39,3 +39,15 @@ Playing a trimmed memo
 7. **VT7** The replay's and the day replay's stops play only the kept part and move on at the trim's end, as they do at a memo's end today.
 8. **VT8** `voiceSpan`, `voiceClock` and `voiceState` in `lib/voiceTrim.ts` are pure and unit-tested: the kept span of a memo (the whole memo with no trim, a trim clamped to the memo's length), the clock inside it, and whether a player position is before the start (seek to it), inside, or at the end (finished).
 9. **VT9** A voice memo's Edit never touches a photo's or a video's editor: their tools, order and saves are as before (ME1-ME23).
+
+Found by the steward (Nov 12), accepted
+
+10. **VT10** Wherever a memo's length is said (the moment card, a response entry, a mention's words, the replay's bubble), it is the kept length when a trim is set, from `voiceSpan`. A test seeds a trimmed memo and asserts the words.
+11. **VT11** A trimmed memo's viewer says so in words with both times ("Trimmed · 0:39 of 0:58", in the info line, not a badge). The editor shows the whole length beside the kept span. Revert then Done restores the whole memo in the viewer and the replay.
+12. **VT12** Every surface that plays a memo (the viewer's `VoicePlayer`, the replay's `MemoBubble`) reads the trim through `lib/voiceTrim`; a test fails when a file calling `useAudioPlayer` for a capture does not import it.
+
+## Decisions on the steward's findings
+
+- Rejected as criteria, recorded in `docs/DEFERRED.md` instead: a transcript is to be made from the kept span, never the whole file (no transcript exists yet); a backup bundle or share, if it ever carries a memo, carries `edit.trim` with it (no memo leaves the device today).
+- Reading of "The lows stay in" for audio, put to the owner to confirm as a precedent: it is about a walk's hard parts, not a recording's dead air; a trim is reversible, so nothing is deleted.
+- Deleting a memo removes the file and its edit together (as any capture today).
