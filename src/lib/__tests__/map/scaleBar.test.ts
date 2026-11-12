@@ -55,7 +55,7 @@ test('QL5: the label says metres under a kilometre and kilometres from one', () 
   assert.equal(scaleBar(metersPerPixel(12, 60), MAX_PX).label, '500 m');
   assert.equal(scaleBar(2 * 1000 / MAX_PX, MAX_PX).label, '2 km');
   assert.equal(scaleBar(5 * 1000 / MAX_PX, MAX_PX).label, '5 km');
-  assert.equal(scaleBar(metersPerPixel(2, 0), MAX_PX).label, '1000 km');
+  assert.equal(scaleBar(metersPerPixel(2, 0), MAX_PX).label, '1,000 km');
   assert.equal(scaleBar(metersPerPixel(2, 60), MAX_PX).label, '500 km');
 });
 
@@ -92,4 +92,14 @@ test('tend map 3: the credits sit right of the scale bar at its widest, level wi
   assert.equal(creditsAt({ bottom: 12, left: 40 }, MAX_PX, 390).left - creditsAt({ bottom: 12, left: 12 }, MAX_PX, 390).left, 28);
   // Without a left inset, the bar's default 12.
   assert.equal(creditsAt({ bottom: 12 }, MAX_PX, 390).left, creditsAt({ bottom: 12, left: 12 }, MAX_PX, 390).left);
+});
+
+// tend map 7: a scale bar over the world read "2000 km" where the specs write "2,000 km" (QL15: "2,000 ft").
+test('tend map 7: the scale bar marks thousands', () => {
+  assert.equal(scaleBar(2_000_000 / MAX_PX, MAX_PX, 'km').label, '2,000 km');
+  assert.equal(scaleBar(10_000_000 / MAX_PX, MAX_PX, 'km').label, '10,000 km');
+  assert.equal(scaleBar((2000 * 0.3048) / MAX_PX, MAX_PX, 'mi').label, '2,000 ft');
+  assert.equal(scaleBar((1000 * 1609.344) / MAX_PX, MAX_PX, 'mi').label, '1,000 mi');
+  assert.equal(scaleBar(500 / MAX_PX, MAX_PX, 'km').label, '500 m');
+  assert.equal(scaleBar(0.5 * 1000 / MAX_PX, MAX_PX, 'km').label, '500 m');
 });

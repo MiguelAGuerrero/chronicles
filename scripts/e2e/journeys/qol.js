@@ -110,7 +110,8 @@ async function run(h) {
     };
     const describe = (s) => (s ? `${s.m} m "${s.label}", ${s.width.toFixed(1)} px for ${s.want.toFixed(1)} at z${s.zoom.toFixed(2)}` : 'no scale bar');
     const fits = (s) => !!s && s.width > 0 && s.width <= 100.5 && Math.abs(s.width - s.want) <= s.want * 0.05;
-    const round = (s) => !!s && /^(1|2|5)0*$/.test(String(s.m)) && s.label === (s.m >= 1000 ? `${s.m / 1000} km` : `${s.m} m`);
+    // Thousands marked ("2,000 km", tend map 7).
+    const round = (s) => !!s && /^(1|2|5)0*$/.test(String(s.m)) && s.label === (s.m >= 1000 ? `${(s.m / 1000).toLocaleString('en-US')} km` : `${s.m} m`);
     // Two zoom levels out: the map's keyboard handler, then the wheel if it didn't take.
     const zoomOutBy = async (levels) => {
       const z0 = Number(await attr('data-zoom'));

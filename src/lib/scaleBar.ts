@@ -42,17 +42,20 @@ function longestRound(max: number): number {
 
 function metric(maxM: number) {
   const meters = longestRound(maxM);
-  return { meters, label: meters >= 1000 ? `${round(meters / 1000)} km` : `${meters} m` };
+  return { meters, label: meters >= 1000 ? `${grouped(round(meters / 1000))} km` : `${meters} m` };
 }
+
+/** A whole number with its thousands marked, as the specs write them: "2,000 km", "2,000 ft" (tend map 7). */
+const grouped = (n: number) => (Number.isInteger(n) ? String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : String(n));
 
 function imperial(maxM: number) {
   const maxMi = maxM / MI_M;
   if (maxMi >= 1) {
     const mi = longestRound(maxMi);
-    return { meters: mi * MI_M, label: `${mi} mi` };
+    return { meters: mi * MI_M, label: `${grouped(mi)} mi` };
   }
   const ft = Math.min(MAX_FT, longestRound(maxM / FT_M));
-  return { meters: ft * FT_M, label: `${ft} ft` };
+  return { meters: ft * FT_M, label: `${grouped(ft)} ft` };
 }
 
 /** The scale bar's padding on each side (`ScaleBar.tsx`), and the gap from its widest extent to the map's credits. */
