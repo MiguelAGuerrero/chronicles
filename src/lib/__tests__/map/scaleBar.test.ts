@@ -103,3 +103,20 @@ test('tend map 7: the scale bar marks thousands', () => {
   assert.equal(scaleBar(500 / MAX_PX, MAX_PX, 'km').label, '500 m');
   assert.equal(scaleBar(0.5 * 1000 / MAX_PX, MAX_PX, 'km').label, '500 m');
 });
+
+// tend map audit 2: opened, the credits kept the closed (i)'s left edge, so at 320 px their text had about 72 px a
+// line and "OpenStreetMap" broke mid-word; and the (i) jumped to the box's top. Opened, the box now starts further
+// left, over the scale bar but clear of a round control standing over its start (the walk's Layers), and ends where
+// it did; the (i) keeps its place on the box's bottom row.
+test('tend map audit 2: the open credits start clear of a control over the scale bar, with room for a long word at 320', () => {
+  for (const width of [320, 390]) {
+    for (const left of [12, 28]) {
+      const at = creditsAt({ bottom: 12, left }, MAX_PX, width);
+      assert.ok(at.openLeft >= left + 44 + 8, `${width} px, inset ${left}: opens at ${at.openLeft}, over the control at ${left}-${left + 44}`);
+      assert.ok(at.openLeft < at.left, `${width} px, inset ${left}: opens left of the (i) at ${at.left}`);
+      assert.equal(at.openLeft + at.openMaxWidth, at.left + at.maxWidth, `${width} px, inset ${left}: the right edge stays`);
+      // "OpenStreetMap |" at 12 px is about 95 px; the box pads 8 px each side.
+      assert.ok(at.openMaxWidth - 16 >= 110, `${width} px, inset ${left}: ${at.openMaxWidth - 16} px a line`);
+    }
+  }
+});

@@ -158,12 +158,19 @@ class ClosedAttribution extends AttributionControl {
   private el?: HTMLElement;
   /** Told when the credits open or close (tend map audit 1: Explore's hint steps aside for them). */
   onOpen?: (open: boolean) => void;
-  /** Beside the scale bar (tend map 3): offsets from the map's bottom-left corner, and the widest it opens. */
-  place(at: { left: number; bottom: number; maxWidth: number }) {
-    if (!this.el) return;
-    this.el.style.margin = `0 0 ${at.bottom}px ${at.left}px`;
-    // maplibre's control is content-box, and opened it pads 8 px and 28 px (the (i)) beside its text.
-    this.el.style.maxWidth = `${at.maxWidth - OPEN_PAD_X}px`;
+  /**
+   * Beside the scale bar (tend map 3): offsets from the map's bottom-left corner. Opened, the box starts at `openLeft`
+   * and keeps the (i) on its bottom row where it was tapped (tend map audit 2); the style sheet below reads these.
+   */
+  place(at: { left: number; bottom: number; openLeft: number; openMaxWidth: number }) {
+    const el = this.el;
+    if (!el) return;
+    el.style.setProperty('--credits-left', `${at.left}px`);
+    el.style.setProperty('--credits-bottom', `${at.bottom}px`);
+    el.style.setProperty('--credits-open-left', `${at.openLeft}px`);
+    el.style.setProperty('--credits-button', `${at.left - at.openLeft}px`);
+    // maplibre's control is content-box: the open box pads 8 px each side.
+    el.style.setProperty('--credits-open-max', `${at.openMaxWidth - OPEN_PAD_X}px`);
   }
   constructor() {
     // Overture is credited beside the map data (AD16).
@@ -200,8 +207,8 @@ class ClosedAttribution extends AttributionControl {
     super.onRemove();
   }
 }
-/** maplibre's open credits' side padding in a left corner (8 px, and 28 px for the (i)). */
-const OPEN_PAD_X = 36;
+/** The open credits' side padding (8 px each side; the (i) has a row of its own below the text). */
+const OPEN_PAD_X = 16;
 /** Marks the app's credits control, for the hit area below. */
 const CREDITS_CLASS = 'chronicles-credits';
 /**
@@ -212,10 +219,16 @@ function addCreditsStyle() {
   if (document.getElementById(CREDITS_CLASS)) return;
   const style = document.createElement('style');
   style.id = CREDITS_CLASS;
-  // And a long word ("OpenStreetMap") wraps in the narrow room a 320 px phone leaves, rather than being cut.
+  // In a bottom-left corner (every map but Chronicle's), beside the scale bar (tend map 3). Opened, the box grows up and to
+  // the left from there, its text above a row that keeps the (i) where the tap was, so a second tap there closes it, and
+  // a word breaks only if it cannot fit a line at all (tend map audit 2).
+  const corner = `.maplibregl-ctrl-bottom-left>.maplibregl-ctrl-attrib.${CREDITS_CLASS}`;
   style.textContent =
     `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-button::after{content:'';position:absolute;inset:-10px}` +
-    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-inner{overflow-wrap:anywhere}`;
+    `.${CREDITS_CLASS} .maplibregl-ctrl-attrib-inner{overflow-wrap:break-word}` +
+    `${corner}{margin:0 0 var(--credits-bottom) var(--credits-left)}` +
+    `${corner}.maplibregl-compact-show{margin-left:var(--credits-open-left);max-width:var(--credits-open-max);padding:2px 8px 28px 8px}` +
+    `${corner}.maplibregl-compact-show .maplibregl-ctrl-attrib-button{top:auto;bottom:0;left:var(--credits-button)}`;
   document.head.appendChild(style);
 }
 

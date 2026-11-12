@@ -32,8 +32,9 @@ function creditsChecks({ check, shot }) {
       })
       .map((c) => c.getAttribute('data-testid'));
     // Each line of the open credits, and what a finger at its middle would touch: nothing may lie over them (tend map
-    // audit 1: Explore's hint covered their middle line).
+    // audit 1: Explore's hint covered their middle line). And a word split across two lines (tend map audit 2).
     const lines = [];
+    const broken = [];
     if (inner && getComputedStyle(inner).display !== 'none') {
       const range = document.createRange();
       range.selectNodeContents(inner);
@@ -42,15 +43,31 @@ function creditsChecks({ check, shot }) {
         const hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
         lines.push({ y: Math.round(q.top), top: !!hit && el.contains(hit), on: hit && !el.contains(hit) ? (hit.closest('[data-testid]')?.getAttribute('data-testid') ?? hit.textContent.slice(0, 24)) : null });
       }
+      const walker = document.createTreeWalker(inner, NodeFilter.SHOW_TEXT);
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+        for (const m of t.textContent.matchAll(/\S+/g)) {
+          const w = document.createRange();
+          w.setStart(t, m.index);
+          w.setEnd(t, m.index + m[0].length);
+          const tops = new Set([...w.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+          if (tops.size > 1) broken.push(m[0]);
+        }
+      }
     }
     return {
       lines,
+      broken,
       // Nothing of the credits is cut: no line runs wider than the box (tend map 3, at 320 px).
       whole: !inner || inner.scrollWidth <= inner.clientWidth + 1,
       compact: el.classList.contains('maplibregl-compact'),
       open: !!inner && getComputedStyle(inner).display !== 'none',
       text: inner ? inner.textContent : '',
       x, y,
+      // The (i)'s place in the map, from its bottom-left corner: the map's pane can move or resize while a screen settles.
+      map: (() => {
+        const m = el.closest('.maplibregl-map')?.getBoundingClientRect();
+        return m ? { left: m.left, bottom: m.bottom, dx: x - m.left, dy: m.bottom - y } : null;
+      })(),
       top: r ? on(x, y) : false,
       target: r ? [[-18, 0], [18, 0], [0, -18], [0, 18]].every(([dx, dy]) => on(x + dx, y + dy)) : false,
       box: [Math.round(box.left), Math.round(box.top), Math.round(box.right), Math.round(box.bottom)],
@@ -68,9 +85,16 @@ function creditsChecks({ check, shot }) {
     check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b && { open: b.open, text: b.text })})`);
     check(b && b.under.length === 0 && b.whole, `tend map 3: on ${where}, the open credits lie over no control and none of their words is cut (box ${b && b.box}; under ${JSON.stringify(b && b.under)}; whole ${b && b.whole})`);
     check(b && b.lines.length > 0 && b.lines.every((l) => l.top), `tend map audit 1: on ${where}, every line of the open credits is the top element at its point (${JSON.stringify(b && b.lines)})`);
+    check(b && b.broken.length === 0, `tend map audit 2: on ${where}, no word of the open credits breaks across two lines (${JSON.stringify(b && b.broken)})`);
+    const placed = (q) => (q && q.map ? `${Math.round(q.map.dx)},${Math.round(q.map.dy)}` : 'none');
+    check(b && a.map && b.map && Math.abs(b.map.dx - a.map.dx) < 1.5 && Math.abs(b.map.dy - a.map.dy) < 1.5,
+      `tend map audit 2: on ${where}, the (i) stays where it was tapped in the map as the credits open (from the map's bottom left: ${placed(a)} → ${placed(b)})`);
     if (shotName) await shot(page, shotName);
-    if (b) await page.mouse.click(b.x, b.y);
+    // A second tap where the first one was, in the map, closes them again.
+    if (b) await page.mouse.click(b.map ? b.map.left + a.map.dx : a.x, b.map ? b.map.bottom - a.map.dy : a.y);
     await page.waitForTimeout(300);
+    const c = await credits(page);
+    check(c && !c.open, `tend map audit 2: on ${where}, a second tap at the opening point closes the credits (open ${c && c.open})`);
   };
 }
 
