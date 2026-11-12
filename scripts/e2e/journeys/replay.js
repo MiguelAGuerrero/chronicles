@@ -315,7 +315,18 @@ async function run(h) {
     check(card && cb && cb.y >= 0 && cb.y + cb.height <= 390 && clear(hb) && clear(sb), `replay-rhythm audit 13: the card fits a landscape phone, clear of Hold and Skip (${JSON.stringify(cb)})`);
     // Under all the top can show: the clock, "N min later" and "Held" (tend replay 11).
     check(cb && cb.y >= 118, `tend replay 11: on a landscape phone the card stands under the clock's line and the Held pill (${JSON.stringify(cb)})`);
-    await shot(pg, 'rr-landscape');
+    // Held with the card up, the Held pill (and "N min later", when a cut is up) stand clear of the card: measured, not
+    // a sum of heights (tend replay audit 5).
+    await pg.click('[data-testid=hold]');
+    await pg.waitForTimeout(300);
+    const pills = await pg.evaluate(() => {
+      const r = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height }; };
+      return { card: r('[data-testid=replay-card]'), held: r('[data-testid=replay-held]'), later: r('[data-testid=replay-later]'), clock: r('[data-testid=replay-clock]') };
+    });
+    const meets = (a, b) => !!a && !!b && !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
+    check(pills.card && pills.held && !meets(pills.card, pills.held) && !meets(pills.card, pills.later) && !meets(pills.card, pills.clock),
+      `tend replay audit 5: on a landscape phone, held, the clock, Held and any "N min later" never meet the card (${JSON.stringify(pills)})`);
+    await shot(pg, 'rr-landscape-held');
     await pg.click('[data-testid=skip]');
     await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
     await pg.setViewportSize({ width: 390, height: 844 });

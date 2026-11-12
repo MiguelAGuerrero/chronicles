@@ -37,8 +37,6 @@ test('tend replay 7: where there is room, and on a landscape phone, the card sta
 });
 
 test('tend replay 11: a card stands below all the top can show (the clock, "N min later", "Held"), in landscape too', () => {
-  // The stack under the clock, as Stage draws it: 12 in, the clock 36, then two 23 px pills 8 apart, and 8 more.
-  assert.equal(STACK_TOP, 12 + 36 + 8 + 23 + 8 + 23 + 8);
   for (const [w, h] of [[844, 390], [667, 375], [390, 844], [320, 568]]) {
     const c = stage(w, h);
     const ch = cardH(cardWidth(c));
