@@ -1,4 +1,4 @@
-# 0147. Free look: a Move map toggle pans Explore's map, and Show areas here loads the areas around its middle
+# 0150. Free look: a Move map toggle pans Explore's map, and Show areas here loads the areas around its middle
 
 Date: 2026-11-11 · Status: accepted · Area: explore, map
 

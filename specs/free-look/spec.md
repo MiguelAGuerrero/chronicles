@@ -21,12 +21,12 @@ On Explore, a **Move map** switch frees one-finger panning. With it on, the read
 ## Decisions (the owner's calls, Nov 11)
 
 - **Pan, then load the map's centre.** No search, now or here (a search needs a geocoder: a new host and typed text leaving the device, which 0005 forbids until a decision says otherwise).
-- **A Move map toggle** frees one-finger panning; snapping stays the default. This amends 0092 and EC10; a decision record (0147) says so.
+- **A Move map toggle** frees one-finger panning; snapping stays the default. This amends 0092 and EC10; a decision record (0150) says so.
 - **Nothing is stored** about the look beyond what the page's reads already keep (see FL15). The look and the toggle live in the screen, like the page and the selection.
 - **The page's words** are "Around the middle of the map": it says what the page is around and nothing about where the reader is (Nov 11).
 - **Distance is not a ranking** (Nov 11): cards keep their distance, from the reader's fresh fix; ranking in the Never lines is for the quality of a place.
 - **The layers follow the look** (Nov 11): Busy streets, Walkability and the town borders read around the looked-at point; this amends the DEFERRED line "Explore's layers follow the selected area or you, not the panned map".
-- **Out-of-town stars follow the look** (Nov 11): within 50 km of the looked point; a tapped star's distance is from the reader. Decision 0147 amends 0115's "within 50 km of you". The stars are not built yet (0115 is queued), so this is carried by that slice (FL19, deferred).
+- **Out-of-town stars follow the look** (Nov 11): within 50 km of the looked point; a tapped star's distance is from the reader. Decision 0150 amends 0115's "within 50 km of you". The stars are not built yet (0115 is queued), so this is carried by that slice (FL19, deferred).
 
 ## Criteria
 
@@ -48,7 +48,7 @@ On Explore, a **Move map** switch frees one-finger panning. With it on, the read
 16. **FL16** What means you stays on you while looking: the walker's dot, the area card's "you", the walk planner's start, and the busy streets' walkability from your fix.
 17. **FL17** A launch fix that arrives while Move map is on or a look stands never moves the map or the look; it only becomes `you`.
 18. **FL18** After a look, the Busy layer, the Walkability layer and the town borders read around the looked-at point, as around a page's centre; the DEFERRED line that said they follow the selected area or you, not the panned map, is amended.
-19. **FL19** Deferred with 0115: the out-of-town "?" stars (decision 0115, queued, not built) will be drawn within 50 km of the page's centre, so of a look, and a tapped place's distance will be said from you. Nothing in the app draws them yet, so there is nothing to build or test here; the call is recorded in decision 0147 for that slice to carry.
+19. **FL19** Deferred with 0115: the out-of-town "?" stars (decision 0115, queued, not built) will be drawn within 50 km of the page's centre, so of a look, and a tapped place's distance will be said from you. Nothing in the app draws them yet, so there is nothing to build or test here; the call is recorded in decision 0150 for that slice to carry.
 20. **FL20** A look with no area around the middle (open water, a field) says so in words, with no cards and no count; Locate and Move map stay on screen.
 21. **FL21** The overlays never overlap in any combination of the long press's choices, a town's page, Move map and a turned map's compass, at 390 px and at 320 px: the toggle, the pill, the scale bar, the Towns pill, Locate and the compass each have their own place.
 
@@ -80,13 +80,13 @@ Audit of the plan, before any code (Nov 11, 2026): the `auditor` (1-10) and the 
 12. Nearest-the-look order against distances from you reads as a ranking: reject, the owner's call (Nov 11): distance is not a ranking; ranking in the Never lines is for the quality of a place. The honest part stands in FL12 (no distance without a fresh fix).
 13. With no fix, distances are measured from the looked point: accept, FL12; test `free-look audit 13` (with 4).
 14. The DEFERRED line contradicted and not updated: accept, FL18 and the owner's call; test `free-look audit 14`; `docs/DEFERRED.md` is in the plan's files.
-15. Decision 0115's "within 50 km of you": accept, FL19 and the owner's call; test `free-look audit 15`; 0147 amends it.
+15. Decision 0115's "within 50 km of you": accept, FL19 and the owner's call; test `free-look audit 15`; 0150 amends it.
 16. FL11 scanned only `lookWords`: accept, FL11; test `free-look audit 16`.
 
 The steward's "Silent" list: a look with no area is FL20; the long press's Walk here far away is FL12; a standing look on a new visit is FL14's call (the look stands); the pill must not cover Walk here, Locate or the tabs is FL21.
 
 ## Record
 
-Built Nov 11, 2026 on `slice/free-look`. FL1-FL16, FL18, FL20, FL21 have tests (unit `freeLook`; journey `freelook`, all checks pass); FL17 is recorded as deferred in `UNTESTED` (a late launch fix cannot be staged; the guard is `lookedRef`/`freeRef`); FL19 is deferred with the out-of-town stars. Deferred in DEFERRED.md: a tap while the map still coasts loads the last settled middle (FL5). Native paths are in NATIVE_UNVERIFIED.md and have never run on a device. Decision 0147. A far Walk here asks first (`spot.ask`, FL12). The UI review (ux-reviewer on pictures) has not run.
+Built Nov 11, 2026 on `slice/free-look`. FL1-FL16, FL18, FL20, FL21 have tests (unit `freeLook`; journey `freelook`, all checks pass); FL17 is recorded as deferred in `UNTESTED` (a late launch fix cannot be staged; the guard is `lookedRef`/`freeRef`); FL19 is deferred with the out-of-town stars. Deferred in DEFERRED.md: a tap while the map still coasts loads the last settled middle (FL5). Native paths are in NATIVE_UNVERIFIED.md and have never run on a device. Decision 0150. A far Walk here asks first (`spot.ask`, FL12). The UI review (ux-reviewer on pictures) has not run.
 
 UI review (the `ux-reviewer` on the journey's pictures, 390 and 320 px; Nov 11): 6 findings, 4 accepted, 1 deferred, 1 rejected. Accepted and fixed, each held by the journey's pictures and checks: the looked title clipped under the Layers button (ui 1: the title card clears that column and wraps to two lines while looking); the pill and Locate sharing one glyph (ui 2: the pill has no icon); a looked card's distance not saying whose it is (ui 3: "4.0 km from you"); the centre mark's hairline (ui 6: a light edge). Deferred: the toggle is icon-only (ui 4; its spoken name and pressed state are tested; a visible cue on first use is the owner's to ask for). Rejected: no feedback on the pill (ui 5: the page's title and the announcement are the feedback).

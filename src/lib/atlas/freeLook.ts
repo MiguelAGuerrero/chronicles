@@ -1,6 +1,6 @@
 // @layer core
 /*
- * Free look (FL1-FL21, decision 0147): the pure part. Explore's map can be freed to pan (Move map); Show areas here lists the
+ * Free look (FL1-FL21, decision 0150): the pure part. Explore's map can be freed to pan (Move map); Show areas here lists the
  * areas around the map's middle. A looked page says what it is around, never where the reader is; a card's distance is measured
  * from the reader's fresh fix, or left out.
  */

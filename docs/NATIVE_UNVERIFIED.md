@@ -495,7 +495,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a phone, zoom a map past 15 beside two complexes with long names. **Expect:** each name shows on a white pill of at most two lines in plum, not scaling past one and a third at the largest text size, and the outline in plum is distinct from History's brown dots (complexes audit 23, 24)
 
 
-## Free look (FL1-FL21, decision 0147)
+## Free look (FL1-FL21, decision 0150)
 
 - [ ] **Do:** on a phone, open Explore, tap Move map, then drag the map a long way with one finger and let it coast. **Expect:** the map pans and coasts, the row does not step, and pinch and the two-finger turn still work (FL3; `dragPan` switches at runtime on MapLibre RN, and the swiper's handlers are off while it is on).
 - [ ] **Do:** with Move map on, pan to another town and tap Show areas here, then a card, then Locate. **Expect:** the row lists the towns around the middle of the map with "Around the middle of the map" as the title; Locate brings the page back to you (FL6, FL7, FL8).
