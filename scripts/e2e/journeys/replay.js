@@ -201,6 +201,17 @@ async function run(h) {
         pileChecked = true;
       }
       if (!soundChecked && (await pg.locator('[data-testid=video-sound]').count())) {
+        // A 44 px target on a solid ground, its words at 13 px or more, spoken as shown (tend replay 6).
+        await shot(pg, 'rr-sound');
+        const chip = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=video-sound]');
+          const b = e.getBoundingClientRect();
+          const bg = getComputedStyle(e).backgroundColor;
+          const alpha = /rgba\([^)]*,\s*([\d.]+)\)/.exec(bg);
+          const text = [...e.querySelectorAll('*')].find((n) => n.childElementCount === 0 && /Tap for sound/.test(n.textContent));
+          return { w: Math.round(b.width), h: Math.round(b.height), opaque: !alpha || Number(alpha[1]) === 1, font: text ? parseFloat(getComputedStyle(text).fontSize) : 0, name: e.getAttribute('aria-label') };
+        });
+        check(chip.w >= 44 && chip.h >= 44 && chip.opaque && chip.font >= 13 && /Tap for sound/.test(chip.name ?? ''), `tend replay 6: a video card's Tap for sound is a 44 px target on a solid ground, 13 px or more, named as it reads (${JSON.stringify(chip)})`);
         // Sound refused: the video plays muted, and its "Tap for sound" can be tapped (replay-rhythm audit 3).
         const tapped = await pg.click('[data-testid=video-sound]', { timeout: 2000 }).then(() => true, () => false);
         await pg.waitForTimeout(300);

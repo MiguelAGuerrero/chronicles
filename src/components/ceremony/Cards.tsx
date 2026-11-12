@@ -137,14 +137,16 @@ function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageC
         <Pressable
           testID="video-sound"
           accessibilityRole="button"
-          accessibilityLabel="Turn the sound on"
+          // Spoken as it reads (WCAG 2.5.3), what it does as the hint (tend replay 6).
+          accessibilityLabel="Tap for sound"
+          accessibilityHint="Turns the video's sound on"
           onPress={() => {
             playWithSound(player, true);
             setMuted(false);
           }}
           style={styles.sound}
         >
-          <Icon name="volume-mute" size={14} color={theme.surface} />
+          <Icon name="volume-mute" size={16} color={theme.surface} />
           <Text style={styles.soundText}>Tap for sound</Text>
         </Pressable>
       )}
@@ -233,9 +235,10 @@ const styles = StyleSheet.create({
   cap: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, paddingVertical: 8, paddingHorizontal: 2 },
   capText: { flex: 1, fontSize: 13, color: theme.ink },
   capTime: { fontSize: 13, color: theme.muted, fontVariant: ['tabular-nums'] },
+  // The viewer's pill (CaptureView's `sound`): 48 px, on a solid ground over any picture (tend replay 6).
   sound: {
-    position: 'absolute', right: 6, top: 6, flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: theme.chip, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3,
+    position: 'absolute', right: 6, top: 6, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: theme.ink, borderRadius: 24, paddingHorizontal: 16,
   },
-  soundText: { color: theme.surface, fontSize: 11, fontWeight: '600' },
+  soundText: { color: theme.surface, fontSize: 14, fontWeight: '600' },
 });
