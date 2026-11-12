@@ -323,7 +323,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - `ReadyBar`'s 10 pt strip padding stays until then: `BAR_H` (69) is derived from it and the stack's geometry from `BAR_H`
 - The owner's phone screenshot showed the walk overlay cropped at both edges in Safari; at 390 px the layout was already 12 pt from the edge, so a viewport wider than the screen is suspected and not reproduced (unverified on a device)
 - Audit findings deferred (fix banner-spacing): the pills and scale bar sit at `sideInset + 12`, 4 pt further in than the 16 pt gutter, left as a step; horizontal safe-area insets (landscape notch) are not added to the gutter, as before; no e2e at 320 pt wide or for the nudge, spot card and Undo pill gutters; Button's and Banner's padding change reaches screens with no journey (settings, delete confirm); computed offsets (`edgeBottom + 7`) and radii are outside the grid test
-- Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, NoteEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
+- Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
 
 ## Street labels (fix street-label-double)
 
@@ -508,7 +508,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Moment references (`specs/moment-references`, decision 0125)
 
-- **@ in the capture stack's quick note** (Navigate, the walk and the Memories band): those notes are their own inline composers, not `NoteEditor`; a mention there needs the picker drawn over each. Write the note, then Edit it to mention a moment.
 - **A mention's words are those it was written with** in plain text: a moment renamed or placed later still reads its old words outside the viewer, whose card looks it up live.
 - **Mentions from a note to a note opened from a mention** stack in the viewer without a limit; Back pops one at a time.
 
@@ -609,3 +608,13 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] **Complexes** (0147): the kinds Markets, Campuses, Stations and Civic are told from Overture's building subtype and what the building holds, tuned on one downtown (Harrisburg) and one mall town (Whitehall); a clinic, a school or a courthouse in another region may read differently. Tune `MIN_*` in `complexes/rule.ts` against a fixture (`scripts/fixture-complexes.mjs`) and bump `COMPLEX_CODE`.
 - [loop] **Complexes** (0147): a read covers at most `COMPLEX_TILE_BUDGET` (9) z14 tiles around the selected area, so a wide town lists the complexes near its point ("Complexes near here"); a complex whose tiles were not all read is missing, never a partial outline. A `buildings` tile is 0.35 to 0.9 MB.
 - [loop] **Complexes** (0147, UI review): after "See more" the first new row should take a screen reader's focus (`lib/focus`); the pressed button disappears and focus is lost. The map's complex labels (12 px) have no picture to review. The switches' track contrast is the app's, not this slice's.
+
+## Note pages (NP1-NP14, decision 0149)
+
+- **A mention on the page is a chip, not a card with its picture** (NP5): the editor runs in a WebView on phones, which may not reach the app's media files; the chip says the moment's words, and a tap opens it. Drawing the picture needs the file passed in as data, a cost per mention.
+- **"Added to on Nov 30"**: words added to a note weeks later carry its first time (the steward, silent 1); saying so needs a stored edit time.
+- **The page's camera is on capture surfaces only** (the pencil on Navigate, the walk and Memories' band): a reply's page and Edit in the viewer have none, since the viewer holds no camera of its own.
+- **Selection across a whole page, dragging blocks, a "/" menu, links, tables, photos inline**: out by the owner's calls (Nov 12).
+- **Undo of a whole session's writing**: TipTap's history covers the page while it is open.
+- **An older note's lines read as paragraphs on its page**, a little spaced, until it is written in (NP7 keeps its characters, not its spacing).
+- **The room left is counted by the editor's words as shown**, a mention as "@" and its words, one more than `shownLength`'s count.

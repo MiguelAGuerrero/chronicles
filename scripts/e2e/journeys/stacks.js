@@ -30,8 +30,8 @@ async function run(h) {
   const gone = (sel, timeout = 8000) => pg.waitForSelector(sel, { state: 'detached', timeout }).then(() => true, () => false);
   const note = async (open, words) => {
     await pg.click(open);
-    await pg.fill('[data-testid=moment-note-input]', words);
-    await pg.click('[data-testid=moment-note-save]');
+    await pg.fill('[data-testid=note-input]', words);
+    await pg.click('[data-testid=note-done]');
     await pg.waitForTimeout(900);
   };
 

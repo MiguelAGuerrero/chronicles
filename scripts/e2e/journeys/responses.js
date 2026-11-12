@@ -180,10 +180,10 @@ async function run(h) {
   await pg.click('[data-testid=viewer-respond]');
   await pg.waitForSelector('[data-testid=respond-sheet]');
   await pg.click('[data-testid=respond-note]');
-  await pg.waitForSelector('[data-testid=note-edit-input]');
+  await pg.waitForSelector('[data-testid=note-input]');
   const sheetUnder = await has('[data-testid=responses-sheet]');
-  await pg.fill('[data-testid=note-edit-input]', 'A new tree two doors down.');
-  await pg.click('[data-testid=note-edit-save]');
+  await pg.fill('[data-testid=note-input]', 'A new tree two doors down.');
+  await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(1500);
   const after = await words();
   const s1 = await stored(pg);

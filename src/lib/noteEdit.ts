@@ -11,3 +11,6 @@ export function noteText(body: string): string | null {
   const text = body.trim().slice(0, NOTE_MAX).trimEnd();
   return text ? text : null;
 }
+
+/** What a note written on its page stores (NP7, decision 0149): its body, and the mark that the body is Markdown. */
+export const notePatch = (body: string): { body: string; body_format: 'md' } => ({ body, body_format: 'md' });

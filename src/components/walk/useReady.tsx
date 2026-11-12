@@ -1,4 +1,5 @@
 import type { Faced } from '../../lib/moment';
+import { notePatch } from '../../lib/noteEdit';
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -322,8 +323,8 @@ export function useReady(props: {
         }}
         onSaveNote={async (c, body) => {
           await ready.saveNote(c.piece_id, body);
-          setMoments((prev) => applyPatch(prev, c.id, { body }));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          setMoments((prev) => applyPatch(prev, c.id, notePatch(body)));
+          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
         }}
       />
     </>

@@ -474,7 +474,7 @@ module.exports = {
   name: 'chronicle',
   covers: [
     'src/app/(tabs)/index.tsx',
-    'src/components/{HomeSheet,StarView,AreaPoint,NoteEditor,SwitchRow,UndoToast}.tsx',
+    'src/components/{HomeSheet,StarView,AreaPoint,SwitchRow,UndoToast}.tsx',
     'src/lib/{rename,noteEdit,months,walkTitle,rides}.ts',
     'src/lib/areas/**',
     'src/lib/{places,placeAll}.ts',

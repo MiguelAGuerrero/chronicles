@@ -1,4 +1,4 @@
-import { type Faced, faced, facedAt, pieceKey } from '../lib/moment';
+import { type Faced, faced, facedAt, hasMore, pieceKey } from '../lib/moment';
 import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
@@ -25,7 +25,8 @@ import type { CapturePatch } from '../lib/captureBus';
 import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
 import { RemindEditor } from './RemindEditor';
-import { NoteEditor, type NoteEditorHandle } from './NoteEditor';
+import { NotePage, NoteReader, type NotePageHandle } from './notePage/NotePage';
+import { noteHead, type NoteHead } from '../lib/notePage/head';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
@@ -62,6 +63,8 @@ function touchPoint(e: { pageX?: number; pageY?: number; touches?: ArrayLike<{ p
 }
 
 const timeOf = (c: Faced) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+/** The viewer's top bar (Close, More) over a note's page: 48 pt buttons and their margins. */
+const VIEWER_TOP = 64;
 
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
@@ -176,6 +179,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   onOpenRef?: (v: MomentView) => void;
   /** A moment's responses, named in words at the end of the info line, a button that opens them (response thread RT1). */
   responses?: { text: string; onPress: () => void } | null;
+  /** A note is read as its page (NP5): its head, its drawing to its last line; a tap on the words asks to edit. */
+  note?: { head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void };
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -278,12 +283,24 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
     );
   }
 
+  if (capture.kind === 'text' && props.note) {
+    return (
+      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
+        <NoteReader body={capture.body ?? ''} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
+        <View style={[styles.metaRow, styles.pageMeta]}>
+          <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
+          {actions(false)}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
           {capture.kind === 'text' &&
-            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
+            (props.onOpenRef ? <NoteText body={capture.body ?? ''} format={capture.body_format} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
           )}
@@ -357,11 +374,14 @@ export function CaptureViewer(props: {
   const [editing, setEditing] = useState<Faced | null>(null);
   const editor = useRef<MediaEditorHandle>(null);
   // A note being written or edited closes its @ picker first, then itself (tend chronicle 1).
-  const noteEditor = useRef<NoteEditorHandle>(null);
-  const replyNote = useRef<NoteEditorHandle>(null);
+  const noteEditor = useRef<NotePageHandle>(null);
+  const replyNote = useRef<NotePageHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Faced | null>(null);
+  // A note's page is headed by the day and the moment's context as the viewer was given it (NP2).
+  const [headNow] = useState(() => Date.now());
+  const headOf = (c: Faced): NoteHead => noteHead({ t: c.t, now: headNow, time: timeOf(c), context: props.context?.get(c.id) ?? null, placing: false, draft: null });
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
@@ -482,7 +502,7 @@ export function CaptureViewer(props: {
   const listed = moment && pieces[pi] ? facedAt(moment, pieces[pi].id) : moment;
   // Edits and notes are the piece's own (MS11): kept by the piece's id.
   const editedBody = listed ? edited.get(listed.piece_id) : undefined;
-  const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
+  const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody, body_format: 'md' as const } : listed;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
   // The notes that mention the moment shown, read from their text (RF7): by date, never by count.
@@ -636,6 +656,18 @@ export function CaptureViewer(props: {
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
+            note={
+              current.kind === 'text'
+                ? {
+                    head: headOf(current),
+                    onEdit: props.onSaveNote ? () => setNoting(current) : undefined,
+                    onOpenMention: (id) => {
+                      const v = pool.byId.get(id);
+                      if (v && !hidden.has(v.id)) setOpenedStack((st) => [...st, v.capture]);
+                    },
+                  }
+                : undefined
+            }
             responses={responseIds.length && !sheetUp ? { text: responsesWord(responseIds.length), onPress: openResponses } : null}
             nav={
               shownList.length > 1
@@ -779,29 +811,29 @@ export function CaptureViewer(props: {
           />
         )}
         {noting && (
-          // Inside this Modal too (QL24).
-          <NoteEditor
+          // Inside this Modal too (QL24), as the note's page (NP5, NP9): kept as it is written, no Save and no question.
+          <NotePage
             ref={noteEditor}
             key={noting.id}
             body={noting.body ?? ''}
-            mention={{ self: noting.id }}
+            bodyFormat={noting.body_format ?? null}
+            head={headOf(noting)}
+            self={noting.id}
             onClose={() => setNoting(null)}
-            onSave={async (body) => {
-              const c = noting;
-              setNoting(null);
-              const before = edited.get(c.piece_id);
-              setEdited((m) => new Map(m).set(c.piece_id, body));
-              try {
-                await props.onSaveNote?.(c, body);
-              } catch {
-                setEdited((m) => {
-                  const n = new Map(m);
-                  if (before == null) n.delete(c.piece_id);
-                  else n.set(c.piece_id, before);
-                  return n;
-                });
-                setSaveState({ id: c.id, text: 'The note could not be saved' });
-              }
+            store={{
+              kept: true,
+              create: async () => {},
+              save: async (body) => {
+                const c = noting;
+                setEdited((m) => new Map(m).set(c.piece_id, body));
+                try {
+                  await props.onSaveNote?.(c, body);
+                } catch (e) {
+                  setSaveState({ id: c.id, text: 'The note could not be saved' });
+                  throw e;
+                }
+              },
+              remove: () => (hasMore(noting) ? deletePieceNow(noting) : deleteNow(noting)),
             }}
           />
         )}
@@ -1046,6 +1078,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius,
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  pageMeta: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.surface, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   nav: { flexDirection: 'row', gap: 8 },
   action: {
     flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingLeft: 18, paddingRight: 12,

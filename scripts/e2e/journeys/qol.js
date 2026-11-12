@@ -353,7 +353,7 @@ async function run(h) {
     await qstep('qol note', async () => {
       await pg.click('[data-testid=cap-note]');
       await pg.fill('[data-testid=note-input]', 'First words on the corner.');
-      await pg.click('[data-testid=note-save]');
+      await pg.click('[data-testid=note-done]');
       await pg.waitForTimeout(1500);
     });
     await pg.waitForTimeout(2500);
@@ -456,13 +456,16 @@ async function run(h) {
       const item = pg.locator('[data-testid=viewer-edit-note]');
       await item.waitFor({ timeout: 5000 });
       await item.click();
-      const input = pg.locator('[data-testid=note-edit-input]');
+      const input = pg.locator('[data-testid=note-input]');
       await input.waitFor({ timeout: 5000 });
-      const prefilled = await input.inputValue();
-      await input.fill('   ');
-      const blankRefused = (await pg.locator('[data-testid=note-edit-save]').getAttribute('aria-disabled')) === 'true';
+      const prefilled = (await input.innerText()).trim();
+      // A page emptied while open never stores an empty body (note pages NP9): a pause leaves the words as they were.
+      await input.fill('');
+      await pg.waitForTimeout(1600);
+      const kept = await capRow('text');
+      const blankRefused = !!kept && kept.body === 'First words on the corner.';
       await input.fill('Edited on the replay.');
-      await pg.click('[data-testid=note-edit-save]');
+      await pg.click('[data-testid=note-done]');
       await pg.waitForTimeout(800);
       const seenNow = await pg.locator('text=Edited on the replay.').first().isVisible().catch(() => false);
       await pg.click('[data-testid=viewer-close]');
@@ -481,7 +484,7 @@ async function run(h) {
     await qstep('tend chronicle 1', async () => {
       await openNote();
       await pg.click('[data-testid=viewer-edit-note]');
-      const input = pg.locator('[data-testid=note-edit-input]');
+      const input = pg.locator('[data-testid=note-input]');
       await input.waitFor({ timeout: 5000 });
       await input.click();
       await input.press('End');
@@ -493,12 +496,12 @@ async function run(h) {
       await pg.waitForTimeout(600);
       const after = {
         picker: await pg.locator('[data-testid=moment-picker]').count(),
-        editor: await pg.locator('[data-testid=note-editor]').count(),
-        text: (await pg.locator('[data-testid=note-edit-input]').count()) ? await input.inputValue() : null,
+        editor: await pg.locator('[data-testid=note-page]').count(),
+        text: (await pg.locator('[data-testid=note-input]').count()) ? (await input.innerText()).trim() : null,
       };
       check(after.picker === 0 && after.editor === 1 && after.text === 'Edited on the replay. and @',
         `tend chronicle 1: Escape closes the @ picker alone, and the note editor keeps its words (${JSON.stringify(after)})`);
-      if (after.editor) await pg.click('[data-testid=note-editor] >> text=Cancel');
+      if (after.editor) await pg.click('[data-testid=note-back]');
       await pg.waitForTimeout(300);
       if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(400);
@@ -711,7 +714,7 @@ module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
   covers: [
-    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions,NoteEditor}.tsx',
+    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions}.tsx',
     'src/components/map/**',
     'src/app/(tabs)/index.tsx',
     'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',

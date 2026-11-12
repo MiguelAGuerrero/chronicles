@@ -1,7 +1,9 @@
 import { type Faced, facedAll } from '../lib/moment';
+import { NewNotePage } from '../components/notePage/NewNotePage';
+import type { NotePageHandle } from '../components/notePage/NotePage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
@@ -268,8 +270,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const message = rawNotice ? null : arrivalNotice(params);
     if (message) setNotice({ message });
   }
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [note, setNote] = useState('');
+  // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` the open moment it joins (MS2, MS4).
+  const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
+  const noteOpen = page != null;
+  const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
+  const pageRef = useRef<NotePageHandle>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
   const [fog, setFog] = useState<StreetSegment[]>([]);
@@ -377,8 +382,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (h && lastHere.current && pillWalkId) momentPill.walked(distanceM(lastHere.current, h));
     lastHere.current = h;
   }, [live.here, pillWalkId]);
-  // The open moment a note being written joins, fixed when it was begun (MS4); null for a new moment.
-  const [noteInto, setNoteInto] = useState<string | null>(null);
   // The viewer's Add to this moment (MS12), run here where the camera, the mic and the note are; on a walk only
   // (the ready screen's capture row runs its own).
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
@@ -389,8 +392,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       if (kind === 'photo') void photo(into);
       else if (kind === 'voice') void startVoice(into);
       else {
-        setNoteInto(into);
-        setNoteOpen(true);
+        openNote(into);
       }
     };
   });
@@ -1018,16 +1020,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     }
   }
 
-  async function saveNote() {
-    const ok = await cap.saveNote(note, noteInto);
-    if (ok) {
-      setNote('');
-      setNoteOpen(false);
-      setNoteInto(null);
-      feedback('tap');
-      setToast('Note saved here');
-    }
-  }
 
   // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
   const editOffer = useEditOffer();
@@ -1432,8 +1424,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onPhoto={() => void photo(momentPill.target())}
             onVoice={() => void startVoice(momentPill.target())}
             onNote={() => {
-              setNoteInto(momentPill.target());
-              setNoteOpen(true);
+              openNote(momentPill.target());
             }}
           />
         )}
@@ -1499,8 +1490,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onSave={saveVoice}
         onDiscard={discardVoice}
         onNote={() => {
-          setNoteInto(momentPill.edgeTarget());
-          setNoteOpen(true);
+          openNote(momentPill.edgeTarget());
         }}
       />
 
@@ -1882,34 +1872,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
       <UndoToast style={{ top: insets.top + 64 }} />
 
-      <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
-        {/* Every way out keeps the draft; only Save clears it. */}
-        <Pressable style={styles.modalBack} onPress={() => setNoteOpen(false)} accessibilityLabel="Close note">
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.modalWrap, { paddingTop: insets.top + 56 }]}>
-            <Pressable style={styles.modal} onPress={() => {}} accessible={false}>
-              <Text style={styles.modalTitle} accessibilityRole="header">A line about here</Text>
-              <TextInput
-                testID="note-input"
-                autoFocus
-                multiline
-                value={note}
-                onChangeText={setNote}
-                placeholder="What caught your eye?"
-                placeholderTextColor={theme.muted}
-                accessibilityLabel="Note"
-                returnKeyType="done"
-                submitBehavior="blurAndSubmit"
-                onSubmitEditing={saveNote}
-                maxLength={500}
-                style={styles.input}
-              />
-              <View style={styles.modalRow}>
-                <Button variant="ghost" label="Close" onPress={() => setNoteOpen(false)} />
-                <Button testID="note-save" label="Save" onPress={saveNote} busy={cap.busy === 'text'} disabled={!note.trim()} />
-              </View>
-            </Pressable>
-          </KeyboardAvoidingView>
-        </Pressable>
+      <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
+        {page && (
+          <NewNotePage
+            key={page.key}
+            ref={pageRef}
+            cap={cap}
+            into={page.into}
+            onWalk
+            camera
+            onKept={() => {
+              feedback('tap');
+              setToast('Note saved here');
+            }}
+            onClose={() => setPage(null)}
+          />
+        )}
       </Modal>
       </>
       )}

@@ -52,7 +52,7 @@ async function checks(h) {
       check(reads0.live === 0 && (await p2.evaluate(() => window.__watches.size)) === 0, 'Navigate reads one fix each time it comes to the front, and leaves no watch running (NV17)');
 
       // A note from the home is kept at once and placed by one fix (M1, M2), with no watch left running (M5).
-      await note('[data-testid=moment-note]', '[data-testid=moment-note-input]', '[data-testid=moment-note-save]', 'A green dress in the window.');
+      await note('[data-testid=moment-note]', '[data-testid=note-input]', '[data-testid=note-done]', 'A green dress in the window.');
       check(await p2.waitForSelector('text=Note kept here', { timeout: 15000 }).then(() => true, () => false), 'a note from the home is kept, and says it was placed (M2)');
       let rows = await captureRows();
       check(rows.length === 1 && rows[0].walk_id == null && rows[0].lat != null && Math.abs(rows[0].lon - start[0]) < 1e-5,
@@ -94,7 +94,7 @@ async function checks(h) {
         await ctx2.setGeolocation({ longitude: route2[k][0], latitude: route2[k][1], accuracy: 6 });
         await p2.waitForTimeout(1000);
         if (k === 25) {
-          await note('[data-testid=cap-note]', '[data-testid=note-input]', '[data-testid=note-save]', 'The tailor on the corner.');
+          await note('[data-testid=cap-note]', '[data-testid=note-input]', '[data-testid=note-done]', 'The tailor on the corner.');
           await p2.waitForSelector('text=Note saved here');
         }
       }
@@ -131,7 +131,7 @@ async function checks(h) {
       await p2.evaluate(() => {
         navigator.geolocation.watchPosition = () => 999;
       });
-      await note('[data-testid=moment-note]', '[data-testid=moment-note-input]', '[data-testid=moment-note-save]', 'Sale on linen, ends Friday.');
+      await note('[data-testid=moment-note]', '[data-testid=note-input]', '[data-testid=note-done]', 'Sale on linen, ends Friday.');
       await p2.waitForTimeout(500);
       await tabTo(p2, 'chronicle');
       await h.mapUp(p2);

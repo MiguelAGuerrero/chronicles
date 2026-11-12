@@ -1,4 +1,5 @@
 import { facedAll } from '../../lib/moment';
+import { notePatch } from '../../lib/noteEdit';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
@@ -392,9 +393,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         remind
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setCaptures((prev) => applyPatch(prev, c.id, { body }));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          await db.updatePiece(c.piece_id, notePatch(body));
+          setCaptures((prev) => applyPatch(prev, c.id, notePatch(body)));
+          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
         }}
       />
       <CaptureViewer
@@ -409,9 +410,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         }}
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, { body });
-          setCaptures((prev) => applyPatch(prev, c.id, { body }));
-          captureBus.patch(c.walk_id, c.id, { body }, null);
+          await db.updatePiece(c.piece_id, notePatch(body));
+          setCaptures((prev) => applyPatch(prev, c.id, notePatch(body)));
+          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
         }}
       />
       <WalkActions

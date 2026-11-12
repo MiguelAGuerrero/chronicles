@@ -1,9 +1,8 @@
 import type { Faced } from '../lib/moment';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions,
+  AccessibilityInfo, BackHandler, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bandLayout, momentToast } from '../lib/captureBand';
 import { feedback } from '../lib/motion';
 import { momentPill } from '../lib/momentPill';
@@ -13,13 +12,15 @@ import { heldLabel } from '../lib/space/core';
 import type { Capture, LngLat } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
+import { NewNotePage } from './notePage/NewNotePage';
+import type { NotePageHandle } from './notePage/NotePage';
 import { SpaceLine } from './SpaceLine';
 import { EditOfferPill, useEditOffer } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
 import { AddToMomentPill } from './walk/AddToMomentPill';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
-import { Button, LiftIn, theme } from './ui';
+import { LiftIn, theme } from './ui';
 
 /** The open walk a moment from the band files into (HC10), with where the walk last was. */
 export interface BandWalk {
@@ -87,6 +88,7 @@ export function MomentBar(props: {
       labels={props.labels}
       onKept={onKept}
       above={props.above}
+      onWalk={!!walk}
     />
   );
 }
@@ -116,8 +118,9 @@ export function CaptureRow(props: {
   onKept?: (kind: Capture['kind']) => void;
   /** Said above this row's own pills, in the same column, so nothing covers anything (audit 2, 3). */
   above?: ReactNode;
+  /** A note begun here goes to an open walk (NP2's draft line). */
+  onWalk?: boolean;
 }) {
-  const insets = useSafeAreaInsets();
   const at = useStackLayout();
   const { width } = useWindowDimensions();
   const band = props.layout === 'band';
@@ -125,13 +128,14 @@ export function CaptureRow(props: {
   // Pills and toasts sit above the band on Memories (HC15), left of the stack on the walk screen (NR10).
   const pillsAt = band ? { left: 16, right: 16, bottom: bandLayout(width).height + 12, alignItems: 'center' as const } : at.pills;
   const { cap, toast, setToast } = props;
-  const [noteOpen, setNoteOpen] = useState(false);
+  // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` is the open moment it joins (MS2, MS4).
+  const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
+  const noteOpen = page != null;
+  const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
+  const pageRef = useRef<NotePageHandle>(null);
   // After a photo or video, Edit is offered for a few seconds (ME23).
   const editOffer = useEditOffer();
   const [editingKept, setEditingKept] = useState<Faced | null>(null);
-  const [note, setNote] = useState('');
-  // The open moment a note being written joins (MS2), or null for a new moment: fixed when the note was begun (MS4).
-  const [noteInto, setNoteInto] = useState<string | null>(null);
   const recording = cap.voiceStartedAt != null;
   const { onRecording } = props;
   useEffect(() => {
@@ -159,14 +163,6 @@ export function CaptureRow(props: {
   const saved = (kind: Capture['kind']) => {
     feedback('tap');
     onKept?.(kind);
-  };
-  const saveNote = async () => {
-    if (await cap.saveNote(note, noteInto)) {
-      setNote('');
-      setNoteOpen(false);
-      setNoteInto(null);
-      saved('text');
-    }
   };
   const saveVoice = async () => {
     const r = await cap.finishVoice();
@@ -200,10 +196,7 @@ export function CaptureRow(props: {
       const into = momentPill.target();
       if (kind === 'photo') void cap.takePhoto(into).then((k) => k && saved(k.kind));
       else if (kind === 'voice') void cap.startVoice(into).then((ok) => ok && feedback('tap'));
-      else {
-        setNoteInto(into);
-        setNoteOpen(true);
-      }
+      else openNote(into);
     };
   });
   useEffect(() => {
@@ -233,10 +226,7 @@ export function CaptureRow(props: {
           hidden={band || recording || noteOpen}
           onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved(k.kind))}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
-          onNote={() => {
-            setNoteInto(momentPill.target());
-            setNoteOpen(true);
-          }}
+          onNote={() => openNote(momentPill.target())}
         />
         {toast && (
           <LiftIn testID={`${p}-toast`} style={styles.toast} accessibilityLiveRegion="polite">
@@ -288,44 +278,26 @@ export function CaptureRow(props: {
         onVoice={() => cap.startVoice(momentPill.edgeTarget()).then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}
         onDiscard={() => cap.discardVoice()}
-        onNote={() => {
-          setNoteInto(momentPill.edgeTarget());
-          setNoteOpen(true);
-        }}
+        onNote={() => openNote(momentPill.edgeTarget())}
       />
 
       {editingKept && (
         <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
       )}
 
-      <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
-        {/* Every way out keeps the draft; only Save clears it. */}
-        <Pressable style={styles.modalBack} onPress={() => setNoteOpen(false)} accessibilityLabel="Close note">
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.modalWrap, { paddingTop: insets.top + 56 }]}>
-            <Pressable style={styles.modal} onPress={() => {}} accessible={false}>
-              <Text style={styles.modalTitle} accessibilityRole="header">Jot it down</Text>
-              <TextInput
-                testID={`${p}-note-input`}
-                autoFocus
-                multiline
-                value={note}
-                onChangeText={setNote}
-                placeholder="What’s worth remembering?"
-                placeholderTextColor={theme.muted}
-                accessibilityLabel="Note"
-                returnKeyType="done"
-                submitBehavior="blurAndSubmit"
-                onSubmitEditing={saveNote}
-                maxLength={500}
-                style={styles.input}
-              />
-              <View style={styles.modalRow}>
-                <Button variant="ghost" label="Close" onPress={() => setNoteOpen(false)} />
-                <Button testID={`${p}-note-save`} label="Save" onPress={saveNote} busy={cap.busy === 'text'} disabled={!note.trim()} />
-              </View>
-            </Pressable>
-          </KeyboardAvoidingView>
-        </Pressable>
+      <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
+        {page && (
+          <NewNotePage
+            key={page.key}
+            ref={pageRef}
+            cap={cap}
+            into={page.into}
+            onWalk={!!props.onWalk}
+            camera
+            onKept={() => saved('text')}
+            onClose={() => setPage(null)}
+          />
+        )}
       </Modal>
     </>
   );

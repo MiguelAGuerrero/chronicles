@@ -211,6 +211,14 @@ recording, and a recording bar brings a minimized walk back.
 - Capture buttons (camera, mic, pencil) are stacked at the right edge, above the strip. Photos and
   videos come from the system camera (video capped at 30 s), memos from the
   mic, notes from the pencil. Captions can be added to photos later.
+- **A note is a page** (note pages, decision 0149), in Apple Journal's manner: the pencil opens it full screen in
+  one tap, headed by the day in large type and a line of when, where and which walk (the short form stays in the
+  top bar once that scrolls away). Headings, lists, checklists, quotes, bold and italic come from typing (`# `,
+  `- `, `[ ] `, `1. `, `> `, `**`) or from **Aa** above the keyboard; **@** mentions a moment, and the camera there
+  keeps a photo as its own moment and mentions it where the cursor was. What is written is kept as it is written,
+  with no Save; Back and Done both keep it, a page left empty keeps nothing, and a note emptied and left goes with
+  Undo. A note holds up to 20,000 characters; near the end the page says "Room for a few more lines". Checklists are
+  never counted. Everywhere else a page reads as its words; a note written before pages reads as it was typed.
 - When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
   never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why
@@ -335,7 +343,7 @@ recording, and a recording bar brings a minimized walk back.
   seven across; a pinch does the same) and Square or Aspect Ratio Grid; sort, size and shape are kept. A tile opens
   its moment whole in the viewer at that piece, with its place and walk, and the viewer steps through the gallery's
   moments in its order, with no "i of n". Nothing counts; notes have no tile. With nothing kept, one line.
-- **A note mentions moments** (decision 0125): typing @ in a note (Respond → Note, Edit on a note) picks
+- **A note mentions moments** (decision 0125): typing @ on a note's page (or its @ button) picks
   another moment; the viewer draws it as a card of that moment (its picture or kind, date, place and walk) that
   opens it, with Back to the note; elsewhere it reads as words. The moment mentioned says "Mentioned in a note",
   and its More opens the note. A mention touches no thread.

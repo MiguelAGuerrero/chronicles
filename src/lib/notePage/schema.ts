@@ -7,10 +7,10 @@
  */
 import type { AnyExtension, JSONContent, MarkdownToken } from '@tiptap/core';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
-import Mention from '@tiptap/extension-mention';
+import { Mention } from '@tiptap/extension-mention';
 import { MarkdownManager } from '@tiptap/markdown';
-import Paragraph from '@tiptap/extension-paragraph';
-import StarterKit from '@tiptap/starter-kit';
+import { Paragraph } from '@tiptap/extension-paragraph';
+import { StarterKit } from '@tiptap/starter-kit';
 import { parseRefs, refToken } from '../refs';
 
 export type BodyFormat = 'md' | null;
@@ -44,14 +44,27 @@ const SafeParagraph = Paragraph.extend({
   },
 });
 
+/** What the editor adds to the document's own extensions: the @ picker, and whether a box ticks while reading. */
+export type EditorOptions = {
+  mention?: Parameters<typeof NoteMention.configure>[0];
+  /** A tap on a checkbox while reading changes nothing (NP5; the steward's S1, decision 0114). */
+  readOnlyTicks?: boolean;
+  /** How a checkbox is heard (NP12). */
+  checkboxLabel?: (text: string, checked: boolean) => string;
+};
+
 /** The extensions the document is made of: the subset of the spec and nothing more (no link, image, code or rule). */
-export function noteExtensions(): AnyExtension[] {
+export function noteExtensions(o: EditorOptions = {}): AnyExtension[] {
   return [
     StarterKit.configure({ paragraph: false, code: false, codeBlock: false, strike: false, link: false, underline: false, horizontalRule: false, heading: { levels: [1, 2] } }),
     SafeParagraph,
     TaskList,
-    TaskItem.configure({ nested: false }),
-    NoteMention,
+    TaskItem.configure({
+      nested: false,
+      onReadOnlyChecked: () => !!o.readOnlyTicks,
+      ...(o.checkboxLabel ? { a11y: { checkboxLabel: (node, checked) => o.checkboxLabel!(node.textContent, checked) } } : {}),
+    }),
+    o.mention ? NoteMention.configure(o.mention) : NoteMention,
   ];
 }
 
