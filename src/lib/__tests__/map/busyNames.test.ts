@@ -68,3 +68,15 @@ test('DC14: the selected area\'s name is in the names\' source, invisible, place
   assert.equal(reserve?.properties?.opacity, 0);
   assert.ok(names.features.every((f) => f === reserve || (f.properties?.sort as number) > (reserve?.properties?.sort as number)));
 });
+
+test('DC17: every "?" pin keeps its room: an invisible box over it, placed before any name, in a layer that is always placed', { todo: 'test first' }, () => {
+  const pins: LngLat[] = [at(1, 1), at(2, 2)];
+  const names = busyNamesGeoJSON(view(), { name: 'Mount Hill', at: at(5, 5) }, pins);
+  const boxes = names.features.filter((f) => f.properties?.box);
+  assert.deepEqual(boxes.map((f) => (f.geometry as GeoJSON.Point).coordinates), pins);
+  assert.ok(boxes.every((f) => f.properties?.reserve === true && f.properties?.opacity === 0));
+  const { room } = busyNameLayers() as unknown as { room: { layout: Record<string, unknown>; filter: unknown } };
+  assert.equal(room.layout['text-allow-overlap'], true, 'a pin\'s room is kept even beside another pin');
+  assert.equal(room.layout['text-ignore-placement'], false, 'and no name is placed over it');
+  assert.deepEqual(room.filter, ['get', 'reserve']);
+});

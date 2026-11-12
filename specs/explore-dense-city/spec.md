@@ -41,6 +41,7 @@ Explore's Busy layer names its streets with the map's own text, the way the base
 
 14. **DC14** No busy name is drawn under the selected area's name on the map (steward S4; 0124: nothing near the selection drawn over its text).
 15. **DC15** A tap on a busy name does what a tap on the bare map there does: no card, no selection, nothing of its own (0034, steward S5).
+17. **DC17** No busy name is drawn under a "?" pin: every pin on the map keeps the room it covers (48 px wide, standing above its point), and a name with no other room is not drawn (the owner, Nov 12: "Ensure there is no clutter as shown"; UI review U1).
 16. **DC16** On the walk screen and in Navigate (the same Busy layer), the names follow DC2-DC5 too; there the base map's own street names keep their room and the walker's trace and route draw over the busy names (steward S1; the owner's call, Nov 12).
 
 ### Moving between neighborhoods

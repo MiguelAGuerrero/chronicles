@@ -489,7 +489,8 @@ export function busyNameLayers() {
  * it is stale (a greyer ink, DC6). The selected area's name, when given, is drawn at opacity 0 and placed before every
  * busy name, so none is placed under it (DC14).
  */
-export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null): GeoJSON.FeatureCollection {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function busyNamesGeoJSON(v: LandingView | null | undefined, reserve: { name: string; at: LngLat } | null = null, _pins: readonly LngLat[] = []): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
   if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true }, geometry: { type: 'Point', coordinates: reserve.at } });
   for (const n of busyNames(v))

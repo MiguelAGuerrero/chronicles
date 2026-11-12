@@ -60,6 +60,11 @@ async function run(h) {
     const under = label ? await pg.evaluate((b) => window.__busyNamesIn?.(b.x, b.y, b.x + b.width, b.y + b.height) ?? ['(no hook)'], label) : ['(no selected label)'];
     check(under.length === 0, `DC14: no busy name under the selected area's name (${under.join(', ')})`);
 
+    // DC17: no busy name under a "?" pin: each pin's own box holds no name.
+    const pinBoxes = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=mark-pin]')].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0).map((r) => [r.x, r.y, r.right, r.bottom]));
+    const underPins = await pg.evaluate((bs) => bs.flatMap(([x0, y0, x1, y1]) => window.__busyNamesIn?.(x0 + 4, y0 + 4, x1 - 4, y1 - 4) ?? ['(no hook)']), pinBoxes);
+    check.todo(pinBoxes.length > 0 && underPins.length === 0, `DC17: no busy name under any of ${pinBoxes.length} "?" pins (${[...new Set(underPins)].join(', ')})`);
+
     // DC15: a tap on a busy name opens nothing and selects nothing.
     const hit = await pg.evaluate(() => window.__busyNamePoint?.() ?? null);
     const sel0 = await selected();
