@@ -43,11 +43,15 @@ export function createComplexes(p: { source: ComplexSource; store: ComplexStore;
         for (const [x, y] of r.tiles) tiles.set(key(release, x, y), { pieces: [], places: [] });
         for (const piece of r.pieces) tiles.get(key(release, piece.tile[0], piece.tile[1]))?.pieces.push(piece);
         for (const pl of r.places) {
+          // Filed under the tile it lies in; one whose own tile is not read yet is left for when it is (it may be here only from a
+          // neighbour's buffer), never marked seen.
+          const t = tileAt(pl.at);
+          const slot = tiles.get(key(release, t.x, t.y));
+          if (!slot) continue;
           const k = `${release}/${pl.id ?? `${pl.at.join(',')}:${pl.hierarchy.join('>')}`}`;
           if (seenPlaces.has(k)) continue;
           seenPlaces.add(k);
-          const t = tileAt(pl.at);
-          tiles.get(key(release, t.x, t.y))?.places.push(pl);
+          slot.places.push(pl);
         }
       }
       const held = [...tiles.entries()].filter(([k]) => k.startsWith(`${release}/`));

@@ -192,3 +192,17 @@ test('complexes audit 28: the card\'s controls are 48 points, as on Android', ()
   assert.ok(/complexMore:\s*\{\s*minHeight: COMPLEX_TARGET_MIN/.test(src));
   assert.ok(/complexWalk:\s*\{\s*minHeight: COMPLEX_TARGET_MIN/.test(src));
 });
+
+test('complexes audit 1: a place seen first from a neighbour\'s buffer, before its own tile is read, still counts when that tile is read', async () => {
+  const at: LngLat = [-76.8815, 40.2617];
+  const t = tileAt(at);
+  const piece: BuildingPiece = { id: 'b9', name: 'Eight Eats', subtype: null, class: null, tile: [t.x, t.y], polygons: [[square(-76.8814, 40.2616, 0.0006)]] };
+  const places: PlaceIn[] = Array.from({ length: 8 }, (_, i) => ({ id: `q${i}`, at: [-76.8813 + (i % 4) * 0.00012, 40.26175 + Math.floor(i / 4) * 0.0002], hierarchy: EATS }));
+  // A source that, like a buffered tile, returns the places of any tile among whatever it is asked for.
+  const source: ComplexSource = { read: async (_r, tiles): Promise<ComplexRead> => ({ ok: true, pieces: tiles.some(([x, y]) => x === t.x && y === t.y) ? [piece] : [], places, tiles }) };
+  const c = createComplexes({ source, store: memoryStore(), now: () => 0 });
+  // First an area whose tiles do not include the building's, then the area that does.
+  await c.readArea({ at: [-76.8815 - 0.05, 40.2617], reachM: 50 }, RELEASE);
+  const r = await c.readArea({ at, reachM: 50 }, RELEASE);
+  assert.equal(r.complexes.length, 1);
+});

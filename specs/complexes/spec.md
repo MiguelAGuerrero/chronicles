@@ -207,7 +207,7 @@ The auditor, the steward and the ux-reviewer read the built slice at main `82095
 29 findings: the auditor's 1-12, the steward's 13-20, the ux-reviewer's 21-29. 18 fixed, each behind a test named `complexes audit N`
 in `src/lib/__tests__/complexes/audit.test.ts`; 1 fixed in part; 2 duplicates; 5 deferred; 3 rejected; 1 to the owner.
 
-1. A place in two tiles' buffers counted twice, so four restaurants made a mall: fix. Places keep Overture's id and the shell counts one (`audit 1`).
+1. A place in two tiles' buffers counted twice, so four restaurants made a mall: fix. Places keep Overture's id and the shell counts one (`audit 1`). The first version of this fix dropped a place seen from a neighbour's buffer before its own tile was read; the `complexes` journey caught it and a second `audit 1` test holds it.
 2. A building needing a tile the area did not read left `partial` false: fix. The read is partial then (`audit 2`).
 3. `neededTiles` misses a tile crossed by an edge with no vertex: defer. Only a building longer than a z14 tile is affected (DEFERRED).
 4. The 90 s retry never fired and a partial empty read was a "failure": fix. `failed` is its own flag and a timer asks again (`audit 4`).
