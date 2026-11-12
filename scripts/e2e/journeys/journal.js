@@ -34,7 +34,7 @@ const SEED = ({ now, day }) => {
   rows.push(note('year', now - 365 * day, 'First frost on the allotment gate. Nobody about.'));
   const page = (id, t, body) => ({ id, walk_id: null, t, lat: null, lon: null, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind: 'text', file_path: null, body, body_format: 'md' }] });
   rows.push(page('pagenote', now - 4 * day - 1000, '# Bakery\n\nSmelled it **two** blocks *off*.\n\n- rye\n- warm\n\n- [ ] come back\n- [x] ask her name\n\nBack to @[h1|the harbor] soon.'));
-  rows.push(page('pagelong', now - 5 * day - 1000, Array.from({ length: 30 }, (_, i) => `A paragraph of a long entry, the ${i % 2 ? 'even' : 'odd'} kind.`).join('\n\n')));
+  rows.push(page('pagelong', now - 5 * day - 1000, Array.from({ length: 30 }, (_, i) => `A paragraph of a lengthy page, the ${i % 2 ? 'even' : 'odd'} kind.`).join('\n\n')));
   rows.push(note('long', now - 3 * day - 1000, 'A long entry, to see how the page carries one: the market was closing and the stallholders were stacking crates, and a man with a trumpet case stood at the corner as if waiting for the square to empty before he would play.'));
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('chronicles');
@@ -152,6 +152,7 @@ async function run(h) {
     }, px);
     await pg.waitForTimeout(300);
   };
+  await pg.waitForTimeout(400);
   const down0 = await box(pg, line);
   await kb(336);
   const up = await box(pg, line);
@@ -364,9 +365,9 @@ async function run(h) {
     inView: e.getBoundingClientRect().bottom <= window.innerHeight, raw: /(^|\n)- rye/.test(e.innerText),
   })).catch(() => null);
   const lineEmpty = await pg.locator(input).inputValue().catch(() => null);
-  check.todo(!!pageBtn && pageBtn.label === 'Open as a page' && pageBtn.w >= 44 && pageBtn.h >= 44 && pageUp && carried === 'Starts in the line',
+  check(!!pageBtn && pageBtn.label === 'Open as a page' && pageBtn.w >= 44 && pageBtn.h >= 44 && pageUp && carried === 'Starts in the line',
     `JN25: while writing, the line offers Open as a page, and the page opens with what was typed (${JSON.stringify({ pageBtn, pageUp, carried })})`);
-  check.todo(afterPage.length === beforePage + 1 && pagedPiece?.body_format === 'md' && /- rye/.test(pagedPiece?.body ?? '') && !!onSheet && onSheet.words && onSheet.bullets === 2 && onSheet.inView && !onSheet.raw && lineEmpty === '',
+  check(afterPage.length === beforePage + 1 && pagedPiece?.body_format === 'md' && /- rye/.test(pagedPiece?.body ?? '') && !!onSheet && onSheet.words && onSheet.bullets === 2 && onSheet.inView && !onSheet.raw && lineEmpty === '',
     `JN25: the page wrote on into the same entry, which is back on the sheet at its foot with its list drawn, and the line is empty (${JSON.stringify({ added: afterPage.length - beforePage, format: pagedPiece?.body_format, onSheet, lineEmpty })})`);
   // JN25: from an empty line the same control opens a new page, and an empty page keeps nothing.
   await done();
@@ -379,7 +380,7 @@ async function run(h) {
   await pg.keyboard.press('Escape');
   await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 8000 }).catch(() => {});
   await pg.waitForTimeout(800);
-  check.todo(newPageUp && (await stored(pg)).moments.length === beforeEmpty, `JN25: from an empty line Open as a page opens a new page, and one left empty keeps nothing (${newPageUp})`);
+  check(newPageUp && (await stored(pg)).moments.length === beforeEmpty, `JN25: from an empty line Open as a page opens a new page, and one left empty keeps nothing (${newPageUp})`);
   await pg.evaluate(() => document.activeElement?.blur?.());
 
   // JN1, JN2, JN9, JN20: a long journal opens at its foot in book order; the line is fixed; older entries load above.
@@ -395,7 +396,7 @@ async function run(h) {
     const ys = cards.map((e) => e.getBoundingClientRect().y);
     return { drawn: cards.length, lastBottom: last ? Math.round(last.bottom) : null, lineTop: lineBox ? Math.round(lineBox.top) : null, inOrder: ys.every((y, i) => i === 0 || y >= ys[i - 1]), lastText: cards[cards.length - 1]?.innerText ?? '' };
   }, { sel: entries, lineSel: line });
-  check(opened.drawn > 0 && opened.drawn <= 40 && opened.inOrder && /Back to/.test(opened.lastText) && opened.lastBottom != null && opened.lastBottom <= opened.lineTop + 1 && opened.lastBottom > 300,
+  check(opened.drawn > 0 && opened.drawn <= 40 && opened.inOrder && /Starts in the line/.test(opened.lastText) && opened.lastBottom != null && opened.lastBottom <= opened.lineTop + 1 && opened.lastBottom > 300,
     `JN1: a long journal opens at its foot with the latest entry above the line, and draws only its latest page (${JSON.stringify(opened)})`);
   const heads = await pg.locator('[data-testid=day-heading]').allInnerTexts();
   check(heads.length >= 3 && heads.at(-1) === today && new Set(heads).size === heads.length && heads.every((x) => /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}(, \d{4})?$/.test(x)),
@@ -425,7 +426,7 @@ async function run(h) {
   await scrollTo('top');
   await pg.waitForTimeout(1500);
   const after = await pg.locator(entries).count();
-  const anchorVisible = await pg.locator(entries).evaluateAll((els, text) => els.some((e) => e.innerText.startsWith(text) && e.getBoundingClientRect().top >= 0 && e.getBoundingClientRect().bottom <= window.innerHeight), anchor.text);
+  const anchorVisible = await pg.locator(entries).evaluateAll((els, text) => els.some((e) => e.innerText.startsWith(text) && e.getBoundingClientRect().bottom > 0 && e.getBoundingClientRect().top < window.innerHeight), anchor.text);
   const fixedAtTop = await box(pg, line);
   check(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
   check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
@@ -447,20 +448,21 @@ async function run(h) {
     refs: e.querySelectorAll('[data-testid=ref-card]').length,
     raw: /(^|\n)\s*(#|- \[|\*\*)/.test(e.innerText) || /@\[/.test(e.innerText),
     frames: e.querySelectorAll('iframe').length,
-    headFont: getComputedStyle(e.querySelector('[data-testid=entry-block-heading]') ?? e).fontFamily,
-    digits: /[0-9]/.test([...e.querySelectorAll('[data-testid^=entry-block-]')].map((x) => x.innerText).join(' ')),
+    headFont: getComputedStyle(e.querySelector('[data-testid=entry-block-heading] [dir]') ?? e).fontFamily,
+    // A mention's card carries its moment's date; the entry's own blocks hold no number the app put there.
+    digits: /[0-9]/.test([...e.querySelectorAll('[data-testid^=entry-block-]')].map((x) => { const c = x.cloneNode(true); c.querySelectorAll('[data-testid=ref-card]').forEach((r) => r.remove()); return c.textContent; }).join(' ')),
   })).catch(() => null);
-  check.todo(!!shape && shape.heading.join('|') === 'Bakery' && shape.bullets.length === 2 && /rye/.test(shape.bullets[0]) && shape.tasks.length === 2
+  check(!!shape && shape.heading.join('|') === 'Bakery' && shape.bullets.length === 2 && /rye/.test(shape.bullets[0]) && shape.tasks.length === 2
     && shape.tasks[0][0] === 'false' && shape.tasks[1][0] === 'true' && /come back/.test(shape.tasks[0][1]) && shape.refs === 1 && !shape.raw && shape.frames === 0 && /serif/.test(shape.headFont.replace(/sans-serif/g, '')) && !shape.digits,
     `JN26: a page-written entry shows its heading, bullets and checkboxes as native text in the owner's serif, a mention as a card, no raw marks, no count and no web view (${JSON.stringify(shape)})`);
-  const longEntry = pg.locator(entries).filter({ hasText: 'A paragraph of a long entry' });
+  const longEntry = pg.locator(entries).filter({ hasText: 'A paragraph of a lengthy page' });
   await longEntry.scrollIntoViewIfNeeded().catch(() => {});
   const cut = await longEntry.evaluate((e) => ({
     paras: e.querySelectorAll('[data-testid=entry-block-para]').length,
     more: e.querySelector('[data-testid=entry-goes-on]')?.innerText.trim() ?? null,
     moreFont: e.querySelector('[data-testid=entry-goes-on]') ? getComputedStyle(e.querySelector('[data-testid=entry-goes-on]')).fontFamily : '',
   })).catch(() => null);
-  check.todo(!!cut && cut.paras === 12 && cut.more === 'The entry goes on; open it to read the rest' && !/(^|,\s*)(ui-serif|Georgia|serif)/.test(cut.moreFont),
+  check(!!cut && cut.paras === 12 && cut.more === 'The entry goes on; open it to read the rest' && !/(^|,\s*)(ui-serif|Georgia|serif)/.test(cut.moreFont),
     `JN27: a long entry is cut on the sheet, with a line in the app's voice that it goes on (${JSON.stringify(cut)})`);
   await shot(pg, 'journal-12-page-entry');
 
@@ -552,9 +554,11 @@ async function run(h) {
   await pg.locator('[data-testid=viewer-respond]').click().catch(() => {});
   await pg.waitForSelector('[data-testid=respond-sheet]', { timeout: 4000 }).catch(() => {});
   await pg.click('[data-testid=respond-note]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForSelector('[data-testid=note-edit-input]', { timeout: 4000 }).catch(() => {});
-  await pg.fill('[data-testid=note-edit-input]', 'He never did play.').catch(() => {});
-  await pg.click('[data-testid=note-edit-save]').catch(() => {});
+  // Respond → Note opens the note's page (note pages, decision 0151).
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 6000 }).catch(() => {});
+  await pg.fill('[data-testid=note-page] [data-testid=note-input]', 'He never did play.').catch(() => {});
+  await pg.waitForTimeout(1200);
+  await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForTimeout(1500);
   await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1500);

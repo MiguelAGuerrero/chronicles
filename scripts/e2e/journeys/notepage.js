@@ -58,11 +58,17 @@ async function run(h) {
   const gone = (sel, timeout = 6000) => pg.waitForSelector(sel, { state: 'detached', timeout }).then(() => true, () => false);
   const input = () => pg.locator('[data-testid=note-page] [data-testid=note-input]');
   const inPage = (sel) => pg.locator(`[data-testid=note-page] [data-testid=note-input] ${sel}`).count();
+  // On Memories a page opens from the journal's open line (chronicle journal JN25, decision 0154): a tap in the line,
+  // then Open as a page. The pencil that opened it in one tap went with the band; the line itself is the one tap.
+  const openPage = async () => {
+    await pg.click('[data-testid=line-input]');
+    await pg.click('[data-testid=line-page]');
+  };
   const before = (await stored(pg)).length;
 
-  // NP1: the band's pencil opens the page in one tap, focused; its time is the tap's, however long the words take.
+  // NP1: from Memories the open line opens the page, focused; its time is the tap's, however long the words take.
   const tapAt = Date.now();
-  await pg.click('[data-testid=band-note]');
+  await openPage();
   const opened = await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.waitForTimeout(600);
   const focused = await pg.evaluate(() => !!document.activeElement?.closest('[data-testid=note-input]'));
@@ -188,7 +194,7 @@ async function run(h) {
 
   // NP9: an empty new page keeps nothing; Back leaves it.
   const n0 = (await stored(pg)).length;
-  await pg.click('[data-testid=band-note]');
+  await openPage();
   await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.waitForTimeout(1500);
   await pg.keyboard.press('Escape');
@@ -276,7 +282,7 @@ async function run(h) {
   if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
 
   // NP13: a page with a URL, written in and read, sends nothing out; pasted HTML leaves no image, frame or link.
-  await pg.click('[data-testid=band-note]');
+  await openPage();
   await there('[data-testid=note-page] [data-testid=note-input]');
   await input().click();
   await pg.keyboard.type('see https://example.com/x.png ');
@@ -308,7 +314,7 @@ async function run(h) {
       };
     }
   }, on);
-  await pg.click('[data-testid=band-note]');
+  await openPage();
   await there('[data-testid=note-page] [data-testid=note-input]');
   // note-pages audit 19, 21: one way out (Done), and the keyboard bar's buttons say what they are.
   const topButtons = await pg.locator('[data-testid=note-page] [data-testid=note-top] [role=button]').count();
@@ -331,7 +337,8 @@ async function run(h) {
   await pg.click('[data-testid=note-done]');
   const closedOnce = await gone('[data-testid=note-page]');
   await pg.waitForTimeout(600);
-  const faultyKept = (await stored(pg)).some((m) => (m.pieces?.[0]?.body ?? '').startsWith('Faulty words kept.'));
+  // In the journal a page begun right after another piece joins that entry (JN15), so the words may be any of its pieces.
+  const faultyKept = (await stored(pg)).some((m) => (m.pieces ?? []).some((p) => (p.body ?? '').startsWith('Faulty words kept.')));
   check(failedSaid === 'Not saved yet' && stillOpen && closedOnce && faultyKept, `note-pages audit 4: a failed save keeps the page open with its words; Done keeps it once it can (${failedSaid}, ${stillOpen}, ${closedOnce}, ${faultyKept})`);
   // note-pages audit 2: a placed note opened from Memories never says "No place kept".
   const placedCard = pg.locator('[data-testid=moment-card]:has-text("Kept at the corner")').first();

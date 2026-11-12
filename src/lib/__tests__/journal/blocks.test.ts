@@ -4,9 +4,8 @@ import { test } from 'node:test';
 import { ENTRY_GOES_ON, SHEET_BLOCKS, noteBlocks, sheetBlocks } from '../../journal/blocks';
 import { refToken } from '../../refs';
 
-const T = 'test first';
 
-test('JN26: a page-written note is read into the blocks the sheet draws, its marks as words', { todo: T }, () => {
+test('JN26: a page-written note is read into the blocks the sheet draws, its marks as words', () => {
   const md = '# Bakery\n\nSmelled it **two** blocks *off*.\n\n- rye\n- warm\n\n1. one\n2. two\n\n- [ ] come back\n- [x] ask her name\n\n> the queue went round the corner\n\n## Later';
   assert.deepEqual(noteBlocks(md), [
     { k: 'heading', level: 1, text: 'Bakery' },
@@ -22,7 +21,7 @@ test('JN26: a page-written note is read into the blocks the sheet draws, its mar
   ]);
 });
 
-test('JN26: a mention keeps its token in its block, and the editor\'s entities read as their characters', { todo: T }, () => {
+test('JN26: a mention keeps its token in its block, and the editor\'s entities read as their characters', () => {
   const ref = refToken('m9', 'the pier, Sep 11');
   const blocks = noteBlocks(`Back at ${ref} again &gt; once\n\n- with ${ref}`);
   assert.deepEqual(blocks, [
@@ -31,12 +30,12 @@ test('JN26: a mention keeps its token in its block, and the editor\'s entities r
   ]);
 });
 
-test('JN26: nothing written is no blocks, and a bare box with no words is none', { todo: T }, () => {
+test('JN26: nothing written is no blocks, and a bare box with no words is none', () => {
   assert.deepEqual(noteBlocks(''), []);
   assert.deepEqual(noteBlocks('- [ ] \n\n'), []);
 });
 
-test('JN27: the sheet draws the first blocks of a long entry and says it goes on, in words', { todo: T }, () => {
+test('JN27: the sheet draws the first blocks of a long entry and says it goes on, in words', () => {
   const blocks = noteBlocks(Array.from({ length: 40 }, (_, i) => `Paragraph ${String.fromCharCode(97 + (i % 26))}.`).join('\n\n'));
   const cut = sheetBlocks(blocks);
   assert.equal(cut.shown.length, SHEET_BLOCKS);

@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState, type ComponentRef, type React
 import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { lineLift } from '../../lib/journal/keyboard';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
+import { deleteNoteNow } from '../../lib/deletion';
 import { KEPT_AS_YOU_WRITE, LINE_LABELS, NOT_KEPT } from '../../lib/journal/lines';
-import { PEN_START, penStep, type PenEffect, type PenEvent, type PenState } from '../../lib/journal/pen';
+import { noteHead } from '../../lib/notePage/head';
+import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../lib/journal/pen';
 import { captureTarget } from '../../lib/journal/target';
 import type { Faced } from '../../lib/moment';
 import { momentPill } from '../../lib/momentPill';
@@ -23,6 +25,8 @@ import { Icon, type IconName } from '../icons';
 import { Modal } from '../Modal';
 import { useOpenWalk, useOpenWalkInfo } from '../OpenWalk';
 import { SpaceLine } from '../SpaceLine';
+import { NewNotePage } from '../notePage/NewNotePage';
+import { NotePage, type NotePageHandle } from '../notePage/NotePage';
 import { MomentPicker } from '../threads/MomentPicker';
 import { useMomentPool } from '../threads/useMomentPool';
 import { Ticking } from '../Ticking';
@@ -32,6 +36,9 @@ import { OWNER_FONT } from './type';
 /** What is typed is written this long after the last keystroke, and at once when the line lets go. */
 const SAVE_AFTER_MS = 400;
 const ERROR_MS = 6000;
+/** The line counts as still being typed in this long after its field loses focus, so a tap on a control of its own row lands. */
+const BLUR_HOLD_MS = 200;
+const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 const TOAST_MS = 4000;
 /** The line at rest: one row of 44 pt controls and its padding (the page pads its foot by this). */
 export const LINE_REST_H = 61;
@@ -148,6 +155,10 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
   const send = useRef<(e: PenEvent) => void>(() => {});
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const [typing, setTyping] = useState(false);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+  }, []);
   // The field is one line at rest and grows with what is written, to five lines.
   const [fieldH, setFieldH] = useState(FIELD_MIN);
 
@@ -316,6 +327,47 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     send.current({ k: 'type', body: fromEditor(r.text, r.refs) });
     input.current?.focus();
   };
+  // The line opens into a page (JN25): on the entry being written, with its words already there, or a new page from an
+  // empty line. The page is the note's own editor (decision 0151); what it writes is that same entry's.
+  const [page, setPage] = useState<{ key: number; into: string | null; entry: { momentId: string; pieceId: string; body: string; t: number; placed: boolean } | null } | null>(null);
+  const pageRef = useRef<NotePageHandle>(null);
+  const [pageNow] = useState(() => Date.now());
+  const openPage = () => {
+    const s = penRef.current;
+    if (s.beginning || recording) return;
+    input.current?.blur();
+    const key = (page?.key ?? 0) + 1;
+    if (!s.entry || !hasWords(s.body)) {
+      setPage({ key, into: momentPill.target(), entry: null });
+      return;
+    }
+    const entry = s.entry;
+    const body = s.body;
+    const kept = cap.captures.find((c) => c.id === entry.momentId);
+    // What is typed is written now, and the line lets go of it: the page holds it from here.
+    if (pending.current) clearTimeout(pending.current.timer);
+    pending.current = null;
+    queue.current = queue.current.then(() => capRef.current.writeLine(entry, body).then(() => told.current.written?.(entry, body), () => {}));
+    penRef.current = PEN_START;
+    setPen(PEN_START);
+    setText('');
+    setRefs([]);
+    setSelection(undefined);
+    onWriting(null);
+    changed.current();
+    setPage({ key, into: null, entry: { ...entry, body, t: kept?.t ?? pageNow, placed: kept?.lat != null } });
+  };
+  const closePage = () => {
+    setPage(null);
+    changed.current();
+    seen.current?.();
+  };
+  const pageCamera = async () => {
+    // On the page a photo is its own moment, mentioned in the note (NP14); in the line it joins the entry (JN15).
+    const k = await cap.takePhoto(null);
+    return k ? { id: k.momentId, label: k.kind === 'video' ? 'A video' : 'A photo' } : null;
+  };
+
   const done = () => {
     input.current?.blur();
     send.current({ k: 'done' });
@@ -422,7 +474,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
       </View>
       {/* The whole strip is the line's: a tap between its controls never lands on an entry scrolled beneath. */}
       <View style={styles.line} testID="open-line" pointerEvents="auto">
-        {(status || recording) && (
+        {(status || recording || typing) && (
           <View style={styles.statusRow}>
             {recording ? (
               <>
@@ -436,10 +488,15 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
               </>
             ) : (
               <>
-                <Text style={styles.status} testID="line-status" accessibilityLiveRegion="polite">{status}</Text>
-                {pen.failed && (
+                <Text style={styles.status} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
+                {pen.failed ? (
                   <Pressable testID="line-retry" accessibilityRole="button" onPress={() => send.current({ k: 'retry' })} style={styles.textBtn}>
                     <Text style={styles.textBtnText}>Retry</Text>
+                  </Pressable>
+                ) : (
+                  // The line opens into the note's page (JN25): for a long entry, or one with a shape.
+                  <Pressable testID="line-page" accessibilityRole="button" accessibilityLabel="Open as a page" accessibilityState={{ disabled: pen.beginning }} disabled={pen.beginning} onPress={openPage} style={styles.textBtn}>
+                    <Text style={styles.textBtnText}>Open as a page</Text>
                   </Pressable>
                 )}
               </>
@@ -463,10 +520,14 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
               rows={1}
               onContentSizeChange={(e) => setFieldH(Math.min(FIELD_MAX, Math.max(FIELD_MIN, Math.ceil(e.nativeEvent.contentSize.height))))}
               onFocus={() => {
+                if (blurTimer.current) clearTimeout(blurTimer.current);
                 setTyping(true);
                 onFoot();
               }}
-              onBlur={() => setTyping(false)}
+              onBlur={() => {
+                if (blurTimer.current) clearTimeout(blurTimer.current);
+                blurTimer.current = setTimeout(() => setTyping(false), BLUR_HOLD_MS);
+              }}
               style={[styles.field, { height: text.length ? fieldH : FIELD_MIN }]}
             />
           </View>
@@ -483,6 +544,34 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
           )}
         </View>
       </View>
+      <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
+        {page && !page.entry && (
+          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} onWalk={walking} camera onClose={closePage} />
+        )}
+        {page?.entry && (
+          <NotePage
+            key={page.key}
+            ref={pageRef}
+            body={page.entry.body}
+            // Typed in the line: literal until the page writes it (NP7).
+            bodyFormat={null}
+            head={noteHead({ t: page.entry.t, now: pageNow, time: timeOf(page.entry.t), context: null, placing: false, draft: null, placed: page.entry.placed, onWalk: walking })}
+            self={page.entry.momentId}
+            onClose={closePage}
+            onCamera={pageCamera}
+            store={{
+              kept: true,
+              create: async () => {},
+              save: async (body) => {
+                const e = page.entry!;
+                await cap.setNote({ id: e.momentId, piece_id: e.pieceId }, body);
+                told.current.written?.(e, body);
+              },
+              remove: () => deleteNoteNow({ id: page.entry!.momentId, piece_id: page.entry!.pieceId }),
+            }}
+          />
+        )}
+      </Modal>
       {picking != null && (
         <Mention self={pen.entry?.momentId ?? null} onPick={pick} onClose={() => { setPicking(null); input.current?.focus(); }} />
       )}

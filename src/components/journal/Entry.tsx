@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
+import { ENTRY_GOES_ON, noteBlocks, sheetBlocks } from '../../lib/journal/blocks';
 import { formatElapsed } from '../../lib/format';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
 import { facedAt, hasMore } from '../../lib/moment';
@@ -96,6 +97,8 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
   if (p.kind === 'text') {
     const body = p.body ?? '';
     if (!body.trim()) return null;
+    // An entry the page wrote is drawn in its shape, natively (JN26); one it did not stays literal (NP7).
+    if (p.body_format === 'md') return <View testID="entry-piece-text"><Blocks body={body} onOpenRef={onOpenRef} /></View>;
     // A reference is drawn as the moment it names (JN16, RF4); the words around it stay the owner's.
     return (
       <View testID="entry-piece-text">
@@ -125,7 +128,55 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
   );
 }
 
+/** A block's words, with each mention as that moment's card. */
+function Words(props: { text: string; style: StyleProp<TextStyle>; onOpenRef: (v: MomentView) => void }) {
+  if (parseRefs(props.text).some((x) => 'ref' in x)) return <View style={styles.grow}><NoteText body={props.text} style={props.style} onOpen={props.onOpenRef} /></View>;
+  return <Text style={[props.style, styles.grow]}>{props.text}</Text>;
+}
+
+/**
+ * A page-written note on the sheet (JN26, JN27): headings, bullets, numbered lines, checkboxes and quotes as plain
+ * text in the owner's serif. Never the editor: it is a web view on a phone, and a sheet holds dozens of entries. A
+ * checkbox is shown ticked or not and is ticked in its page; nothing counts them.
+ */
+function Blocks({ body, onOpenRef }: { body: string; onOpenRef: (v: MomentView) => void }) {
+  const { shown, more } = sheetBlocks(noteBlocks(body));
+  return (
+    <View testID="entry-words" style={styles.blocks}>
+      {shown.map((b, i) => {
+        if (b.k === 'heading') return <View key={i} testID="entry-block-heading" accessibilityRole="header"><Words text={b.text} style={[styles.words, b.level === 1 ? styles.h1 : styles.h2]} onOpenRef={onOpenRef} /></View>;
+        if (b.k === 'para') return <View key={i} testID="entry-block-para"><Words text={b.text} style={styles.words} onOpenRef={onOpenRef} /></View>;
+        if (b.k === 'quote') return <View key={i} testID="entry-block-quote" style={styles.quote}><Words text={b.text} style={[styles.words, styles.quoted]} onOpenRef={onOpenRef} /></View>;
+        if (b.k === 'task') {
+          return (
+            <View key={i} testID="entry-block-task" style={styles.item} accessible accessibilityRole="checkbox" aria-checked={b.done} aria-disabled accessibilityLabel={b.text}>
+              <View style={styles.box}><Icon name={b.done ? 'checkbox-outline' : 'square-outline'} size={20} color={theme.ink} /></View>
+              <Words text={b.text} style={styles.words} onOpenRef={onOpenRef} />
+            </View>
+          );
+        }
+        return (
+          <View key={i} testID={`entry-block-${b.k}`} style={styles.item}>
+            <Text style={[styles.words, styles.mark]}>{b.k === 'number' ? `${b.n}.` : '•'}</Text>
+            <Words text={b.text} style={styles.words} onOpenRef={onOpenRef} />
+          </View>
+        );
+      })}
+      {more ? <Text style={styles.app} testID="entry-goes-on">{ENTRY_GOES_ON}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  blocks: { gap: 8 },
+  grow: { flex: 1 },
+  h1: { fontSize: 23, lineHeight: 30, fontWeight: '600' },
+  h2: { fontSize: 20, lineHeight: 28, fontWeight: '600' },
+  item: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  mark: { minWidth: 20 },
+  box: { width: 20, height: 28, alignItems: 'center', justifyContent: 'center' },
+  quote: { paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: theme.edge },
+  quoted: { fontStyle: 'italic' },
   entry: { paddingBottom: 14 },
   head: { flexDirection: 'row', alignItems: 'flex-end' },
   // A thumb's target for the map (JN6), and the breath between entries.
