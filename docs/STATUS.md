@@ -187,19 +187,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise (the sweep's first shape): a plain ink mark with no star glyph; or leave it.
   **Answered reshape** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
   0154): still one commit's worth; waits for the next `/tend inbox`, one build per run (T16 was built first).
-- **T17 [owner] Map: location refused reads as a fault** (2026-11-12)
-  Area: map (Locate on Navigate and Explore). Seen: `probe-map-390-locate-denied-navigate`, `probe-map-390-locate-denied-explore`,
-  `qol-13-locate-denied` (a red error box: "Location permission was denied. Allow location for this site in the browser
-  settings, then try again."). Rests on: VISION.md Always, "Restraint in motion, colour and copy" (steward S5). New copy,
-  so yours.
-  Recommended: the refusal is a quiet notice in ink, not red: "Location is off for this site. Turn it on in the browser's
-  settings to see where you are." (on a phone, "... in Settings", with Open Settings), the same words the recorder's start
-  uses. And with no fix and no tiles drawn, the scale bar is not shown over a blank world ("2,000 km", steward S6).
-  /vision: aligned (honour; restraint).
-  Otherwise: keep the words and drop the red only; or leave it.
-  **Answered yes** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
-  0154): the recommended quiet ink notice, with no scale bar over a blank world. Waits for the next `/tend inbox`, one
-  build per run (T16 was built first).
 - **T18 [phone] The map's text and buttons at the largest text size** (2026-11-12)
   Area: map. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open a walk with two
@@ -273,6 +260,20 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
   Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
   instead; or leave it (the motion tells them apart while it plays).
+- **T26 [owner] Walk: Start refused still reads as a fault, in other words than Locate's** (2026-11-13)
+  Area: recording (Start on Navigate; the walk's "Not recording" notice). Seen: `src/lib/recorder/index.web.ts` l.102, the
+  `qol` and `ready` journeys' QL19 checks: Start, refused, says "Location permission was denied. Allow location for this
+  site in the browser settings, then try again." in the red error banner; since `tend map T17` Locate says "Location is
+  off for this site. Turn it on in the browser's settings to see where you are." as a quiet notice. Rests on: decision
+  0154, which took T17's words for the recorder's start's (they never were: the web recorder's line was Locate's old
+  one); `.claude/rules/map.md`, "Denied says what the recorder's start says"; VISION.md Always, "Restraint in motion,
+  colour and copy". New copy on Start, so yours.
+  Recommended: the recorder's web start reads its line from `locate/notice.ts`, beside Locate's, with its own end:
+  "Location is off for this site. Turn it on in the browser's settings to record a walk.", in the quiet notice on the
+  ready screen and in the walk's "Not recording" notice; on a phone the words stay ("Location is turned off for
+  Chronicles. Turn it on in Settings to record a walk.", with Open Settings), quiet too. /vision: aligned (honour;
+  restraint, as T17).
+  Otherwise: T17's line word for word on Start too ("... to see where you are."); or the words alone, left red; or leave it.
 
 ### Next evolutions
 
@@ -300,30 +301,34 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 12, `/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`** (from `ea34a2ca`; the owner's own answers, in person;
-T16 built, the others wait for the next inbox run, one build per run; decision 0154).
-- `tend map T16`: a walk's end marker is solid, a disc filled in the walked colour with a white ring; the start stays
-  hollow, white ringed in the trace's green, so shape tells them apart (WCAG 2.2, 1.4.1). One paint for both maps
-  (`ENDS_PAINT`, `components/map/types.ts`); no new hue (T22 is open and the end follows `COLORS.walked`). The `qol`
-  journey reads both markers' middles on the replay. A live walk still has no end marker (QL2).
-The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend map audit 8`: the `qol` step that reads the ends restores every marker, a failed read too (F2).
-- `tend map audit 9`: `ENDS_PAINT` is type-checked as a circle paint, with no cast on either map (F3).
-- `tend map audit 10`: `endsGeoJSON`'s start and end take the paint's own branches; native adds only opacity (F5).
-- `tend map audit 11`: the replay journey pictures the walk's card at 375 and 320 px once its title shows, its map
-  drawing both ends (U4; the old pictures showed a moment's beat, now `rr-beat-<w>`).
-Review: 5 accepted (F2, F3, F5, U4; F4, two stale records, named in "Open before the loop" with a note under the
-native check), 2 deferred `[owner]` low in `docs/DEFERRED.md` (U2, the end reads smaller; U3, a pin's stalk inside a
-marker), 1 to you as T25 (F1 with U1: mid-replay the walker's dot and the solid end differ by colour alone), 0
-rejected. The end filled in the accent's hex is your accepted interim until T22 (0153, 0154).
-Answered and waiting: T17 yes (the quiet ink notice, no scale bar over a blank world), T14 yes (kinds, no numeral, the
-time in the spoken name), T15 reshaped by the owner to "Ink star, no numeral" (/vision: aligned). QL2's wording and the
-map rule's marker lines in "Open before the loop"; one native check. Filed: T25 `[owner]`. Not a sweep: no lens ran and
-no area changed state. Nothing here has run on a phone; the `ends` layer is drawn on native too
+**Nov 13, `/tend inbox T17 yes, T14 yes, T15 reshape`** (from `df1aefb0`; the owner's own answers, in person, Nov 12;
+decision 0154; T17 built, T14 and T15 wait for the next inbox run, one build per run).
+- `tend map T17`: Locate refused, on Navigate and Explore, is the app's quiet notice (the cream banner, ink, no alert,
+  read politely), not the red error: "Location is off for this site. Turn it on in the browser's settings to see where
+  you are."; on a phone the recorder's own words, "... Turn it on in Settings ...", with Open Settings. The words live
+  once, in `locate/notice.ts`. With no fix and no tiles drawn (the base map's own layers drew nothing in view), the two
+  screens show no scale bar over the blank world; with the tiles drawn, or a fix, it stays. The `qol` journey pictures
+  the refusal on both screens at 390 and 320 px over an empty world, and keeps the bar where the fake streets draw.
+Found on the way: T17's words were never the recorder's start's (decision 0154 says they were): Start, refused, still
+says "Location permission was denied. ..." in red. Filed as T26 `[owner]`, with QL11's wording and the map rule's
+Locate line in "Open before the loop". One native check.
+Answered and waiting: T14 yes (kinds, no numeral, the time in the spoken name), T15 reshaped to "Ink star, no numeral".
+Not a sweep: no lens ran and no area changed state. The review (one round of the auditor and the ux-reviewer, decision
+0145) is pending. Nothing here has run on a phone; the notice's tone and the scale bar's tile read are native too
 (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in
+  `specs/quality-of-life/spec.md`) says "Denied location shows the error banner a moment's placement shows"; since
+  `tend map T17` a refused location is the quiet notice (the cream banner, ink, no alert), "Location is off for this site.
+  Turn it on in the browser's settings to see where you are." on the web, and with no fix and no tiles drawn Navigate and
+  Explore show no scale bar. Amend QL11 to say so, in the doc and the mirror; the loop may not edit a spec. Decision 0154
+  calls T17's words "the words the recorder's start uses", which they never were: the web recorder's start says "Location
+  permission was denied. Allow location for this site in the browser settings, then try again." (`recorder/index.web.ts`),
+  Locate's old line. So `.claude/rules/map.md`'s "Denied says what the recorder's start says" (the Locate line) is no
+  longer true on the web until the inbox entry "Walk: Start refused still reads as a fault" is answered; the loop
+  rewords no rule line.
 - **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
   `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
   agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A
