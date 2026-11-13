@@ -13,3 +13,5 @@ A voice memo has no words, so it cannot join a thread or be found. The seam for 
 
 ## Consequences
 The transcript is a cache in its own table (the audio is truth); a trim change makes it stale and it is read again. A native method that cuts audio is added to the local module and is unverified on a device. Editing a transcript, the replay's bubble and other languages are deferred (`docs/DEFERRED.md`).
+
+Numbering: written as 0165, renumbered 0166 when `main` took 0165 for the owner's answers to T19-T22. `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` entries of the memo transcripts slice still say "decision 0165" (the record documents change only by operations, decision 0156); they mean this record.

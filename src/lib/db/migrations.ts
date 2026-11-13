@@ -264,7 +264,7 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE capture ADD COLUMN note_type TEXT;
   `,
-  // Memo transcripts (TX12, decision 0165): a memo's words, a cache beside the memo, keyed by its piece's id; '' when none were heard.
+  // Memo transcripts (TX12, decision 0166): a memo's words, a cache beside the memo, keyed by its piece's id; '' when none were heard.
   `
   CREATE TABLE transcript (
     capture_id TEXT PRIMARY KEY, text TEXT NOT NULL, lang TEXT NOT NULL, from_ms INTEGER, to_ms INTEGER, made_at INTEGER NOT NULL

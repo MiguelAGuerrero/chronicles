@@ -155,7 +155,7 @@ export interface Db {
   clearRecall(captureId: string): Promise<void>;
   listRecalls(): Promise<Recall[]>;
 
-  /** A memo's words, read on the phone (decision 0165): one per capture, replaced by capture. A cache beside the memo. */
+  /** A memo's words, read on the phone (decision 0166): one per capture, replaced by capture. A cache beside the memo. */
   setTranscript(t: Transcript): Promise<void>;
   clearTranscript(captureId: string): Promise<void>;
   listTranscripts(): Promise<Transcript[]>;

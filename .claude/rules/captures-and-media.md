@@ -265,7 +265,7 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   - Since `tend map T14` a pin of several shows its kinds fanned and says them in words, never its count (`map.md`, "A pin of several moments").
   - **A note save names its piece** (note-types audit 1, 12, 13): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).
 
-## Memo transcripts (TX1-TX18, decision 0165)
+## Memo transcripts (TX1-TX18, decision 0166)
 
 - **The words are a cache beside the memo** (`transcript` table, SQLite migration 28, IndexedDB 21; `capture_id`, `text`, `lang`, `from_ms`, `to_ms`, `made_at`), never in the memo's `body`, `caption` or `edit`. `''` means the engine heard none, so the memo is not read again. A row read from another span than `spanOf(memo)` is stale (`isStale`): not served, and read again.
 - **Read in the background, one at a time** (`transcript/shell.ts`): after a memo is kept (`useCaptures.saveMemo`) and for older ones at launch (`backfillTranscripts`, `_layout`). It waits while a walk or a memo records or plays (`busy`), asks for the speech permission only for a memo kept this session on a quiet moment, never at launch, and remembers a refusal (meta `transcript_off`). Nothing is said when it cannot read.

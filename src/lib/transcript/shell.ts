@@ -1,6 +1,6 @@
 // @layer shell
 /**
- * Memo transcripts (decision 0165): reads each voice memo's words on the phone, in the background, one memo at a
+ * Memo transcripts (decision 0166): reads each voice memo's words on the phone, in the background, one memo at a
  * time, and keeps them beside the memo. It never blocks a capture, asks for the speech permission only once a memo
  * was kept this session and nothing records or plays, sends nothing anywhere (every request is on-device), and says
  * nothing when it cannot read (TX1-TX6, TX13, TX15, TX16).

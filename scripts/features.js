@@ -268,7 +268,7 @@ const FEATURES = [
   },
   {
     name: 'transcript',
-    about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0165)',
+    about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0166)',
     rule: 'captures-and-media',
     source: ['src/lib/transcript/**', 'src/lib/useTranscript.ts', 'src/components/MemoTranscript.tsx'],
     journeys: ['transcript'],

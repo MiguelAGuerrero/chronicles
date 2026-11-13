@@ -1,6 +1,6 @@
 // @layer core
 /**
- * A voice memo's words (memo transcripts, decision 0165): what the phone read from the recording, kept as a cache
+ * A voice memo's words (memo transcripts, decision 0166): what the phone read from the recording, kept as a cache
  * beside the memo, never in it. Which memos still need reading, and what a row says. No clock, no engine.
  */
 import type { MediaEdit } from '../mediaEdit';
@@ -86,7 +86,7 @@ export interface RecognizerFacts {
  * Whether a memo may be read at all: only where the recognizer runs on the device itself for the memo's locale.
  * iOS asks the default recognizer, which is the device's own locale, the one the memo is read in; Android needs 13
  * (the on-device service) and an installed pack. Below that the default, possibly cloud, recognizer would answer
- * (decision 0165, TX5, TX16).
+ * (decision 0166, TX5, TX16).
  */
 export function onDeviceReady(f: RecognizerFacts): boolean {
   if (!f.available || !f.onDevice) return false;

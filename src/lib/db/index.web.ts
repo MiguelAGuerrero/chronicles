@@ -165,7 +165,7 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     // the version marks the first build that writes it, and a note kept before reads as no type.
   }
   if (oldVersion < 21 && upTo >= 21) {
-    // Memo transcripts (TX12, decision 0165): a memo's words, a cache beside the memo, keyed by its piece's id.
+    // Memo transcripts (TX12, decision 0166): a memo's words, a cache beside the memo, keyed by its piece's id.
     d.createObjectStore('transcript', { keyPath: 'capture_id' });
   }
 }

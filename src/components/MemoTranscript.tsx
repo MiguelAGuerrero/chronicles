@@ -4,7 +4,7 @@ import { useTranscript } from '../lib/useTranscript';
 import { theme } from './ui';
 
 /**
- * A voice memo's words, as a caption under it, once the phone has read them (decision 0165, TX7-TX9, TX14). Nothing
+ * A voice memo's words, as a caption under it, once the phone has read them (decision 0166, TX7-TX9, TX14). Nothing
  * shows while they are pending, and nothing when there are none. Named for what it is, in view and to a screen
  * reader: a small line says the phone read it, and the words are set apart in italics from a note or a caption the
  * owner wrote (memo-transcripts audit 13).
