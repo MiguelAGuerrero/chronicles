@@ -150,6 +150,10 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   - **Trap: a MediaRecorder WebM has no duration** in its header, and a seek into it may never land: the web's
     `videoFrame` seeks past the end first (`1e101`) to learn it. iOS Safari loads nothing until `play()`: it plays
     muted, then pauses, before the seek (unverified on an iPhone).
+  - **A media URL is let go two seconds after its last use** (`useMediaUri`, video-thumbnails ui 1): revoking a
+    `blob:` URL the moment a preview's file changed left a picture still loading it to fail, logged by the browser.
+  - **A still remembered by `lib/thumbs` fills in only while a card's row has none**: a row read later (an edit's new
+    still, which deletes the old file) wins (ui 1).
   - **Trap (e2e): `waitForFunction` with an async predicate** resolves at once with its pending promise; poll a stored
     row from the test side instead (the videothumbs journey).
 - Previews show the copy, the icon while it is being made, and the photo
