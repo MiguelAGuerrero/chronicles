@@ -703,4 +703,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The first character's place can be lost to a reload** within its first seconds, as noted above; the audit added no fix.
 - **The line and the page, deferred** (`specs/chronicle-journal/spec.md`, the `/fix` review): a new page opened from the line reads a fix as the pencil does, on a walk with a stale fix too, and one left empty has read a location for nothing (5); a list inside a quote reads as the quote's lines on the sheet (8); a walk ending while a page is up closes the page, its words kept (10); the page's words are sans where the sheet's are serif (ui 3).
 - **Note pages' serializer** (found by the same review, on `main` before it): a URL or word with `_` or `*` gains a backslash each time the page saves it, and a hard-broken line that looks like a heading rule or a table row reopens as a heading or as an empty page (`src/lib/notePage/schema.ts`, `toBody`). In `docs/STATUS.md` for the owner.
+- **Deferred (video thumbnails):** a still the owner picks (a poster frame), a moving preview on a long press, and a
+  video in the reminder card (photos only today), none asked; a still that times out (15 s on the web, 10 s for a
+  phone's player) is marked `THUMB.none` and not tried again, as an undecodable photo is, so a video on a slow phone
+  keeps its glyph until its next edit; the still is not remade when only a video's lines or text change (they are not
+  in the still, as a photo's caption is not in its copy).
 

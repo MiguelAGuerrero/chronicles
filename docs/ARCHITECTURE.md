@@ -329,7 +329,9 @@ Captures and media
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
   space/                     storage awareness (SA1-SA10, 0107): core.ts levels, words, the once rule; shell.ts reads the probe, keeps meta space_said/space_persist; probe.native/web.ts
-  media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
+  media/thumb.ts             the 240 px copy with expo-image-manipulator, or a video's 720 px still through `videoFrame` (expo-video on phones, a `<video>` on the web; VT1); thumbPlan.ts decides when and where (`frameAt`); thumbJob.ts runs one job per piece and name at a time
+  thumbs/                    createThumbs(ports, { makeThumb }): the copy a preview with no shell asks for (Memories' cards, VT2), one at a time, read fresh first; index.ts the app instance
+  VideoMark.tsx              (components/) the play mark on its own ink ground over a video's still, on every preview (VT4)
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
@@ -491,6 +493,9 @@ own code only where no Expo module covers the feature on web:
   `modules/chronicles-video-edit`. The web player's video size comes from a
   detached `<video>`'s metadata (`probeVideoSize`): expo-video's web player has
   no video track.
+- **A video's still** (video thumbnails VT1, VT8): a detached, muted `<video>` seeked to the kept part's start and
+  drawn on a canvas (`videoFrame` in `media/index.web.ts`). expo-video's web `generateThumbnailsAsync` throws "not
+  supported on Web yet"; phones use it. The still is kept in the media store; nothing leaves the page.
 - **Notifications:** a service worker (`public/sw.js`, through
   `notify/transport.web.ts`). expo-notifications has no web build. Local
   only; scheduled notices are page timers.

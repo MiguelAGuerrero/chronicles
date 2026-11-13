@@ -142,6 +142,16 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 - `THUMB.none` marks a photo that won't decode, so it isn't tried again. Two
   asks at once share one job. A leftover copy is replaced (`keepFile`
   `replace`).
+- **A video's still** (video thumbnails VT1-VT9): a 720 px JPEG of the frame where the kept part starts (`frameAt`:
+  the trim's start, else 0), with its crop and rotation, as the piece's `thumb_path`, made after capture, on an edit's
+  Done (named by the edit) and on first show (the gallery, the memory preview, Memories' cards through `lib/thumbs`).
+  `videoFrame` takes it from expo-video on phones and from a detached `<video>` on the web (a listed exception).
+  Previews draw it under `VideoMark`; a video's file is never a preview: no still yet, or `THUMB.none`, is the glyph.
+  - **Trap: a MediaRecorder WebM has no duration** in its header, and a seek into it may never land: the web's
+    `videoFrame` seeks past the end first (`1e101`) to learn it. iOS Safari loads nothing until `play()`: it plays
+    muted, then pauses, before the seek (unverified on an iPhone).
+  - **Trap (e2e): `waitForFunction` with an async predicate** resolves at once with its pending promise; poll a stored
+    row from the test side instead (the videothumbs journey).
 - Previews show the copy, the icon while it is being made, and the photo
   when the copy's file is gone (`thumbShown`). The reminder card uses it
   too. The backup bundle leaves `thumb_path` out.

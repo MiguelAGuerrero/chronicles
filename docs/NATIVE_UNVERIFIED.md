@@ -549,3 +549,10 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 ## The tab labels' line height (fix tab-label-clip, Nov 12)
 
 - [ ] **Do:** on an iPhone, look at the bottom tabs in portrait, then in landscape. **Expect:** the stems of the p in Explore and the g in Navigate are whole, and the bar is 62 pt above the home indicator (`tabBarLabelStyle` lineHeight 14, 24 when wider than tall; seen only in desktop Chromium).
+
+## Video thumbnails (VT1-VT9)
+
+- [ ] **Do:** take a video with the camera button, then open Media. **Expect:** its tile shows the video's first frame under a play mark and its length, made within a few seconds, never a black frame; the capture itself was never slowed (VT1).
+- [ ] **Do:** trim a video's start by a second or two in the editor and press Done. **Expect:** its tile, Memories' card and pin show the frame where the kept part now starts (VT6).
+- [ ] **Do:** with videos kept before this version, open Memories and Media. **Expect:** each older video's still appears once, one after another, without the scroll stuttering; reopening the app makes none again (VT2, VT9).
+- [ ] **Do:** on an iPhone's Safari (the web build), open Media with a video that has no still. **Expect:** the still appears (a muted play is used to load the first frame; no sound plays) (VT8).

@@ -162,8 +162,9 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   stays in metres, so the e2e's `data-m` is always metres. Both maps call `useUnits()`
   and pass it, so the bar redraws on a change.
 - **A photo's pin shows its small copy** (QL26, QL27): `pinThumb(pin)` (`lib/pins.ts`,
-  pure) gives the copy's ref only for a pin of one photo with a `thumb_path` other than
-  `THUMB.none`, never `file_path`: a map never decodes full photos. `CapturePinView`
+  pure) gives the copy's ref only for a pin of one photo, or since VT3 one video (its still), with a `thumb_path` other
+  than `THUMB.none`, never `file_path`: a map never decodes full photos or plays a video. A video's pin wears
+  `pin-video-mark` at the head's bottom right, clear of the stack, clock and bell corners, and is still labelled Video (VT4). `CapturePinView`
   resolves it with `useMediaUri` and draws a round `Image` (`pin-thumb`) inside a ring
   of the photo colour; the icon shows until it loads and comes back on error. The web
   markers' key and the native Marker keys include the ref, so a copy made after the

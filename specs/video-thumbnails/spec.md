@@ -46,4 +46,10 @@ S1-S4 accepted into VT2, VT3 and VT4 (the mark on every surface, the pin's room 
 
 ## Record
 
-- Not started.
+- Built Nov 13, 2026, test-first (9 of 9 by history). Unit tests: `captures/thumbModel`, `captures/thumb`,
+  `captures/thumbsShell`, `deletion`, `map/pinThumb`; the `videothumbs` journey records a real WebM and checks the
+  stills by colour (red first, green after a trim) on the gallery tile, a video-only month's cover, a Lately card, a
+  one-video pin, a walk's memory preview and the replay's pile, with nothing sent anywhere.
+- TH3's and QL26's tests followed the owner's call (a video now has a still): a voice memo and a note still have none.
+- Found while building: a MediaRecorder WebM has no duration, so the web's seek learns it first.
+- Deferred: `docs/DEFERRED.md`, "video thumbnails". Native: `docs/NATIVE_UNVERIFIED.md`, "Video thumbnails".

@@ -350,7 +350,7 @@ recording, and a recording bar brings a minimized walk back.
   - Memos show here but join threads only once they have a transcript (not yet).
 - **Media** (decision 0139), Chronicle's fifth section: every photo, video and voice memo piece kept, in an
   edge-to-edge grid of square tiles with hairline gaps, newest on top, as a photo gallery. A tile is bare (a photo's
-  small copy; a video's or memo's glyph and its length) and the context is the header of its day, pinned while its
+  small copy; a video's still under its play mark and length; a memo's glyph and its length) and the context is the header of its day, pinned while its
   tiles scroll: the day ("Yesterday", "Tue, Nov 3", the year when not this one) and where ("A morning walk in Alfama",
   a walk's own title, "Not on a walk, on Hope Street"). Years, Months and Days on the gallery's bar; a month or year
   is its first photo large and its places in words, and a tap goes one level in. The View menu holds Sort (Newest or
@@ -501,6 +501,7 @@ recording, and a recording bar brings a minimized walk back.
 | Chronicle journal, cut 1 (Memories as a journal page in book order, the open line where writing is the capture, the slip, the contents; JN1-JN24, decision 0155) | Built 2026-11-12 (web verified by the e2e `journal`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
+| Video thumbnails (a video's still where its kept part starts, in every preview, under a play mark; VT1-VT9) | Built (web verified by the e2e `videothumbs`; native unverified) |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in a grid under day headers; Years, Months, Days; Sort, Show, Zoom, Square or Aspect; MG1-MG22) | Built (web verified by the e2e `gallery`; native unverified) |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
