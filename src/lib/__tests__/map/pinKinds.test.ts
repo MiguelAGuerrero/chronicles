@@ -82,3 +82,18 @@ test('tend map T14: a pin of two videos is the fan with no still; a pin of one v
   assert.equal(pinHeadKinds(one), null);
   assert.equal(pinSpoken(one, { clocks: [W1] }), 'Video');
 });
+
+// tend map audit 19 (the T14 review's F1, accepted in part; U3): pins group by place, never time, so a loop's start
+// and end share a pin; "at the start" for a note taken 58 minutes later was false. A pin whose moments lie more than
+// JUST_AFTER_MS apart in walked time says its kinds alone; a pin of three kinds names all three (only two are drawn).
+test('tend map audit 19: a pin of moments far apart in its walk says no time; three kinds are all named', () => {
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0), cap('b', 'text', 58)), { clocks: [W1] }), 'A photo and a note');
+  assert.equal(pinInto(pinOf(cap('a', 'photo', 12), cap('b', 'text', 50)), [W1]), null);
+  // Within ten walked minutes it still says the first one's time; a pause between them is not walked time.
+  assert.equal(pinInto(pinOf(cap('a', 'photo', 12), cap('b', 'text', 22)), [W1]), 'twelve minutes in');
+  assert.equal(pinInto(pinOf(cap('a', 'photo', 12), cap('b', 'text', 40)), [{ ...W1, pauses: [{ started_at: T0 + 15 * MIN, ended_at: T0 + 35 * MIN }] }]), 'twelve minutes in');
+  assert.equal(
+    pinSpoken(pinOf(cap('a', 'photo', 1), cap('b', 'voice', 2), cap('c', 'text', 3)), { clocks: [W1] }),
+    'A photo, a voice memo and a note, one minute in',
+  );
+});

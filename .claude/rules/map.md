@@ -158,6 +158,9 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   and pauses, memoized); without it (Chronicle's map, memory pins, moments of two walks) the name says the kinds
   alone. On web the name is set in place when a clock arrives after the pin. The e2e finds a pin of several by
   `button[data-ids*=","]:not([data-testid=memory-pin])`, never by its words.
+  - A third kind is said and opened, never drawn: the head holds two (decision 0154). Pins group by place, never
+    time, so a pin whose moments lie more than `JUST_AFTER_MS` apart in walked time (a loop's start and end) says its
+    kinds alone (`tend map audit 19`).
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

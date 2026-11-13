@@ -2,7 +2,7 @@
 import type { Faced } from './moment';
 import { distanceM, pausedMs, type PauseSpan } from './geo';
 import { markOf, type NoteTypeInfo } from './noteType';
-import { minutesInLine } from './resurface/context';
+import { JUST_AFTER_MS, minutesInLine } from './resurface/context';
 import { numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
@@ -184,15 +184,20 @@ export function pinKindsWords(pin: CapturePin): string {
 
 /**
  * How far into its walk a pin's first moment was, in walked time and in words, as the moment's own line says it
- * (MC3): "twelve minutes in", "at the start". Null unless every moment of the pin is of one walk whose clock is given.
+ * (MC3): "twelve minutes in", "at the start". Null unless every moment of the pin is of one walk whose clock is given,
+ * and they lie within JUST_AFTER_MS of each other in walked time (tend map audit 19).
  */
 export function pinInto(pin: CapturePin, clocks: readonly WalkClock[] | undefined): string | null {
   const walkId = pin.captures[0]?.walk_id;
   if (!walkId || pin.captures.some((c) => c.walk_id !== walkId)) return null;
   const clock = clocks?.find((w) => w.id === walkId);
   if (!clock) return null;
-  const t = pin.captures[0].t;
-  const line = minutesInLine(Math.max(0, t - clock.started_at - pausedMs(clock.pauses, clock.started_at, t)));
+  const walked = (t: number) => Math.max(0, t - clock.started_at - pausedMs(clock.pauses, clock.started_at, t));
+  const first = walked(pin.captures[0].t);
+  // Pins group by place, never time: moments far apart in the walk (a loop's start and end) share no one time (tend
+  // map audit 19), so the pin says its kinds alone.
+  if (walked(pin.captures[pin.captures.length - 1].t) - first > JUST_AFTER_MS) return null;
+  const line = minutesInLine(first);
   return line.charAt(0).toLowerCase() + line.slice(1);
 }
 
