@@ -43,3 +43,14 @@ test('JN33: the peek begins with the entry the page opened on, until it is gone'
   assert.equal(rest.anchorOf([{ k: 'day', key: 'd' }], null), null);
   assert.equal(rest.peekStart([{ k: 'day', key: 'd' }], null), 1);
 });
+
+test('chronicle-journal audit 48: the date held over the peek is the peek\'s own day\'s, not the oldest drawn', { todo: 'test first' }, () => {
+  const rest = rs as unknown as { stickyDay: (rows: { k: string; key: string }[], from: number) => string | null };
+  const rows = [{ k: 'day', key: 'sept' }, { k: 'entry', key: 'a' }, { k: 'day', key: 'today' }, { k: 'entry', key: 'b' }, { k: 'entry', key: 'c' }];
+  assert.equal(rest.stickyDay(rows, 3), 'today');
+  assert.equal(rest.stickyDay(rows, 4), 'today');
+  assert.equal(rest.stickyDay(rows, 1), 'sept');
+  // The peek begins with a date of its own: nothing is held over it.
+  assert.equal(rest.stickyDay(rows, 2), null);
+  assert.equal(rest.stickyDay(rows, 5), 'today');
+});
