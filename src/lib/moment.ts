@@ -13,6 +13,17 @@ export function face(m: Pick<Moment, 'pieces'>): Capture {
   return m.pieces.find((p) => p.kind === 'photo' || p.kind === 'video') ?? m.pieces[0];
 }
 
+/**
+ * A faced row with one change applied (note-types audit 12, 13): a change that names its `piece` lands on that piece's
+ * copy in the row's `pieces` (what a reopened stack and a split read), and on the face's own fields only when the piece
+ * is the face; one that names none lands on the face, as before. `piece` itself is never kept.
+ */
+export function patchFaced<F extends Faced>(f: F, patch: Partial<Capture> & { piece?: string }): F {
+  const { piece, ...fields } = patch;
+  const pieces = piece ? f.pieces.map((p) => (p.id === piece ? { ...p, ...fields } : p)) : f.pieces;
+  return piece && piece !== f.piece_id ? { ...f, pieces } : { ...f, ...fields, pieces };
+}
+
 /** Whether a faced moment is shown at its face's piece: only then is it the row, the pin or the card of the moment (note-types audit 1). */
 export function isFacePiece(f: Pick<Faced, 'piece_id' | 'pieces'>): boolean {
   return f.pieces.length === 0 || f.piece_id === face(f).id;

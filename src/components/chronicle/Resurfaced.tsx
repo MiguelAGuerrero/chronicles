@@ -31,7 +31,7 @@ export function Resurfaced(props: {
       <Pressable
         testID="resurfaced-open"
         accessibilityRole="button"
-        accessibilityLabel={`${label}. ${momentSpoken(m, props.now, props.context)}. Open`}
+        accessibilityLabel={`${label}. ${momentSpoken(m, props.now, props.context, false)}. Open`}
         onPress={props.onOpen}
       >
         {hasPicture && <MomentPicture capture={m.capture} style={styles.picture} iconSize={44} />}

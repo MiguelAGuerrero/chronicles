@@ -25,7 +25,6 @@ import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { notePatch } from '../../lib/noteEdit';
-import { isFacePiece } from '../../lib/moment';
 import { captureEdits } from '../../lib/captureEdits';
 import { snapWalk } from '../../lib/finish';
 import { decide } from '../../lib/gaps';
@@ -511,8 +510,8 @@ export default function Replay() {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
           const change = notePatch(body, type);
           await db.updatePiece(c.piece_id, change);
-          if (isFacePiece(c)) setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change) });
-          if (isFacePiece(c)) captureBus.patch(c.walk_id, c.id, change, null);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { ...change, piece: c.piece_id }) });
+          captureBus.patch(c.walk_id, c.id, { ...change, piece: c.piece_id }, null);
         }}
       />
       <CaptureViewer
@@ -526,8 +525,8 @@ export default function Replay() {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
           const change = notePatch(body, type);
           await db.updatePiece(c.piece_id, change);
-          if (isFacePiece(c)) setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change) });
-          if (isFacePiece(c)) captureBus.patch(c.walk_id, c.id, change, null);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { ...change, piece: c.piece_id }) });
+          captureBus.patch(c.walk_id, c.id, { ...change, piece: c.piece_id }, null);
         }}
       />
 

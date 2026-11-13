@@ -5,6 +5,7 @@ import { NOTE_MAX, noteText } from '../lib/noteEdit';
 import { NOTE_TYPES, noteTypeOf, type NoteType } from '../lib/noteType';
 import { editRefs, type EditorRef, fromEditor, insertRef, toEditor, typedAt } from '../lib/refs';
 import { refLabel } from '../lib/threads/lines';
+import { focusOn } from '../lib/focus';
 import { useKeyboardHeight } from '../lib/threads/useKeyboardHeight';
 import { useMomentPool } from './threads/useMomentPool';
 import { MomentPicker } from './threads/MomentPicker';
@@ -74,6 +75,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
   const start = noteTypeOf(props.type);
   const [chosen, setChosen] = useState<NoteType | null>(start);
   const [typeMenu, setTypeMenu] = useState(false);
+  const typeRow = useRef<ComponentRef<typeof Pressable>>(null);
   const shown = NOTE_TYPES.find((t) => t.id === chosen) ?? null;
   const save = () => {
     if (kept) props.onSave(kept, chosen !== start ? chosen : undefined);
@@ -104,6 +106,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
           <View>
             <Pressable
               testID="note-type-row"
+              ref={typeRow}
               accessibilityRole="button"
               accessibilityLabel={`Type, ${shown ? shown.name : 'No type'}`}
               accessibilityState={{ expanded: typeMenu }}
@@ -129,14 +132,16 @@ export const NoteEditor = forwardRef<NoteEditorHandle, {
                         onPress={() => {
                           setChosen(t.id);
                           setTypeMenu(false);
+                          // The entry that held focus is gone: focus returns to the row that opened the menu (note-types audit 21).
+                          setTimeout(() => focusOn(typeRow), 0);
                         }}
                         style={[styles.item, chosen === t.id && styles.itemOn]}
                       >
                         <View style={styles.itemGlyph}>
                           {t.glyph ? <Icon name={t.glyph as IconName} size={22} color={theme.ink} testID={`note-type-glyph-${t.id}`} /> : null}
                         </View>
-                        <Text style={styles.itemName}>{t.name}</Text>
-                        {chosen === t.id && <Icon name="checkmark" size={18} color={theme.ink} />}
+                        <Text style={[styles.itemName, chosen === t.id && styles.itemNameOn]}>{t.name}</Text>
+                        {chosen === t.id && <Icon name="checkmark" size={18} color={theme.ink} testID="note-type-check" />}
                       </Pressable>
                     ))}
                   </View>
@@ -179,4 +184,5 @@ const styles = StyleSheet.create({
   itemOn: { backgroundColor: '#ebe7df' },
   itemGlyph: { width: 24, alignItems: 'center' },
   itemName: { fontSize: 16, color: theme.ink, flexGrow: 1 },
+  itemNameOn: { fontWeight: '600' },
 });

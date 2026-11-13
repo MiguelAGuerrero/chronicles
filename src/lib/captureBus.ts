@@ -1,5 +1,5 @@
 // @layer shell
-import type { Faced } from './moment';
+import { type Faced, patchFaced } from './moment';
 
 /**
  * News of a capture just kept, for the other capture paths of the same walk
@@ -11,7 +11,10 @@ import type { Faced } from './moment';
  * gone (tabs audit 5). Storage stays the truth; this only keeps the screens'
  * lists in step.
  */
-export type CapturePatch = Partial<Pick<Faced, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'edit' | 'note_type'>>;
+export type CapturePatch = Partial<Pick<Faced, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'edit' | 'note_type'>> & {
+  /** The piece the change is to, when it is not the row's face (note-types audit 12, 13). */
+  piece?: string;
+};
 /** The channel for loose moments, which belong to no walk (media-editing audit 2). */
 export const LOOSE_MOMENTS = '@loose-moments';
 type Listener = { walkId: string; owner: object; fn: (c: Faced) => void; onPatch?: (id: string, patch: CapturePatch) => void };
@@ -45,7 +48,7 @@ export const captureBus = {
 /** A list with one capture's fields changed; the same list when it isn't there. */
 export function applyPatch(list: Faced[], id: string, patch: CapturePatch): Faced[] {
   if (!list.some((c) => c.id === id)) return list;
-  return list.map((c) => (c.id === id ? { ...c, ...patch } : c));
+  return list.map((c) => (c.id === id ? patchFaced(c, patch) : c));
 }
 
 /**

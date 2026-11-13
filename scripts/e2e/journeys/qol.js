@@ -497,6 +497,14 @@ async function run(h) {
       const tint = await pg.evaluate(() => getComputedStyle(document.querySelector('[data-testid=note-type-item-none]')).backgroundColor);
       check(down(colA) && down(colB) && colB[0].x > colA[0].x && Math.abs(colB[0].y - colA[0].y) < 2 && tint !== 'rgba(0, 0, 0, 0)',
         `note-types audit 8: the Type menu reads down its columns and tints the chosen row (${JSON.stringify([colA.map((b) => b && Math.round(b.y)), colB.map((b) => b && Math.round(b.y)), tint])})`);
+      // note-types audit 20: the chosen row is marked by a heavier label and an ink check as well as the tint.
+      const chosenRow = await pg.evaluate(() => {
+        const row = document.querySelector('[data-testid=note-type-item-none]');
+        const label = [...row.querySelectorAll('div')].find((e) => e.children.length === 0 && (e.textContent || '').trim() === 'No type');
+        const check = document.querySelector('[data-testid=note-type-check]');
+        return { weight: label ? Number(getComputedStyle(label).fontWeight) : 0, check: check ? getComputedStyle(check).color : null };
+      });
+      check(chosenRow.weight >= 600 && chosenRow.check === 'rgb(29, 36, 48)', `note-types audit 20: the chosen row has a heavier label and an ink check (${JSON.stringify(chosenRow)})`);
       // note-types audit 9: on a small phone with the menu open, Save and Cancel stay reachable (the card scrolls).
       const vp = pg.viewportSize();
       await pg.setViewportSize({ width: 320, height: 520 });
@@ -508,6 +516,8 @@ async function run(h) {
       check(!!saveBox && canReach, `note-types audit 9: at 320 x 520 with the menu open, Save can be reached (${JSON.stringify(saveBox)}, reached ${canReach})`);
       await shot(pg, 'qol-06-note-type-menu');
       if (items) await pg.click('[data-testid=note-type-item-idea]');
+      const focusedAfter = await pg.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-testid'));
+      check(focusedAfter === 'note-type-row', `note-types audit 21: choosing a type returns focus to the Type row (${focusedAfter})`);
       const rowAfter = (await row.count()) ? await row.innerText() : '';
       await pg.click('[data-testid=note-edit-save]');
       await pg.waitForTimeout(800);

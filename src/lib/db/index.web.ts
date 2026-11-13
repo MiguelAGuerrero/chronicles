@@ -165,6 +165,13 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
   }
 }
 
+/** A cleared note type leaves no field, as the SQLite store reads it (note-types audit 14). */
+function withoutClearedType<T extends { note_type?: string | null }>(piece: T): T {
+  if (piece.note_type != null) return piece;
+  const { note_type: _gone, ...rest } = piece;
+  return rest as T;
+}
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 function conn(): Promise<IDBDatabase> {
   if (!dbPromise) {
@@ -327,7 +334,7 @@ export const db: Db = {
     const tx = (await conn()).transaction('moment', 'readwrite');
     const st = tx.objectStore('moment');
     const m = (await done(st.index('piece_ids').get(id))) as MomentRecord | undefined;
-    if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
+    if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? withoutClearedType({ ...x, ...p }) : x)) });
     await committed(tx);
   },
   async addPiece(momentId, p) {

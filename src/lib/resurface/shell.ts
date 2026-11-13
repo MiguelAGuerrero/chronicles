@@ -1,5 +1,5 @@
 // @layer shell
-import { type Faced, facedAll, isFacePiece } from '../moment';
+import { type Faced, facedAll, patchFaced } from '../moment';
 import { captureBus, type CapturePatch } from '../captureBus';
 import { createStore, type Store } from '../store';
 import type { Ports } from '../ports/types';
@@ -247,7 +247,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     patch(id: string, change: CapturePatch): void {
       const patched = (m: MomentView): MomentView => {
         if (m.id !== id) return m;
-        const capture = { ...m.capture, ...change } as Faced;
+        const capture = patchFaced(m.capture, change);
         return { ...m, capture, words: wordsOf(capture, opts.transcript) };
       };
       store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));
@@ -256,10 +256,10 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     async saveNote(c: Faced, body: string, type?: string | null): Promise<void> {
       const change = notePatch(body, type);
       await p.db.updatePiece(c.piece_id, change);
-      // A note of a stacked moment shown at its own piece never lands on the moment's face (note-types audit 1).
-      if (!isFacePiece(c)) return;
-      captureBus.patch(c.walk_id, c.id, change, null);
-      this.patch(c.id, change);
+      // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
+      const shown = { ...change, piece: c.piece_id };
+      captureBus.patch(c.walk_id, c.id, shown, null);
+      this.patch(c.id, shown);
     },
     /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
     async undo(change: PrefsChange): Promise<void> {

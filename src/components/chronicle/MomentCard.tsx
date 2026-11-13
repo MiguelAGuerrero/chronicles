@@ -20,10 +20,10 @@ export function contextText(context: ContextEntry | undefined, m: MomentView, no
   return context?.state === 'done' ? context.line : whenLine(m.t, now);
 }
 
-/** What a moment says about itself in one line, for a screen reader (RM25). */
-export function momentSpoken(m: MomentView, now: number, context?: ContextEntry): string {
+/** What a moment says about itself in one line, for a screen reader (RM25). A note's type is said only where its mark is drawn (`typed`, note-types audit 16). */
+export function momentSpoken(m: MomentView, now: number, context?: ContextEntry, typed = true): string {
   // A moment with more than one piece says so in words (MS8), never how many (MS9).
-  return [KIND_WORD[m.kind], markOf(m.capture)?.name ?? null, hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
+  return [KIND_WORD[m.kind], (typed ? markOf(m.capture)?.name : null) ?? null, hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**

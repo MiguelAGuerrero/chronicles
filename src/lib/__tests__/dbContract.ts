@@ -236,6 +236,15 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'idea');
     });
 
+    test('note-types audit 14: a cleared type reads the same on every store: no field at all', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('n1', 'a', 1, { note_type: 'idea' })));
+      await db.updatePiece('n1', { note_type: null });
+      const [m] = await db.getMomentsByIds(['n1']);
+      assert.equal(m.pieces[0].note_type, undefined);
+      assert.equal('note_type' in m.pieces[0], false);
+    });
+
     test('NY5: the type belongs to its piece: two notes of one moment hold different types', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('m1', 'a', 1)));

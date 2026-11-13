@@ -81,3 +81,34 @@ test('note-types audit 1: a note typed in a stacked moment changes its own piece
   assert.equal(isFacePiece(facedAt(c, 'b')), false);
   assert.equal(isFacePiece(c), true);
 });
+
+test('note-types audit 12, 13: a note typed at a non-face piece reaches its copy in the row\'s pieces, so a reopened stack and a split read it', async () => {
+  const p = fakePorts({ now: 3_000_000 });
+  await p.db.createWalk(walk);
+  await p.db.addMoment({
+    id: 'm1', walk_id: 'w1', t: 1_500_000, lat: null, lon: null, segment_id: null,
+    pieces: [
+      { id: 'm1', moment_id: 'm1', t: 1_500_000, kind: 'photo', file_path: 'walks/w1/m1.jpg', body: null },
+      { id: 'b', moment_id: 'm1', t: 1_500_100, kind: 'text', file_path: null, body: 'second' },
+    ],
+  });
+  const r = createResurface(p);
+  await r.load();
+  const c = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
+  await r.saveNote(facedAt(c, 'b'), 'second, edited', 'sad');
+  const shown = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
+  const again = facedAt(shown, 'b');
+  assert.equal(again.body, 'second, edited', 'the stack reopened reads the new words');
+  assert.equal(again.note_type, 'sad', 'and the new type');
+  assert.equal(shown.pieces.find((x) => x.id === 'b')!.note_type, 'sad', 'the copy a split would take');
+  assert.equal(shown.note_type ?? null, null, 'the face is still the photo, untouched');
+  // A note that is its moment's face updates its own copy too.
+  const solo = momentOf(note('n9'));
+  await p.db.addMoment(solo);
+  await r.load();
+  const n = r.store.get().moments.find((m) => m.id === 'n9')!.capture;
+  await r.saveNote(n, 'solo, edited', 'like');
+  const after = r.store.get().moments.find((m) => m.id === 'n9')!.capture;
+  assert.equal(after.pieces[0].note_type, 'like');
+  assert.equal(after.pieces[0].body, 'solo, edited');
+});

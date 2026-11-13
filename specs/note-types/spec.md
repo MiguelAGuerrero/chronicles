@@ -93,3 +93,24 @@ The auditor, the steward and the `ux-reviewer` ran on the built slice and its th
 
 Journeys run after the fixes: `qol` (twice, red then green), `threads` (twice), `responses` (once). Typecheck, lint and `npm test` pass. Native code is unverified.
 
+### Second audit (Nov 13, 2026)
+
+The auditor, the steward and the `ux-reviewer` ran again, told what the first round settled. 14 findings (12-25): 7 fixed, 2 deferred, 5 rejected. The auditor read the code and did not open the pictures.
+
+12. Split out of an edited note took the stale copy in the row's `pieces` (old words and type): **accept**. Fixed with 13: a note save names its piece, and `patchFaced` updates that piece's copy in the row as well as the face. Test: `note-types audit 12, 13` (`captures/noteSave.test.ts`).
+13. A note edited at a non-face piece read old after the stack was reopened (the first audit's guard gave the save nowhere to land): **accept**, same fix and test.
+14. A cleared type read `null` on the web store and the fake but left no field on SQLite: **accept**. Both now leave no field. Test: `note-types audit 14` (`dbContract`, all three stores).
+15. The guard test could not stop a later place, route or recommendation feature from reading types (steward): **accept**. Replaced by an allowlist of the files that may mention a type, and a check that no place, route, area, discovery, landing or walkability code does. Test: `note-types audit 15` (`captures/noteTypeReaders.test.ts`; it passed on first run, since nothing broke the list: a guard, not a fix).
+16. The spoken label said the type on the resurfaced card, which draws no mark: **accept**. `momentSpoken(..., typed)`: said only where the mark is drawn (Lately rows and the thread bubble); the resurfaced card passes `false`. Test: `note-types audit 16` (a source check in `noteTypeReaders.test.ts`, as the label lives in a component).
+17. Label the Type row "Type of this note" so it reads as the owner's own mark (steward): **reject**. The editor is the owner's own note; nothing there suggests another person's reaction.
+18. VISION.md's "Never likes" line now disagrees with the code (steward): **reject** as a slice finding: it is the owner's edit, proposed in decision 0149. Listed in `docs/STATUS.md`, "Needs the owner".
+19. A bare verdict glyph as a note's thumbnail in lists (steward): **reject**. `MomentPicture` draws only photos and videos; a note in a list carries its mark beside its words and its time.
+20. The chosen menu row relied on a faint tint and a grey check (`ux-reviewer`): **accept**. A heavier label and an ink check. Test: `note-types audit 20` (`qol` journey).
+21. The Type menu's radiogroup semantics and lost focus (`ux-reviewer`): **accept in part**: focus returns to the Type row after a choice (`note-types audit 21`, `qol` journey). The row already speaks its state ("Type, No type", expanded); a menu role instead of a radiogroup is deferred with 22.
+22. Two columns at 200% text and 320 px (`ux-reviewer`): **defer**. At 320 px the cells are wide enough for "Emphasis" at the default size; a one-column fallback above a font scale of about 1.5 is recorded in `docs/DEFERRED.md`, with the menu roles.
+23. Neutral (a dash in a circle) can be mistaken for "minus" (`ux-reviewer`): **defer**. Ionicons has no neutral face; `MaterialCommunityIcons` has one but adds a second icon font. The owner's call, recorded in `docs/DEFERRED.md`.
+24. The card's label contrast (`ux-reviewer`): **reject**, already ink at 14 px (`note-types ui 2`).
+25. The keyboard hides the menu (`ux-reviewer`): **reject**, fixed in the first audit (9, the card scrolls); closing the keyboard when the menu opens would lose the caret.
+
+Journeys run after the fixes: `qol`, `threads`, `responses`, `resurface`, `stacks`, `upgrade`, `replay`, `days`, `chronicle`, `walk`, `edit`, `tabs`, once each (`qol` also once before the fix, red). Typecheck, lint and `npm test` pass.
+

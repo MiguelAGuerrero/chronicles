@@ -1,4 +1,4 @@
-import { type Faced, facedAll } from '../../lib/moment';
+import { type Faced, facedAll, patchFaced } from '../../lib/moment';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -17,7 +17,6 @@ import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { notePatch } from '../../lib/noteEdit';
-import { isFacePiece } from '../../lib/moment';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
 import { buildDays, dayCaptures, dayCard, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
@@ -309,8 +308,8 @@ export default function DayReplay() {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
           const change = notePatch(body, type);
           await db.updatePiece(c.piece_id, change);
-          if (isFacePiece(c)) setData((d) => d && withNote(d, c.id, change));
-          if (isFacePiece(c)) captureBus.patch(c.walk_id, c.id, change, null);
+          setData((d) => d && withNote(d, c.id, { ...change, piece: c.piece_id }));
+          captureBus.patch(c.walk_id, c.id, { ...change, piece: c.piece_id }, null);
         }}
       />
 
@@ -355,11 +354,11 @@ export default function DayReplay() {
 }
 
 /** The day with one note's new text, in its loose moments and its walks' captures (QL25). */
-function withNote(d: Loaded, id: string, change: ReturnType<typeof notePatch>): Loaded {
+function withNote(d: Loaded, id: string, change: ReturnType<typeof notePatch> & { piece?: string }): Loaded {
   const entries = d.day.entries.map((e) =>
     e.kind === 'walk'
       ? { ...e, captures: applyPatch(e.captures, id, change) }
-      : e.capture.id === id ? { ...e, capture: { ...e.capture, ...change } } : e,
+      : e.capture.id === id ? { ...e, capture: patchFaced(e.capture, change) } : e,
   );
   const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, change) }]));
   return { ...d, day: { ...d.day, entries }, walks };
