@@ -187,3 +187,28 @@ test('tend map T28: with no walk clock, the part of the day of the pin\'s first 
   assert.equal(pinSpoken(two, {}), 'A photo and a note');
   for (const p of [two, pinOf(evening('a', 'photo'))]) assert.doesNotMatch(pinSpoken(p, { now: NOW }), /\d/);
 });
+
+// tend map audit 27 (the T28 review's ux 1; the owner's answer, "Say the span"): a pin whose moments fall on different
+// days said the first one's part of the day for all ("Memories: a photo and a note, three weeks ago, afternoon"). It
+// says the span of their days, each end that moment's `dayPartLine`; an end whose line carries its own comma ("three
+// weeks ago, afternoon", "March, two years ago, evening") gives the part before its part of the day. Same day: the
+// first moment's part, as built. The small hours belong to the evening before, as `dayPartLine` has it.
+test('tend map audit 27: a pin whose moments fall on different days says the span of their days', () => {
+  const old = day('a', 'photo', new Date(2026, 9, 20, 15).getTime());
+  const tue = day('b', 'text', at(10, 19));
+  assert.equal(pinSpoken(pinOf(old, tue), { memory: true, now: NOW }), 'Memories: a photo and a note, from three weeks ago to Tuesday evening');
+  // Chronicle's map and the ready screen, not a memory: the same.
+  assert.equal(pinSpoken(pinOf(old, tue), { now: NOW }), 'A photo and a note, from three weeks ago to Tuesday evening');
+  assert.equal(pinSpoken(pinOf(tue, day('c', 'photo', at(12, 9))), { now: NOW }), 'A note and a photo, from Tuesday evening to yesterday morning');
+  assert.equal(
+    pinSpoken(pinOf(day('a', 'photo', new Date(2024, 2, 4, 19).getTime()), day('b', 'photo', new Date(2026, 9, 20, 15).getTime())), { now: NOW }),
+    'Two photos, from March, two years ago to three weeks ago',
+  );
+  // Two days whose ends read alike ("three weeks ago"): said once, never "from three weeks ago to three weeks ago".
+  assert.equal(pinSpoken(pinOf(old, day('c', 'photo', new Date(2026, 9, 21, 15).getTime())), { now: NOW }), 'Two photos, three weeks ago');
+  // One day: the first moment's part, though a later one is in another part.
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', at(10, 9)), tue), { now: NOW }), 'A photo and a note, Tuesday morning');
+  // The small hours of Wednesday are Tuesday's night: one day, not a span.
+  assert.equal(pinSpoken(pinOf(tue, day('c', 'photo', at(11, 1, 30))), { now: NOW }), 'A note and a photo, Tuesday evening');
+  for (const o of [{ now: NOW }, { memory: true, now: NOW }]) assert.doesNotMatch(pinSpoken(pinOf(old, tue), o), /\d/);
+});

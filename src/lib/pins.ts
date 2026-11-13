@@ -215,6 +215,26 @@ export function pinInto(pin: CapturePin, clocks: readonly WalkClock[] | undefine
 const NAMED = /^(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day\b|^(January|February|March|April|May|June|July|August|September|October|November|December)\b/;
 const afterComma = (line: string) => (NAMED.test(line) ? line : lower(line));
 
+/** The day a moment belongs to, as `dayPartLine` reckons it: the small hours (before five) are the evening before's. */
+function dayOf(t: number): string {
+  const d = new Date(new Date(t).getHours() < 5 ? t - 5 * 3_600_000 : t);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/**
+ * When a pin no walk clock holds was taken (tend map T28): its first moment's part of the day; when its moments fall on
+ * different days, the span of their days (tend map audit 27, the owner's answer to ux 1): "from three weeks ago to
+ * Tuesday evening", an end whose line carries its own comma ("three weeks ago, afternoon") giving the part before it.
+ */
+function dayWhen(pin: CapturePin, now: number): string {
+  const first = pin.captures[0].t;
+  const last = pin.captures[pin.captures.length - 1].t;
+  if (dayOf(first) === dayOf(last)) return afterComma(dayPartLine(first, now));
+  const end = (t: number) => afterComma(dayPartLine(t, now).replace(/, [^,]+$/, ''));
+  // Two days whose ends read alike ("three weeks ago") are said once.
+  return end(first) === end(last) ? end(first) : `from ${end(first)} to ${end(last)}`;
+}
+
 /**
  * When a pin's moments were, in words (tend map T28, decision 0164): with its walk's clock, the first one's minutes in
  * ("twelve minutes in"), or, when they lie more than JUST_AFTER_MS apart in walked time, the span ("from the start to
@@ -226,7 +246,7 @@ export function pinWhen(pin: CapturePin, clocks: readonly WalkClock[] | undefine
   const first = pin.captures[0];
   if (!first) return null;
   const clock = clockOf(pin, clocks);
-  if (!clock) return now == null ? null : afterComma(dayPartLine(first.t, now));
+  if (!clock) return now == null ? null : dayWhen(pin, now);
   const from = walkedAt(clock, first.t);
   const to = walkedAt(clock, pin.captures[pin.captures.length - 1].t);
   if (to - from <= JUST_AFTER_MS) return lower(minutesInLine(from));

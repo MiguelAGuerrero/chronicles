@@ -174,6 +174,9 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   own line's words ("Memories: a photo and a note, Tuesday evening"). `now` is the map's `openedAt`. This supersedes
   the "kinds alone" cases in the two bullets above. The e2e finds a pin of one moment by its kind and ". Open"
   (`[aria-label^="Photo, "][aria-label$=". Open"]`), never by its whole name, which holds the time.
+  - A pin no clock holds whose moments fall on different days (as `dayPartLine` reckons a day: the small hours are
+    the evening before's) says the span of their days, "from three weeks ago to Tuesday evening", an end whose line
+    has its own comma giving the part before it, and two ends that read alike said once (`dayWhen`, `tend map audit 27`).
 
 ## Explore's dots (WT12-WT14, decision 0132)
 
