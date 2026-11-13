@@ -15,6 +15,9 @@ async function run(h) {
     } catch { /* no long tasks */ }
   });
   const safe = async (fn, fallback = null) => fn().catch(() => fallback);
+  // audit 4 (the owner's call: once per 300 m): the names given twice within 300 m of each other.
+  const metres = (a, b) => Math.hypot((a[0] - b[0]) * 111320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 111320);
+  const twiceNear = (list) => [...new Set(list.filter((g, i) => list.some((o, j) => j !== i && o.name === g.name && metres(o.at, g.at) < 300)).map((g) => g.name))];
   const map = () => pg.locator('.maplibregl-map').filter({ visible: true }).first();
   const json = async (attr, fallback) => { const v = await safe(() => map().getAttribute(attr), null); try { return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
   const drawn = () => json('data-busy-names', []);
@@ -43,11 +46,13 @@ async function run(h) {
     await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 120000 }));
     await pg.waitForTimeout(1500);
     const firstLongs = await pg.evaluate((a) => window.__longs.filter(([s]) => s >= a).map(([s, d]) => [Math.round(s - a), Math.round(d)]).sort((x, y) => y[1] - x[1]), first0);
-    check.todo((firstLongs[0]?.[1] ?? 0) <= 250, `explore-dense-city audit 2: the first Busy switch-on holds no task on the page past 250 ms (longest ${firstLongs.slice(0, 3).map(([at, d]) => `${d} ms at +${at}`).join(', ') || 'none'})`);
+    check((firstLongs[0]?.[1] ?? 0) <= 250, `explore-dense-city audit 2: the first Busy switch-on holds no task on the page past 250 ms (longest ${firstLongs.slice(0, 3).map(([at, d]) => `${d} ms at +${at}`).join(', ') || 'none'})`);
     // DC17 at street zoom (15): in this downtown the "?" pins cover the screen, and no name is drawn under any of them.
     const mid = (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
     await pg.evaluate(([at]) => window.__zoomTo?.(at, 15), [mid]);
     await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-given') ?? '[]') !== '[]', null, { timeout: 30000 }));
+    // The selected area's "?" pins come with its ring's read, computed off the page (audit 2): wait for them.
+    await safe(() => pg.waitForFunction(() => document.querySelectorAll('[data-testid=mark-pin]').length > 0, null, { timeout: 30000 }));
     await idle();
     await shot(pg, 'dense-1-names');
     const underPinsAt = async () => {
@@ -68,6 +73,8 @@ async function run(h) {
     const names = await drawn();
     const giv = await given();
     const asMarkers = await pg.evaluate((ns) => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => ns.includes((m.textContent ?? '').trim())).length, giv.map((g) => g.name));
+    const twice = twiceNear(giv);
+    check(twice.length === 0, `explore-dense-city audit 4: on Explore no street is named twice within 300 m (${twice.join(', ')})`);
     check(names.length > 0 && asMarkers === 0, `DC1: busy names are drawn by the map (${names.length}: ${names.slice(0, 4).join(', ')}), none as page elements (${asMarkers})`);
     // DC2: in the dense downtown there is not room for every name, so some are left out rather than stacked.
     check(giv.length > names.length && new Set(names).size === names.length, `DC2: fewer names drawn (${names.length}) than given (${giv.length}), none twice`);
@@ -90,7 +97,7 @@ async function run(h) {
       return [...under, ...cut];
     };
     const crowded16 = await clearOfControls();
-    check.todo(crowded16.length === 0, `explore-dense-city audit 11: at zoom 16 no busy name under a control or cut by the edge (${crowded16.join(', ')})`);
+    check(crowded16.length === 0, `explore-dense-city audit 11: at zoom 16 no busy name under a control or cut by the edge (${crowded16.join(', ')})`);
 
     // DC17 close in: no busy name under any "?" pin either.
     const at17 = await underPinsAt();
@@ -115,7 +122,7 @@ async function run(h) {
     check(!!left && (await drawn()).includes(left.name), `DC5: "${left?.name}", left out at ${zoom0.toFixed(1)}, is drawn two levels in`);
     await shot(pg, 'dense-2-zoomed-in');
     const crowded18 = await clearOfControls();
-    check.todo(crowded18.length === 0, `explore-dense-city audit 11: zoomed in two more, no busy name under a control or cut by the edge (${crowded18.join(', ')})`);
+    check(crowded18.length === 0, `explore-dense-city audit 11: zoomed in two more, no busy name under a control or cut by the edge (${crowded18.join(', ')})`);
     // explore-dense-city ui 3: turned past a quarter turn, every name still reads upright (a picture for the review).
     await pg.evaluate(() => window.__turn?.(150));
     await idle();
@@ -193,6 +200,9 @@ async function run(h) {
     await h.tabTo(pg, 'navigate');
     await pg.waitForTimeout(3000);
     const over = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map')].filter((m) => m.getBoundingClientRect().width > 0).map((m) => m.getAttribute('data-busy-over')));
+    const navGiven = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map')].filter((m) => m.getBoundingClientRect().width > 0).flatMap((m) => JSON.parse(m.dataset.busyGiven ?? '[]')));
+    const navTwice = twiceNear(navGiven);
+    check(navGiven.length > 0 && navTwice.length === 0, `explore-dense-city audit 4: on Navigate no street is named twice within 300 m (${navTwice.join(', ')})`);
     check(over.length > 0 && over.every((v) => v === '0'), `DC16: on Navigate the busy names sit under the base map's names and the trace (${over.join(',')})`);
     await shot(pg, 'dense-4-navigate');
   } finally {

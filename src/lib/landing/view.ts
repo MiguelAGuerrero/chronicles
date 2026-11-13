@@ -150,20 +150,24 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
  */
 const SAME_LABEL_M = 300;
 interface Named { name: string; at: LngLat }
-interface Drawn extends Named { row: number; stale: boolean; list: Named[]; item: Named }
+interface Drawn extends Named { row: number; stale: boolean; street: boolean; list: Named[]; item: Named }
 
-/** Adds a label unless another row already names it nearby (strip or pocket); a current row's label replaces a stale row's. */
+/**
+ * Adds a name unless one of that name is already drawn nearby, from any area; a current row's name replaces a stale
+ * row's. Within one area (explore-dense-city audit 4): a street's stretches carry one name (its strips come heaviest first,
+ * so the first placed keeps it), and a pocket named for a street gives way to that street's own name, which sits on it;
+ * two pockets of one name ("A busy pocket") stay two.
+ */
 function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number, stale: boolean, street = false) {
-  // A street's name once whether one area or two found it (explore-dense-city audit 4): an area's strips come heaviest
-  // first, so the first placed keeps it. A pocket's name stays per area (two "A busy pocket"s are two pockets).
-  const dup = drawn.find((d) => (street || d.row !== row) && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);
+  const dup = drawn.find((d) => (street || d.street || d.row !== row) && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);
   if (dup) {
-    if (!dup.stale || stale) return;
+    const streetOverPocket = dup.row === row && street && !dup.street;
+    if (!streetOverPocket && (!dup.stale || stale)) return;
     dup.list.splice(dup.list.indexOf(dup.item), 1);
     drawn.splice(drawn.indexOf(dup), 1);
   }
   list.push(item);
-  drawn.push({ name: item.name, at: item.at, row, stale, list, item });
+  drawn.push({ name: item.name, at: item.at, row, stale, street, list, item });
 }
 
 /**

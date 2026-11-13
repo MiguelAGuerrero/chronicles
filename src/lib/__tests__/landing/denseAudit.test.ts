@@ -41,3 +41,11 @@ test('DC19: where names compete, a current area\'s names come before a stale are
   const names = busyNames(landingView([stale, current], 'b1'));
   assert.deepEqual(names.map((n) => n.name), ['Heavy Street', 'Light Street', 'Old Heavy Street']);
 });
+
+test('explore-dense-city audit 4: a pocket named for a street and that street\'s own name, in one area, are one name, the street\'s', () => {
+  const a = analysis([strip('24 Avenue', 0, 0, 20)]);
+  a.pockets = [{ name: '24 Avenue', weight: 9, spanM: 250, centre: m(150, 120), hull: [m(100, 80), m(200, 80), m(150, 160)], strips: [] }];
+  const names = busyNames(landingView([row(O, a)], 'b1'));
+  assert.equal(names.filter((n) => n.name === '24 Avenue').length, 1);
+  assert.deepEqual(names.find((n) => n.name === '24 Avenue')?.at, strip('24 Avenue', 0, 0, 20).peak, 'on the street, not at the pocket\'s middle');
+});
