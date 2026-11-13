@@ -404,8 +404,18 @@ async function run(h) {
   check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.digits === 0,
     `JN15: a photo, the line under it and a voice note are one entry under one dateline, every piece shown, no count (${JSON.stringify({ kinds, lastEntry, moments: s3.moments.length - before3 })})`);
   check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with every piece shown (${JSON.stringify(lastEntry)})`);
-  const memoGlyph = await pg.locator(entries).last().locator('[data-testid=entry-piece-voice]').innerText().then((t) => iconOf(t.trim()[0] ?? ''), () => '');
-  check(!!memoGlyph && !/play/.test(memoGlyph), `chronicle-journal ui 2: a voice note's line wears a mic, not a play button it does not have (${memoGlyph})`);
+  // A voice note plays in line (the owner's call, Nov 13): a play button and a bar on the page, never the viewer.
+  const memoRow = pg.locator(entries).last().locator('[data-testid=entry-piece-voice]');
+  const hasPlay = await memoRow.locator('[data-testid=entry-voice-play]').count().then((n) => n === 1, () => false);
+  const hasBar = await memoRow.locator('[data-testid=entry-voice-bar]').count().then((n) => n === 1, () => false);
+  await memoRow.locator('[data-testid=entry-voice-play]').click().catch(() => {});
+  await pg.waitForTimeout(1200);
+  const viewerOpened = await shown('[data-testid=capture-viewer]');
+  const pauseNow = await memoRow.locator('[data-testid=entry-voice-play]').getAttribute('aria-label').catch(() => '');
+  check(hasPlay && hasBar && !viewerOpened,
+    `journal voice note: it plays in line, with a play button and a progress bar, and pressing play does not open the viewer (${JSON.stringify({ hasPlay, hasBar, viewerOpened, label: pauseNow })})`);
+  // Pause it so the next steps run in silence.
+  if (/Pause/.test(pauseNow || '')) await memoRow.locator('[data-testid=entry-voice-play]').click().catch(() => {});
   // JN15: after Done the next piece begins a new entry.
   await type('A new entry after Done.');
   await pg.waitForTimeout(1200);
