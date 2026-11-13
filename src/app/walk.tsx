@@ -54,7 +54,7 @@ import { feedback } from '../lib/motion';
 import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
-import type { RecorderStatus } from '../lib/recorder/types';
+import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
@@ -1026,7 +1026,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
       }
       feedback('tap');
     } catch (e) {
-      setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
+      const fail = startErrorFrom(e);
+      if (paused && fail.tone === 'info') {
+        // Resume refused is the refusal's quiet notice, said, as Start's (tend recording audit 1). On the web the recorder's
+        // status raised it already; on a phone the start throws before any status, so it is raised here.
+        if (raisedError.current !== fail.message) {
+          raisedError.current = fail.message;
+          setNotice({ message: fail.message, tone: 'info', openSettings: fail.openSettings, sticky: true, said: true });
+          AccessibilityInfo.announceForAccessibility(fail.message);
+        }
+      } else setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${fail.message}`, tone: 'error', sticky: true });
     } finally {
       // The screen shows whatever the database holds, even after a failure.
       await notifyWalkChanged();

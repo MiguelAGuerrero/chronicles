@@ -1122,6 +1122,36 @@ async function run(h) {
       await c5.close();
     }
 
+    // tend recording audit 1: the same refusal is the same quiet notice, said, wherever a walk is asked for: Resume on a
+    // paused walk (never "Could not resume: ..."), Walk here on Explore, and Walk here on Chronicle. Location is granted
+    // first, so the screens have a fix and the map is near, then taken back before the tap. At 390 and 320.
+    const noOldWords = async (page) => (await page.getByText(/Could not resume|Location permission was denied/).count()) === 0;
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      {
+        const { c: c6, pg: pg6 } = await freshPage(`qol-resume-refused-${w}`);
+        await pg6.setViewportSize({ width: w, height: hgt });
+        await pg6.goto(navUrl);
+        await pg6.waitForSelector('[data-testid=start]');
+        await pg6.waitForTimeout(1500);
+        await pg6.click('[data-testid=start]');
+        await pg6.waitForSelector('[data-testid=pause-walk]', { timeout: 20000 });
+        await pg6.waitForTimeout(1500);
+        await pg6.click('[data-testid=pause-walk]');
+        await pg6.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
+        await pg6.waitForTimeout(800);
+        await c6.clearPermissions();
+        await pg6.click('[data-testid=resume-walk]');
+        await pg6.waitForTimeout(3000);
+        const seen = await readNotice(pg6, T26_WORDS);
+        const said = await saidIn(pg6, 'walk-said');
+        const old = await noOldWords(pg6);
+        await shot(pg6, `qol-13d-resume-refused-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && old && said.length === 1 && said[0].text === T26_WORDS,
+          `tend recording audit 1: at ${w}, a refused Resume is the quiet notice in Start's words, said, never "Could not resume" (${JSON.stringify({ ...seen, said, old })})`);
+        await c6.close();
+      }
+    }
+
     // tend map T17: Locate refused on Navigate and Explore, at 390 and 320, with no tiles drawn (the tile host's style
     // holds no streets, as when nothing has loaded): the same quiet notice, and no scale bar over the blank world.
     for (const [screen, url] of [['Navigate', navUrl], ['Explore', exploreUrl]]) {
