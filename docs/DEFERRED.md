@@ -202,6 +202,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   reads as a 14 px orange dot (`23-day-card`, `rr-day-card` after `tend map T16`). The pair still reads began and
   ended. A radius of 9 with a 2 px ring would keep 22 px and show about 18 px of orange; the marker's size is yours
   (the T16 review's U2, low)
+  Since `tend map T25` (decision 0162) the end is a bullseye: a walked outer ring 9.5 px out with a 1.5 px white edge,
+  round a white band and a walked centre, 22 px across like the start, so about 3.5 px of walked ring shows outside
+  the band.
 - [owner] A capture pin standing on a start or end puts its stalk inside the marker: the "2" pin's stalk lands in the
   solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
   `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at

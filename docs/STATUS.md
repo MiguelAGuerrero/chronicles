@@ -224,22 +224,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   edit, `tend replay 9`); the steps go through the moments with Continue, then the card (RR17); the day's card is said
   after Skip; Back on the name step returns to the card with the name kept (`tend replay 4`), and Back on the card
   leaves for Chronicle.
-- **T25 [owner] Replay: the walker's dot and the solid end differ by colour alone** (2026-11-12)
-  Area: map (the replay and the day replay). Seen: `22-day-replay-walk` after `tend map T16`: mid-path the walker is
-  a solid navy disc with a white ring and, about 45 px away, the end a solid orange disc with a white ring, about one
-  size; before T16 the end was hollow (the T16 review's F1 and U1; `ENDS_PAINT`, `components/map/types.ts`; the dot,
-  `WalkMap.web.tsx` `points` l.137). Rests on: WCAG 2.2, 1.4.1 Use of Color; ui-patterns, "Never colour alone to show
-  state" (X3). The motion tells them apart while the path plays, not on Hold or with reduced motion. QL2 says "the dot
-  is its end" on a live walk; the two are drawn together only on a replay. The marker's shape is yours (decision 0154).
-  Recommended: a bullseye end, a walked centre, a white band and a walked outer ring (two circle layers on the `ends`
-  source, the outer one drawn first), so the end differs in shape from the hollow start and from the solid dot; the
-  start and the dot unchanged. It takes T22's hue when you pick one, with nothing of its own. /vision: aligned
-  (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
-  Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
-  instead; or leave it (the motion tells them apart while it plays).
-  **Answered yes** by the owner in person (`/tend inbox T26 yes, T25 yes`, Nov 13; decision 0162): the recommended
-  bullseye end, the start and the dot unchanged, no hue of its own. Waits for the next `/tend inbox`, one build per run
-  (T26 was built first).
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
@@ -388,6 +372,12 @@ here has run on a phone; the ink star, its ring and its words on native are unve
   `docs/NATIVE_UNVERIFIED.md`'s first Quality of life check ("with the `match` stroke colour"; an indented note under
   it points to the next check), and T22 above ("QL2's end ring ('in the walked orange') takes it too": since T16 the
   end is a fill, which takes it the same way).
+  Since `tend map T25` (Nov 13; decision 0162): the end is a bullseye, a walked centre, a white band and a walked
+  outer ring with a thin white edge, as wide as the start (22 px); the start and the walker's dot are unchanged. Amend
+  QL2 instead to "a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not
+  colour alone, tells it from the start and from the walker's dot", in the doc and the mirror. `.claude/rules/map.md`
+  has a "Since `tend map T25`" line under the T16 one, whose "the end solid" now says the old paint, as does
+  `docs/NATIVE_UNVERIFIED.md`'s T16 check (noted there).
 - **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
   bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
   north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`
