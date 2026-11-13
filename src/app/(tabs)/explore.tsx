@@ -29,7 +29,7 @@ import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, townPicked, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
@@ -423,15 +423,21 @@ export default function Explore() {
   }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
+  const framePage = townSeen ? `town:${townSeen.key}` : looked ? lookPage(looked.at) : 'near';
+  // What a town selected in the row frames from (fix town-fit), read in the handler, never a render.
+  const pickFrom = useRef({ drawn, page: framePage, build: fresh.build });
   useEffect(() => {
-    const page = townSeen ? `town:${townSeen.key}` : looked ? lookPage(looked.at) : 'near';
+    pickFrom.current = { drawn, page: framePage, build: fresh.build };
+  }, [drawn, framePage, fresh.build]);
+  useEffect(() => {
+    const page = framePage;
     // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
     const padM = townSeen ? townReachM(townSeen) * 0.6 : 150;
-    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM });
+    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM, lit: litKey });
     if (!next) return;
     framed.current = next.framed;
     setFit((f) => ({ bounds: next.bounds, key: f.key + 1 }));
-  }, [townSeen, looked, fresh.build, townBox, points, from]);
+  }, [townSeen, framePage, fresh.build, townBox, points, from, litKey]);
 
   const lookHere = async (at: LngLat) => {
     const started = startLook(look.current);
@@ -495,10 +501,16 @@ export default function Explore() {
     setSpot(null);
     setOpen(null);
     setSelected(key);
-    if (l.area.level === 'town') frame([l.area.at], townReachM(l.area) * 0.6);
-    else mapRef.current?.showPoint(l.area.at, mapPad);
+    if (l.area.level === 'town') {
+      // Its whole border when known, each time it is selected (fix town-fit); the page's frame then leaves it be.
+      const { drawn: set, page, build } = pickFrom.current;
+      const border = townFrame(set, outlineOf({ name: l.area.name, at: l.area.at }, set)?.id);
+      const pick = townPicked(framed.current, { page, build, town: border, key: l.area.key, at: l.area.at, padM: townReachM(l.area) * 0.6 });
+      framed.current = pick.framed;
+      setFit((f) => ({ bounds: pick.bounds, key: f.key + 1 }));
+    } else mapRef.current?.showPoint(l.area.at, mapPad);
     say(l.area.name);
-  }, [frame, mapPad, say]);
+  }, [mapPad, say]);
   // Show areas here (FL5, FL6): the page lists around the map's settled middle; it is its own page, framed afresh.
   const showHere = useCallback(() => {
     const at = centreOf(cam);
