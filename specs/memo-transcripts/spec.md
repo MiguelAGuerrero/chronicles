@@ -29,7 +29,7 @@ Making them
 
 1. **TX1** A kept voice memo with no transcript is queued, and its words are read in the background, one memo at a time, after the memo is saved. Saving, playing and the Undo window are unchanged and never wait on it.
 2. **TX2** Memos kept before this slice are read too, the same way, newest first, only while the app is open; none is read twice.
-3. **TX3** A transcript is derived data in its own store (`transcript`: `capture_id`, `text`, `lang`, `made_at`), never written into the memo's `body`, `caption` or `edit`. Deleting a memo, its moment or its walk deletes its transcript with it. Recomputing never touches the recording.
+3. **TX3** A transcript is derived data in its own store (`transcript`: `capture_id`, `text`, `lang`, `from_ms`, `to_ms`, `made_at`), never written into the memo's `body`, `caption` or `edit`. Deleting a memo, its moment or its walk deletes its transcript with it. Recomputing never touches the recording.
 4. **TX4** One failure never blocks the next memo or the app: an engine error, a memo with no speech, a missing file. A memo that gave no words is recorded as read, so it is not read again at every open.
 5. **TX5** Recognition is on the device only: every request sets `requiresOnDeviceRecognition`, and where the phone has no on-device recognizer or the locale's pack is missing, the memo is left unread and nothing is sent anywhere. A test fails if a request is made without it.
 6. **TX6** Where there is no engine (the web, an unsupported phone, permission refused), nothing happens and nothing is said: no error, banner or prompt after a refusal, and the memo is as it is today. A refusal is remembered, so it is not asked again.
@@ -51,8 +51,8 @@ Storage
 
 Found by the steward (Nov 13), accepted
 
-13. **TX13** A transcript is shown and indexed for the memo's kept span only (`voiceSpan`): a word spoken in a trimmed-off part is neither in the caption nor in `wordsOf`. Changing, saving or reverting `edit.trim` makes the transcript stale and the memo is read again. A test seeds a trimmed memo whose cut tail holds a word and asserts both omit it.
-14. **TX14** The caption is plainly the phone's reading: it carries an accessibility label "Read by your phone" and is not styled like a note or a caption the owner wrote. It is not editable in place (editing is deferred). A search hit on a transcript shows the moment's normal card, with no snippet or highlight of the transcript.
+13. **TX13** A trimmed memo is read from an in-memory copy of its kept span (`voiceSpan`), cut for the recognizer, never kept beside the memo and deleted once read; an untrimmed memo is read from its file. A word spoken in a trimmed-off part is therefore neither in the caption nor in `wordsOf`. The row records the span it was read from; changing, saving or reverting `edit.trim` makes it stale and the memo is read again. A test seeds a trimmed memo and asserts the engine is given the cut copy, never the file, and that the copy is deleted after.
+14. **TX14** The caption is plainly the phone's reading: it carries an accessibility label "Read by your phone" and is not styled like a note or a caption the owner wrote. It is not editable in place, and a wrong word is part of the memo (the owner, Nov 13): no edit or hide. A search hit on a transcript shows the moment's normal card, with no snippet or highlight of the transcript.
 15. **TX15** The speech permission is never requested during a walk, while recording, or before a memo has been kept in this session. The queue does not run while a walk or a memo is recording, or a memo is playing, and resumes after. A refusal is remembered and the queue stays silent (TX6).
 16. **TX16** The adapter asks `supportsOnDeviceRecognition` for the memo's locale before every read and leaves the memo unread when it says no (TX5). The airplane-mode check in `NATIVE_UNVERIFIED` is part of done for the slice. The new dependency's entry in `scripts/vision.allow.json`, if `check:vision` asks for one, states that recognition is on-device only.
 17. **TX17** After `THREAD_RULES` is bumped, a thread the owner renamed, removed or marked "Not this one" keeps that state. A test covers it.
@@ -60,12 +60,13 @@ Found by the steward (Nov 13), accepted
 
 ## Not in this slice
 
-- Editing or hiding a transcript's words (the only remedy today is deleting the memo; for the owner).
+- Editing or hiding a transcript's words (the owner chose not to, decision 0165).
 - A transcript in a language other than the phone's locale: left unread.
 - Editing a transcript, and showing it in the replay's bubble.
 - Several languages, and Android below 13 (no on-device file recognition).
 
-## Owner's calls still open
+## Owner's calls (Nov 13, decision 0165)
 
-- **(c) The kept span.** The engine reads a whole file and cannot be told to read a part without re-encoding. Recommended: read the whole file with word timestamps (`segments`, iOS and Android 14+), keep only the words inside the kept span, and show no transcript for a trimmed memo on a phone that gives none, until the trim is cleared. The alternative is to cut a copy of the audio for the engine, which doubles native code.
-- **VISION.md open question 2** is answered by your go-ahead on Nov 13; it needs your edit and a decision record (agents do not edit the rules).
+- A trimmed memo is read from an in-memory copy of its kept part (TX13).
+- A wrong or private word is part of the memo: no edit or hide; the provenance label is agreed (TX14).
+- **VISION.md open question 2** is answered by this decision; the owner edits the page.

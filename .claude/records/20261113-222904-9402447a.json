@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Memo transcripts (a voice memo read on the phone in the background, shown as a caption \"Read by your phone\" under the voice note, and joining threads and search; a trimmed memo read from an in-memory copy of its kept part; TX1-TX18, decision 0165) | `claude/amazing-shannon-5jejnz` | started 2026-11-13: spec and plan written, steward triaged, owner approved; tests next; native unverified |\n"
+    }
+  ]
+}

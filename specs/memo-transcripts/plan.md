@@ -29,7 +29,7 @@ app open (backfill) ──────┤──► needsTranscript(captures, row
 
 ## Data
 
-New **cache** (derived from the audio, never truth): table `transcript` (`capture_id` PK, `text` TEXT NOT NULL ('' for none heard), `lang`, `made_at`). SQLite migration 28 (27 exist); IndexedDB VERSION 21 with an `oldVersion < 21` step; the third store is the in-memory fake. `dbContract` covers all three. Never edit an earlier migration. A trim does not change it (open question).
+New **cache** (derived from the audio, never truth): table `transcript` (`capture_id` PK, `text` TEXT NOT NULL (empty for none heard), `lang`, `from_ms`, `to_ms`, `made_at`). SQLite migration 28 (27 exist); IndexedDB VERSION 21 with an `oldVersion < 21` step; the third store is the in-memory fake. `dbContract` covers all three. Never edit an earlier migration. A trim change makes the row stale (its `from_ms`/`to_ms` no longer match `voiceSpan`) and it is read again.
 
 ## Tests (name = criterion id)
 
@@ -57,11 +57,11 @@ The whole engine adapter, the permission flow and the on-device locale pack on b
 
 ## Steward's findings (Nov 13), triaged
 
-- **S1** (a transcript reads the whole file) accepted as TX13. How the span is cut is the owner's call (spec, "Owner's calls still open"); the plan assumes the recommended way: word timestamps, whole-file read, words outside `voiceSpan` dropped, row stale on a trim change (the row keeps the timestamps with each word).
+- **S1** (a transcript reads the whole file) accepted as TX13, the owner's way (decision 0165): a trimmed memo is read from an in-memory copy of its kept span. That is a new native method `exportTrimmedAudio({ source, output, start_ms, end_ms })` in the local module `chronicles-video-edit` (iOS `AVAssetExportSession` with a `timeRange`; Android `MediaExtractor` and `MediaMuxer`), writing to the cache directory, deleted after the read; `voiceSpan` gives the span. No word timestamps are kept.
 - **S2** (machine words shown as heard) accepted as TX14; no snippet on a search hit.
 - **S3** (prompt and backfill interrupting capture) accepted as TX15; the shell reads `nowPlaying`, the walk's recording state and `memoGate` through ports, and asks for permission only from the first memo kept in the session on a quiet moment.
 - **S4** (on-device asserted by a flag) accepted as TX16.
 - **S5** (threads reshuffle) accepted as TX17.
 - **S6** (usage strings) accepted as TX18.
 - Silent items: a foreign-language memo is left unread; a wrong or private transcript has no remedy but deleting the memo (deferred, owner's call); suggested titles from transcripts are not proposed.
-- Data: the `transcript` row also keeps `words` as JSON with start and end times, so TX13 can cut to the span without a re-read.
+- Data: the `transcript` row also keeps `from_ms` and `to_ms`, the span it was read from (null for the whole memo), so a trim change makes it stale (TX13).
