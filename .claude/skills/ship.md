@@ -102,7 +102,9 @@ needs quoting; never edit these files with Edit, Write or sed.
   the merge base run again on them, whatever the conflict left, and stages them; commit the merge with
   your trailers. The gate accepts a merge's documents as git's own merge or as `redo`'s; a merge you
   resolve by hand in them fails. When `redo` refuses (an entry the branch acted on changed on `main`),
-  stop and ask the owner. A loop run never merges `main` into its branch; it rebases.
+  stop and ask the owner. A branch made before the gate landed resolves the one merge that brings the
+  gate in by hand, as before (that merge is history; `redo` says so); every commit after it is gated. A
+  loop run never merges `main` into its branch; it rebases.
 
 ## Review
 

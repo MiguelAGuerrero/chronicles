@@ -1530,6 +1530,9 @@ function redo() {
  */
 function redoMerge(git, mergeHead) {
   if (pendingSidecar()) fail('a merge carries no operations of its own: commit the pending sidecar\'s operations before merging, or drop them');
+  // A branch made before the gate meets it in this merge: the merge is history (its first parent does
+  // not hold the gate), and the branch's hand edits cannot be run again.
+  if (!showIn(git)('HEAD', 'scripts/records.js').includes(GATE_MARK)) fail(`this branch's commits were made before the gate (decision 0156; HEAD's scripts/records.js does not hold it), so this merge, which brings the gate in, is history: resolve the documents by hand this once, as before, and commit; from the next commit on, the documents change only through \`npm run records\``);
   const base = git('merge-base', 'HEAD', mergeHead).trim();
   let r;
   try {
