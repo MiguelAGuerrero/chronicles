@@ -250,10 +250,20 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     rename: (term: string, name: string) => setPrefs(renameThread(store.get().prefs, term, name)),
     removeThread: (term: string) => setPrefs(removeThread(store.get().prefs, term)),
     /** A change made in the viewer (a note, a caption, an edit) shows here at once (RM18). */
-    patch(id: string, change: CapturePatch): void {
+    /**
+     * A change saved on a moment's piece (`pieceId`, its face's by default): the piece in its list and, when that piece
+     * is the face, the face too, so a card drawn from either shows it (video-thumbnails ui 1: an entry draws its pieces).
+     * A place belongs to the moment (MT5).
+     */
+    patch(id: string, change: CapturePatch, pieceId?: string): void {
       const patched = (m: MomentView): MomentView => {
         if (m.id !== id) return m;
-        const capture = { ...m.capture, ...change } as Faced;
+        const target = pieceId ?? m.capture.piece_id;
+        const { lat, lon, ...media } = change;
+        const pieces = m.capture.pieces.map((x) => (x.id === target ? { ...x, ...media } : x));
+        const face = target === m.capture.piece_id ? media : {};
+        const place = { ...(lat !== undefined ? { lat } : {}), ...(lon !== undefined ? { lon } : {}) };
+        const capture = { ...m.capture, ...face, ...place, pieces } as Faced;
         return { ...m, capture, words: wordsOf(capture, opts.transcript) };
       };
       store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));

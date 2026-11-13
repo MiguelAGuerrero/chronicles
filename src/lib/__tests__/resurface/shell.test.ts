@@ -173,3 +173,15 @@ test('fix thread-in-walk audit 2: a note edited in the viewer shows at once on a
   r.patch('reply', { body: 'orchard now' });
   assert.equal(r.store.get().inOpenWalk[0].words, 'orchard now');
 });
+
+test("video-thumbnails ui 1: a patch reaches the edited piece, so an entry drawn from the moment's pieces shows the new still", async () => {
+  const p = fakePorts({ now: NOW });
+  await p.db.createWalk(walk);
+  await p.db.addMoment({ id: 'v', walk_id: 'w1', t: at(2026, 3, 2), lat: null, lon: null, segment_id: null, pieces: [{ id: 'v', moment_id: 'v', t: at(2026, 3, 2), kind: 'video', file_path: 'v.webm', body: '3000', thumb_path: 'v.thumb.jpg' }] });
+  const r = createResurface(p);
+  await r.load();
+  r.patch('v', { thumb_path: 'v.thumb.x1.jpg' }, 'v');
+  const m = r.store.get().moments.find((x) => x.id === 'v')!;
+  assert.equal(m.capture.thumb_path, 'v.thumb.x1.jpg', 'the face');
+  assert.equal(m.capture.pieces[0].thumb_path, 'v.thumb.x1.jpg', 'the piece the entry draws from');
+});

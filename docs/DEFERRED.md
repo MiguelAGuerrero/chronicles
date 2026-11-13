@@ -708,4 +708,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   phone's player) is marked `THUMB.none` and not tried again, as an undecodable photo is, so a video on a slow phone
   keeps its glyph until its next edit; the still is not remade when only a video's lines or text change (they are not
   in the still, as a photo's caption is not in its copy).
+- **The walk's memory preview card sits under the map's chrome** (video-thumbnails ui review, U1): the Layers button,
+  the scale bar and the (i) credits are drawn over the card, because the walk screen's `scaleInset` and corner buttons
+  count the capture row but not the preview. Older than video thumbnails; a fix of its own (raise them above the card
+  while it is up, as the tabs do above the sheet).
 

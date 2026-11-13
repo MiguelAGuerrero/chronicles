@@ -4,7 +4,7 @@ import { theme } from './ui';
 
 /**
  * The play mark over a video's still (video thumbnails VT4): a white play glyph, and in the gallery the length, on a
- * solid ink ground of its own, so it reads over any frame (V4: its own ground, 3:1 and more) and a video never passes
+ * solid ink ground of its own, edged in white, so it reads over any frame, dark ones too (V4: its own ground, 3:1 and more) and a video never passes
  * for a photo (X3: never colour alone). Decorative: the words around a preview say "Video".
  */
 export function VideoMark(props: { length?: string | null; size?: number; style?: StyleProp<ViewStyle>; testID?: string }) {
@@ -22,7 +22,8 @@ export function VideoMark(props: { length?: string | null; size?: number; style?
 }
 
 const styles = StyleSheet.create({
-  mark: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: theme.ink },
+  // A white hairline keeps the ground's edge on a dark frame too (video-thumbnails ui 3; the pin's ring, everywhere).
+  mark: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: theme.ink, borderWidth: 1, borderColor: '#ffffff' },
   withLength: { gap: 2, paddingHorizontal: 6, paddingVertical: 2 },
   length: { color: '#ffffff', fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },
 });

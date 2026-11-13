@@ -75,7 +75,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
       </View>
       {n === 1 && hasMore(pin.captures[0]) && <StackMark silent size={10} style={styles.stack} />}
       {/* A video's still keeps its play mark, bottom right of the head, clear of the stack, clock and bell (VT4). */}
-      {n === 1 && pin.captures[0].kind === 'video' && painted && <VideoMark testID="pin-video-mark" size={9} style={styles.videoMark} />}
+      {n === 1 && pin.captures[0].kind === 'video' && painted && <VideoMark testID="pin-video-mark" size={faint ? 7 : 9} style={[styles.videoMark, faint && styles.videoMarkFaint]} />}
       {/* Its clock stays solid and full size, so it reads as from the past at a glance (MR10, audit UX). */}
       {faint && (
         <View testID="memory-badge" style={styles.badge}>
@@ -109,6 +109,8 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
 
 const styles = StyleSheet.create({
   videoMark: { position: 'absolute', right: -3, top: 20, borderWidth: 1.5, borderColor: '#ffffff' },
+  // The faint head shrinks to 75% toward its foot (its bottom right near x 31, y 38): the mark there, 2 px under the clock (ui 4).
+  videoMarkFaint: { right: 1, top: 24 },
   stack: { position: 'absolute', top: -4, left: -4, width: 18, height: 18, borderRadius: 9 },
   wrap: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
   pin: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },

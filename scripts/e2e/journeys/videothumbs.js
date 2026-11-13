@@ -85,7 +85,7 @@ const reddest = (c) => c && c.r > 150 && c.g < 100 && c.b < 100;
 const greenest = (c) => c && c.g > 120 && c.r < 100 && c.b < 100;
 
 async function run(h) {
-  const { url, check, shot, tabTo, freshPage, start } = h;
+  const { url, check, shot, tabTo, freshPage, start, glyph } = h;
   const { c, pg } = await freshPage('videothumbs');
   const outside = [];
   pg.on('request', (r) => { const u = new URL(r.url()); if (/^https?:$/.test(u.protocol) && u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') outside.push(u.host); });
@@ -119,6 +119,8 @@ async function run(h) {
   await pg.waitForTimeout(500);
   await shot(pg, 'vt-01-gallery');
   check(tileMark && tileLen === '0:03' && photoMarks === 0 && /rgb\(29, 36, 48\)/.test(ground), `VT3, VT4: the tile shows the still with its play mark and length on an ink ground (${tileLen}; ${ground})`);
+  const edge = await pg.locator(`${tileSel} [data-testid=video-mark]`).evaluate((e) => { const s = getComputedStyle(e); return `${s.borderTopWidth} ${s.borderTopColor}`; }).catch(() => '');
+  check(/^1px rgb\(255, 255, 255\)$/.test(edge), `video-thumbnails ui 3: the mark's ground is edged in white, so it reads on a dark frame (${edge})`);
 
   // VT3, VT4: a video-only month's cover is its still, marked.
   await pg.click('[data-testid=gallery-zoom-months]');
@@ -166,6 +168,11 @@ async function run(h) {
   const cardMark = await pg.waitForSelector(`${card} [data-testid=video-mark]`, { timeout: 15000 }).then(() => true, () => false);
   await shot(pg, 'vt-03-memories');
   check(cardMark, 'VT3, VT4: a Lately card shows the video\'s still under its play mark');
+  // ui 1: the trimmed video's entry shows its new still, never the glyph its deleted old still would leave.
+  await pg.waitForTimeout(1500);
+  const cam = glyph('videocam');
+  const glyphs = await pg.evaluate((g) => [...document.querySelectorAll('[data-testid=moment-card]')].filter((e) => !e.closest('[aria-hidden=true]') && e.innerText.includes(g)).length, cam);
+  check(glyphs === 0, `video-thumbnails ui 1: no video entry on Memories falls back to its glyph after an edit (${glyphs})`);
 
   // VT3, VT4: Navigate, ready: the loose video's pin (one video) shows its still with pin-video-mark, labelled Video.
   await tabTo(pg, 'navigate');
@@ -186,6 +193,15 @@ async function run(h) {
   if (memoryPin) {
     await pg.locator('[data-testid=memory-pin]').first().click();
     previewMark = await pg.waitForSelector('[data-testid=memory-preview] [data-testid=video-mark]', { timeout: 15000 }).then(() => true, () => false);
+    // ui 4: on the faint memory pin the play mark keeps clear of the clock badge.
+    const gap = await pg.evaluate(() => {
+      const pin = document.querySelector('[data-testid=memory-pin]');
+      const m = pin && pin.querySelector('[data-testid=pin-video-mark]');
+      const b = pin && pin.querySelector('[data-testid=memory-badge]');
+      if (!m || !b) return null;
+      return Math.round(m.getBoundingClientRect().top - b.getBoundingClientRect().bottom);
+    });
+    check(gap != null && gap >= 2, `video-thumbnails ui 4: a memory pin's play mark sits clear of its clock (${gap} px)`);
     await shot(pg, 'vt-05-memory-preview');
   }
   check(memoryPin && previewMark, `VT3, VT4: a walk's memory preview shows the video's still under its play mark (${memoryPin}, ${previewMark})`);

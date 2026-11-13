@@ -52,4 +52,13 @@ S1-S4 accepted into VT2, VT3 and VT4 (the mark on every surface, the pin's room 
   one-video pin, a walk's memory preview and the replay's pile, with nothing sent anywhere.
 - TH3's and QL26's tests followed the owner's call (a video now has a still): a voice memo and a note still have none.
 - Found while building: a MediaRecorder WebM has no duration, so the web's seek learns it first.
+- The UI review (decision 0145, the `ux-reviewer` on the journey's six pictures, Nov 13):
+  1. U2, a Lately entry kept the camera glyph after a trim: accept. Memories' `patch` changed only a moment's face,
+     and an entry draws its pieces; the patch now reaches the edited piece (`video-thumbnails ui 1`, a shell test and a
+     journey check). It applied to edited photos in entries too.
+  2. U3, the mark's ink ground vanishes on a dark frame: accept. Every mark has the pin's white edge (`ui 3`).
+  3. U4, a faint memory pin's mark crowded its clock: accept. It sits at the shrunk head's bottom right (`ui 4`).
+  4. U1, the map's layers button, scale bar and credits sit over a walk's memory preview card: defer; older than
+     this slice (the walk screen's insets don't count the card), recorded in `docs/DEFERRED.md`.
+  5. U5, the pin's mark near the walker's dot: reject; an opinion, and moving the mark up would meet the bell's corner.
 - Deferred: `docs/DEFERRED.md`, "video thumbnails". Native: `docs/NATIVE_UNVERIFIED.md`, "Video thumbnails".
