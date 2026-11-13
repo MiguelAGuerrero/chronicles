@@ -54,35 +54,43 @@ export const AtlasTile = memo(function AtlasTile(props: {
         <View style={styles.grow}>
           <View style={[styles.body, reading && styles.dim]}>
             <Text style={styles.name}>{a.name}</Text>
-            {reading ? (
-              <View style={styles.meta}>
-                <ActivityIndicator size="small" color={theme.muted} />
-                <Text style={styles.metaText} numberOfLines={1}>Reading this area…</Text>
-              </View>
-            ) : a.profile!.thin ? null : (
-              // AG3: a ring the map knows almost nothing about says nothing about its kinds.
-              <Text style={styles.character} numberOfLines={2} testID="atlas-character">{characterLine(a.profile!.steps)}</Text>
-            )}
-            <Text style={styles.metaText} numberOfLines={2}>
+            {/* Each line is a slot of its full height, filled or not, so no card's height depends on what it has to say. */}
+            <View style={styles.characterSlot}>
+              {reading ? (
+                <View style={styles.meta}>
+                  <ActivityIndicator size="small" color={theme.muted} />
+                  <Text style={styles.metaText} numberOfLines={1}>Reading this area…</Text>
+                </View>
+              ) : a.profile!.thin ? null : (
+                // AG3: a ring the map knows almost nothing about says nothing about its kinds.
+                <Text style={styles.character} numberOfLines={2} testID="atlas-character">{characterLine(a.profile!.steps)}</Text>
+              )}
+            </View>
+            <Text style={[styles.metaText, styles.metaSlot]} numberOfLines={2}>
               {listed.unplaced ? null : <Text style={listed.here ? styles.here : null}>{props.fromYou ? distanceWords(listed.distanceM, listed.here, fmt).replace(/ away$/, ' from you') : distanceWords(listed.distanceM, listed.here, fmt)}</Text>}
               {listed.unplaced ? null : ' · '}
               <Text style={fam.walks ? styles.known : null}>{familiarityWords(fam)}</Text>
             </Text>
-            {a.profile?.strips[0] ? (
-              <View style={styles.meta}>
-                <View style={styles.busyLine} />
-                <Text style={styles.busy} numberOfLines={1}>{a.profile.strips[0]}</Text>
-              </View>
-            ) : null}
+            <View style={styles.meta}>
+              {a.profile?.strips[0] ? (
+                <>
+                  <View style={styles.busyLine} />
+                  <Text style={styles.busy} numberOfLines={1}>{a.profile.strips[0]}</Text>
+                </>
+              ) : null}
+            </View>
             <KindStrip steps={a.profile?.thin ? NO_KINDS : a.profile?.steps ?? null} />
           </View>
         </View>
-        {footer ? (
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>{footer}</Text>
-            <Icon name="chevron-forward" size={16} color={theme.accent} />
-          </View>
-        ) : null}
+        {/* The footer's room is kept on every card: the selected card's footer, or none, never moves the row's height. */}
+        <View style={[styles.footer, !footer && styles.footerEmpty]}>
+          {footer ? (
+            <>
+              <Text style={styles.footerText}>{footer}</Text>
+              <Icon name="chevron-forward" size={16} color={theme.accent} />
+            </>
+          ) : null}
+        </View>
       </Pressable>
     </View>
   );
@@ -103,6 +111,9 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, gap: 4 },
   name: { fontSize: 18, fontWeight: '700', color: theme.ink, lineHeight: 22 },
   character: { fontSize: 14, color: theme.ink, lineHeight: 18 },
+  // Two lines of the character line and of the distance line, the most each says (their `numberOfLines`).
+  characterSlot: { minHeight: 36 },
+  metaSlot: { minHeight: 32 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 16 },
   metaText: { fontSize: 12, color: theme.muted, lineHeight: 16 },
   here: { color: COLORS.route, fontWeight: '700' },
@@ -113,5 +124,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44, paddingHorizontal: 10,
     borderTopWidth: 1, borderTopColor: theme.line,
   },
+  footerEmpty: { borderTopColor: 'transparent' },
   footerText: { fontSize: 13, fontWeight: '600', color: theme.accent },
 });
