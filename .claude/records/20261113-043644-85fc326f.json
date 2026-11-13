@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "**Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,\n`docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every\nagent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A\nsession that was in flight merges `origin/main` (on a conflict in these three, `npm run records -- redo` takes\nmain's side, and the session files its entries again after the merge); a hand edit it commits after that, or one\nmade before and rebased on, is refused by name with its fix (`.claude/skills/ship.md`, \"The record documents\").\n"
+    }
+  ]
+}

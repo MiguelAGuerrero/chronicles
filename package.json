@@ -84,6 +84,8 @@
     "check:docs": "node scripts/check-docs.js",
     "check:vision": "node scripts/check-vision.js",
     "check:tend": "node scripts/tend.js commits",
+    "records": "node scripts/records.js",
+    "check:records": "node scripts/records.js verify",
     "tend:balance": "node scripts/tend.js balance",
     "tend:log": "node scripts/tend.js log",
     "e2e:baseline": "node scripts/e2e-baseline.js",

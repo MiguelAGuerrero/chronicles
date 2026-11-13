@@ -65,7 +65,7 @@ For each finding, write one line in the spec's "Audit" record:
 
 - **Accept**: a real failure the slice should handle now.
 - **Defer**: real, but out of this slice; add it to `docs/DEFERRED.md` with
-  the finding's scenario.
+  the finding's scenario (`npm run records -- deferred item add "<section>" --file <item>`).
 - **Reject**: not a failure (by a rule, an owner's call, or the spec); say which.
 - **Architectural** findings (data model, library, platform strategy,
   navigation flow) go to the owner with AskUserQuestion and a recommended
@@ -86,9 +86,14 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 
 - The spec's record: "N findings, M fixed, D deferred, R rejected", with the
   date and the test names.
-- `docs/STATUS.md`: the counts on the slice's row.
-- `docs/DEFERRED.md`: the deferred findings.
-- `docs/NATIVE_UNVERIFIED.md`: the auditor's native list, merged in.
+- `docs/STATUS.md`: the counts on the slice's row (`npm run records -- slice row set <match> --file <row>`).
+- `docs/DEFERRED.md`: the deferred findings (`deferred item add`).
+- `docs/NATIVE_UNVERIFIED.md`: the auditor's native list, merged in (`native item add`, one per check).
+- These three change only through `npm run records` (decision 0156, `.claude/skills/ship.md`, "The
+  record documents"): run `npm run check:records -- origin/main` and commit with the trailers
+  `npm run records -- trailers` prints. Every agent commit is gated, the audit's record too. What the
+  audit leaves for the owner's call is a bullet of a "From <skill>" section (`section add "From the
+  <slice>'s audit (<date>)"`, then `section item add`).
 - A new rule or trap learned from a finding: `.claude/rules/<area>.md`.
 
 ## 6. Verify, then deploy
