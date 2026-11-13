@@ -240,6 +240,9 @@ const FEATURES = [
       'src/components/Baker*.ts',
       'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
+      // Video thumbnails (VT1-VT9): the small copies Memories' cards ask for, and the play mark.
+      'src/lib/thumbs/**',
+      'src/components/VideoMark.tsx',
     ],
     journeys: ['edit', 'stacks', 'videothumbs'],
     specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'video-thumbnails'],

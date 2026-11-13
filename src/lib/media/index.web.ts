@@ -94,3 +94,62 @@ export function probeVideoSize(uri: string): Promise<{ w: number; h: number } | 
     v.src = uri;
   });
 }
+
+/**
+ * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VT1, VT8): a web exception, since
+ * expo-video's web player cannot make one ("not supported on Web yet"). A detached, muted <video> loads the file from
+ * its `blob:` URL, seeks to the frame and draws it on a canvas; the still is a `blob:` URL the image manipulator and
+ * `keepFile` take. Nothing leaves the page. iOS Safari loads nothing until play() is called, so the video is played
+ * muted and paused before the seek. Rejects when no frame can be made.
+ */
+export function videoFrame(uri: string, atSec: number, max: number): Promise<{ source: string; release(): void }> {
+  return new Promise((resolve, reject) => {
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    let settled = false;
+    const t = setTimeout(() => finish(new Error('timeout')), 15_000);
+    function finish(err: Error | null, still?: string) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(t);
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+      if (err || !still) reject(err ?? new Error('no frame'));
+      else resolve({ source: still, release: () => URL.revokeObjectURL(still) });
+    }
+    v.onerror = () => finish(new Error('unreadable'));
+    v.onloadeddata = () => {
+      v.pause();
+      const end = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : atSec;
+      const at = Math.max(0, Math.min(atSec, Math.max(0, end - 0.05)));
+      if (Math.abs(v.currentTime - at) < 0.01 && at === 0) draw();
+      else {
+        v.onseeked = draw;
+        v.currentTime = at;
+      }
+    };
+    function draw() {
+      const w = v.videoWidth;
+      const h = v.videoHeight;
+      if (!w || !h) return finish(new Error('no picture'));
+      const k = Math.min(1, max / Math.max(w, h));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w * k));
+      canvas.height = Math.max(1, Math.round(h * k));
+      canvas.getContext('2d')!.drawImage(v, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        // iOS keeps a canvas's memory until it is shrunk.
+        canvas.width = 0;
+        canvas.height = 0;
+        if (!blob) finish(new Error('no still'));
+        else finish(null, URL.createObjectURL(blob));
+      }, 'image/jpeg', 0.8);
+    }
+    v.src = uri;
+    void v.play().catch(() => {});
+  });
+}
+

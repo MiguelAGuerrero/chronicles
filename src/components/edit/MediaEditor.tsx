@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CapturePatch } from '../../lib/captureBus';
 import { FULL_LINES_TEXT, openSession, step, TOOLS, type EditTool, type Session, type SessionEvent } from '../../lib/editSession';
 import { removeMedia } from '../../lib/media';
-import { keepEditedThumb } from '../../lib/media/thumb';
+import { keepEditedThumb, makeEditedVideoThumb } from '../../lib/media/thumb';
 import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
 import { THUMB } from '../../lib/thumbPlan';
 
@@ -102,6 +102,19 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         }
       } catch {
         // The old copy stays; the photo itself shows the edits.
+      }
+    }
+    // A video's still is taken again where the new kept part starts, with its crop and rotation (VT6).
+    if (kind === 'video' && patch.edit !== undefined) {
+      try {
+        const path = await makeEditedVideoThumb(c, patch.edit ?? null);
+        const old = c.thumb_path;
+        if (path && path !== THUMB.none && path !== old) {
+          await props.onSave({ thumb_path: path });
+          if (old && old !== THUMB.none) void removeMedia([old]).catch(() => {});
+        }
+      } catch {
+        // The old still stays; the video itself plays the edits.
       }
     }
     props.onClose();

@@ -4,9 +4,9 @@ import { ImageManipulator, SaveFormat, type ImageRef } from 'expo-image-manipula
 
 import { cropToRotated, rotatedSize } from '../mediaEdit';
 import { thumbJob } from '../thumbJob';
-import { editedThumbName, THUMB } from '../thumbPlan';
+import { editedThumbName, frameAt, THUMB } from '../thumbPlan';
 import type { MediaEdit } from '../mediaEdit';
-import { keepFile, releaseMedia, resolveMedia } from './index';
+import { keepFile, releaseMedia, resolveMedia, videoFrame } from './index';
 
 /**
  * The photo's crop and rotation on the bounded copy (ME20): a copy made
@@ -36,12 +36,14 @@ async function withCropAndRotation(ref: ImageRef, c: Faced): Promise<ImageRef> {
  * photo is never in memory), its canvases released after (audit 2). Never
  * worth failing a capture over (TH2).
  */
-export function makeThumb(c: Faced): Promise<string | null> {
-  // Named by the piece it is a copy of (decision 0123).
+export function makeThumb(c: Faced, name?: string): Promise<string | null> {
+  // Named by the piece it is a copy of (decision 0123), or by its edit (VT6).
   return thumbJob({ ...c, id: c.piece_id }, {
     resolve: resolveMedia,
     async render(uri, max) {
-      const ctx = ImageManipulator.manipulate(uri, { maxWidth: max, maxHeight: max });
+      // A video gives up its still where its kept part starts (VT1); a photo is decoded bounded as it loads.
+      const frame = c.kind === 'video' ? await videoFrame(uri, frameAt(c.edit), max) : null;
+      const ctx = frame ? ImageManipulator.manipulate(frame.source) : ImageManipulator.manipulate(uri, { maxWidth: max, maxHeight: max });
       try {
         const loaded = await ctx.renderAsync();
         const ref = await withCropAndRotation(loaded, c).catch(() => loaded);
@@ -54,12 +56,21 @@ export function makeThumb(c: Faced): Promise<string | null> {
         }
       } finally {
         ctx.release();
+        frame?.release();
       }
     },
     // A copy left by an earlier try is replaced, never a reason to fail (audit 3).
-    keep: (tmp, folder, name) => keepFile(tmp, folder, name, { replace: true }),
+    keep: (tmp, folder, file) => keepFile(tmp, folder, file, { replace: true }),
     releaseUri: releaseMedia,
-  });
+  }, name);
+}
+
+/**
+ * An edited video's new still (VT6): taken where the new kept part starts, with its crop and rotation, named by the
+ * edit (ME20) so every preview keyed by the ref loads it. Null when none can be made now; the old one stays.
+ */
+export function makeEditedVideoThumb(c: Faced, edit: MediaEdit | null): Promise<string | null> {
+  return makeThumb({ ...c, edit, thumb_path: null }, editedThumbName({ id: c.piece_id }, edit));
 }
 
 /**

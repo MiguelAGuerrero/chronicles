@@ -7,6 +7,8 @@ import { isEmptyEdit, serializeEdit, type MediaEdit } from './mediaEdit';
  */
 export const THUMB = {
   edge: 240,
+  /** A video's still (video thumbnails VT1, the owner's call, Nov 13): sharp enough for a month's cover. */
+  videoEdge: 720,
   compress: 0.7,
   /** Stored when a photo won't decode, so it is never tried again (audit 3); previews show the photo. */
   none: 'none',
@@ -39,8 +41,14 @@ export const editedThumbName = (c: { id: string }, edit: MediaEdit | null): stri
 export const captureThumbStillWanted = (row: { thumb_path?: string | null; edit?: MediaEdit | null } | null): boolean =>
   !!row && !row.thumb_path && isEmptyEdit(row.edit);
 
-/** A photo with a file and no copy yet (TH3); one marked undecodable is done. */
-export const wantsThumb = (c: ThumbCapture): boolean => c.kind === 'photo' && !!c.file_path && !c.thumb_path;
+/** A photo or a video with a file and no copy yet (TH3, VT1, VT2); one marked undecodable is done. */
+export const wantsThumb = (c: ThumbCapture): boolean => (c.kind === 'photo' || c.kind === 'video') && !!c.file_path && !c.thumb_path;
+
+/** The long edge of a kind's copy: a photo's 240, a video's still 720 (VT1). */
+export const thumbEdge = (kind: string): number => (kind === 'video' ? THUMB.videoEdge : THUMB.edge);
+
+/** Where a video's still is taken, in seconds (VT1, VT6): the start of its kept part, the trim's start, else 0. */
+export const frameAt = (edit: MediaEdit | null | undefined): number => (edit?.trim ? Math.max(0, edit.trim.start_ms) / 1000 : 0);
 
 /**
  * The stored ref a preview shows (TH4): the copy; the photo when the copy's file is
@@ -48,6 +56,8 @@ export const wantsThumb = (c: ThumbCapture): boolean => c.kind === 'photo' && !!
  * so a first showing doesn't decode the full photo too (audit 7).
  */
 export function thumbShown(c: ThumbCapture, copyBroken: boolean): string | null {
+  // A video's preview is its still or nothing: its file is never a picture (VT5).
+  if (c.kind === 'video') return c.thumb_path && c.thumb_path !== THUMB.none && !copyBroken ? c.thumb_path : null;
   if (c.kind !== 'photo' || !c.file_path) return null;
   if (c.thumb_path === THUMB.none || (c.thumb_path && copyBroken)) return c.file_path;
   return c.thumb_path ?? null;

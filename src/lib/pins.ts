@@ -121,13 +121,13 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
 
 /**
  * The stored ref of the small copy a pin's head shows (QL26): only for a pin of
- * one photo whose copy is made. Never the full photo: while the copy is being
- * made, or for a photo that won't decode, the pin keeps its icon, so a map never
- * decodes full photos. A pin of several keeps its count.
+ * one photo or one video (VT3) whose copy is made. Never the full photo or the
+ * video's file: while the copy is being made, or for one that won't decode, the
+ * pin keeps its icon, so a map never decodes full media. A pin of several keeps its count.
  */
 export function pinThumb(pin: CapturePin): string | null {
   if (pin.captures.length !== 1) return null;
   const c = pin.captures[0];
-  if (c.kind !== 'photo' || !c.thumb_path || c.thumb_path === THUMB.none) return null;
+  if ((c.kind !== 'photo' && c.kind !== 'video') || !c.thumb_path || c.thumb_path === THUMB.none) return null;
   return c.thumb_path;
 }

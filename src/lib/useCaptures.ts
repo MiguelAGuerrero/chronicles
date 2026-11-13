@@ -307,7 +307,7 @@ export function useCaptures(
       path = path ?? (await keepFile(s.uri, folder(), `${newId()}.${s.ext}`));
       // With `into`, the id is the new piece's in that open moment (MS3).
       const id = await add(s.kind, s.stamp, path, s.ms == null ? null : String(s.ms));
-      if (id && s.kind === 'photo') thumbFor(id, path, s.stamp.into ?? id);
+      if (id && (s.kind === 'photo' || s.kind === 'video')) thumbFor(id, s.kind, path, s.stamp.into ?? id);
       return { id };
     } catch (error) {
       return { failed: { ...s, path }, error };
@@ -342,11 +342,12 @@ export function useCaptures(
     });
 
   /**
-   * A new photo's small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2). The
-   * copy is the piece's (`id`); the moment it sits in (`momentId`) is read fresh, and shows it when it is its face.
+   * A new photo's small copy, or a new video's still (TH1, VT1), after the capture is kept: never holds it up or fails
+   * it (TH2). The copy is the piece's (`id`); the moment it sits in (`momentId`) is read fresh, and shows it when it is
+   * its face.
    */
-  function thumbFor(id: string, path: string, momentId: string) {
-    void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null })).then((thumb) => {
+  function thumbFor(id: string, kind: 'photo' | 'video', path: string, momentId: string) {
+    void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind, file_path: path, body: null, segment_id: null })).then((thumb) => {
       if (!thumb) return;
       // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
       void db.getMomentsByIds([momentId]).then(([m]) => {

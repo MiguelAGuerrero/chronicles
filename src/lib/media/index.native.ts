@@ -1,6 +1,7 @@
 // @layer adapter
 import { Directory, File, Paths } from 'expo-file-system';
-import { createVideoPlayer } from 'expo-video';
+import { createVideoPlayer, type VideoPlayer } from 'expo-video';
+import type { SharedRef } from 'expo-modules-core/types';
 
 /**
  * Moves a captured file into the app's Documents folder, which iOS backs up
@@ -98,22 +99,42 @@ export async function mediaBytes(refs: string[], walkFolders: string[] = []): Pr
  * player made for the purpose (iOS applies the track's transform, Android's
  * retriever its rotation; the track's own size is the encoded one).
  */
+/** Waits for a player to be ready to play, at most 10 s; rejects on an unreadable file. */
+async function whenReady(player: VideoPlayer): Promise<void> {
+  if (player.status === 'readyToPlay') return;
+  await new Promise<void>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), 10_000);
+    const sub = player.addListener('statusChange', ({ status }) => {
+      if (status === 'readyToPlay' || status === 'error') {
+        clearTimeout(t);
+        sub.remove();
+        if (status === 'readyToPlay') resolve();
+        else reject(new Error('unreadable'));
+      }
+    });
+  });
+}
+
+/**
+ * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VT1): expo-video's frame, a
+ * `SharedRef<'image'>` the image manipulator takes as it is. Rejects when no frame can be made. Not run on a device.
+ */
+export async function videoFrame(uri: string, atSec: number, max: number): Promise<{ source: string | SharedRef<'image'>; release(): void }> {
+  const player = createVideoPlayer(uri);
+  try {
+    await whenReady(player);
+    const [frame] = await player.generateThumbnailsAsync([atSec], { maxWidth: max, maxHeight: max });
+    if (!frame) throw new Error('no frame');
+    return { source: frame, release: () => frame.release() };
+  } finally {
+    player.release();
+  }
+}
+
 export async function probeVideoSize(uri: string): Promise<{ w: number; h: number } | null> {
   const player = createVideoPlayer(uri);
   try {
-    if (player.status !== 'readyToPlay') {
-      await new Promise<void>((resolve, reject) => {
-        const t = setTimeout(() => reject(new Error('timeout')), 10_000);
-        const sub = player.addListener('statusChange', ({ status }) => {
-          if (status === 'readyToPlay' || status === 'error') {
-            clearTimeout(t);
-            sub.remove();
-            if (status === 'readyToPlay') resolve();
-            else reject(new Error('unreadable'));
-          }
-        });
-      });
-    }
+    await whenReady(player);
     const [frame] = await player.generateThumbnailsAsync([0]);
     return frame?.width && frame.height ? { w: frame.width, h: frame.height } : null;
   } catch {

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { db } from '../lib/db';
 import { makeThumb } from '../lib/media/thumb';
 import { thumbShown, wantsThumb } from '../lib/thumbPlan';
+import { VideoMark } from './VideoMark';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewLine } from '../lib/memories';
 
@@ -28,7 +29,8 @@ export function MemoryPreview(props: {
   // rather than a second full decode (audit 7); a copy whose file is gone, the photo (audit 6).
   const [row, setRow] = useState<Faced>(first);
   useEffect(() => {
-    if (first.kind !== 'photo') return;
+    // A photo's copy or a video's still (VT2): an older one is made here, once.
+    if (first.kind !== 'photo' && first.kind !== 'video') return;
     let alive = true;
     (async () => {
       const fresh = (await db.getMomentsByIds([first.id]).then(facedAll).catch(() => []))[0] ?? first;
@@ -66,11 +68,12 @@ export function MemoryPreview(props: {
               source={{ uri }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
-              onError={() => (ref === row.thumb_path && ref !== row.file_path ? setCopyBroken(true) : setBroken(uri))}
+              onError={() => (ref === row.thumb_path && ref !== row.file_path && row.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
             />
           ) : (
             <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
           )}
+          {row.kind === 'video' && uri && broken !== uri ? <VideoMark size={10} style={styles.mark} /> : null}
         </View>
         <View style={styles.text}>
           <Text style={styles.line} numberOfLines={2}>{line}</Text>
@@ -94,6 +97,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
+  mark: { position: 'absolute', right: 3, bottom: 3 },
   thumb: { width: 56, height: 56, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: 2 },
   line: { fontSize: 15, fontWeight: '600', color: theme.ink },
