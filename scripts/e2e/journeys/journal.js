@@ -29,7 +29,9 @@ const INIT = () => {
 const SEED = ({ now, day }) => {
   const note = (id, t, body) => ({ id, walk_id: null, t, lat: null, lon: null, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind: 'text', file_path: null, body }] });
   const rows = [];
-  for (let i = 0; i < 60; i++) rows.push(note(`n${String(i).padStart(2, '0')}`, now - (i + 2) * day, `A quiet note from a walk around town, the ${i % 2 ? 'second' : 'first'} of its day.`));
+  // The first few carry a type the owner chose (note types, decision 0161): the journal draws its mark.
+  const typed = (i, m) => { if (i < 6) m.pieces[0].note_type = 'idea'; return m; };
+  for (let i = 0; i < 60; i++) rows.push(typed(i, note(`n${String(i).padStart(2, '0')}`, now - (i + 2) * day, `A quiet note from a walk around town, the ${i % 2 ? 'second' : 'first'} of its day.`)));
   rows.push(note('h1', now - 50 * day - 1000, 'The harbor at dusk.'), note('h2', now - 40 * day - 1000, 'Harbor lights again.'), note('h3', now - 20 * day - 1000, 'Out to the harbor early.'));
   rows.push(note('year', now - 365 * day, 'First frost on the allotment gate. Nobody about.'));
   const page = (id, t, body) => ({ id, walk_id: null, t, lat: null, lon: null, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind: 'text', file_path: null, body, body_format: 'md' }] });
@@ -311,12 +313,15 @@ async function run(h) {
     && (!rest3.prev || rest3.prev.bottom <= headBottom + 2) && !!rest3.blank && rest3.blank.top >= rest3.last.bottom - 2 && rest3.blank.h >= rest3.vh * 0.3 && rest3.blank.bottom <= rest3.bar.top + 2,
     `JN31: at rest the last entry is on top under its date, nothing older shows, and the empty page fills the rest above the bar (${JSON.stringify(rest3)})`);
   await shot(pg, 'journal-18-at-rest-peek');
+  const cam51 = [await box(pg, '[data-testid=band-photo]'), await box(pg, '[data-testid=band-voice]')];
   await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000, force: true }).catch(() => {});
   await pg.waitForTimeout(900);
   const grown = await lay();
   check(grown.focused && !!grown.field && !!grown.last, `JN32: a tap on the empty page puts the caret on the page (${JSON.stringify(grown)})`);
   check(grown.focused && !!grown.last && Math.abs(grown.last.top - rest3.last.top) <= 2 && !!grown.field && grown.field.top >= grown.last.bottom - 2 && grown.field.top - grown.last.bottom < 80,
     `JN33: nothing slides away when writing begins: the last entry keeps its place and the caret is under it (${JSON.stringify({ rest: rest3.last, grown })})`);
+  const cam51w = [await box(pg, '[data-testid=band-photo]'), await box(pg, '[data-testid=band-voice]')];
+  check.todo(!!cam51[0] && !!cam51w[0] && cam51[0].x === cam51w[0].x && cam51[1].x === cam51w[1].x, `chronicle-journal audit 51: the camera and the mic keep their places between rest and writing (${JSON.stringify({ rest: cam51.map((b) => b?.x), writing: cam51w.map((b) => b?.x) })})`);
   await shot(pg, 'journal-19-writing-under-the-last');
   await pg.keyboard.type('Stacked under the last.', { delay: 10 });
   await pg.waitForTimeout(1000);
@@ -343,6 +348,7 @@ async function run(h) {
   check(tw.focused && !!tw.head && tw.head.top - tw.pageTop < 60 && lineUp > roomTw * 0.22 && lineUp < roomTw * 0.5 && !!tw.last && tw.last.bottom <= tw.field.top + 2
     && Math.abs(tops[4] - tops[3]) <= 30,
     `JN33: a full page slides up as it grows and the line holds a third of the way up from the bar (${JSON.stringify({ tw, tops, roomTw, lineUp })})`);
+  check.todo((await pg.locator('[data-testid=day-edge]').filter({ visible: true }).count()) >= 1, 'chronicle-journal audit 52: the held date has an edge that entries fade under');
   await shot(pg, 'journal-20-typewriter');
   // audit 40: the sheet knows the keyboard. With one up over a full stack, the line being written is above the bar.
   await kb(336);
@@ -628,12 +634,19 @@ async function run(h) {
   check(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
   check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
   await shot(pg, 'journal-05-scrolled-back');
-  // JN9, JN11: the bar's pen, scrolled back, brings today's foot into view and the caret onto the page.
-  await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000, force: true }).catch(() => {});
+  const marks54 = await pg.locator('[data-testid=journal-page] [data-testid=note-type-mark]').count();
+  check.todo(marks54 >= 1, `chronicle-journal audit 54: a note's type shows on its entry in the journal (${marks54} marks)`);
+  // JN9, JN11, audit 50: scrolled back, the empty page is out of view and the bar holds the pen: one tap brings
+  // today's foot into view and the caret onto the page, with no scroll first.
+  const pen50 = await box(pg, '[data-testid=bar-write]');
+  check.todo(!!pen50 && pen50.w >= 44 && pen50.h >= 44 && pen50.y < 844, `chronicle-journal audit 50: with the page pulled down the bar holds a pen (${JSON.stringify(pen50)})`);
+  await pg.click('[data-testid=bar-write]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(900);
   const backAtFoot = await pg.evaluate(() => { const r = document.querySelector('[data-testid=line-input]')?.getBoundingClientRect(); return !!r && r.top > 0 && r.bottom <= window.innerHeight; });
   check(backAtFoot && (await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'))) === 'line-input', 'JN11: the pen brings today\'s page to the foot, with the caret in it');
   await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(900);
+  check.todo((await pg.locator('[data-testid=bar-write]').count()) === 0, 'chronicle-journal audit 50: with the empty page in view the bar holds no pen: the page is the pen');
 
   // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
   const pageEntry = pg.locator(entries).filter({ hasText: 'Smelled it two blocks off.' });
@@ -918,6 +931,14 @@ async function run(h) {
     `JN8: an entry written with a walk minimized is on the page at once and is the walk's, with no toast (${JSON.stringify({ onPage, walk: walk?.id, row: walkRow?.walk_id, toast })})`);
   check(!barCam && !!lineBox && !!barBox && lineBox.y + lineBox.h <= barBox.y + 1, `JN24: the line sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ barCam, lineBox, barBox })})`);
   await shot(pg, 'journal-11-walk-minimized');
+  // audit 53: while writing with a walk recording, the bar says so (the recording bar is folded away).
+  await toLine();
+  await pg.waitForTimeout(700);
+  const rec53 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=line-recording]'); return e ? e.getAttribute('aria-label') : null; });
+  check.todo(rec53 === 'Walk recording', `chronicle-journal audit 53: writing on a walk, the bar keeps the recording's mark (${rec53})`);
+  await shot(pg, 'journal-21-writing-on-a-walk');
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(900);
   await pg.click('[data-testid=recording-return]').catch(() => {});
   await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(1200);
