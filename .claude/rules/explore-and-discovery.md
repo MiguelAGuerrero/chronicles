@@ -104,14 +104,14 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
     20 faint ones within range of the route ahead; the route's areas are read
     first (`routeProbes`, every 500 m).
-  - **Finding** (0155, TC1-TC4): a capture never finds a place by itself. "Capture here" (`mark-capture`) on a named,
-    unfound place's card arms it (`useExplore().arm`/`disarm`/`armed`; `armed-line` "The next moment is about X" with Cancel);
-    the next fresh capture of the walk finds it (`armedFind`, `record`). `armedStill` clears it past 60 m or on another
-    walk; one capture clears it. No chip, no loose-moment find. The first find of a place stands. A found pin is small, nameless, and lets taps through.
-  - **Passing** (TC6-TC9): `passedPlaces`/`passedAlong` take `passM` (`explore_pass`, 4-20 m by 2, 8 default,
-    `clampPass`); naming on the map stays at 60 m. `walk_pass:<id>` is written when exploring begins (`startPlan`,
-    `setExplore`), read by the replay (`passFor`): a later setting never rewrites an old walk. The row is a `RangeSlider`
-    with `PASS_SCALE`; `passNote` says no number.
+  - **Finding** (0155, TC1-TC4): a capture never finds a place by itself. "Capture here" (`mark-capture`, hidden past 60 m by
+    `canArm`) on a named, unfound place's card arms it (`useExplore().arm`/`disarm`/`armed`; `armed-line` with Cancel); the next
+    capture made after arming finds it (`armedFind`, `Armed.at`). `armedStill` clears it past 60 m, on another walk, with
+    Explore off or the place found; one capture clears it. No chip, no loose-moment find. A found pin is small, nameless,
+    and lets taps through.
+  - **Passing** (TC6-TC9): `passedPlaces`/`passedAlong` take `passM` (`explore_pass`, 4-20 m by 2, 8 default), judged along the
+    line between fixes under 15 s apart; naming on the map stays at 60 m. `walk_pass:<id>` is written when exploring begins
+    and by the drawer's slider, read by the replay (`passFor`); a walk without it keeps 60 m. `passNote` says no number.
   - **Web reads by latitude** (`checklist_item` index `lat`), never `getAll()`
     over the kept store.
   - **Deferred:** a place moved by a new build can be found twice; the pocket

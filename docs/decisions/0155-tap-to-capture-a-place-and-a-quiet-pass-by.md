@@ -14,9 +14,9 @@ with the distance a setting.
 - Passing is a quiet mark, never a find and never a count: "Passed X without stopping" (`passedLine`), now within the
   pass-by distance (4-20 m, default 8 m, `explore_pass`) instead of 60 m. Places within 60 m are still named on the map.
 - A walk keeps the distance it was walked with (`walk_pass:<id>`), so changing the setting never rewrites an old replay;
-  a walk without it reads the default.
+  a walk without it was walked before the setting and keeps reading at 60 m, so its "Passed" lines stay (the audit's call).
 - Vision: aligned if reshaped (steward S1-S4 accepted: the armed line is plain ink above the stack; no surface counts passes).
 
 ## Consequences
-Walks recorded before this read 8 m, not the 60 m they showed at the time (`docs/DEFERRED.md`). SQLite and IndexedDB are
+Passing reads the line between two fixes close in time, not only the fixes. GPS accuracy is not weighed (`docs/DEFERRED.md`). SQLite and IndexedDB are
 unchanged (two meta keys). No derivation rule changed, so `SNAP_RULES` is untouched.

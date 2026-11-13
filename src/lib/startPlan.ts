@@ -1,5 +1,5 @@
 // @layer core
-import { EXPLORE_KEY, exploredKey, walkPassKey } from './explore/explore';
+import { EXPLORE_KEY, exploredKey, passMeta } from './explore/explore';
 import { formatDistanceNear } from './format';
 import { distanceM } from './geo';
 import { NAV } from './nav/rules';
@@ -76,7 +76,7 @@ export function startPlan(input: { walkId: string; now: number; mode: StartMode;
   const meta: [string, string][] = [];
   if (input.mode === 'explore') meta.push([EXPLORE_KEY, input.walkId], [exploredKey(input.walkId), String(input.now)]);
   // The pass-by distance this walk is walked with, so a later setting never rewrites its replay (TC9).
-  if (input.mode === 'explore' && input.passM != null) meta.push([walkPassKey(input.walkId), String(input.passM)]);
+  if (input.mode === 'explore' && input.passM != null) meta.push(passMeta(input.walkId, input.passM));
   if (input.dest) meta.push([NAV_KEY, navValue(input.walkId, input.dest)]);
   // A walk started to somewhere says so as it opens: it is recording, not just a route.
   const params: Record<string, string> | undefined = input.warning ? { warning: input.warning } : input.dest ? { started: '1' } : undefined;

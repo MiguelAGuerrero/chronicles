@@ -18,7 +18,7 @@ export const walkNote = (m: number) => {
 };
 
 /** What passing means (TC7): in words, with no count of places. */
-export const passNote = (m: number) => `A place is passed when you come within ${formatRange(m)} of it. Passing is only said in a walk’s replay.`;
+export const passNote = (m: number) => `A place is passed when you come within ${formatRange(m)} of it. It is said in words, never counted.`;
 
 /** What I'm into (E16): a switch per kind, on unless hidden. Shared with Navigate's drawer (NV21). */
 export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {

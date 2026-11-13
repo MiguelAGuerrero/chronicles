@@ -230,7 +230,7 @@ export function useExplore(opts: {
     setFound((f) => new Set([...(f ?? []), item.key]));
     latest.current.onFound(item);
   }, []);
-  const armedNow = useMemo(() => armedStill(armed, here, opts.walkId), [armed, here, opts.walkId]);
+  const armedNow = useMemo(() => armedStill(armed, here, opts.walkId, { exploring, found: found ?? undefined }), [armed, here, opts.walkId, exploring, found]);
   // Arming that no longer holds (the walker moved off, the walk ended) is let go.
   useEffect(() => {
     if (armed && !armedNow) {
@@ -245,9 +245,9 @@ export function useExplore(opts: {
   useEffect(() => {
     // Not before the finds are known: they say which captures already found something (audit 4).
     if (!found) return;
-    const fresh = opts.captures.filter((c) => !handled.current.has(c.id)).map((c) => c.id);
+    const fresh = opts.captures.filter((c) => !handled.current.has(c.id)).map((c) => ({ id: c.id, t: c.t }));
     if (!fresh.length) return;
-    for (const id of fresh) handled.current.add(id);
+    for (const c of fresh) handled.current.add(c.id);
     const hit = armedFind(armedRef.current, fresh);
     if (!hit || found.has(hit.item.key)) return;
     setArmed(null);
@@ -255,7 +255,7 @@ export function useExplore(opts: {
   }, [opts.captures, found, record]);
   const arm = useCallback((item: ChecklistItem) => {
     const walkId = latest.current.walkId;
-    if (walkId) setArmed({ item, walkId });
+    if (walkId) setArmed({ item, walkId, at: Date.now() });
   }, []);
   const disarm = useCallback(() => setArmed(null), []);
 

@@ -305,17 +305,28 @@ export function clampPass(m: number): number {
   return Math.max(r.passMin, Math.min(r.passMax, stepped));
 }
 
-/** A walk's stored pass-by distance, or the default for a walk without one (TC9). */
+/**
+ * A walk's stored pass-by distance (TC9). A walk with none was walked before the setting, when passing was
+ * naming (60 m): it keeps that, so its replay's lines stay (the lows stay in; audit 7).
+ */
 export function passFor(raw: string | null): number {
-  const n = raw == null || raw === '' ? NaN : Number(raw);
-  return clampPass(n);
+  if (raw == null || raw === '') return EXPLORE_RULES.revealM;
+  return clampPass(Number(raw));
 }
+
+/** The meta write that gives an open walk its pass-by distance: at the start, and when the drawer's slider moves (audit 1). */
+export const passMeta = (walkId: string, passM: number): [string, string] => [walkPassKey(walkId), String(clampPass(passM))];
 
 /** The place the reader tapped "Capture here" on, for one walk (TC3, TC4). */
 export interface Armed {
   item: ChecklistItem;
   walkId: string;
+  /** When it was armed (ms): only a capture made after it can find the place (audit 5). */
+  at: number;
 }
+
+/** "Capture here" is offered only for a place within reach: farther, the arming would clear at once (audit 2). */
+export const canArm = (item: { at: LngLat }, here: LngLat | null): boolean => !here || distanceM(here, item.at) <= EXPLORE_RULES.revealM;
 
 /** The plain line for an armed place: no accent, no "ready" tone (TC3, steward S2). */
 export const armedLine = (item: { name: string }): string => `The next moment is about ${item.name}`;
@@ -324,13 +335,14 @@ export const armedLine = (item: { name: string }): string => `The next moment is
  * The one find a capture makes: the armed place for the first fresh capture, else nothing. A capture
  * never finds a place by itself, however near (TC1).
  */
-export function armedFind(armed: Armed | null, fresh: string[]): { item: ChecklistItem; captureId: string } | null {
-  return armed && fresh.length ? { item: armed.item, captureId: fresh[0] } : null;
+export function armedFind(armed: Armed | null, fresh: { id: string; t: number }[]): { item: ChecklistItem; captureId: string } | null {
+  const c = armed ? fresh.find((x) => x.t >= armed.at) : undefined;
+  return armed && c ? { item: armed.item, captureId: c.id } : null;
 }
 
 /** Arming holds on its own walk while the walker is within 60 m of the place; with no fix it stays (TC4). */
-export function armedStill(armed: Armed | null, here: LngLat | null, walkId: string | null): Armed | null {
-  if (!armed || armed.walkId !== walkId) return null;
+export function armedStill(armed: Armed | null, here: LngLat | null, walkId: string | null, o: { exploring?: boolean; found?: Set<string> } = {}): Armed | null {
+  if (!armed || armed.walkId !== walkId || o.exploring === false || o.found?.has(armed.item.key)) return null;
   return here && distanceM(here, armed.item.at) > EXPLORE_RULES.revealM ? null : armed;
 }
 
@@ -528,6 +540,29 @@ export function foundList(names: string[]): string | null {
  * What a walk passed without stopping (E11, audit 9): places of shown kinds
  * named by a fix after exploring began, not found on this walk.
  */
+/** Fixes further apart in time than this are a gap, not a walk between them (audit 6). */
+const SEGMENT_MS = 15_000;
+
+/**
+ * When the walk first came within `passM` of a place: at a fix, or along the line between two fixes close in time
+ * (a walker at 1.4 m/s still crosses a 4 m disc between fixes after a thin-out, audit 6). Null if it never did.
+ */
+function firstPass(fixes: { at: LngLat; t: number }[], at: LngLat, passM: number): number | null {
+  const p = projector(at);
+  for (let i = 0; i < fixes.length; i++) {
+    const b = p(fixes[i].at);
+    if (Math.hypot(b[0], b[1]) <= passM) return fixes[i].t;
+    const prev = fixes[i - 1];
+    if (!prev || fixes[i].t - prev.t > SEGMENT_MS) continue;
+    const a = p(prev.at);
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const len2 = dx * dx + dy * dy;
+    const u = len2 === 0 ? 0 : Math.max(0, Math.min(1, -(a[0] * dx + a[1] * dy) / len2));
+    if (Math.hypot(a[0] + u * dx, a[1] + u * dy) <= passM) return fixes[i].t;
+  }
+  return null;
+}
+
 export interface PassedInput {
   items: ChecklistItem[];
   fixes: { at: LngLat; t: number }[];
@@ -539,8 +574,9 @@ export interface PassedInput {
 }
 export function passedPlaces(o: PassedInput): ChecklistItem[] {
   const shown = o.items.filter((i) => !isKindHidden(o.hidden, i.kind));
-  const near = nearPoints(o.fixes.filter((f) => f.t >= o.since).map((f) => f.at), o.passM ?? EXPLORE_RULES.passDefault);
-  const named = new Set(shown.filter((x) => near(x.at)).map((x) => x.key));
+  const passM = o.passM ?? EXPLORE_RULES.passDefault;
+  const fixes = o.fixes.filter((f) => f.t >= o.since);
+  const named = new Set(shown.filter((x) => firstPass(fixes, x.at, passM) != null).map((x) => x.key));
   const seen = new Set<string>();
   return shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key));
 }
@@ -554,8 +590,8 @@ export const passedCount = (o: PassedInput): number => passedPlaces(o).length;
 export function passedAlong(o: PassedInput): (ChecklistItem & { t: number })[] {
   const fixes = o.fixes.filter((f) => f.t >= o.since);
   return passedPlaces(o).flatMap((i) => {
-    const f = fixes.find((x) => distanceM(x.at, i.at) <= (o.passM ?? EXPLORE_RULES.passDefault));
-    return f ? [{ ...i, t: f.t }] : [];
+    const t = firstPass(fixes, i.at, o.passM ?? EXPLORE_RULES.passDefault);
+    return t != null ? [{ ...i, t }] : [];
   });
 }
 

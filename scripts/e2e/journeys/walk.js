@@ -277,7 +277,11 @@ async function checks(h) {
         await page.click('[data-testid=mark-capture]');
         await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
         const armedSaid = await page.locator('[data-testid=armed-line]').innerText();
+        await page.waitForTimeout(800);
         await shot(page, '02b-armed');
+        const lineBox = await page.locator('[data-testid=armed-line]').boundingBox();
+        const cancelBox = await page.locator('[data-testid=armed-cancel]').boundingBox();
+        check(!!lineBox && !!cancelBox && cancelBox.width < lineBox.width - 60 && cancelBox.height >= 44, `tap-to-capture-places ui 1: Cancel is a button at its own width, not the whole line (${Math.round(cancelBox?.width ?? 0)} of ${Math.round(lineBox?.width ?? 0)})`);
         check(/The next moment is about Hessian Memorial/.test(armedSaid) && (await page.locator('[data-testid=mark-card]').count()) === 0, `TC3: Capture here closes the card and says whom the next moment is about (${armedSaid.replace(/\n/g, ' ')})`);
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));

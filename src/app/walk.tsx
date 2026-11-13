@@ -38,7 +38,7 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { armedLine, clampPass, clampRange, EXPLORE_KEY, exploredKey, walkPassKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { armedLine, canArm, walkPassKey, clampPass, clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -517,6 +517,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!loaded) return;
     setLoaded(next);
     saveSettings(next).catch(() => {});
+    // The open walk's replay reads its own distance, so the slider moves it too (audit 1).
+    if (walk && exploring && next.passM !== loaded.passM) {
+      db.setMeta(walkPassKey(walk.id), String(clampPass(next.passM))).catch(() => {});
+    }
   };
   const toggleKind = (k: Kind, on: boolean) => {
     const hidden = new Set(settings.hidden);
@@ -865,7 +869,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
     if (on) {
       const key = exploredKey(walk.id);
-      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now())).then(() => db.setMeta(walkPassKey(walk.id), String(settings.passM)))), () => {}).catch(() => {});
+      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now())).then(() => loadSettings()).then((s) => db.setMeta(walkPassKey(walk.id), String(clampPass(s.passM))))), () => {}).catch(() => {});
     }
   };
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
@@ -1344,8 +1348,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {exploring && explore.armed && (
           // The armed place (TC3): plain words, above the capture stack, never moving it.
           <LiftIn testID="armed-line" style={styles.findChoice} accessibilityLiveRegion="polite">
-            <Text style={styles.findChoiceTitle}>{armedLine(explore.armed.item)}</Text>
-            <Pressable testID="armed-cancel" accessibilityRole="button" accessibilityLabel="Cancel, don’t tie the next moment to a place" onPress={explore.disarm} style={styles.findChoiceBtn} hitSlop={6}>
+            <Text style={styles.findChoiceTitle} numberOfLines={2} accessibilityLabel={armedLine(explore.armed.item)}>{armedLine(explore.armed.item)}</Text>
+            <Pressable testID="armed-cancel" accessibilityRole="button" accessibilityLabel="Cancel, don’t tie the next moment to a place" onPress={explore.disarm} style={[styles.findChoiceBtn, styles.armedCancel]} hitSlop={6}>
               <Text style={styles.findChoiceBtnText}>Cancel</Text>
             </Pressable>
           </LiftIn>
@@ -1702,7 +1706,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               {explore.found.has(openMark.key)
                 ? 'Found.'
                 : openMarkNamed
-                  ? 'Tap Capture here, then take a photo, a memo or a note, to find it.'
+                  ? 'Capture here ties the next moment to it.'
                   : 'Walk within 60 m to see what it is.'}
             </Text>
             {openMarkReach && (
@@ -1721,9 +1725,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 }}
                 disabled={navigation.finding}
               />
-              {openMarkNamed && !explore.found.has(openMark.key) && (
+              {openMarkNamed && !explore.found.has(openMark.key) && canArm(openMark, live.here) && (
                 <Button
                   testID="mark-capture"
+                  variant="secondary"
                   label="Capture here"
                   onPress={() => {
                     explore.arm(openMark);
@@ -1958,6 +1963,7 @@ const styles = StyleSheet.create({
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   findChoice: { backgroundColor: theme.ink, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, alignSelf: 'center', maxWidth: 420, gap: 8 },
   findChoiceTitle: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  armedCancel: { alignSelf: 'flex-start' },
   findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', maxWidth: 220 },
   findChoiceBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
