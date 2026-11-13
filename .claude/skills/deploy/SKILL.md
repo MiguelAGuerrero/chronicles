@@ -73,6 +73,11 @@ show the owner the divergence before merging.
    failed job.
 3. Open https://miguelaguerrero.github.io/chronicles/ and confirm the build
    is the new one (a changed screen, or the commit's visible change).
+4. **Do the owner's task on the live build** (decision 0165), when a screen changed: in a phone-size
+   browser (Playwright, an iPhone profile, the live URL), do what the slice lets a person do, from every
+   surface its spec lists, and take a picture of each step. Finding the new code in the bundle is not this
+   check: it says the code shipped, not that anyone can use it. A step you cannot do is a failed deploy
+   check; say so and fix forward. Send the pictures to the owner with where each control is.
 
 ## 4. If the export fails
 
@@ -89,4 +94,5 @@ show the owner the divergence before merging.
 
 ## Report
 
-The commit deployed, the run's URL and result, and the page checked.
+The commit deployed, the run's URL and result, the page checked, and "Where to find it": each new
+control, where it is on the live build, with its picture.

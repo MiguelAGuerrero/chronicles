@@ -82,6 +82,17 @@ Run `/vision` on the slice, in the owner's words. Its block becomes the spec's
    `specs/<slug>/spec.md`, each with an id (`XX1`, `XX2`, ... with the tab's
    prefix). A criterion names an observable outcome, never an implementation.
 2. Put owner's calls already made in the spec's "Decisions" list, with the date.
+2a. **The owner's task, in their words** (decision 0165). For each thing a person can newly do, the first
+   criterion is the task as the owner said it ("put a type on a note"), and it carries a **finding
+   criterion**: someone who was not told where the control is can find it from the screen they would look
+   on. A control is found by ink and a word or a symbol people already know; "a slot named X" checked by
+   its test id or its spoken name is a mechanism, not a finding criterion, and passes for a control nobody
+   can see.
+2b. **Every surface, from the code, not from memory** (decision 0165). When the feature attaches to
+   something drawn in more than one place (a note, a moment, a page, a pin), list every host of that
+   component (`grep -rn "<Component" src`) and every route into it, and give each one a criterion or a
+   line saying why the feature is not there. "A new note's page" is one host of the page; the page opened
+   from a note being written, from the viewer's Edit and from Respond are three more.
 3. Number the gate's criteria with the slice's prefix, beside the others: they
    get tests like any criterion.
 4. List the spec in `IN_PROGRESS` in `scripts/features.js` (`{ branch, since }`):
@@ -104,7 +115,11 @@ Write `specs/<slug>/plan.md`:
   often and in what situation, the control, and its row in the goal-to-control
   matrix (`docs/research/ui-references.md`, section 2), with a precedent from
   `docs/research/ui-teardown.md` where there is one. A control the matrix says
-  to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`).
+  to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`);
+- for every such action, **where the owner will look for it first**, and what they will see there; and
+  every default you took that makes a control quieter (muted, smaller, wordless, behind a tap), named as a
+  default so the owner can overrule it. Restraint is the vision's; a control that cannot be found is not
+  restraint (`.claude/rules/ui-patterns.md`, "Found before quiet").
 
 Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept
@@ -227,6 +242,16 @@ of browser, so the named ones run once, at the end, and the rest is mechanical:
 `ux-reviewer` subagent with the pictures, the spec and the plan's goal-to-control lines. Triage each finding in the
 spec's record (accept, defer, reject); an accepted one gets a regression test named `<slug> ui N` before its fix. A
 slice with an open accepted UI finding is not done.
+
+**The cold find** (decision 0165), before that review and apart from it: spawn the `ux-reviewer` with the
+pictures and one sentence per task in the owner's words ("put a type on the note you are writing"), and
+nothing else: no goal-to-control lines, no spec, no names of controls. It says where it would tap and
+why, or that it cannot tell. A task it cannot place, or places wrongly, is a `high` finding however well
+the control tests. Only then give it the plan's lines for the review above; a reviewer told where a
+control is cannot tell you whether it can be found.
+
+**Show the owner** (decision 0165): send the pictures of each new or moved control with `SendUserFile`,
+one line each saying where it is and what a tap does. The report's first section is "Where to find it".
 
 All green. A "Covered by nothing" line from `check:affected` for a file the
 slice wrote is a gap: give it a test (a shell over `fakePorts()`, a core unit

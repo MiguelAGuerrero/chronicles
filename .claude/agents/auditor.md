@@ -31,6 +31,14 @@ Missing one: say so at the top of the report and go on with what you have.
 Read `docs/ARCHITECTURE.md` for the model and `docs/TESTING.md` for the
 harnesses before reading the code.
 
+## Every host
+
+When the slice puts a feature on a component drawn in more than one place (a note's page, a moment's
+card, a pin, a bar), list every host of that component from the code (`grep -rn "<Name" src`) and say for
+each whether the feature reaches it. A host the spec did not name is a finding, whether the feature is
+missing there or arrived there by accident (decision 0165: the page a note opens into from the journal's
+line had no Type tool, and Respond's page had gained one).
+
 ## Tools
 
 Bash is for `npm test` and single test files only (`.claude/hooks/readonly-bash.sh` blocks anything that writes)

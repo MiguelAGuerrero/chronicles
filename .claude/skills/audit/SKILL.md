@@ -53,6 +53,16 @@ the goal-to-control matrix), `docs/research/ui-teardown.md` and
 opinion; an opinion is triaged as one. Its findings are numbered on after the
 steward's.
 
+Before either of them is told where anything is, run the **cold find** (decision 0165): the `ux-reviewer`
+with the pictures and one sentence per task in the owner's words, and no spec, no plan and no names of
+controls. Where would it tap, or can it not tell? A task it cannot place is a `high` finding. Write the
+briefs for the passes above so that they do not answer this for the reviewer: describing "a small tag at
+the end of the dateline" is how a control nobody could find passed three reviews (note types, Nov 13).
+
+Ask the auditor, for a feature on a shared component, to list **every host** of that component from the
+code and say for each whether the feature reaches it, by intent or by accident: a host the spec did not
+name is a finding either way.
+
 Beside it, run the `steward` subagent (`.claude/agents/steward.md`) with the spec,
 its "## Vision" section, the changed screens and their pictures: does the built thing still pass
 the gate it was given (decision 0094)? Its findings are triaged with the

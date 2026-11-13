@@ -58,6 +58,15 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
   centred in the whole screen in both states and never moves, the bars sitting over its margins (T7; UC7, audit 28). A screen reader keeps them up (T2; UC8). A video's own controls
   take its taps.
 
+## Found before quiet
+
+- **A control a person must find is drawn to be found** **[app]** (decision 0165): in ink, at a target's size, with a
+  word or a symbol people already know for that job. Muted grey is for status and for what the app says, never for
+  the only way to do something. Restraint (VISION.md) is about colour, motion and copy, not about hiding controls: a
+  faint, wordless glyph that nobody finds is a missing feature, however quiet it looks.
+- **A feature that belongs to a thing is on every surface where that thing is written or changed**, or the spec says
+  why not. Listing the surfaces is done from the code (the component's hosts), never from memory.
+
 ## How it is checked
 
 - A slice's plan, when it changes a screen, lists each action with its intent and its matrix row (control, avoid).
