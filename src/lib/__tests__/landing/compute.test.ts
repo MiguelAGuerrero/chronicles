@@ -70,3 +70,10 @@ test('DC11: the compute yields between tiles and between stages, with the same r
   // Two tiles, then the streets, the places, the activity and the measure: a pause before each.
   assert.ok(pauses >= 2 + 4, `${pauses} pauses`);
 });
+
+test('explore-dense-city audit 2: the near read decodes the place layer alone, the same places as a full decode', () => {
+  const full = decodeTile(new Uint8Array(body()), 14, t.x, t.y);
+  const places = decodeTile(new Uint8Array(body()), 14, t.x, t.y, ['places']);
+  assert.deepEqual(places.places, full.places);
+  assert.ok(full.roads.length > 0 && places.roads.length === 0 && places.pois.length === 0, 'nothing else decoded');
+});

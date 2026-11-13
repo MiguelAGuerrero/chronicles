@@ -88,7 +88,7 @@ export function readNear(
       const by = listingBy(border, outline);
       if (by === 'retry') return false;
       if (outline && border) {
-        const f = await fetchTiles(url, extentTiles(outline, town.at).tiles, ZOOM.neighborhood, shouldStop).catch(() => null);
+        const f = await fetchTiles(url, extentTiles(outline, town.at).tiles, ZOOM.neighborhood, shouldStop, ['places']).catch(() => null);
         if (!f || shouldStop()) return false;
         candidates = townHoods({ hoods: placesFromTiles(f.places), hamlets: hamletsFromTiles(f.places), outline, set: border.set });
         // Audit 1: as placing knows them, by the tiles already kept (a listing asks for no more): a name inside a shape is no
@@ -98,7 +98,7 @@ export function readNear(
       }
     }
     if (!candidates) {
-      const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop).catch(() => null);
+      const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop, ['places']).catch(() => null);
       if (!f || shouldStop()) return false;
       candidates = placesFromTiles(f.places);
       // Towns known only by their outline (Whitehall) are listed too (TO4, TO10); without the outlines, by points.

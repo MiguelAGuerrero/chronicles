@@ -62,9 +62,10 @@ async function run(h) {
     };
     const at15 = await underPinsAt();
     check(at15.pins > 0 && at15.under.length === 0, `DC17: at zoom 15 no busy name under any of ${at15.pins} "?" pins (${at15.under.join(', ')})`);
-    // Close in (16) on a busy street's own label point, where the pins spread apart and leave room for names.
-    const firstGiven = (await given())[0];
-    await pg.evaluate(([at]) => window.__zoomTo?.(at, 16), [firstGiven?.at ?? mid]);
+    // Close in (16) on the busy street's label point nearest the area's own point, where its pins spread apart and leave
+    // room for names (an area with a shape of its own has its pins only inside it, neighborhood boundaries HB11).
+    const nearest = (await given()).filter((g) => g.at).sort((a, b) => metres(a.at, mid) - metres(b.at, mid))[0];
+    await pg.evaluate(([at]) => window.__zoomTo?.(at, 16), [nearest?.at ?? mid]);
     await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-names') ?? '[]') !== '[]', null, { timeout: 30000 }));
     await idle();
     await shot(pg, 'dense-1b-names-close');
