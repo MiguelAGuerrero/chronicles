@@ -87,6 +87,12 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 - **`MemoriesScreen` saves it** with `resurface.saveNote(..., typeOnly)`, which patches the page's moments at once; `OpenLine` only shows the row and reports the pick.
 - **A typed note draws `NoteMark` above its words** (glyph and name), while it is written and once kept, so Done moves nothing; a bare glyph beside More read as a button. More has Type, with `NoteTypeMenu` alone in the same sheet under a heading. A response's page has no Type tool (NY15): `NewNotePage` takes `typed` from capture surfaces only.
 
+## A voice note plays in line (the owner, Nov 13; journal voice audit 1-19)
+
+- **It never opens the viewer.** An entry's voice piece is `MemoLine` (`components/journal`): a 48 pt play control, a progress bar filling as it plays, and a clock that always reads "a / b" (`lib/journal/memoPlay`). It is drawn in ink (`theme.ink`, the track `theme.edge`): the voice purple is the line's own recording colour, never the page's. Its file is resolved and loaded only on the first press, and a file that does not resolve gives the row back after `MEMO_LOAD_WAIT_MS`.
+- **One note plays at a time, and a recording stops it** (`lib/journal/nowPlaying`): a note claims the sound when it starts and lets go of its player when another claims it; `useCaptures.startVoice` claims it as `RECORDING`. A trimmed note plays its kept part through `lib/voiceTrim` and restarts as the viewer's player does (`isRestarting`).
+- **Known gap:** the play control sits inside the entry's open button, so a screen reader on a phone may not reach it apart from the entry (the viewer still plays the note): `docs/DEFERRED.md`.
+
 ## Traps
 
 - **An iPhone floats the keyboard's own row (previous, next, a tick) over the page** (fix keyboard-accessory, the owner's phone, Nov 13). A web page cannot turn it off or measure it, and `visualViewport` does not count it, so it sat on the bar's camera, mic and Done. The bar keeps `ACCESSORY_ROOM` empty under its controls while the keyboard is up (`accessoryRoom`, `floatsAccessory` in `lib/journal/keyboard.ts`: an iPhone or iPad whose engine has `anchor-name`, which arrived in the release that began floating the row; the Home Screen app's agent names no version). The 56 is read off a screenshot; never seen to work on a phone.

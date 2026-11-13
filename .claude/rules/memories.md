@@ -39,6 +39,8 @@ Earlier walks' captures shown as faint pins on a walk (`lib/memories`) and the m
 - **Under this walk's pins:** memory markers get z-index 0 on web and are drawn
   first on native. A faint pin shrinks toward its stem's foot. Its label is "N
   memories here".
+  Since `tend map T14` a memory pin of several shows its kinds fanned, no numeral, and says "Memories: a photo
+  and a note" (`pinSpoken`, `lib/pins.ts`).
 - **A clock badge** (MR10, after the audit: a faded pin read as "my pin, faded")
   marks a memory pin as from the past. It is a solid ink disc with a white clock,
   outside the fade, unlike a find's white check.

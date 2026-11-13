@@ -1,9 +1,9 @@
-import { type Faced, facedAll, hasMore } from '../lib/moment';
+import { type Faced, hasMore } from '../lib/moment';
 import { STACK_SPOKEN } from './StackMark';
-import { useEffect, useState } from 'react';
-import { db } from '../lib/db';
-import { makeThumb } from '../lib/media/thumb';
-import { thumbShown, wantsThumb } from '../lib/thumbPlan';
+import { useState } from 'react';
+import { thumbShown } from '../lib/thumbPlan';
+import { useStill } from '../lib/thumbs/useStill';
+import { VideoMark } from './VideoMark';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewLine } from '../lib/memories';
 
@@ -23,27 +23,10 @@ export function MemoryPreview(props: {
   onClose: () => void;
 }) {
   const first = props.captures[0];
-  // A photo's small copy (TH4). An older photo makes it once, here (TH3), read fresh from storage,
-  // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon
-  // rather than a second full decode (audit 7); a copy whose file is gone, the photo (audit 6).
-  const [row, setRow] = useState<Faced>(first);
-  useEffect(() => {
-    if (first.kind !== 'photo') return;
-    let alive = true;
-    (async () => {
-      const fresh = (await db.getMomentsByIds([first.id]).then(facedAll).catch(() => []))[0] ?? first;
-      if (!alive) return;
-      setRow(fresh);
-      if (!wantsThumb(fresh)) return;
-      const t = await makeThumb(fresh);
-      if (!t) return;
-      void db.updatePiece(fresh.piece_id, { thumb_path: t }).catch(() => {});
-      if (alive) setRow({ ...fresh, thumb_path: t });
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [first]);
+  // A photo's small copy (TH4) or a video's still (VS2): an older one is made through the thumbs shell, read fresh,
+  // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon rather than a second
+  // full decode (audit 7); a photo's copy whose file is gone, the photo (audit 6).
+  const row = useStill(first);
   const [copyBroken, setCopyBroken] = useState(false);
   const ref = thumbShown(row, copyBroken);
   const uri = useMediaUri(ref ? { ...row, file_path: ref } : null);
@@ -66,11 +49,12 @@ export function MemoryPreview(props: {
               source={{ uri }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
-              onError={() => (ref === row.thumb_path && ref !== row.file_path ? setCopyBroken(true) : setBroken(uri))}
+              onError={() => (ref === row.thumb_path && ref !== row.file_path && row.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
             />
           ) : (
             <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
           )}
+          {row.kind === 'video' && uri && broken !== uri ? <VideoMark size={10} style={styles.mark} /> : null}
         </View>
         <View style={styles.text}>
           <Text style={styles.line} numberOfLines={2}>{line}</Text>
@@ -94,6 +78,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
+  mark: { position: 'absolute', right: 3, bottom: 3 },
   thumb: { width: 56, height: 56, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: 2 },
   line: { fontSize: 15, fontWeight: '600', color: theme.ink },

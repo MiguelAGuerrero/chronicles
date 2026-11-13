@@ -9,8 +9,9 @@ import type { CapturePatch } from '../../lib/captureBus';
 import { FULL_LINES_TEXT, openSession, step, TOOLS, type EditTool, type Session, type SessionEvent } from '../../lib/editSession';
 import { removeMedia } from '../../lib/media';
 import { keepEditedThumb } from '../../lib/media/thumb';
+import { thumbs } from '../../lib/thumbs';
 import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
-import { THUMB } from '../../lib/thumbPlan';
+import { stillChanged, THUMB } from '../../lib/thumbPlan';
 import { formatElapsed } from '../../lib/format';
 import { voiceReachedEnd, voiceSpan, wholeMs } from '../../lib/voiceTrim';
 
@@ -124,6 +125,11 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         // The old copy stays; the photo itself shows the edits.
       }
     }
+    // A video's still is taken again where the new kept part starts, with its crop and rotation (VS6), only when
+    // the trim, crop or turn moved (audit 8), on the thumbs shell's queue after the editor closes (audit 6): it
+    // replaces the still stored now, read fresh (audit 3), or drops it if none can be made (audit 9).
+    const nextEdit = patch.edit === undefined ? c.edit : patch.edit;
+    if (kind === 'video' && stillChanged(c.edit, nextEdit)) void thumbs.remake(c.id, c.piece_id, nextEdit ?? null);
     props.onClose();
   };
 

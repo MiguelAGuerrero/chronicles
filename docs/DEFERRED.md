@@ -159,6 +159,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
 - A caption dragged near the bottom of a portrait photo sits behind the viewer's Respond row while the viewer is open (fix respond-bottom audit 5); the saved photo and the replay's card are not affected
 - On Android with edge-to-edge, the reported keyboard height leaves out the navigation bar beneath it, so Respond's Cancel and Keep reply may sit partly under the keyboard (fix respond-bottom audit 7): waits on a device run (NATIVE_UNVERIFIED), since whether the keyboard events reach the Modal's field at all is unknown
+- The journal's in-line voice note is not a focus target apart from its entry's open button for a screen reader on a phone, because it sits inside it; the viewer still plays the note. The fix splits the entry's open target, a navigation call for the owner (journal voice audit 2)
+- The viewer's player says "voice memo" where the journal's says "voice note": one noun for both (journal voice audit 16, opinion)
+- The journal's in-line voice note shows its pause glyph while the file is still resolving, before anything plays: a brief busy state would be honest (journal voice audit 19, opinion)
 
 ## Deletion
 
@@ -203,6 +206,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
   `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
   the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
+- [loop] A pin of one memory says "Memory: Voice memo" where a pin of several says "Memories: a photo and a note": two tables for one thing (`pinSpoken`, `src/lib/pins.ts`); "Memory: a voice memo" from the same table would match (the T14 review's U5, low; a pin of one moment is not T14's subject)
+- [loop] At 320 px the walk's "Add to this moment" offer, a toast with four controls, lies over the pins it refers to (`after3x-walk-320` in the T14 probe, the same before T14; `.claude/rules/ui-patterns.md`, a control may not float over its content) (the T14 review's U6, low)
+- [loop] No test runs the web's in-place relabel of a pin (`usePinMarkers` in `WalkMap.web.tsx`, the name set again when a walk clock comes or goes after the pin was drawn): every journey's clock arrives with or before the pins (the T14 review's test finding; `tend map audit 21` makes the clock go at Stop, and the walk screen leaves for the replay at once)
+- [owner] A merged star looks like an unnamed lone star: since `tend places T15` it draws no numeral, and only the eight busiest lone stars carry their name, so a tap that zooms in looks like one that opens a place (the T15 review's U2, low: a wrong guess only zooms in). One shape: two star glyphs fanned in the one 36 px disc, as T14's pins say "several" with two discs; no numeral, one size (decision 0154)
+- [owner] The place sheet under a selected star says its walks in digits ("Providence, Rhode Island · 1 walk · 175 m", `HomeSheet.tsx`'s place header) while the star now says "Fox Point, one walk. Open" (`tend places T15`): two voices for one count on one screen. The sheet's line keeps the meta lines' digits (decision 0052 kept the walks list's "date, distance, time and captures"), and T19 asks the same of the replay's cards; in words ("one walk") would be new copy, so yours, beside T19 (the T15 review's F4 and U6, low)
+- [loop] The selected star is not told to a screen reader: the web's star is a raw button with an `aria-label` only (`WalkMap.web.tsx`, the star markers), and native's `pinHit` View has no `accessibilityState` (`WalkMap.native.tsx`); give the web button `aria-current="true"` and native `accessibilityState={{ selected }}` (WCAG 4.1.2; the T15 review's U4, low; before T15 too)
+- [loop] At the zoom where two places' stars merge, a lone pin's head can cover the merged star's lower half, and their targets overlap (about 21 x 43 px in the T15 probe's `after-merged-390`, a star at 131,282 and a note pin at 126,309; the same before T15): the stars and the pins are grouped apart, each within 44 px, never against each other. Draw the star's target above the pins, or space pins from stars as they are spaced from each other (WCAG 2.5.8; the T15 review's U5 and F5, low)
+- [loop] `formatDistance` joins a number and its unit with a plain space, so a line can break between them: the place sheet's header reads "175" at the end of one line and "m" on the next at 390 px (`09-home-place` in the `chronicle` journey, after `tend places T15`; the same before). A no-break space in `formatDistance` (`lib/format.ts`) and its siblings keeps them together (the T15 review's U6 and F4, low)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -713,14 +724,19 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The first character's place can be lost to a reload** within its first seconds, as noted above; the audit added no fix.
 - **The line and the page, deferred** (`specs/chronicle-journal/spec.md`, the `/fix` review): a new page opened from the line reads a fix as the pencil does, on a walk with a stale fix too, and one left empty has read a location for nothing (5); a list inside a quote reads as the quote's lines on the sheet (8); a walk ending while a page is up closes the page, its words kept (10); the page's words are sans where the sheet's are serif (ui 3).
 - **Note pages' serializer** (found by the same review, on `main` before it): a URL or word with `_` or `*` gains a backslash each time the page saves it, and a hard-broken line that looks like a heading rule or a table row reopens as a heading or as an empty page (`src/lib/notePage/schema.ts`, `toBody`). In `docs/STATUS.md` for the owner.
-- **Recording a voice note from a thread at 320 px leaves the field about 20 px, and a failed save in a thread shows Retry with no "Not kept yet"** (audit 46): the bar's row holds the field, the timer, Discard, the camera, stop and Done in 304 px; with the field in the bar the status is never drawn. Fix: the timer row replaces the field while recording there, and the status is drawn above the row.
-- **Deleting the entry the page opened on rearranges the stack, and Undo does not put it back** (audit 47): `anchorOf` falls to the last entry, so the entries written since slide away. Fix: remember the anchor's time and fall to the first entry after it.
-- **The line being written sits about 22 px lower under its dateline than a kept entry's words** (ui U8): the field's own padding and the entry's foot stand between them, so the words rise that much on Done. Fix: give the field a kept entry's offset, checked against a photo as the entry's last piece.
-- **No picture of the bar's failed save ("Not kept yet", Retry) at 320 px** (ui U9): the status has about 120 px there. Add a `shot()` at 390 and 320 and see whether it fits.
-- **The page's slide waits a hard-coded 450 ms** (`SETTLE_MS` in `JournalPage`, audit 49's second half): a timing outside `lib/motionTokens`. The animated scroll itself now respects reduce motion.
-- **A type save that fails is not said, and a type never reaches the page's own copy while a read has failed** (note-types audit 59): the rejection is caught and the slot goes on showing what is stored, but nothing tells the owner; with the page drawing its sitting's copy (`session`), a pick is stored and not shown until the read succeeds. Fix: say it in the bar as a failed save is, and patch `session`.
-- **A second tap on the Type slot within the write's few milliseconds reads the old type** (note-types audit 64): the ask carries the type as it was, so the same pick sets it again instead of clearing. Fix: toggle against the stored value when the write lands.
-- **Neutral is a minus in a circle, which reads as "remove", and the eight above the bar have no "No type"** (ux 13; the glyph is note-types audit 23, already deferred): clearing is a tap on the marked one, shown by its tint, rule and heavier name. Fix: a flat-mouthed face when the icon set has one; a ninth "No type" if the owner wants the two pickers alike.
+- **Deferred (video thumbnails):** a still the owner picks (a poster frame), a moving preview on a long press, and a
+  video in the reminder card (photos only today), none asked; a still that times out (15 s on the web, 10 s for a
+  phone's player) is marked `THUMB.none` and not tried again, as an undecodable photo is, so a video on a slow phone
+  keeps its glyph until its next edit; the still is not remade when only a video's lines or text change (they are not
+  in the still, as a photo's caption is not in its copy).
+- **The walk's memory preview card sits under the map's chrome** (video-thumbnails ui review, U1): the Layers button,
+  the scale bar and the (i) credits are drawn over the card, because the walk screen's `scaleInset` and corner buttons
+  count the capture row but not the preview. Older than video thumbnails; a fix of its own (raise them above the card
+  while it is up, as the tabs do above the sheet).
+- **Video thumbnails' audit, deferred:** the walk's memory preview writes its date with the current year and its line
+  is cut off ("Nov 12, 2026 · Not on ...", audit 10, older); a Memories entry with no place shows a place glyph and no
+  words (audit 11, older; the resurfaced card says "No place kept"). A capture-time still (`useCaptures`) still runs
+  beside the thumbs shell's queue, so a new video's still and an older one's can be made at once (two at most).
 
 ## Explore in a dense city (decision 0156)
 
@@ -742,3 +758,9 @@ What the note types slice left out (`specs/note-types`, decision 0161).
 - [loop] **Note types** (0161, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
 - [loop] **Note types** (0161, audit 22): the Type menu on the note page, in two columns, may wrap or crowd at 200% text or below 320 px wide; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).
 - [owner] **Note types** (0161, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.
+- **The voicetrim journey waits for a test id main no longer has** (found deploying video thumbnails, Nov 13): it waits
+  for `[data-testid=memories-list] [data-testid=moment-card]`, and the journal page (`e43c64a`, JN1-JN24) dropped
+  `memories-list`, so the journey times out before its first check, on main as on any branch. Its seeding should find
+  the moment on the journal page. `npm run e2e:baseline -- voicetrim` printed each of its three runs as failed, then
+  "passed 3/3 on main": the baseline script's summary misreads a run that throws before a check.
+

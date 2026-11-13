@@ -1,11 +1,13 @@
 // @layer core
 import type { Faced } from './moment';
-import { distanceM } from './geo';
+import { distanceM, pausedMs, type PauseSpan } from './geo';
 import { markOf, type NoteTypeInfo } from './noteType';
+import { JUST_AFTER_MS, minutesInLine } from './resurface/context';
+import { numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
 
-/** Pins closer than this on screen merge into one, with a count. */
+/** Pins closer than this on screen merge into one, drawn with its kinds (tend map T14). */
 export const PIN_GROUP_PX = 44;
 /** Never group captures further apart than this, however far out the map is. */
 const MAX_GROUP_M = 5000;
@@ -122,11 +124,11 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
 
 /**
  * The stored ref of the small copy a pin's head shows (QL26): only for a pin of
- * one photo whose copy is made. Never the full photo: while the copy is being
- * made, or for a photo that won't decode, the pin keeps its icon, so a map never
- * decodes full photos. A pin of several keeps its count.
+ * one photo or one video (VS3) whose copy is made. Never the full photo or the
+ * video's file: while the copy is being made, or for one that won't decode, the
+ * pin keeps its icon, so a map never decodes full media. A pin of several shows its kinds (`pinHeadKinds`, tend map T14).
  */
-/** A pin of exactly one note with a type wears that type's mark (NY10); a pin of several keeps its kind's glyph and its count. */
+/** A pin of exactly one note with a type wears that type's mark (NY10); a pin of several shows its kinds (tend map T14). */
 export function pinMark(pin: CapturePin): NoteTypeInfo | null {
   return pin.captures.length === 1 ? markOf(pin.captures[0]) : null;
 }
@@ -140,6 +142,96 @@ export function pinNoteLabel(pin: CapturePin): string | null {
 export function pinThumb(pin: CapturePin): string | null {
   if (pin.captures.length !== 1) return null;
   const c = pin.captures[0];
-  if (c.kind !== 'photo' || !c.thumb_path || c.thumb_path === THUMB.none) return null;
+  if ((c.kind !== 'photo' && c.kind !== 'video') || !c.thumb_path || c.thumb_path === THUMB.none) return null;
   return c.thumb_path;
+}
+
+/** A walk's clock, so a pin can say how far into the walk its moments were (tend map T14): its id, start and pauses. */
+export interface WalkClock {
+  id: string;
+  started_at: number;
+  pauses: PauseSpan[];
+}
+
+/** Its kinds in the order first taken, each once. */
+function kindsInOrder(pin: CapturePin): CaptureKind[] {
+  return [...new Set(pin.captures.map((c) => c.kind))];
+}
+
+/**
+ * The kinds a pin of several moments shows in its head, fanned, in place of a numeral (tend map T14, decision
+ * 0154): the first two kinds taken; a pin of one kind shows it twice, so it never reads as one moment. Null for a
+ * pin of one moment, which keeps its own head.
+ */
+export function pinHeadKinds(pin: CapturePin): CaptureKind[] | null {
+  if (pin.captures.length < 2) return null;
+  const kinds = kindsInOrder(pin);
+  return kinds.length > 1 ? kinds.slice(0, 2) : [kinds[0], kinds[0]];
+}
+
+const ONE: Record<CaptureKind, string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
+const MANY: Record<CaptureKind, string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
+
+/** A pin's moments by kind, in words, in the order first taken: "A photo and a note", "Two photos and a voice memo" (VISION.md, "Counts are words"). */
+export function pinKindsWords(pin: CapturePin): string {
+  const parts = kindsInOrder(pin).map((k) => {
+    const n = pin.captures.filter((c) => c.kind === k).length;
+    return n === 1 ? ONE[k] : `${numberWord(n)} ${MANY[k]}`;
+  });
+  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] ?? '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * How far into its walk a pin's first moment was, in walked time and in words, as the moment's own line says it
+ * (MC3): "twelve minutes in", "at the start". Null unless every moment of the pin is of one walk whose clock is given,
+ * and they lie within JUST_AFTER_MS of each other in walked time (tend map audit 19).
+ */
+export function pinInto(pin: CapturePin, clocks: readonly WalkClock[] | undefined): string | null {
+  const walkId = pin.captures[0]?.walk_id;
+  if (!walkId || pin.captures.some((c) => c.walk_id !== walkId)) return null;
+  const clock = clocks?.find((w) => w.id === walkId);
+  if (!clock) return null;
+  const walked = (t: number) => Math.max(0, t - clock.started_at - pausedMs(clock.pauses, clock.started_at, t));
+  const first = walked(pin.captures[0].t);
+  // Pins group by place, never time: moments far apart in the walk (a loop's start and end) share no one time (tend
+  // map audit 19), so the pin says its kinds alone.
+  if (walked(pin.captures[pin.captures.length - 1].t) - first > JUST_AFTER_MS) return null;
+  const line = minutesInLine(first);
+  return line.charAt(0).toLowerCase() + line.slice(1);
+}
+
+const KIND_NAME: Record<CaptureKind, string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
+
+/**
+ * What a screen reader hears of a pin's moments, before its bell and its "Open": one moment by its kind ("Photo",
+ * "Note, idea", "Memory: Photo"); several by their kinds in words, with how far into the walk when it is known (tend
+ * map T14): "A photo and a note, twelve minutes in"; a memory pin's "Memories: a photo and a note".
+ */
+export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: readonly WalkClock[] }): string {
+  if (pin.captures.length === 1) {
+    const kind = KIND_NAME[pin.captures[0].kind];
+    return o.memory ? `Memory: ${kind}` : pinNoteLabel(pin) ?? kind;
+  }
+  const kinds = pinKindsWords(pin);
+  if (o.memory) return `Memories: ${kinds.charAt(0).toLowerCase()}${kinds.slice(1)}`;
+  const into = pinInto(pin, o.clocks);
+  return into ? `${kinds}, ${into}` : kinds;
+}
+
+/**
+ * What a pin's marker is keyed by on native (tend map audit 20): its moments, its small copy and its note's mark, so a
+ * regroup that keeps the first id and the count (a photo and a note becoming two photos) still redraws its fan.
+ */
+export function pinKey(pin: CapturePin): string {
+  return [pin.id, pin.captures.map((c) => c.id).join(','), pinThumb(pin) ?? '', pinMark(pin)?.id ?? ''].join(':');
+}
+
+/**
+ * The walk screen's clocks (tend map audit 21): its walk's, with the open walk's pauses, only while the open walk is
+ * that same walk. After Stop the open walk and its pauses are gone while the screen still shows the walk, and its
+ * pins' minutes would count the pauses as walked; with no clock they say their kinds alone.
+ */
+export function walkClocks(walk: { id: string; started_at: number } | null, open: { id: string } | null, pauses: PauseSpan[]): WalkClock[] | undefined {
+  return walk && open?.id === walk.id ? [{ id: walk.id, started_at: walk.started_at, pauses }] : undefined;
 }

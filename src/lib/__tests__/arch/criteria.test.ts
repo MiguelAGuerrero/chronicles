@@ -93,7 +93,7 @@ test('TG23 a todo is not a test: an id named only by a todo unit test or check.t
 });
 
 type TestFirst = {
-  testFirst(ids: string[], commits: { sha: string; lines: string[] }[]): { id: string; ok: boolean; why: string }[];
+  testFirst(ids: string[], commits: { sha: string; lines: string[] }[], renamed?: Record<string, string>): { id: string; ok: boolean; why: string }[];
   callLines(raw: string[]): string[];
 };
 const tf = load(join(ROOT, 'scripts', 'test-first.js')) as TestFirst;
@@ -196,3 +196,21 @@ test('TG26 the procedures track the spec, commit todos first, and check the hist
   assert.match(deploy, /IN_PROGRESS/);
   assert.match(read('docs/TESTING.md'), /check:test-first/);
 });
+
+test('TG24 test-first: a renamed prefix keeps the order its history holds, and only for the spec it names', () => {
+  const todo = (id: string) => `test('${id}: x', { todo: 'test first' }, () => {});`;
+  const real = (id: string) => `test('${id}: x', () => {});`;
+  const commits = [
+    { sha: 'a1', lines: [todo('YY1'), todo('YY2')] },
+    { sha: 'b2', lines: [real('YY1'), todo('YY2')] },
+    { sha: 'c3', lines: [real('ZZ1'), real('ZZ2')] },
+  ];
+  const r = Object.fromEntries(tf.testFirst(['ZZ1', 'ZZ2'], commits, { ZZ: 'YY' }).map((x) => [x.id, x]));
+  assert.equal(r.ZZ1.ok, true, r.ZZ1.why);
+  assert.equal(r.ZZ2.ok, true, 'a todo under the old name, made real under the new one');
+  const none = Object.fromEntries(tf.testFirst(['ZZ1'], commits).map((x) => [x.id, x]));
+  assert.equal(none.ZZ1.ok, false, 'without the map, a renamed id has no todo before it');
+  const real1 = [{ sha: 'a1', lines: [real('YY1')] }, { sha: 'b2', lines: [todo('ZZ1'), real('ZZ1')] }];
+  assert.equal(tf.testFirst(['ZZ1'], real1, { ZZ: 'YY' })[0].ok, false, 'an old name made real before any todo still fails');
+});
+

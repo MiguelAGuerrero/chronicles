@@ -3,6 +3,7 @@ import { NewNotePage } from '../components/notePage/NewNotePage';
 import type { NotePageHandle } from '../components/notePage/NotePage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { walkClocks } from '../lib/pins';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
@@ -783,6 +784,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
     .map((c) => c.id)
     .join(',');
+  // The walk's clock, so a pin of several says how far in it was (tend map T14).
+  // Only while the open walk is this one: after Stop its pauses are gone (tend map audit 21).
+  const openRow = openWalk.walk;
+  const clocks = useMemo(() => walkClocks(walk, openRow, pauses), [walk, openRow, pauses]);
   const memories = useMemo(() => {
     const ids = new Set(memoryIds.split(','));
     return memoryPool.filter((c) => ids.has(c.id));
@@ -1182,6 +1187,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {...drawn}
         busyNamesNear={namesNearYou(live.here)}
         captures={captures}
+        clocks={clocks}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}

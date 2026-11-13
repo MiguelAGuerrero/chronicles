@@ -12,7 +12,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
 import { useMemo } from 'react';
-import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin } from '../../lib/pins';
+import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin, type WalkClock } from '../../lib/pins';
 import type { Star } from '../../lib/places';
 import type { LngLat, StreetSegment } from '../../lib/types';
 import type { CircleLayerSpecification } from 'maplibre-gl';
@@ -115,6 +115,11 @@ export interface WalkMapProps {
    * planner stay north-up, as they have no way back to it (tend map 1).
    */
   onBearingChange?: (bearing: number) => void;
+  /**
+   * The walks of the pins' moments, with their pauses, so a pin of several says how far into its walk it was (tend map
+   * T14): "A photo and a note, twelve minutes in". Without its walk's clock, a pin says its kinds alone.
+   */
+  clocks?: readonly WalkClock[];
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Faced[]) => void;
   /** Captures from earlier walks nearby, drawn as faint pins (Memories on revisit, MR1-MR3). */

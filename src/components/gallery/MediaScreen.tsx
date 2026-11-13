@@ -142,7 +142,6 @@ export function MediaScreen() {
     },
     [st.zoom],
   );
-  const wantsThumb = useCallback((id: string) => void gallery.thumbFor(id), []);
 
   // The viewer's place and walk line, as Memories' cards say it (MG8), read for the moment shown.
   const context = useStore(resurface.store, (s) => s.context);
@@ -195,13 +194,13 @@ export function MediaScreen() {
         return (
           <View style={[styles.row, { height: item.height }]}>
             {item.tiles.map((t) => (
-              <GalleryTile key={t.key} tile={t} size={cell} fit={fit} label={tileLabel(t, timeOf(t.t), walks, st.streets)} onPress={openTile} onWantsThumb={wantsThumb} />
+              <GalleryTile key={t.key} tile={t} size={cell} fit={fit} label={tileLabel(t, timeOf(t.t), walks, st.streets)} onPress={openTile} />
             ))}
           </View>
         );
       return <PeriodBlock block={item.block} width={width} textH={blockTextHeight(fontScale)} coverH={coverHeight(width)} fit={fit} onPress={openBlock} />;
     },
-    [cell, fit, walks, st.streets, openTile, wantsThumb, width, openBlock, fontScale],
+    [cell, fit, walks, st.streets, openTile, width, openBlock, fontScale],
   );
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -274,7 +273,7 @@ export function MediaScreen() {
         onSaveEdit={async (c, patch) => {
           await captureEdits.save(c, patch);
           gallery.patch(c.piece_id, patch);
-          resurface.patch(c.id, patch);
+          resurface.patch(c.id, patch, c.piece_id);
         }}
         onSaveNote={(c, body, type, only) => resurface.saveNote(c, body, type, only)}
       />

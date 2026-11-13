@@ -6,18 +6,27 @@ import { THUMB } from '../../lib/thumbPlan';
 import { useMediaUri } from '../../lib/useMediaUri';
 import { COLORS } from '../map/types';
 import { Icon } from '../icons';
+import { VideoMark } from '../VideoMark';
+import { useStill } from '../../lib/thumbs/useStill';
 import { theme } from '../ui';
 import { PILE, pileCenter, tiltOf, type StageCtx } from './layout';
 
 /** A photo's small copy where it has one (a map never decodes full photos; nor does the pile). */
 const small = (c: Faced): Faced => (c.kind === 'photo' && c.thumb_path && c.thumb_path !== THUMB.none ? { ...c, file_path: c.thumb_path } : c);
+/** A video's still, or nothing: the pile never loads a video's file for its card (VS3, VS5). */
+const still = (c: Faced): Faced | null => (c.kind === 'video' && c.thumb_path && c.thumb_path !== THUMB.none ? { ...c, file_path: c.thumb_path } : null);
 
-function Thumb({ capture }: { capture: Faced }) {
-  const uri = useMediaUri(capture.kind === 'photo' ? small(capture) : null);
+function Thumb({ capture: row }: { capture: Faced }) {
+  // The row's copy or still, or one made since it was read; the pile asks for none itself (VS2).
+  const capture = useStill(row, { ask: false });
+  const uri = useMediaUri(capture.kind === 'photo' ? small(capture) : still(capture));
   return (
     <View style={[styles.thumb, { transform: [{ rotate: `${tiltOf(capture.id)}deg` }] }]}>
-      {capture.kind === 'photo' && uri ? (
-        <Image source={{ uri }} style={styles.img} resizeMode="cover" accessibilityIgnoresInvertColors />
+      {uri ? (
+        <View style={styles.img}>
+          <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+          {capture.kind === 'video' ? <VideoMark size={10} style={styles.mark} /> : null}
+        </View>
       ) : (
         <View style={[styles.img, styles.video]}>
           <Icon name="videocam" size={18} color={theme.surface} />
@@ -55,6 +64,7 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 4, top: 4, width: PILE.thumb, backgroundColor: theme.surface, paddingTop: 3, paddingHorizontal: 3, paddingBottom: 9, borderRadius: 3,
     shadowColor: theme.ink, shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
-  img: { width: '100%', aspectRatio: 4 / 5 },
+  img: { width: '100%', aspectRatio: 4 / 5, overflow: 'hidden' },
+  mark: { position: 'absolute', right: 3, bottom: 3 },
   video: { backgroundColor: COLORS.video, alignItems: 'center', justifyContent: 'center' },
 });

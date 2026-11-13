@@ -87,7 +87,7 @@ async function run(h) {
       await pg.click('[data-testid=edit-rotate]');
       await pg.click('[data-testid=edit-done]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 15000 });
-      const momentPin = pg.locator('.maplibregl-map [aria-label$=" captures here. Open"], .maplibregl-map [aria-label="Photo. Open"]');
+      const momentPin = pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), .maplibregl-map [aria-label="Photo. Open"]');
       await momentPin.first().waitFor({ timeout: 20000 });
       await momentPin.first().click();
       // The pin may hold both moments: step through them all.
@@ -251,7 +251,7 @@ async function run(h) {
     // ME4: the viewer shows the edits; ME3: the editor opens on them.
     await step('ME3, ME4, ME16 viewer', async () => {
       await pg.waitForTimeout(1500);
-      const pin = pg.locator('.maplibregl-map [aria-label$=" captures here. Open"], .maplibregl-map [aria-label="Photo. Open"]');
+      const pin = pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), .maplibregl-map [aria-label="Photo. Open"]');
       await pin.first().click();
       await pg.waitForSelector('[data-testid=edited-photo]', { timeout: 10000 });
       await pg.waitForTimeout(1200);

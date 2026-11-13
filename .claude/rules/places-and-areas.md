@@ -173,5 +173,11 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
   - A merged star zooms in to its places' points. A single star is selected
     (ringed) and eased above the sheet with `showPoint`.
   - The 8 busiest single stars show their name.
+  - Since `tend places T15` (decision 0154, the owner's "Ink star, no numeral"): every star is a white star on an ink
+    disc, never the accent, and one size; a merged star draws no numeral, and its spoken name says how many in words
+    (`starSpoken` in `lib/quietLines`: "Two places, two walks. Zoom in"; a lone one "Fox Point, one walk. Open",
+    `tend places audit 5`). The selected star keeps its disc and white edge and gains a 3 pt ink ring outside it
+    (ink, white, ink: filled stays chosen, `tend places audit 1`). `specs/v0.5-places` criterion 13 and H7 still say
+    "with a count" (docs/STATUS.md, "Open before the loop").
   - A walk with no town is "Elsewhere in" its state, at town and
     neighborhood zoom.

@@ -297,9 +297,10 @@ async function checks(h) {
         const expectShared = apartM == null || apartM <= reachM;
         await page.waitForFunction((one) => {
           const labels = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')].map((e) => e.getAttribute('aria-label'));
-          return one ? labels.includes('2 captures here. Open') : labels.includes('Voice memo. Open') && labels.includes('Video. Open');
+          return one ? labels.some((l) => /^A voice memo and a video, .+\. Open$/.test(l)) : labels.includes('Voice memo. Open') && labels.includes('Video. Open');
         }, expectShared, { timeout: 10000 }).catch(() => {});
-        const shared = (await page.locator('[aria-label="2 captures here. Open"]').count()) === 1;
+        // tend map T14: the shared pin names its kinds in words with the minutes in, never "2 captures here".
+        const shared = (await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')))).filter((l) => /^A voice memo and a video, (at the start|.+ minutes? in)\. Open$/.test(l)).length === 1;
         const pinsAfter = await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
         const twoPins = pinsAfter.includes('Voice memo. Open') && pinsAfter.includes('Video. Open');
         const fair = apartM == null ? shared : apartM <= reachM ? shared : twoPins;
@@ -316,7 +317,7 @@ async function checks(h) {
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
         await page.click('[data-testid=note-done]');
         await page.waitForTimeout(2500);
-        check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
+        check((await page.locator('[aria-label="Note. Open"], .maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');
         // What happened here: a long press near where the note was taken (the
         // map follows the walker, so near the map's center) shows it. A plain

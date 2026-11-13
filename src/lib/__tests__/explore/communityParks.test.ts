@@ -165,7 +165,7 @@ test('PC12: nothing is fetched to sort: the judgement is synchronous and the mod
 });
 
 test('PC13: ATLAS_CODE is past a8 (a9, a10 since tend explore T9) and a stored place carries no kind', () => {
-  assert.ok(/^a1[01]\./.test(ATLAS_CODE), ATLAS_CODE);
+  assert.ok(/^a1[012]\./.test(ATLAS_CODE), ATLAS_CODE);
   const p = read([park('Elm Street Playground')])[0];
   assert.equal(p.kind, CP);
   assert.ok(!('kind' in placeToRow(p)));
@@ -174,7 +174,7 @@ test('PC13: ATLAS_CODE is past a8 (a9, a10 since tend explore T9) and a stored p
 test('PC14: the named cases', () => {
   const n = (names: string[], lc?: RoadFeature[], ps?: ReturnType<typeof poi>[]) => read(names.map((x, i) => park(x, at(i * 600))).concat(ps ?? []), lc);
   assert.equal(kindOf(n(['Elm Street Playground'], [grass([ring(at(0), 80)])]), 'Elm Street Playground'), CP);
-  assert.equal(kindOf(n(['Cedar Park'], [grass([ring(at(0), 60)])]), 'Cedar Park'), 'parks');
+  assert.equal(kindOf(n(['Cedar Park'], [grass([ring(at(0), 60)])]), 'Cedar Park'), CP, 'fix community-park: a small outline with nothing in it');
   assert.equal(kindOf(n(['Cedar Playground'], [grass([ring(at(0), 60)])], [poi('monument', 'memorial', 'Plaque', at(10, 10))]), 'Cedar Playground'), 'parks');
   assert.equal(kindOf(n(['Cedar Playground'], [grass([ring(at(0), 60)])], [poi('art_gallery', 'artwork', '', at(-10, 10))]), 'Cedar Playground'), 'parks');
   assert.equal(kindOf(n(['Riverside Playground'], [grass([ring(at(0), 350)])]), 'Riverside Playground'), 'parks');
@@ -198,10 +198,46 @@ test('PC16: an unfound place is never named for its kind: the bars and waiting k
   assert.equal(foundLine({ name: mark.name, category: 'parks', generic: false, kind: CP }).includes('Community parks'), true, 'named once found');
 });
 
-test('PC17: size never demotes a park without a community word', () => {
-  for (const side of [20, 60, 90]) assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), side)])]), 'Cedar Park'), 'parks', `${side} m square`);
-  // An outline cut at a tile edge (a thin sliver) changes nothing either.
-  assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), 6)])]), 'Cedar Park'), 'parks');
+test('PC17 (amended, fix community-park): a small outline with nothing notable is a community park without a community word; nothing else is', () => {
+  const k = (name: string, lc?: RoadFeature[], more: ReturnType<typeof poi>[] = []) => kindOf(read([park(name), ...more], lc), name);
+  for (const side of [30, 60, 90, 130]) assert.equal(k('Cedar Park', [grass([ring(at(0), side)])]), CP, `${side} m square is under 2 ha`);
+  for (const side of [150, 200, 300]) assert.equal(k('Cedar Park', [grass([ring(at(0), side)])]), 'parks', `${side} m square is 2 ha or more`);
+  assert.equal(k('Cedar Park'), 'parks', 'no outline found: judged by name, and the name says nothing');
+  assert.equal(k('Cedar Park', [grass([ring(at(0), 6)])]), 'parks', 'a sliver cut at a tile edge says nothing');
+  assert.equal(k('Cedar Park', [grass([ring(at(0), 90)])], [poi('monument', 'memorial', 'Plaque', at(10, 10))]), 'parks', 'a monument inside');
+  assert.equal(k('Cedar Park', [grass([ring(at(0), 90)])], [poi('art_gallery', 'artwork', '', at(-10, 10))]), 'parks', 'an unnamed artwork inside');
+  assert.equal(k('Franklin Memorial Park', [grass([ring(at(0), 60)])]), 'parks', 'a notable name');
+  assert.equal(k('Ridge Arboretum Park', [grass([ring(at(0), 60)])]), 'parks', 'a notable word');
+  const arch = [archivePlace('Cedar Mill', 'historic_site', at(100), 'v')].filter((p): p is Place => !!p);
+  assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), 90)])], arch), 'Cedar Park'), 'parks', 'an archive place within 150 m');
+});
+
+test('fix community-park audit 1: an outline cut at a tile edge says nothing of size', () => {
+  // A z14 tile edge near O: the fragment of a large park, 1.5 ha, with a vertex on the edge.
+  const edge = (lon: number) => { const n = 2 ** 14; const x = Math.ceil(((lon + 180) / 360) * n); return (x / n) * 360 - 180; };
+  const ex = edge(O[0]);
+  const fragment: LngLat[] = [[ex - 0.0012, O[1] - 0.0006], [ex, O[1] - 0.0006], [ex, O[1] + 0.0006], [ex - 0.0012, O[1] + 0.0006], [ex - 0.0012, O[1] - 0.0006]];
+  const inside: LngLat = [ex - 0.0006, O[1]];
+  const f = grass([fragment]);
+  assert.equal(kindOf(read([park('Riverside Park', inside)], [f]), 'Riverside Park'), 'parks', 'a fragment on a tile edge');
+  const shifted = fragment.map(([x, y]) => [x - 0.00045, y] as LngLat);
+  assert.equal(kindOf(read([park('Riverside Park', [inside[0] - 0.00045, inside[1]])], [grass([shifted])]), 'Riverside Park'), CP, 'the same shape off the edge');
+});
+
+test('fix community-park audit 2: the largest outline holding the point decides, in either order; a signal in any keeps it', () => {
+  const small = grass([ring(at(0), 90)]);
+  const big = grass([ring(at(0), 400)]);
+  for (const order of [[small, big], [big, small]]) assert.equal(kindOf(read([park('Cedar Park')], order), 'Cedar Park'), 'parks');
+  const museum = poi('museum', 'museum', 'Park Museum', at(150, 0));
+  for (const order of [[small, big], [big, small]]) assert.equal(kindOf(read([park('Cedar Park'), museum], order), 'Cedar Park'), 'parks');
+});
+
+test('fix community-park audit 4: a mark in the hole of a small ring keeps the park', () => {
+  const hole = [at(-10, -10), at(-10, 10), at(10, 10), at(10, -10), at(-10, -10)];
+  const rings = [ring(at(0), 120), hole];
+  const inRing = at(40, 0);
+  assert.equal(kindOf(read([park('Cedar Park', inRing), poi('monument', 'memorial', 'Plaque', at(0, 0))], [grass(rings)]), 'Cedar Park'), 'parks');
+  assert.equal(kindOf(read([park('Cedar Park', inRing)], [grass(rings)]), 'Cedar Park'), CP);
 });
 
 test('tend explore T9: parkNotable.json holds no word notable.json leaves out as a neighbourhood\'s', () => {

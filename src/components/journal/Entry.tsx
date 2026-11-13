@@ -2,7 +2,6 @@ import { markOf } from '../../lib/noteType';
 import { NoteMark } from '../NoteMark';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
-import { formatElapsed } from '../../lib/format';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
 import { facedAt, hasMore } from '../../lib/moment';
 import { parseRefs, plainRefs } from '../../lib/refs';
@@ -14,6 +13,7 @@ import { MomentPicture } from '../chronicle/MomentPicture';
 import { Icon, type IconName } from '../icons';
 import { NoteText } from '../threads/NoteText';
 import { theme } from '../ui';
+import { MemoLine } from './MemoLine';
 import { OWNER_FONT } from './type';
 
 export type NoFix = 'denied' | 'timeout' | 'unavailable';
@@ -133,16 +133,8 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
       </View>
     );
   }
-  if (p.kind === 'voice') {
-    const ms = Number(p.body);
-    return (
-      <View style={styles.memo} testID="entry-piece-voice">
-        {/* A mic, not a play button: the row opens the entry, where the note plays (ui 2). */}
-        <Icon name="mic-outline" size={20} color={theme.ink} />
-        <Text style={styles.memoText}>{Number.isFinite(ms) && ms > 0 ? `Voice note, ${formatElapsed(ms)}` : 'Voice note'}</Text>
-      </View>
-    );
-  }
+  // A voice note plays in line, with its bar filling as it goes; it never opens the viewer.
+  if (p.kind === 'voice') return <MemoLine piece={p} moment={m.capture} />;
   return (
     <View testID={`entry-piece-${p.kind}`} style={styles.plate}>
       <MomentPicture capture={facedAt(m.capture, p.id)} style={styles.picture} iconSize={36} />
@@ -229,8 +221,6 @@ const styles = StyleSheet.create({
   words: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 28 },
   plate: { gap: 8 },
   picture: { height: 200, width: '100%' },
-  memo: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
-  memoText: { color: theme.ink, fontSize: 15 },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   type: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
   typeOpen: { backgroundColor: '#ebe7df' },

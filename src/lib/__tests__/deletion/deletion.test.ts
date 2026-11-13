@@ -6,6 +6,7 @@ import {
   countsOf, filesOf, isMedia, isNamedStreet, mediaRemoveText, momentDeleteText, recountNewStreets, sizeText, summaryLess, toastText, walkDeleteText,
 } from '../../deletion/core';
 import { createPending, type PendingJob } from '../../deletion/pending';
+import { THUMB } from '../../thumbPlan';
 import type { Capture, WalkSummary } from '../../types';
 
 // A clock the tests drive by hand.
@@ -307,4 +308,12 @@ test('MS13: deleting a piece keeps the rest and the moment\'s threads, reminder 
   await del.run(m as never, 'm', async (refs) => { gone.push(...refs); });
   assert.deepEqual(await db.getMomentsByIds(['m']), [], 'the last piece takes the moment');
   assert.equal((await db.listRecalls()).length, 0);
+});
+
+test("VS7: a video's delete takes its copy", async () => {
+  type Piece = Pick<Capture, 'file_path' | 'thumb_path'>;
+  const { filesOfMoments } = (await import('../../deletion/core' + '')) as { filesOfMoments: (ms: { pieces: Piece[] }[]) => string[] };
+  assert.deepEqual(filesOf([{ file_path: 'walks/w1/v.mp4', thumb_path: 'walks/w1/v.thumb.jpg' }]), ['walks/w1/v.mp4', 'walks/w1/v.thumb.jpg']);
+  assert.deepEqual(filesOf([{ file_path: 'walks/w1/v.mp4', thumb_path: THUMB.none }]), ['walks/w1/v.mp4'], 'a video marked undecodable has no still file');
+  assert.deepEqual(filesOfMoments([{ pieces: [{ file_path: 'p.jpg', thumb_path: 'p.thumb.jpg' }, { file_path: 'v.mp4', thumb_path: 'v.thumb.x1.jpg' }] }]), ['p.jpg', 'p.thumb.jpg', 'v.mp4', 'v.thumb.x1.jpg'], "a stack's video piece goes with its still (MS13)");
 });

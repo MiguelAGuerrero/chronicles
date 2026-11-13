@@ -150,6 +150,22 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     place, so focus returns to the pin when the viewer closes and a photo keeps its
     picture. On native it is in the Marker key (unverified whether children update
     without it).
+- **A pin of several moments** (`tend map T14`, decision 0154): its head shows its kinds, the first two taken,
+  fanned (`pin-kind` discs; one kind shows twice), never a numeral (`pinHeadKinds`, `lib/pins.ts`), and never a
+  still or a video's play mark, which are a pin of one moment's (VS3, VS4); its name says
+  them in words with the minutes in (`pinSpoken`, `pinInto`): "A photo and a note, twelve minutes in. Open". The
+  time needs the walk's clock, which the walk screen, the replay and a day pass as `clocks` (each walk's id, start
+  and pauses, memoized); without it (Chronicle's map, memory pins, moments of two walks) the name says the kinds
+  alone. On web the name is set in place when a clock arrives after the pin. The e2e finds a pin of several by
+  `button[data-ids*=","]:not([data-testid=memory-pin])`, never by its words.
+  - A third kind is said and opened, never drawn: the head holds two (decision 0154). Pins group by place, never
+    time, so a pin whose moments lie more than `JUST_AFTER_MS` apart in walked time (a loop's start and end) says its
+    kinds alone (`tend map audit 19`).
+  - Every pin of several has the neutral head (`MIXED`), one kind's two discs too (`tend map audit 22`). The fan is
+    its own layer over the head (`fanLayer`), shrunk with a memory pin but never faded, as the clock is (MR10; `tend
+    map audit 23`); its icons turn, never its discs, so a disc's box is its circle. On a pin of several the bell sits
+    out from its corner (`bellRightFan`, `bellLeftFan`), clear of the discs (`tend map audit 24`). The `qol` journey's
+    `pinsOfSeveral` walks its own pins of every shape and reads the heads, discs, opacities and bell boxes.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 
@@ -210,8 +226,9 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   counts the `omt-query` source's roads, water and places (`drawnFrom`, audit 14). The e2e's fake streets draw at the
   world's zoom, so its blank world needs a style with no features (`qol`).
 - **A photo's pin shows its small copy** (QL26, QL27): `pinThumb(pin)` (`lib/pins.ts`,
-  pure) gives the copy's ref only for a pin of one photo with a `thumb_path` other than
-  `THUMB.none`, never `file_path`: a map never decodes full photos. `CapturePinView`
+  pure) gives the copy's ref only for a pin of one photo, or since VT3 one video (its still), with a `thumb_path` other
+  than `THUMB.none`, never `file_path`: a map never decodes full photos or plays a video. A video's pin wears
+  `pin-video-mark` at the head's bottom right, clear of the stack, clock and bell corners, and is still labelled Video (VT4). `CapturePinView`
   resolves it with `useMediaUri` and draws a round `Image` (`pin-thumb`) inside a ring
   of the photo colour; the icon shows until it loads and comes back on error. The web
   markers' key and the native Marker keys include the ref, so a copy made after the

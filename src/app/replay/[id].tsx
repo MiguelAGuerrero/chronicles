@@ -409,6 +409,8 @@ export default function Replay() {
     () => (data && (beat === 'card' || beat === 'name') ? emptyGaps(data.gaps, data.stretches).map((g) => [g.from, g.to]) : []),
     [data, beat],
   );
+  // The walk's clock, so a pin of several says how far in it was (tend map T14).
+  const clocks = useMemo(() => (data ? [{ id: data.walk.id, started_at: data.walk.started_at, pauses: data.pauses }] : undefined), [data]);
 
   if (failure) throw failure;
   if (status !== 'ready' || !data || !story) {
@@ -461,6 +463,7 @@ export default function Replay() {
         walked={shownWalked}
         fog={fog}
         captures={pinned}
+        clocks={clocks}
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={(beat === 'card' || beat === 'name') && !isDrawing ? setViewing : undefined}
         onPress={beat === 'card' || beat === 'name' ? pressCard : undefined}

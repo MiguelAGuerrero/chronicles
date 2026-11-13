@@ -253,3 +253,28 @@ Built as `chronicle-journal audit 50-54`, checks in the `journal` journey, commi
 - audit 54 (the owner: note types "are no longer accessible given the new UI"): the journal's entry draws a note's type above its words, as the moment card it replaced did (note types NY9, decision 0161). Choosing a type is still on the note's page only; where it should live in the journal waits on the owner (`docs/STATUS.md`).
 - Counts after the answers: 23 findings, 15 fixed, 4 deferred, 4 rejected.
 
+## Audit (Nov 13, the in-line voice note)
+
+The owner's request: a voice note on the page plays in line, with a progress bar, and does not open the viewer (`components/journal/MemoLine`). Report-only passes by the auditor (1-9), the steward (10-12) and the UX reviewer (13-19), triaged. 19 findings: 12 fixed (three of them the same fix as another), 3 deferred, 3 rejected, 1 a pass with nothing to change. The owner chose ink over the voice purple, and one note at a time with a recording pausing playback.
+
+1. A trimmed note could stop again right after a restart (high): accept, `isRestarting` (`lib/journal/memoPlay`), as the viewer's player does. Test `journal voice audit 1`.
+2. The play button is not its own focus target for a screen reader on a phone, being inside the entry's open button (high): defer, the viewer still plays a note for a screen reader; the fix changes the entry's open target (`docs/DEFERRED.md`).
+3. Nothing stopped a playing note when a recording started (high): accept, `nowPlaying` (`lib/journal/nowPlaying`) and `startVoice` claims it. Test `journal voice audit 3`.
+4. Two notes played at once (medium): accept, the owner's call: the second takes the sound, the first lets go of its player. Test `journal voice audit 4`.
+5. A file that would not resolve left a pause button that plays nothing (medium): accept, the row is given back after `MEMO_LOAD_WAIT_MS`. Test `journal voice audit 5` (the constant and its use; the timer itself is covered by typecheck and the journey).
+6. A refused autoplay (web, iOS) has no handling (medium): reject, the row is left with a Play button that works on the next tap, as the viewer's player does; the replay's own refusal path is for a replay that moves on by itself.
+7. The purple against "no accent colour" (medium): accept, the owner's call: the disc and fill are ink (`theme.ink`), the track `theme.edge`. Test `journal voice audit 7`. The recording purple stays the line's own (audit 20 of Nov 12).
+8. An untrimmed note whose stored length outruns its file did not restart from 0 (low): accept, `fileEnded`. Test `journal voice audit 9`.
+9. Sizes and screen reader (low): accept the size and the position (13 and 16); a tap on the bar or clock now does nothing instead of opening the viewer, because they sit beside the entry's open button, not in it (see 2).
+10. The purple again (steward S1): the same fix as 7.
+11. The digits are within the rule (steward S2): a pass with nothing to change.
+12. In-line playback fits a quiet page (steward S3): a note; the bar returns to nothing after the end, as built.
+13. The play button was 44 pt only by hit slop (medium): accept, 48 pt in itself (`MEMO_PLAY_HIT`). Test `journal voice audit 13` and the journey.
+14. The clock changed width when play began, so the bar jumped (medium): accept, always "a / b" (`memoClockText`). Test `journal voice audit 14` and the journey.
+15. The unfilled track under 3:1 (medium): accept, `theme.edge`. Test `journal voice audit 7`.
+16. Progress hidden from a screen reader (medium): accept, the bar is a progress bar with its position in words (`memoProgressText`). Test `journal voice audit 16` and the journey. The viewer says "voice memo", the journal "voice note": defer.
+17. Scrubbing (low, opinion): reject, the viewer's bar is not seekable either; scrubbing is built there first if ever.
+18. The purple (UX U6): the same fix as 7.
+19. The loading state shows a pause glyph before the file resolves, and the clock floors while the bar is exact (low, opinion): defer the first, reject the second.
+
+Journeys run: `journal` (80 checks), `edit`, `walk`, `space`, `threads`, each once, green. Native, not run on a device: `expo-audio`'s player, `seekTo` and `updateInterval`, whether a finished file rewinds, the interruption by a recording, silent mode after a recording (`docs/NATIVE_UNVERIFIED.md`).

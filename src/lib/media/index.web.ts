@@ -94,3 +94,71 @@ export function probeVideoSize(uri: string): Promise<{ w: number; h: number } | 
     v.src = uri;
   });
 }
+
+/**
+ * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VS1, VS8): a web exception, since
+ * expo-video's web player cannot make one ("not supported on Web yet"). A detached, muted <video> loads the file from
+ * its `blob:` URL, seeks to the frame and draws it on a canvas; the still is a `blob:` URL the image manipulator and
+ * `keepFile` take. Nothing leaves the page. iOS Safari loads nothing until play() is called, so the video is played
+ * muted and paused before the seek. Rejects when no frame can be made.
+ */
+export function videoFrame(uri: string, atSec: number, max: number): Promise<{ source: string; release(): void }> {
+  return new Promise((resolve, reject) => {
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    let settled = false;
+    // A load that runs out of time is asked again later, never marked undecodable (video-thumbnails audit 1).
+    const t = setTimeout(() => finish(Object.assign(new Error('timeout'), { transient: true })), 15_000);
+    function finish(err: Error | null, still?: string) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(t);
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+      if (err || !still) reject(err ?? new Error('no frame'));
+      else resolve({ source: still, release: () => URL.revokeObjectURL(still) });
+    }
+    v.onerror = () => finish(new Error('unreadable'));
+    const seekTo = () => {
+      const end = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : atSec;
+      const at = Math.max(0, Math.min(atSec, Math.max(0, end - 0.05)));
+      if (at === 0 && v.currentTime === 0) return draw();
+      v.onseeked = draw;
+      v.currentTime = at;
+    };
+    v.onloadeddata = () => {
+      v.pause();
+      if (atSec === 0 || Number.isFinite(v.duration)) return seekTo();
+      // A MediaRecorder WebM has no duration in its header, and a seek into it may never land: a seek far past the end
+      // makes the browser find the length first (the edit journey's trap), then the real seek follows.
+      v.onseeked = () => {
+        v.onseeked = null;
+        seekTo();
+      };
+      v.currentTime = 1e101;
+    };
+    function draw() {
+      const w = v.videoWidth;
+      const h = v.videoHeight;
+      if (!w || !h) return finish(new Error('no picture'));
+      const k = Math.min(1, max / Math.max(w, h));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w * k));
+      canvas.height = Math.max(1, Math.round(h * k));
+      canvas.getContext('2d')!.drawImage(v, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        // iOS keeps a canvas's memory until it is shrunk.
+        canvas.width = 0;
+        canvas.height = 0;
+        if (!blob) finish(new Error('no still'));
+        else finish(null, URL.createObjectURL(blob));
+      }, 'image/jpeg', 0.8);
+    }
+    v.src = uri;
+    void v.play().catch(() => {});
+  });
+}
+

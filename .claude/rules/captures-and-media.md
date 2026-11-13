@@ -142,6 +142,25 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 - `THUMB.none` marks a photo that won't decode, so it isn't tried again. Two
   asks at once share one job. A leftover copy is replaced (`keepFile`
   `replace`).
+- **A video's still** (video thumbnails VS1-VS9): a 720 px JPEG of the frame where the kept part starts (`frameAt`:
+  the trim's start, else 0), with its crop and rotation, as the piece's `thumb_path`, made after capture, on an edit's
+  Done (named by the edit) and on first show (the gallery, the memory preview, Memories' cards through `lib/thumbs`).
+  `videoFrame` takes it from expo-video on phones and from a detached `<video>` on the web (a listed exception).
+  Previews draw it under `VideoMark`; a video's file is never a preview: no still yet, or `THUMB.none`, is the glyph.
+  - **Trap: a MediaRecorder WebM has no duration** in its header, and a seek into it may never land: the web's
+    `videoFrame` seeks past the end first (`1e101`) to learn it. iOS Safari loads nothing until `play()`: it plays
+    muted, then pauses, before the seek (unverified on an iPhone).
+  - **One shell, one queue, one hook** (video-thumbnails audit 2-6, 9): `lib/thumbs` makes every preview's copy or
+    still (`ask`, read fresh, written only if the piece is as it was read) and an edit's still (`remake`, which
+    replaces the still stored now and, with none made, drops it); a preview reads its piece through `useStill`, which
+    shows a still made or replaced since its row was read (`shownStill`) and asks for one it lacks (a pin and the pile
+    never ask). An edit remakes the still only when its trim, crop or turn moved (`stillChanged`), after Done closes.
+  - **A timeout is transient** (audit 1): `videoFrame` rejects with `transient: true` and `thumbJob` returns null (asked
+    again later); only a file that will not decode is `THUMB.none`.
+  - **A media URL is let go two seconds after its last use** (`useMediaUri`, video-thumbnails ui 1): revoking a
+    `blob:` URL the moment a preview's file changed left a picture still loading it to fail, logged by the browser.
+  - **Trap (e2e): `waitForFunction` with an async predicate** resolves at once with its pending promise; poll a stored
+    row from the test side instead (the videothumbs journey).
 - Previews show the copy, the icon while it is being made, and the photo
   when the copy's file is gone (`thumbShown`). The reminder card uses it
   too. The backup bundle leaves `thumb_path` out.
@@ -239,4 +258,5 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
     `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
     (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.
 - **Note types** (NY1-NY17, decision 0161): `Capture.note_type` (SQLite migration 27, IndexedDB 20; raw as stored, read through `noteTypeOf`, so an unknown value is no type) is the owner's mark on a note: one of eight ink glyphs in `lib/noteType` (fixed order, spoken names). The note's page offers a Type tool in its bar only for an edit (`NotePage` given `type` and `onType`; never a new note's page or Respond's), opening `NoteTypeMenu`; a choice is kept at once through `onSaveNote(c, body, type, typeOnly)`. `notePatch(body, type, typeOnly)` (`lib/noteEdit`) is the one write: text and type together, or, `typeOnly`, the type alone (the body and its `body_format` stay as kept). Every `onSaveNote` call passes it on (`noteTypeScan.test` fails a call site that takes two arguments). `NoteMark` draws the glyph and name above the viewer's note and in the owner-thread bubble; `captureIcon` and `pinMark` put it on a pin of exactly one note (a pin of several keeps its count). Never count, sort, filter, search or infer a type, and never read one for a place (NY12, NY13): `noteTypeReaders.test` lists the files that may mention a type; a new reader goes through `/vision` and then onto that list.
+  - Since `tend map T14` a pin of several shows its kinds fanned and says them in words, never its count (`map.md`, "A pin of several moments").
   - **A note save names its piece** (note-types audit 1, 12, 13): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).

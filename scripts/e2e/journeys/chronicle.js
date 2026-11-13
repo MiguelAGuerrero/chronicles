@@ -81,6 +81,23 @@ async function checks(h) {
     await shot(page, '08-home-star');
     check(true, 'the walk is a star on the home map');
     check((await page.locator('[data-testid=enter-bounce]').count()) === 0, 'no star settles before one is selected');
+    // tend places T15 (decision 0154, "Ink star, no numeral"): the star is a white star on ink, never the accent, says
+    // its walks in words and ". Open" (tend places audit 5), and shows no digit; selected, it keeps its disc and gains an ink ring outside its white edge
+    // (tend places audit 1).
+    const starLook = () => page.evaluate(() => {
+      const b = document.querySelector('[aria-label^="Fox Point,"]');
+      // By its testID, never its drawn width, which a selection's bounce scales (tend places audit 2).
+      const disc = b?.querySelector('[data-testid=star-disc]');
+      const cs = disc && getComputedStyle(disc);
+      const glyph = [...(disc?.querySelectorAll('*') ?? [])].find((e) => !e.childElementCount && e.textContent);
+      const ring = b?.querySelector('[data-testid=star-ring]');
+      return { label: b?.getAttribute('aria-label'), bg: cs?.backgroundColor, ring: cs?.borderTopColor, ringW: cs?.borderTopWidth, glyph: glyph && getComputedStyle(glyph).color, text: disc?.innerText ?? '',
+        outer: ring ? { bg: getComputedStyle(ring).backgroundColor, w: Math.round(ring.getBoundingClientRect().width) } : null };
+    });
+    const ink = 'rgb(29, 36, 48)';
+    const rest = await starLook();
+    check(rest.label === 'Fox Point, one walk. Open' && rest.bg === ink && rest.ring === 'rgb(255, 255, 255)' && rest.glyph === 'rgb(255, 255, 255)' && !/\d/.test(rest.text),
+      `tend places T15: a walked place is a star in ink, not the accent, and says its walks in words (${JSON.stringify(rest)})`);
     // A star lists its place's walks in the sheet, with the place's parents (H6).
     await page.click('[aria-label^="Fox Point,"]');
     await page.waitForSelector('[data-testid=place-title]');
@@ -88,6 +105,12 @@ async function checks(h) {
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
+    // tend places audit 2: read once the selection's bounce has settled.
+    await page.waitForSelector('[data-testid=enter-bounce]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    const chosen = await starLook();
+    check(rest.outer === null && chosen.bg === ink && chosen.ring === 'rgb(255, 255, 255)' && chosen.ringW === '2px' && chosen.glyph === 'rgb(255, 255, 255)'
+      && chosen.outer?.bg === ink && chosen.outer?.w === 42,
+      `tend places audit 1: a selected star keeps its ink disc and white star, and gains an ink ring outside its white edge (${JSON.stringify(chosen)})`);
     // Back to the map. A mouse drag on the sheet's header settles at a step, never halfway (audit).
     await page.click('[data-testid=sheet-map]');
     await page.waitForTimeout(400);
@@ -375,6 +398,56 @@ async function checks(h) {
     const starBack = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starBack.x - starBefore.x) < 3 && Math.abs(starBack.y - starBefore.y) < 3,
       `the Map section comes back where it was, with its stars (RM2, NV3, NV4, audit 8: ${Math.round(starBack.x)},${Math.round(starBack.y)})`);
+
+    // tend places audit 3: a merged star draws no numeral and says its places and walks in words. On a page of its own
+    // (its camera is its own), the walk is put in a second place 500 m east of Fox Point (cache rows only), the map
+    // zooms out until the two stars merge, and the rows are taken out again.
+    {
+      const merge = await ctx.newPage();
+      merge.on('pageerror', (e) => errors.push(String(e)));
+      await merge.goto(page.url());
+      const seed = (put) => merge.evaluate(({ east, put }) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['area', 'walk_area'], 'readwrite');
+          const a = tx.objectStore('area').getAll();
+          const w = tx.objectStore('walk_area').getAll();
+          w.onsuccess = () => {
+            const fp = a.result.find((x) => x.level === 'neighborhood' && x.name === 'Fox Point');
+            const row = w.result.find((r) => r.area_key === fp.key);
+            const key = `${fp.key}~east`;
+            if (put) {
+              tx.objectStore('area').put({ ...fp, key, name: 'East Point', lon: east[0], lat: east[1] });
+              tx.objectStore('walk_area').put({ ...row, area_key: key, lon: east[0], lat: east[1] });
+            } else {
+              tx.objectStore('walk_area').delete([row.walk_id, key]);
+              tx.objectStore('area').delete(key);
+            }
+          };
+          tx.oncomplete = () => resolve(true);
+        };
+      }), { east: at(6, 0), put });
+      await seed(true);
+      await merge.reload();
+      await h.mapUp(merge);
+      await merge.waitForSelector('[aria-label^="East Point,"]', { timeout: 15000 }).catch(() => {});
+      const canvas = await merge.locator('canvas.maplibregl-canvas').boundingBox();
+      const mergedStar = merge.locator('.maplibregl-marker[aria-label*=" places, "]');
+      // Small steps, each left to settle: the stars follow the zoom at the move's end.
+      // Until they merge, or the map has gone past neighborhoods (Fox Point's own star gone too).
+      const hood = merge.locator('.maplibregl-marker[aria-label^="Fox Point,"]');
+      for (let k = 0; k < 150 && !(await mergedStar.count()) && (await hood.count()); k++) {
+        await merge.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height * 0.35);
+        await merge.mouse.wheel(0, 25);
+        await merge.waitForTimeout(1000);
+      }
+      const merged = await mergedStar.first().evaluate((b) => ({ label: b.getAttribute('aria-label'), text: b.querySelector('[data-testid=star-disc]')?.innerText ?? null }), null, { timeout: 3000 }).catch(() => null);
+      await shot(merge, '09b-home-merged-star');
+      check(!!merged && merged.text !== null && !/\d/.test(merged.text) && /^[A-Z][a-z-]+ places, [a-z-]+ walks?\. Zoom in$/.test(merged.label),
+        `tend places audit 3: a merged star draws no numeral and says its places and walks in words (${JSON.stringify(merged)})`);
+      await seed(false);
+      await merge.close();
+    }
 
     // Reduce motion (M2): the same home with the system setting on. Nothing presses down, the sheet snaps.
     {

@@ -255,7 +255,7 @@ async function fresh(h) {
       await pg.click('[data-testid=recording-return]');
       await pg.waitForSelector('[data-testid=stop]');
       await pg.waitForTimeout(1500);
-      check(/\/walk/.test(new URL(pg.url()).pathname) && (await pg.locator('[aria-label="Photo. Open"], [aria-label$="captures here. Open"]').count()) >= 1 && !(await tabBarShown(pg)),
+      check(/\/walk/.test(new URL(pg.url()).pathname) && (await pg.locator('[aria-label="Photo. Open"], .maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])').count()) >= 1 && !(await tabBarShown(pg)),
         'a tap on the bar returns to the walk, the tab bar hidden, with the bar’s photo on its map (NV6, NV9)');
       await pg.click('[data-testid=resume-walk]');
       await pg.waitForSelector('[data-testid=pause-walk]');

@@ -234,6 +234,8 @@ export default function DayReplay() {
   // In the units setting, redrawn when it changes (tend replay 3).
   const units = useUnits();
   const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance, units) : null), [data, day, cardAt, units]);
+  // Each walk's clock, so a pin of several from one walk says how far in it was (tend map T14).
+  const clocks = useMemo(() => (data ? [...data.walks.values()].map((r) => ({ id: r.walk.id, started_at: r.walk.started_at, pauses: r.pauses })) : undefined), [data]);
 
   if (failure) throw failure;
   if (status !== 'ready' || !data || !story) {
@@ -262,6 +264,7 @@ export default function DayReplay() {
         walked={[]}
         fog={[]}
         captures={pinned}
+        clocks={clocks}
         onPinPress={onCard ? setViewing : undefined}
         walker={frame?.walker ?? null}
         follow={follow}

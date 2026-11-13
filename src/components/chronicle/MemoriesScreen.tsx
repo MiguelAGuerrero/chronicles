@@ -576,7 +576,7 @@ export function MemoriesScreen() {
         remind
         onSaveEdit={async (c, patch) => {
           await captureEdits.save(c, patch);
-          resurface.patch(c.id, patch);
+          resurface.patch(c.id, patch, c.piece_id);
         }}
         onSaveNote={(c, body, type, only) => resurface.saveNote(c, body, type, only)}
       />

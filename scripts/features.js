@@ -243,9 +243,12 @@ const FEATURES = [
       // Note types (NY1-NY17): the model and the mark a note wears.
       'src/lib/noteType{,Choice}.ts',
       'src/components/NoteMark.tsx',
+      // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
+      'src/lib/thumbs/**',
+      'src/components/VideoMark.tsx',
     ],
-    journeys: ['edit', 'stacks', 'voicetrim'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types'],
+    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails'],
   },
   {
     name: 'chronicle',
@@ -446,6 +449,15 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
+/**
+ * A spec whose criterion prefix was renamed after its tests were written, because another spec held the prefix first
+ * (check:docs, TG14): new prefix to old, so check:test-first reads the history under both. Never for any other reason.
+ */
+const RENAMED = {
+  // Video thumbnails were built as VT1-VT9 beside voice trim's VT1-VT12 on main; renamed on the merge (Nov 13).
+  'video-thumbnails': { VS: 'VT' },
+};
+
 const IN_PROGRESS = {
 };
 
@@ -485,4 +497,4 @@ const featureOfJourney = (name) => FEATURES.find((f) => f.journeys.includes(name
 /** The features that list a spec slug. */
 const featuresOfSpec = (slug) => FEATURES.filter((f) => f.specs.includes(slug));
 
-module.exports = { FEATURES, RETIRED, UNTESTED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };
+module.exports = { FEATURES, RETIRED, UNTESTED, RENAMED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };
