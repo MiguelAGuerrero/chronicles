@@ -274,6 +274,10 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Chronicles. Turn it on in Settings to record a walk.", with Open Settings), quiet too. /vision: aligned (honour;
   restraint, as T17).
   Otherwise: T17's line word for word on Start too ("... to see where you are."); or the words alone, left red; or leave it.
+  Corrected (the T17 review's F5, U2): the QL19 checks that pin Start's words are the `qol` journey's alone (`ready` has
+  none). And since `tend map T17` the web shows the two refusals on one screen in different tones and words: Locate's
+  cream notice, then, a moment later in the same slot, Start's red alert; on `main` before it they were the same red and
+  the same words. The split is this build's, which weighs how soon you answer.
 
 ### Next evolutions
 
