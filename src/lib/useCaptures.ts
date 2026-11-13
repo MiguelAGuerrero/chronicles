@@ -1,4 +1,5 @@
 // @layer view
+import { notePatch } from './noteEdit';
 import { type Faced, faced, facedAll, facedOf } from './moment';
 import {
   RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder,
@@ -13,15 +14,15 @@ import { newId } from './id';
 import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
+import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
 import { isOutOfSpace, saveFailLine } from './space/core';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
-import { notePatch } from './noteEdit';
 import { stampFor } from './pieceStamp';
-import type { CaptureKind, LngLat, Moment } from './types';
+import type { Capture, CaptureKind, LngLat, Moment } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
 /** A voice memo shorter than this was an accidental tap. */
@@ -47,7 +48,7 @@ type Busy = CaptureKind | null;
 export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
 
 /** When a capture was begun and where; a moment outside a walk also has its fix on the way. */
-interface Stamp {
+export interface Stamp {
   t: number;
   at: LngLat | null;
   /** The moment a reply answers, fixed when the capture began, so a swipe meanwhile never moves it (ui-conformance audit 10). */
@@ -160,8 +161,8 @@ export function useCaptures(
         if (alive.current) setCaptures((prev) => mergeCaptures(prev, [c]));
       },
       // A later change from that path (its thumbnail), sent even once that path is gone (tabs audit 5).
-      (id, patch) => {
-        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
+      (id, patch, pieceId) => {
+        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, pieceId));
       },
     );
     db.getMoments(walkId).then(facedAll).then((stored) => {
@@ -185,17 +186,27 @@ export function useCaptures(
    */
   const startLocating = (s: Stamp) => {
     // In a walk too: while paused the recorder is stopped, so the last fix is where the pause began.
-    if (!s.at && !s.locating && !s.into) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    if (s.at || s.locating || s.into) return;
+    // An entry emptied before it was kept left its read behind: the next one begun in the same sitting takes it,
+    // so nothing is read twice for one kept entry (chronicle journal JN12).
+    const left = spare.current;
+    spare.current = null;
+    // Aged from when it was read, never from when its entry was emptied (audit 5).
+    s.locating = left && spareFresh(left.at, clockNow()) ? left.fix : locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
+  /** The location read of the moment begun last, on its way or answered, and the moments an emptied line removed (JN12, JN13). */
+  const lastLocate = useRef<{ id: string; fix: Promise<LocateResult>; at: number } | null>(null);
+  const dropped = useRef(new Set<string>());
+  const spare = useRef<{ fix: Promise<LocateResult>; at: number } | null>(null);
   const folder = () => walkId ?? LOOSE_FOLDER;
 
   /**
    * A piece added to an open moment (moment stacks MS3, MS5): stored with its own time under the moment, whose place
    * and time stay; shown here and told to the walk's other paths as the moment, now with its new piece.
    */
-  async function addPiece(into: string, kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<{ momentId: string; pieceId: string } | null> {
+  async function addPiece(into: string, kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null, more: Partial<Pick<Capture, 'body_format'>> = {}): Promise<{ momentId: string; pieceId: string } | null> {
     const pieceId = newId();
-    const piece = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body };
+    const piece: Capture = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body, ...more };
     await db.addPiece(into, piece);
     const [stored] = await db.getMomentsByIds([into]);
     if (stored) {
@@ -208,14 +219,14 @@ export function useCaptures(
     return { momentId: into, pieceId };
   }
 
-  async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<string | null> {
+  async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null, more: Partial<Pick<Capture, 'body_format'>> = {}): Promise<string | null> {
     if (!enabled) return null;
-    if (stamp.into) return (await addPiece(stamp.into, kind, stamp, file_path, body))?.pieceId ?? null;
+    if (stamp.into) return (await addPiece(stamp.into, kind, stamp, file_path, body, more))?.pieceId ?? null;
     // A new moment and its first piece, under one id (decision 0123): its one place and time, the piece's media.
     const id = newId();
     const m: Moment = {
       id, walk_id: walkId, t: stamp.t, lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null, segment_id: null,
-      pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body }],
+      pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body, ...more }],
     };
     await db.addMoment(m);
     const c = faced(m);
@@ -231,6 +242,7 @@ export function useCaptures(
     captureBus.emit(shown, self);
     if (!walkId) onMoment.current?.(c, 'kept');
     onKept.current?.(c.id, false);
+    if (stamp.locating) lastLocate.current = { id: c.id, fix: stamp.locating, at: stamp.t };
     placeMoment(c, stamp);
     // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
     if (kind !== 'text') void space.afterKept({ recording: walkId != null });
@@ -252,6 +264,8 @@ export function useCaptures(
     }
     stamp.locating
       .then(async (r) => {
+        // Emptied meanwhile (JN13): nothing is left to place.
+        if (dropped.current.has(c.id)) return;
         if (!r.at) {
           report(c, r.reason ?? 'timeout');
           return;
@@ -618,8 +632,8 @@ export function useCaptures(
     const id = c.id;
     // The edit is the piece's own; the screens show it on the moment (decision 0123).
     await db.updatePiece(c.piece_id, patch);
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
-    captureBus.patch(walkId, id, patch, self);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, c.piece_id));
+    captureBus.patch(walkId, id, patch, self, c.piece_id);
   }
 
   /**
@@ -627,14 +641,13 @@ export function useCaptures(
    * walk's other views (the walk screen, Navigate's live walk) show it too.
    * Its find and reminder hang on its id, so they stay.
    */
-  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string, type?: string | null) {
+  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string, type?: string | null, typeOnly = false) {
     const id = c.id;
-    const change = notePatch(body, type);
+    const change = notePatch(body, type, typeOnly);
     await db.updatePiece(c.piece_id, change);
     // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
-    const shown = { ...change, piece: c.piece_id };
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, shown));
-    captureBus.patch(walkId, id, shown, self);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, change, c.piece_id));
+    captureBus.patch(walkId, id, change, self, c.piece_id);
   }
 
   /** With `into`, the note joins that open moment as a piece (MS2, MS3). */
@@ -643,7 +656,62 @@ export function useCaptures(
       if (text.trim()) await add('text', stampNow(true, into), null, text.trim());
     });
 
+  /**
+   * A note's page opens (NP1): its time, its one fix and what it answers are taken at the tap, however long the
+   * first words take (the steward's S9). `keepNote` keeps it, as Markdown, once it has words (NP9).
+   */
+  const beginNote = (into: string | null = null): Stamp => stampNow(true, into);
+  async function keepNote(stamp: Stamp, body: string): Promise<{ id: string; piece_id: string } | null> {
+    const pieceId = await add('text', stamp, null, body, { body_format: 'md' });
+    if (!pieceId) return null;
+    return { id: stamp.into ?? pieceId, piece_id: pieceId };
+  }
+
+  /**
+   * The journal's open line (chronicle journal JN12, JN13): the first character stores a note at once, as a new
+   * moment or, with `into`, as a piece of the open one, and says which, so what is typed after can be written to it.
+   */
+  const beginLine = async (body: string, into: string | null = null): Promise<{ momentId: string; pieceId: string } | null> => {
+    if (!enabled) return null;
+    // On a walk no fix is read for an entry (JN12; audit 4): the walk's last fix or, at Stop, its trace places it.
+    const stamp = stampNow(walkId == null, into);
+    if (stamp.into) return addPiece(stamp.into, 'text', stamp, null, body);
+    const id = await add('text', stamp, null, body);
+    return id ? { momentId: id, pieceId: id } : null;
+  };
+
+  /** What the line holds now, written to its piece; the moment's face follows only when the piece is its face. */
+  const writeLine = async (e: { momentId: string; pieceId: string }, body: string) => {
+    await db.updatePiece(e.pieceId, { body });
+    if (e.pieceId !== e.momentId) return;
+    if (alive.current) setCaptures((prev) => applyPatch(prev, e.momentId, { body }));
+    captureBus.patch(walkId, e.momentId, { body }, self);
+  };
+
+  /**
+   * An entry emptied of its words is not kept (JN13): its piece goes, and the moment with it when it held nothing
+   * else. Says whether the moment went, and leaves its location read for the next entry of the sitting (JN12).
+   */
+  const dropLine = async (e: { momentId: string; pieceId: string }): Promise<'moment' | 'piece'> => {
+    const [stored] = await db.getMomentsByIds([e.momentId]);
+    if (stored && stored.pieces.some((x) => x.id !== e.pieceId)) {
+      await db.deletePieces([e.pieceId]);
+      const [now] = await db.getMomentsByIds([e.momentId]);
+      if (now && alive.current) setCaptures((prev) => prev.map((x) => (x.id === e.momentId ? { ...faced(now), lat: x.lat, lon: x.lon } : x)));
+      return 'piece';
+    }
+    dropped.current.add(e.momentId);
+    // Its read, answered or not, serves the next entry of the sitting: the place is where the writing began.
+    if (lastLocate.current?.id === e.momentId) spare.current = { fix: lastLocate.current.fix, at: lastLocate.current.at };
+    await db.deleteMoments([e.momentId]);
+    if (alive.current) setCaptures((prev) => prev.filter((x) => x.id !== e.momentId));
+    return 'moment';
+  };
+
   return {
+    beginLine,
+    writeLine,
+    dropLine,
     captures,
     busy,
     voiceStartedAt,
@@ -659,6 +727,8 @@ export function useCaptures(
     held: held.map((h) => h.kind),
     retryHeld,
     saveNote,
+    beginNote,
+    keepNote,
     setEdit,
     setNote,
   };

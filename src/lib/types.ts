@@ -67,6 +67,8 @@ export interface Capture {
   file_path: string | null;
   /** Text body for notes; duration in ms for voice memos and videos. */
   body: string | null;
+  /** A note's body is Markdown the note page wrote (NP7, decision 0151); absent or null, it reads as stored. */
+  body_format?: 'md' | null;
   /** A photo's caption, drawn as a bar over it; the photo file itself is untouched. */
   caption?: string | null;
   /** Where the caption bar sits, as a fraction of the photo's height from the top. */
@@ -78,7 +80,7 @@ export interface Capture {
    * drawing, trim, as data on the untouched file. Null or absent: none.
    */
   edit?: MediaEdit | null;
-  /** A note's type, chosen by the owner (NY4, decision 0149): raw as stored; read it through `noteTypeOf`. Null or absent: none. */
+  /** A note's type, chosen by the owner (NY4, decision 0161): raw as stored; read it through `noteTypeOf`. Null or absent: none. */
   note_type?: string | null;
 }
 

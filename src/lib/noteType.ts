@@ -1,6 +1,6 @@
 // @layer core
 /**
- * A note's type (NY1-NY17, decision 0149): one of eight ink marks the owner chooses on their own note, shown in place
+ * A note's type (NY1-NY17, decision 0161): one of eight ink marks the owner chooses on their own note, shown in place
  * of the generic note glyph. Never set from a note's text, time or place, never counted, filtered, sorted or read by
  * anything about a place: it is a mark, not a measure. The order is fixed and is the menu's.
  */

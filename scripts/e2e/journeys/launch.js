@@ -56,7 +56,7 @@ async function checks(h) {
     await h.mapUp(page);
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/' && ch.canvases === 1, `Chronicle's map at /, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
-    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=band-note], [data-testid=look-here]')) === 0,
+    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=line-input], [data-testid=look-here]')) === 0,
       'Chronicle\'s map has no Start, Explore button, quick capture or What’s good here; the band is on Memories only (NV11, HC6)');
     await page.reload();
     await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
@@ -160,7 +160,7 @@ async function fresh(h) {
       const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^Paused · \d+:\d\d · \d+ m$/.test(await barText())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+ m · Paused$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
         `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
       // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
@@ -178,26 +178,78 @@ async function fresh(h) {
       if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-      const saidPhoto = await pg.waitForSelector('[data-testid=recording-said]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
+      // tend tabs T12: the bar's photo is told in a pill above the bar that waits; the line keeps its time and distance.
+      const saidPhoto = await pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 })
+        .then((e) => e.evaluate((n) => n.firstElementChild?.textContent ?? ''), () => '');
+      const offeredAt = Date.now();
       const kept = await photosOf();
       check(saidPhoto === 'Photo saved to your walk' && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
         `a photo from the bar's camera lands in the open walk, paused too, without opening the walk screen (NV9: "${saidPhoto}", ${kept.length})`);
-      // tend tabs 9: the bar's Edit offer after a photo is pictured, at 390 and 320 px, inside the bar beside its controls.
+      // tend tabs 9 pictured the offer at 390 and 320 px; since T12 it is a pill above the bar, its words whole on one line.
       {
-        const inBar = async () => pg.evaluate(() => {
-          const bar = document.querySelector('[data-testid=recording-bar]')?.getBoundingClientRect();
-          const e = document.querySelector('[data-testid=recording-bar] [data-testid=capture-edit]')?.getBoundingClientRect();
-          return !!(bar && e && e.width && e.y >= bar.y && e.bottom <= bar.bottom + 1 && e.right <= window.innerWidth);
+        const pill = async () => pg.evaluate(() => {
+          const q = (sel) => document.querySelector(sel);
+          const p = q('[data-testid=bar-edit-offer]');
+          const bar = q('[data-testid=recording-bar]')?.getBoundingClientRect();
+          if (!p || !bar) return null;
+          const r = p.getBoundingClientRect();
+          const t = p.firstElementChild;
+          const tr = t.getBoundingClientRect();
+          const edit = p.querySelector('[data-testid=capture-edit]')?.getBoundingClientRect();
+          const close = p.querySelector('[data-testid=bar-edit-offer-close]');
+          const closeBox = close?.getBoundingClientRect();
+          return {
+            above: r.bottom <= bar.top + 1,
+            oneLine: tr.height - parseFloat(getComputedStyle(t).paddingTop) - parseFloat(getComputedStyle(t).paddingBottom)
+              <= parseFloat(getComputedStyle(t).fontSize) * 1.6 && t.scrollWidth <= Math.ceil(tr.width) + 1,
+            room: Math.round(window.innerWidth - r.width),
+            // tend tabs audit 17: the pill's words and the line's time and distance are drawn whole, measured, not read.
+            whole: t.scrollWidth <= t.clientWidth + 1,
+            numbers: (() => {
+              const s = q('[data-testid=recording-stats]');
+              const n = s?.firstChild;
+              const cut = n?.textContent?.indexOf(' · Paused') ?? -1;
+              if (!s || !n || n.nodeType !== 3 || cut < 1) return false;
+              const range = document.createRange();
+              range.setStart(n, 0);
+              range.setEnd(n, cut);
+              return range.getBoundingClientRect().right <= s.getBoundingClientRect().left + s.clientWidth + 1;
+            })(),
+            inPill: !!(edit && edit.width >= 44 && edit.right <= r.right + 1),
+            // tend tabs audit 20: Edit and Close stand apart, as Undo and its Close do.
+            apart: edit && closeBox ? Math.round(closeBox.left - edit.right) : null,
+            close: close?.getAttribute('aria-label') ?? null,
+            live: p.getAttribute('aria-live'),
+            stats: q('[data-testid=recording-stats]')?.textContent ?? null,
+            said: !!q('[data-testid=recording-said]'),
+            wide: document.documentElement.scrollWidth <= window.innerWidth,
+          };
         });
-        const at390 = await inBar();
+        const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.apart >= 4 && m.close === 'Close, the photo stays as it is'
+          && m.live === 'polite' && /^\d+:\d\d · \d+ m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
+        const at390 = await pill();
         await h.shot(pg, 'tabs-9-bar-edit-offer');
-        await pg.setViewportSize({ width: 320, height: 700 });
+        let at320 = null;
+        try {
+          await pg.setViewportSize({ width: 320, height: 700 });
+          await pg.waitForTimeout(400);
+          at320 = await pill();
+          await h.shot(pg, 'tabs-9-bar-edit-offer-320');
+        } finally {
+          await pg.setViewportSize({ width: 390, height: 844 });
+          await pg.waitForTimeout(400);
+        }
+        check(fine(at390) && fine(at320),
+          `tend tabs T12, tend tabs audit 17, tend tabs audit 20: after a photo the bar's Edit offer is a pill above it, Edit and Close apart, "Photo saved to your walk · Edit · ✕", its words whole on one line at 390 and 320 px, announced politely, the line keeping its time and distance (${JSON.stringify(at390)}, ${JSON.stringify(at320)})`);
+        // It waits: past ME23's six seconds it is still there; its Close ends it and the line stays.
+        await pg.waitForTimeout(Math.max(0, 6800 - (Date.now() - offeredAt)));
+        const waited = await pill();
+        await pg.click('[data-testid=bar-edit-offer-close]');
         await pg.waitForTimeout(400);
-        const at320 = await inBar();
-        await h.shot(pg, 'tabs-9-bar-edit-offer-320');
-        await pg.setViewportSize({ width: 390, height: 844 });
-        await pg.waitForTimeout(400);
-        check(at390 && at320, `tend tabs 9: after a photo, the bar's Edit offer shows inside the bar at 390 and 320 px (${at390}, ${at320})`);
+        const closed = await pg.locator('[data-testid=bar-edit-offer]').count();
+        const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
+        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+ m · Paused$/.test(stats),
+          `tend tabs T12: the pill is still up after 6 s and goes with its Close, the line still its time and distance (${!!waited}, ${closed}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
       await pg.click('[data-testid=recording-return]');

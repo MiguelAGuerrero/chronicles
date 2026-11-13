@@ -39,9 +39,9 @@ export function streetAt(fix: LngLat | null, segments: StreetSegment[], snappedI
 
 /** The place line (MC1): only what is known. */
 export function placeLine(o: { street: string | null; near?: boolean; town: string | null; complex?: { name: string; near: boolean } | null }): string {
-  // CX11: a complex leads and the street stays, bare (the complex carries the "Near" when the fix is only close to it).
+  // CX11: a complex leads and the street stays, with its own "Near" when it was found only by nearness (complexes audit 14).
   const lead = o.complex ? (o.complex.near ? `Near ${o.complex.name}` : o.complex.name) : null;
-  const street = o.street && o.near && !o.complex ? `Near ${o.street}` : o.street;
+  const street = o.street && o.near ? `Near ${o.street}` : o.street;
   return [lead, street, o.town].filter((x): x is string => !!x).join(', ') || NO_PLACE;
 }
 
@@ -130,4 +130,14 @@ export function arrivalLine(o: ArrivalInput): string {
   const after = o.walkedMs == null ? null : justAfter(o.prev);
   const into = `${minutesInLine(o.walkedMs)}${after ? `, ${after}` : ''}`;
   return [placeLine({ street: o.street, near: o.streetNear, town: o.town, complex: o.complex }), dayPartLine(o.t, o.now), into].join(' · ');
+}
+
+/**
+ * The same facts in two parts, for the journal's dateline (chronicle journal JN5), which says the time itself:
+ * the place, or null when nothing around the fix is known, and how far into its walk, or null outside one.
+ */
+export function arrivalParts(o: ArrivalInput): { place: string | null; into: string | null } {
+  const place = placeLine({ street: o.street, near: o.streetNear, town: o.town, complex: o.complex });
+  const after = o.walkedMs == null ? null : justAfter(o.prev);
+  return { place: place === NO_PLACE ? null : place, into: o.walkedMs == null ? null : `${minutesInLine(o.walkedMs)}${after ? `, ${after}` : ''}` };
 }

@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T26"
+      ],
+      "body": "  Corrected (the T17 review's F5, U2): the QL19 checks that pin Start's words are the `qol` journey's alone (`ready` has\n  none). And since `tend map T17` the web shows the two refusals on one screen in different tones and words: Locate's\n  cream notice, then, a moment later in the same slot, Start's red alert; on `main` before it they were the same red and\n  the same words. The split is this build's, which weighs how soon you answer.\n",
+      "target": "sha256:377ecbd50f8173658090aef9ad0736ca245d0e64ba90c6d8623bfee25e249514"
+    }
+  ]
+}

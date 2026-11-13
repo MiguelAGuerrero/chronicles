@@ -5,7 +5,7 @@ import { COMPLEX_STYLE } from '../lib/complexes/mapLayer';
 export function ComplexLabelView({ text }: { text: string }) {
   return (
     <View style={styles.wrap} pointerEvents="none">
-      <Text style={styles.label}>{text}</Text>
+      <Text style={styles.label} numberOfLines={2} maxFontSizeMultiplier={1.3}>{text}</Text>
     </View>
   );
 }
@@ -13,5 +13,5 @@ export function ComplexLabelView({ text }: { text: string }) {
 const W = 170;
 const styles = StyleSheet.create({
   wrap: { width: W, alignItems: 'center' },
-  label: { maxWidth: W, textAlign: 'center', fontSize: 12, fontWeight: '700', color: COMPLEX_STYLE.color, textShadowColor: '#ffffff', textShadowRadius: 3 },
+  label: { maxWidth: W, textAlign: 'center', fontSize: 12, fontWeight: '700', color: COMPLEX_STYLE.color, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, overflow: 'hidden' },
 });

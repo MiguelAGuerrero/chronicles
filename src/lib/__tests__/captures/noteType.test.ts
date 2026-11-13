@@ -4,7 +4,7 @@ import * as mod from '../../noteType';
 import { pinMark, pinNoteLabel } from '../../pins';
 import { markOf, NOTE_TYPES, noteTypeOf } from '../../noteType';
 
-// Note types (specs/note-types, decision 0149): a core model, the owner's own mark on a note.
+// Note types (specs/note-types, decision 0161): a core model, the owner's own mark on a note.
 
 const ORDER = ['question', 'emphasis', 'idea', 'happy', 'neutral', 'sad', 'like', 'dislike'];
 

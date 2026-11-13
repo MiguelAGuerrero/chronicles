@@ -5,7 +5,7 @@ import { Icon, type IconName } from './icons';
 import { theme } from './ui';
 
 /**
- * A note's type, as the owner chose it (NY9, NY17, decision 0149): an ink glyph and its spoken name, one line above
+ * A note's type, as the owner chose it (NY9, NY17, decision 0161): an ink glyph and its spoken name, one line above
  * the note's words. Drawn for a note with a type and nothing for one without. Plain ink, never a colour, a count or a
  * reaction anyone else made. `quiet`: a parent already says the type, so it is hidden from a screen reader (audit 3).
  */

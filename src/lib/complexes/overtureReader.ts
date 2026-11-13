@@ -74,22 +74,31 @@ export function createOvertureSource(o: { open: (release: string, file: 'buildin
         };
         const deadline = setTimeout(() => finish({ ok: false }), o.readMs);
         const poll = shouldStop ? setInterval(() => shouldStop() && finish({ ok: false }), 200) : null;
+        // A tile that fails is left unread and the others stand (complexes audit 6): the caller asks for it again and says the read was partial.
         Promise.all(
           tiles.map(async ([x, y]) => {
-            const [b, p] = await Promise.all([
-              buildings.get(release, x, y, async () => {
-                const d = await bytes(release, 'buildings', x, y);
-                return d ? piecesFromBuildingsTile(x, y, featuresOf(d, 'building', x, y)) : [];
-              }),
-              places.get(release, x, y, async () => {
-                const d = await bytes(release, 'places', x, y);
-                return d ? placesFromPlacesTile(featuresOf(d, 'place', x, y)) : [];
-              }),
-            ]);
-            return { b, p };
+            try {
+              const [b, p] = await Promise.all([
+                buildings.get(release, x, y, async () => {
+                  const d = await bytes(release, 'buildings', x, y);
+                  return d ? piecesFromBuildingsTile(x, y, featuresOf(d, 'building', x, y)) : [];
+                }),
+                places.get(release, x, y, async () => {
+                  const d = await bytes(release, 'places', x, y);
+                  return d ? placesFromPlacesTile(featuresOf(d, 'place', x, y)) : [];
+                }),
+              ]);
+              return { x, y, b, p };
+            } catch {
+              return null;
+            }
           }),
         ).then(
-          (lists) => finish({ ok: true, pieces: lists.flatMap((l) => l.b), places: lists.flatMap((l) => l.p), tiles }),
+          (lists) => {
+            const ok = lists.filter((l): l is { x: number; y: number; b: BuildingPiece[]; p: PlaceIn[] } => l != null);
+            if (tiles.length && !ok.length) return finish({ ok: false });
+            finish({ ok: true, pieces: ok.flatMap((l) => l.b), places: ok.flatMap((l) => l.p), tiles: ok.map((l) => [l.x, l.y] as [number, number]) });
+          },
           () => finish({ ok: false }),
         );
       });

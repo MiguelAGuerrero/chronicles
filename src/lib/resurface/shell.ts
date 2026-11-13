@@ -1,4 +1,5 @@
 // @layer shell
+import { notePatch } from '../noteEdit';
 import { type Faced, facedAll, patchFaced } from '../moment';
 import { captureBus, type CapturePatch } from '../captureBus';
 import { createStore, type Store } from '../store';
@@ -6,9 +7,9 @@ import type { Ports } from '../ports/types';
 import type { Pause, Walk } from '../types';
 import { DEFAULT_EXTRACTORS, signalsOf } from './extractors';
 import { pausedMs } from '../geo';
-import { complexAt, COMPLEX_NEAR_DEG } from '../complexes/place';
-import { arrivalLine, previousCapture, streetAt } from './context';
-import { notePatch } from '../noteEdit';
+import { createComplexLookup } from '../complexes/lookup';
+import { complexAt } from '../complexes/place';
+import { arrivalLine, arrivalParts, previousCapture, streetAt } from './context';
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { openWalkViews, toMomentViews, wordsOf } from './views';
@@ -37,7 +38,7 @@ export interface ResurfaceState {
 }
 
 /** A moment's context: being read, failed (not "no street"), or its line (MC17). */
-export type ContextEntry = { state: 'pending' } | { state: 'failed' } | { state: 'done'; line: string };
+export type ContextEntry = { state: 'pending' } | { state: 'failed' } | { state: 'done'; line: string; place: string | null; into: string | null };
 
 /** The street cache is read this far around a fix: a little over the 40 m reach, in metres. */
 const READ_M = 45;
@@ -167,9 +168,13 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
           return { ...s, context: rest };
         });
       put(Object.fromEntries(todo.map((id) => [id, { state: 'pending' } as ContextEntry])));
+      // One store read for the moments of a place, for this batch (complexes audit 10).
+      const nearComplexes = createComplexLookup(p.db);
       const readOne = async (id: string): Promise<void> => {
         const began = generation;
-        const { moments, walks } = store.get();
+        const { moments: closed, inOpenWalk, walks } = store.get();
+        // A walk still open has its moments on the journal's page too (chronicle journal JN8).
+        const moments = inOpenWalk.length ? [...closed, ...inOpenWalk] : closed;
         const m = moments.find((x) => x.id === id);
         if (!m) return put({ [id]: { state: 'failed' } });
         try {
@@ -191,9 +196,10 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
           }
           const street = streetAt(fix, segments, c.segment_id);
           // CX11, CX12: a complex already on the phone leads the line; nothing is fetched to show it. A cache that cannot be read is no complex, never no line.
-          const hit = fix ? complexAt(fix, await p.db.complexesNear(fix, COMPLEX_NEAR_DEG).catch(() => [])) : null;
-          const line = arrivalLine({ street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, complex: hit ? { name: hit.complex.name, near: hit.near } : null, t: c.t, now: p.clock.now(), walkedMs, prev });
-          put({ [id]: { state: 'done', line } });
+          const hit = fix ? complexAt(fix, await nearComplexes(fix).catch(() => [])) : null;
+          const facts = { street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, complex: hit ? { name: hit.complex.name, near: hit.near } : null, t: c.t, now: p.clock.now(), walkedMs, prev };
+          const line = arrivalLine(facts);
+          put({ [id]: { state: 'done', line, ...arrivalParts(facts) } });
         } catch {
           put({ [id]: { state: 'failed' } });
         }
@@ -244,22 +250,21 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     rename: (term: string, name: string) => setPrefs(renameThread(store.get().prefs, term, name)),
     removeThread: (term: string) => setPrefs(removeThread(store.get().prefs, term)),
     /** A change made in the viewer (a note, a caption, an edit) shows here at once (RM18). */
-    patch(id: string, change: CapturePatch): void {
+    patch(id: string, change: CapturePatch, pieceId?: string): void {
       const patched = (m: MomentView): MomentView => {
         if (m.id !== id) return m;
-        const capture = patchFaced(m.capture, change);
+        const capture = patchFaced(m.capture, change, pieceId);
         return { ...m, capture, words: wordsOf(capture, opts.transcript) };
       };
       store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
-    async saveNote(c: Faced, body: string, type?: string | null): Promise<void> {
-      const change = notePatch(body, type);
+    async saveNote(c: Faced, body: string, type?: string | null, typeOnly = false): Promise<void> {
+      const change = notePatch(body, type, typeOnly);
       await p.db.updatePiece(c.piece_id, change);
       // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
-      const shown = { ...change, piece: c.piece_id };
-      captureBus.patch(c.walk_id, c.id, shown, null);
-      this.patch(c.id, shown);
+      captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
+      this.patch(c.id, change, c.piece_id);
     },
     /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
     async undo(change: PrefsChange): Promise<void> {

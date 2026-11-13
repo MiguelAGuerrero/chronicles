@@ -1,4 +1,4 @@
-# 0149. Note types: eight ink marks the owner chooses, thumbs included
+# 0161. Note types: eight ink marks the owner chooses, thumbs included
 
 Date: 2026-11-12 · Status: accepted · Area: captures, chronicle, vision
 
@@ -14,7 +14,7 @@ The owner's calls, Nov 12 (the gate argued once and the owner reaffirmed):
 
 ## Consequences
 - `specs/note-types` carries these as NY1-NY17.
-- The VISION.md edit this implies is the owner's to make: under Never "A feed, followers, likes, public profiles", the nearest-fit column could add "a mark on your own note, shown to no one (0149)". Not made by an agent.
+- The VISION.md edit this implies is the owner's to make: under Never "A feed, followers, likes, public profiles", the nearest-fit column could add "a mark on your own note, shown to no one (0161)". Not made by an agent.
 - A thumb on a note must never become a signal about a place; any feature that reads types (search, lenses, recall) goes through the gate again.
 
 ## Addendum, Nov 12 (the audit)

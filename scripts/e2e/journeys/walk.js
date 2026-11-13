@@ -11,6 +11,9 @@ async function checks(h) {
     await onTab('navigate');
     await page.waitForSelector('[data-testid=ready-bar]');
     const barH = async () => Math.round((await page.locator('[data-testid=ready-bar]').boundingBox()).height);
+    // The busy streets the walk map draws, by their lines (`data-busy`, "strips:N"): their names are the map's own text, and
+    // on the walk maps only within 800 m of you (explore-dense-city DC1, DC18), so the lines say whether they are drawn.
+    const busyLines = async () => Number(/strips:(\d+)/.exec((await walkMap().getAttribute('data-busy').catch(() => null)) ?? '')?.[1] ?? 0);
     const peekH = await barH();
     await drawerTo(page, 'half');
     check((await page.locator('[data-testid=mode-quiet][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=mode-explore]').count()) === 1
@@ -124,7 +127,7 @@ async function checks(h) {
     const fox = read.areas.find((x) => x.name === 'Fox Point');
     check(fox && fox.count === 4 && read.items.filter((x) => x.area_key === fox.key).map((x) => x.name).sort().join(',') === 'Fox Point Museum,Gano Park,Hessian Memorial,Public art',
       `a quiet walk still builds its neighborhood's checklist, attractions only (${JSON.stringify(read.areas.map((x) => [x.name, x.count]))})`);
-    check((await walkMarks().count()) === 0 && (await walkMap().getByText('Thayer Street', { exact: true }).count()) === 0, 'a quiet walk shows no "?" marks and no busy streets');
+    check((await walkMarks().count()) === 0 && (await busyLines()) === 0, 'a quiet walk shows no "?" marks and no busy streets');
     // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21).
     await page.click('[data-testid=walk-summary]');
     await page.waitForSelector('[data-testid=options-card]');
@@ -225,10 +228,10 @@ async function checks(h) {
         await page.click('[data-testid=walk-summary]');
         // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once. They are drawn only when
         // the Busy streets layer is on, on any walk (specs/map-layers ML8, ML10): Explore mode no longer draws them by itself.
-        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) === 0, 'ML10: switching Explore on does not draw the busy streets by itself');
+        check((await busyLines()) === 0, 'ML10: switching Explore on does not draw the busy streets by itself');
         await h.switchLayer(page, 'busy');
-        await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
-        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'ML8: with the Busy streets layer on, the busy streets around are drawn');
+        await page.waitForFunction(() => [...document.querySelectorAll('.maplibregl-map')].some((m) => /strips:[1-9]/.test(m.dataset.busy ?? '')), null, { timeout: 15000 }).catch(() => {});
+        check((await busyLines()) >= 1, 'ML8: with the Busy streets layer on, the busy streets around are drawn');
         // AD12: the busy streets draw graded, each grade wider than the one below.
         const graded = ((await walkMap().getAttribute('data-graded')) ?? '').split(',').filter(Boolean).map((g) => g.split(':').map(Number));
         const widths = graded.sort((a, b) => a[0] - b[0]).map((g) => g[1]);
@@ -311,7 +314,7 @@ async function checks(h) {
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
-        await page.click('[data-testid=note-save]');
+        await page.click('[data-testid=note-done]');
         await page.waitForTimeout(2500);
         check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');

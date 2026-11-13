@@ -1,17 +1,20 @@
 import { type Faced, facedAll } from '../lib/moment';
+import { NewNotePage } from '../components/notePage/NewNotePage';
+import type { NotePageHandle } from '../components/notePage/NotePage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
 import { perfCount } from '../lib/perfCount';
+import { createStore } from '../lib/store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
 import { LayersControl, LayersKey } from '../components/LayersControl';
-import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
+import { COLORS, HOTSPOT, namesNearYou, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
 import { CaptureViewer } from '../components/CaptureView';
@@ -268,8 +271,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const message = rawNotice ? null : arrivalNotice(params);
     if (message) setNotice({ message });
   }
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [note, setNote] = useState('');
+  // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` the open moment it joins (MS2, MS4).
+  const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
+  const noteOpen = page != null;
+  const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
+  const pageRef = useRef<NotePageHandle>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
   const [fog, setFog] = useState<StreetSegment[]>([]);
@@ -281,7 +287,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
-  const [bearing, setBearing] = useState(0);
+  // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
+  const [bearing] = useState(() => createStore(0));
   const [viewing, setViewing] = useState<Faced[] | null>(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
@@ -296,7 +303,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
 
   // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
+  // The buttons the compass hands the focus to as it leaves (tend map 6): Locate on the ready screen; on the walk,
+  // the one below it in the column, Walk me back while that shows, else the unwalked streets.
+  const readyLocateRef = useRef<PressableRef>(null);
+  const backRef = useRef<PressableRef>(null);
+  const unwalkedRef = useRef<PressableRef>(null);
   const ready = useReady({
+    locateRef: readyLocateRef,
     active: !walk,
     onClose: props.onMinimize,
     onStarting: () => setHolding(true),
@@ -377,8 +390,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (h && lastHere.current && pillWalkId) momentPill.walked(distanceM(lastHere.current, h));
     lastHere.current = h;
   }, [live.here, pillWalkId]);
-  // The open moment a note being written joins, fixed when it was begun (MS4); null for a new moment.
-  const [noteInto, setNoteInto] = useState<string | null>(null);
   // The viewer's Add to this moment (MS12), run here where the camera, the mic and the note are; on a walk only
   // (the ready screen's capture row runs its own).
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
@@ -389,8 +400,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       if (kind === 'photo') void photo(into);
       else if (kind === 'voice') void startVoice(into);
       else {
-        setNoteInto(into);
-        setNoteOpen(true);
+        openNote(into);
       }
     };
   });
@@ -1018,16 +1028,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     }
   }
 
-  async function saveNote() {
-    const ok = await cap.saveNote(note, noteInto);
-    if (ok) {
-      setNote('');
-      setNoteOpen(false);
-      setNoteInto(null);
-      feedback('tap');
-      setToast('Note saved here');
-    }
-  }
 
   // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
   const editOffer = useEditOffer();
@@ -1156,10 +1156,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={bearing.set} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
         {...drawn}
+        busyNamesNear={namesNearYou(live.here)}
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
@@ -1218,7 +1219,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           ? { top: insets.top + 24, bottom: cardAt.bottom + 300, left: 24, right: 24 }
           : { top: insets.top + 24, bottom: drawerH - BAR_H - insets.bottom + 16, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
-        onBearingChange={setBearing}
+        onBearingChange={bearing.set}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={(at, radiusM) => {
           if (isDrawing) return;
@@ -1246,7 +1247,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         <>
           {ready.overlay}
           {/* The compass over Locate while the map is turned (CP2); the live walk has its own, below. */}
-          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} />
+          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} focusAfter={readyLocateRef} />
         </>
       ) : (
       <>
@@ -1341,21 +1342,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {exploring && explore.choice && (
-          <LiftIn testID="find-choice" style={styles.findChoice} accessibilityLiveRegion="polite">
-            <Text style={styles.findChoiceTitle}>Which place is this moment about?</Text>
-            <View style={styles.findChoiceRow}>
-              {explore.choice.places.slice(0, 3).map((pl) => (
-                <Pressable key={pl.key} testID="find-choice-place" accessibilityRole="button" accessibilityLabel={`Tag this moment to ${pl.name}`} onPress={() => explore.choose(pl)} style={styles.findChoiceBtn} hitSlop={6}>
-                  <Text style={styles.findChoiceBtnText} numberOfLines={1}>{pl.name}</Text>
-                </Pressable>
-              ))}
-              <Pressable testID="find-choice-none" accessibilityRole="button" accessibilityLabel="Neither, don’t tag a place" onPress={() => explore.choose(null)} style={styles.findChoiceBtn} hitSlop={6}>
-                <Text style={styles.findChoiceBtnText}>Neither</Text>
-              </Pressable>
-            </View>
-          </LiftIn>
-        )}
         {arrived && (
           <LiftIn style={styles.toast}>
             <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
@@ -1432,8 +1418,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onPhoto={() => void photo(momentPill.target())}
             onVoice={() => void startVoice(momentPill.target())}
             onNote={() => {
-              setNoteInto(momentPill.target());
-              setNoteOpen(true);
+              openNote(momentPill.target());
             }}
           />
         )}
@@ -1499,8 +1484,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onSave={saveVoice}
         onDiscard={discardVoice}
         onNote={() => {
-          setNoteInto(momentPill.edgeTarget());
-          setNoteOpen(true);
+          openNote(momentPill.edgeTarget());
         }}
       />
 
@@ -1634,6 +1618,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {/* Small round controls in the stack's column, above the captures (as in AllTrails), inside the
           640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
       <Pressable
+        ref={unwalkedRef}
         testID="unwalked"
         accessibilityRole="switch"
         accessibilityState={{ checked: showUnwalked }}
@@ -1661,6 +1646,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onPress={() => mapRef.current?.resetNorth()}
         bottom={at.edgeBottom(awayFromStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
+        focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
       <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
@@ -1668,6 +1654,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
         <Pressable
+          ref={backRef}
           testID="walk-back"
           accessibilityRole="button"
           accessibilityLabel={wayBack.said}
@@ -1759,7 +1746,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         remind
         walkId={walk?.id ?? null}
         onSaveEdit={(c, patch) => cap.setEdit(c, patch)}
-        onSaveNote={(c, body, type) => cap.setNote(c, body, type)}
+        onSaveNote={(c, body, type, only) => cap.setNote(c, body, type, only)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
@@ -1876,40 +1863,26 @@ function WalkScreen(props: { onMinimize: () => void }) {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={(c, body, type) => cap.setNote(c, body, type)}
+        onSaveNote={(c, body, type, only) => cap.setNote(c, body, type, only)}
       />
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
       <UndoToast style={{ top: insets.top + 64 }} />
 
-      <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
-        {/* Every way out keeps the draft; only Save clears it. */}
-        <Pressable style={styles.modalBack} onPress={() => setNoteOpen(false)} accessibilityLabel="Close note">
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.modalWrap, { paddingTop: insets.top + 56 }]}>
-            <Pressable style={styles.modal} onPress={() => {}} accessible={false}>
-              <Text style={styles.modalTitle} accessibilityRole="header">A line about here</Text>
-              <TextInput
-                testID="note-input"
-                autoFocus
-                multiline
-                value={note}
-                onChangeText={setNote}
-                placeholder="What caught your eye?"
-                placeholderTextColor={theme.muted}
-                accessibilityLabel="Note"
-                returnKeyType="done"
-                submitBehavior="blurAndSubmit"
-                onSubmitEditing={saveNote}
-                maxLength={500}
-                style={styles.input}
-              />
-              <View style={styles.modalRow}>
-                <Button variant="ghost" label="Close" onPress={() => setNoteOpen(false)} />
-                <Button testID="note-save" label="Save" onPress={saveNote} busy={cap.busy === 'text'} disabled={!note.trim()} />
-              </View>
-            </Pressable>
-          </KeyboardAvoidingView>
-        </Pressable>
+      <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
+        {page && (
+          <NewNotePage
+            key={page.key}
+            ref={pageRef}
+            cap={cap}
+            into={page.into}
+            onWalk
+            camera
+            // No buzz mid-sentence (note-pages audit 27); the toast says where it went.
+            onKept={() => setToast('Note saved here')}
+            onClose={() => setPage(null)}
+          />
+        )}
       </Modal>
       </>
       )}
@@ -1962,11 +1935,6 @@ const styles = StyleSheet.create({
   edgeBtnOff: { opacity: 0.5 },
   spotActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  findChoice: { backgroundColor: theme.ink, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, alignSelf: 'center', maxWidth: 420, gap: 8 },
-  findChoiceTitle: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  findChoiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', maxWidth: 220 },
-  findChoiceBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   hidden: { display: 'none' },

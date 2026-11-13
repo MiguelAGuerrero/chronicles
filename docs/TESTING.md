@@ -231,6 +231,7 @@ npm run export:web && npm run e2e:web
 | `edit` | media editing (ME1-ME23): the Edit offer on all three capture places, every tool on a photo and a video, what is stored, what the viewer shows, and what Download saves |
 | `snap` | discrete navigation (DN1-DN13): four more neighborhoods around Fox Point and Cranston west of Providence (`serveSnap`); swipes by mouse drag select the area that way (`data-selected` on the area points), centre it under the title card (`window.__project`), scroll its tile into view, return on the opposite swipe; arrow keys and `+`; the wheel and the long press still work; a tap clears; a town's page swipes to Cranston and back; Navigate's map still pans; then the audit's checks (`discrete-navigation audit 1, 4-7, 10, 11`), audit 1 at 1200 px wide. `window.__unproject` (with `__perf`) gives the centre areas are framed at |
 | `scenic` | scenic routes (SR1-SR14): India Point Park and a footway a block north of Transit Street (`scenicWorld`); the leanings' defaults, Go here with nothing scenic (the notice), the preview's two rows in words, the faint alternate (`data-alternates` on the map, with `__perf`), a row highlighted (`data-selected`), Cancel and Escape, Go on Through green and the leaning kept in meta `nav`, a reload resuming it with no preview; all three off, kept across a reload, Go here going direct. Other journeys reach a route through the harness's `routed`, which takes Direct when a preview shows |
+| `journal` | the journal (JN1-JN18, JN20-JN24, decision 0155), in its own browser: an empty journal, then writing (stored from the first character, kept across a reload, one fix, an emptied entry not kept), a photo with a line and a voice note as one entry, @ a moment, sixty seeded entries (opens at the foot, older ones load above, the slip, a dateline to the Map, the contents and the threads, a response at the end, a refused microphone, the failed page), then a walk minimized under Memories and its replay |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `walkability` | walkability (WK1-WK4, WK13, WK14, WK17, WK20-WK22): the switch on the Explore and Navigate maps, what it draws from Overture's tile, the fallback to Overpass, the band icons and their tooltips |
 | `headsup` | the walkability heads-up (WH3, WH7-WH10, WH13): on a routed walk over fast roads, a quiet line says a stretch built around cars is ahead; nothing buzzes, nothing is pressable, End takes it away |
@@ -373,6 +374,27 @@ layout and style time, `perfCount` rates. Look for a column that only grows.
   functions printed (export with `--no-minify` for readable names).
 - It serves `dist/` from the root only (no `CHRONICLES_BASE_URL` build). Its
   scan step clicks `[data-testid=scan]`, retired with scan, and is skipped.
+
+### Explore in a dense city: `scripts/perf-explore.js`
+
+```bash
+npm run export:web && node scripts/perf-explore.js
+```
+
+The owner's Baltimore report (Nov 12). It builds a 3 km downtown on the e2e harness (a named street every 60 m cut
+into blocks, alleys, 2,000 places, a town and eight neighborhoods), opens the town's page with the Busy layer on,
+throttles the CPU (`PERF_RATE`, default 4), then times `PERF_SWITCHES` card taps to the next neighborhood and
+`PERF_DRAGS` drags with Move map on. Each prints frame intervals (p50, p95, max, over 50 ms), long tasks, the
+browser's script, layout and style time, the map's DOM markers and, per switch, the `perfCount` deltas
+(`render:explore`, `setData:*`, `marker:*`: one per React root a marker rebuild mounts).
+
+- `PERF_BUSY=0` leaves the Busy layer off (the control). `PERF_JSON=<file>` writes the numbers; `PERF_SHOT=<file>`
+  the screen after the switches.
+- `PERF_PROFILE=<file>` with `PERF_PROFILE_PHASE=switch|drag` profiles one phase. Export with `--no-minify
+  --source-maps --output-dir <dir>` and pass `E2E_DIST=<dir>` to read the names.
+- **What it can't see:** throttled Chromium scales the CPU only. It draws WebGL in software (the `(program)` share
+  of a profile is mostly that) and doesn't model WebKit's compositing of DOM markers, so a drag that is smooth here
+  can still stutter on an iPhone. Treat it as a gate for main-thread work, and confirm on the phone.
 
 ## 5. CI
 

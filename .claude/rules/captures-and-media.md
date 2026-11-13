@@ -8,6 +8,10 @@ paths:
   - "src/lib/audioMode*.ts"
   - "src/lib/export/**"
   - "src/lib/__tests__/captures/**"
+  - "src/lib/notePage/**"
+  - "src/components/notePage/**"
+  - "src/lib/noteEdit.ts"
+  - "src/lib/__tests__/notes/**"
   - "src/components/edit/**"
   - "src/lib/{mediaEdit,editSession,editOffer}.ts"
   - "src/lib/{captureEdits,videoEdit}/**"
@@ -148,6 +152,19 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 
 ## Voice memos
 
+- **A memo can be trimmed** (voice trim VT1-VT12, Nov 12): Edit in the viewer opens `MediaEditor` on a `voice` kind (`editSession`
+  `TOOLS.voice = ['trim']`, no picture), the same `Capture.edit.trim` a video has, on the untouched recording. Everything that plays
+  a memo or says its length goes through `lib/voiceTrim` (`voiceSpan`, `voiceClock`, `voiceState`, `memoWords`, `trimmedLine`);
+  a test fails when a file calling `useAudioPlayer` does not import it (VT12). A trimmed memo's player asks `updateInterval: 100`
+  (the default 500 ms stops it up to half a second past the end handle), seeks to the start before `play()`, and pauses and says
+  finished at the end handle (`VoicePlayer`, the replay's `MemoBubble`). A player is only mutated from module-level helpers.
+- **A change to a moment's other piece is that piece's** (voice-trim audit 1): `captureBus.patch` and `applyPatch` take the piece's id
+  (`c.piece_id`); a piece that is not the face's lands in `pieces` and the face keeps its own edit, caption and copy, or a memo's trim
+  overwrote its photo's crop. Every `onSaveEdit` path passes it. Note text is still patched on the face (docs/DEFERRED.md).
+- **A restart names the position it left** (audit 2): a seek is async, so one more status can carry the old end position; the press
+  stores it (`restartedFrom`) and `voiceReachedEnd` ignores that position until the player moves off it. The whole length is
+  `wholeMs(body, file)`: the stored one, the file's only when none is on record (audit 3, 4).
+
 - Voice memos stop when the phone locks unless `setAudioModeAsync` gets
   `allowsBackgroundRecording: true` and the expo-audio plugin has
   `enableBackgroundRecording`.
@@ -193,16 +210,33 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   `chronicle` journey's fresh page copies iOS's rule by holding a `<video>`'s
   `readyState` at 1 until a `play()` is let through (Chromium loads a `blob:`
   video whatever its `preload` says).
-- **Edit a note** (QL24, QL25): the viewer's docked toolbar offers Edit for a note
-  when the screen passes `onSaveNote` (it was in More until decision 0114); `NoteEditor` opens inside the viewer's Modal (as
-  the caption and reminder editors do). `noteText` (`lib/noteEdit.ts`, pure) trims,
-  cuts to 500 and refuses blank. The viewer keeps edited bodies and merges them into
-  what it shows, so the text changes at once and rolls back on a failed save. Screens
-  store the body, patch their own list, and send `captureBus.patch(walkId, id, { body },
-  null)`: a null sender reaches every listener, for screens without `useCaptures`.
-  The walk screen goes through `useCaptures.setNote`. Navigate's live walk has no
-  viewer; "Memories here" has no Edit note. Captions and edits go on the bus since Media editing (`captureEdits`, `useCaptures.setEdit`).
-- **Note types** (NY1-NY17, decision 0149): `Capture.note_type` (SQLite migration 25, IndexedDB 20; raw as stored, read through `noteTypeOf`, so an unknown value is no type) is the owner's mark on a note: one of eight ink glyphs in `lib/noteType` (fixed order, spoken names). `NoteEditor` offers the Type row only when given `type` (an edit, never Respond's composer); its `onSave(body, type)` gives `undefined` for "left alone" and `null` for "No type", and every `onSaveNote` call passes it on (`notePatch` in `lib/noteEdit` is the one write, text and type together; `noteTypeScan.test` fails a call site that takes two arguments). `NoteMark` draws the glyph and name on the viewer's card and the owner-thread bubble; `captureIcon` and `pinMark` put it on a pin of exactly one note (a pin of several keeps its count). Never count, sort, filter, search or infer a type, and never read one for a place (NY12, NY13): any feature that reads types goes through the vision gate again.
-  - **A note of a stacked moment never patches the moment's face** (note-types audit 1): a screen's list holds one `Faced` per moment, at its face's piece. A note save shown at another piece (`facedAt`) writes that piece (`db.updatePiece`) and patches no list or bus, unless `isFacePiece(c)`. The viewer keeps its own `edited` and `editedType` by piece. Text edits had the same flaw before.
-  - **A note save names its piece** (note-types audit 12, 13): screens, the bus and `applyPatch` get `{ ...notePatch(body, type), piece: c.piece_id }`, and `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. `noteTypeReaders.test` lists the files that may mention a type; a new reader goes through `/vision` and then onto that list. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).
-
+- **A note is a page** (note pages NP1-NP14, decision 0151; it replaced the note card and `NoteEditor`). The pencil (Navigate's
+  `MomentBar`, the walk's `walk.tsx`, Memories' open line through Open as a page, `journal/OpenLine`), Respond → Note (`ReplyDock`) and Add to this moment open
+  `NewNotePage` in a non-transparent `Modal`; the viewer's Edit opens `NotePage` inside its own Modal (iOS: never a Modal
+  over a Modal), and the viewer reads a note as `NoteReader` (`CaptureContent`'s `note` prop). The editor is TipTap in an
+  Expo DOM component (`notePage/JournalEditor.tsx`, `'use dom'`: plain DOM on the web, `@expo/dom-webview` on phones),
+  whose default export must be a plain function taking `ref` as a prop (lint `expo/use-dom-exports`); everything it
+  takes or gives back is JSON, and its handle (`format`, `insertMention`, `focus`) takes JSON arguments.
+  - **The document** is `lib/notePage/schema.ts` (adapter): StarterKit without code, link, strike, underline or rule;
+    task lists; the mention as `@[id|words]` (0125) through its own Markdown tokenizer; a paragraph's leading `#`, `1.`,
+    `-`, `>` kept as text. `toDoc(body, format)` reads a body the page wrote (`body_format` 'md') as Markdown and any
+    other note literally (a paragraph per line); `toBody` always writes Markdown. Unit tests run it in Node.
+  - **Words elsewhere** come from `plainNote(body, body_format)` (`lib/refs.ts`), which drops the marks of a page with
+    `marked`, the lexer `@tiptap/markdown` uses (a pure package in core). Every reader of a note passes `body_format`;
+    one that doesn't reads a page's marks as words.
+  - **Saving as it is written** is `lib/notePage/autosave.ts`'s reducer, run by `NotePage`'s `useAutosave`: a pause of
+    `NOTE_SAVE_PAUSE`, leaving, the background; an emptied page never writes an empty body, and only leaving it empty
+    deletes (`deleteNoteNow`, with Undo). A new note is stamped at the tap (`useCaptures.beginNote`) and kept by
+    `keepNote`; every host's `onSaveNote` stores `notePatch(body)` (the body and `body_format: 'md'`).
+  - **Ticks only on the page**: TaskItem's `onReadOnlyChecked` refuses while reading (the steward's S1, 0114).
+  - **On a phone, nothing loads** (NP13): the DOM document adds a Content-Security-Policy meta when `IS_DOM`; the
+    schema has no image, frame or link, so a paste keeps none. `@expo/dom-webview` can't refuse a navigation.
+  - **Leaving** (the audit): Done is the one way out; Escape and system Back go through `requestClose` and keep too. The page
+    closes only once what is written is kept (`closable`): a failed save keeps it open, "Not saved yet" in its top bar.
+  - **Mentions** read as cards in the reader (RF4): `useMentionCards` gives JSON to the DOM, drawn by TipTap's
+    `ReactNodeViewRenderer` under a React context; while writing, a chip. A gone moment's token is relabelled by `withGone`.
+  - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
+    `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
+    (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.
+- **Note types** (NY1-NY17, decision 0161): `Capture.note_type` (SQLite migration 27, IndexedDB 20; raw as stored, read through `noteTypeOf`, so an unknown value is no type) is the owner's mark on a note: one of eight ink glyphs in `lib/noteType` (fixed order, spoken names). The note's page offers a Type tool in its bar only for an edit (`NotePage` given `type` and `onType`; never a new note's page or Respond's), opening `NoteTypeMenu`; a choice is kept at once through `onSaveNote(c, body, type, typeOnly)`. `notePatch(body, type, typeOnly)` (`lib/noteEdit`) is the one write: text and type together, or, `typeOnly`, the type alone (the body and its `body_format` stay as kept). Every `onSaveNote` call passes it on (`noteTypeScan.test` fails a call site that takes two arguments). `NoteMark` draws the glyph and name above the viewer's note and in the owner-thread bubble; `captureIcon` and `pinMark` put it on a pin of exactly one note (a pin of several keeps its count). Never count, sort, filter, search or infer a type, and never read one for a place (NY12, NY13): `noteTypeReaders.test` lists the files that may mention a type; a new reader goes through `/vision` and then onto that list.
+  - **A note save names its piece** (note-types audit 1, 12, 13): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).

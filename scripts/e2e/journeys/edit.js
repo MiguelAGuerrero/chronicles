@@ -396,12 +396,15 @@ async function run(h) {
       if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-      const said = await pg.waitForSelector('[data-testid=recording-said]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
-      const edit = await pg.waitForSelector('[data-testid=recording-bar] [data-testid=capture-edit]', { timeout: 5000 }).then(() => true, () => false);
+      // Since T12 (decision 0149) the bar's offer is a pill above it that waits for Edit, Close or the next capture.
+      const said = await pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 })
+        .then((e) => e.evaluate((n) => n.firstElementChild?.textContent ?? ''), () => '');
+      const edit = await pg.waitForSelector('[data-testid=bar-edit-offer] [data-testid=capture-edit]', { timeout: 5000 }).then(() => true, () => false);
       check(said === 'Photo saved to your walk' && edit, `ME23: the recording bar offers Edit after its photo ("${said}")`);
-      await pg.click('[data-testid=recording-bar] [data-testid=capture-edit]');
+      await pg.click('[data-testid=bar-edit-offer] [data-testid=capture-edit]');
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
       check((await selected('edit-tool-crop')) === 'true', 'ME23: the bar’s Edit opens the editor on Crop');
+      check((await pg.locator('[data-testid=bar-edit-offer]').count()) === 0, 'tend tabs T12: the bar’s Edit ends its offer');
       await pg.click('[data-testid=edit-close]');
     });
 

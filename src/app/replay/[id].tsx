@@ -1,4 +1,5 @@
 import type { Faced } from '../../lib/moment';
+import { notePatch } from '../../lib/noteEdit';
 import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -24,7 +25,6 @@ import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
-import { notePatch } from '../../lib/noteEdit';
 import { captureEdits } from '../../lib/captureEdits';
 import { snapWalk } from '../../lib/finish';
 import { decide } from '../../lib/gaps';
@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { FOG_MS } from '../../lib/replay';
+import { backFrom, beatWords, FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -196,19 +196,43 @@ export default function Replay() {
     leftForChronicle.current = true;
     router.dismissTo('/');
   }, []);
+  // The beat as Back reads it, outside render (tend replay 4).
+  const beatNow = useRef<Beat>('reading');
+  useEffect(() => {
+    beatNow.current = phase.beat;
+  }, [phase.beat]);
   useEffect(() => {
     if (rewatch) return;
     // However it is left, the first replay ends on Chronicle's Memories (RM3).
     chronicleSection.set('memories');
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      toChronicle();
+      // Back on the name step returns to the card, the words typed kept (tend replay 4).
+      if (backFrom(beatNow.current) === 'card') go('card');
+      else toChronicle();
       return true;
     });
     return () => {
       back.remove();
       if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
-  }, [rewatch, toChronicle]);
+  }, [rewatch, toChronicle, go]);
+  // Escape on the web is Back's sibling (tend replay 5): the name step returns to the card; anywhere else the replay
+  // is left as Not now or Done leaves it. Nothing while a viewer, the walk's menu or a gap's card holds the key.
+  const held = viewing != null || here != null || actionsOpen || gapOpen != null || isDrawing;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || held) return;
+    const onKey = (e: KeyboardEvent) => {
+      // A held key's repeats are not more presses: the name step's Escape stops at the card (tend replay audit 4).
+      if (e.key !== 'Escape' || e.repeat) return;
+      if (backFrom(beatNow.current) === 'card') go('card');
+      else if (!rewatch) toChronicle();
+      else if (router.canGoBack()) router.back();
+      else router.dismissTo('/');
+    };
+    // In the capture phase: react-native-web's TextInput stops a key's propagation (the name step's fields).
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [held, rewatch, toChronicle, go]);
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {
@@ -325,14 +349,15 @@ export default function Replay() {
     return () => clearInterval(timer);
   }, [beat, phase.t0, go]);
 
-  // Words for screen readers at each beat.
+  // Words for screen readers at each beat, once as it begins, not again when the walk is read anew (tend replay 9).
+  const saidAt = useRef<number | null>(null);
   useEffect(() => {
     if (!data) return;
-    const s = data.summary;
-    if (beat === 'reading') AccessibilityInfo.announceForAccessibility('Reading the streets you walked');
-    if (beat === 'fog') AccessibilityInfo.announceForAccessibility(headline(s, data).spoken);
-    if (beat === 'card') AccessibilityInfo.announceForAccessibility('Summary');
-  }, [beat, data]);
+    const words = beatWords(beat, phase.t0, saidAt.current, headline(data.summary, data).spoken);
+    if (!words) return;
+    saidAt.current = phase.t0;
+    AccessibilityInfo.announceForAccessibility(words);
+  }, [beat, phase.t0, data]);
 
   // The trace as far as the ceremony has drawn each path; whole outside the path beat.
   const traceBucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
@@ -452,22 +477,26 @@ export default function Replay() {
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}
         covered={beat === 'reading'}
         veil
-        // The walk has ended: its last point is marked (QL2).
-        ended
+        // The walk has ended: its last point is marked (QL2), where the whole trace ends in every beat, never at
+        // the tip of the path being told (tend replay 2).
+        ended={data.runs}
         // Above the card once it is up; before that nothing sits at the bottom (Skip is at the top) (QL8).
         scaleInset={beat === 'card' || beat === 'name' ? { bottom: sheetH + 12, left: 12 } : { bottom: insets.bottom + 12, left: 12 }}
       />
 
       {beat === 'reading' && (
         <View style={[styles.center, StyleSheet.absoluteFill]} pointerEvents="none">
-          <View style={styles.headline}>
+          {/* 16 px in from each edge on a 320 px phone (tend replay 1). */}
+          <View testID="replay-reading" style={[styles.headline, { maxWidth: Math.min(340, width - 32) }]}>
             <Text style={styles.reading}>Reading the streets you walked…</Text>
           </View>
         </View>
       )}
 
       {beat === 'fog' && (
-        <View style={[styles.headline, { top: insets.top + 24 }]} pointerEvents="none">
+        // Below the top row, so Skip never covers its words, and 16 px in from each edge (tend replay 1): 8 px under
+        // Skip's foot (12 in, 48 tall; tend replay audit 6).
+        <View testID="replay-headline" style={[styles.headline, { top: insets.top + 12 + 48 + 8, maxWidth: Math.min(340, width - 32) }]} pointerEvents="none">
           <Text style={styles.headlineLabel}>{head.line}</Text>
           {head.note ? <Text style={styles.headlineNote}>{head.note}</Text> : null}
         </View>
@@ -504,14 +533,14 @@ export default function Replay() {
         onSaveEdit={async (c, patch) => {
           // A failed write throws to the viewer, which says so; the screen only changes once it is stored (ME21).
           await captureEdits.save(c, patch);
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch) });
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch, c.piece_id) });
         }}
-        onSaveNote={async (c, body, type) => {
+        onSaveNote={async (c, body, type, only) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type);
+          const change = notePatch(body, type, only);
           await db.updatePiece(c.piece_id, change);
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { ...change, piece: c.piece_id }) });
-          captureBus.patch(c.walk_id, c.id, { ...change, piece: c.piece_id }, null);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
       <CaptureViewer
@@ -521,12 +550,12 @@ export default function Replay() {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={async (c, body, type) => {
+        onSaveNote={async (c, body, type, only) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type);
+          const change = notePatch(body, type, only);
           await db.updatePiece(c.piece_id, change);
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { ...change, piece: c.piece_id }) });
-          captureBus.patch(c.walk_id, c.id, { ...change, piece: c.piece_id }, null);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
 
@@ -726,10 +755,10 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
   muted: { color: theme.muted, fontSize: 16 },
   missing: { color: theme.ink, fontSize: 18, fontWeight: '600', textAlign: 'center' },
-  reading: { color: theme.ink, fontSize: 17, fontWeight: '600' },
+  reading: { color: theme.ink, fontSize: 17, fontWeight: '600', textAlign: 'center' },
   headline: {
-    position: 'absolute', alignSelf: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24, maxWidth: 340,
+    position: 'absolute', alignSelf: 'center', alignItems: 'center', backgroundColor: theme.glass,
+    borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24,
   },
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },

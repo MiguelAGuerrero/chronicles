@@ -19,9 +19,12 @@ async function run(h) {
     return b;
   };
   const tileOf = (pg, name) => pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`);
-  const openCard = async (pg, name) => {
-    // Near you the row is the towns; a neighborhood is on its town's page (fix explore-town-scope).
-    await h.areaTile(pg, name);
+  const openCard = async (pg, name, { town = false } = {}) => {
+    // Near you the row is the towns; a neighborhood is on its town's page (fix explore-town-scope). A town's card is
+    // waited for in the row, never by opening a town's page while the row still fills in (areaTile would, as for a
+    // neighborhood, and a town's card is never on another town's page: the race lost the journey 1 run in 3 on main, Nov 12).
+    if (town) await pg.waitForSelector(`[data-testid=atlas-tile][data-name="${name}"]`, { timeout: 60000 }).catch(() => {});
+    else await h.areaTile(pg, name);
     // The row (decision 0124): a tap on a card that is not selected only selects it; a tap on the selected card opens a
     // neighborhood's card, or a town's page (AT2), whose own card then opens the area's card.
     const cardUp = () => pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null);
@@ -44,7 +47,7 @@ async function run(h) {
     {
       const { c, pg } = await freshPage('drive');
       await pg.goto(exploreUrl);
-      await openCard(pg, 'Cranston');
+      await openCard(pg, 'Cranston', { town: true });
       await pg.click('[data-testid=atlas-walk]').catch(() => {});
       await pg.waitForTimeout(800);
       const asked = await footerIds(pg);
@@ -71,7 +74,7 @@ async function run(h) {
       const east = at(75, 0);
       await c.setGeolocation({ longitude: east[0], latitude: east[1], accuracy: 6 });
       await pg.goto(exploreUrl);
-      await openCard(pg, 'Cranston');
+      await openCard(pg, 'Cranston', { town: true });
       const far = await footerIds(pg);
       const card = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
       check(far.length === 1 && far[0] === 'atlas-walk-later' && !/Too far to walk/.test(card),

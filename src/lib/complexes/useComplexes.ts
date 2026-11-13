@@ -1,13 +1,12 @@
 // @layer view
+import { nextShown } from './shown';
 import { useEffect, useRef, useState } from 'react';
 import { ensureOvertureRelease } from '../activity/overture';
 import type { LngLat } from '../types';
+import { retryIn } from './extent';
 import { complexes } from './index';
 import { loadHiddenKinds, onHiddenKinds, saveHiddenKinds } from './settings';
 import type { Complex, ComplexKind } from './types';
-
-/** How long after a failed read the next ask waits (CX16): nothing is shown for it, nothing nags. */
-const RETRY_MS = 90_000;
 
 /** CX10: the kinds switched off, saved as they change. */
 export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKind[]) => void } {
@@ -25,35 +24,51 @@ export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKi
 }
 
 /**
- * CX16: the complexes of the selected area, read once it is selected and the tab is in front, silently: a failed read shows
- * nothing and is asked again after a wait. Never for the areas merely in view.
+ * CX16: the complexes of the selected area, read once it is selected, the tab is in front and a kind is on, silently: a failed
+ * read shows nothing and is asked again once COMPLEX_RETRY_MS has passed, with no change of tab or area (complexes audit 4).
+ * Never for the areas merely in view.
  */
-export function useComplexes(focused: boolean, area: { key: string; at: LngLat; reachM: number } | null): { complexes: Complex[]; partial: boolean } {
+export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; reachM: number } | null): { complexes: Complex[]; partial: boolean } {
   const [state, setState] = useState<{ key: string | null; complexes: Complex[]; partial: boolean }>({ key: null, complexes: [], partial: false });
+  const [tick, setTick] = useState(0);
+  const stateNow = useRef(state);
+  useEffect(() => {
+    stateNow.current = state;
+  }, [state]);
   const failedAt = useRef<{ key: string; t: number } | null>(null);
   const key = area?.key ?? null;
   const lon = area?.at[0];
   const lat = area?.at[1];
   const reachM = area?.reachM;
   useEffect(() => {
-    if (!focused || key == null || lon == null || lat == null || reachM == null) return;
+    if (!enabled || key == null || lon == null || lat == null || reachM == null) return;
     const failed = failedAt.current;
-    if (failed && failed.key === key && Date.now() - failed.t < RETRY_MS) return;
+    const wait = retryIn(failed && failed.key === key ? failed.t : null, Date.now());
+    // Failed not long ago: ask again when it is due, not before and not never.
+    if (wait != null && wait > 0) {
+      const timer = setTimeout(() => setTick((n) => n + 1), wait);
+      return () => clearTimeout(timer);
+    }
     let live = true;
     void (async () => {
       const release = await ensureOvertureRelease().catch(() => null);
-      if (!release || !live) return;
-      const r = await complexes.readArea({ at: [lon, lat], reachM }, release, () => !live).catch(() => null);
       if (!live) return;
-      if (!r || (r.complexes.length === 0 && r.partial)) {
+      const r = release ? await complexes.readArea({ at: [lon, lat], reachM }, release, () => !live).catch(() => null) : null;
+      if (!live) return;
+      if (!r || r.failed) {
         failedAt.current = { key, t: Date.now() };
+        setTick((n) => n + 1);
         return;
       }
-      setState({ key, complexes: r.complexes, partial: r.partial });
+      failedAt.current = null;
+      // explore-dense-city DC12, audit 10: no update when nothing on screen changes: even a setState that hands back the
+      // same state renders once (map rules), so it is compared here first.
+      const next = nextShown(stateNow.current, key, r);
+      if (next !== stateNow.current) setState(next);
     })();
     return () => {
       live = false;
     };
-  }, [focused, key, lon, lat, reachM]);
+  }, [enabled, key, lon, lat, reachM, tick]);
   return state.key === key ? { complexes: state.complexes, partial: state.partial } : { complexes: [], partial: false };
 }

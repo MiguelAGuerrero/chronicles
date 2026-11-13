@@ -110,3 +110,12 @@ export async function planPiece(m: Faced, pieceId: string): Promise<ConfirmText>
   const p = m.pieces.find((x) => x.id === pieceId);
   return pieceDeleteText(p?.kind ?? m.kind, await mediaBytes(filesOf(p ? [p] : [])).catch(() => 0));
 }
+
+/**
+ * A note page left empty (NP9, decision 0151): its note goes, with the usual Undo. A one-piece moment is the moment;
+ * a note added to another moment is that piece (MS13).
+ */
+export function deleteNoteNow(n: { id: string; piece_id: string }) {
+  if (n.piece_id === n.id) deletions.schedule({ kind: 'moment', what: 'text', ids: [n.id], spec: { type: 'moment', captureId: n.id } });
+  else deletions.schedule({ kind: 'piece', what: 'text', ids: [pieceKey(n.piece_id)], spec: { type: 'piece', momentId: n.id, pieceId: n.piece_id } });
+}

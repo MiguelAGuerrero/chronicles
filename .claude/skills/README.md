@@ -23,7 +23,8 @@ a slice lands ─► its area is rough ─► the next /tend sweeps it
 | `/slice` | the owner; `/tend inbox G<n> yes` | a slug; with `--from=G<n>` the approved entry (criteria, verdict) | spec, plan, tests-first commit, code, docs, the STATUS row | the plan, unless `--from` (decision 0130); architecture always | nothing, ever; under `--from` the `/tend` run that called it publishes |
 | `/fix` | the owner only | one issue and its flags | one commit with its regression test; DEFERRED for anything else found | hard stops (`ship.md`) | `main` by default (0081) |
 | `/audit` | the owner only (0074) | a built slice's slug | the spec's audit record, regression tests named `<slug> audit N`, fixes | architectural findings | nothing; `/deploy` follows |
-| `/tend` | the owner only | an area, `triage`, `evolve` or `inbox <answers>` | loop commits, inbox entries, DEFERRED tags, the ledger | never mid-run; it files and goes on, and asks about its entries after it has published | `main`: loop findings and its record (0128); an approved entry (0130) |
+| `/tend` | the owner; `/tend-orchestrator`'s runs (0157) | an area, `triage`, `evolve` or `inbox <answers>` | loop commits, inbox entries, DEFERRED tags, the ledger | never mid-run; it files and goes on, and asks about its entries after it has published | `main`: loop findings and its record (0128); an approved entry (0130) |
+| `/tend-orchestrator` | the owner only | four answers asked first: deploy, stop rule, authority (0157 at most), skill edits | `/tend` runs through subagents, reviewers spawned at their review points, proxy yeses recorded as the proxy's (0157), an insights file and a list of proxy answers for the owner | at the start; then, batched, every no, reshape or hold, and what 0157 keeps for the owner (arch, phone, VISION, amendments of their calls or shipped criteria, the replay, sharing, notifications, counts, Silent questions) | nothing itself; each run publishes under the grant the owner gave at the start |
 | `/deploy` | the owner only | a green branch | `main` moved, the Pages run checked | a failed precondition; a merge that is not a fast-forward | `main` |
 | `/e2e` | anyone | a journey name | a pass or failure; pictures with `E2E_SHOTS` | never | nothing |
 | `/docs-gc` | anyone, at the end of a slice | the tree | docs brought back in line | never | nothing |
@@ -43,11 +44,16 @@ shell, and the other two a shell that `.claude/hooks/readonly-bash.sh` keeps to 
   `.claude/skills/tend/runs.jsonl` (one line a run: what it found, shipped, filed and was told).
   A new session reads these and `git log` first. The copies on `main` are the only ones that count:
   a run reads them from a worktree of `origin/main` and publishes its changes to them with its work.
+  The three documents change only through `npm run records -- <op>`, one whole entry at a time, each
+  recorded and named in its commit's `Records-Op:` trailers, and `npm run check:records` before the
+  commit (decision 0156; `ship.md`, "The record documents"). Every agent commit is gated, slices,
+  fixes and docs-gc as much as the loop: CI replays each commit that carries a `Claude-Session:` or
+  `Co-Authored-By: Claude` trailer; only the owner's own hand edits are left alone.
 - **A stopped slice is parked, not lost:** its branch is pushed as `slice/<slug>-parked`, its question
   is a `T` entry on `main`, and the owner's answer resumes it (`/tend`, section 7).
 - **Gates are scripts where they can be:** `check:docs` (a criterion without a test), `check:vision`,
-  `check:test-first`, the layer check, `check:tend` (a loop commit without a test or a source), the Stop
-  hook and CI. A procedure step that keeps being missed becomes a check, not a louder sentence.
+  `check:test-first`, the layer check, `check:tend` (a loop commit without a test or a source),
+  `check:records` (a record document changed by anything but its commit's declared operations), the Stop hook and CI. A procedure step that keeps being missed becomes a check, not a louder sentence.
 - **One piece of work per run.** A `/fix` is one issue; a `/tend` sweep is one area; an approved
   proposal is one run of its own.
 - **Naming is the record.** `fix <name>`, `fix <name> audit N`, `tend <scope> N`, `<Slice>: … (XX1-XX9)`:

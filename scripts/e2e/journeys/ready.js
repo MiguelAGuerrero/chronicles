@@ -178,8 +178,8 @@ async function run(h) {
 
     // A moment before Start (NR9).
     await pg.click('[data-testid=moment-note]');
-    await pg.fill('[data-testid=moment-note-input]', 'Before the walk');
-    await pg.click('[data-testid=moment-note-save]');
+    await pg.fill('[data-testid=note-input]', 'Before the walk');
+    await pg.click('[data-testid=note-done]');
     await pg.waitForTimeout(800);
 
     // NR5, NR6: Start records in place.
@@ -218,7 +218,7 @@ async function run(h) {
     // NR9: a note now belongs to the walk; the one before it is a moment.
     await pg.click('[data-testid=cap-note]');
     await pg.fill('[data-testid=note-input]', 'On the walk');
-    await pg.click('[data-testid=note-save]');
+    await pg.click('[data-testid=note-done]');
     await pg.waitForTimeout(800);
     {
       const w = await openWalk(pg);
@@ -309,12 +309,13 @@ async function run(h) {
       await pg2.locator('[data-testid=locate]').filter({ visible: true }).first().click();
       await pg2.waitForTimeout(1500);
       const denied = (await pg2.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
-      check(/Location permission was denied/.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
+      // tend map T17: refused, Locate says where to turn location on (the quiet notice, `locate/notice.ts`).
+      check(/Location is off for this site/.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
         `ready NR13: a denied location says so on the ready screen (${denied})`);
       // M2 on the ready screen: a moment with no fix is kept and says so.
       await pg2.click('[data-testid=moment-note]');
-      await pg2.fill('[data-testid=moment-note-input]', 'No fix here');
-      await pg2.click('[data-testid=moment-note-save]');
+      await pg2.fill('[data-testid=note-input]', 'No fix here');
+      await pg2.click('[data-testid=note-done]');
       check(await pg2.waitForSelector('text=/No location/', { timeout: 20000 }).then(() => true, () => false), 'ready M2: a moment with no fix is kept and says "No location"');
       await c2.close();
     }

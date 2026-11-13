@@ -43,7 +43,7 @@ const version = (pg) => pg.evaluate(() => new Promise((resolve) => {
 }));
 
 async function run(h) {
-  const { url, check, shot, tabTo, freshPage } = h;
+  const { url, check, shot, tabTo, freshPage, toThreads, toJournal } = h;
   const { c, pg } = await freshPage('upgrade');
   await c.addInitScript(SEED, { migrate: migrate17.toString(), now: Date.now() });
   await pg.goto(url);
@@ -52,9 +52,11 @@ async function run(h) {
   check(db.v === 20 && db.stores.includes('moment') && !db.stores.includes('capture'), `MT9: the app opened a version-17 database and upgraded it (${JSON.stringify(db)})`);
 
   await tabTo(pg, 'chronicle', 'memories');
+  await toThreads(pg);
   const thread = await pg.waitForSelector('[data-testid=my-thread-row]:has-text("Before the upgrade")', { timeout: 20000 }).then(() => true, () => false);
   check(thread, 'MT9: the thread made before the upgrade is listed, by its name');
   if (thread) {
+    await toThreads(pg);
     await pg.locator('[data-testid=my-thread-row]:has-text("Before the upgrade")').first().click();
     const both = await pg.waitForSelector('[data-testid=own-thread] [data-testid=note-bubble]:has-text("answering the first")', { timeout: 10000 }).then(() => true, () => false);
     check(both && (await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]:has-text("A loose note from before")').count()) > 0,

@@ -37,7 +37,7 @@ index.js                     entry: imports lib/recorder (defines the background
 src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
 src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2); Navigate's press opens the walk screen (NR1)
 src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath, then the walk screen, ready (NR1, NR3)
-src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories with the capture band; Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
+src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories as a journal with its open line (0155); Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
@@ -83,7 +83,15 @@ Chronicle's Memories (decision 0098)
   resurface/section.ts       which Chronicle section after a route; sectionStore.ts holds it
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
-  chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen, MemoriesBand (the capture band, HC6-HC15), Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+  chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen (the journal's page and its screens), MemoriesMenu (the contents), ThreadsRail, ThreadScreen, MomentCard (a thread's cards), MomentPicture, MemoryMenu
+The journal (specs/chronicle-journal, JN1-JN24, decision 0155): Memories as one sheet in book order, ending in an open line
+  journal/page.ts            journalMoments (the feed's and an open walk's, oldest first), journalPage (rows: day headings, the slip, entries; the latest page)
+  journal/lines.ts           dayHeading, clockTime, dateline (time, then place and walk once read; No location), entrySpoken, the open line's labels
+  journal/pen.ts             the open line's reducer: begin on the first character, save as typed, drop when emptied, Done, a kept capture, a failed save
+  journal/target.ts          where an entry goes: the open walk, a moment of its own, or wait until the keeper knows
+  journal/blocks.ts          noteBlocks (a page-written note's Markdown as blocks the sheet draws natively, mentions kept), sheetBlocks (the first twelve, and that it goes on)
+  journal/keyboard.ts        keyboardLift: how far a browser's keyboard hides the foot (used by threads/useKeyboardHeight.web)
+  components/journal/        JournalPage (the sheet: opens at the foot, older entries added above), Entry (dateline and pieces, no card; a page-written note as native blocks), Slip (the resurfaced moment), OpenLine (the field, camera and mic; runs the pen through useCaptures; Open as a page hands the entry to the note's page), type (the owner's serif)
 Media gallery (specs/media-gallery, MG1-MG22, decision 0139)
   gallery/types.ts           Show, Order, Zoom, Size, Shape, GalleryView (what is kept)
   gallery/layout.ts          galleryTiles (one per photo, video and memo piece, in the Sort's order), galleryDays and dayLine (a header per day, where in words), galleryBlocks (months and years: the cover, the place line), dayRows and blockRows (every row's offset known, MG12), tileLabel, withPiecePatch
@@ -105,21 +113,20 @@ Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
   OpenWalk.tsx               the open walk kept above the tabs: walk, pauses, live trace, useOpenWalk / useOpenWalkInfo
-  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk
-  MomentBar.tsx              MomentBar (loose moments from Navigate and Memories, or the open walk's from Memories' band) and CaptureRow (the controls, as a stack or a band)
+  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk; its photo's Edit pill above it
+  MomentBar.tsx              MomentBar (loose moments from Navigate's ready screen) and CaptureRow (the stack's controls and the note's page); Memories keeps moments from journal/OpenLine
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack (a stack, or Memories' band), AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
-  LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
-  CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
+  CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
+  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and, for an edit, the Type tool; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap), NoteTypeMenu.tsx (the nine entries of a note's type, NY6)
   CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a single typed note wears its type's glyph (`pinMark`)
-  NoteEditor.tsx             the note editor: text, @ mentions and (for an edit) the Type row, a two-column menu of the eight types and "No type" (NY6)
-  NoteMark.tsx               a note's type as an ink glyph and its spoken name, on the viewer's card and the owner-thread bubble (NY9, NY17)
+  NoteMark.tsx               a note's type as an ink glyph and its spoken name, on the viewer's note and the owner-thread bubble (NY9, NY17)
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
   Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
   Baker(.native|.web).tsx    renders a photo's edits and caption into a saved copy, or the lines and caption alone into a clear PNG for a video (Baker.types.ts): react-native-view-shot over EditedPicture on native, canvas on web
@@ -185,7 +192,11 @@ Places and areas (v0.5)
   areas/rules.ts             AREA_RULES and the reaches
   areas/tilePlaces.ts the OpenMapTiles place classes (the only file that knows them)
   areas/outlines.ts          town outlines: townAt (the smallest outline holding a point, else points), withOutlines, hoodAllowed, the z12 tiles
-  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points
+  areas/shapes.ts            plane geometry shared by outlines and hoods: ring area, point in polygon, bbox, a point inside a shape
+  areas/hoods.ts             neighborhood boundaries (HB1-HB16): `hoodAt` (the one rule for placing and Explore), `hoodGround`, `hoodExtentFor`, `groundOf`
+  areas/groundDraw.ts        the selected neighborhood's line: one look, no properties (HB10, HB14)
+  areas/useHoodGround.ts     the view hook: the ground from the kept tiles only
+  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points and, at z12, its neighborhood shapes
   areas/outlineRead.ts       createOutlines: outlines read by tile and kept (`outline_tile`); outlineReader.ts is the app's instance
   areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range (z12 to decide, z10 to draw), the places' release
   areas/borders.ts           town borders to draw: bordersFor (tinted, firm, lined; simplified, 40 at most), outlineIdHere, outlineOf
@@ -228,7 +239,7 @@ Discovery and Explore (v1)
   discovery/archivePois.ts   the places archive's schema: placesFromArchive (the only file that knows it; decision 0103); its classes are presence's, ARCHIVE_CLASSES lists them (pinned, PW5)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), keepFindKeys (a find keeps its key); the owner's edits are applied in chronicles-data (decision 0108)
   discovery/refine.ts        the kind pipeline's engine: Refinement, refine() (pure, in order; PC18-PC19, decision 0144)
-  discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch (PC20-PC23)
+  discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch, kindRows (PC20-PC23)
   discovery/parkKind.ts      communityParks: the first refinement, Parks into Community parks by name and what is near (PC1-PC5; its curation in communityWords.json, parkNotable.json; notable names are presence's notableName, PS3)
   discovery/green.ts         the tiles' park outlines, from presence's classesOfLandcover (PS4): GreenArea, greenFromTiles, outlinesOf; scenic routes re-export it
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
@@ -296,7 +307,15 @@ Landing (v1.5)
   landing/analyze.ts         busy streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read
   landing/spatial.ts         buckets, single linkage, hulls: the analysis's planar helpers
-  landing/read.ts            What's good here: decoder reads, remembered areas
+  landing/read.ts            What's good here: decoder reads, remembered areas; the tiles' bytes go to runOffPage
+  landing/compute.ts         computeRead: decode, streets, places, activity and the measure, one staged generator (DC13)
+  landing/offPage.ts         createOffPage: a worker per read, else the page; same result either way (DC7, DC8)
+  landing/runOffPage(.web).ts the instances: a worker on web (compute.worker.ts), the JS thread with a turn per stage on native
+  landing/names.ts           busyNames: one name per strip at its label point, turned along its street (DC1, DC3)
+  landing/workerJobs.ts      the worker's jobs: a read (computeRead) or an atlas ring (atlas/ringCompute.ts, audit 2)
+  atlas/profile.ts           profileFrom: what a ring read keeps, from decoded tiles (core, so the worker runs it)
+  layers/motion.ts           createMotion: whether the map moves, a promise for its settle (DC9, audit 7)
+  complexes/shown.ts         nextShown: the complexes hook's next state, the same object when nothing changes (DC12)
   landing/view.ts            LANDING_CODE, LandingRow / LandingView, staleness
   landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days
@@ -309,6 +328,9 @@ Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
   noteType.ts                a note's type (core, NY1-NY3, decision 0149): the eight ink marks in fixed order, `noteTypeOf` (unknown reads none), `markOf`; `noteEdit.notePatch` is the one write of text and type together
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
+  notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
+  noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
+  voiceTrim.ts               a voice memo's kept part (core, VT6-VT12): span, clock, state, the length and "Trimmed" words
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
   editOffer.ts               the after-capture Edit offer's timing and words (core)
@@ -322,7 +344,7 @@ Captures and media
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
-  captureBand.ts             Memories' capture band (0112): its layout, where a moment goes (loose or the open walk), its labels and toasts, and whether the recording bar shows its camera
+  captureBand.ts             what is left of capture from Chronicle (0112): a loose moment's toast on the ready screen, and whether the recording bar shows its camera
   moment.ts                  a moment and its pieces (decision 0123): face, faced rows, foldRows (SQLite's joined reads), placeAt (a moment on the trace at stop)
   openMoment.ts              the Add to this moment pill's life as a reducer (MS4, MS5): two minutes, 100 m from the first capture, dismiss, leave, start/stop
   momentPill/                its store on the app's clock (shell.ts, index.ts); the viewer's ask, run by the walk screen (MS12)
@@ -355,7 +377,7 @@ Session, screens and small helpers
   useTabMap.ts               a tab's map taken down while the tab isn't in front
   memoGate.ts                a memo recording anywhere blocks a start
   settleWithin.ts            await a promise, but never longer than ms
-  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line, counts as words, distances and times, the scale bar's length
+  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web
   focus.ts                   focusOn(ref) (findNodeHandle doesn't exist on web)
   perfCount.ts               opt-in counters when window.__perf is set
@@ -461,6 +483,10 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
+- **A busy read's background thread** (explore-dense-city DC7, decision 0160): a web worker (`landing/runOffPage.web.ts`,
+  `landing/compute.worker.ts`, built by Expo's export as a file of its own). No Expo module gives the web, or a phone, a
+  background JS thread; native runs the same `computeRead` on the JS thread with a turn before each tile and stage. A
+  worker that can't start (a page left open across a deploy asks for the old worker's file) leaves the read to the page.
 - **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
   react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
   that call alone, since a live region as well would say it twice on Android.
@@ -535,8 +561,10 @@ Truth (`lib/types.ts`):
   (photo | video | voice | text), file_path, body, caption, caption_y,
   thumb_path, note_type (a note's type, raw as stored, SQLite migration 25, IndexedDB 20; decision 0149), edit (a photo's or video's edits as data: rotate, crop, filter,
   lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
-  object; `parseEdit` reads both, decision 0090). Media files and small copies
-  are named by the piece's id.
+  object; `parseEdit` reads both, decision 0090), body_format (a note's body is
+  Markdown the note page wrote: 'md'; null or absent, it reads as stored;
+  SQLite migration 25, IndexedDB keeps the record whole; decision 0155). Media
+  files and small copies are named by the piece's id.
 - Screens read `Faced` moments (`lib/moment.ts`): the moment's own fields with
   its face's media (`face`: the first photo or video, else the first piece),
   the face's id as `piece_id` for media writes (`db.updatePiece`), and every

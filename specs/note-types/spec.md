@@ -12,7 +12,7 @@ mark, an exclamation point, a happy face, so the mark says why the note was made
 Idea: Each note can carry a type the owner assigns (a question, emphasis, an idea, happy, neutral, sad, like, dislike), so its mark says why it was made instead of showing the generic note icon.
 Verb: honour (the moment keeps why it was made, as part of its context); return (a pin, a row or a card reads at a glance).
 Touches: Never "A feed, followers, likes" (a type is the owner's own mark on their own note; nobody reacts to anyone); Never "Writing the owner's words for them" and the concept doc's "nothing is ever calculated for you" (the type is only ever chosen, never inferred from the text); Never "Celebration" and Always "Restraint" (plain ink glyphs, no colour, motion or emoji); Never "Editing out the lows" and Always "The lows stay in" (the set holds sad and dislike marks, not only bright ones); Never "A capture behind a menu, a drawer or an extra tap" (capture is unchanged; the type is set afterwards, in the note editor); Never "Scores" and Always "Counts are words" (no count of a type anywhere); precedent 0105 (an ink-coloured icon with a spoken name is how this app tells two kinds apart); `response-thread` RT10 bans reactions on responses, a different thing from a mark the owner puts on their own note.
-Verdict: aligned if reshaped (the owner then reaffirmed thumbs and faces over the gate's warning: decision 0149)
+Verdict: aligned if reshaped (the owner then reaffirmed thumbs and faces over the gate's warning: decision 0161)
 Shape: A fixed set of eight ink glyphs (a question, emphasis, an idea, happy, neutral, sad, like, dislike), one per note, chosen in the note editor and changeable there. The glyph takes the place of the generic note glyph on the map pin, the Chronicle's moment picture, the viewer's note card and the thread screen's note bubbles, with a spoken name. A note with no type looks as it does today. Nothing counts types, filters by them or guesses them.
 Criteria: NY1-NY17 below.
 Open: none (answered Nov 12, see Decisions).
@@ -20,7 +20,7 @@ Open: none (answered Nov 12, see Decisions).
 ## Decisions (the owner's calls, Nov 12)
 
 - **A small fixed set of ink glyphs**, not emoji and not any emoji: restraint, a spoken name for each, and a set that reads the same on every phone.
-- **Eight marks** (decision 0149): Question, Emphasis (an insight or eureka, not "more important"), Idea, Happy, Neutral, Sad, Like, Dislike. Thumbs and faces kept over the gate's warning that they read as a rating; they are never counted, filtered, searched or applied to a place.
+- **Eight marks** (decision 0161): Question, Emphasis (an insight or eureka, not "more important"), Idea, Happy, Neutral, Sad, Like, Dislike. Thumbs and faces kept over the gate's warning that they read as a rating; they are never counted, filtered, searched or applied to a place.
 - **The thread screen's note bubbles carry the mark** (Nov 12).
 - **One type per note**, so a pin has one mark and nothing needs a rule for which shows.
 - **Notes only**, set in the note editor (writing a note in the viewer's Respond or editing one); capture stays one tap. Photos, videos and memos keep their own glyphs.
@@ -51,7 +51,7 @@ The set (`NOTE_TYPES`, in `src/lib/noteType.ts`), in this fixed order, which the
 
 ## Steward triage (Nov 12)
 
-- **Finding 1** overruled by the owner (decision 0149): faces and thumbs stay; the steward's concern is met by the criteria that nothing counts, filters or applies a type to a place (NY12).
+- **Finding 1** overruled by the owner (decision 0161): faces and thumbs stay; the steward's concern is met by the criteria that nothing counts, filters or applies a type to a place (NY12).
 - **Finding 2** accepted: fixed order, single ink colour asserted (NY1, NY11).
 - **Finding 3** answered: the second type is "Emphasis", an insight or eureka.
 - **Callers undercounted** accepted: twelve call sites, listed in the plan; NY16.
@@ -83,9 +83,9 @@ The auditor, the steward and the `ux-reviewer` ran on the built slice and its th
 2. No test of a pin's spoken name through `CapturePinView`, and the marker is rebuilt (focus lost) when a type changes (F2): **defer**. The label is unit-tested (`pinNoteLabel`, NY10); the e2e's pin is always a group. In `docs/DEFERRED.md`.
 3. A plain bubble says its type twice on the web (F3): **accept**. Fixed: `NoteMark quiet`, hidden from a screen reader inside a named group. Test: `note-types audit 3` (`threads` journey).
 4. An unknown stored value cannot be cleared by choosing "No type" (F4): **reject**. NY2: an unknown value reads as no type, so there is nothing shown to clear, and leaving a newer build's value alone is the safer way.
-5. A Sad or Dislike mark on a map pin reads as a verdict at a place (steward S1): **reject**, the owner's call (Nov 12, asked in the audit): every type marks its pin; the pin is the owner's own note on their own map, shown to no one and read by nothing about a place (Explore draws no `CapturePinView`). Recorded in decision 0149.
-6. The menu's order reads as a scale (S2): **reject**. The order is the owner's (0149); NY12 and NY13 forbid anything reading a position; column-major layout (audit 8) keeps Like apart from Sad.
-7. "Like" and "Dislike" are rating words (S3): **reject**, the owner's call (0149).
+5. A Sad or Dislike mark on a map pin reads as a verdict at a place (steward S1): **reject**, the owner's call (Nov 12, asked in the audit): every type marks its pin; the pin is the owner's own note on their own map, shown to no one and read by nothing about a place (Explore draws no `CapturePinView`). Recorded in decision 0161.
+6. The menu's order reads as a scale (S2): **reject**. The order is the owner's (0161); NY12 and NY13 forbid anything reading a position; column-major layout (audit 8) keeps Like apart from Sad.
+7. "Like" and "Dislike" are rating words (S3): **reject**, the owner's call (0161).
 8. The two-column menu scans row by row, and the chosen row has only a tick (`ux-reviewer` U5): **accept**. Fixed: five rows down the left, four down the right, the chosen row tinted. Test: `note-types audit 8` (`qol` journey).
 9. The editor card can push Save off a small screen or under the keyboard with the menu open (U6): **accept**. Fixed: the card scrolls within the room it has. Test: `note-types audit 9` (`qol` journey, 320 x 520).
 10. The mark's name small and grey on the card (U7): **reject**, already ink at 14 px (`note-types ui 2`); the pager sharing the meta row is the viewer's own.
@@ -103,7 +103,7 @@ The auditor, the steward and the `ux-reviewer` ran again, told what the first ro
 15. The guard test could not stop a later place, route or recommendation feature from reading types (steward): **accept**. Replaced by an allowlist of the files that may mention a type, and a check that no place, route, area, discovery, landing or walkability code does. Test: `note-types audit 15` (`captures/noteTypeReaders.test.ts`; it passed on first run, since nothing broke the list: a guard, not a fix).
 16. The spoken label said the type on the resurfaced card, which draws no mark: **accept**. `momentSpoken(..., typed)`: said only where the mark is drawn (Lately rows and the thread bubble); the resurfaced card passes `false`. Test: `note-types audit 16` (a source check in `noteTypeReaders.test.ts`, as the label lives in a component).
 17. Label the Type row "Type of this note" so it reads as the owner's own mark (steward): **reject**. The editor is the owner's own note; nothing there suggests another person's reaction.
-18. VISION.md's "Never likes" line now disagrees with the code (steward): **reject** as a slice finding: it is the owner's edit, proposed in decision 0149. Listed in `docs/STATUS.md`, "Needs the owner".
+18. VISION.md's "Never likes" line now disagrees with the code (steward): **reject** as a slice finding: it is the owner's edit, proposed in decision 0161. Listed in `docs/STATUS.md`, "Needs the owner".
 19. A bare verdict glyph as a note's thumbnail in lists (steward): **reject**. `MomentPicture` draws only photos and videos; a note in a list carries its mark beside its words and its time.
 20. The chosen menu row relied on a faint tint and a grey check (`ux-reviewer`): **accept**. A heavier label and an ink check. Test: `note-types audit 20` (`qol` journey).
 21. The Type menu's radiogroup semantics and lost focus (`ux-reviewer`): **accept in part**: focus returns to the Type row after a choice (`note-types audit 21`, `qol` journey). The row already speaks its state ("Type, No type", expanded); a menu role instead of a radiogroup is deferred with 22.

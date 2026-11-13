@@ -16,7 +16,7 @@ const ts = require('typescript');
 
 const LAYERS = ['core', 'shell', 'adapter', 'view'];
 /** Packages a core module may import: plain computation, no platform. */
-const PURE_PACKAGES = ['fflate', 'pbf', '@mapbox/vector-tile'];
+const PURE_PACKAGES = ['fflate', 'pbf', '@mapbox/vector-tile', 'marked'];
 const TAG = /^\/\/ @layer (\S+)\s*$/;
 
 function libDir(root) {

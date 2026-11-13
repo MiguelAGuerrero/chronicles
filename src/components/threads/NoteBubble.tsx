@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { refIds } from '../../lib/refs';
+
+import { plainNote, refIds } from '../../lib/refs';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
@@ -36,7 +37,7 @@ export function NoteBubble(props: {
           <View role={mentions ? undefined : 'group'} accessible={!mentions} accessibilityLabel={mentions ? undefined : momentSpoken(m, props.now)} style={styles.said}>
             <View style={styles.bubble}>
               <NoteMark capture={m.capture} quiet={!mentions} />
-              {mentions ? <NoteText body={body} style={styles.text} onOpen={props.onOpenRef} /> : <Text style={styles.text}>{body}</Text>}
+              {mentions ? <NoteText body={body} format={m.capture.body_format} style={styles.text} onOpen={props.onOpenRef} /> : <Text style={styles.text}>{plainNote(body, m.capture.body_format)}</Text>}
             </View>
             <Text style={[styles.meta, styles.when]} numberOfLines={2} testID="moment-context">{contextText(undefined, m, props.now)}</Text>
           </View>

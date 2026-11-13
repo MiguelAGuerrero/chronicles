@@ -1,8 +1,8 @@
 import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { bandLabels, barCamera } from '../lib/captureBand';
+import { barCamera } from '../lib/captureBand';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { useStore } from '../lib/useStore';
 import { useUnits } from '../lib/useUnits';
@@ -13,19 +13,21 @@ import { reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { perfCount } from '../lib/perfCount';
-import { recordingLine } from '../lib/recordingBar';
+import { barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, recordingLine, type BarOffer } from '../lib/recordingBar';
+import { captureBus } from '../lib/captureBus';
+import { deletions } from '../lib/deletion';
+import { useHidden } from '../lib/deletion/useDeletions';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
-import { EditButton, useEditOffer } from './edit/EditOffer';
+import { EditButton } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
-import { offerText } from '../lib/editOffer';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
-import { HoldButton, theme } from './ui';
+import { HoldButton, LiftIn, theme } from './ui';
 
 /** The bar's return waits this long at most for its photo to be kept. */
 const RETURN_WAIT_MS = 5000;
@@ -56,15 +58,35 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // The bar stays mounted across a change of units under a minimized walk (QL16).
   useUnits();
   const [said, setSaid] = useState<{ text: string; error?: boolean } | null>(null);
-  // After a photo or video, Edit is offered for a few seconds (ME23).
-  const editOffer = useEditOffer();
+  // After its photo, Edit is offered in a pill above the bar that waits for Edit, Close or the next capture (T12,
+  // decision 0149; ME23's six seconds elsewhere).
+  const [offer, setOffer] = useState<BarOffer | null>(null);
   const [editingKept, setEditingKept] = useState<Faced | null>(null);
-  const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
+  // A failed photo ends a waiting offer: no pill says saved over the failure (tend tabs audit 18).
+  const onError = useCallback((e: { message: string }) => {
+    setSaid({ text: e.message, error: true });
+    setOffer((o) => barOfferAfter(o, null));
+  }, []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
   // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
   const showCamera = barCamera(path, section);
+  // The next capture of this walk, from any path (Memories' band too), ends the offer; the bar's own photo replaces it.
+  const [listener] = useState(() => ({}));
+  useEffect(() => captureBus.subscribe(walk.id, listener, (c) => setOffer((o) => barOfferAfter(o, c.id))), [walk.id, listener]);
+  // Its photo deleted elsewhere (Memories, a day) ends it, Undo waiting or not (tend tabs audit 15).
+  const hidden = useHidden();
+  useEffect(() => deletions.subscribe(() => setOffer((o) => barOfferAfterHidden(o, deletions.hidden()))), []);
+  // Held to stop, the walk is going: the pill goes first (tend tabs audit 19).
+  const [stopping, setStopping] = useState(false);
+  const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
+  const offerWords = offer ? barOfferWords(offer.kind) : null;
+  // Announced politely, without moving focus, as Undo is: iOS reads no live regions (decision 0113).
+  const spoken = offerUp ? offerWords?.spoken : undefined;
+  useEffect(() => {
+    if (spoken && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(spoken);
+  }, [spoken, offer?.id]);
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
@@ -117,11 +139,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     });
     if (!kept) return;
     feedback('tap');
-    setSaid({ text: offerText(kept.kind, 'walk') });
-    editOffer.show(kept);
+    // The pill says it was kept; the line keeps its time and distance (T12).
+    setSaid(null);
+    setOffer(barOffer(kept));
   };
 
-  const [stopping, setStopping] = useState(false);
   const stop = async () => {
     if (stopping) return;
     setStopping(true);
@@ -146,6 +168,25 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
 
   const line = (now: number) => recordingLine({ startedAt, pauses, now, distanceM });
   return (
+    <View>
+    {offerUp && offer && offerWords && (
+      // Above the bar, in the Undo pill's look (decision 0113), on the page's ground: it takes room, never covers
+      // a screen's controls while it waits.
+      <View style={styles.offerWrap} pointerEvents="box-none">
+        <LiftIn style={styles.offer} testID="bar-edit-offer" accessibilityLiveRegion="polite">
+          <Text style={styles.offerText}>{offerWords.text}</Text>
+          <View style={styles.offerActions}>
+            <EditButton style={styles.offerEdit} onPress={() => {
+              setEditingKept(cap.captures.find((c) => c.id === offer.id) ?? null);
+              setOffer(null);
+            }} />
+            <Pressable testID="bar-edit-offer-close" accessibilityRole="button" accessibilityLabel={offerWords.close} onPress={() => setOffer(null)} style={styles.offerClose}>
+              <Icon name="close" size={20} color="rgba(255,255,255,0.75)" />
+            </Pressable>
+          </View>
+        </LiftIn>
+      </View>
+    )}
     <View testID="recording-bar" style={styles.bar}>
       {reminder && (
         // Above the line, which keeps its time and distance: the walk's reminder card, in the bar.
@@ -189,16 +230,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             <Icon name="chevron-forward" size={20} color="#ffffff" />
           </View>
         </Pressable>
-        {editOffer.offer && <EditButton light style={styles.edit} onPress={() => {
-          const id = editOffer.offer?.id;
-          setEditingKept(cap.captures.find((c) => c.id === id) ?? null);
-          editOffer.clear();
-        }} />}
         {(showCamera || cap.busy === 'photo') && <Pressable
           testID="bar-photo"
           accessibilityRole="button"
           // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3).
-          accessibilityLabel={bandLabels(true).photo}
+          accessibilityLabel="Add to your walk: take a photo or video"
           accessibilityState={{ busy: cap.busy === 'photo', disabled: cap.busy != null }}
           disabled={cap.busy != null}
           onPress={photo}
@@ -226,6 +262,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
       )}
     </View>
+    </View>
   );
 }
 
@@ -244,7 +281,19 @@ const styles = StyleSheet.create({
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
   error: { fontSize: 14 },
   stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
-  edit: { minHeight: 44 },
+  // The Undo pill's measures (components/UndoToast), a little tighter at the sides so its words stay whole on one
+  // line at 320 px.
+  offerWrap: { alignItems: 'center', paddingHorizontal: 4, paddingVertical: 8, backgroundColor: theme.bg },
+  offer: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: 12, paddingRight: 2, borderRadius: 24,
+    backgroundColor: theme.ink, maxWidth: 608,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
+  offerText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1, paddingVertical: 12 },
+  // Edit and Close apart by Undo's 8 (tend tabs audit 20), paid for from the sides, never the words.
+  offerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  offerEdit: { backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12 },
+  offerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.8 },
 });

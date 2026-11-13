@@ -5,10 +5,10 @@ import { kindWord } from './lines';
 import type { Complex } from './types';
 
 /**
- * CX9: how a complex's outline is drawn. No fill; a hue no other layer uses (a dark brown); no wider and no more opaque than the
+ * CX9: how a complex's outline is drawn. No fill; a hue no other layer or kind uses (a deep plum); no wider and no more opaque than the
  * selected area's border (`BORDER`: 3 and 0.9); named only from a close zoom.
  */
-export const COMPLEX_STYLE = { color: '#6b4f2a', width: 2, opacity: 0.8, labelMinZoom: 15 } as const;
+export const COMPLEX_STYLE = { color: '#4a044e', width: 2, opacity: 0.8, labelMinZoom: 15 } as const;
 
 export interface ComplexMap {
   /** One line feature per ring, each with its id, name and kind word only. */

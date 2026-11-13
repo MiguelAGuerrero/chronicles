@@ -29,6 +29,33 @@ export function scaleBar(metersPerPixel: number, maxPx: number, units: Units = g
   return { meters, px: Math.min(maxPx, meters / metersPerPixel), label };
 }
 
+/**
+ * Whether a map draws its scale bar (T17, decision 0154): always, unless its screen hides it over a blank world and
+ * there is neither a fix nor anything drawn in view. `drawn` is null until the map has looked, and hides it till then.
+ */
+export function scaleShown(o: { hideOnBlank: boolean; fix: boolean; drawn: boolean | null }): boolean {
+  return !o.hideOnBlank || o.fix || o.drawn === true;
+}
+
+/**
+ * Whether the base tiles drew anything, from how many features each of their layers holds (tend map audit 14): roads,
+ * water or places, any one is enough. Places alone missed a view of sea, forest or farmland with no name in it.
+ */
+export function drawnFrom(counts: { roads: number; water: number; places: number }): boolean {
+  return counts.roads > 0 || counts.water > 0 || counts.places > 0;
+}
+
+/**
+ * The base layers the web map's blank-world look queries (tend map audit 15): its fills (water, land cover, land use),
+ * which cover any drawn view and are few, never buildings, which number thousands in a city; a style with no fill
+ * (the e2e's streets alone) is queried whole. Background layers draw everywhere and are never counted.
+ */
+export function blankLookLayers(layers: { id: string; type: string; 'source-layer'?: string }[]): string[] {
+  const base = layers.filter((l) => l.type !== 'background');
+  const fills = base.filter((l) => l.type === 'fill' && l['source-layer'] !== 'building');
+  return (fills.length ? fills : base).map((l) => l.id);
+}
+
 /** The longest 1, 2 or 5 × 10^n no more than `max` (in whatever unit `max` is). */
 function longestRound(max: number): number {
   // The decade the maximum falls in, nudged so a length that fits exactly isn't lost to rounding.
@@ -42,17 +69,54 @@ function longestRound(max: number): number {
 
 function metric(maxM: number) {
   const meters = longestRound(maxM);
-  return { meters, label: meters >= 1000 ? `${round(meters / 1000)} km` : `${meters} m` };
+  return { meters, label: meters >= 1000 ? `${grouped(round(meters / 1000))} km` : `${meters} m` };
 }
+
+/** A whole number with its thousands marked, as the specs write them: "2,000 km", "2,000 ft" (tend map 7). */
+const grouped = (n: number) => (Number.isInteger(n) ? String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : String(n));
 
 function imperial(maxM: number) {
   const maxMi = maxM / MI_M;
   if (maxMi >= 1) {
     const mi = longestRound(maxMi);
-    return { meters: mi * MI_M, label: `${mi} mi` };
+    return { meters: mi * MI_M, label: `${grouped(mi)} mi` };
   }
   const ft = Math.min(MAX_FT, longestRound(maxM / FT_M));
-  return { meters: ft * FT_M, label: `${ft} ft` };
+  return { meters: ft * FT_M, label: `${grouped(ft)} ft` };
+}
+
+/** The scale bar's padding on each side (`ScaleBar.tsx`), and the gap from its widest extent to the map's credits. */
+const BAR_PAD = 8;
+const CREDITS_GAP = 8;
+/** The widest round button at a map's right edge: the walk's capture stack (`CAP`, `components/walk/layout.ts`). */
+const EDGE_BUTTON = 56;
+/** A round control standing over the scale bar's start (the walk's and the ready screen's Layers), and the gap past it. */
+const LEFT_BUTTON = 44;
+const LEFT_GAP = 8;
+
+/**
+ * Where a map's credits (i) sit (tend map 3): on the strip each screen keeps clear for the scale bar (`scaleInset`,
+ * QL8), just right of the bar at its widest, level with its line; opened, they stop short of the column of round
+ * buttons at the map's right edge (Locate and the compass at 44 px, the walk's capture stack at 56, 12 px from the
+ * edge, or from a centred 640 px column on a wide screen). Pure: offsets from the map's bottom-left corner, in px.
+ */
+export function creditsAt(
+  inset: { bottom: number; left?: number },
+  maxPx: number,
+  mapWidth: number,
+): { left: number; bottom: number; maxWidth: number; openLeft: number; openMaxWidth: number } {
+  const left = (inset.left ?? 12) + BAR_PAD + maxPx + BAR_PAD + CREDITS_GAP;
+  const column = Math.max(12, (mapWidth - 640) / 2 + 12) + EDGE_BUTTON + 8;
+  // Opened, they start further left, over the scale bar but clear of a round control standing over its start, so a
+  // word as long as "OpenStreetMap" fits a line at 320 px; the (i) stays where it was tapped (tend map audit 2).
+  const openLeft = Math.min(left, (inset.left ?? 12) + LEFT_BUTTON + LEFT_GAP);
+  return {
+    left,
+    bottom: inset.bottom + 4,
+    maxWidth: Math.max(80, mapWidth - left - column),
+    openLeft,
+    openMaxWidth: Math.max(80, mapWidth - openLeft - column),
+  };
 }
 
 /** Kills the float noise of 5 * 10 ** -1 and friends. */

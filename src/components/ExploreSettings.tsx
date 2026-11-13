@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type TextStyle } from 'react-native';
-import { switchLabel } from '../lib/complexes/kinds';
+import { COMPLEX_NOTE, switchLabel } from '../lib/complexes/kinds';
 import { useHiddenKinds } from '../lib/complexes/useComplexes';
 import { COMPLEX_KINDS } from '../lib/complexes/types';
-import { kindSwitch } from '../lib/discovery/refinements';
+import { kindRows, kindSwitch } from '../lib/discovery/refinements';
 import { EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
 import { formatRange } from '../lib/format';
 import { useUnits } from '../lib/useUnits';
@@ -21,10 +21,10 @@ export const walkNote = (m: number) => {
 export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {
   return (
     <>
-      {KINDS.map((k) => {
-        // PC23: a subset reads off and cannot be switched on while its parent is off.
+      {kindRows(KINDS, hidden).map(({ kind: k, depth }) => {
+        // PC23: a subset shows, indented under its parent, only while the parent is on.
         const sw = kindSwitch(hidden, k.id);
-        return <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={sw.on} disabled={sw.locked} onChange={(v) => onToggle(k.id, v)} />;
+        return <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={sw.on} disabled={sw.locked} indent={depth} onChange={(v) => onToggle(k.id, v)} />;
       })}
     </>
   );
@@ -36,7 +36,7 @@ export function ComplexKindSwitches({ sectionStyle }: { sectionStyle: StyleProp<
   return (
     <>
       <Text style={sectionStyle} accessibilityRole="header">Complexes</Text>
-      <Text style={styles.complexNote}>Shown on area cards and the map</Text>
+      <Text style={styles.complexNote}>{COMPLEX_NOTE}</Text>
       {COMPLEX_KINDS.map((k) => (
         <SwitchRow key={k} testID={`complex-kind-${k}`} label={switchLabel(k)} value={!hidden.includes(k)} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
       ))}

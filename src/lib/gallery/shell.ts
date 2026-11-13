@@ -3,8 +3,7 @@ import type { CapturePatch } from '../captureBus';
 import { facedAll, facedAt, type Faced } from '../moment';
 import { wantsThumb } from '../thumbPlan';
 import type { Ports } from '../ports/types';
-import { complexAt, COMPLEX_NEAR_DEG } from '../complexes/place';
-import { placeLine, streetAt } from '../resurface/context';
+import { streetAt } from '../resurface/context';
 import { createStore } from '../store';
 import type { Walk } from '../types';
 import { withPiecePatch } from './layout';
@@ -142,9 +141,6 @@ export function createGallery(p: Pick<Ports, 'db'>, deps: GalleryDeps = { makeTh
             const dLat = READ_M / M_PER_DEG;
             const segments = await p.db.getSegmentsIn([fix[0] - dLon, fix[1] - dLat, fix[0] + dLon, fix[1] + dLat]);
             name = streetAt(fix, segments, m.segment_id)?.name ?? null;
-            // CX11, CX12: a complex already on the phone leads the place, the street kept; nothing is fetched.
-            const hit = complexAt(fix, await p.db.complexesNear(fix, COMPLEX_NEAR_DEG).catch(() => []));
-            if (hit) name = placeLine({ street: name, town: null, complex: { name: hit.complex.name, near: hit.near } });
           }
           store.set((s) => ({ ...s, streets: { ...s.streets, [id]: name } }));
         } catch {

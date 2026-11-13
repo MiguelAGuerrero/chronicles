@@ -20,9 +20,12 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Slice (spec tab) | Status | Evidence (last related commit on main) | Spec | Audited |
 |---|---|---|---|---|
 | Explorer App Concept (v0: record, capture, replay, storage; round 3) | shipped | `7cf5ab1` 2026-10-31 round 3; `565b244` 2026-10-31 | `specs/concept/spec.md` | yes (two audit rounds `7936f48`, `ce6dd26`; round-3 audit `712fdf8`) |
+| Explore in a dense city (busy names drawn by the map with collision, one per street within 300 m, none under a "?" pin or a control; on the walk maps only within 800 m of you; the Busy read and the atlas's ring reads in a web worker, the Busy read after the map settles; fewer renders per switch; DC1-DC19, decision 0160; the owner's Baltimore report, Nov 12) | shipped 2026-11-13 (web verified by the e2e `dense` on the /chronicles build; native unverified); a first read's longest task 3.3-3.8 s to 0.2 s at 4x CPU, the first Busy switch-on 600-700 ms to 90-170 ms; switches between read areas unchanged in Chromium; first "?" pins about 1 s later | branch `claude/trusting-cannon-f5wdhg`, merged 2026-11-13 | `specs/explore-dense-city/spec.md` | yes (19 findings: 12 fixed, 1 rejected, 3 deferred, 6 folded in) |
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
 | v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
 | v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; JN1-JN27, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix` (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |
+| Free look (Explore: Move map frees one-finger panning, Show areas here lists the areas around the map's middle; FL1-FL21, decision 0150, amends EC10) | built 2026-11-11 on `slice/free-look`; not deployed | `slice/free-look` | `specs/free-look/spec.md` | plan audited (16 findings: 15 accepted, 1 rejected); the built slice not audited |
 | Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
 | Rides | shipped | `8e49c9c` 2026-11-01 rides audit fixes | `specs/rides/spec.md` | yes (14 findings, 11 fixed, `8e49c9c`) |
@@ -33,7 +36,6 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Remarkable and public (attractions pinned; the aviary; Buildings and structures; one place within 200 m for the same name and kind; bounded whispers; reachability said, never filtered; RP11, RP13-RP20, decisions 0109-0111; the listing rule RP1-RP8, RP10, RP12 moves to chronicles-data, `specs/remarkable-and-public/handoff.md`) | shipped 2026-11-10, app side (web verified by the e2e on the sub-path build; native unverified) | branch `claude/gallant-maxwell-hp14jb`, merged 2026-11-10 | `specs/remarkable-and-public/spec.md` (repo first) | yes, at the owner's request (19 findings: 17 fixed, 1 in part and deferred in part, 1 rejected; decision 0111) |
 | Places out of town (rural and roadside places as "?" within 50 km, countless stars, an "Other places" switch, more sources and Canada; decision 0115) | queued after Places worth the stop goes live (PW16); gated aligned if reshaped, Nov 9 | none | none yet (the gate's criteria are in decisions 0115-0117) | no |
 | Motion (steps from the phone's sensors, MO1-MO10) | shipped | `09f504a` 2026-11-01; `8edc09b` 2026-11-01 audit fixes; `93ef082` 2026-11-01 | `specs/motion/spec.md` | yes (11 findings, 9 fixed, `8edc09b`) |
-| Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set in the note editor; on the viewer's card, the single-note pin and the thread bubble; NY1-NY17, decision 0149) | built 2026-11-12: NY1-NY17 tested first (unit, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys); typecheck, lint, `npm test` pass; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (2026-11-12: 11 findings, 4 fixed, 3 deferred, 4 rejected; tests `note-types audit 1, 3, 8, 9`; 2026-11-13: 14 findings, 7 fixed, 2 deferred, 5 rejected; tests `note-types audit 12-16, 20, 21`) |
 | Quality of life | shipped in rounds: QL1-QL12 (markers, scale bar, Locate), QL13-QL21 (km or miles, time left, the denied-location chip and retry), QL22-QL28 (rename later, edit a note, photos on pins, months in the walks list); round 4 waits on the owner's calls (decisions 0063-0065) | round 1 `dc8f249`..`7a34666`; round 2 `1910a2d`, `c7539b1`; round 3 `48adb36`, `3a721ed`, `cdf2961`, `2799fa9`; all 2026-11-03 (branch `docs/product-synopsis`) | `specs/quality-of-life/spec.md` | no (the owner chose checkpoints per feature over an audit pass; an audit is still owed) |
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings, NR1-NR13) | shipped (web verified by the e2e; native unverified); the launch follows 0070 (the owner, Nov 4) | branch `claude/navigate-ready`, merged 2026-11-04 | `specs/navigate-ready/spec.md` (repo first; to be copied into the concept doc as a tab) | yes (13 findings, 12 fixed, 1 deferred) |
 | Filling gaps (streets walked across a gap in the trace, G1-G14) | shipped | `2a0501e`, `3a08a53`, merged as `28c7417` 2026-11-03 | `specs/filling-gaps/spec.md` | yes (17 findings, 12 fixed, `3a08a53`) |
@@ -126,11 +128,21 @@ This section is the owner's inbox (decision 0128). `/tend` files here what it ma
 findings, opinions and architectural calls, each numbered `T<n>` with a recommended shape, and its proposals for the next iteration (`G<n>`, decision 0129).
 Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
-### From /tend
+### From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, "The line and the page")
 
-- **T12 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
-  Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0149), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0149; the gate may not edit the Never list.
-  Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0149)". The page is near its budget (12,000 bytes): shorten another row to fit.
+- **Note pages rewrites `_` and `*` in what you wrote** (the review's 2 and 9; on `main` before this fix): a URL such as `https://ex.com/a_b_c` is saved as `a\_b\_c` and gains more backslashes on each edit; a line broken with Shift+Enter that looks like a table row reopens as an empty page. Recommended: `/fix` it next, in `src/lib/notePage/schema.ts`, with round-trip tests.
+- **The page's words are sans; the sheet's are serif** (ui 3). Recommended: set the editor's body in the owner's serif at the sheet's size.
+- **A new page from the line reads a location even on a walk** with a stale fix, where the line reads none. Recommended: the page follows the line's rule when it is opened from the journal.
+
+### From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)
+
+- **A moment's link to its walk as an inference** (your direction, Nov 12, decision 0155): a data-model change across the replay, the walk screen and deletion. It needs `/vision` and a spec of its own. Recommended: after cut 2, which makes walks chapters and will show what the page needs from a walk.
+- **More on every entry** (audit 18): the steward asks to take it off the page and put "Show less like this" and "Not this one" in the viewer's More. It now trails the dateline. Recommended: keep it until cut 3 designs the contents, then decide.
+- **Three bars at the foot with a walk minimized** (ui 1): the open line, the recording bar and the tab bar. Recommended: fold the walk's time, distance and Stop into the line's own row in cut 2.
+- **The dateline's tap lands on a cluster** (audit 19): the Map frames 150 m around the moment, but entries made at one spot share a pin with a count. Recommended: arrive with that moment's preview open.
+- **JN19 on your phone**: the line above a real keyboard, in Safari and the Home Screen app, is the first thing to try (`docs/NATIVE_UNVERIFIED.md`).
+
+### From /tend
 
 - **T11 [owner] Voice and note are two taps away while a walk is minimized, off Memories** (2026-11-11)
   Area: tabs. Seen: `tabs-2-recording-bar`, `probe-explore-minimized` (pictures): on Explore and Chronicle's other sections the
@@ -143,19 +155,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   decision 0048 and reverses neither. More than one commit: on a yes it is built as a slice. /vision: aligned (honour), with no
   accent and no count on the bar.
   Otherwise: the mic and the pencil both; or record the camera as the bar's whole stack in VISION.md's Shapes; or leave it.
-- **T12 [owner] The recording bar's Edit offer goes after six seconds** (2026-11-11)
-  Area: tabs. Seen: `tabs-9-bar-edit-offer`, `tabs-9-bar-edit-offer-320` (the `launch` journey's pictures): after a photo from the
-  bar, "Photo saved to your walk" and an Edit button replace the time and distance for ME23's six seconds. Rests on:
-  `.claude/rules/ui-patterns.md`, "Undo stays until it is used or dismissed" (F3; M3, "Snackbars with actions shouldn't
-  auto-dismiss"; decision 0113), and decision 0114 (an action on a moment lives in its toolbar or menu; the viewer has Edit)
-  (UX review U7).
-  Recommended: on the bar only, the offer becomes a pill above it, "Photo saved to your walk · Edit · ✕", that stays until Edit,
-  Close or the next capture, announced politely; the bar's line keeps its time and distance throughout. ME23's other places are
-  unchanged. /vision: aligned (honour).
-  Otherwise: no Edit offer on the bar at all (the photo's viewer has Edit), or leave it.
-  At 320 px the offer's words are cut today, "Photo save…" on two lines beside Edit (`tabs-9-bar-edit-offer-320`; the run's
-  review F9): the pill's layout settles that too.
-  **Answered yes** (`/tend inbox T9 yes, T12 yes`, Nov 12): waits for the next `/tend inbox`, one build per run (T9 was built first).
 - **T13 [phone] The tabs at the largest text size** (2026-11-11)
   Area: tabs. Seen: `probe-minimized-200pct` (the web at zoom 2, a rough stand-in: react-native-web sizes text in px): the section
   bar read "M… / W. / D.", the band lost Note off the screen, the bar's line read "0:07 …" (UX review U6; WCAG 1.4.4).
@@ -163,6 +162,122 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   with a walk minimized, then Explore.
   Expect: the section names, the band's Photo, Voice and Note, the recording bar's time and distance and the tab labels are all
   there, wrapping where they must, none cut to a letter or pushed off the screen.
+- **T14 [owner] Map: a pin of several moments is a bare numeral** (2026-11-12)
+  Area: map. Seen: `qol-02-walk`, `qol-03-replay-card` (a dark disc reading "2"; spoken "2 captures here", `CapturePinView.tsx`
+  `pinLabel`). Rests on: VISION.md Always, "Counts are words, in a clause", and "A moment carries its context ... It never
+  appears as a bare thumbnail, filename or count" (steward S2). QL26 shipped "A pin of several captures keeps its count"
+  (Nov 3), so this amends a shipped criterion: yours.
+  Recommended: a pin of several moments shows their kinds in its head (the kinds' icons, up to two, fanned, no numeral),
+  and its spoken name says them in words with the minutes in: "A photo and a note, twelve minutes in. Open". /vision:
+  aligned (honour; "Counts are words"), amends QL26. Whether a pin's name carries the time is put to you separately.
+  Otherwise: keep the disc, say the count in words to a screen reader only ("Two moments here"); or leave it.
+  **Answered yes** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
+  0154): the recommended shape, with the time in the spoken name (the question put separately: yes). Waits for the
+  next `/tend inbox`, one build per run (T16 was built first).
+- **T15 [owner] Chronicle: walked places are accent stars, with a numeral where they merge** (2026-11-12)
+  Area: places (seen on the map's sweep). Seen: `probe-map-attrib-390-chronicle` ("Fox Point" on an orange star),
+  `StarView.tsx` l.40-44 (a merged star draws its count, "3"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best
+  of', rankings of places", and "Celebration: ... accent-coloured wins"; Always, "Counts are words" (steward S3). Decision
+  0019 chose stars where walks were; this quotes the page against it, so it is yours.
+  Recommended (the owner's reshape, Nov 12: "Ink star, no numeral"): a walked place keeps its star (0019), drawn in ink
+  rather than the accent, one size as now; a merged star draws no numeral, and its spoken name says its places and walks
+  in words. /vision on the reshape: aligned (return: where your walks were, at a glance; the Never row "Ratings,
+  reviews, stars, 'best of', rankings of places" is not met by a one-size mark of "walked here", which rates nothing;
+  "accent-coloured wins" and "Counts are words" are met by the ink and the missing numeral). Amends 0019's colour.
+  Otherwise (the sweep's first shape): a plain ink mark with no star glyph; or leave it.
+  **Answered reshape** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
+  0154): still one commit's worth; waits for the next `/tend inbox`, one build per run (T16 was built first).
+- **T18 [phone] The map's text and buttons at the largest text size** (2026-11-12)
+  Area: map. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
+  Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open a walk with two
+  moments kept at one place, turn the map, then open its replay and Explore.
+  Expect: the scale bar's label stays whole beside its line, a pin's count or kinds stay inside its head, the compass and
+  Locate stay 44 pt and in their column, and the map's (i) stays reachable, none cut or pushed under the strip or a card.
+- **T19 [owner] Replay: the cards say their counts in words, with one hint** (2026-11-12)
+  Area: replay (the walk's card and the day's). Seen: `rr-day-card` ("5 moments · 5 places", now 16 px regular after
+  `tend replay 12`), `probe-390r-card` ("1 photo · 1 video · 1 voice memo · 1 note · tap a pin to open"); the hint
+  worded two ways, "· tap a pin to open" and "Tap a pin to open it" (UX U11). Rests on: VISION.md Always, "Counts are
+  words, in a clause"; the replay rule, "No accent colour or large number on the card" (steward S3). M13 shipped
+  "\<weekday\> · N moments · P places", so this amends a shipped criterion. Your answer of Nov 12 (decision 0153):
+  "places" on the day's card are named places only, said in words.
+  Recommended: the day's line a clause, "Four moments, around Wickenden Street and the Old Mill" (up to two named
+  places, else "Four moments around Fox Point", the day's area, else "Four moments"); the walk's captures line a
+  clause, "Two photos, a video, a voice memo and a note"; one hint on both, "Tap a pin to open it". /vision: aligned
+  (return; "Counts are words, in a clause"), amends M13.
+  Otherwise: the numbers as words only ("Four moments · two places"); or leave it.
+- **T20 [owner] Replay: "Back to the map" and "Back to walks" both go to Chronicle** (2026-11-12)
+  Area: replay. Seen: `src/app/day/[key].tsx` (a day with nothing kept: "Back to the map"), `src/app/replay/[id].tsx`
+  (a walk not found: "Back to walks"); both `router.dismissTo('/')`, which is Chronicle since decision 0112. Rests on:
+  VISION.md, "Chronicle first ... the map is one view of it, not its home" (steward S4). New words, so yours.
+  Recommended: both read "Back to Chronicle". /vision: aligned (return; the place's own name, nothing new).
+  Otherwise: "Back" alone; or leave it.
+- **T21 [owner] Replay: the name step's only way on is Keep it** (2026-11-12)
+  Area: replay (beat five). Seen: `probe-390r-name`, `probe-320r-name` (two fields and Keep it, no Cancel or back).
+  Rests on: NN/g H3, "a clearly marked 'emergency exit'"; the goal-to-control matrix, row 18, "Text view in a sheet
+  with Cancel and Done" (UX U8). Since `tend replay 4` and `5`, Android's Back and the web's Escape return to the card
+  with the words kept; an iPhone has neither. A control on beat five is yours.
+  Recommended: a quiet "Back" in the name sheet's top row, in the card's "Not now" style, returning to the card with
+  the words kept. /vision: aligned (return; restraint: one quiet text control, no new colour).
+  Otherwise: leave it (Keep it with the suggested name loses nothing).
+- **T22 [owner] The walked colour is separate from the accent** (2026-11-12)
+  Area: replay, and every map that draws walked streets (Chronicle's map, the walk's end marker, any map given
+  `walked`). Seen: `probe-390r-fog` (beat one lights the walked streets in `COLORS.walked`, `#c2410c`, the same hex as
+  `theme.accent`; they stay lit through the path; steward Q2). Rests on: your answer of Nov 12 (decision 0153), "the
+  replay must never light anything in the accent"; VISION.md Never, "Celebration: ... accent-coloured wins". The
+  palette is not chosen.
+  Recommended: a walked colour of its own in `COLORS.walked` (`components/map/types.ts`), a deep ochre or brick at
+  3:1 or more against the map's ground and apart from the accent and the kinds' colours, so every map follows at
+  once; the trace's green unchanged; QL2's end ring ("in the walked orange") takes it too. Not built until you pick
+  the hue. /vision: aligned (return; restraint in colour), amends QL2's colour word.
+  Otherwise: keep the hue but draw the walked streets lighter in the replay only; or leave it.
+- **T23 [phone] The replays at the largest text size** (2026-11-12)
+  Area: replay. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
+  Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; finish a walk
+  with a photo, a note and a memo, watch its replay to the card, Name it, then open its day's replay to its card.
+  Expect: the fog's headline and "Reading the streets you walked…" wrap inside their boxes, clear of Skip; Hold, the
+  clock and Skip stay on one row; "20 min later" and "Held · tap to go on" stay whole; a card's caption, "Tap for
+  sound" and the memo's line ("Voice memo · 0:03 · 4:37 PM") stay inside their card and bubble; the walk card's two
+  buttons and Not now, and the name step's fields and Keep it, stay on screen above the keyboard; the day's card
+  (which does not scroll) keeps Watch again and Done on screen.
+- **T24 [phone] The replays with a screen reader, and Android's Back** (2026-11-12)
+  Area: replay. Seen: not on the web (react-native-web's announcement does nothing; the steps never mount there).
+  Do: with VoiceOver, then TalkBack, finish a walk and let its replay play; on the card edit a note; open its day's
+  replay and Skip; on Android with no screen reader, Name it, type a name, press Back.
+  Expect: "Reading the streets you walked", the headline and "Summary" are each said once (not again after the note's
+  edit, `tend replay 9`); the steps go through the moments with Continue, then the card (RR17); the day's card is said
+  after Skip; Back on the name step returns to the card with the name kept (`tend replay 4`), and Back on the card
+  leaves for Chronicle.
+- **T25 [owner] Replay: the walker's dot and the solid end differ by colour alone** (2026-11-12)
+  Area: map (the replay and the day replay). Seen: `22-day-replay-walk` after `tend map T16`: mid-path the walker is
+  a solid navy disc with a white ring and, about 45 px away, the end a solid orange disc with a white ring, about one
+  size; before T16 the end was hollow (the T16 review's F1 and U1; `ENDS_PAINT`, `components/map/types.ts`; the dot,
+  `WalkMap.web.tsx` `points` l.137). Rests on: WCAG 2.2, 1.4.1 Use of Color; ui-patterns, "Never colour alone to show
+  state" (X3). The motion tells them apart while the path plays, not on Hold or with reduced motion. QL2 says "the dot
+  is its end" on a live walk; the two are drawn together only on a replay. The marker's shape is yours (decision 0154).
+  Recommended: a bullseye end, a walked centre, a white band and a walked outer ring (two circle layers on the `ends`
+  source, the outer one drawn first), so the end differs in shape from the hollow start and from the solid dot; the
+  start and the dot unchanged. It takes T22's hue when you pick one, with nothing of its own. /vision: aligned
+  (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
+  Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
+  instead; or leave it (the motion tells them apart while it plays).
+- **T26 [owner] Walk: Start refused still reads as a fault, in other words than Locate's** (2026-11-13)
+  Area: recording (Start on Navigate; the walk's "Not recording" notice). Seen: `src/lib/recorder/index.web.ts` l.102, the
+  `qol` and `ready` journeys' QL19 checks: Start, refused, says "Location permission was denied. Allow location for this
+  site in the browser settings, then try again." in the red error banner; since `tend map T17` Locate says "Location is
+  off for this site. Turn it on in the browser's settings to see where you are." as a quiet notice. Rests on: decision
+  0154, which took T17's words for the recorder's start's (they never were: the web recorder's line was Locate's old
+  one); `.claude/rules/map.md`, "Denied says what the recorder's start says"; VISION.md Always, "Restraint in motion,
+  colour and copy". New copy on Start, so yours.
+  Recommended: the recorder's web start reads its line from `locate/notice.ts`, beside Locate's, with its own end:
+  "Location is off for this site. Turn it on in the browser's settings to record a walk.", in the quiet notice on the
+  ready screen and in the walk's "Not recording" notice; on a phone the words stay ("Location is turned off for
+  Chronicles. Turn it on in Settings to record a walk.", with Open Settings), quiet too. /vision: aligned (honour;
+  restraint, as T17).
+  Otherwise: T17's line word for word on Start too ("... to see where you are."); or the words alone, left red; or leave it.
+  Corrected (the T17 review's F5, U2): the QL19 checks that pin Start's words are the `qol` journey's alone (`ready` has
+  none). And since `tend map T17` the web shows the two refusals on one screen in different tones and words: Locate's
+  cream notice, then, a moment later in the same slot, Start's red alert; on `main` before it they were the same red and
+  the same words. The split is this build's, which weighs how soon you answer.
 
 ### Next evolutions
 
@@ -190,23 +305,86 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 12, `/tend inbox T10 yes, T12 yes`** (from `3fa8c309`; T10 built, T12 waits for the next inbox run, one build per run).
-- `tend tabs T10`: Chronicle's empty peek offers Navigate alone with nothing open (the section bar holds Days); with a
-  walk open and none finished it says "This walk is starred here when it ends" and offers no button (the recording
-  bar's › is the way back). Decision 0148 (amends 0050's U7); the words are `emptyPeek` in `lib/quietLines`.
-- `tend tabs audit 1`: until Chronicle's first read the peek is plain, so opening the Map with walks kept never shows the
-  empty line or its Navigate (the auditor's F1, from before T10); `audit 2`: a walk stopped from the bar on the Map stays
-  this walk in the peek until Chronicle reads it (F2); `audit 3`: the tabs journey measures the peek's height, 76 px with
-  a walk open, 124 px over Navigate (F3); `audit 4`: the walk-open line sits under the grabber as the other does (the UI
-  review's U1).
-The review: one round of the auditor and the ux-reviewer (decision 0145): 4 accepted, 1 deferred (F4, the three texts
-that still say the old peek, in "Open before the loop": the loop edits no decision, spec or rule line), 1 rejected (U2,
-"starred" is the app's word across the Map; a vocabulary change is the owner's). Journeys `tabs`, `days` and `launch`
-pass. Filed: no T or G entry. Not a sweep: no lens ran and no area changed state. Nothing here has run on a phone; the
-peek renders on native too (`docs/NATIVE_UNVERIFIED.md`).
+**Nov 13, `/tend inbox T17 yes, T14 yes, T15 reshape`** (from `df1aefb0`, rebased on `d792f3b5`; the owner's own
+answers, in person, Nov 12; decision 0154; T17 built, T14 and T15 wait for the next inbox run, one build per run).
+- `tend map T17`: Locate refused, on Navigate and Explore, is the app's quiet notice (the cream banner, its text the
+  dark brown `#6b4500`, no alert, read politely), not the red error: "Location is off for this site. Turn it on in the
+  browser's settings to see where you are."; on a phone the words stay ("Location is turned off for Chronicles. Turn it
+  on in Settings to find your position."), with Open Settings. The words live once, in `locate/notice.ts`. With no fix
+  and no tiles drawn, the two screens show no scale bar over the blank world; with the tiles drawn, or a fix, it stays.
+  The `qol` journey pictures the refusal on both screens at 390 and 320 px over an empty world, and keeps the bar where
+  the fake streets draw.
+The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
+- `tend map audit 12`: the refusal is said to a screen reader through a polite live region kept on screen (Navigate's
+  own `ready-said`, Explore's DN12 one), and on a phone by `announceForAccessibility` (F1 with U1).
+- `tend map audit 13`: the open item names QL5 ("Every map shows a scale bar") beside QL11 as amended (F2).
+- `tend map audit 14`: native counts roads, water or places as drawn, not places alone (`drawnFrom`) (F3).
+- `tend map audit 15`: the web's look queries only the base fill layers, never buildings (`blankLookLayers`) (F4).
+- `tend map audit 16`: T26's evidence names `qol` alone and says T17 split the two refusals on one screen (F5, U2).
+- `tend map audit 17`: the map rule notes the hidden bar and the veil trap (F6).
+- `tend map audit 18`: the notice's test lives with the moments feature that owns `locate/` (F7).
+Review: 8 accepted (F1-F7, U1 with F1), 4 deferred to `docs/DEFERRED.md`, Quality of life (U3 `[loop]` low, the (i)
+where the bar was; U4-U6 `[owner]` low, copy), 0 rejected; U2 is yours through T26.
+Found on the way: T17's words were never the recorder's start's (decision 0154 says they were): Start, refused, still
+says "Location permission was denied. ..." in red. Filed as T26 `[owner]`; QL11's and QL5's wording and the map rule's
+Locate line in "Open before the loop". One native check, with a note.
+Answered and waiting: T14 yes (kinds, no numeral, the time in the spoken name), T15 reshaped to "Ink star, no numeral".
+Not a sweep: no lens ran and no area changed state. The `drive` journey fails here and on `main` alike. Nothing here
+has run on a phone; the notice, its announcement and the scale bar's tile read are native too
+(`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in
+  `specs/quality-of-life/spec.md`) says "Denied location shows the error banner a moment's placement shows"; since
+  `tend map T17` a refused location is the quiet notice (the cream banner, ink, no alert), "Location is off for this site.
+  Turn it on in the browser's settings to see where you are." on the web, and with no fix and no tiles drawn Navigate and
+  Explore show no scale bar. Amend QL11 to say so, in the doc and the mirror; the loop may not edit a spec. Decision 0154
+  calls T17's words "the words the recorder's start uses", which they never were: the web recorder's start says "Location
+  permission was denied. Allow location for this site in the browser settings, then try again." (`recorder/index.web.ts`),
+  Locate's old line. So `.claude/rules/map.md`'s "Denied says what the recorder's start says" (the Locate line) is no
+  longer true on the web until the inbox entry "Walk: Start refused still reads as a fault" is answered; the loop
+  rewords no rule line.
+  QL5 is amended too (the T17 review's F2): it says "Every map shows a scale bar in its bottom-left corner"; since
+  `tend map T17` Navigate and Explore show none with no fix and no tiles drawn. Amend QL5 beside QL11, in the doc and
+  the mirror, so a sweep does not read the hidden bar as a regression; decision 0154's header names neither.
+- **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
+  `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
+  agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A
+  session that was in flight merges `origin/main` (on a conflict in these three, `npm run records -- redo` takes
+  main's side, and the session files its entries again after the merge); a hand edit it commits after that, or one
+  made before and rebased on, is refused by name with its fix (`.claude/skills/ship.md`, "The record documents").
+- **QL2's wording after T16** (Nov 12; decision 0154): the quality-of-life doc (mirrored in
+  `specs/quality-of-life/spec.md`) says the end marker is "a white disc with a thick ring in the walked orange"; since
+  `tend map T16` it is solid, a disc filled in the walked colour with a white ring, the start still hollow. Amend QL2 to
+  "a disc filled in the walked colour with a white ring, so shape, not colour alone, tells it from the start", in the
+  doc and the mirror; the loop may not edit a spec. `.claude/rules/map.md` l.119-121 ("a ring in `COLORS.walked`")
+  and its Native line ("the `ends` layer's `match` stroke colour") say the old paint; a "Since `tend map T16`" line
+  under the first says what is true. The loop rewords no rule line. Two records say it too (the T16 review's F4):
+  `docs/NATIVE_UNVERIFIED.md`'s first Quality of life check ("with the `match` stroke colour"; an indented note under
+  it points to the next check), and T22 above ("QL2's end ring ('in the walked orange') takes it too": since T16 the
+  end is a fill, which takes it the same way).
+- **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
+  bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
+  north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`
+  north while the compass's ease runs. Reword it to "a fit keeps the bearing the map has (the web passes
+  `map.getBearing()`, or 0 while the compass turns it north; maplibre's default is north); never a fixed one".
+  Its scale-bar line says the walk screen's map "bottom edge is the strip's top", but the live walk's runs under the
+  strip (`mapEndsAtStrip: false`, `walk.tsx`; only the ready screen's ends there). And it has no line yet for two
+  things this run shipped: only a map given `onBearingChange` (one with a compass) turns (`tend map 1`), and the credits
+  (i) sit beside the scale bar on every map but Chronicle's, with a 44 px target (`creditsAt`, `tend map 3`); opened,
+  the box starts at `openLeft`, clear of a 44 px control over the scale bar, keeps the (i) on its bottom row and says so
+  through `onCreditsOpen` (`tend map audit 1`, `2`); and a trap: `window.__turn` turns the map mounted last, which on
+  Explore can be another screen's, so a journey turns Explore with two real touches. The loop rewords no rule line, and
+  adds none to a file its commits cite.
+- **QL8's and QL11's wording** (Nov 12; `/tend map`): QL8 says the scale bar "reads at AA: ink text on a white pill,
+  like the status chips"; the owner chose a white halo with no background (Nov 4, `ScaleBar.tsx`). QL11 says Locate is
+  "disabled" while it reads the fix; since `tend map 5` it is not `disabled` (a disabled button loses the keyboard's
+  focus): a press while busy does nothing, and it says busy (`aria-busy`). Amend both in the quality-of-life doc and its mirror; the loop may not edit a spec.
+- **ME23's wording after T12** (Nov 12): `specs/media-editing/spec.md` ME23 says every place offers Edit for 6 seconds;
+  since `tend tabs T12` (decision 0149) the recording bar's offer is a pill above the bar that waits for Edit, Close or
+  the next capture (or the tabs leaving the screen). Amend ME23 with "Amended (owner, Nov 12, decision 0149): on the
+  recording bar, a pill above it that waits", in the doc and the mirror; the loop may not edit a spec.
 - **Chronicle's empty peek after T10** (Nov 12; the T10 review's F4): decision 0148 amends 0050, but three texts still
   say the old peek. `docs/decisions/0050-chronicle-peek.md` line 3 has no "Amended by [0148](0148-the-empty-peek-one-way-and-a-true-line.md)"
   (as 0030's names 0082); `specs/v0.5-places/spec.md` criterion 19 wants an "Amended (owner, Nov 12, decision 0148): with
@@ -295,8 +473,11 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
+| Voice trim (a voice memo trimmed with start and end handles, as data on the untouched recording; Edit in the viewer; the kept part plays everywhere, its length said in words; VT1-VT12, decision 0090) | `claude/upbeat-gates-s6xy90` | built 2026-11-12, test-first by intent, the owner waived `check:test-first` for it (6 of 11 criteria report todo-before-real: the unit tests' todos used a constant the history check does not read; VT7 is device-only): unit tests (2072), typecheck, lint, docs and vision checks; the `voicetrim` journey and the nine journeys `check:affected` named (edit, notepage, qol, replay, responses, resurface, stacks, threads, walk) pass on the web build; a first sweep failed on a build whose map worker was missing (`npm ci --ignore-scripts` skipped `copy-maplibre-worker.js`), so it is not the slice's; steward read once (6 findings, triaged in the plan); native unverified; audited 2026-11-13 at the owner's request (12 findings: 6 fixed, 2 deferred, 4 rejected; tests `voice-trim audit 1-4, 9, 10`; the UI review before it: `voice-trim ui 1, 3` fixed, `ui 4, 6` guards); spec `specs/voice-trim/spec.md` |
+| Neighborhood boundaries (real Overture neighborhood shapes replace the 800 m ring and the 1 km nearest-point placement; a nearest-point share where a town has none; one rule draws and places; HB1-HB16) | `claude/elegant-brahmagupta-ficipi` | built 2026-11-12, test-first by history (16 of 16): HB1-HB16 and the `outlines` journey's HB9/HB10 checks; steward read twice; audited at the owner's request (12 accepted, 1 rejected, 2 deferred, 5 questions for the owner; tests `neighborhood-boundaries audit 1-9, 11-13`); native unverified (the ground line layer, SQLite migration 26); not merged or deployed; spec `specs/neighborhood-boundaries/spec.md` |
+| Note pages (a note is a journal entry in Apple Journal's manner: the pencil opens its page, TipTap through Expo DOM, Aa Format and @ and a camera above the keyboard, kept as it is written, older notes literal; NP1-NP14, decision 0151) | `claude/blissful-ptolemy-o3q79x` | built 2026-11-12, test-first by history (14 of 14): unit tests, typecheck, lint, docs and vision checks; the `notepage` journey and the 30 journeys `check:affected` named pass on the web build (one batch on the first build, then the twelve the audit's fixes touched, once, on the final build; `notepage` ran nine times in all while the audit's checks were written, its NP9 Undo check failing once); audited at the owner's request (27 findings: 20 fixed, two in part; 3 deferred; 4 merged; `note-pages audit N`); native unverified (a WebView editor never run on a phone); merged with main (decision renumbered 0151) and deployed 2026-11-12 (`92f021c`, Pages run 222; the live page opens the note page from Memories' pencil); spec `specs/note-pages/spec.md` |
 | Community parks and the kind pipeline (Parks gets a subset, "Community parks", the reader can switch off: a park whose name says playground or the like with nothing notable in or near it; size never demotes; never described; built as the first entry of a registry of pure refinements, kinds know their parent so a parent switch hides its children; PC1-PC23, decisions 0143, 0144) | `claude/confident-mendel-gf0ck0` | built 2026-11-11, test-first by history (23 of 23): unit tests, typecheck, lint, layers; merged with main (presence); the journeys `check:affected` names pass on the web build (marks, with its new PC6 check, atlas, grading, curiosities, outlines, replay, nudge) except `scenic`, whose check "fix preview-clutter audit 1" (the trace drawn again as the preview closes) fails the same way on `origin/main` (3 of 3 runs of `e2e:baseline`), so it is main's, not this slice's; steward read once (10 findings, triaged in the plan); the sub-path build passes marks, atlas, grading, curiosities, outlines, chronicle, replay, scenic and nudge, where nudge's PA2 counted the double-tap's taps at the instant the first "?" showed and read 1 when its 1 s poll fell between the two (about 150 ms apart): it now counts after the pair, 8 of 8 runs; native unverified; not audited (decision 0074); spec `specs/community-parks/spec.md` |
-| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0147) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; not audited (decision 0074); not merged or deployed; native unverified; spec `specs/complexes/spec.md` |
+| Complexes (a named, bounded place made of other places: a mall, a market, a campus, a station, a civic centre; on Explore's area card and map and in a moment's arrival line; information only; CX1-CX16, decision 0147) | `claude/affectionate-hawking-3geuox` | built 2026-11-11, test-first by history (16 of 16): unit tests (1894), typecheck, lint, docs and vision checks; the `complexes` journey and the 24 journeys `check:affected` names pass on the /chronicles build (`nudge` once flaky, 3 of 3 on main); the owner's calls: all five kinds from building type, nearest first with See more, the derived `complex` store; steward read and accepted; audited 2026-11-12 (29 findings: 18 fixed, 1 in part, 2 duplicates, 5 deferred, 3 rejected, 1 to the owner; tests `complexes audit 1-28`); deployed 2026-11-11 (main `820957a`, Pages run 215), the audit's fixes not yet deployed; native unverified; spec `specs/complexes/spec.md` |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in an edge-to-edge grid under pinned day headers; Years, Months, Days; Sort, Show, Zoom and pinch, Square or Aspect; MG1-MG22, decision 0139) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-11, test-first by history (22 of 22): unit tests (1814), typecheck, lint, docs and vision checks; the eleven journeys `check:affected` names (gallery, capturehome, chronicle, edit, qol, responses, resurface, stacks, tabs, threads, walk) pass on the /chronicles build, `resurface` run twice (its RM1 check counted four sections; now five); steward read twice (S1-S14 accepted); merged with main and deployed 2026-11-11 (`498e412`, Pages run 43050937634, the live page shows Media); not audited (decision 0074); native unverified. Video thumbnails are the next slice (the owner, Nov 11); spec `specs/media-gallery/spec.md` |
 | Response thread (a moment's responses in a sheet over the viewer; RT1-RT14, decision 0131) | `claude/elegant-cannon-gs9yrk` | built 2026-11-11: RT1-RT14 tested first (unit and the `responses` journey), typecheck, lint, 1741 unit tests; the nine journeys `check:affected` names pass on the /chronicles build; deployed 2026-11-11 (`9ed9a15`, Pages run 42957716629); not audited; native unverified; spec `specs/response-thread/spec.md` |
 | Presence and kinds (a museum the data calls historic lights History too, the bars kept apart; routes from a bar lean on places you pass; a Community spaces kind; the needsOpen gate measured; PK1-PK19, after the Coplay Kilns diagnosis) | `claude/dazzling-fermat-ws5c6a` | built 2026-11-10, test-first by history (19 of 19): PK1-PK19 pass (1715 unit tests with main's, merged at `0f3f216`); typecheck, lint, docs and vision checks clean; journeys atlas, curiosities, grading, marks, nudge, outlines, planner, replay pass, and scenic on the merged tree (its one failure before the merge was the old base's, passing 3 of 3 on main); audited 2026-11-11 at the owner's request (14 findings: 8 fixed, one in part, two at the owner's call (the icons); 3 deferred; 3 rejected, one at the owner's call (the label kept); tests `presence-and-kinds audit 1-3, 5, 6, 8, 10, 13`); nothing native new; not merged or deployed. For the owner: the live places archive is still v1, so the Kilns show only once a v2 archive publishes; decision 0127. Spec `specs/presence-and-kinds/spec.md` |

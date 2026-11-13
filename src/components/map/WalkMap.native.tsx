@@ -6,10 +6,10 @@ import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useS
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel } from '../MarkPinView';
-import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
+import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
@@ -17,7 +17,7 @@ import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinMark, pinReminded, pinThumb } from '../../lib/pins';
 import { useReminded } from '../../lib/useReminded';
-import { scaleBar } from '../../lib/scaleBar';
+import { drawnFrom, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
@@ -30,7 +30,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -95,6 +95,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const lastBearing = useRef(0);
+  // A map that comes back opens north-up (CP8), so its screen hears north as it goes (tend map audit 6).
+  const bearingOut = useRef(props.onBearingChange);
+  useEffect(() => {
+    bearingOut.current = props.onBearingChange;
+  });
+  useEffect(
+    () => () => {
+      if (lastBearing.current !== 0) bearingOut.current?.(0);
+    },
+    [],
+  );
   const queryRef = useRef<VectorSourceRef>(null);
   const [ready, setReady] = useState(false);
   const readyWaiters = useRef<(() => void)[]>([]);
@@ -150,15 +161,47 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const foundPins = useMemo(() => pinsGeoJSON(props.foundPins), [props.foundPins]);
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
+  // The busy names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
+  const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
+  // DC17: every "?" pin keeps its room; re-made only when the pins move.
+  const pinsKey = props.landing ? (props.discoveries ?? []).map((d) => d.at.join(',')).join('|') : '';
+  // DC18: the walk maps' names near you, re-made only when you move about 100 m.
+  const nearKey = props.busyNamesNear ? `${props.busyNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.busyNamesNear.m}` : '';
+  const busyNameData = useMemo(
+    () => busyNamesGeoJSON(props.landing, props.busyNamesReserve ?? null, (props.discoveries ?? []).map((d) => d.at), props.busyNamesNear ?? null),
+    // The reserved name, the pins and where you are are read through their keys: a new object for the same is no change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.landing, reserveKey, pinsKey, nearKey],
+  );
+  // explore-dense-city ui 3: the names fold upright for the bearing the map settled on, to the nearest 5 degrees.
+  const [namesBearing, setNamesBearing] = useState(0);
+  // Set only when it changes: the same value set again still renders (map rules, DC12).
+  const namesBearingNow = useRef(0);
+  const nameLayers = useMemo(() => {
+    const l = busyNameLayers();
+    const rotate = busyNameRotate(namesBearing);
+    return { ...l, layout: { ...l.layout, 'text-rotate': rotate }, turned: { ...l.turned, layout: { ...l.turned.layout, 'text-rotate': rotate } } };
+  }, [namesBearing]);
+  // DC16, audit 6: the busy lines under the base labels, as on the web; the names over the lines (added after them), and
+  // on Explore over everything.
+  // audit 7: a map taken down mid-move reports no settle; say it is still, so whatever waits for its settle goes on.
+  const onMoveStateRef = useRef(props.onMoveState);
+  useEffect(() => {
+    onMoveStateRef.current = props.onMoveState;
+  });
+  useEffect(() => () => onMoveStateRef.current?.(false), []);
+  const busyOrder = busyLayerOrder(!!props.busyNamesOver);
+  const namesBelow = busyOrder.names;
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
   const waitingDots = useMemo(() => waitingDotsGeoJSON(props.waitingDots), [props.waitingDots]);
   // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
   // of the trace (MapLibre RN serializes a source's data on each change).
-  const endPoints = traceEnds(props.trace, !!props.ended);
+  const endPoints = traceEnds(Array.isArray(props.ended) ? props.ended : props.trace, !!props.ended);
   const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
+  const ground = useMemo(() => groundGeoJSON(props.ground ?? null), [props.ground]);
   const complexLines = useMemo(() => (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, [props.complexes]);
   // Town borders (TB1-TB5): rebuilt only when the towns or their roles change (TB9).
   const borderKey = props.borders?.key ?? '';
@@ -171,6 +214,20 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
+  // No scale bar over a blank world (T17): with no fix, the map looks at what it drew each time it finishes drawing.
+  const blankWatch = !!props.hideScaleOnBlank && !props.walker;
+  const [drawn, setDrawn] = useState<boolean | null>(null);
+  // The base tiles, read through the query source (the app's own layers, the world's veil among them, cover the world
+  // whatever the tiles did): roads, water or places in them have drawn something (`drawnFrom`, tend map audit 14).
+  const lookDrawn = () => {
+    const source = queryRef.current;
+    if (!blankWatch || !source) return;
+    const count = (sourceLayer: string) => source.querySourceFeatures({ sourceLayer }).then((fs) => fs.length, () => 0);
+    Promise.all([count('transportation'), count('water'), count('place')])
+      .then(([roads, water, places]) => setDrawn(drawnFrom({ roads, water, places })))
+      .catch(() => {});
+  };
+  const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
   // The dot, cone and camera glide between fixes instead of jumping.
   const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true, props.walkerSource);
   // The trace's end joins the live dot, so the line always reaches it (the live dot, Nov 1); never across a pause or gap.
@@ -313,7 +370,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   return (
     <View
       style={[styles.wrap, props.style]}
-      {...(props.onSwipe ? swiper.handlers : null)}
+      {...(props.onSwipe && !props.freePan ? swiper.handlers : null)}
       onLayout={(e: LayoutChangeEvent) => {
         size.current = { width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height };
       }}
@@ -340,15 +397,22 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         }}
         onRegionWillChange={(e) => {
           if (e.nativeEvent.userInteraction) props.onUserMove?.();
+          props.onMoveState?.(true);
         }}
-        // Two fingers turn the map (CP1); a tilt never does.
-        touchRotate
+        // Two fingers turn a map with a compass (CP1, decision 0082); the others stay north-up (tend map 1). A tilt never.
+        touchRotate={!!props.onBearingChange}
         touchPitch={false}
-        dragPan={!props.onSwipe}
+        dragPan={!props.onSwipe || !!props.freePan}
         onRegionDidChange={(e) => {
           regionChanged.current?.();
+          props.onMoveState?.(false);
           const { zoom, center, bearing } = e.nativeEvent;
           swiper.at([center[0], center[1]], zoom);
+          const nb = typeof bearing === 'number' ? Math.round(bearing / 5) * 5 : 0;
+          if (nb !== namesBearingNow.current) {
+            namesBearingNow.current = nb;
+            setNamesBearing(nb);
+          }
           if (typeof bearing === 'number' && Math.abs(bearing - lastBearing.current) >= 0.5) {
             lastBearing.current = bearing;
             props.onBearingChange?.(bearing);
@@ -362,7 +426,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             props.onViewChange?.(lastView.current);
           }
         }}
-        onDidFinishRenderingMapFully={() => rendered.current?.()}
+        onDidFinishRenderingMapFully={() => {
+          rendered.current?.();
+          lookDrawn();
+        }}
       >
         <Camera
           ref={cameraRef}
@@ -375,6 +442,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           <Layer id="q-names" type="line" source-layer="transportation_name" paint={HIDDEN} />
           <Layer id="q-places" type="circle" source-layer="place" paint={{ 'circle-opacity': 0 }} />
           <Layer id="q-pois" type="circle" source-layer="poi" paint={{ 'circle-opacity': 0 }} />
+          {/* Water, so its tiles load for the blank-world look (tend map audit 14). */}
+          <Layer id="q-water" type="fill" source-layer="water" paint={{ 'fill-opacity': 0 }} />
         </VectorSource>
         {/* Town borders, the first overlay: under everything the app draws (TB8). MapLibre RN has no
             base road layer id to go below, so they sit over the base map's streets (unverified on a device). */}
@@ -398,10 +467,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <GeoJSONSource id="pockets" data={pockets}>
-          <Layer id="pockets" type="fill" paint={{ 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] }} />
+          <Layer id="pockets" type="fill" beforeId={busyOrder.lines} paint={{ 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] }} />
         </GeoJSONSource>
         <GeoJSONSource id="strips" data={strips}>
-          <Layer id="strips" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{
+          <Layer id="strips" type="line" beforeId={busyOrder.lines} layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{
             'line-color': HOTSPOT,
             // Graded (AD12): each feature carries its grade's width and opacity.
             'line-width': ['interpolate', ['linear'], ['zoom'], 12, ['*', 3, ['get', 'width']], 17, ['*', 10, ['get', 'width']]],
@@ -453,13 +522,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH }} />
         </GeoJSONSource>
         {/* Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins,
-            going with the trace's opacity. A white disc ringed in the trace's green, or the walked orange. */}
+            going with the trace's opacity. The start hollow, ringed in the trace's green; the end solid,
+            filled in the walked colour with a white ring (tend map T16). */}
         <GeoJSONSource id="ends" data={ends}>
           <Layer id="ends" type="circle" paint={{
-            'circle-color': '#ffffff',
-            'circle-radius': 7,
-            'circle-stroke-width': 4,
-            'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, COLORS.walked],
+            ...ENDS_PAINT,
             'circle-opacity': props.traceOpacity ?? 1,
             'circle-stroke-opacity': props.traceOpacity ?? 1,
           }} />
@@ -471,6 +538,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="ring" data={ring}>
           <Layer id="ring-fill" type="fill" paint={{ 'fill-color': RING_COLOR, 'fill-opacity': 0.12 }} />
           <Layer id="ring" type="line" paint={{ 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] }} />
+        </GeoJSONSource>
+        {/* A selected neighborhood's own ground (HB9): one line, one look for every neighborhood, no fill (HB14). */}
+        <GeoJSONSource id="ground" data={ground}>
+          <Layer id="ground" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': groundStyle().color, 'line-width': groundStyle().width }} />
         </GeoJSONSource>
         {/* The selected area's complexes (CX9): an outline with no fill, in a hue of its own. */}
         <GeoJSONSource id="complexes" data={complexLines}>
@@ -493,6 +564,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             'circle-stroke-color': '#ffffff',
             'circle-stroke-width': 2,
           }} />
+        </GeoJSONSource>
+        {/* The busy names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
+        <GeoJSONSource id="busy-names" data={busyNameData}>
+          <Layer id="busy-names" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.filter as never} layout={nameLayers.layout as never} paint={nameLayers.paint as never} />
+          {/* A turned name, centred or left out, never slid across its street (audit 1). */}
+          <Layer id="busy-names-turned" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.turned.filter as never} layout={nameLayers.turned.layout as never} paint={nameLayers.turned.paint as never} />
+          {/* The room the selected area's name and each "?" pin keep (DC14, DC17), placed first. */}
+          <Layer id="busy-names-room" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.room.filter as never} layout={nameLayers.room.layout as never} paint={nameLayers.room.paint as never} />
         </GeoJSONSource>
         {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4), drawn
             before this walk's pins so those stay on top (audit 6). */}
@@ -567,11 +646,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <AreaPointView pin={p} />
           </Marker>
         ))}
-        {[...(props.landing?.strips ?? []), ...(props.landing?.labels ?? [])].map((s) => (
-          <Marker key={`label:${s.name}:${s.at.join(',')}`} id={`label:${s.name}:${s.at.join(',')}`} lngLat={s.at} anchor="center">
-            <StripLabel name={s.name} />
-          </Marker>
-        ))}
         {(props.stars ?? []).map((star) => (
           <Marker
             key={`star:${star.id}:${star.count}`}
@@ -586,7 +660,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           </Marker>
         ))}
       </Map>
-      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
+      {scale && scaleOn && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );

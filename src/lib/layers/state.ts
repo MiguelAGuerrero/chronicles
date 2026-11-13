@@ -47,3 +47,9 @@ export const needsBusyRead = (rows: readonly { centre: LngLat }[], at: LngLat): 
  * are drawn again only when the set of areas near changes (layers audit 2), never once a fix.
  */
 export const nearKey = (rows: readonly LandingRow[], centre: LngLat | null): string => (centre ? nearAreas([...rows], centre).map((r) => r.key).join('|') : '');
+
+/**
+ * Whether the Busy layer's read starts now (DC9): it is on, no remembered area covers the centre, this place was not tried
+ * yet, and the map is still. A move before it starts waits for that move to settle.
+ */
+export const busyReadDue = (s: { on: boolean; needs: boolean; tried: boolean; moving: boolean }): boolean => s.on && s.needs && !s.tried && !s.moving;

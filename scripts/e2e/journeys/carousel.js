@@ -144,8 +144,10 @@ async function run(h) {
     check(layersBtn && row && layersBtn.y + layersBtn.height <= row.y, 'EC19: Layers is above the row');
 
     // EC5: the selected neighborhood has its ring; EC7: zoomed out, the map carries no street names.
-    const ringOn = await safe(() => map.evaluate((el) => !!el.getAttribute('data-ring')), false);
-    check(ringOn, 'EC5: the selected area has its ring on the map');
+    // Neighborhood boundaries (HB9): its own ground as a line stands in place of the ring once the tiles are kept.
+    await pg.waitForTimeout(3000);
+    const ringOn = await safe(() => map.evaluate((el) => !!el.getAttribute('data-ring') || !!el.getAttribute('data-ground')), false);
+    check(ringOn, 'EC5, HB9: the selected area has its ring, or its own ground, on the map');
     // The Busy layer's names are DOM markers that are not area points. This world has no busy streets to name, so what
     // the journey can show is that zoomed out the map carries none; the distance and zoom rule is `carousel.test.ts` (EC7).
     const busyNames = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => !m.matches('[data-testid=area-point]') && !m.querySelector('[data-testid=area-point]') && /Street|Avenue|Road/.test(m.textContent ?? '')).length);

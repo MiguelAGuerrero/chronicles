@@ -1,7 +1,7 @@
 import { useIsFocused } from 'expo-router';
 import { BottomTabBar, BottomTabBarHeightCallbackContext, Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
 import { useContext } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '../../components/icons';
 import { RecordingBar } from '../../components/RecordingBar';
@@ -29,7 +29,7 @@ export const unstable_settings = { initialRouteName: 'index' };
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 /** The tab bar's height above the safe area. */
-const TAB_BAR_H = 58;
+const TAB_BAR_H = 62;
 
 const ignoreHeight = () => {};
 
@@ -62,6 +62,9 @@ function TabBarWithRecording(props: BottomTabBarProps & { minimized: boolean }) 
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  // Wider than tall, the bar puts each label beside its icon, and the library gives that label a line height of 24.
+  const labelLineHeight = width > height ? 24 : 14;
   // The tabs are in front: the walk, if one is open, is minimized. Under the walk screen or a replay
   // the bar is taken down, so nothing beneath ticks (NV6, NV9).
   const minimized = useIsFocused();
@@ -75,6 +78,9 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.muted,
         // Tall enough for the icon and its label on the web too, where the default bar clipped the label.
         tabBarStyle: { backgroundColor: theme.surface, borderTopColor: theme.line, height: TAB_BAR_H + insets.bottom, paddingTop: 4, paddingBottom: insets.bottom + 4 },
+        // A one-line label clips its overflow, and at the default line height the box ends at the baseline's
+        // descent: the stems of p and g were cut (the owner's iPhone, Nov 12). An explicit line height leaves room.
+        tabBarLabelStyle: { lineHeight: labelLineHeight },
         sceneStyle: { backgroundColor: theme.bg },
       }}
     >

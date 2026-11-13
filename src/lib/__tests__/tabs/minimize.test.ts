@@ -23,7 +23,8 @@ test('NV9: the recording bar shows the time walked and the distance', () => {
 
 test('NV9: paused, it says Paused, and paused time is not counted', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 60_000, ended_at: null }], now: 125_000, distanceM: 1250 });
-  assert.equal(r.text, 'Paused · 1:00 · 1.3 km');
+  // The numbers first since tend tabs audit 17: NV9's "elapsed time, distance, and Paused when paused".
+  assert.equal(r.text, '1:00 · 1.3 km · Paused');
   assert.equal(r.paused, true);
   assert.match(r.label, /^Walk paused/);
 });
@@ -91,4 +92,13 @@ test('NV8: whoever keeps the open walk hears it start, pause, resume and stop', 
   off();
   await notifyWalkChanged();
   assert.equal(n, 2);
+});
+
+test('tend tabs audit 17: paused, the line puts its time and distance first, so a narrow bar cuts the word, never the numbers', () => {
+  const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 9_000, distanceM: 18 });
+  assert.match(r.text, /^\d+:\d\d · 18 m · Paused$/);
+  // The spoken label is unchanged: the state first.
+  assert.match(r.label, /^Walk paused, 18 m walked in /);
+  // Recording, the line is the numbers alone, as before.
+  assert.doesNotMatch(recordingLine({ startedAt: 0, pauses: [], now: 9_000, distanceM: 18 }).text, /Paused/);
 });

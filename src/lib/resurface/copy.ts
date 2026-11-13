@@ -3,7 +3,7 @@
  * Every sentence Memories writes about its own controls (MC11, MC14, MC16), in one place so a test can read
  * each one. They state a fact: no "Okay,", no instruction, and none says hiding is private, because it is not.
  */
-export const HIDDEN_TOAST = 'Hidden. It stays in Lately and in its walk.';
+export const HIDDEN_TOAST = 'Hidden. It stays in your journal and in its walk.';
 export const NOT_A_THREAD = 'That is not a thread.';
 export const EMPTY = 'Nothing kept yet.';
 export const BRING_BACK = 'Bring back';

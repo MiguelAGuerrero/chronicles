@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { test } from 'node:test';
 
-// Who may read a note's type (decision 0149, note-types audit 15): a type is the owner's mark on their own note, and
+// Who may read a note's type (decision 0161, note-types audit 15): a type is the owner's mark on their own note, and
 // no feature may read one to say something about a place, a route, a recommendation, a count or a search. A file that
 // mentions it must be on this list; a new reader edits the list, and that edit is the gate (`/vision`).
 
@@ -11,7 +11,7 @@ const SRC = join(__dirname, '..', '..', '..');
 const ALLOWED = new Set([
   'lib/noteType.ts', 'lib/noteEdit.ts', 'lib/moment.ts', 'lib/types.ts', 'lib/captureBus.ts', 'lib/pins.ts', 'lib/useCaptures.ts',
   'lib/db/index.web.ts', 'lib/db/sqliteStore.ts', 'lib/db/migrations.ts', 'lib/resurface/shell.ts', 'lib/ready/shell.ts',
-  'components/icons.tsx', 'components/NoteMark.tsx', 'components/NoteEditor.tsx', 'components/CaptureView.tsx',
+  'components/icons.tsx', 'components/NoteMark.tsx', 'components/notePage/NotePage.tsx', 'components/notePage/NoteTypeMenu.tsx', 'components/CaptureView.tsx',
   'components/CapturePinView.tsx', 'components/chronicle/MomentCard.tsx', 'components/chronicle/MomentPicture.tsx',
   'components/threads/NoteBubble.tsx',
   'components/map/WalkMap.web.tsx', 'components/map/WalkMap.native.tsx',
@@ -37,9 +37,8 @@ test('note-types audit 15: nothing about places, routes, areas, discovery, landi
   assert.deepEqual(bad, []);
 });
 
-test('note-types audit 16: the spoken label says a type only where its mark is drawn: the resurfaced card, which draws none, says none', () => {
-  const src = readFileSync(join(SRC, 'components/chronicle/Resurfaced.tsx'), 'utf8');
-  assert.match(src, /momentSpoken\(m, props\.now, props\.context, false\)/);
+test('note-types audit 16: the spoken label says a type only where its mark is drawn', () => {
   const card = readFileSync(join(SRC, 'components/chronicle/MomentCard.tsx'), 'utf8');
   assert.match(card, /export function momentSpoken\(m: MomentView, now: number, context\?: ContextEntry, typed = true\)/);
+  assert.match(card, /<NoteMark capture=\{m\.capture\} \/>/, 'the row that says the type draws it');
 });

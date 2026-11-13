@@ -34,8 +34,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
-- Finding, fix which-place: a moment with two or more unfound places within 60 m is tagged to none unless made on an exploring walk, where "Which place is this moment about?" asks; the home's loose moments and quiet walks never ask, and a moment cannot be tagged to a place afterwards (Explore, E8)
-- Finding, fix which-place audit 3, 5, 6: a declined "Which place?" is not remembered (a reload asks again); several ambiguous captures in a row ask only about the newest; a capture made before Explore is switched on is never asked; the chip lists three places at most and has no e2e journey
+- Finding, fix remove-which-place: a moment with two or more unfound places within 60 m is tagged to none, on any walk; the "Which place is this moment about?" chip is gone (the owner, Nov 12), and a moment cannot be tagged to a place afterwards (Explore, E8). `specs/v1-discovery/spec.md` E8 still says "until the reader picks": the owner's doc wins, so it is theirs to edit
 
 ## Streets and snapping
 
@@ -65,6 +64,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Explore and discovery
 
+- [loop] "What I'm into": the Community parks row appears and disappears with Parks without motion or a spoken cue, and its hint does not say it belongs to Parks (fix subcategory-indent, ux-reviewer U2, U5: WCAG 1.3.1, 4.1.3; opinion, low). Fix: the house motion tokens for the insert, "part of Parks and gardens" in the child's accessibility hint
 - [owner] Explore's area card carries the accent on its border and on "See its neighborhoods" at rest; VISION.md's Always, "Restraint in motion, colour and copy", and the open question on the accent at launch (`docs/STATUS.md`) bear on it. For the next explore sweep (steward, `/tend tabs`, Nov 11; picture `probe-explore-minimized`)
 - [kept] A checklist takes a reclassified place's new category at the next tile build, not at once: items are kept and rebuilt only by E4 and PW12; `PRESENCE_CODE` re-derives the atlas and the landing only (specs/presence PR6, Nov 11)
 - [owner] When the places archive fails to load, the planner and the atlas ring read the map's places alone (`walkPlanner/service.ts`, `atlas.ts` `ringOf`), so a plain-named memorial or church the archive records shows no mark until it loads again: existing behaviour (specs/presence-readers, the steward, Nov 11)
@@ -96,6 +96,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] `setFit` is called in an effect body (`explore.tsx`, the page's framing effect), against the React Compiler rule in AGENTS.md; `nextFrame` keeps it from looping (`/tend explore`, second sweep, Nov 11, low)
 - [loop] At 320 px two journey checks failed that pass at 390: `carousel`'s "WT13: a dot no pin covers, to tap" and the walk's "the bar's Open in Maps sends the destination (NH3: 29.6 m)". Unconfirmed whether the app or the checks' geometry (run with a scratch preload forcing the width; `/tend explore`, second sweep, Nov 11, low)
 - [loop] `exploreSlots` (`atlas/overlaySlots.ts`) repeats numbers the screen also holds: the long press's choices' 68 (`SPOT_H`), the Towns pill's `bottom: 12` and `minHeight: 44`, the scale bar's 32; its test repeats them again, so a change to one does not fail it. Take the pill's and the choices' places from `exploreSlots` too (`/tend explore` review, Nov 11, low)
+- [loop] At 320 px, "Press and hold the map to look anywhere." wraps to two lines over Explore's map (picture `probe-map-attrib-320-explore`; ui-patterns, "Nothing wraps on a 320 px phone at the default text size"; `/tend map`, Nov 12, low, explore's)
+- [owner] With no fix, Explore shows Locate at the map's edge and "Find me" in the card, the same crosshair twice (pictures `probe-map-390-explore-denied-before`, `probe-map-390-locate-denied-explore`; UX review U4, NN/g H8, H4; `/tend map`, Nov 12, low). Recommended: hide the edge Locate while the card offers Find me
 - [loop] A tall overlay is unmeasured: a two-line error banner with an action at 320 px or 200% text, or the long press's choices wrapping taller than 68, may reach the top chips or cover the slots `exploreSlots` assumes; no journey pictures either (`/tend explore` review, Nov 11, low, unconfirmed)
 - [kept] `new Date(c.t)` in `discovery/recall.ts:106` names a month and day in the device's timezone: the same item as functional-core audit 10 (`/tend explore`, Nov 11)
 - [owner] The Explore toast's 3000 ms dwell (`explore.tsx:176`) is a literal, not a `motionTokens` value; no token names a dwell, so whether the rule applies is the owner's (`/tend explore`, Nov 11, low, opinion)
@@ -130,8 +132,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
 - A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0112)
-- Lost toasts on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-memo, unseen; "saved to your walk" goes when the walk stops and the band remounts loose
-- An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
+- A lost toast on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-note, unseen. (The "saved to your walk" toast is gone with the journal, decision 0155.)
+- (Settled by the journal, decision 0155: an open walk's moment made from Memories shows on the page at once, JN8.)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
@@ -175,9 +177,32 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Native can't tell zoom from pan yet, so a zoom stops following there (Walk screen layout)
 - Map layer order on native: no `beforeId` yet (v1.5 landing, native)
 - No sounds yet (Polish: motion)
-- [loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)
+- ~~[loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)~~: since `tend map 3` its target is 44 px on every map; on Chronicle it stays top right, elsewhere it sits beside the scale bar
 - [loop] The `chronicle` journey's M9 check reads `window.__enters` as soon as `place-title` shows, before the harness's `requestAnimationFrame` has recorded the bounce, and its sheet-drag step can read the sheet before it settles: each failed once in four runs of `/tend inbox`, Nov 11, on code that leaves those screens as they were; wait for the entry (`waitForFunction`) and the settle (low)
   - Since then (`/tend inbox G1 yes`, Nov 11): `npm run e2e:baseline -- chronicle` on `main` (`1912c19`) failed M9 in 3 runs of 3, so it is no longer a flake; `main` fails it, before any change of the run. The cause is not looked for yet.
+- [loop] Every pin is a DOM marker with its own React root whether or not it is in view, and maplibre moves each on every camera move: on Chronicle's map that is every placed moment in the world. `tend map 4` made the grouping near-linear; drawing only the pins in view (with a margin) needs the map's bounds as state, which re-renders on every pan, against the render budget (`WalkMap.web.tsx` `usePinMarkers`, `useZoomPins` in `map/types.ts`; `/tend map`'s auditor F3, Nov 12, medium)
+- [loop] The pin, star and "?" taps read their handlers from refs updated in passive effects (`WalkMap.web.tsx` `usePinMarkers`'s `latest`, `starLatest`, `markLatest`), where the map's own handlers moved to `useLayoutEffect` (audit 8), so a tap in the frame after a render could reach the previous handler. Fix: `useLayoutEffect` for the three; no test reaches a one-frame race, so it waits for one (`/tend map`'s auditor F9, Nov 12, low)
+- [loop] Comments that say what the code does not: `units.ts`'s header says "Pure" under `@layer shell` and names `unitsStore.ts` (a folder now); `ScaleBar.tsx`'s doc comment reads "on with a white halo"; `WalkMap.web.tsx` has QL1-QL2's comment above `gradedKey`; `PIN_HEIGHT` (`CapturePinView.tsx`) is exported and unused (`/tend map`'s auditor F10, Nov 12, low; `check:tend` wants a named test for a comment)
+- [loop] `scaleBar`'s default `units = getUnits()` has no app caller (both maps pass `useUnits()`); dropping it would make `scaleBar.ts` core with no shell import, which shrinks `layers.baseline.json`, which the loop may not edit (`/tend map`'s auditor F10, Nov 12, low)
+- [loop] Native keeps the motion setting the map loaded with for `resetNorth()` and `showPoint()` (`WalkMap.native.tsx` ~l.260-265, an imperative handle built with `[ready]`): turning on Reduce Motion with Explore open, the compass still eases (CP4, M2); the web reads a ref. Unverified on a device (`/tend map`'s auditor F12, Nov 12, low, phone)
+- [loop] On the live walk, following, the compass cannot bring the map north: turned by two fingers (following stops), then Recenter (following again, still turned), keep walking and tap the compass: `resetNorth` eases over 600 ms (`WalkMap.web.tsx`, the handle's `resetNorth`), but each glide frame while following calls `map.jumpTo({ center })` (`applyFrame`), and maplibre's `jumpTo` starts with `this.stop()`, which cuts the ease after one frame; the map stays turned and the compass stays. `qol` misses it: `window.__turn` has no `originalEvent`, so following never stops, and the step runs after the fixes stop. Fix: the follow's `jumpTo` passes the eased bearing while the ease runs, or skips follow frames during it, or `resetNorth` jumps while following. Breaks CP4 (`/tend map`'s review, auditor F3, Nov 12, medium; deferred by the coordinator)
+- [loop] The map's credits (i) sit top right on Chronicle and beside the scale bar on every other map (`attributionTop`, since `tend map 3`): one place on every map would be more consistent; Chronicle's scale bar has room beside it, clear of the sheet (NN/g H4; `/tend map`'s review, ux U5, Nov 12, low)
+- [loop] Opened on the replay, which has no column of buttons at the right at that height, the credits still stop where the walk's capture stack would be (`creditsAt` assumes a 56 px column on every map but Chronicle's), so they wrap to more lines than they need; letting them run to the right inset needs the screen to say it has no column, more than a line (`/tend map`'s review, ux U3, Nov 12, low)
+- [loop] `tend map 10`'s unit test compares `mapWorkerUrl` with a string built from the same version and never reaches the `setWorkerUrl` call, so reverting `WalkMap.web.tsx`'s call to the old address still passes; reaching it means importing the web map in `npm test` or a journey reading the worker request (`/tend map`'s review, auditor "tests that cannot fail", Nov 12, low)
+- [loop] A dark line runs across the walk's bottom strip at about y 630 in `layers-small` (375 x 667, walkability on), through "0:04 · 0 m" and behind Pause and Hold; the same picture on `main` (`92f021c7`) shows it, so it predates `/tend map`. Make the strip opaque over the map or above that layer (ui-patterns, "Content may run under a bar (T7); a control may not float over it"; `/tend map`'s review, ux U6, Nov 12, low)
+
+- [loop] Before a map's style loads, its credits (i) sit flush in the screen's corner, half off it (the replay's reading
+  beat, `probe-390r-reading`): `place()` runs only once the map is ready, and `--credits-bottom` and `--credits-left`
+  have no fallback in the stylesheet (`WalkMap.web.tsx`; `/tend replay`, call 12, low; the map area's)
+- [owner] The solid end reads smaller than the hollow start: both are 22 px across (MapLibre strokes outside the
+  radius), but the end's white ring is about 1.2:1 on the grey ground and 1:1 on the white street casings, so it
+  reads as a 14 px orange dot (`23-day-card`, `rr-day-card` after `tend map T16`). The pair still reads began and
+  ended. A radius of 9 with a 2 px ring would keep 22 px and show about 18 px of orange; the marker's size is yours
+  (the T16 review's U2, low)
+- [owner] A capture pin standing on a start or end puts its stalk inside the marker: the "2" pin's stalk lands in the
+  solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
+  `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
+  the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -185,7 +210,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 2. GPX export (Quality of life, round 4)
 3. The current street as a chip (Quality of life, round 4)
 4. Dark mode (Quality of life, round 4)
-5. The scale bar's miles mode at native's coarser 0.25-zoom view updates (Quality of life)
+5. The scale bar's miles mode at native's coarser 0.25-zoom view updates (Quality of life); and native's view never follows the latitude, so after a long pan at one zoom the bar is measured at the old latitude (42° to 27° at z6: 20% off, where QL7 asks 5%; `WalkMap.native.tsx` ~l.357; `/tend map`'s auditor F11, Nov 12, [loop] low, phone)
 6. An audit pass over the quality-of-life rounds (the owner chose checkpoints instead; 0064)
 7. Memory pins pick up a small copy made mid-walk only when their capture set changes (`memories.ts` sends only changed ids; QL26)
 8. Edit note on Navigate's live walk, which opens no viewer (QL24)
@@ -201,6 +226,10 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 18. [kept] A walk kept with its suggestion shows the suggestion as the device reads it now, so a walk started at 01:00 in Lisbon reads "Tuesday evening" back in New York; walks left unnamed with Not now did already. The timezone item under Functional core is its fix (`/tend inbox` review F4, Nov 11, low)
 19. [loop] The section bar's checks miss the long press that lowers the sheet (SB1) and a bar press clearing a selected star or a Walk here card (SB2); only the drags, the switch and Map are checked (section-bar audit 3, Nov 11, low)
 20. [loop] Chronicle's day labels ("Today", "Yesterday") read the clock only when Chronicle comes to the front, so a section switch past midnight no longer refreshes them, as staying on Days never did (`now` in `ChronicleMap`; section-bar review F4, Nov 11, low)
+21. [loop] With the scale bar hidden over a blank world (T17), the map's credits (i) stays where `creditsAt` placed it for the bar's widest strip, so it floats near the middle of the bottom edge (Navigate at 390 x ~163; at 320 nearly centred; on Explore under the notice); it could take the bar's own slot while the bar is gone, keeping audit 2's open box (`scaleBar.ts` `creditsAt`; the T17 review's U3, Nov 13, low)
+22. [owner] Locate's web refusal names only the browser's settings; when the phone itself has location off for the browser (iOS Settings › Privacy › Location Services › Safari Websites) the line points to the wrong place; perhaps "Turn it on in your browser's or your phone's settings" (`locate/notice.ts`; NN/g H9; the T17 review's U4, Nov 13, low; copy, yours)
+23. [owner] Explore's empty card still offers Find me under the refusal's notice, a button that can only be refused again until location is turned on (pictures `qol-14-explore-locate-denied-390`, `-320`; as before T17; the T17 review's U5, Nov 13, low; copy, yours)
+24. [owner] Locate's timeout, "Couldn’t find your position" (red), names no next step (`locate/notice.ts`; NN/g H9; the T17 review's U6, Nov 13, low; copy, yours)
 
 ## Town outlines (TO1-TO12, decision 0083)
 
@@ -276,6 +305,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] A Remind me here fired while a walk is minimized and the tabs are folded under a full-screen card (the area card, the planner) goes to the recording bar, which is zero height and hidden then; the reminder is marked fired (a "once" one cleared) and the bar drops it after 30 s (`REMINDER_MS`), so it is never seen if the card stays up. The same under a viewer held over the tab for 30 s. Not a notification instead: with the page in front the web transport shows none (`transport.web.ts`, `show` returns false while visible) and native shows no banner in front, so a change that only stops the bar listening loses it outright (built and dropped in `/tend tabs`'s review, F1, high). The likely shape: the bar keeps a reminder while folded or covered, with no 30 s clear until it is in sight, and shows it on unfold (`RecordingBar.tsx` ~l.80-95; NV8; `/tend tabs`, Nov 11, lens 5 auditor F1, medium)
 - [loop] The recording bar's Stop ends the walk without a photo the bar holds, with no warning; the walk screen's Stop warns first (SA8). A fix was built and dropped in `/tend tabs`'s review: `stop()` read `cap.held` from the render's closure after its awaits, so a save failing while Stop waited was missed (a synchronous read of the held list from `useCaptures` is needed, F2); `HoldButton` keeps its fill after a refused hold, since it resets only when `busy` changes (`ui.tsx`, shared with the walk screen, F3); the bar has no Retry and its held list goes when the bar unmounts, so the words must not promise one, e.g. "This photo isn't saved. Hold Stop again to end the walk without it." (F4); and the warning must be whole at 320 px, where three lines cut it (F8). The other half of F4, carrying the bar's held photos over to the walk screen's pill and its Retry, is its own item (`/tend tabs`, Nov 11, lens 5 auditor F2, medium)
 - [loop] The recording bar's comment says it has "no Stop"; it has one since decision 0048 (`RecordingBar.tsx` ~l.41; `/tend tabs`, lens 4, low)
+- [loop] With the bar's Edit pill up at 320 x 700 on Explore, the pill's 64 px (in flow above the bar) lift the map, and the walker's dot sits under "Press and hold the map to look anywhere." (y ~271 inside the hint's 258-298). Fix: move the hint or pad the map while the pill is up, or accept and record it (`tend tabs T12`'s review F6, low)
+- [loop] Two dark pills stand at once on Memories with a walk minimized: the bar's Edit pill above the bar and the storage notice ("This browser may clear Chronicles' moments when it needs room. OK") over the list (`tabs-T12-pill-on-memories-320`, the capturehome journey). Material: "Only one snackbar may be displayed at a time." (docs/research/ui-references.md, the UX review of T12). Fix: one waits for the other, or the notice sits elsewhere (`tend tabs T12`'s review, low)
 - [loop] Chronicle's stacked empty peek springs up from 76 to 124 px as the map mounts: `sheetAnim` starts at `SHEET_PEEK` (`(tabs)/index.tsx` ~l.103) and `sheetH` reads 76 until the spring reports, so the scale bar and the fits sit 48 px low meanwhile (`/tend tabs`'s review F10, low)
 
 ## Functional core (slice 1)
@@ -304,6 +335,34 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **Videos under iOS's loading rule, beyond a plain card** (fix ios-video, Nov 5): the `chronicle` journey copies iOS's rule (no `readyToPlay` before a `play()`) for a plain video card only. Not covered: an edited or trimmed card (its view swap and the seek to the trim's start, audit 5), and a viewer opened by a tapped reminder on a video, which carries its time over when the sized view swaps in (audit 2). A journey with a video reminder and an edited, trimmed clip under the rule would cover both. Never tried in WebKit: whether a time set at `readyState` 0 holds, and whether the size probe's detached `<video>` ever reports its metadata on iOS (if not, an edited video shows unturned in the viewer, as before the fix)
 - **Why Chronicle went white after Keep it** (Nov 4, the owner's iPhone): not reproduced in Chromium. The tabs now show `ScreenError` with the message; the cause waits for it. On a tab, its "Back to walks" goes nowhere (Chronicle is already the route, and only `retry` clears the boundary); Try again and the tab bar work (fix ios-video audit 6)
 
+- [loop] `loadReplay` reads whole stores: all summaries (`listSummaries().find`), and on the web all walks and every
+  `visited_segment` row (`streetKeysBefore`, `db/index.web.ts`); the day's replay calls it once per walk, one after
+  another, and uses neither `newStreets` nor the fog (`/tend replay`, the auditor's F3, medium). Not shipped: `summary.ts`
+  imports the app's `db`, so no unit test reaches it; making it a shell with ports (functional-core) is larger than the
+  finding. Then: the day's walks read together, an option that skips the street history, the web's read by `walk_id`
+- [loop] A photo card's caption is cut to one line ("The blue door on W…" at 320 px; `Cards.tsx` `numberOfLines={1}`;
+  the UX review's U7, the steward's S6, low). Two lines need the card's height to count them, which `cardFloor` and
+  `STACK_TOP` (`tend replay 7`, `11`) now place by
+- [loop] The day's card is a plain View with no scroll, where the walk's card is a 70 % ScrollView: at the largest text
+  size or on a landscape phone its buttons could leave the screen (`/tend replay`, call 10, low; see T23)
+- [loop] Stale lines (the auditor's F8, low): `replay.ts`'s `PauseGroup` comment says each capture shows "until the
+  viewer moves on" (RR6: nothing waits); `Cards.tsx` resolves `useMediaUri(o.capture)` for a stack's grid card it never
+  draws, so the first piece is read twice
+- [loop] The browser's own Back on the name step leaves the replay and drops the words typed (the auditor's F2, its web
+  half): the replay's leave runs on unmount, and a browser's Back cannot be held cheaply (`tabs-and-home.md`).
+  Android's Back and Escape return to the card (`tend replay 4`, `5`)
+- [loop] On a landscape phone the card stands under the whole top stack and is 157 px wide (138 with notched insets):
+  standing beside the centred stack instead would give it the height back (`/tend replay`'s review, call 4, low)
+- [loop] On a narrow card (172 px at 320) the 147 x 48 "Tap for sound" pill covers most of the video's top; it could sit
+  in the card's caption strip there (`/tend replay`'s review, call 10, low)
+- [loop] Two or three bubbles stacked (a six-line note and a memo, about 220 px) can still reach a card resting above
+  `BUBBLE_ROOM` (160 px) on a short phone: where `cardFloor` keeps the reserve, the bubbles' column could be capped at it,
+  the oldest leaving from the top (`Bubbles.tsx` `maxHeight: cornerHeight(ctx)`; the UX review's U13, low)
+- [loop] The day's map leaves out the faint stretch the walk's card draws across a gap (`rr-day-card` against `rr-card`,
+  from before the sweep; `day/[key].tsx` draws only `pathDrawnAt`'s trace and rides; the UX review's U14, low)
+- [owner] A card's time can run a minute ahead of the rolling clock as it grows (`rr-path-20`: the clock 4:07 PM, the
+  card 4:08 PM; the UX review's U10, opinion, low): the clock is the rhythm's (RR8)
+
 ## Town presence (TP, decision 0089)
 
 - A neighborhood's share of its town (the rest of "Whole areas"): neighborhoods keep the 800 m ring
@@ -323,7 +382,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - `ReadyBar`'s 10 pt strip padding stays until then: `BAR_H` (69) is derived from it and the stack's geometry from `BAR_H`
 - The owner's phone screenshot showed the walk overlay cropped at both edges in Safari; at 390 px the layout was already 12 pt from the edge, so a viewport wider than the screen is suspected and not reproduced (unverified on a device)
 - Audit findings deferred (fix banner-spacing): the pills and scale bar sit at `sideInset + 12`, 4 pt further in than the 16 pt gutter, left as a step; horizontal safe-area insets (landscape notch) are not added to the gutter, as before; no e2e at 320 pt wide or for the nudge, spot card and Undo pill gutters; Button's and Banner's padding change reaches screens with no journey (settings, delete confirm); computed offsets (`edgeBottom + 7`) and radii are outside the grid test
-- Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, NoteEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
+- Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
 
 ## Street labels (fix street-label-double)
 
@@ -392,7 +451,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - **Not checked by script:** tone, accent colours, celebration and motion, a capture moved behind a tap, a moment shown without its context. The steward and `/vision review` cover them; the replay's card keeps its own e2e scan for a large number and an accent colour.
 - **The copy heuristic is lexical:** copy built across several literals, or held in a constant with no space and a lowercase start, is not read; JSX text next to code with `;` or `=` is skipped.
-- **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue.
+- **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue. Amended by free look (decision 0150, FL18): after Show areas here they follow the looked point; a pan alone still does not move them.
+- **Free look's out-of-town stars** (FL19, decision 0150): drawn within 50 km of the page's centre when decision 0115's stars are built; nothing to build until then.
+- **Show areas here mid-coast** (free-look FL5): it loads the camera's last settled middle; a tap while the map still coasts is not held until it settles.
 - **The Layers button is off-screen in a short landscape web window** (UI audit 10, web only; native is portrait).
 - **The heads-up is not announced by VoiceOver or TalkBack** (UI audit 12): `accessibilityLiveRegion` is Android-only and a node that mounts filled is not announced on the web; native needs an explicit announcement.
 - **Escape also closes an open atlas card or capture viewer** in the same keypress as the Layers panel (UI audit 13).
@@ -439,7 +500,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 ## Wrapped map names (fix long-names audit)
 
 - **No line cap:** a very long name (60+ characters) wraps to many lines under its pin and can cover neighbouring pins. The owner asked for names not to be truncated, so no cap was added; a cap is the owner's call.
-- **Busy-street label shifts up when it wraps:** `StripLabel`'s marker is centre-anchored, so its first line moves about 8 px up per extra line. Cosmetic; check on a device.
 
 ## Threads the owner makes (decision 0104)
 
@@ -508,7 +568,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Moment references (`specs/moment-references`, decision 0125)
 
-- **@ in the capture stack's quick note** (Navigate, the walk and the Memories band): those notes are their own inline composers, not `NoteEditor`; a mention there needs the picker drawn over each. Write the note, then Edit it to mention a moment.
 - **A mention's words are those it was written with** in plain text: a moment renamed or placed later still reads its old words outside the viewer, whose card looks it up live.
 - **Mentions from a note to a note opened from a mention** stack in the viewer without a limit; Back pops one at a time.
 
@@ -530,7 +589,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **After a dot's zoom the crowd can run off screen** (whole-towns audit 19, opinion): the map eases around the tapped dot,
   not the places it crowded; fitting them all, or marking the tapped "?" for a moment, is not done.
 - **Android's 48 dp tap reach** (audit 21, in part): a dot's reach is 44 px everywhere.
-- **The back pill covers the scale bar; something peeks under Locate** (audit 23): predates the slice.
+- **The back pill covers the scale bar; something peeks under Locate** (audit 23): predates the slice. The peek was the map's credits (i), under Locate; since `tend map 3` they sit beside the scale bar.
 - **A town past `TILE_BUDGET`** (60 z14 tiles): the nearest 60 are read for its list, as for its card.
 
 ## Explore: a neighborhood with no listed town (fix explore-town-scope, decision 0126)
@@ -590,7 +649,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Web build across deploys (fix stale-chunk, Nov 11)
 
-- [loop] The map worker's address has no version (`WalkMap.web.tsx` ~l.41 sets `/maplibre-gl-worker.mjs`; maplibre's own default adds `?v=<version>`): after a deploy that upgrades maplibre-gl, a page left open that closes its last map and opens another starts the new worker against the old main-thread code. Fix: add the version, with a unit test that reads it from the installed maplibre-gl package (auditor, low)
+- [arch] The map worker's address had no version (`WalkMap.web.tsx` ~l.41 set `/maplibre-gl-worker.mjs`; maplibre's own default adds `?v=<version>`): after a deploy that upgrades maplibre-gl, a page left open that closes its last map and opens another starts the new worker against the old main-thread code. Since `tend map 10` the address carries the version (`mapWorkerUrl`), which mends a cached older worker under a new bundle, but not this: a static host ignores the query and serves only the new file, so an old page needs the previous build's worker kept across deploys, a deploy change (auditor, low; `/tend map`'s auditor, Nov 12)
 - [loop] A change to `app.json` or `app.config.js` alone selects no test in `check:affected` (`scripts/affected.js` `HARNESS`), so `tabs/oneBundle.test.ts` runs only in the full `npm test`, which CI runs before every deploy (auditor, low)
 - [kept] A page opened before this fix still runs the split build: its next first visit to a screen after the deploy shows "Loading module … failed" once, and Try again can't mend it; reopen the app (in the Home Screen app, close it from the app switcher). `ScreenError` offers no page reload for it: the owner chose one bundle over reloading (auditor, low)
 - [owner] Pages serves `index.html` with `cache-control: max-age=600`, so for ten minutes after a deploy a reload may get the old page, which names the old bundle. That is harmless while the browser also holds the old bundle in its cache, and a blank page if it doesn't. Not reproduced (auditor's opinion; header checked live, Nov 11)
@@ -609,11 +668,55 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] **Complexes** (0147): the kinds Markets, Campuses, Stations and Civic are told from Overture's building subtype and what the building holds, tuned on one downtown (Harrisburg) and one mall town (Whitehall); a clinic, a school or a courthouse in another region may read differently. Tune `MIN_*` in `complexes/rule.ts` against a fixture (`scripts/fixture-complexes.mjs`) and bump `COMPLEX_CODE`.
 - [loop] **Complexes** (0147): a read covers at most `COMPLEX_TILE_BUDGET` (9) z14 tiles around the selected area, so a wide town lists the complexes near its point ("Complexes near here"); a complex whose tiles were not all read is missing, never a partial outline. A `buildings` tile is 0.35 to 0.9 MB.
 - [loop] **Complexes** (0147, UI review): after "See more" the first new row should take a screen reader's focus (`lib/focus`); the pressed button disappears and focus is lost. The map's complex labels (12 px) have no picture to review. The switches' track contrast is the app's, not this slice's.
-- [owner] **Note types** (0149): a type chosen while writing in the capture band, the stack's note, the walk's note and Respond (capture stays one tap, so these make a note with no type and Edit sets one); searching, lensing or threading notes by type, and a type on a photo, video or memo. Any feature that reads types goes through the vision gate again.
-- [loop] **Note types** (0149): the responses sheet's entries (RT10: no mark in the sheet) and the replay's note bubbles carry no mark; the neutral mark is a dash in a circle because Ionicons has no neutral face.
-- [loop] **Note types** (0149, UI review, finding 4): the viewer's More and Close buttons stay lit above the note editor's scrim, as they do over every editor inside the viewer; a scrim over them would be a viewer change, not this slice's.
-- [loop] **Note types** (0149, audit 2): a pin's marker is rebuilt, and web focus lost, when its note's type changes (the key includes the mark); the reminder bell keeps the element. No test reaches a single-note pin in the e2e (the replay's is always a group).
-- [loop] **Note types** (0149, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
-- [loop] **Note types** (0149, audit 22): the Type menu in two columns at 200% text or below 320 px wide may wrap or crowd; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).
-- [owner] **Note types** (0149, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.
 
+## Note pages (NP1-NP14, decision 0151)
+
+- **A mention's card has no picture** (NP5, RF4): the reader draws a card of the moment's kind, words, date, place and walk, and the page while writing a chip; the editor runs in a WebView on phones, which may not reach the app's media files. Drawing the picture needs the file passed in as data, a cost per mention.
+- **"Added to on Nov 30"**: words added to a note weeks later carry its first time (the steward, silent 1); saying so needs a stored edit time.
+- **The page's camera is on capture surfaces only** (the pencil on Navigate, the walk and Memories' band): a reply's page and Edit in the viewer have none, since the viewer holds no camera of its own.
+- **Selection across a whole page, dragging blocks, a "/" menu, links, tables, photos inline**: out by the owner's calls (Nov 12).
+- **Undo of a whole session's writing**: TipTap's history covers the page while it is open.
+- **An older note's lines read as paragraphs on its page**, a little spaced, until it is written in (NP7 keeps its characters, not its spacing).
+- **The room left is counted by the editor's words as shown**, a mention as "@" and its words, one more than `shownLength`'s count.
+- **A failed camera on the page is said off the page** (note-pages audit 9): a refused camera's message and a held photo's Retry draw on the screen under the page's Modal; the photo is held, never lost, and Retry shows once the page closes, but a photo kept by Retry is not mentioned in the note.
+- **The page's format panel uses typed glyphs, and its style row is not a segmented control** (note-pages audit 22, the UX review's U4, low).
+- **The reader's info line repeats the date and time the head says** (note-pages audit 24, U6): the viewer's line is read by other journeys; trimming it for notes is its own change.
+- **A page being written does not say how far into the walk or "just after"** (note-pages audit 3, in part): it needs the walk's start and the capture before, at the tap.
+- **A camera mention's words are "A photo" or "A video"** (note-pages audit 26, in part), not the moment's own context.
+- [loop] **Complexes audit** (0147): `neededTiles` lists the tiles that hold a vertex, so a building longer than a z14 tile with no vertex in a middle tile can lose places there (audit 3). A joined outline draws the tiles' clip edges inside a building cut across tiles; it needs a polygon union (audit 9). A release whose `buildings.pmtiles` is missing falls back to no older release the way the places reader does (audit 6). A row for a building that stops qualifying, or is renamed, is never deleted: only a code bump or a purge clears it (audit 7). A fix's accuracy, the antimeridian and label collisions (audit 12). A seeded complex on Memories' card has no journey step (audit 20). After "See more" the first new row should take a screen reader's focus (audit 21).
+- [owner] **Complexes audit** (0147): the card does not say where the kind switches are (the walk's and Navigate's settings only); a line or link on the card is a navigation choice. A pull of up to nine `buildings` tiles on mobile data without a tap. Whether a store of every area browsed is acceptable derived data (it is cleared by a purge).
+- **Neighborhood boundaries** (0152): a shape that only partly overlaps another's (Baltimore's Inner Harbor and Otterbein, a sliver) is not cut out of the larger's drawn line: the smaller owns the sliver in placing (HB2), the larger's line still encloses it; only a shape lying inside another is cut (it needs a general polygon difference). A share is drawn on a 20 m grid and smoothed, so its edge is within about 20 m of where `hoodAt` decides. A town's page still lists neighborhoods from the map's place points inside its z10 border: a shape with no tile point shows there only near you, not yet on the page (the shapes ride the z12 read). A neighborhood's card counts across its shape, and a share-only neighborhood still across the 800 m ring (the share needs its neighbors, read after the tiles). A point-only name inside a macrohood's shape is dropped like one inside a neighborhood's. The shapes' pieces are clipped at z12 tile edges, so "smallest" is by the pieces read, as for towns.
+- [loop] **Neighborhood boundaries audit** (0152): a shape clipped at a z12 tile edge is judged by the pieces read, so one overlap point can be owned differently by what is kept (audit, first deferral; as towns, TO2). Checklists and finds built under the old nearest-point rule keep their area until the next tile build, so Explore and Chronicle can name different neighborhoods for one place until then (audit, second deferral; `AREA_RULES` does not reach the kept checklist stores). The "Association" filter loses a real neighborhood named so (steward). A macrohood is a big neighborhood where nothing smaller holds a point, with no size cap (steward). A town's page lists a shape with no tile point only from tiles already kept (a listing asks for no more); a share-only neighborhood past 1 km of its point is the town's on Explore (audit 3).
+- **Neighborhood boundaries UX review** (0152, ui 3, opinion): a thin light casing around the neighborhood's line so it holds on any map ground; its contrast already passes 3:1 on the tinted and the plain ground, so it waits for a ground where it does not.
+- **No test asserts the tab labels fit their box** (fix tab-label-clip audit 2, low): an e2e check that each label's `scrollHeight` is at most its `clientHeight`, portrait and landscape, belongs to the next change to the tab bar.
+- **Voice trim** (VT1-VT12, Nov 12): a transcript, when the transcript seam is built, is made from the kept span (`voiceSpan`), never the whole file, or a word spoken in the cut tail makes the memo findable; a backup bundle or share that ever carries a memo carries `edit.trim` with it (no memo leaves the device today). Not built: automatic silence detection (the app proposing the cut), a waveform along the trim bar (the video trim shows no frames either), an Edit offer right after recording, the memo's cell in the Media gallery and the Resurfaced card showing the kept length (they say no length today).
+- **The trim bar's handles overlap on a short kept span** (voice-trim ui review U2): their 12 px grips and hit boxes touch, so the one underneath is hard to grab; the same bar serves videos. A fix draws the caps outside the kept span, or keeps a minimum on-screen gap; its test is `voice-trim ui 2` (`elementFromPoint` at the start handle's centre after the end handle is dragged to the middle).
+- **Voice trim audit** (Nov 13): a seek that fails or is slow (`seekMemo` swallows a rejection; a refused autoplay that seeks once at load may audibly start at 0:00 before jumping, audit 7). Every photo or video editor builds an audio player with no source (`useAudioPlayer(undefined, ...)` in `MediaEditor`) and the voice preview belongs in a voice-only child component (audit 8). Saving a trim after a replay is already waiting on a memo changes `updateInterval`, which recreates the replay bubble's player mid-play (audit 5, in part: the viewer itself unmounts its capture while the editor is up). A note's text edit on a moment's non-face piece patches the face's `body` the same way an edit did (audit 1's flaw, still open for `notePatch`).
+
+## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)
+
+- **The other three cuts:** walks as chapters with their trace drawn, day pages in place of the Days section, and the section bar going (cut 2); Media as plates, a scrubber by month, jump to a date and search (cut 3); the walk screen's Quiet | Explore naming (cut 4).
+- **A moment's link to its walk as an inference** from time and place (the owner's direction, Nov 12): `Capture.walk_id` is still stored and read by the replay, the walk screen and deletion. It goes through `/vision` and a spec of its own.
+- **Memories still reads every capture row at open** (never media); only the latest page is drawn. Reading a page of rows from the store waits for a store method that reads by time, newest first, with a limit.
+- **Every page a reader loads stays drawn** until Memories is left: the sheet is a plain `ScrollView`, not a recycling list. A reader who scrolls back through a year holds that year's entries.
+- **An entry is 500 characters** (`NOTE_MAX`), as every note is. A longer one from an older build is cut to 24 lines on the page and whole in its viewer.
+- **A reload within a second or two of the first character can lose that entry's place**: its one fix was on its way in the page that went. The entry is kept, and says "No location" after a minute.
+- **A voice note plays from its viewer**, not in place on the page: its line on the page opens the entry.
+- **The "Today" link on old pages** in the approved drawing is not built: the open line is pinned at every scroll position, and a tap in it brings today's foot up.
+- **JN19 on a phone**: the web's arithmetic is unit-tested (`keyboardLift`); a real keyboard over the line is a device check (`docs/NATIVE_UNVERIFIED.md`).
+- **Audit, deferred** (`specs/chronicle-journal/spec.md`, Audit): `lines.ts` reads the phone's time zone in core, as `days.ts` does (12); a dateline's tap arrives at a cluster pin with its count over the Map's own sheet, not at that moment alone, and nothing marks the pin or offers a way back to the page (19, ui 3); a picked reference's words sit in the serif field while typing (21); three bars at the foot with a walk minimized (ui 1); the resurfacing switch drawn as a menu row (ui 6); Done as a word beside two icons, to judge with a real keyboard (ui 11); "answering …" set like a dateline (ui 13).
+- **A drop that fails leaves the entry kept** with what was last written: the line is emptied and nothing says so. A broken store would fail the writes before it too.
+- **The first character's place can be lost to a reload** within its first seconds, as noted above; the audit added no fix.
+- **The line and the page, deferred** (`specs/chronicle-journal/spec.md`, the `/fix` review): a new page opened from the line reads a fix as the pencil does, on a walk with a stale fix too, and one left empty has read a location for nothing (5); a list inside a quote reads as the quote's lines on the sheet (8); a walk ending while a page is up closes the page, its words kept (10); the page's words are sans where the sheet's are serif (ui 3).
+- **Note pages' serializer** (found by the same review, on `main` before it): a URL or word with `_` or `*` gains a backslash each time the page saves it, and a hard-broken line that looks like a heading rule or a table row reopens as a heading or as an empty page (`src/lib/notePage/schema.ts`, `toBody`). In `docs/STATUS.md` for the owner.
+
+## Explore in a dense city (decision 0156)
+
+- **The "?" pins and the area points as map layers** (the owner, Nov 12: next round, if a drag still stutters on the phone). They are still DOM markers, and the busy names, now the map's own text, draw under them: at Explore's default zoom in the dense journey the pins hide most of the names that won a place (UI review U1, `dense-1-names`). When the pins move to a symbol layer, put them in the names' collision, so a name never lands under a pin.
+- **Raster tiles for the busy lines** (not now): vector until a phone shows the lines themselves are the cost.
+- **Storing street pieces from the worker** (DC10's batches come first): a worker writing IndexedDB would bypass `db`, the one door to storage. The page's batches still cost about 380 ms of IndexedDB copying per first read at desktop speed, in tasks under 50 ms each.
+- **Native's read in a background thread:** no Expo module gives one; native yields a turn per stage instead (DC11).
+- **Native's label fades:** MapLibre Native has no symbol fade setting, so busy names fade on its timing, outside reduced motion (steward's silent question 4; `docs/NATIVE_UNVERIFIED.md`).
+- **A name along its whole street** (`symbol-placement: line-center`) was tried and dropped: a strip's pieces don't meet end to end (tile clipping) and a 120-300 m strip is shorter than its name at zoom 15, so none was placed. Names sit at the busiest point, turned along the street.
+- **The `drive` journey's DW14 flake:** Cranston's area card does not open within 15 s on its page about one run in two, on main and on the build before decision 0160 alike (spec record). Not investigated.
+- **From the audit (Nov 13):** iOS suspending a page past the read's 60 s worker timeout makes the page compute the read again on resume (audit 9); the busy names keep clear of controls and the map's edge on the web only, native does not (audit 11); a street's name is placed at its busiest point only, so at street zoom in a downtown dense with "?" pins few names fit and the card's busiest street may have none on the map: choosing a point along the street clear of the pins is a larger change (UX X3, audit 18); the "?" pins are the clutter that remains (audit 19, the owner's next round).

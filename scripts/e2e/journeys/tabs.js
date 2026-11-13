@@ -579,6 +579,12 @@ async function run(h) {
       check(new URL(pg.url()).pathname === `${BASE}/` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
         `tabs audit U14, RM3: Not now goes to Chronicle's Memories and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
+    await step('fix home-indicator 2: the page covers the whole screen, so iOS reports the home-indicator inset', async () => {
+      // Without viewport-fit=cover every env() inset is 0 and the bottom bars sat in the home-indicator strip (Nov 12).
+      // Chromium's env() is 0 either way, so the inset itself is checked on the owner's phone.
+      const content = await pg.evaluate(() => document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? '');
+      check(/viewport-fit=cover/.test(content) && /width=device-width/.test(content), `fix home-indicator 2: the viewport is cover (${content})`);
+    });
     await step('fix memories-weird-state: a pinch-zoom leaves the tab bar alone', async () => {
       // iOS Safari reports the visual viewport as window.innerWidth/innerHeight, halved under a 2x pinch (a photo in
       // the viewer). A resize measured then made the bottom and right insets half the screen: the tab bar grew to

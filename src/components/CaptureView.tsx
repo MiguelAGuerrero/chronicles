@@ -1,8 +1,8 @@
-import { type Faced, faced, facedAt, pieceKey } from '../lib/moment';
+import { type Faced, faced, facedAt, hasMore, pieceKey } from '../lib/moment';
 import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
@@ -26,11 +26,12 @@ import type { CapturePatch } from '../lib/captureBus';
 import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
 import { RemindEditor } from './RemindEditor';
-import { NoteEditor, type NoteEditorHandle } from './NoteEditor';
+import { NotePage, NoteReader, type NotePageHandle } from './notePage/NotePage';
+import { noteHead, type NoteHead } from '../lib/notePage/head';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
-import { mentioning, plainNote } from '../lib/refs';
+import { mentioning, plainNote, withGone } from '../lib/refs';
 import type { MomentView } from '../lib/resurface/types';
 import { useMomentPool } from './threads/useMomentPool';
 import { MomentPicker } from './threads/MomentPicker';
@@ -44,6 +45,8 @@ import { ResponsesSheet } from './threads/ResponsesSheet';
 import { responseRows, responsesOf } from '../lib/threads/responses';
 import { IN_A_THREAD, MENTIONED, responsesWord } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
+import { trimmedLine, voiceClock, voiceReachedEnd, voiceSpan, voiceState, wholeMs } from '../lib/voiceTrim';
+import type { MediaEdit } from '../lib/mediaEdit';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
@@ -63,13 +66,30 @@ function touchPoint(e: { pageX?: number; pageY?: number; touches?: ArrayLike<{ p
 }
 
 const timeOf = (c: Faced) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+/** The viewer's top bar (Close, More) over a note's page: 48 pt buttons and their margins. */
+const VIEWER_TOP = 64;
 
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
 
-/** A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. */
-function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number }) {
-  const player = useAudioPlayer(props.uri);
+/** A trimmed memo's player reports every 100 ms, so it stops at the end handle, not up to half a second late (VT6). */
+const TRIMMED_PLAYER = { updateInterval: 100 };
+// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
+function seekMemo(player: AudioPlayer, s: number) {
+  void player.seekTo(s);
+}
+function pauseMemo(player: AudioPlayer) {
+  player.pause();
+}
+
+/**
+ * A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. A trimmed memo
+ * (VT6, VT7) starts at the start handle, stops at the end handle and counts as finished there; its clock and bar
+ * read against the kept part.
+ */
+function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number; edit?: MediaEdit | null }) {
+  const trim = props.edit?.trim ?? null;
+  const player = useAudioPlayer(props.uri, trim ? TRIMMED_PLAYER : undefined);
   const status = useAudioPlayerStatus(player);
   const { autoPlay, onFinished } = props;
   const playing = useRef(false);
@@ -78,12 +98,28 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     playing.current = status.playing;
     finished.current = onFinished;
   }, [status.playing, onFinished]);
+  // The stored length wins; the file's own only for a memo with none on record, so every surface agrees (audit 3, 4).
+  const whole = wholeMs(props.durationMs, (status.duration || 0) * 1000);
+  const span = voiceSpan(trim, whole);
+  const where = voiceState(status.currentTime, span);
+  // The press that restarts the kept part names the position it left: until the player moves off it, it is not the end (audit 2).
+  const [restartedFrom, setRestartedFrom] = useState<number | null>(null);
+  const restarting = restartedFrom !== null && status.currentTime === restartedFrom;
+  const atEnd = !!trim && voiceReachedEnd(status.currentTime, span, restarting);
+  // Once per play: the trim's end and the file's end can both say so.
+  const reported = useRef(false);
+  const report = () => {
+    if (reported.current) return;
+    reported.current = true;
+    finished.current?.();
+  };
   // A browser that refuses to start it without a tap (iOS) leaves the play
   // button showing; a replay that moves on by itself then moves on after a
   // while, instead of waiting for an end that never comes.
   const refused = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!autoPlay || !status.isLoaded) return;
+    if (trim) seekMemo(player, trim.start_ms / 1000);
     player.play();
     if (Platform.OS !== 'web') return;
     const check = setTimeout(() => {
@@ -97,10 +133,25 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.isLoaded]);
   useEffect(() => {
-    if (status.didJustFinish) onFinished?.();
-  }, [status.didJustFinish, onFinished]);
-  const total = status.duration || props.durationMs / 1000;
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    if (status.playing && !atEnd) reported.current = false;
+  }, [status.playing, atEnd]);
+  useEffect(() => {
+    if (status.didJustFinish) report();
+  }, [status.didJustFinish]);
+  // A trimmed memo that reaches its end handle stops and is finished; one found before its start is brought to it.
+  const stopAtEnd = status.playing && atEnd;
+  useEffect(() => {
+    if (!stopAtEnd) return;
+    pauseMemo(player);
+    report();
+  }, [stopAtEnd, player]);
+  const strayed = !!trim && status.playing && where === 'before';
+  useEffect(() => {
+    if (strayed) seekMemo(player, span.startMs / 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strayed, player]);
+  const clock = voiceClock(status.currentTime, span);
+  const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
   return (
     <View style={styles.voice}>
       <Pressable
@@ -110,7 +161,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
           if (refused.current) clearTimeout(refused.current);
           if (status.playing) player.pause();
           else {
-            if (status.didJustFinish || (total && status.currentTime >= total - 0.1)) player.seekTo(0);
+            if (trim && where === 'end') {
+              setRestartedFrom(status.currentTime);
+              seekMemo(player, span.startMs / 1000);
+            } else if (status.didJustFinish || (!trim && whole && status.currentTime * 1000 >= whole - 100)) player.seekTo(span.startMs / 1000);
             player.play();
           }
         }}
@@ -120,10 +174,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
         <Icon name={status.playing ? 'pause' : 'play'} size={26} color="#ffffff" />
       </Pressable>
       <View style={styles.track}>
-        <View style={[styles.trackFill, { width: `${total ? Math.min(100, (status.currentTime / total) * 100) : 0}%` }]} />
+        <View style={[styles.trackFill, { width: `${clock.ofMs ? Math.min(100, (clock.atMs / clock.ofMs) * 100) : 0}%` }]} />
       </View>
-      <Text style={styles.voiceTime}>
-        {fmt(status.currentTime)} / {fmt(total)}
+      <Text style={styles.voiceTime} testID="voice-time">
+        {fmt(clock.atMs)} / {fmt(clock.ofMs)}
       </Text>
     </View>
   );
@@ -177,6 +231,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   onOpenRef?: (v: MomentView) => void;
   /** A moment's responses, named in words at the end of the info line, a button that opens them (response thread RT1). */
   responses?: { text: string; onPress: () => void } | null;
+  /** A note is read as its page (NP5): its head, its drawing to its last line; a tap on the words asks to edit. */
+  note?: { head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void; gone?: (id: string) => boolean };
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -279,15 +335,31 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
     );
   }
 
+  if (capture.kind === 'text' && props.note) {
+    return (
+      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
+        {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
+        <View testID="capture-card" style={styles.pageArea}>
+        {capture.note_type ? <View style={styles.pageMark}><NoteMark capture={capture} /></View> : null}
+        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
+        <View style={[styles.metaRow, styles.pageMeta]}>
+          <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
+          {actions(false)}
+        </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
           {capture.kind === 'text' && <NoteMark capture={capture} />}
           {capture.kind === 'text' &&
-            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body)}</Text>)}
+            (props.onOpenRef ? <NoteText body={capture.body ?? ''} format={capture.body_format} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
           {capture.kind === 'voice' && uri && (
-            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
+            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} edit={capture.edit ?? null} />
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
@@ -309,6 +381,8 @@ export function CaptureViewer(props: {
   onClose: () => void;
   /** Extra words per capture, e.g. which walk it came from. */
   context?: Map<string, string>;
+  /** A note's page head line per moment, where the screen has one (note pages NP2), without touching the info line. */
+  heads?: Map<string, string>;
   /** A heading over the captures, e.g. "What happened here". */
   title?: string;
   /**
@@ -318,8 +392,8 @@ export function CaptureViewer(props: {
    */
   onSaveEdit?: (c: Faced, patch: CapturePatch) => Promise<void>;
   /** Offers "Edit note" on notes (QL24); the editor opens inside the viewer. */
-  /** `type`: the chosen note type when the owner changed it (null clears), else undefined, the stored one standing (NY7, NY16). */
-  onSaveNote?: (c: Faced, body: string, type?: string | null) => Promise<void>;
+  /** `type`: the chosen note type when the owner changed it (null clears), else undefined, the stored one standing (NY7, NY16); `typeOnly`: the words are not being saved, so the body and its format stay as kept. */
+  onSaveNote?: (c: Faced, body: string, type?: string | null, typeOnly?: boolean) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
   onGoHere?: (c: Faced) => void;
   /** Open in Maps (NH6): hands the capture's place to the phone's maps app, from the More menu. */
@@ -360,11 +434,16 @@ export function CaptureViewer(props: {
   const [editing, setEditing] = useState<Faced | null>(null);
   const editor = useRef<MediaEditorHandle>(null);
   // A note being written or edited closes its @ picker first, then itself (tend chronicle 1).
-  const noteEditor = useRef<NoteEditorHandle>(null);
-  const replyNote = useRef<NoteEditorHandle>(null);
+  const noteEditor = useRef<NotePageHandle>(null);
+  const replyNote = useRef<NotePageHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Faced | null>(null);
+  // A note's page is headed by the day and the moment's context as the viewer was given it (NP2).
+  const [headNow] = useState(() => Date.now());
+  // With no line given, it says what it knows and never claims no place for a placed moment (note-pages audit 2).
+  const headOf = (c: Faced): NoteHead =>
+    noteHead({ t: c.t, now: headNow, time: timeOf(c), context: props.heads?.get(c.id) ?? props.context?.get(c.id) ?? null, placing: false, draft: null, placed: c.lat != null, onWalk: !!c.walk_id });
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
@@ -487,7 +566,7 @@ export function CaptureViewer(props: {
   const listed = moment && pieces[pi] ? facedAt(moment, pieces[pi].id) : moment;
   // Edits and notes are the piece's own (MS11): kept by the piece's id.
   const editedBody = listed ? edited.get(listed.piece_id) : undefined;
-  const withText = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
+  const withText = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody, body_format: 'md' as const } : listed;
   const withBody = withText && editedType.has(withText.piece_id) ? { ...withText, note_type: editedType.get(withText.piece_id) } : withText;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
@@ -585,7 +664,7 @@ export function CaptureViewer(props: {
     router.navigate('/chronicle');
   };
   const editAction =
-    current && (current.kind === 'photo' || current.kind === 'video') && props.onSaveEdit
+    current && (current.kind === 'photo' || current.kind === 'video' || current.kind === 'voice') && props.onSaveEdit
       ? { label: 'Edit', testID: 'viewer-edit', onPress: () => setEditing(current) }
       : current && current.kind === 'text' && props.onSaveNote
         ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
@@ -638,10 +717,26 @@ export function CaptureViewer(props: {
               inThread,
               mentionedBy.length ? MENTIONED : null,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
+              // One phrase: its spaces do not break, so "of 0:04" never sits alone on a line (voice-trim ui 3).
+              current.kind === 'voice' ? trimmedLine(current)?.replace(/ /g, '\u00a0') : null,
               statusOf.get(current.id),
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
+            note={
+              current.kind === 'text'
+                ? {
+                    head: headOf(current),
+                    onEdit: props.onSaveNote ? () => setNoting(current) : undefined,
+                    onOpenMention: (id) => {
+                      const v = pool.byId.get(id);
+                      if (v && !hidden.has(v.id)) setOpenedStack((st) => [...st, v.capture]);
+                    },
+                    // A moment no longer kept, or waiting in Undo, reads so and opens nothing (RF5; note-pages audit 10).
+                    gone: pool.ready ? (id) => !pool.byId.has(id) || hidden.has(id) : undefined,
+                  }
+                : undefined
+            }
             responses={responseIds.length && !sheetUp ? { text: responsesWord(responseIds.length), onPress: openResponses } : null}
             nav={
               shownList.length > 1
@@ -785,39 +880,55 @@ export function CaptureViewer(props: {
           />
         )}
         {noting && (
-          // Inside this Modal too (QL24).
-          <NoteEditor
+          // Inside this Modal too (QL24), as the note's page (NP5, NP9): kept as it is written, no Save and no question.
+          <NotePage
             ref={noteEditor}
             key={noting.id}
             body={noting.body ?? ''}
+            bodyFormat={noting.body_format ?? null}
             type={noting.note_type ?? null}
-            mention={{ self: noting.id }}
-            onClose={() => setNoting(null)}
-            onSave={async (body, type) => {
+            onType={async (t) => {
+              // A type chosen on the page is kept at once, beside the words, and put back if it can't be (NY7).
               const c = noting;
-              setNoting(null);
-              const before = edited.get(c.piece_id);
-              const typeBefore = editedType.has(c.piece_id) ? { had: true, v: editedType.get(c.piece_id) ?? null } : { had: false, v: null };
-              setEdited((m) => new Map(m).set(c.piece_id, body));
-              if (type !== undefined) setEditedType((m) => new Map(m).set(c.piece_id, type));
+              const had = editedType.has(c.piece_id);
+              const before = editedType.get(c.piece_id) ?? null;
+              setEditedType((m) => new Map(m).set(c.piece_id, t));
               try {
-                await props.onSaveNote?.(c, body, type);
+                await props.onSaveNote?.(c, edited.get(c.piece_id) ?? c.body ?? '', t, true);
               } catch {
-                // Both the words and the type go back as they were (NY7).
                 setEditedType((m) => {
                   const n = new Map(m);
-                  if (typeBefore.had) n.set(c.piece_id, typeBefore.v);
+                  if (had) n.set(c.piece_id, before);
                   else n.delete(c.piece_id);
                   return n;
                 });
-                setEdited((m) => {
-                  const n = new Map(m);
-                  if (before == null) n.delete(c.piece_id);
-                  else n.set(c.piece_id, before);
-                  return n;
-                });
-                setSaveState({ id: c.id, text: 'The note could not be saved' });
+                setSaveState({ id: c.id, text: 'The type could not be saved' });
               }
+            }}
+            head={headOf(noting)}
+            self={noting.id}
+            onClose={() => setNoting(null)}
+            store={{
+              kept: true,
+              create: async () => {},
+              save: async (body) => {
+                const c = noting;
+                const before = edited.get(c.piece_id);
+                setEdited((m) => new Map(m).set(c.piece_id, body));
+                try {
+                  await props.onSaveNote?.(c, body);
+                } catch (e) {
+                  // What shows is what is kept (note-pages audit 5): the page stays open with its words.
+                  setEdited((m) => {
+                    const n = new Map(m);
+                    if (before == null) n.delete(c.piece_id);
+                    else n.set(c.piece_id, before);
+                    return n;
+                  });
+                  throw e;
+                }
+              },
+              remove: () => (hasMore(noting) ? deletePieceNow(noting) : deleteNow(noting)),
             }}
           />
         )}
@@ -1062,6 +1173,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius,
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  pageArea: { flex: 1 },
+  // A note's type, one line above the page it marks (NY9).
+  pageMark: { paddingHorizontal: 16, paddingTop: 10 },
+  pageMeta: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.surface, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   nav: { flexDirection: 'row', gap: 8 },
   action: {
     flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingLeft: 18, paddingRight: 12,

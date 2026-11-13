@@ -249,7 +249,18 @@ export const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX complex_box ON complex (south, north);
   `,
-  // Note types (NY4, decision 0149): a note's type, chosen by the owner, raw; null for none and for every note kept before.
+  // Note pages (NP7, decision 0151): a note's body is Markdown the page wrote; null, it reads as stored (every note
+  // written before). IndexedDB keeps the record whole and needs no version.
+  `
+  ALTER TABLE capture ADD COLUMN body_format TEXT;
+  `,
+  // Neighborhood boundaries (HB1, HB12): the neighborhood shapes a z12 divisions tile held, beside its towns, a cache cleared
+  // with the derived stores. A tile kept before this has '[]' and is read again by the decoder stamp (OUTLINE_DECODE).
+  // IndexedDB keeps the tile whole and needs no version.
+  `
+  ALTER TABLE outline_tile ADD COLUMN hoods TEXT NOT NULL DEFAULT '[]';
+  `,
+  // Note types (NY4, decision 0160): a note's type, chosen by the owner, raw; null for none and for every note kept before.
   `
   ALTER TABLE capture ADD COLUMN note_type TEXT;
   `,

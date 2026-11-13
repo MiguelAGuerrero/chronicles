@@ -15,14 +15,14 @@ npm run lint                                # expo lint, ~40 s; includes the imp
 npm test                                    # every unit test, ~13 s; npm run test:affected for those a change reaches
 npm run test:feature <feature>              # one feature's folder (src/lib/__tests__/<feature>/); scripts/features.js is the map; test:coverage adds coverage
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
-npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
+npm run check:docs                          # this file's budget, rule globs, paths the docs name
 npm run check:vision                        # score words, tallies, hosts, data-sending deps, spec verdicts (0094)
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
 While working, run `npm run check:affected`; before declaring a task done, typecheck, lint, `npm test` and the e2e journeys picked as `docs/TESTING.md` says (decision 0074). A Stop hook (`.claude/hooks/check-done.sh`) blocks a turn that changed the repo while `check:docs`, or with TypeScript changed the typecheck, layer check or affected tests, fail; CI blocks a deploy on docs, typecheck, `npm test` or lint.
 
-Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet, so it is not set up for this app. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
+Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
 
 ---
 
@@ -54,10 +54,11 @@ Procedures are skills: `/vision` (the gate before any spec; `review` for drift; 
 - **Local-only.** No accounts, no backend, nothing leaves the device. Don't add a server without asking.
 - **No simulation.** Web traces the real browser location. Mock GPS only in test harnesses.
 - **Native first; web is a fallback.** Build on the Expo modules the phone uses. Web-only code is allowed only where no Expo module covers the feature on web, and each exception is listed in `docs/ARCHITECTURE.md` with its reason. Check `node_modules/<module>/build/*.web.*` before adding one. A mobile feature with no web workaround stays off on web.
-- **Native has never run on a device.** Say so in any report that touches native code, and add what you wrote to `docs/NATIVE_UNVERIFIED.md`.
+- **Native has never run on a device.** Say so in any report that touches native code, and add it to `docs/NATIVE_UNVERIFIED.md`.
 - **Nothing is a score** in the app. No completion, streaks, coverage or leaderboards; counts are said in words (`lib/quietLines`); no counts on the Explore tab; a find is a memory.
 - **Truth vs cache.** Walk, TracePoint and Capture are append-only truth (deletes aside). Streets, visited rows, summaries and areas are cache tagged with the tile build; recompute from the trace, never patch derived data. Changing a derivation rule bumps `SNAP_RULES`, `STREET_CODE` or `LANDING_CODE` (`lib/tiles.ts`).
 - **Raw fixes are stored unfiltered** and gated at read time by `readTrace` (`lib/rides.ts`). Always pass the walk's `started_at`, pauses, stills and gap fills; a pause is a break in the trace however short.
+- **Record documents** (`docs/STATUS.md`, `DEFERRED.md`, `NATIVE_UNVERIFIED.md`): only `npm run records`; CI gates agent commits (0156).
 - **No dataset is hard-coded.** Map data reaches the app through adapters (`areas/types.ts`, `discovery/tilePois.ts`, `landing/read.ts`); tests run against in-memory sources.
 - **Storage.** Schema changes are new entries in `MIGRATIONS` (SQLite, `PRAGMA user_version`) and a `VERSION` bump with an `oldVersion < N` step (IndexedDB). Never edit an existing migration. All native writes go through the single queue in `db/sqliteStore.ts`.
 - **Functional core, imperative shell.** Every `src/lib` module starts with `// @layer core|shell|adapter|view`. Decisions go in core (no clock, randomness, timers or module state; imports only core) with a test first; effects go in a shell (a factory taking `ports`, and the app instance views call); views never import `ports`, the `db`, `recorder` or `notifier`. `npm test` and lint check it, with baselines that only shrink. Read `.claude/rules/functional-core.md` before adding a module.
@@ -90,6 +91,6 @@ The area rule files hold the rest; these recur across areas.
 ## Keeping these notes honest
 
 - New knowledge goes where it loads on demand: an area's rule or trap in `.claude/rules/<area>.md`; an owner's call in `docs/decisions/`; something left undone in `docs/DEFERRED.md`; untested native code in `docs/NATIVE_UNVERIFIED.md`; a shipped or started slice in `docs/STATUS.md` and `docs/PRODUCT.md`. This file has a budget of 200 lines and 12 KB: it holds only what every session needs and what the code can't say.
-- Commit messages name the criteria they satisfy (`QL1-QL8`, `rides audit 3`), as the log already does.
+- Commit messages name the criteria they satisfy (`QL1-QL8`, `rides audit 3`).
 - Run `/docs-gc` at the end of a slice.
-- The 1,600-line AGENTS.md this index replaced is in git at `553d10b` (`git show 553d10b:AGENTS.md`); everything in it moved to the files above.
+- The 1,600-line AGENTS.md this index replaced is at `553d10b`; everything in it moved to the files above.

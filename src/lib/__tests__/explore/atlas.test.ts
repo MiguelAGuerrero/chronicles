@@ -455,7 +455,7 @@ test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
 });
 
 test('TP10: a town row from the older rules is stale; since a8 a neighborhood row from them is too (PK7); a9 carries none of a8 (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a10.p2', 'a10: community parks reads a name as presence does (tend explore T9); a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older a-code is carried; .p2: presence\'s classes (specs/presence PR6, specs/presence-readers PS9, which carries the atlas\'s own part over p1)');
+  assert.equal(ATLAS_CODE, 'a11.p2', 'a11: a neighborhood with a real shape is counted across it (neighborhood boundaries HB11); a10: community parks reads a name as presence does (tend explore T9); a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older a-code is carried; .p2: presence\'s classes (specs/presence PR6, specs/presence-readers PS9, which carries the atlas\'s own part over p1)');
   for (const code of ['a9.p2', 'a9.p1']) assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code }), 'b1'), false, `tend explore T9: ${code} rows, from before T9's park kinds, are read again`);
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a8.p1' }), 'b1'), false, 'PC13: a8 rows, from before community parks, are read again');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), false, 'PK7: a5 neighborhoods are read again');

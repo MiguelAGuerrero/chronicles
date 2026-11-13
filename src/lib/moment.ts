@@ -14,14 +14,13 @@ export function face(m: Pick<Moment, 'pieces'>): Capture {
 }
 
 /**
- * A faced row with one change applied (note-types audit 12, 13): a change that names its `piece` lands on that piece's
- * copy in the row's `pieces` (what a reopened stack and a split read), and on the face's own fields only when the piece
- * is the face; one that names none lands on the face, as before. `piece` itself is never kept.
+ * A faced row with one change applied (note-types audit 12, 13; voice-trim audit 1): a change that names a `pieceId` lands
+ * on that piece's copy in the row's `pieces` (what a reopened stack and a split read), and on the face's own fields only
+ * when the piece is the face; one that names none lands on the face, as before.
  */
-export function patchFaced<F extends Faced>(f: F, patch: Partial<Capture> & { piece?: string }): F {
-  const { piece, ...fields } = patch;
-  const pieces = piece ? f.pieces.map((p) => (p.id === piece ? { ...p, ...fields } : p)) : f.pieces;
-  return piece && piece !== f.piece_id ? { ...f, pieces } : { ...f, ...fields, pieces };
+export function patchFaced<F extends Faced>(f: F, patch: Partial<Capture>, pieceId?: string): F {
+  const pieces = pieceId ? f.pieces.map((p) => (p.id === pieceId ? { ...p, ...patch } : p)) : f.pieces;
+  return pieceId && pieceId !== f.piece_id ? { ...f, pieces } : { ...f, ...patch, pieces };
 }
 
 /** Whether a faced moment is shown at its face's piece: only then is it the row, the pin or the card of the moment (note-types audit 1). */
@@ -56,7 +55,7 @@ export function momentOf(c: Flat & { piece_id?: string; pieces?: Capture[] }): M
 export const facedOf = (c: Flat): Faced => faced(momentOf(c));
 
 /** The piece columns of a joined row are prefixed `p_` (the SQLite store's one statement per read, MT7). */
-export type PieceRow = { p_id: string; p_t: number; p_kind: Capture['kind']; p_file_path: string | null; p_body: string | null; p_caption?: string | null; p_caption_y?: number | null; p_thumb_path?: string | null; p_edit?: unknown; p_note_type?: string | null };
+export type PieceRow = { p_id: string; p_t: number; p_kind: Capture['kind']; p_file_path: string | null; p_body: string | null; p_caption?: string | null; p_caption_y?: number | null; p_thumb_path?: string | null; p_edit?: unknown; p_body_format?: string | null; p_note_type?: string | null };
 export type JoinedRow = Omit<Moment, 'pieces'> & PieceRow;
 
 /**
@@ -77,6 +76,7 @@ export function foldRows(rows: JoinedRow[]): Moment[] {
     if (r.p_caption != null) piece.caption = r.p_caption;
     if (r.p_caption_y != null) piece.caption_y = r.p_caption_y;
     if (r.p_thumb_path != null) piece.thumb_path = r.p_thumb_path;
+    if (r.p_body_format === 'md') piece.body_format = 'md';
     if (r.p_edit != null) piece.edit = parseEdit(r.p_edit);
     if (r.p_note_type != null) piece.note_type = r.p_note_type;
     m.pieces.push(piece);
@@ -146,7 +146,7 @@ export function facedAt(f: Faced, pieceId: string): Faced {
   const p = f.pieces.find((x) => x.id === pieceId);
   if (!p) return f;
   return {
-    ...f, piece_id: p.id, kind: p.kind, file_path: p.file_path, body: p.body,
+    ...f, piece_id: p.id, kind: p.kind, file_path: p.file_path, body: p.body, body_format: p.body_format ?? null,
     caption: p.caption ?? null, caption_y: p.caption_y ?? null, thumb_path: p.thumb_path ?? null, edit: p.edit ?? null, note_type: p.note_type ?? null,
   };
 }
