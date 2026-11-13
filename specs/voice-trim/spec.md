@@ -51,3 +51,10 @@ Found by the steward (Nov 12), accepted
 - Rejected as criteria, recorded in `docs/DEFERRED.md` instead: a transcript is to be made from the kept span, never the whole file (no transcript exists yet); a backup bundle or share, if it ever carries a memo, carries `edit.trim` with it (no memo leaves the device today).
 - Reading of "The lows stay in" for audio, put to the owner to confirm as a precedent: it is about a walk's hard parts, not a recording's dead air; a trim is reversible, so nothing is deleted.
 - Deleting a memo removes the file and its edit together (as any capture today).
+
+## Record (Nov 13)
+
+- **Passed:** VT1-VT6, VT8-VT12 by unit tests and the `voicetrim` journey; VT9 holds (the `edit` journey and its photo and video checks pass). **Device-only:** VT7 (`UNTESTED`, `NATIVE_UNVERIFIED`).
+- **UI review** (the `ux-reviewer`, three pictures at 390 x 844, decision 0145): U1 accepted and fixed (the trim bar was about 50 px wide; it fills the row, 306 px, also for a video's trim; test `voice-trim ui 1`), U3 accepted (the "Trimmed" phrase no longer splits across lines; `voice-trim ui 3`), U4 accepted (Revert says it is disabled; `voice-trim ui 4`, already true, kept as a guard), U6 accepted as a unit guard (`voice-trim ui 6`). U2 deferred (the handles' hit areas overlap on a short span; the same bar serves videos; `docs/DEFERRED.md`). U5 rejected (the one-tab row matches the photo and video editors).
+- **Steward** (Nov 12): S1-S3 accepted (VT10-VT12), S6 accepted, S4 and S5 recorded in `docs/DEFERRED.md`.
+- **Not audited** (decision 0074). Native code has not run on a device.

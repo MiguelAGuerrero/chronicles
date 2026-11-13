@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   tileOn: { borderColor: '#ffffff' },
   tileText: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '600' },
   tileTextOn: { color: '#ffffff' },
-  trimWrap: { gap: 8, paddingHorizontal: 20 },
+  trimWrap: { gap: 8, paddingHorizontal: 20, alignSelf: 'stretch' },
   trimLabel: { color: '#ffffff', fontSize: 15, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] },
   trimTrack: { height: HANDLE, justifyContent: 'center', marginHorizontal: HANDLE / 2 },
   trimKept: { position: 'absolute', top: 14, height: 16, borderRadius: 4, backgroundColor: 'rgba(255,214,10,0.85)' },

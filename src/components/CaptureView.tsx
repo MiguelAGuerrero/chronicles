@@ -704,7 +704,8 @@ export function CaptureViewer(props: {
               inThread,
               mentionedBy.length ? MENTIONED : null,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
-              current.kind === 'voice' ? trimmedLine(current) : null,
+              // One phrase: its spaces do not break, so "of 0:04" never sits alone on a line (voice-trim ui 3).
+              current.kind === 'voice' ? trimmedLine(current)?.replace(/ /g, '\u00a0') : null,
               statusOf.get(current.id),
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}

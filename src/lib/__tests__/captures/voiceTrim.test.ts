@@ -76,7 +76,7 @@ test('VT12: every file that plays a memo reads the trim through lib/voiceTrim', 
   assert.deepEqual(missing, [], 'a memo player that never reads the trim plays the cut tail');
 });
 
-test('voice-trim ui 6: a long memo\u2019s lengths and kept times stay one line of plain numbers', { todo: 'test first' }, () => {
+test('voice-trim ui 6: a long memo\u2019s lengths and kept times stay one line of plain numbers', () => {
   for (const ms of [754_000, 5_999_000, 6_000_000]) {
     const words = memoWords({ body: String(ms), edit: trimmed(1000, ms - 1000) });
     assert.ok(!/NaN|undefined|\n/.test(words), words);
