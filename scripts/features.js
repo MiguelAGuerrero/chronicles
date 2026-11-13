@@ -241,7 +241,7 @@ const FEATURES = [
       'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
       // Note types (NY1-NY17): the model and the mark a note wears.
-      'src/lib/noteType.ts',
+      'src/lib/noteType{,Choice}.ts',
       'src/components/NoteMark.tsx',
     ],
     journeys: ['edit', 'stacks', 'voicetrim'],
@@ -447,7 +447,6 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
-  'note-types': { branch: 'fix/journal-audit-2', since: '2026-11-13' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

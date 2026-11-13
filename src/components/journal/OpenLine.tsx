@@ -5,6 +5,8 @@ import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { deleteNoteNow } from '../../lib/deletion';
 import { KEPT_AS_YOU_WRITE, LINE_LABELS, NOT_KEPT } from '../../lib/journal/lines';
 import { noteHead } from '../../lib/notePage/head';
+import { NOTE_TYPES, noteTypeOf, type NoteType } from '../../lib/noteType';
+import { pickType } from '../../lib/noteTypeChoice';
 import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../lib/journal/pen';
 import { captureTarget } from '../../lib/journal/target';
 import type { Faced } from '../../lib/moment';
@@ -47,7 +49,9 @@ const FIELD_MIN = 44;
 const FIELD_MAX = 132;
 
 /** What the page asks of the line: a tap on the empty page gives the field the keyboard (JN32). */
-export type OpenLineHandle = { write: () => void };
+/** `pickType`: the bar becomes the row of eight for one pick (note types NY19); asked again, it goes back. */
+export type TypeAsk = { type: string | null | undefined; onPick: (t: NoteType | null) => void };
+export type OpenLineHandle = { write: () => void; pickType: (ask: TypeAsk) => void };
 
 type LineProps = {
   /** Memories is in front and nothing is open over it: leaving, or opening something, saves a note being recorded (JN14). */
@@ -325,7 +329,10 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
 
   // Writing: a reference reads as "@" and its words and goes whole (RF3); what is stored puts its token back.
   const [picking, setPicking] = useState<number | null>(null);
+  // The bar as the row of eight (NY19), for one pick. The next character puts the bar back (NY20).
+  const [typeAsk, setTypeAsk] = useState<TypeAsk | null>(null);
   const onChangeText = (next: string) => {
+    setTypeAsk(null);
     const edited = editRefs(text, next, refs);
     setText(edited.text);
     setRefs(edited.refs);
@@ -403,6 +410,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   };
 
   const done = () => {
+    setTypeAsk(null);
     input.current?.blur();
     send.current({ k: 'done' });
   };
@@ -503,6 +511,11 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const { inBar } = props;
   // A tap on the empty page: the field takes the keyboard in the tap itself, so a phone raises it.
   useImperativeHandle(props.handle, () => ({
+    pickType: (ask: TypeAsk) => {
+      setTypeAsk((was) => (was ? null : ask));
+      // The caret stays on the page: the tap on the slot took it from the field.
+      input.current?.focus();
+    },
     write: () => {
       input.current?.focus();
       onFoot();
@@ -587,6 +600,30 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
         <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height))}>
+          {typeAsk ? (
+            <View style={styles.row} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
+              {NOTE_TYPES.map((t) => {
+                const on = noteTypeOf(typeAsk.type) === t.id;
+                return (
+                  <Pressable
+                    key={t.id}
+                    testID={`type-pick-${t.id}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={t.name}
+                    accessibilityState={{ checked: on }}
+                    onPress={() => {
+                      typeAsk.onPick(pickType(typeAsk.type, t.id));
+                      setTypeAsk(null);
+                      input.current?.focus();
+                    }}
+                    style={[styles.pick, on && styles.pickOn]}
+                  >
+                    <Icon name={t.glyph as IconName} size={22} color={theme.ink} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
           <View style={styles.row}>
             {inBar ? (
               fieldEl
@@ -642,6 +679,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               </View>
             )}
           </View>
+          )}
         </View>
       </View>
     </View>
@@ -744,6 +782,10 @@ const styles = StyleSheet.create({
   done: { minWidth: 44, height: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
+  // One row of eight at any width: the bar's height, and what the width gives (NY25).
+  pick: { flex: 1, minWidth: 36, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  // The chosen one: a tint and an ink rule under it, never colour alone.
+  pickOn: { backgroundColor: '#ebe7df', borderBottomColor: theme.ink },
   walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: 8 },
   unseen: { opacity: 0 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },

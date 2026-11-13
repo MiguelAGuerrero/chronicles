@@ -151,3 +151,10 @@ Open: none. The owner chose the corner, the bar as the picker and "write first" 
 24. **NY24** A new note's page (on a walk, from the ready screen, from the journal's line) carries the page's Type tool. A type chosen there, before or after the first words, is on the note when it is kept; choosing none keeps a note with no type; a page left without words keeps nothing, whatever was chosen. This amends NY8's "the composers that exist today make a note with no type": they still do, unless the owner chooses one.
 25. **NY25** At 320 px the row of eight is one row, nothing cut, each target the bar's full height (44 px) and at least 36 px wide. (Eight 44 px targets do not fit 320 px; the height is kept.)
 
+### Record (Nov 13, branch `fix/journal-audit-2`)
+
+- **Built:** NY18-NY25, tests first at the commit before. `pickType` and `typeForNewNote` in `lib/noteType.ts`; the slot and the corner glyph in the journal's `Entry`; the row of eight in `OpenLine`'s bar (asked for through its handle, saved by `resurface.saveNote`, so the page shows it at once); Type in `MemoryMenu`, the existing `NoteTypeMenu` in the same sheet; the Type tool on `NewNotePage`.
+- **Defaults taken, the owner having said to proceed:** a type needs a note (a glyph alone keeps nothing); on a walk the page's own Type tool, one tap to open, not a row of eight always in view; the slot's resting glyph is a plain tag.
+- **Checked:** unit tests `captures/typePick` (NY19, NY24); the `journal` journey (NY18-NY23, NY25) and `notepage` (NY24, and NP4 now names the Type tool on a new page).
+- **Native:** none of it has run on a device.
+

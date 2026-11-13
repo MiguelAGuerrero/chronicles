@@ -130,9 +130,10 @@ async function run(h) {
   const boldOn = await pg.getAttribute('[data-testid=note-format-bold]', 'aria-pressed');
   await pg.click('[data-testid=note-format-bold]');
   const names = ['Heading', 'Subheading', 'Body', 'Bold', 'Italic', 'Bulleted list', 'Numbered list', 'Checklist', 'Quote'];
-  check(bar.map((b) => b.name).join('|') === 'Format|Mention a moment|Take a photo or video' && bar.every((b) => b.w >= 44 && b.h >= 44)
+  // A new page carries the Type tool too (note types NY24).
+  check(bar.map((b) => b.name).join('|') === 'Format|Mention a moment|Type, No type|Take a photo or video' && bar.every((b) => b.w >= 44 && b.h >= 44)
     && names.every((n) => panel.some((p) => p.name === n)) && panel.every((p) => p.w >= 44 && p.h >= 44 && (p.pressed === 'true' || p.pressed === 'false')) && boldOn === 'true',
-    `NP4: Aa, @ and the camera above the keyboard; the panel's nine named, 44 px, pressed or not (bold ${boldOn}; ${JSON.stringify(panel.map((p) => p.name))})`);
+    `NP4: Aa, @, Type and the camera above the keyboard (${bar.map((b) => b.name).join('|')}); the panel's nine named, 44 px, pressed or not (bold ${boldOn}; ${JSON.stringify(panel.map((p) => p.name))})`);
   await pg.setViewportSize({ width: 320, height: 640 });
   await pg.waitForTimeout(400);
   const rows = await pg.locator('[data-testid=note-bar] [role=button]').evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
@@ -444,7 +445,7 @@ async function run(h) {
   await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(1200);
   const got24 = (await stored(pg)).flatMap((m) => m.pieces).find((x) => /A typed page from the start/.test(x.body ?? ''));
-  check.todo(none24 && got24?.note_type === 'idea', `NY24: a new page carries the Type tool; chosen before the words it is on the kept note, and a wordless page keeps nothing (${JSON.stringify({ none24, type: got24?.note_type })})`);
+  check(none24 && got24?.note_type === 'idea', `NY24: a new page carries the Type tool; chosen before the words it is on the kept note, and a wordless page keeps nothing (${JSON.stringify({ none24, type: got24?.note_type })})`);
 
   await c.close();
 }

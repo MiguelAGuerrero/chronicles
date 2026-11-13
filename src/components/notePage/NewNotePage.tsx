@@ -1,6 +1,8 @@
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { deleteNoteNow } from '../../lib/deletion';
 import { noteHead } from '../../lib/notePage/head';
+import type { NoteType } from '../../lib/noteType';
+import { typeForNewNote } from '../../lib/noteTypeChoice';
 import type { CaptureKind } from '../../lib/types';
 import type { useCaptures } from '../../lib/useCaptures';
 import { NotePage, newNoteStore, type NotePageHandle } from './NotePage';
@@ -29,11 +31,17 @@ export const NewNotePage = forwardRef<NotePageHandle, {
 }>(function NewNotePage(props, ref) {
   const { cap, onKept } = props;
   const [stamp] = useState(() => cap.beginNote(props.into));
+  // A type chosen on the page (NY24): held until the note is kept, then written on it; never a reason to keep one.
+  const typed = useRef<{ ids: { id: string; piece_id: string } | null; chosen: NoteType | null }>({ ids: null, chosen: null });
   const [store] = useState(() =>
     newNoteStore(
       async (body) => {
         const k = await cap.keepNote(stamp, body);
-        if (k) onKept?.();
+        if (k) {
+          typed.current.ids = k;
+          if (typed.current.chosen) await cap.setNote(k, body, typed.current.chosen, true);
+          onKept?.();
+        }
         return k;
       },
       (ids, body) => cap.setNote(ids, body),
@@ -59,6 +67,12 @@ export const NewNotePage = forwardRef<NotePageHandle, {
       head={head}
       store={store}
       self={stamp.into ?? null}
+      type={null}
+      onType={async (t) => {
+        const w = typed.current;
+        w.chosen = t;
+        if (typeForNewNote({ kept: !!w.ids, chosen: t }) === 'set' && w.ids) await cap.setNote(w.ids, '', t, true);
+      }}
       onClose={props.onClose}
       onCamera={
         props.camera

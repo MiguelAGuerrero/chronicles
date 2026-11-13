@@ -81,6 +81,13 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 - **Writing on a walk, the bar keeps the recording's mark** (audit 53): the recording bar is folded with the tabs.
 - **An entry draws its note's type** (audit 54, `NoteMark`): the journal replaced the moment card, which drew it. The Type tool is on the note's page only.
 
+## A note's type in the journal (note types NY18-NY25, Nov 13)
+
+- **Opt-in, never a step.** Nothing about a type shows before the first character. The entry being written has a `type-slot` at the end of its dateline; a tap asks `OpenLine` (its handle, `pickType`) to turn the bar into the row of eight for one pick; the next character, a pick or Done puts the bar back. The word is "Type", never "stamp" or "reaction".
+- **`MemoriesScreen` saves it** with `resurface.saveNote(..., typeOnly)`, which patches the page's moments at once; `OpenLine` only shows the row and reports the pick.
+- **A kept entry shows its first typed note's glyph in that corner** (`entry-type`, said "Type, <name>"); a second typed note in the same entry keeps `NoteMark` above its words. More has Type, with `NoteTypeMenu` in the same sheet.
+- **Eight 44 px targets do not fit 320 px**: the row keeps the bar's height and shares the width (38 px each there).
+
 ## Traps
 
 - **An iPhone floats the keyboard's own row (previous, next, a tick) over the page** (fix keyboard-accessory, the owner's phone, Nov 13). A web page cannot turn it off or measure it, and `visualViewport` does not count it, so it sat on the bar's camera, mic and Done. The bar keeps `ACCESSORY_ROOM` empty under its controls while the keyboard is up (`accessoryRoom`, `floatsAccessory` in `lib/journal/keyboard.ts`: an iPhone or iPad whose engine has `anchor-name`, which arrived in the release that began floating the row; the Home Screen app's agent names no version). The 56 is read off a screenshot; never seen to work on a phone.

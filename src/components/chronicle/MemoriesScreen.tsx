@@ -1,3 +1,4 @@
+import { noteTypeOf } from '../../lib/noteType';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -298,6 +299,8 @@ export function MemoriesScreen() {
         </View>
   ) : null;
   const menuMoment = menuFor ? inThreadById.get(menuFor) ?? null : null;
+  // The moment's first note: what Type in More marks (note types NY23).
+  const menuNote = menuMoment?.capture.pieces.find((p) => p.kind === 'text') ?? null;
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   // A reply says what it answers wherever it is listed (audit 1).
   const answerLine = (m: MomentView) => {
@@ -320,6 +323,7 @@ export function MemoriesScreen() {
         onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
         onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
         onMore={() => { setMenuFromSlip(false); setMenuFor(m.id); }}
+        onType={(piece) => lineRef.current?.pickType({ type: piece.note_type, onPick: (t) => void resurface.saveNote({ ...c, piece_id: piece.id }, '', t, true) })}
         onOpenRef={open}
       />
     );
@@ -501,6 +505,7 @@ export function MemoriesScreen() {
       />
       <MemoryMenu
         open={!!menuMoment}
+        type={menuNote && menuMoment ? { chosen: noteTypeOf(menuNote.note_type), onChoose: (t) => { const m = menuMoment; setMenuFor(null); void resurface.saveNote({ ...m.capture, piece_id: menuNote.id }, '', t, true); } } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;
