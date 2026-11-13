@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../journal/pen';
 import { OPEN_MS, WALK_ON_M, initial, openId, step } from '../../openMoment';
+import * as keyboardRules from '../../journal/keyboard';
 import { keyboardLift, lineLift } from '../../journal/keyboard';
 import { spareFresh } from '../../journal/target';
 import { refToken } from '../../refs';
@@ -158,12 +159,8 @@ test('fix journal-note-pages audit 4: a save that fails after the line gave its 
   assert.deepEqual(run([{ k: 'saved', body: 'A heron' }]).state, PEN_START);
 });
 
-test('fix keyboard-accessory: the bar clears the keyboard\'s own floating row where the phone draws one over the page', { todo: 'test first' }, async () => {
-  const k = (await import('../../journal/keyboard')) as unknown as {
-    ACCESSORY_ROOM: number;
-    accessoryRoom: (o: { keyboard: number; floating: boolean }) => number;
-    floatsAccessory: (o: { ua: string; touchPoints: number; supports: (q: string) => boolean }) => boolean;
-  };
+test('fix keyboard-accessory: the bar clears the keyboard\'s own floating row where the phone draws one over the page', () => {
+  const k = keyboardRules;
   const modern = (q: string) => q.startsWith('anchor-name');
   const old = () => false;
   const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';

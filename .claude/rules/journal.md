@@ -67,6 +67,8 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 
 ## Traps
 
+- **An iPhone floats the keyboard's own row (previous, next, a tick) over the page** (fix keyboard-accessory, the owner's phone, Nov 13). A web page cannot turn it off or measure it, and `visualViewport` does not count it, so it sat on the bar's camera, mic and Done. The bar keeps `ACCESSORY_ROOM` empty under its controls while the keyboard is up (`accessoryRoom`, `floatsAccessory` in `lib/journal/keyboard.ts`: an iPhone or iPad whose engine has `anchor-name`, which arrived in the release that began floating the row; the Home Screen app's agent names no version). The 56 is read off a screenshot; never seen to work on a phone.
+
 - **A multiline `TextInput` is two rows tall on the web** unless `rows={1}`; the field's height follows `onContentSizeChange`, from 44 to 132.
 - **`text=Connected` once passed off the threads listed behind the viewer.** They are off the page now; a check on what a screen says must scope to that screen.
 - **A short walk's replay can reach its card before a `waitForSelector` begins**: `capturehome` watches for the note from before Stop.
