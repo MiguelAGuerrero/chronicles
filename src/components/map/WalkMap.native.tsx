@@ -17,7 +17,7 @@ import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb } from '../../lib/pins';
 import { useReminded } from '../../lib/useReminded';
-import { scaleBar } from '../../lib/scaleBar';
+import { scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
@@ -214,6 +214,19 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
+  // No scale bar over a blank world (T17): with no fix, the map looks at what it drew each time it finishes drawing.
+  const blankWatch = !!props.hideScaleOnBlank && !props.walker;
+  const [drawn, setDrawn] = useState<boolean | null>(null);
+  // The base tiles, read through the query source (the app's own layers, the world's veil among them, cover the world
+  // whatever the tiles did): a tile with places in it has drawn something, down to the world's continents.
+  const lookDrawn = () => {
+    if (!blankWatch || !queryRef.current) return;
+    queryRef.current
+      .querySourceFeatures({ sourceLayer: 'place' })
+      .then((fs) => setDrawn(fs.length > 0))
+      .catch(() => {});
+  };
+  const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
   // The dot, cone and camera glide between fixes instead of jumping.
   const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true, props.walkerSource);
   // The trace's end joins the live dot, so the line always reaches it (the live dot, Nov 1); never across a pause or gap.
@@ -412,7 +425,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             props.onViewChange?.(lastView.current);
           }
         }}
-        onDidFinishRenderingMapFully={() => rendered.current?.()}
+        onDidFinishRenderingMapFully={() => {
+          rendered.current?.();
+          lookDrawn();
+        }}
       >
         <Camera
           ref={cameraRef}
@@ -641,7 +657,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           </Marker>
         ))}
       </Map>
-      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
+      {scale && scaleOn && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );

@@ -29,6 +29,14 @@ export function scaleBar(metersPerPixel: number, maxPx: number, units: Units = g
   return { meters, px: Math.min(maxPx, meters / metersPerPixel), label };
 }
 
+/**
+ * Whether a map draws its scale bar (T17, decision 0154): always, unless its screen hides it over a blank world and
+ * there is neither a fix nor anything drawn in view. `drawn` is null until the map has looked, and hides it till then.
+ */
+export function scaleShown(o: { hideOnBlank: boolean; fix: boolean; drawn: boolean | null }): boolean {
+  return !o.hideOnBlank || o.fix || o.drawn === true;
+}
+
 /** The longest 1, 2 or 5 × 10^n no more than `max` (in whatever unit `max` is). */
 function longestRound(max: number): number {
   // The decade the maximum falls in, nudged so a length that fits exactly isn't lost to rounding.

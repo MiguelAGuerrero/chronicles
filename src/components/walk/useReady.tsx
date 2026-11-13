@@ -70,7 +70,8 @@ export function useReady(props: {
   const at = useStackLayout();
   const { height: screenH } = useWindowDimensions();
   const walkStart = useStartWalk();
-  const [momentError, setMomentError] = useState<{ message: string; openSettings?: boolean } | null>(null);
+  // A Locate refusal carries its own tone (T17: a quiet notice in ink); a moment's failure is an error.
+  const [momentError, setMomentError] = useState<{ message: string; openSettings?: boolean; tone?: 'info' | 'error' } | null>(null);
   const error = walkStart.error ?? momentError;
   const [fix, setFix] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
@@ -216,6 +217,8 @@ export function useReady(props: {
     onPinPress: (cs: Faced[]) => !memoOn && !up && setViewing(cs),
     onViewChange: (v: { zoom: number }) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM),
     walker: fix,
+    // No scale bar over a blank world while no fix places the map (T17).
+    hideScaleOnBlank: true,
     marks: dest ? [dest.at] : undefined,
     ring,
     // The destination is a long press on the ready map (NV23), never mid-memo or with the bar up.
@@ -257,7 +260,7 @@ export function useReady(props: {
         </View>
         {error && (
           <Banner
-            tone="error"
+            tone={walkStart.error ? 'error' : (momentError?.tone ?? 'error')}
             onDismiss={() => {
               walkStart.setError(null);
               setMomentError(null);

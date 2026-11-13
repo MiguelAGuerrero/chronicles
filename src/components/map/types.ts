@@ -95,6 +95,11 @@ export interface WalkMapProps {
   ended?: boolean | LngLat[][];
   /** Where the scale bar sits, from the map's bottom-left corner, clear of the screen's own bottom UI (QL8). */
   scaleInset?: { bottom: number; left?: number };
+  /**
+   * Navigate and Explore (T17, decision 0154): with no fix (`walker`) and nothing drawn in view, no scale bar over a
+   * blank world. Other maps always draw their bar.
+   */
+  hideScaleOnBlank?: boolean;
   walked: StreetSegment[];
   fog: StreetSegment[];
   /**

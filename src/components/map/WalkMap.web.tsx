@@ -15,7 +15,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
-import { creditsAt, scaleBar } from '../../lib/scaleBar';
+import { creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
 import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
@@ -278,6 +278,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
+  const baseLayers = useRef<string[]>([]);
   const readyPromise = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
   if (readyPromise.current == null) {
     let resolve!: () => void;
@@ -388,6 +389,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       map.keyboard.disableRotation();
     }
     map.on('load', () => {
+      // The base map's own layers, before the app adds its overlay (T17: whether the tiles drew anything).
+      baseLayers.current = map.getStyle().layers.filter((l) => l.type !== 'background').map((l) => l.id);
       addOverlay(map);
       setReady(true);
       readyPromise.current!.resolve();
@@ -963,6 +966,25 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
+  // No scale bar over a blank world (T17): with no fix, the map looks at what it drew each time it settles.
+  const blankWatch = !!props.hideScaleOnBlank && !props.walker;
+  const [drawn, setDrawn] = useState<boolean | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !blankWatch) return;
+    // Only the base map's layers: the app's own (the world's veil among them) cover the world whatever the tiles did.
+    const look = () => {
+      const layers = baseLayers.current.filter((id) => map.getLayer(id));
+      setDrawn(layers.length > 0 && map.queryRenderedFeatures({ layers }).length > 0);
+    };
+    map.on('idle', look);
+    // A map already settled fires no idle until it draws again.
+    map.triggerRepaint();
+    return () => {
+      map.off('idle', look);
+    };
+  }, [ready, blankWatch]);
+  const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
   // The live walk's dot and cone: one marker, drawn at the same size as the layers.
   useEffect(() => {
     const map = mapRef.current;
@@ -1337,7 +1359,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     <View style={[styles.wrap, props.style]}>
       <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-ground={props.ground ? String(props.ground.polygons.reduce((n, rings) => n + rings.length, 0)) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-graded={gradedKey} />
       {/* Beside the map's own DOM, not inside it, so React owns it. */}
-      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
+      {scale && scaleOn && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View testID="map-cover" style={styles.cover} pointerEvents="none" />}
     </View>
   );

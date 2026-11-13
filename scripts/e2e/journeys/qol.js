@@ -102,7 +102,7 @@ function creditsChecks({ check, shot }) {
 }
 
 async function run(h) {
-  const { navUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
+  const { navUrl, exploreUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
     const creditsCheck = creditsChecks(h);
     const { c, pg } = await freshPage('qol');
     await c.addInitScript(() => {
@@ -923,6 +923,38 @@ async function run(h) {
       await c3.close();
     }
 
+    // tend map T17 (decision 0154): a refused location is a quiet notice in ink, never the red fault, in the owner's words,
+    // every word of it on screen; and with no fix and no tiles drawn, no scale bar over the blank world ("2,000 km").
+    const T17_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to see where you are.';
+    const deniedNotice = async (page, where, { blank }) => {
+      const seen = await page.evaluate((words) => {
+        const shown = (el) => !el.closest('[aria-hidden=true]') && el.getBoundingClientRect().width > 0;
+        const banner = [...document.querySelectorAll('[data-testid=lift-in]')].filter(shown).find((b) => b.innerText.includes(words));
+        const bars = [...document.querySelectorAll('[data-testid=scale-bar]')].filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.innerText);
+        if (!banner) return { banner: null, bars, texts: [...document.querySelectorAll('[data-testid=lift-in]')].map((b) => b.innerText) };
+        const text = [...banner.querySelectorAll('div')].find((d) => d.innerText.trim() === words && !d.querySelector('div'));
+        const box = banner.getBoundingClientRect();
+        // Each line of the words, from the browser's own line boxes: none cut by the banner or the screen's edge.
+        const range = document.createRange();
+        if (text) range.selectNodeContents(text);
+        const lines = text ? [...range.getClientRects()].filter((q) => q.width > 0) : [];
+        const cut = lines.filter((q) => q.left < box.left - 0.5 || q.right > box.right + 0.5 || q.top < box.top - 0.5 || q.bottom > box.bottom + 0.5 || q.right > window.innerWidth || q.left < 0);
+        const textColor = text ? getComputedStyle(text).color : null;
+        return {
+          banner: { role: banner.getAttribute('role'), live: banner.getAttribute('aria-live'), bg: getComputedStyle(banner).backgroundColor, color: textColor },
+          lines: lines.length,
+          cut: cut.length,
+          bars,
+        };
+      }, T17_WORDS);
+      const b = seen.banner;
+      // The error banner is #fdecea with the danger red's text; the quiet notice is the app's notice, ink on cream (#fff7e6).
+      check(!!b && b.role !== 'alert' && b.live === 'polite' && b.bg === 'rgb(255, 247, 230)' && b.color !== 'rgb(180, 35, 24)' && seen.lines >= 1 && seen.cut === 0,
+        `tend map T17: ${where}, Locate refused says "${T17_WORDS}" as a quiet notice, not an alert in red, every line whole (${JSON.stringify(seen)})`);
+      if (blank) check(seen.bars.length === 0, `tend map T17: ${where}, with no fix and no tiles drawn, no scale bar over a blank world (${JSON.stringify(seen.bars)})`);
+      else check(seen.bars.length === 1, `tend map T17: ${where}, with no fix but the tiles drawn, the scale bar stays (${JSON.stringify(seen.bars)})`);
+    };
+
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
     // button that brings the recorder's notice back after it was dismissed.
     {
@@ -931,7 +963,7 @@ async function run(h) {
       await pg2.waitForSelector('[data-testid=start]');
       // QL21: Navigate's own fix as it comes to the front is refused, quietly: no banner, no chip. Locate
       // is the loud path: its tap says why.
-      const deniedSaid = () => pg2.getByText(/Location permission was denied|Couldn.t find your position/).count();
+      const deniedSaid = () => pg2.getByText(/Location is off for this site|Couldn.t find your position/).count();
       await pg2.waitForTimeout(3000);
       const quiet = { banners: await deniedSaid(), chip: await pg2.locator('[data-testid=status-chip]').count() };
       await pg2.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
@@ -940,6 +972,8 @@ async function run(h) {
       await shot(pg2, 'qol-13-locate-denied');
       check(quiet.banners === 0 && quiet.chip === 0 && loud >= 1,
         `qol QL21: denied, Navigate's own fix on focus stays quiet; Locate says why (on focus ${JSON.stringify(quiet)}, after Locate ${loud})`);
+      // The fake streets draw at the world's zoom (a speck): tiles drawn, so the bar stays.
+      await deniedNotice(pg2, 'Navigate at 390', { blank: false });
       for (let i = 0; i < 4 && (await pg2.locator('[data-testid=banner-dismiss]').count()); i++) {
         await pg2.locator('[data-testid=banner-dismiss]').first().click();
         await pg2.waitForTimeout(300);
@@ -966,6 +1000,27 @@ async function run(h) {
         check(banner.some((t) => /Location permission was denied/.test(t)), `qol QL19: denied, Start explains where to allow location (walk opened: ${onWalk}; ${JSON.stringify(banner)})`);
       }
       await c2.close();
+    }
+
+    // tend map T17: Locate refused on Navigate and Explore, at 390 and 320, with no tiles drawn (the tile host's style
+    // holds no streets, as when nothing has loaded): the same quiet notice, and no scale bar over the blank world.
+    for (const [screen, url] of [['Navigate', navUrl], ['Explore', exploreUrl]]) {
+      for (const [w, hgt] of [[390, 844], [320, 700]]) {
+        const { c: c4, pg: pg4 } = await freshPage(`qol-denied-${screen}-${w}`, { permissions: [] });
+        await c4.route('https://tiles.openfreemap.org/**', (r) => {
+          const u = r.request().url();
+          if (/\.pbf$/.test(u) || u.endsWith('/planet')) return r.fallback();
+          return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...style, sources: { openmaptiles: { ...style.sources.openmaptiles, data: { type: 'FeatureCollection', features: [] } } } }) });
+        });
+        await pg4.setViewportSize({ width: w, height: hgt });
+        await pg4.goto(url);
+        await pg4.waitForTimeout(4000);
+        await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
+        await pg4.waitForTimeout(2500);
+        await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
+        await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
+        await c4.close();
+      }
     }
 }
 

@@ -545,7 +545,8 @@ export default function Explore() {
   const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
   const overlay = error ? (
     <Banner
-      tone="error"
+      // Location refused is a quiet notice in ink, not a fault (T17); a failed Start stays an error.
+      tone={walkStart.error ? 'error' : (locError?.tone ?? 'error')}
       onDismiss={() => {
         walkStart.setError(null);
         setLocError(null);
@@ -652,6 +653,8 @@ export default function Explore() {
             setCam(c);
           }}
           scaleInset={{ bottom: slots.scaleBottom, left: SCALE_LEFT }}
+          // No scale bar over a blank world while no fix places the map (T17).
+          hideScaleOnBlank
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
