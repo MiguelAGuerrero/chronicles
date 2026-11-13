@@ -205,10 +205,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   Since `tend map T25` (decision 0162) the end is a bullseye: a walked outer ring 9.5 px out with a 1.5 px white edge,
   round a white band and a walked centre, 22 px across like the start, so about 3.5 px of walked ring shows outside
   the band.
+  The T25 pictures show the end and the start at one width, about 21 px each at 3x (`390-replay-card-zoom3x` in the
+  T25 probe; the T25 review's ux-reviewer), so this item no longer matches what is drawn: you may close it.
 - [owner] A capture pin standing on a start or end puts its stalk inside the marker: the "2" pin's stalk lands in the
   solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
   `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
   the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
+  Since `tend map T25` the stalk crosses the bullseye's white band, so the end reads like a power glyph at 1x
+  (`qol-03-replay-card`, `qol-17-pins-several-replay`; the T25 review's ux 25, low). The fix stays yours.
 - [loop] A pin of one memory says "Memory: Voice memo" where a pin of several says "Memories: a photo and a note": two tables for one thing (`pinSpoken`, `src/lib/pins.ts`); "Memory: a voice memo" from the same table would match (the T14 review's U5, low; a pin of one moment is not T14's subject)
 - [loop] At 320 px the walk's "Add to this moment" offer, a toast with four controls, lies over the pins it refers to (`after3x-walk-320` in the T14 probe, the same before T14; `.claude/rules/ui-patterns.md`, a control may not float over its content) (the T14 review's U6, low)
 - [loop] No test runs the web's in-place relabel of a pin (`usePinMarkers` in `WalkMap.web.tsx`, the name set again when a walk clock comes or goes after the pin was drawn): every journey's clock arrives with or before the pins (the T14 review's test finding; `tend map audit 21` makes the clock go at Stop, and the walk screen leaves for the replay at once)
