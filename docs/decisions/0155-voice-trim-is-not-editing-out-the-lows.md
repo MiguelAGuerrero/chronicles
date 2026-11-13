@@ -12,3 +12,4 @@ The owner's call, Nov 13: yes. A memo's tail of noise and silence is an accident
 - The app proposes no cut (no silence detection); the walker drags the handles.
 - The reading covers a recording's accidental dead air. It does not extend to hiding a walk's hard moments, which the gate still refuses.
 - Still the owner's to decide: whether the trim bar is neutral until a handle moves, and whether a future transcript reads the kept part only (`docs/DEFERRED.md`).
+- VISION.md's Precedents table wants a row for this record, but the page is at its 12,000-byte budget, so none was added; the owner may trim the page or raise the budget, and add the row then.
