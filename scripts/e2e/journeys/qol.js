@@ -1413,7 +1413,8 @@ async function run(h) {
     }
 
     // tend map audit 25 (the T25 review): a loop walk, its end a few metres from its start. The start's marker drew over
-    // the end's outer ring; the end is now a bullseye over the start.
+    // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Hold, with motion, the
+    // walker's dot and the end are both on the map, apart, and pictured, at 390 and at 320.
     {
       const { c: c9, pg: pg9 } = await freshPage('qol-loop');
       await c9.addInitScript(() => { window.__perf = {}; });
@@ -1453,6 +1454,36 @@ async function run(h) {
         const nearWalked = (cc) => Math.abs(cc[0] - 0xc2) + Math.abs(cc[1] - 0x41) + Math.abs(cc[2] - 0x0c) <= 60;
         const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
 
+        // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.
+        const holdApart = async (w) => {
+          await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
+          let d = null;
+          for (let k = 0; k < 400; k++) {
+            const [ends, walker] = [await mapAttr('data-ends'), await mapAttr('data-walker')];
+            const endAt = lonLatOf((ends ?? '').split('|')[1]);
+            const walkerAt = lonLatOf(walker);
+            if (endAt && walkerAt) {
+              const [a, b] = await pg9.evaluate(([p, q]) => [window.__project(p), window.__project(q)], [endAt, walkerAt]);
+              d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+              if (d >= 40) break;
+            }
+            await pg9.waitForTimeout(40);
+          }
+          await pg9.click('[data-testid=hold]');
+          await pg9.waitForTimeout(600);
+          const ends = await mapAttr('data-ends');
+          const endAt = lonLatOf((ends ?? '').split('|')[1]);
+          const walkerAt = lonLatOf(await mapAttr('data-walker'));
+          const canvas = await pg9.locator('xpath=//canvas[contains(@class,"maplibregl-canvas")][not(ancestor::*[@aria-hidden="true"])]').last().boundingBox();
+          const [a, b] = endAt && walkerAt ? await pg9.evaluate(([p, q]) => [window.__project(p), window.__project(q)], [endAt, walkerAt]) : [null, null];
+          const inside = (q) => !!q && !!canvas && q[0] >= canvas.x + 11 && q[0] <= canvas.x + canvas.width - 11 && q[1] >= canvas.y + 11 && q[1] <= canvas.y + canvas.height - 11;
+          const apartPx = a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : null;
+          const held = await pg9.locator('[data-testid=replay-held]').count();
+          check(held > 0 && inside(a) && inside(b) && apartPx >= 20,
+            `tend map audit 26: at Hold at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
+          await shot(pg9, `qol-20-loop-held-${w}`);
+          await pg9.click('[data-testid=hold]');
+        };
         // tend map audit 25: on the card, the end read across, 4 to 9 px out, as for the walk above.
         const loopEnd = async (w) => {
           await pg9.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 120000 });
@@ -1471,9 +1502,11 @@ async function run(h) {
             `tend map audit 25: a loop walk at ${w}, its end ${apartPx != null ? apartPx.toFixed(1) : '-'} px from its start, shows the bullseye whole over the start (centre ${JSON.stringify(px && px.centre)}, band white ${band}/4, ring walked ${ring}/4; right, left, below, above from 4 to 9 px ${JSON.stringify(dirs)})`);
           await shot(pg9, `qol-21-loop-card-${w}`);
         };
+        await holdApart('390');
         await loopEnd('390');
         await pg9.setViewportSize({ width: 320, height: 568 });
         await pg9.goto(`${replayUrl}?ceremony=0`);
+        await holdApart('320');
         await loopEnd('320');
       } catch (e) {
         check(false, `tend map audit 25: the loop walk: ${String(e.message).split('\n')[0]}`);

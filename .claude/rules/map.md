@@ -191,6 +191,11 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     the end and drawn first, with a thin white edge), then its walked centre and white band (`ENDS_PAINT`'s end
     branch). The start and the dot are unchanged; the end is the start's width, 22 px. Both layers take the
     trace's opacity. The `qol` journey reads the end across, at its band (5 px out) and its ring (8 px out).
+  - Since `tend map audit 25` the start is drawn in `ends-ring` too, under the end's ring (`ENDS_RING_PAINT`
+    matches on kind; the start is `endsGeoJSON`'s first feature), and `ends` is filtered to the end, drawing only its
+    centre and band (`ENDS_PAINT`): a walk that ends on or near its start keeps its bullseye whole. The line above
+    reads so: `ends-ring` is no longer filtered, and `ENDS_PAINT` has no branches. The `qol` journey walks a small
+    loop and reads the end over the start, and pictures Hold with the dot and the end both on the map.
 - **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
   longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
   latitude), in the bottom-left corner, as a sibling of the map inside the
