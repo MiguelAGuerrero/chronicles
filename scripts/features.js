@@ -204,7 +204,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll}.ts', 'src/lib/backlog/**', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence'],
+    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence', 'neighborhood-boundaries'],
   },
   {
     name: 'map',
@@ -248,7 +248,7 @@ const FEATURES = [
     name: 'chronicle',
     about: 'the Chronicle tab: the walks list, months, rename, editing a note',
     rule: 'tabs-and-home',
-    source: ['src/app/(tabs)/index.tsx', 'src/lib/{rename,noteEdit,months,walkTitle}.ts', 'src/components/{NoteEditor,WalkActions}.tsx'],
+    source: ['src/app/(tabs)/index.tsx', 'src/lib/{rename,months,walkTitle}.ts', 'src/components/WalkActions.tsx'],
     journeys: ['chronicle'],
     specs: ['quality-of-life', 'section-bar'],
   },
@@ -259,6 +259,14 @@ const FEATURES = [
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
     specs: ['resurfaced-moments', 'memories-context'],
+  },
+  {
+    name: 'journal',
+    about: "Chronicle's Memories as a journal: one sheet in book order, ending in an open line where writing is the capture (decision 0155)",
+    rule: 'journal',
+    source: ['src/lib/journal/**', 'src/components/journal/**'],
+    journeys: ['journal'],
+    specs: ['chronicle-journal'],
   },
   {
     name: 'gallery',
@@ -275,6 +283,14 @@ const FEATURES = [
     source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
     journeys: ['threads', 'responses'],
     specs: ['owner-threads', 'moment-references', 'response-thread'],
+  },
+  {
+    name: 'notes',
+    about: 'note pages: a note is a journal entry, written in TipTap (Expo DOM), kept as it is written, read in the viewer; its body is Markdown once the page wrote it',
+    rule: 'captures-and-media',
+    source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
+    journeys: ['notepage'],
+    specs: ['note-pages'],
   },
   {
     name: 'motion',
@@ -364,6 +380,10 @@ const RETIRED = {
   // The test trim (Nov 5, the owner's call): the replay rhythm (decision 0085, RR1) replaced the ride's 4 s squeeze; a
   // ride is a stretch like any other, and still draws dashed (R5).
   rides: ['R10'],
+  // Memories became a journal (the owner, Nov 12, decision 0155): the capture band gave way to the open line, so the
+  // band's button names (HC8), its memo slots (HC11), its restraint (HC12) and its empty state (HC13) are the journal's
+  // JN10, JN14 and JN2 now, checked by the `journal` journey.
+  'capture-from-chronicle': ['HC8', 'HC11', 'HC12', 'HC13'],
   // DN5 (Nov 4): a swipe back lands back by itself, so there is no trail. DN3, DN4, DN6-DN9 (Nov 10, decision 0124): the
   // grid and the directional swipe gave way to a row of cards that a swipe steps; the new criteria are the explore-carousel spec's.
   'discrete-navigation': ['DN3', 'DN4', 'DN5', 'DN6', 'DN7', 'DN8', 'DN9'],

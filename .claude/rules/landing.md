@@ -91,14 +91,14 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   without one while a release is known, is stale too (`isStale`). An area
   centred within 1 km of a remembered one replaces it. Markers are rebuilt only
   when areas change, never per zoom. A strip's name keeps 80 m from the pin.
-- **Busy names are the map's text** (decision 0151, `.claude/rules/map.md`): `busyNames` (`landing/names.ts`) gives one per
+- **Busy names are the map's text** (decision 0156, `.claude/rules/map.md`): `busyNames` (`landing/names.ts`) gives one per
   strip at its label point, turned along its street (`alongAngle`), and one per unlabelled pocket; `landingView` lists strips
   and labels heaviest first and never carries a weight (L9's test).
 - **A street's name is drawn once** (fix street-label-double, Nov 4; explore-dense-city audit 4, the owner: once per 300 m):
   two remembered areas, or two busy stretches in one area, or a pocket named for the street, give one name per name within
   300 m (the street's own over a pocket's); two pockets of one placeholder name stay two; the same name further away is
   another stretch. A current area's names come before a stale one's (DC19).
-- **The read runs off the page** (explore-dense-city DC7-DC11, DC13, decision 0151): `readAround` fetches the tiles' bytes
+- **The read runs off the page** (explore-dense-city DC7-DC11, DC13, decision 0156): `readAround` fetches the tiles' bytes
   (`fetchTileBodies`) and hands them, with Overture's and the archive's places, to `computeRead` (`landing/compute.ts`, core:
   one staged generator, so the page's run and the worker's are the same code). `offPage` (`runOffPage.web.ts`) runs it in a
   web worker (`compute.worker.ts`), copying the bytes, never transferring them, so the page can still compute them itself if

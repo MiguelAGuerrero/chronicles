@@ -15,8 +15,18 @@ import { useMemo } from 'react';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin } from '../../lib/pins';
 import type { Star } from '../../lib/places';
 import type { LngLat, StreetSegment } from '../../lib/types';
+import type { CircleLayerSpecification } from 'maplibre-gl';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+
+/**
+ * Where the web map's worker is served from (`scripts/copy-maplibre-worker.js` copies it into `public/`), under the
+ * site's base path, with maplibre-gl's version as maplibre's own default address carries it: a browser that cached
+ * the worker of an older maplibre-gl fetches the new one with the new bundle (tend map 10).
+ */
+export function mapWorkerUrl(base: string, version: string): string {
+  return `${base}/maplibre-gl-worker.mjs?v=${encodeURIComponent(version)}`;
+}
 /** OpenMapTiles tops out at z14; road detail is only complete from there. */
 export const DERIVE_ZOOM = 14;
 /** Upper bound on camera stops while collecting roads for one walk. */
@@ -78,8 +88,11 @@ export interface WalkMapProps {
   drawing?: LngLat[] | null;
   /** 0 to 1; the replay's first beat shows the trace faintly. */
   traceOpacity?: number;
-  /** The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. */
-  ended?: boolean;
+  /**
+   * The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. Given the walk's
+   * whole runs, the markers sit at their ends however much of `trace` is drawn (a replay telling its path, tend replay 2).
+   */
+  ended?: boolean | LngLat[][];
   /** Where the scale bar sits, from the map's bottom-left corner, clear of the screen's own bottom UI (QL8). */
   scaleInset?: { bottom: number; left?: number };
   walked: StreetSegment[];
@@ -91,7 +104,11 @@ export interface WalkMapProps {
   captures: Faced[];
   /** Called when the person pans, zooms or rotates the map themselves. */
   onUserMove?: () => void;
-  /** The map's bearing in degrees from north, when it changes by more than half a degree (CP2). */
+  /**
+   * The map's bearing in degrees from north, when it changes by more than half a degree (CP2). Only a map given this
+   * turns under two fingers: the screens with a compass (CP1, decision 0082); the replay, a day, Chronicle and the
+   * planner stay north-up, as they have no way back to it (tend map 1).
+   */
   onBearingChange?: (bearing: number) => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Faced[]) => void;
@@ -146,6 +163,8 @@ export interface WalkMapProps {
   complexes?: ComplexMap | null;
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;
+  /** A selected neighborhood's own ground, drawn as one line (HB9): the same for every neighborhood, never a fill or a figure (HB10, HB14). */
+  ground?: { polygons: LngLat[][][] } | null;
   /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */
   borders?: BorderView | null;
   /** The Walkability layer (UF9): areas easy on foot tinted green and built around cars warm, under the trace and fog; null or absent draws none. */
@@ -166,6 +185,11 @@ export interface WalkMapProps {
   fitKey?: number;
   /** Called with a fit's key once its camera move has ended, so a map taken down mid-move can redo it. */
   onFitSettled?: (fitKey: number) => void;
+  /**
+   * Web: the map's credits were opened or closed by a tap on their (i), so an overlay that would lie over them can step
+   * aside (tend map audit 1). Native's MapLibre attribution reports nothing.
+   */
+  onCreditsOpen?: (open: boolean) => void;
   /** Space kept clear of the fitted bounds, e.g. for a sheet over the map. */
   fitPadding?: Padding;
   /** The closest a fit may zoom. Default 17. Web passes it to fitBounds; native widens the bounds (capFitBounds). */
@@ -689,8 +713,20 @@ export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollec
 }
 
 /**
- * Where the walk began and ended, as points with a `kind` (QL1, QL2): the
- * start ring is the trace's green, the end ring the walked orange.
+ * The start and end markers' paint, one `ends` circle layer on both maps (QL1, QL2; tend map T16): shape tells
+ * them apart, not colour alone (WCAG 2.2, 1.4.1). The start is hollow, a white disc ringed in the trace's green;
+ * the end is solid, a disc filled in the walked colour with a white ring. No new hue: the end takes the walked
+ * streets' colour (T22, a walked colour apart from the accent, is open).
+ */
+export const ENDS_PAINT = {
+  'circle-color': ['match', ['get', 'kind'], 'start', '#ffffff', COLORS.walked],
+  'circle-radius': 7,
+  'circle-stroke-width': 4,
+  'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, '#ffffff'],
+} satisfies NonNullable<CircleLayerSpecification['paint']>;
+
+/**
+ * Where the walk began and ended, as points with a `kind` (QL1, QL2), drawn with `ENDS_PAINT`.
  */
 export function endsGeoJSON(start: LngLat | null, end: LngLat | null): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];

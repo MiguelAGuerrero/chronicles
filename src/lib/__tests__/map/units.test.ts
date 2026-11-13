@@ -106,10 +106,10 @@ test('QL15: at z11, 41.8°, the imperial bar is 1 mi; at z10, 2 mi', () => {
 test('QL15: feet stop at 2,000 ft, then miles take over', () => {
   // z12 at 41.8°: about 1,425 m fit, short of a mile, so the bar is 2,000 ft.
   const z12 = scaleBar(metersPerPixel(12, 41.8), MAX_PX, 'mi');
-  assert.equal(z12.label, '2000 ft');
+  assert.equal(z12.label, '2,000 ft');
   // Never 5,000 ft: once over 2,000 ft, the next step is a mile.
   const mpp = (5000 * FT) / MAX_PX;
-  assert.equal(scaleBar(mpp, MAX_PX, 'mi').label, '2000 ft');
+  assert.equal(scaleBar(mpp, MAX_PX, 'mi').label, '2,000 ft');
   assert.equal(scaleBar((MI * 1.01) / MAX_PX, MAX_PX, 'mi').label, '1 mi');
   assert.equal(scaleBar((5 * MI * 1.01) / MAX_PX, MAX_PX, 'mi').label, '5 mi');
   assert.equal(scaleBar((50 * MI * 1.01) / MAX_PX, MAX_PX, 'mi').label, '50 mi');
@@ -136,7 +136,8 @@ for (const zoom of [18, 16, 14, 12, 10, 6, 2]) {
               return (lead === 1 ? 2 : lead === 2 ? 5 : 10) * 10 ** e * MI;
             })();
       assert.ok(next > mpp * MAX_PX * (1 + 1e-9), `${next} m would also fit`);
-      assert.match(bar.label, /^\d+ (ft|mi)$/);
+      // Thousands marked, as the spec writes them (tend map 7).
+      assert.match(bar.label, /^\d{1,3}(,\d{3})* (ft|mi)$/);
     });
   }
 }
@@ -150,4 +151,11 @@ test('QL15: metric is unchanged, with the units given or from the store', () => 
   setUnits('km');
   assert.equal(scaleBar(metersPerPixel(16, 0), MAX_PX).label, '100 m');
   setUnits(was);
+});
+
+// tend map 7: metres were compared with a kilometre before rounding, so 999.6 m read "1000 m"; the miles round first.
+test('tend map 7: a distance that rounds to a kilometre reads in kilometres', () => {
+  assert.equal(formatDistance(999.6, 'km'), '1.0 km');
+  assert.equal(formatDistance(999.4, 'km'), '999 m');
+  assert.equal(formatDistance(1000, 'km'), '1.0 km');
 });

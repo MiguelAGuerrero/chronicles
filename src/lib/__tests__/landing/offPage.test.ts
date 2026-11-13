@@ -101,10 +101,10 @@ test('explore-dense-city audit 9: a cancelled read ends its worker and never com
 test('explore-dense-city audit 2: an atlas ring computed off the page gives profileFrom\'s profile, and on the page too', async () => {
   const ringInput = (): RingInput => {
     const i = input();
-    return { bodies: i.bodies, tiles: i.tiles, zoom: 14, build: 'b1', at: O, overture: null, extent: null, archive: null, finds: [] };
+    return { bodies: i.bodies, tiles: i.tiles, zoom: 14, build: 'b1', at: O, overture: null, extent: null, share: null, archive: null, finds: [] };
   };
   const feats = decodeTile(new Uint8Array(ringInput().bodies[0]), 14, t.x, t.y);
-  const want = profileFrom(O, feats, 'b1', null, null, null, []).profile;
+  const want = { profile: profileFrom(O, feats, 'b1', null, null, null, []).profile, extent: null };
   const f = ports(echo);
   assert.deepEqual(await createOffPage(f.p).ring(ringInput()), want);
   assert.equal(f.workers(), 1, 'off the page');

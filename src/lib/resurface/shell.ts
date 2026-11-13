@@ -1,4 +1,5 @@
 // @layer shell
+import { notePatch } from '../noteEdit';
 import { type Faced, facedAll } from '../moment';
 import { captureBus, type CapturePatch } from '../captureBus';
 import { createStore, type Store } from '../store';
@@ -8,7 +9,7 @@ import { DEFAULT_EXTRACTORS, signalsOf } from './extractors';
 import { pausedMs } from '../geo';
 import { createComplexLookup } from '../complexes/lookup';
 import { complexAt } from '../complexes/place';
-import { arrivalLine, previousCapture, streetAt } from './context';
+import { arrivalLine, arrivalParts, previousCapture, streetAt } from './context';
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { openWalkViews, toMomentViews, wordsOf } from './views';
@@ -37,7 +38,7 @@ export interface ResurfaceState {
 }
 
 /** A moment's context: being read, failed (not "no street"), or its line (MC17). */
-export type ContextEntry = { state: 'pending' } | { state: 'failed' } | { state: 'done'; line: string };
+export type ContextEntry = { state: 'pending' } | { state: 'failed' } | { state: 'done'; line: string; place: string | null; into: string | null };
 
 /** The street cache is read this far around a fix: a little over the 40 m reach, in metres. */
 const READ_M = 45;
@@ -171,7 +172,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       const nearComplexes = createComplexLookup(p.db);
       const readOne = async (id: string): Promise<void> => {
         const began = generation;
-        const { moments, walks } = store.get();
+        const { moments: closed, inOpenWalk, walks } = store.get();
+        // A walk still open has its moments on the journal's page too (chronicle journal JN8).
+        const moments = inOpenWalk.length ? [...closed, ...inOpenWalk] : closed;
         const m = moments.find((x) => x.id === id);
         if (!m) return put({ [id]: { state: 'failed' } });
         try {
@@ -194,8 +197,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
           const street = streetAt(fix, segments, c.segment_id);
           // CX11, CX12: a complex already on the phone leads the line; nothing is fetched to show it. A cache that cannot be read is no complex, never no line.
           const hit = fix ? complexAt(fix, await nearComplexes(fix).catch(() => [])) : null;
-          const line = arrivalLine({ street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, complex: hit ? { name: hit.complex.name, near: hit.near } : null, t: c.t, now: p.clock.now(), walkedMs, prev });
-          put({ [id]: { state: 'done', line } });
+          const facts = { street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, complex: hit ? { name: hit.complex.name, near: hit.near } : null, t: c.t, now: p.clock.now(), walkedMs, prev };
+          const line = arrivalLine(facts);
+          put({ [id]: { state: 'done', line, ...arrivalParts(facts) } });
         } catch {
           put({ [id]: { state: 'failed' } });
         }
@@ -256,9 +260,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
     async saveNote(c: Faced, body: string): Promise<void> {
-      await p.db.updatePiece(c.piece_id, { body });
-      captureBus.patch(c.walk_id, c.id, { body }, null);
-      this.patch(c.id, { body });
+      await p.db.updatePiece(c.piece_id, notePatch(body));
+      captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+      this.patch(c.id, notePatch(body));
     },
     /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
     async undo(change: PrefsChange): Promise<void> {

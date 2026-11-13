@@ -22,6 +22,25 @@ export interface PlaceCandidate {
   kind?: string;
   /** A town's real border, where one was read (town outlines, TO1): inside it decides, before any point. */
   outline?: TownOutline;
+  /** A neighborhood's real shape, where one was read (neighborhood boundaries, HB5): inside it decides, before any point. */
+  hoodOutline?: HoodOutline;
+}
+
+/**
+ * A neighborhood's shape as read so far (HB1): the pieces of it in the tiles read, merged. `at` lies inside
+ * the polygons, never outside them (a concave shape's centroid can); polygons are [lon, lat] rings, outer
+ * ring first, then holes.
+ */
+export interface HoodOutline {
+  /** The source's id for it: used only to merge its pieces, never as an area key. */
+  id: string;
+  name: string;
+  subtype: 'neighborhood' | 'macrohood';
+  at: LngLat;
+  polygons: LngLat[][][];
+  bbox: [number, number, number, number];
+  /** Square metres of the pieces read: of two shapes over a point, the smaller owns it (HB2). */
+  areaM2: number;
 }
 
 /**

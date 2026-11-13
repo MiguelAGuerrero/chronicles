@@ -1,6 +1,6 @@
 // @layer core
-/** A note's text at most, as the composer allows (QL24). */
-export const NOTE_MAX = 500;
+/** A note's text at most (QL24; 20,000 since note pages NP8, decision 0151), counted as shown. */
+export const NOTE_MAX = 20000;
 
 /**
  * A note's edited text as it is stored (QL25): trimmed and cut to
@@ -11,3 +11,6 @@ export function noteText(body: string): string | null {
   const text = body.trim().slice(0, NOTE_MAX).trimEnd();
   return text ? text : null;
 }
+
+/** What a note written on its page stores (NP7, decision 0151): its body, and the mark that the body is Markdown. */
+export const notePatch = (body: string): { body: string; body_format: 'md' } => ({ body, body_format: 'md' });

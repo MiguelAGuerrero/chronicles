@@ -40,6 +40,28 @@ export function groupCaptures(captures: Faced[]): PauseGroup[] {
   return groups;
 }
 
+/**
+ * Where Back (Android) or Escape (web) takes the walk's replay from a beat: the name step goes back to its card with
+ * the words typed kept (tend replay 4); any other beat leaves the replay, as Not now or Done does.
+ */
+export function backFrom(beat: string): 'card' | 'leave' {
+  return beat === 'name' ? 'card' : 'leave';
+}
+
+/**
+ * What a screen reader hears as a beat begins (`t0`, the beat's start): once per beat, never again when the walk is
+ * read anew within it (the streets snapped, a note edited; tend replay 9). The fog says its headline; the day's card
+ * is said however it was reached, Skip included. Null for nothing.
+ */
+export function beatWords(beat: string, t0: number, saidAt: number | null, headline: string): string | null {
+  if (saidAt === t0) return null;
+  if (beat === 'reading') return 'Reading the streets you walked';
+  if (beat === 'fog') return headline;
+  if (beat === 'card') return 'Summary';
+  if (beat === 'day-card') return 'Summary of the day';
+  return null;
+}
+
 export type TimedRun = { t: number; p: LngLat }[];
 
 /** Index of the last element with t <= target, or -1. */

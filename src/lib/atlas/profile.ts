@@ -20,6 +20,8 @@ import { findPockets, type Pocket } from './pockets';
 export interface Extent {
   outline: Pick<TownOutline, 'polygons' | 'bbox'>;
   partial: boolean;
+  /** HB11: a neighborhood's own shape: what is counted is across it, and nothing else of a town's read changes. */
+  shape?: boolean;
 }
 
 /**
@@ -42,10 +44,11 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   const analyze = (centre: LngLat) =>
     analyzeArea({
       centre, points, towns, transit,
-      segments: extent ? segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, centre) <= LANDING_RULES.radiusM + 300))) : segments,
+      segments: wholeTown ? segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, centre) <= LANDING_RULES.radiusM + 300))) : segments,
     });
   // TP4: a graded town's pockets, each named for the busiest street through it.
-  const pockets: Pocket[] = extent ? findPockets(points.filter((p) => within(p.at))) : [];
+  const wholeTown = !!extent && !extent.shape;
+  const pockets: Pocket[] = wholeTown ? findPockets(points.filter((p) => within(p.at))) : [];
   let first: ReturnType<typeof analyze> | null = null;
   const stripsAt: { name: string; peak: LngLat }[] = [];
   const named = pockets.map((pocket, i) => {
@@ -57,7 +60,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   });
   const view = named[0]?.at ?? at;
   const analysis = first ?? analyze(at);
-  const strips = extent ? stripsAt : analysis.strips.filter((s) => within(s.peak)).map((s) => ({ name: s.name, peak: s.peak }));
+  const strips = wholeTown ? stripsAt : analysis.strips.filter((s) => within(s.peak)).map((s) => ({ name: s.name, peak: s.peak }));
   // What the frame can show: a little past the ring's corners.
   const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
   const profile: AtlasProfile = {
@@ -74,8 +77,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
     }),
     overture: overture?.release ?? null,
     archive: archive?.version ?? null,
-    ...(extent ? { extent: 'outline' as const, partial: extent.partial, pockets: named, ...(named[0] ? { sketchAt: view } : {}) } : { extent: 'ring' as const }),
+    ...(wholeTown ? { extent: 'outline' as const, partial: extent!.partial, pockets: named, ...(named[0] ? { sketchAt: view } : {}) } : extent ? { extent: 'shape' as const, partial: extent.partial } : { extent: 'ring' as const }),
   };
   return { profile, cache: { segments, places } };
 }
-

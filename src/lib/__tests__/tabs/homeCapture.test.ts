@@ -26,57 +26,25 @@ test('HC4: the walk screen with nothing beneath it goes to Chronicle', () => {
   assert.equal(plan.kind === 'replace' ? plan.to : null, tabFor('chronicle').path);
 });
 
-test('HC9: with no walk open, the band keeps loose moments', async () => {
-  const { captureTarget } = await import('../../captureBand');
+test('HC9: with no walk open, the open line keeps loose moments', async () => {
+  const { captureTarget } = await import('../../journal/target');
   assert.deepEqual(captureTarget(null), { loose: true });
 });
 
-test('HC10: with a walk open, the band files into that walk', async () => {
-  const { captureTarget } = await import('../../captureBand');
+test('HC10: with a walk open, the open line files into that walk', async () => {
+  const { captureTarget } = await import('../../journal/target');
   assert.deepEqual(captureTarget({ id: 'w1' }), { walkId: 'w1' });
-});
-
-test('HC7: the band is three equal buttons inside the 640 column, at least a thumb tall', async () => {
-  const { bandLayout } = await import('../../captureBand');
-  const phone = bandLayout(390);
-  assert.equal(phone.buttons.length, 3);
-  assert.ok(phone.height >= 44);
-  const w = phone.buttons[0].width;
-  for (const b of phone.buttons) assert.equal(b.width, w);
-  assert.ok(phone.buttons[2].left + w <= 390 - 16 + 0.5, 'the last button keeps the gutter');
-  assert.equal(phone.buttons[0].left, 16);
-  // A wide screen keeps the band inside the 640 column, centred.
-  const wide = bandLayout(1200);
-  assert.equal(wide.buttons[0].left, (1200 - 640) / 2 + 16);
-  assert.ok(wide.buttons[2].left + wide.buttons[2].width <= (1200 + 640) / 2 - 16 + 0.5);
-  // Every button is at least a thumb wide, even on a narrow phone.
-  for (const b of bandLayout(320).buttons) assert.ok(b.width >= 44);
-});
-
-test('HC8: the band names its buttons for a screen reader, for the walk when one is open', async () => {
-  const { bandLabels } = await import('../../captureBand');
-  assert.deepEqual(bandLabels(false), {
-    photo: 'Keep a moment: take a photo or video',
-    voice: 'Keep a moment: record a voice memo',
-    note: 'Keep a moment: write a note',
-  });
-  assert.deepEqual(bandLabels(true), {
-    photo: 'Add to your walk: take a photo or video',
-    voice: 'Add to your walk: record a voice memo',
-    note: 'Add to your walk: write a note',
-  });
 });
 
 test('HC15: the moment\'s toast says where it went, in words', async () => {
   const { momentToast } = await import('../../captureBand');
-  assert.equal(momentToast('text', 'loose'), 'Note kept here');
-  assert.equal(momentToast('photo', 'loose', 'unavailable'), 'Photo kept · No location');
-  assert.equal(momentToast('voice', 'loose', 'denied'), 'Voice memo kept · No location (location is off)');
-  assert.equal(momentToast('text', 'walk'), 'Note saved to your walk');
-  assert.equal(momentToast('video', 'walk'), 'Video saved to your walk');
+  // On Navigate's ready screen; on Memories the entry itself appears, with no toast (chronicle journal JN8).
+  assert.equal(momentToast('text'), 'Note kept here');
+  assert.equal(momentToast('photo', 'unavailable'), 'Photo kept · No location');
+  assert.equal(momentToast('voice', 'denied'), 'Voice memo kept · No location (location is off)');
 });
 
-test('HC7: the recording bar shows no camera on Memories, where the band files into the walk (decision 0112)', async () => {
+test('HC7: the recording bar shows no camera on Memories, where the open line files into the walk (decision 0112)', async () => {
   const { barCamera } = await import('../../captureBand');
   assert.equal(barCamera('/', 'memories'), false);
   assert.equal(barCamera('/', 'walks'), true);
@@ -111,8 +79,8 @@ test('capture-from-chronicle audit 6: Stop can wait for a photo or video still b
   await gate.kept();
 });
 
-test('capture-from-chronicle audit 7: until the open walk is known, the band keeps nothing', async () => {
-  const { captureTarget } = await import('../../captureBand');
+test('capture-from-chronicle audit 7: until the open walk is known, the open line keeps nothing', async () => {
+  const { captureTarget } = await import('../../journal/target');
   assert.deepEqual(captureTarget(null, false), { wait: true });
   assert.deepEqual(captureTarget(null, true), { loose: true });
   assert.deepEqual(captureTarget({ id: 'w1' }, true), { walkId: 'w1' });

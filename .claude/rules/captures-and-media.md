@@ -8,6 +8,10 @@ paths:
   - "src/lib/audioMode*.ts"
   - "src/lib/export/**"
   - "src/lib/__tests__/captures/**"
+  - "src/lib/notePage/**"
+  - "src/components/notePage/**"
+  - "src/lib/noteEdit.ts"
+  - "src/lib/__tests__/notes/**"
   - "src/components/edit/**"
   - "src/lib/{mediaEdit,editSession,editOffer}.ts"
   - "src/lib/{captureEdits,videoEdit}/**"
@@ -193,12 +197,31 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   `chronicle` journey's fresh page copies iOS's rule by holding a `<video>`'s
   `readyState` at 1 until a `play()` is let through (Chromium loads a `blob:`
   video whatever its `preload` says).
-- **Edit a note** (QL24, QL25): the viewer's docked toolbar offers Edit for a note
-  when the screen passes `onSaveNote` (it was in More until decision 0114); `NoteEditor` opens inside the viewer's Modal (as
-  the caption and reminder editors do). `noteText` (`lib/noteEdit.ts`, pure) trims,
-  cuts to 500 and refuses blank. The viewer keeps edited bodies and merges them into
-  what it shows, so the text changes at once and rolls back on a failed save. Screens
-  store the body, patch their own list, and send `captureBus.patch(walkId, id, { body },
-  null)`: a null sender reaches every listener, for screens without `useCaptures`.
-  The walk screen goes through `useCaptures.setNote`. Navigate's live walk has no
-  viewer; "Memories here" has no Edit note. Captions and edits go on the bus since Media editing (`captureEdits`, `useCaptures.setEdit`).
+- **A note is a page** (note pages NP1-NP14, decision 0151; it replaced the note card and `NoteEditor`). The pencil (Navigate's
+  `MomentBar`, the walk's `walk.tsx`, Memories' open line through Open as a page, `journal/OpenLine`), Respond → Note (`ReplyDock`) and Add to this moment open
+  `NewNotePage` in a non-transparent `Modal`; the viewer's Edit opens `NotePage` inside its own Modal (iOS: never a Modal
+  over a Modal), and the viewer reads a note as `NoteReader` (`CaptureContent`'s `note` prop). The editor is TipTap in an
+  Expo DOM component (`notePage/JournalEditor.tsx`, `'use dom'`: plain DOM on the web, `@expo/dom-webview` on phones),
+  whose default export must be a plain function taking `ref` as a prop (lint `expo/use-dom-exports`); everything it
+  takes or gives back is JSON, and its handle (`format`, `insertMention`, `focus`) takes JSON arguments.
+  - **The document** is `lib/notePage/schema.ts` (adapter): StarterKit without code, link, strike, underline or rule;
+    task lists; the mention as `@[id|words]` (0125) through its own Markdown tokenizer; a paragraph's leading `#`, `1.`,
+    `-`, `>` kept as text. `toDoc(body, format)` reads a body the page wrote (`body_format` 'md') as Markdown and any
+    other note literally (a paragraph per line); `toBody` always writes Markdown. Unit tests run it in Node.
+  - **Words elsewhere** come from `plainNote(body, body_format)` (`lib/refs.ts`), which drops the marks of a page with
+    `marked`, the lexer `@tiptap/markdown` uses (a pure package in core). Every reader of a note passes `body_format`;
+    one that doesn't reads a page's marks as words.
+  - **Saving as it is written** is `lib/notePage/autosave.ts`'s reducer, run by `NotePage`'s `useAutosave`: a pause of
+    `NOTE_SAVE_PAUSE`, leaving, the background; an emptied page never writes an empty body, and only leaving it empty
+    deletes (`deleteNoteNow`, with Undo). A new note is stamped at the tap (`useCaptures.beginNote`) and kept by
+    `keepNote`; every host's `onSaveNote` stores `notePatch(body)` (the body and `body_format: 'md'`).
+  - **Ticks only on the page**: TaskItem's `onReadOnlyChecked` refuses while reading (the steward's S1, 0114).
+  - **On a phone, nothing loads** (NP13): the DOM document adds a Content-Security-Policy meta when `IS_DOM`; the
+    schema has no image, frame or link, so a paste keeps none. `@expo/dom-webview` can't refuse a navigation.
+  - **Leaving** (the audit): Done is the one way out; Escape and system Back go through `requestClose` and keep too. The page
+    closes only once what is written is kept (`closable`): a failed save keeps it open, "Not saved yet" in its top bar.
+  - **Mentions** read as cards in the reader (RF4): `useMentionCards` gives JSON to the DOM, drawn by TipTap's
+    `ReactNodeViewRenderer` under a React context; while writing, a chip. A gone moment's token is relabelled by `withGone`.
+  - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
+    `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
+    (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.

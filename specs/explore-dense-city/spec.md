@@ -18,7 +18,7 @@ Open: none
 
 Explore's Busy layer names its streets with the map's own text, the way the base map names its roads: a name that has no room is left out, a street is named once, and zooming in gives room to more. When names compete, the heavier street keeps its name; nothing says so. Moving between neighborhoods stays smooth: reading a part of town not yet read happens off the page's thread on the web, starts only once the map has stopped moving, and the screen re-renders less per move.
 
-## Decisions (the owner's calls, Nov 12; decision 0151)
+## Decisions (the owner's calls, Nov 12; decision 0156)
 
 - **Measure, then fix** (`scripts/perf-explore.js`, `docs/TESTING.md`): at 4x CPU, a first read of an unread area froze the page for one 4.4 s task (street derivation 1.7 s, the store write 1.7 s, decoding 0.5 s, the density pass 0.4 s); every switch lost about 1 s to long tasks (the map's own camera move about 320 ms, React about 350 ms, Explore rendered 3 to 5 times). Drags were smooth in Chromium, which does not model WebKit's compositing of DOM markers.
 - **Names drawn by the map** (a symbol layer with collision, on web and native), not as DOM markers.

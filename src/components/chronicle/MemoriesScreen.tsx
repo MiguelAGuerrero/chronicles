@@ -1,19 +1,19 @@
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { bandLayout } from '../../lib/captureBand';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { JOURNAL_PAGE, journalMoments, journalPage } from '../../lib/journal/page';
 import type { MomentState } from '../../lib/useCaptures';
 import { captureEdits } from '../../lib/captureEdits';
 import { dayKey } from '../../lib/days';
-import { EMPTY, FORGOT_TOAST, HIDDEN_TOAST, NEWEST_FIRST, NOT_A_THREAD, OFF_LINE, fewerLike, fewerWord, withSaveNote } from '../../lib/resurface/copy';
-import { LATELY_PAGE, lately } from '../../lib/resurface/feed';
+import { FORGOT_TOAST, HIDDEN_TOAST, NOT_A_THREAD, fewerLike, fewerWord, withSaveNote } from '../../lib/resurface/copy';
 import { hiddenItems } from '../../lib/resurface/hidden';
 import { resurface } from '../../lib/resurface';
 import { useResurface } from '../../lib/resurface/useResurface';
 import type { PrefsChange } from '../../lib/resurface/prefs';
 import type { MomentView, Thread } from '../../lib/resurface/types';
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
+import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { useOpenWalkInfo } from '../OpenWalk';
 import { UndoToast } from '../UndoToast';
 import { useStore } from '../../lib/useStore';
@@ -22,15 +22,16 @@ import { showWalk } from '../../lib/walkNav';
 import { CaptureViewer } from '../CaptureView';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { Entry, type NoFix } from '../journal/Entry';
+import { JournalPage, type JournalPageHandle } from '../journal/JournalPage';
+import { LINE_REST_H, OpenLine } from '../journal/OpenLine';
+import { Slip } from '../journal/Slip';
 import { HiddenScreen } from './HiddenScreen';
-import { MemoriesBand } from './MemoriesBand';
 import { MemoriesMenu } from './MemoriesMenu';
 import { MemoryMenu } from './MemoryMenu';
-import { MomentCard } from './MomentCard';
-import { Resurfaced } from './Resurfaced';
 import { ThreadScreen } from './ThreadScreen';
 import { ThreadsRail } from './ThreadsRail';
-import { closedWalks, fromLine, threadPool } from '../../lib/resurface/views';
+import { closedWalks, fromLine, threadPool, wordsOf } from '../../lib/resurface/views';
 import { threads } from '../../lib/threads';
 import { answeringLine, headingOf, threadLine as ownThreadLine } from '../../lib/threads/lines';
 import { removalDissolves } from '../../lib/threads/rules';
@@ -44,20 +45,37 @@ const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
 const NO_IDS: string[] = [];
 
-/** Reads a card's context as the card mounts, and so only for the cards the list renders (MC6); a moment read already is not read again. */
-function ReadsContext({ id, version, deleted }: { id: string; version: number; deleted: ReadonlySet<string> }) {
-  // `version` counts the reads of the moments: a card whose read failed asks again when the owner comes back (audit 2).
-  useEffect(() => {
-    void resurface.contextFor([id], deleted);
-  }, [id, version, deleted]);
-  return null;
-}
+/** A moment kept in this sitting, as the page draws it before (or without) a read of the store (JN9). */
+const viewOf = (c: Faced): MomentView => ({ id: c.id, t: c.t, kind: c.kind, walkId: c.walk_id, words: wordsOf(c), place: null, hasMedia: c.kind === 'text' ? true : !!c.file_path, capture: c });
 
-/** Chronicle's Memories (RM4-RM21): the resurfaced moment, the threads, and Lately. */
+/**
+ * Chronicle's Memories as a journal (chronicle journal JN1-JN24, decision 0155): every kept moment as an entry on
+ * one sheet in book order, a resurfaced moment as a slip on today's page, and the open line at the foot, where
+ * writing is the capture. Threads, Hidden and the resurfacing choices are behind the contents button.
+ */
 export function MemoriesScreen() {
-  const { state, feed, now, hidden: deletedIds } = useResurface();
+  const { state, feed, now: readAt, hidden: deletedIds } = useResurface();
+  // The page's own clock (audit 11): the read's `now` is set when Memories comes to the front, and a page left open
+  // would date a new entry against it (no "No location" after its minute, yesterday's heading past midnight).
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const now = Math.max(readAt, tick);
   const index = useStore(resurface.store, stepIndex);
-  const [limit, setLimit] = useState(LATELY_PAGE);
+  const [limit, setLimit] = useState(JOURNAL_PAGE);
+  // The contents' Threads (JN21): the Chronicle's threads and the owner's, off the page.
+  const [threadsOpen, setThreadsOpen] = useState(false);
+  // The slip's More also holds Relive it and Another (JN20).
+  const [menuFromSlip, setMenuFromSlip] = useState(false);
+  // The piece the open line is writing: drawn there, not on the page.
+  const [writing, setWriting] = useState<string | null>(null);
+  // Why a moment kept in this sitting has no place, when the line was told (JN5), and those moments themselves,
+  // so they are drawn while the page is loading or could not be read (JN9).
+  const [reasons, setReasons] = useState<Record<string, NoFix>>({});
+  const [session, setSession] = useState<MomentView[]>([]);
+  const pageRef = useRef<JournalPageHandle>(null);
   const [threadTerm, setThreadTerm] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   // The owner's threads (OT9-OT14): the one open, a moment's menu inside it, and the delete's confirm.
@@ -87,6 +105,16 @@ export function MemoriesScreen() {
     });
   }, []);
   const [viewing, setViewing] = useState<Faced[] | null>(null);
+  // A note's page is headed by the line Lately reads for it (note pages NP2; note-pages audit 2).
+  const headsOf = (list: { id: string }[] | null): Map<string, string> | undefined => {
+    if (!list) return undefined;
+    const m = new Map<string, string>();
+    for (const c of list) {
+      const e = state.context[c.id];
+      if (e?.state === 'done') m.set(c.id, e.line);
+    }
+    return m;
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [hiddenOpen, setHiddenOpen] = useState(false);
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
@@ -181,7 +209,19 @@ export function MemoriesScreen() {
     const walks = new Set(state.moments.filter((m) => deletedIds.has(m.id) && m.walkId).map((m) => m.walkId as string));
     resurface.dropContextOfWalks([...walks]);
   }, [deletedIds, state.moments]);
-  const page = useMemo(() => lately(feed.moments, now, limit), [feed.moments, now, limit]);
+  // The page (JN1, JN2, JN8): the feed's moments and an open walk's, in book order; before a read, or when it
+  // failed, what was kept in this sitting.
+  const ready = state.status === 'ready';
+  const moments = useMemo(
+    () => (ready ? journalMoments(feed.moments, state.inOpenWalk, deletedIds) : journalMoments(session, [], deletedIds)),
+    [ready, feed.moments, state.inOpenWalk, deletedIds, session],
+  );
+  const page = useMemo(() => journalPage(moments, now, limit, { slip: ready && !!pick }), [moments, now, limit, ready, pick]);
+  // The context of the entries drawn, read once each (MC6); a failed read is asked again when the moments are.
+  const drawn = useMemo(() => page.rows.flatMap((r) => (r.k === 'entry' ? [r.key] : [])).join(' '), [page.rows]);
+  useEffect(() => {
+    if (ready && drawn) void resurface.contextFor(drawn.split(' '), deletedIds);
+  }, [ready, drawn, deletedIds, state.version]);
 
   const say = (msg: string, change: PrefsChange) => {
     if (timer.current) clearTimeout(timer.current);
@@ -198,13 +238,46 @@ export function MemoriesScreen() {
   // A viewer opened mid-memo waits until the memo has stopped, so nothing plays over a recording (audit 8).
   const [memoOn, setMemoOn] = useState(false);
   // A moment kept from the band heads Lately at once, and gains its place when its fix comes (HC9).
-  const onMoment = useCallback((_c: Faced, state: MomentState) => {
+  const onMoment = useCallback((c: Faced, state: MomentState) => {
+    setSession((prev) => [...prev.filter((m) => m.id !== c.id), viewOf(c)]);
     if (state === 'kept' || state === 'placed') void resurface.refresh();
+    else setReasons((prev) => ({ ...prev, [c.id]: state }));
   }, []);
-  const { width } = useWindowDimensions();
-  const bandH = bandLayout(width).height;
-  // Every list scrolls its last card clear above the band (HC7), and the toast sits above it (HC15).
-  const clear = { paddingBottom: bandH + 24 };
+  const onChanged = useCallback(() => {
+    setTick(Date.now());
+    void resurface.refresh();
+  }, []);
+  // What the line wrote or removed, in this sitting's own copy, so the page is whole before a read and when one fails (audit 6).
+  const onWritten = useCallback((e: { momentId: string; pieceId: string }, body: string, format?: 'md') => {
+    setSession((prev) => prev.map((m) => {
+      if (m.id !== e.momentId) return m;
+      // A page's write is Markdown, and the copy says so, or the sheet would draw its marks raw (fix journal-note-pages audit 6).
+      const was = format ? { body, body_format: format } : { body };
+      const pieces = m.capture.pieces.map((p) => (p.id === e.pieceId ? { ...p, ...was } : p));
+      const capture = { ...m.capture, pieces, ...(m.capture.piece_id === e.pieceId ? was : null) };
+      return { ...m, capture, words: wordsOf(capture) };
+    }));
+  }, []);
+  const onDropped = useCallback((e: { momentId: string; pieceId: string }, gone: 'moment' | 'piece') => {
+    setSession((prev) => (gone === 'moment'
+      ? prev.filter((m) => m.id !== e.momentId)
+      : prev.map((m) => (m.id === e.momentId ? { ...m, capture: { ...m.capture, pieces: m.capture.pieces.filter((p) => p.id !== e.pieceId) } } : m))));
+  }, []);
+  // A tap in the line brings today's foot into view (JN9, JN11).
+  const toFoot = useCallback(() => pageRef.current?.toFoot(), []);
+  // Something was kept from the line: from a thread, the threads or Hidden that means back to the page, which opens
+  // at its foot, so what was kept is seen (audit 15). Not on the tap itself: the field must keep its focus.
+  const onSeen = useCallback(() => {
+    setThreadTerm(null);
+    setOwnId(null);
+    setThreadsOpen(false);
+    setHiddenOpen(false);
+    pageRef.current?.toFoot();
+  }, []);
+  // Every list scrolls its last entry clear above the open line (JN9), and messages sit above it (JN18).
+  // The line grows by its status row while it is written in; the sheet's foot follows what it measures (ui 1).
+  const [lineH, setLineH] = useState(LINE_REST_H);
+  const clear = { paddingBottom: lineH + 24 };
   // Memories' own toast (Undo) goes in the band's column, above its pills, so the two never cover each other (audit 2).
   const undoToast = toast ? (
     <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
@@ -224,34 +297,42 @@ export function MemoriesScreen() {
           </Pressable>
         </View>
   ) : null;
-  const menuMoment = menuFor ? byId.get(menuFor) ?? null : null;
+  const menuMoment = menuFor ? inThreadById.get(menuFor) ?? null : null;
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   // A reply says what it answers wherever it is listed (audit 1).
   const answerLine = (m: MomentView) => {
     const to = answeredBy(m.id, mine.links);
-    const parent = to ? byId.get(to) : undefined;
+    const parent = to ? inThreadById.get(to) : undefined;
     return parent ? answeringLine({ place: parent.place, t: parent.t, walkLine: fromLine(walkOf(parent)) }, now) : null;
   };
-  const card = (m: MomentView) => (
-    <MomentCard key={m.id} moment={m} walk={walkOf(m)} context={state.context[m.id]} now={now} answering={answerLine(m)} onOpen={() => open(m)} onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)} onMore={() => setMenuFor(m.id)} />
-  );
+  const entry = (m: MomentView) => {
+    const c = m.capture;
+    return (
+      <Entry
+        moment={m}
+        walk={m.walkId ? threadWalks[m.walkId] : undefined}
+        context={state.context[m.id]}
+        now={now}
+        reason={reasons[m.id] ?? null}
+        answering={answerLine(m)}
+        writing={writing}
+        onOpen={() => open(m)}
+        onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
+        onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
+        onMore={() => { setMenuFromSlip(false); setMenuFor(m.id); }}
+        onOpenRef={open}
+      />
+    );
+  };
+  const failedNotice = state.status === 'failed' ? (
+    <View style={styles.quiet} testID="memories-failed">
+      <Text style={styles.quietText}>Couldn’t read your moments.</Text>
+      <Button label="Try again" variant="secondary" onPress={() => { setHiddenOpen(false); void resurface.load(); }} />
+    </View>
+  ) : null;
 
   let body;
-  if (state.status === 'failed') {
-    body = (
-      <View style={styles.quiet} testID="memories-failed">
-        <Text style={styles.quietText}>Couldn’t read your moments.</Text>
-        <Button label="Try again" variant="secondary" onPress={() => { setHiddenOpen(false); void resurface.load(); }} />
-      </View>
-    );
-  } else if (state.status === 'ready' && feed.moments.length === 0) {
-    body = (
-      // Nothing kept: one line in words, and the band below (HC13). No other button: Navigate is a tab.
-      <View style={styles.quiet} testID="memories-empty">
-        <Text style={styles.quietText}>{EMPTY}</Text>
-      </View>
-    );
-  } else if (own) {
+  if (own && ready) {
     body = (
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
         <OwnThreadScreen
@@ -286,7 +367,7 @@ export function MemoriesScreen() {
           onBack={() => setThreadTerm(null)}
           onOpen={open}
           onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
-          onMore={(m) => setMenuFor(m.id)}
+          onMore={(m) => { setMenuFromSlip(false); setMenuFor(m.id); }}
           onKeep={() => {
             // A tap copies the Chronicle's thread into one of the owner's; the Chronicle's own is untouched (OT19).
             // No name is kept for the owner: the Chronicle's is only offered in the name field (audit 13). One tap, one thread (audit 12).
@@ -310,56 +391,45 @@ export function MemoriesScreen() {
         />
       </ScrollView>
     );
-  } else if (state.status === 'ready') {
+  } else if (threadsOpen && ready) {
     body = (
-      <FlatList
-        testID="memories-list"
-        data={page.items}
-        keyExtractor={(m) => m.id}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <ReadsContext id={item.id} version={state.version} deleted={deletedIds} />
-            {card(item)}
-          </View>
-        )}
-        onEndReached={() => page.more && setLimit((l) => l + LATELY_PAGE)}
-        onEndReachedThreshold={0.6}
-        contentContainerStyle={[styles.list, clear]}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            {state.prefs.off && (
-              <View style={styles.off} testID="resurfaced-off">
-                <Text style={styles.offText}>{OFF_LINE}</Text>
-                <Button testID="resurfaced-on" label="Turn on" variant="secondary" onPress={() => void resurface.setOff(false)} />
-              </View>
-            )}
-            {pick && (
-              <Resurfaced
-                pick={pick}
-                context={state.context[pick.moment.id]}
-                now={now}
-                onOpen={() => open(pick.moment)}
-                onRelive={() => relive(pick.moment)}
-                onAnother={() => resurface.another()}
-                onMore={() => setMenuFor(pick.moment.id)}
-              />
-            )}
-            {feed.threads.length > 0 ? (
-              <ThreadsRail threads={feed.threads} moments={byId} now={now} onOpen={(t: Thread) => setThreadTerm(t.term)} />
-            ) : (
-              <Text style={styles.hint} testID="threads-hint">Threads appear once you keep coming back to something.</Text>
-            )}
-            <MyThreads rows={myRows} onOpen={(id) => setOwnId(id)} />
-            <View>
-              <Text style={styles.h} accessibilityRole="header">Lately</Text>
-              <Text style={styles.sub}>{NEWEST_FIRST}</Text>
-            </View>
-          </View>
-        }
-      />
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
+        <View style={styles.threads} testID="threads-screen">
+          <Pressable testID="threads-back" accessibilityRole="button" accessibilityLabel="Back to the journal" onPress={() => setThreadsOpen(false)} style={styles.back}>
+            <Icon name="chevron-back" size={20} color={theme.ink} />
+            <Text style={styles.backText}>Journal</Text>
+          </Pressable>
+          {feed.threads.length > 0 ? (
+            <ThreadsRail threads={feed.threads} moments={byId} now={now} onOpen={(t: Thread) => setThreadTerm(t.term)} />
+          ) : (
+            <Text style={styles.hint} testID="threads-hint">Threads appear once you keep coming back to something.</Text>
+          )}
+          <MyThreads rows={myRows} onOpen={(id) => setOwnId(id)} />
+        </View>
+      </ScrollView>
     );
   } else {
-    body = null;
+    body = (
+      <JournalPage
+        ref={pageRef}
+        rows={page.rows}
+        more={page.more}
+        now={now}
+        onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
+        footPad={lineH + 16}
+        notice={failedNotice}
+        entry={entry}
+        slip={pick ? (
+          <Slip
+            pick={pick}
+            context={state.context[pick.moment.id]}
+            now={now}
+            onOpen={() => open(pick.moment)}
+            onMore={() => { setMenuFromSlip(true); setMenuFor(pick.moment.id); }}
+          />
+        ) : null}
+      />
+    );
   }
 
   if (hiddenOpen && state.status === 'ready') {
@@ -380,31 +450,34 @@ export function MemoriesScreen() {
     );
   }
 
-  const subScreen = !!thread || !!own || (hiddenOpen && state.status === 'ready');
+  const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
   const bandLayer = (
-    <View style={styles.bandLayer} pointerEvents="box-none">
-      <MemoriesBand focused={bandFocused} onMoment={onMoment} onRecording={setMemoOn} above={undoToast} />
+    <View key="line" style={styles.bandLayer} pointerEvents="box-none">
+      <OpenLine focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast} />
     </View>
   );
 
   return (
     <View style={styles.screen} testID="memories">
-      {state.status === 'ready' && !thread && !hiddenOpen && (
+      {ready && !subScreen && (
         <View style={styles.bar}>
-          <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Memories options" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
-            <Icon name="ellipsis-horizontal" size={22} color={theme.muted} />
+          <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Contents: threads, hidden and options" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
+            <Text style={styles.menuText}>Contents</Text>
           </Pressable>
         </View>
       )}
       {/* First after the options button, so a screen reader reaches the band before the feed (HC8); drawn at the foot.
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
-      {!subScreen && bandLayer}
-      {body}
-      {subScreen && bandLayer}
+      {/* Keyed, so the line is the same line when it moves after the screen: a walk of its state survives (audit 10). */}
+      {subScreen ? [<View key="body" style={styles.body}>{body}</View>, bandLayer] : [bandLayer, <View key="body" style={styles.body}>{body}</View>]}
       <MemoriesMenu
         open={menuOpen}
         off={state.prefs.off}
         onClose={() => setMenuOpen(false)}
+        onThreads={() => {
+          setMenuOpen(false);
+          setThreadsOpen(true);
+        }}
         onHidden={() => {
           setMenuOpen(false);
           setHiddenOpen(true);
@@ -441,6 +514,20 @@ export function MemoriesScreen() {
           setMenuFor(null);
           if (m) open(m);
         }}
+        onMap={menuMoment && menuMoment.capture.lat != null && menuMoment.capture.lon != null ? () => {
+          const c = menuMoment.capture;
+          setMenuFor(null);
+          chronicleSection.showMoment([c.lon as number, c.lat as number]);
+        } : undefined}
+        onRelive={menuFromSlip && menuMoment ? () => {
+          const m = menuMoment;
+          setMenuFor(null);
+          relive(m);
+        } : undefined}
+        onAnother={menuFromSlip ? () => {
+          setMenuFor(null);
+          resurface.another();
+        } : undefined}
       />
       <ThreadMomentMenu
         open={!!ownMenuMoment}
@@ -461,7 +548,7 @@ export function MemoriesScreen() {
       />
       <CaptureViewer
         key={`memory:${viewing?.[0]?.id ?? 'none'}`}
-        captures={!memoOn && viewing ? viewing.map((v) => byId.get(v.id)?.capture ?? v) : null}
+        captures={!memoOn && viewing ? viewing.map((v) => inThreadById.get(v.id)?.capture ?? v) : null}
         onClose={() => {
           setViewing(null);
           // A reply made from the viewer is a new moment: Memories and the threads read again.
@@ -469,6 +556,7 @@ export function MemoriesScreen() {
           threads.load().catch(() => {});
         }}
         thread={own ? { id: own.id, name: own.name } : null}
+        heads={headsOf(viewing)}
         remind
         onSaveEdit={async (c, patch) => {
           await captureEdits.save(c, patch);
@@ -479,13 +567,14 @@ export function MemoriesScreen() {
       <CaptureViewer
         key={recalled?.[0]?.id ?? 'none'}
         captures={memoOn ? null : recalled}
+        heads={headsOf(recalled)}
         onClose={() => setRecalled(null)}
         autoPlay
         remind
         onSaveNote={(c, body) => resurface.saveNote(c, body)}
       />
-      {/* Low on the screen, clear of the thread's Back and More: it waits now (ui-conformance audit 6). */}
-      <UndoToast style={{ bottom: 16 }} />
+      {/* Above the open line, whatever its height: a delete's Undo waits, and must never cover the line or sit under it (fix journal-note-pages audit 1). */}
+      <UndoToast style={{ bottom: lineH + 12, zIndex: 3 }} />
     </View>
   );
 }
@@ -494,18 +583,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   bandLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2 },
   scroll: { flex: 1 },
+  body: { flex: 1 },
   pad: { paddingHorizontal: 16, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  list: { paddingHorizontal: 16, paddingBottom: 32, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  header: { gap: 22, paddingBottom: 12 },
+  threads: { gap: 22 },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, alignSelf: 'flex-start', paddingRight: 12 },
+  backText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   bar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  menuBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  off: { backgroundColor: theme.surface, borderRadius: 14, borderWidth: 1, borderColor: theme.line, padding: 14, gap: 10, alignItems: 'flex-start' },
-  offText: { color: theme.ink, fontSize: 15 },
-  item: { paddingBottom: 12 },
-  h: { color: theme.ink, fontSize: 16, fontWeight: '700' },
-  sub: { color: theme.muted, fontSize: 13 },
+  menuBtn: { minWidth: 44, height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  menuText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   hint: { color: theme.muted, fontSize: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.line, borderRadius: 14, padding: 12 },
-  quiet: { padding: 24, gap: 14, alignItems: 'flex-start' },
+  quiet: { paddingVertical: 8, gap: 14, alignItems: 'flex-start' },
   quietText: { color: theme.ink, fontSize: 16, lineHeight: 23 },
   toast: { width: '100%', maxWidth: 480, backgroundColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   toastText: { color: theme.bg, fontSize: 14, flex: 1 },

@@ -83,6 +83,8 @@ async function checks(h) {
     {
       // AT9: the small map shows the areas' points; selecting a tile frames its area with its 800 m ring.
       const ring = () => page.locator('[data-ring]').last().getAttribute('data-ring');
+      // Neighborhood boundaries (HB9): its own ground, as a line, stands in place of the ring once the tiles are kept.
+      const drawnAround = async () => ((await ring()) || (await page.locator('[data-ground]').last().getAttribute('data-ground')) || '');
       // The points are drawn once the map has loaded its style and the areas are read: wait for them before counting.
       await page.waitForSelector('[data-testid=area-point]', { timeout: 15000 }).catch(() => {});
       const points = await page.locator('[data-testid=area-point]').count();
@@ -106,8 +108,9 @@ async function checks(h) {
       const dy = dot ? dot.y + dot.height / 2 - (canvas.y + canvas.height / 2) : NaN;
       const selName = (await sel.count()) ? await sel.first().getAttribute('data-name') : null;
       // Explore's fit pads 84 px under its title and 24 px at the bottom: the area sits 30 px below the middle.
-      check(points >= hoods.length && !ringBefore && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
-        `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      for (let i = 0; i < 20 && !(await drawnAround()); i++) await page.waitForTimeout(500);
+      check(points >= hoods.length && !ringBefore && (await drawnAround()) !== '' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
+        `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring, or its own ground (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
@@ -169,7 +172,8 @@ async function checks(h) {
       await page.click('[data-testid=atlas-how]');
       {
         const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
-        check(/same marks mean the same anywhere/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
+        // A neighborhood counted across its own ground says so instead of the ring's line (neighborhood boundaries audit 11).
+        check(/same marks mean the same anywhere|counted across the ground drawn around it/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
       }
       await shot(page, '11c-atlas-card');
       {

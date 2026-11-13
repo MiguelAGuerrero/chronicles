@@ -1,6 +1,5 @@
 // @layer shell
-import type { AtlasProfile } from '../atlas/atlas';
-import { computeRingPaced, type RingInput } from '../atlas/ringCompute';
+import { computeRingPaced, type RingInput, type RingOutput } from '../atlas/ringCompute';
 import { computeReadPaced, type ComputeInput, type ComputeOutput } from './compute';
 import type { WorkerJob } from './workerJobs';
 
@@ -31,7 +30,7 @@ export interface OffPagePorts {
  */
 export function createOffPage(p: OffPagePorts, timeoutMs = 60000): {
   run(input: ComputeInput, shouldStop?: () => boolean): Promise<ComputeOutput>;
-  ring(input: RingInput, shouldStop?: () => boolean): Promise<AtlasProfile>;
+  ring(input: RingInput, shouldStop?: () => boolean): Promise<RingOutput>;
 } {
   const POLL_MS = 250;
   const cancelled = () => new Error('Read cancelled');

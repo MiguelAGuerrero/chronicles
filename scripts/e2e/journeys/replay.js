@@ -111,10 +111,14 @@ async function run(h) {
     await pg.waitForTimeout(1100);
     await pg.mouse.up();
     await pg.waitForURL(/replay/, { timeout: 30000 });
+    // The reading beat can be shorter than a poll with the streets already read: pictured when it shows.
+    if (await pg.waitForSelector('[data-testid=replay-reading]', { timeout: 3000 }).then(() => true, () => false)) await shot(pg, 'rr-reading');
+    await pg.waitForSelector('[data-testid=replay-headline], [data-testid=replay-clock]', { timeout: 60000 }).catch(() => {});
+    if (await pg.locator('[data-testid=replay-headline]').count()) await shot(pg, 'rr-fog');
     await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
     // What the stage shows, recorded in the page every 50 ms: a card is up for about 2 s, quicker than a poll.
     await pg.evaluate(() => {
-      window.__rrSeen = { cards: [], later: [], notes: [], counted: [], memoPlay: null, videoEndedInCard: false, videoSkeleton: false, memoSkeleton: false, awakeOnPath: false };
+      window.__rrSeen = { cards: [], later: [], notes: [], counted: [], memoPlay: null, videoEndedInCard: false, videoSkeleton: false, memoSkeleton: false, awakeOnPath: false, ends: [] };
       const add = (list, v) => v && !list.includes(v) && list.push(v);
       window.__rrTimer = setInterval(() => {
         document.querySelectorAll('[data-testid=replay-card]').forEach((e) => add(window.__rrSeen.cards, e.getAttribute('aria-label')));
@@ -129,6 +133,9 @@ async function run(h) {
         if (document.querySelector('[data-testid=replay-card] [data-testid=media-skeleton]') && document.querySelector('[data-testid=replay-card] video')) window.__rrSeen.videoSkeleton = true;
         if (document.querySelector('[data-testid=memo-skeleton]')) window.__rrSeen.memoSkeleton = true;
         if (window.__wake.held > 0) window.__rrSeen.awakeOnPath = true;
+        // Where the end marker sits while the path is told (tend replay 2).
+        const ends = document.querySelector('[data-ends]')?.getAttribute('data-ends');
+        if (ends != null && document.querySelector('[data-testid=replay-clock]')) add(window.__rrSeen.ends, ends.split('|')[1] || 'none');
         // The video reached its end while its card was still up (audit 20).
         const v = document.querySelector('[data-testid=replay-card] video');
         if (v && v.ended) window.__rrSeen.videoEndedInCard = true;
@@ -140,14 +147,13 @@ async function run(h) {
 
     const clockNow = () => pg.locator('[data-testid=replay-clock]').getAttribute('aria-label').catch(() => null);
     const clocks = new Set();
-    const seen = { cont: false, note: false, card: false, later: '', counted: '' };
+    const seen = { note: false, card: false, later: '', counted: '' };
     let holdChecked = false;
     let tapChecked = false;
     let pileChecked = false;
     let soundChecked = false;
     let afterViewer = -1;
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=to-name]').count()); k++) {
-      if (await pg.locator('[data-testid=moment]').count()) seen.cont = true;
       if ([2, 5, 9, 14, 20].includes(k)) await shot(pg, `rr-path-${k}`);
       const ck = await clockNow();
       if (ck) clocks.add(ck);
@@ -194,6 +200,17 @@ async function run(h) {
         pileChecked = true;
       }
       if (!soundChecked && (await pg.locator('[data-testid=video-sound]').count())) {
+        // A 44 px target on a solid ground, its words at 13 px or more, spoken as shown (tend replay 6).
+        await shot(pg, 'rr-sound');
+        const chip = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=video-sound]');
+          const b = e.getBoundingClientRect();
+          const bg = getComputedStyle(e).backgroundColor;
+          const alpha = /rgba\([^)]*,\s*([\d.]+)\)/.exec(bg);
+          const text = [...e.querySelectorAll('*')].find((n) => n.childElementCount === 0 && /Tap for sound/.test(n.textContent));
+          return { w: Math.round(b.width), h: Math.round(b.height), opaque: !alpha || Number(alpha[1]) === 1, font: text ? parseFloat(getComputedStyle(text).fontSize) : 0, name: e.getAttribute('aria-label') };
+        });
+        check(chip.w >= 44 && chip.h >= 44 && chip.opaque && chip.font >= 13 && /Tap for sound/.test(chip.name ?? ''), `tend replay 6: a video card's Tap for sound is a 44 px target on a solid ground, 13 px or more, named as it reads (${JSON.stringify(chip)})`);
         // Sound refused: the video plays muted, and its "Tap for sound" can be tapped (replay-rhythm audit 3).
         const tapped = await pg.click('[data-testid=video-sound]', { timeout: 2000 }).then(() => true, () => false);
         await pg.waitForTimeout(300);
@@ -226,7 +243,12 @@ async function run(h) {
     seen.later = rec.later.join(' | ');
     seen.counted = rec.counted.join(' | ');
     const onCard = (await pg.locator('[data-testid=to-name]').count()) === 1;
-    check(onCard && !seen.cont, `RR6: the replay reaches its card with no Continue (${onCard}, ${seen.cont})`);
+    // The end marker stands where the whole trace ends through the path, as on the card: never on the walker (tend replay 2, QL2).
+    const cardEnd = ((await pg.locator('[data-ends]').first().getAttribute('data-ends')) ?? '').split('|')[1];
+    check(cardEnd && rec.ends.length === 1 && rec.ends[0] === cardEnd, `tend replay 2: through the path the end marker stays at the trace's last point (${rec.ends.length} places: ${rec.ends.slice(0, 4).join(' ; ')}; the card's ${cardEnd})`);
+    // The screen reader's steps (the only Continue) never mount on the web, so "no Continue" proved nothing here
+    // (tend replay 14); reaching the card with no tap but the checks' own is the claim.
+    check(onCard, `RR6: the replay reaches its card by itself (${onCard})`);
     check(clocks.size >= 3, `RR8: the clock rolls through the walk (${[...clocks].join(', ')})`);
     check((await pg.locator('[data-testid=replay-clock]').count()) === 0, 'RR8: the clock goes when the card comes');
     check(seen.note, 'RR9: the note shows in a bubble');
@@ -247,6 +269,39 @@ async function run(h) {
     check(rec.awakeOnPath && wake.held === 0, `RR24: the screen is held awake through the replay and let go on the card (${JSON.stringify(wake)})`);
     check(rec.memoPlay && rec.memoPlay[0] >= 44 && rec.memoPlay[1] >= 44, `RR10, replay-rhythm audit 27: the memo's bubble shows, its play button 44 px (${JSON.stringify(rec.memoPlay)})`);
 
+    // Escape (web) is Back's sibling (tend replay 5): from the name step back to the card, the name typed kept; with a
+    // viewer open from a pin it leaves nothing (the web's viewer takes no Escape itself: captures-and-media.md).
+    await pg.waitForTimeout(800);
+    await shot(pg, 'rr-card');
+    await pg.click('[data-testid=to-name]');
+    await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
+    await shot(pg, 'rr-name');
+    await pg.keyboard.press('Escape');
+    const backOnCard = await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).then(() => true, () => false);
+    await pg.click('[data-testid=to-name]').catch(() => {});
+    const kept = await pg.inputValue('[data-testid=title-input]').catch(() => null);
+    await pg.keyboard.press('Escape');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    check(backOnCard && kept === 'Plums by the bridge', `tend replay 5: Escape on the name step returns to the card, the name typed kept (${backOnCard}, "${kept}")`);
+    // A held Escape stops at the card: its repeats never leave the replay with the words unsaved (tend replay audit 4).
+    await pg.click('[data-testid=to-name]');
+    await pg.waitForSelector('[data-testid=title-input]', { timeout: 3000 }).catch(() => {});
+    await pg.keyboard.down('Escape');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    await pg.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', repeat: true, bubbles: true })));
+    await pg.keyboard.up('Escape');
+    await pg.waitForTimeout(800);
+    const heldStays = /\/replay\//.test(new URL(pg.url()).pathname) && (await pg.locator('[data-testid=to-name]').count()) === 1;
+    check(heldStays, `tend replay audit 4: a held Escape on the name step stops at the card (${new URL(pg.url()).pathname})`);
+    await pg.getByRole('button', { name: /\. Open$/ }).first().click();
+    const viewerUp = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(800);
+    const stayed = /\/replay\//.test(new URL(pg.url()).pathname) && (await pg.locator('[data-testid=to-name]').count()) === 1;
+    check(viewerUp && stayed, `tend replay 5: Escape with a viewer open from a pin leaves neither the replay nor its card (${viewerUp}, ${stayed}, ${new URL(pg.url()).pathname})`);
+    await pg.click('[data-testid=viewer-close]').catch(() => {});
+    await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 3000 }).catch(() => {});
+
     // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).
     await pg.setViewportSize({ width: 844, height: 390 });
     await pg.getByText('Watch again').click();
@@ -255,11 +310,95 @@ async function run(h) {
     const cb = await pg.locator('[data-testid=replay-card]').first().boundingBox().catch(() => null);
     const hb = await pg.locator('[data-testid=hold]').boundingBox().catch(() => null);
     const sb = await pg.locator('[data-testid=skip]').boundingBox().catch(() => null);
-    const clear = (r) => !r || !cb || cb.x + cb.width <= r.x || r.x + r.width <= cb.x || cb.y + cb.height <= r.y || r.y + r.height <= cb.y;
+    // Hold and Skip must be there to be cleared (tend replay 11: a missing button let this pass).
+    const clear = (r) => !!r && !!cb && (cb.x + cb.width <= r.x || r.x + r.width <= cb.x || cb.y + cb.height <= r.y || r.y + r.height <= cb.y);
     check(card && cb && cb.y >= 0 && cb.y + cb.height <= 390 && clear(hb) && clear(sb), `replay-rhythm audit 13: the card fits a landscape phone, clear of Hold and Skip (${JSON.stringify(cb)})`);
-    await shot(pg, 'rr-landscape');
+    // Under all the top can show: the clock, "N min later" and "Held" (tend replay 11).
+    check(cb && cb.y >= 118, `tend replay 11: on a landscape phone the card stands under the clock's line and the Held pill (${JSON.stringify(cb)})`);
+    // Held with the card up, the Held pill (and "N min later", when a cut is up) stand clear of the card: measured, not
+    // a sum of heights (tend replay audit 5).
+    await pg.click('[data-testid=hold]');
+    await pg.waitForTimeout(300);
+    const pills = await pg.evaluate(() => {
+      const r = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height }; };
+      return { card: r('[data-testid=replay-card]'), held: r('[data-testid=replay-held]'), later: r('[data-testid=replay-later]'), clock: r('[data-testid=replay-clock]') };
+    });
+    const meets = (a, b) => !!a && !!b && !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
+    check(pills.card && pills.held && !meets(pills.card, pills.held) && !meets(pills.card, pills.later) && !meets(pills.card, pills.clock),
+      `tend replay audit 5: on a landscape phone, held, the clock, Held and any "N min later" never meet the card (${JSON.stringify(pills)})`);
+    await shot(pg, 'rr-landscape-held');
     await pg.click('[data-testid=skip]');
     await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+    await pg.setViewportSize({ width: 390, height: 844 });
+
+    // The fog's headline stands below the top row, clear of Skip, 16 px in from each edge, at 390 and at 320 (tend replay 1).
+    const boxOf = (sel) => pg.locator(sel).first().boundingBox().catch(() => null);
+    const apart = (a, b) => a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.getByText('Watch again').click();
+      const shown = await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 15000 }).then(() => true, () => false);
+      await pg.waitForTimeout(400);
+      const hb = await boxOf('[data-testid=replay-headline]');
+      const sb = await boxOf('[data-testid=skip]');
+      check(shown && hb && sb && apart(hb, sb) && hb.x >= 16 && hb.x + hb.width <= w - 16,
+        `tend replay 1: at ${w} px the fog's headline clears Skip and keeps 16 px from each edge (${JSON.stringify(hb)}, Skip ${JSON.stringify(sb)})`);
+      check(hb && sb && hb.y >= sb.y + sb.height + 8 - 0.5, `tend replay audit 6: at ${w} px the fog's headline starts 8 px below Skip (headline ${hb && hb.y}, Skip's foot ${sb && sb.y + sb.height})`);
+      await shot(pg, `rr-fog-${w}`);
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+    }
+    // On a 375 or 320 px phone a card stands above a note's bubble in the corner, under the top row (tend replay 7).
+    for (const [w, ht] of [[375, 667], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.getByText('Watch again').click();
+      const up = await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).then(() => true, () => false);
+      await pg.waitForTimeout(1200);
+      const cb = await boxOf('[data-testid=replay-card]');
+      check(up && cb && cb.y + cb.height <= ht - 44 - 160 && cb.y >= 64, `tend replay 7: at ${w}x${ht} the card stands clear of the bubbles' corner and the top row (${JSON.stringify(cb)})`);
+      await shot(pg, `rr-beat-${w}`);
+      if (w === 320) {
+        // The memo's bubble keeps its time whole at 320 px; its label gives way first (tend replay 8).
+        const memo = await pg.waitForSelector('[data-testid=memo-play]', { timeout: 60000 }).then(() => true, () => false);
+        await pg.waitForTimeout(600);
+        const time = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=memo-time]');
+          return e ? { text: e.textContent, whole: e.scrollWidth <= e.clientWidth + 1, right: Math.round(e.getBoundingClientRect().right) } : null;
+        });
+        check(memo && time && time.whole && /\d\d(\s?[AP]M)?$/.test(time.text) && time.right <= w, `tend replay 8: at 320 px the memo's bubble shows its time whole (${JSON.stringify(time)})`);
+        // On one line, inside its bubble: a wrapped "5:38 / PM" was "whole" too (tend replay audit 2).
+        const line = await pg.evaluate(() => {
+          const e = document.querySelector('[data-testid=memo-time]');
+          if (!e) return null;
+          const r = document.createRange();
+          r.selectNodeContents(e);
+          const tops = new Set([...r.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top)));
+          const bubble = e.closest('[data-testid=memo-bubble]')?.getBoundingClientRect();
+          return { lines: tops.size, right: Math.round(e.getBoundingClientRect().right), bubbleRight: bubble ? Math.round(bubble.right) : null };
+        });
+        check(line && line.lines === 1 && line.bubbleRight != null && line.right <= line.bubbleRight, `tend replay audit 2: at 320 px the memo's time is one line inside its bubble (${JSON.stringify(line)})`);
+        await shot(pg, 'rr-memo-320');
+      }
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+      // The walk's card at this width, once its title shows, its map drawing both ends of the walk (tend map audit 11:
+      // these pictures showed a moment's beat, so no 320 or 375 picture held either marker). This page has no
+      // window.__project (only contexts with window.__perf do), so where the ends stand is the picture's to show.
+      const titled = await pg.waitForFunction(() => {
+        const more = document.querySelector('[data-testid=card-more]');
+        const head = more && more.parentElement && more.parentElement.querySelector('[role=heading]');
+        return !!(head && head.textContent && head.textContent.trim());
+      }, null, { timeout: 15000 }).then(() => true, () => false);
+      await pg.waitForTimeout(600);
+      const endsHere = await pg.evaluate(() => {
+        const els = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden=true]'));
+        return els.length ? els[els.length - 1].getAttribute('data-ends') : null;
+      });
+      const [endA, endB] = (endsHere ?? '').split('|');
+      check(titled && /^-?\d/.test(endA ?? '') && /^-?\d/.test(endB ?? ''),
+        `tend map audit 11: at ${w} px the walk's card is up with its title, its map drawing both ends of the walk (data-ends ${JSON.stringify(endsHere)})`);
+      await shot(pg, `rr-card-${w}`);
+    }
     await pg.setViewportSize({ width: 390, height: 844 });
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
@@ -272,15 +411,34 @@ async function run(h) {
     await pg.click('[data-testid=day-replay]');
     await pg.waitForURL(/\/day\//, { timeout: 15000 });
     let dayNote = false;
-    let dayCont = false;
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=day-card]').count()); k++) {
-      if (await pg.locator('[data-testid=day-moment]').count()) dayCont = true;
       if (await pg.getByText('Bought two plums').count()) dayNote = true;
       await pg.waitForTimeout(150);
     }
-    check((await pg.locator('[data-testid=day-card]').count()) === 1 && !dayCont && dayNote, `RR16: the day's replay reaches its card with no taps, its note on the way (${dayNote}, ${dayCont})`);
+    // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
+    check((await pg.locator('[data-testid=day-card]').count()) === 1 && dayNote, `RR16: the day's replay reaches its card by itself, its note on the way (${dayNote})`);
     const dayWake = await pg.evaluate(() => window.__wake);
     check(dayWake.log.length > wakesBefore && dayWake.held === 0, `RR24: the day's replay holds the screen awake too, and lets it go on its card (${JSON.stringify(dayWake)})`);
+    // The day framed above its card once the fit has settled.
+    await pg.waitForTimeout(1200);
+    await shot(pg, 'rr-day-card');
+    // The day's card is as quiet as the walk's (tend replay 12, tabs audit U13): its line set as the walk card's, no
+    // large or accent text in it.
+    const quiet = await pg.evaluate(() => {
+      const card = document.querySelector('[data-testid=day-card]');
+      const line = document.querySelector('[data-testid=day-card-line]');
+      const cs = line && getComputedStyle(line);
+      const loud = [...card.querySelectorAll('div, span')]
+        .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
+        .filter((e) => { const s = getComputedStyle(e); return parseFloat(s.fontSize) >= 28 || s.color === 'rgb(194, 65, 12)'; })
+        .map((e) => e.textContent.trim());
+      return { size: cs ? parseFloat(cs.fontSize) : null, weight: cs ? Number(cs.fontWeight) : null, loud };
+    });
+    check(quiet.size === 16 && quiet.weight < 600 && quiet.loud.length === 0, `tend replay 12: the day card's line is set as the walk card's, nothing large or in the accent (${JSON.stringify(quiet)})`);
+    // Escape leaves the day's replay as Done does (tend replay 5).
+    await pg.keyboard.press('Escape');
+    const leftDay = await pg.waitForURL((u) => !u.pathname.includes('/day/'), { timeout: 5000 }).then(() => true, () => false);
+    check(leftDay, `tend replay 5: Escape leaves the day's replay from its card (${new URL(pg.url()).pathname})`);
     await c.close();
     // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.
     for (let i = errors.length - 1; i >= 0; i--) if (/NotAllowedError: refused/.test(errors[i])) errors.splice(i, 1);

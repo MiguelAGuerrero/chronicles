@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { formatElapsed } from '../../lib/format';
-import { GONE, parseRefs } from '../../lib/refs';
+import { GONE, noteParts } from '../../lib/refs';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import { refCardLine } from '../../lib/threads/lines';
@@ -19,12 +19,12 @@ const KIND_ICON: Record<MomentView['kind'], IconName> = { photo: 'camera', video
  * card of that moment: its first piece, its kind, date and place, and its walk (steward S1). A tap opens it; a moment
  * gone or waiting in Undo reads "a moment no longer kept" and opens nothing.
  */
-export function NoteText(props: { body: string; style: StyleProp<TextStyle>; onOpen: (v: MomentView) => void }) {
-  const parts = parseRefs(props.body);
+export function NoteText(props: { body: string; format?: 'md' | null; style: StyleProp<TextStyle>; onOpen: (v: MomentView) => void }) {
+  const parts = noteParts(props.body, props.format);
   const pool = useMomentPool(props.body);
   const hidden = useHidden();
   const [now] = useState(() => Date.now());
-  if (!parts.some((p) => 'ref' in p)) return <Text style={props.style}>{props.body}</Text>;
+  if (!parts.some((p) => 'ref' in p)) return <Text style={props.style}>{parts.map((p) => ('text' in p ? p.text : '')).join('')}</Text>;
   return (
     <View style={styles.col} testID="note-with-refs">
       {parts.map((p, i) => {

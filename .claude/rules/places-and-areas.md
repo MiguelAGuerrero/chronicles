@@ -92,6 +92,31 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     is Manhattan, not New York). Real fixtures: `__tests__/places/townOutlines.json`
     (`scripts/fixture-outlines.mjs`). Overture's bucket is reachable from
     cloud sessions.
+- **Neighborhood shapes** (HB1-HB16, decision 0152; `AREA_RULES` 5, `ATLAS_CODE` a11, `OUTLINE_DECODE` sub2): a neighborhood is the
+  smallest real shape holding the piece, else the nearest point within 1 km inside the town.
+  - **Source:** `divisionTiles.ts` reads `division_area` of subtype `neighborhood` or `macrohood` on land at z12 only; a
+    `microhood` (a plaza), a maritime area, an unnamed one and any name ending in "Association" are left out. Overture's "districts"
+    are not these subtypes. Baltimore has no city outline (a county and a label point), so its town is decided by point.
+  - **One function decides** (`areas/hoods.ts`, core): `hoodAt(p, candidates, town, set, within)`. `assignAreas` and
+    `areaFor` both call it, so they cannot disagree (HB8). `areaFor` decides the neighborhood with the town at its own reach
+    (`townAt` uncapped), and caps only the town it returns, or a point far from a city's label point had no town and so no shape
+    (found by HB8). A shape counts only inside the point's town (`hoodAllowed`) and a point in no town takes none by shape.
+  - **Candidates:** `withHoods` (in `outlines.ts`, called at the end of `withOutlines`) joins a tile point and a shape of one name
+    (the point inside it) into one candidate, keeping its area key; a shape with no point is a neighborhood of its own at a point
+    inside it (`representative`, `shapes.ts`: a concave shape's centroid can lie outside it); and a point-only neighborhood whose
+    point lies inside another's shape is dropped (HB6). `withoutOutlines` strips `hoodOutline` before candidates are stored.
+  - **Ground:** `hoodGround` is a shape with the smaller shapes inside it cut out as holes, or, for a point-only neighborhood, the
+    cells `hoodAt` gives it, traced on a grid fixed to the map so two shares meet edge to edge, kept inside the outline-decided town that holds its point (the line never crosses the border drawn beside it), and smoothed (corner cutting, an even resample, a moving average; an average by vertex index goes wrong where a long edge has few vertices). `hoodExtentFor` gives a card the
+    shape to count across (`Extent.shape`, profile `extent: 'shape'`); a share-only neighborhood still counts across the ring.
+    `groundOf` is what a screen asks, from the kept tiles only: `useHoodGround` looks in the cache a few times and never the
+    network (selecting makes no request, HB12), and the map keeps its ring until the tiles are kept.
+  - **Drawn:** `groundDraw.ts`: one line in the app's ink, no fill, no properties; the same for a shape and a share; never a name,
+    a count or a tint, and never an accessible label of its own (HB10, HB14, HB15). Adding a fill, a colour by walks or finds, or
+    a figure to it is the coverage view the vision rules out.
+  - **Storage:** `OutlineTile.hoods` (SQLite migration 26, `outline_tile.hoods`; IndexedDB keeps the tile whole). A tile with no
+    shapes reads back without the field; one stored by the old decoder is read again by its stamp.
+  - **Trap:** a macrohood is a neighborhood only where no smaller shape holds the point; a point-only name inside it is dropped too.
+    A shape that only partly overlaps another's is not cut out of the larger's line (docs/DEFERRED.md).
 - **Natural Earth's 50m admin-1 is too coarse.** It leaves Manhattan, Hoboken
   and Miami Beach outside every state. The shipped US pack is built from the
   10m edition (577 KB). Rebuild it with

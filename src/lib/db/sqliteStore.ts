@@ -55,7 +55,7 @@ const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
 
 const WALK_COLUMNS = ['started_at', 'ended_at', 'title', 'epilogue', 'open', 'area', 'snapped_build'] as const;
 const MOMENT_COLUMNS = ['walk_id', 'lat', 'lon', 'segment_id'] as const;
-const PIECE_COLUMNS = ['t', 'kind', 'file_path', 'body', 'caption', 'caption_y', 'thumb_path', 'edit'] as const;
+const PIECE_COLUMNS = ['t', 'kind', 'file_path', 'body', 'caption', 'caption_y', 'thumb_path', 'edit', 'body_format'] as const;
 
 /**
  * Moments joined to their pieces, one statement per read (MT7): the piece's columns are prefixed `p_` and
@@ -63,7 +63,7 @@ const PIECE_COLUMNS = ['t', 'kind', 'file_path', 'body', 'caption', 'caption_y',
  */
 const MOMENT_SELECT =
   'SELECT m.id, m.walk_id, m.t, m.lat, m.lon, m.segment_id, c.id AS p_id, c.t AS p_t, c.kind AS p_kind, c.file_path AS p_file_path, ' +
-  'c.body AS p_body, c.caption AS p_caption, c.caption_y AS p_caption_y, c.thumb_path AS p_thumb_path, c.edit AS p_edit ' +
+  'c.body AS p_body, c.caption AS p_caption, c.caption_y AS p_caption_y, c.thumb_path AS p_thumb_path, c.edit AS p_edit, c.body_format AS p_body_format ' +
   'FROM moment m JOIN capture c ON c.moment_id = m.id';
 const ORDER = ' ORDER BY m.t, m.id, c.t';
 
@@ -162,8 +162,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         );
         for (const c of m.pieces) {
           await t.runAsync(
-            'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            c.id, m.id, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit),
+            'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit, body_format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            c.id, m.id, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit), c.body_format ?? null,
           );
         }
       });
@@ -182,8 +182,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return write(async (t) => {
         if (!(await t.getFirstAsync('SELECT 1 FROM moment WHERE id = ?', momentId))) throw new Error(`No moment ${momentId}.`);
         await t.runAsync(
-          'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          c.id, momentId, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit),
+          'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit, body_format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          c.id, momentId, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit), c.body_format ?? null,
         );
       });
     },
@@ -565,8 +565,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return write(async (t) => {
         for (const r of tiles) {
           await t.runAsync(
-            'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
+            'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points, hoods) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points), JSON.stringify(r.hoods ?? []),
           );
         }
       });
@@ -574,9 +574,13 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     async getOutlineTiles(keys) {
       if (!keys.length) return [];
       const want = [...new Set(keys)].sort();
-      type Row = Omit<OutlineTile, 'pieces' | 'points'> & { pieces: string; points: string };
+      type Row = Omit<OutlineTile, 'pieces' | 'points' | 'hoods'> & { pieces: string; points: string; hoods: string };
       const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM outline_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
-      return rows.map((r) => ({ ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points) }));
+      return rows.map(({ hoods, ...r }) => {
+        const shapes: OutlineTile['hoods'] = JSON.parse(hoods);
+        // A tile kept before the shapes were cut has none, as IndexedDB's has no field (HB12).
+        return { ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points), ...(shapes?.length ? { hoods: shapes } : {}) };
+      });
     },
     putWalkTiles(tiles) {
       if (!tiles.length) return Promise.resolve();

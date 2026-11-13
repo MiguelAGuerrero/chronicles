@@ -9,6 +9,7 @@ import { MarkPinView, markKey, markLabel } from '../MarkPinView';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
+import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
@@ -29,7 +30,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -94,6 +95,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const lastBearing = useRef(0);
+  // A map that comes back opens north-up (CP8), so its screen hears north as it goes (tend map audit 6).
+  const bearingOut = useRef(props.onBearingChange);
+  useEffect(() => {
+    bearingOut.current = props.onBearingChange;
+  });
+  useEffect(
+    () => () => {
+      if (lastBearing.current !== 0) bearingOut.current?.(0);
+    },
+    [],
+  );
   const queryRef = useRef<VectorSourceRef>(null);
   const [ready, setReady] = useState(false);
   const readyWaiters = useRef<(() => void)[]>([]);
@@ -184,11 +196,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const waitingDots = useMemo(() => waitingDotsGeoJSON(props.waitingDots), [props.waitingDots]);
   // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
   // of the trace (MapLibre RN serializes a source's data on each change).
-  const endPoints = traceEnds(props.trace, !!props.ended);
+  const endPoints = traceEnds(Array.isArray(props.ended) ? props.ended : props.trace, !!props.ended);
   const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
+  const ground = useMemo(() => groundGeoJSON(props.ground ?? null), [props.ground]);
   const complexLines = useMemo(() => (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, [props.complexes]);
   // Town borders (TB1-TB5): rebuilt only when the towns or their roles change (TB9).
   const borderKey = props.borders?.key ?? '';
@@ -372,8 +385,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           if (e.nativeEvent.userInteraction) props.onUserMove?.();
           props.onMoveState?.(true);
         }}
-        // Two fingers turn the map (CP1); a tilt never does.
-        touchRotate
+        // Two fingers turn a map with a compass (CP1, decision 0082); the others stay north-up (tend map 1). A tilt never.
+        touchRotate={!!props.onBearingChange}
         touchPitch={false}
         dragPan={!props.onSwipe || !!props.freePan}
         onRegionDidChange={(e) => {
@@ -490,13 +503,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH }} />
         </GeoJSONSource>
         {/* Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins,
-            going with the trace's opacity. A white disc ringed in the trace's green, or the walked orange. */}
+            going with the trace's opacity. The start hollow, ringed in the trace's green; the end solid,
+            filled in the walked colour with a white ring (tend map T16). */}
         <GeoJSONSource id="ends" data={ends}>
           <Layer id="ends" type="circle" paint={{
-            'circle-color': '#ffffff',
-            'circle-radius': 7,
-            'circle-stroke-width': 4,
-            'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, COLORS.walked],
+            ...ENDS_PAINT,
             'circle-opacity': props.traceOpacity ?? 1,
             'circle-stroke-opacity': props.traceOpacity ?? 1,
           }} />
@@ -508,6 +519,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="ring" data={ring}>
           <Layer id="ring-fill" type="fill" paint={{ 'fill-color': RING_COLOR, 'fill-opacity': 0.12 }} />
           <Layer id="ring" type="line" paint={{ 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] }} />
+        </GeoJSONSource>
+        {/* A selected neighborhood's own ground (HB9): one line, one look for every neighborhood, no fill (HB14). */}
+        <GeoJSONSource id="ground" data={ground}>
+          <Layer id="ground" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': groundStyle().color, 'line-width': groundStyle().width }} />
         </GeoJSONSource>
         {/* The selected area's complexes (CX9): an outline with no fill, in a hue of its own. */}
         <GeoJSONSource id="complexes" data={complexLines}>

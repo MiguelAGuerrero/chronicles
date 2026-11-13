@@ -1,25 +1,37 @@
 // @layer view
+import type { RefObject } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { compassRotation, showsCompass } from '../lib/compass';
+import { focusOn } from '../lib/focus';
+import type { Store } from '../lib/store';
+import { useStore } from '../lib/useStore';
 import { theme } from './ui';
 
 /**
  * The compass (CP2-CP5): a round edge button in Locate's column, drawn only while the map is turned.
  * Its needle turns against the map so the red end keeps pointing north; a tap turns the map back.
+ * The tap takes the compass away (CP4), so the focus goes on to `focusAfter`, the button below it in
+ * the column, rather than to the page (tend map 6).
  */
-export function CompassButton(props: { bearing: number; onPress: () => void; bottom: number; right?: number }) {
+export function CompassButton(props: { bearing: Store<number>; onPress: () => void; bottom: number; right?: number; focusAfter?: RefObject<unknown> }) {
   const { width } = useWindowDimensions();
-  if (!showsCompass(props.bearing)) return null;
+  // Read here, not by the screen: a two-finger turn reports every half degree, and the screen re-rendered each time
+  // (tend map 8). Only the compass's needle follows it.
+  const bearing = useStore(props.bearing, (b) => b);
+  if (!showsCompass(bearing)) return null;
   const right = props.right ?? Math.max(12, (width - 640) / 2 + 12);
   return (
     <Pressable
       testID="compass"
       accessibilityRole="button"
       accessibilityLabel="Point the map north"
-      onPress={props.onPress}
+      onPress={() => {
+        props.onPress();
+        if (props.focusAfter) focusOn(props.focusAfter);
+      }}
       style={({ pressed }) => [styles.edgeBtn, { right, bottom: props.bottom }, pressed && styles.pressed]}
     >
-      <View testID="compass-needle" style={[styles.needle, { transform: [{ rotate: `${compassRotation(props.bearing)}deg` }] }]}>
+      <View testID="compass-needle" style={[styles.needle, { transform: [{ rotate: `${compassRotation(bearing)}deg` }] }]}>
         <View style={styles.north} />
         <View style={styles.south} />
       </View>

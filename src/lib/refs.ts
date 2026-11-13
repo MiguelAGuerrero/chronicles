@@ -1,4 +1,5 @@
 // @layer core
+import { stripMarks } from './notePage/plain';
 
 /**
  * Moment references (specs/moment-references, decision 0125): a note mentions another moment by a token in its own
@@ -51,7 +52,9 @@ export function plainRefs(body: string, words: (id: string) => string | null = (
 }
 
 /** A note's words for a plain-text reader with no lookup (rows, Lately, a reminder, the replay): never a raw token. */
-export const plainNote = (body: string | null | undefined): string | null => (body == null ? null : plainRefs(body));
+/** A note as words (NP10): a body the page wrote (`format` 'md') loses its marks too; any other reads as stored (NP7). */
+export const plainNote = (body: string | null | undefined, format?: 'md' | null): string | null =>
+  body == null ? null : format === 'md' ? stripMarks(plainRefs(body)) : plainRefs(body);
 
 /**
  * The notes that mention a moment (RF7), read from their bodies when shown: oldest first, by date, never by how often
@@ -159,3 +162,10 @@ export function typedAt(prev: string, next: string): number | null {
   while (a < prev.length && prev[a] === next[a]) a++;
   return next[a] === '@' && next.slice(a + 1) === prev.slice(a) ? a : null;
 }
+
+/** A note's mentions of moments no longer kept read so (RF5; note-pages audit 10), for a drawing that has no lookup. */
+export const withGone = (body: string, gone: (id: string) => boolean): string =>
+  body.replace(TOKEN, (m, id: string) => (gone(id) ? refToken(id, GONE) : m));
+
+/** A note's words and mentions in order; a page's marks dropped whole first, never split at a mention (note-pages audit 12). */
+export const noteParts = (body: string, format?: 'md' | null): RefPart[] => parseRefs(format === 'md' ? stripMarks(body) : body);

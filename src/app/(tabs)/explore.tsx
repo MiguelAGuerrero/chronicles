@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AreaPointPin } from '../../components/AreaPoint';
@@ -10,6 +10,7 @@ import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
 import { cancelLook, endLook, IDLE, isLive, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
+import { createStore } from '../../lib/store';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
@@ -33,13 +34,14 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, shouldDrawRing, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
+import { candidatesOf, useHoodGround } from '../../lib/areas/useHoodGround';
 import { db } from '../../lib/db';
 import type { Find } from '../../lib/explore/explore';
 import { formatDistance } from '../../lib/format';
@@ -167,11 +169,16 @@ export default function Explore() {
   // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
   const fixSeen = useRef(getLastFix()?.t ?? 0);
   const mapRef = useRef<WalkMapHandle>(null);
+  // Where the compass hands the focus once it leaves (tend map 6).
+  const locateRef = useRef<ComponentRef<typeof Pressable>>(null);
   // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
   const [plan, setPlan] = useState<CategoryId | null>(null);
-  const [bearing, setBearing] = useState(0);
+  // The map's credits are open (web), and the hint steps aside for them (tend map audit 1).
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
+  const [bearing] = useState(() => createStore(0));
   // The map comes down when Explore loses focus and opens north-up again (CP8).
-  useFocusEffect(useCallback(() => () => setBearing(0), []));
+  useFocusEffect(useCallback(() => () => bearing.set(0), [bearing]));
   useFocusEffect(
     useCallback(() => {
       const fix = getLastFix();
@@ -283,6 +290,9 @@ export default function Explore() {
   const reserveAt = namedPoint?.at ?? null;
   const busyReserve = useMemo(() => (reserveName && reserveAt ? { name: reserveName, at: reserveAt } : null), [reserveName, reserveAt]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // HB9: the selected neighborhood's own ground, from the kept tiles; its ring until they are known (HB12).
+  const hoodCands = useMemo(() => candidatesOf([...neighborhoods, ...allTowns].map((l) => l.area)), [neighborhoods, allTowns]);
+  const ground = useHoodGround(sel && sel.area.level === 'neighborhood' ? sel.area : null, hoodCands, focused);
   // CX9, CX16: the selected area's complexes, read silently once it is selected, drawn as quiet outlines named at close zoom.
   const { hidden: hiddenKinds } = useHiddenKinds();
   // With every kind switched off nothing would show, so nothing is read (complexes audit 15).
@@ -557,7 +567,8 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : !pressSeen && !spot && from ? (
+  ) : !pressSeen && !spot && from && !creditsOpen ? (
+    // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1).
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
 
@@ -572,7 +583,8 @@ export default function Explore() {
           walked={NONE}
           fog={NONE}
           ref={mapRef}
-          onBearingChange={setBearing}
+          onBearingChange={bearing.set}
+          onCreditsOpen={setCreditsOpen}
           captures={NONE}
           walker={you}
           marks={spot ? [spot.at] : NONE}
@@ -583,8 +595,9 @@ export default function Explore() {
           // A "?" opens the selected area's card, where its kinds are named (AT7: the map never names them); one with
           // places under it zooms in first (whole-towns audit 4).
           onDiscoveryPress={pressPin}
-          // A neighborhood by its ring; a town by its tinted border (EC5).
-          ring={sel?.area.level === 'neighborhood' ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          // A neighborhood by its own ground as one line, its ring until the tiles are kept; a town by its tinted border (EC5, HB9).
+          ring={sel?.area.level === 'neighborhood' && shouldDrawRing(sel.area.profile?.extent, ground) ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          ground={ground}
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
@@ -720,11 +733,11 @@ export default function Explore() {
           </Pressable>
         </View>
       ) : (
-        <LocateButton busy={locating} onPress={locate} bottom={8} />
+        <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
       )}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
       {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
-      {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
+      {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={locateRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
       {focused && !plan && <MoveMapToggle on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
       {focused && !plan && free && <CentreMark />}

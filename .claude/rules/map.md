@@ -37,7 +37,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     hook's empty result, each cost Explore a render per switch (fix DC12). Set
     state only when it changed; `scripts/perf-explore.js` and the `dense`
     journey count `render:explore`.
-- **Explore in a dense city** (decision 0151, `scripts/perf-explore.js`,
+- **Explore in a dense city** (decision 0156, `scripts/perf-explore.js`,
   `docs/TESTING.md`): measure on the dense downtown before tuning.
   - **Busy names are the map's own text** (DC1-DC6): one `busy-names` symbol
     layer (`busyNameLayers`, `busyNamesGeoJSON` in `map/types.ts`), a point per
@@ -166,6 +166,10 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   navigating). Its data is re-sent only when the ends string changes, never per
   publish. Chronicle draws no trace, so no markers. A walk begun on a ride is
   marked where the walking began (accepted).
+  - Since `tend map T16` (decision 0154) shape tells the two apart, not colour alone: the start hollow (white,
+    ringed in the trace's green), the end solid (filled in `COLORS.walked`, a white ring). One paint for both
+    maps, `ENDS_PAINT` (`map/types.ts`). The `qol` journey reads both middles on the replay with the pins and the
+    walker hidden: they are DOM markers standing over the end.
 - **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
   longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
   latitude), in the bottom-left corner, as a sibling of the map inside the

@@ -67,6 +67,8 @@ export interface Capture {
   file_path: string | null;
   /** Text body for notes; duration in ms for voice memos and videos. */
   body: string | null;
+  /** A note's body is Markdown the note page wrote (NP7, decision 0151); absent or null, it reads as stored. */
+  body_format?: 'md' | null;
   /** A photo's caption, drawn as a bar over it; the photo file itself is untouched. */
   caption?: string | null;
   /** Where the caption bar sits, as a fraction of the photo's height from the top. */

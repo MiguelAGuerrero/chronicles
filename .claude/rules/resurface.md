@@ -6,7 +6,7 @@ paths:
 ---
 # Resurfaced moments (Chronicle's Memories)
 
-Chronicle opens on Memories: one resurfaced moment, the threads the user keeps coming back to, and Lately. The spec is `specs/resurfaced-moments/spec.md` (RM1-RM25); the owner's calls are in `docs/decisions/0098-chronicle-opens-on-memories.md`. The codemap is in `docs/ARCHITECTURE.md`.
+Chronicle opens on Memories, a journal since decision 0155 (`.claude/rules/journal.md`): one resurfaced moment as a slip on today's page, the threads the user keeps coming back to (behind the contents), and every moment as an entry. The spec is `specs/resurfaced-moments/spec.md` (RM1-RM25); the owner's calls are in `docs/decisions/0098-chronicle-opens-on-memories.md`. The codemap is in `docs/ARCHITECTURE.md`.
 
 - **Nothing is a score.** Threads are ranked internally (`Thread.score`), and nothing ranked, weighted or counted is ever shown. Every sentence comes from `lib/resurface/lines.ts`, which writes numbers as words; a test checks no digit leaves it (RM22). Dates and a memo's length are the only digits on Memories.
 - **Signals are the extension point** (`types.ts`, `extractors.ts`). `deriveThreads`, the feed and the shell read `Signal`s and nothing else. A transcriber fills a memo's `MomentView.words` (through `ResurfaceOptions.transcript`), or a new `SignalExtractor` is added to `DEFAULT_EXTRACTORS`; neither touches the feed. Never read `Capture` fields in `threads.ts`, `pick.ts` or `feed.ts`.
@@ -24,7 +24,7 @@ Chronicle opens on Memories: one resurfaced moment, the threads the user keeps c
 - **Choices are written in a chain and Undo is per choice** (audit 2, 3, 10): each choice returns a `PrefsChange { before, after, saved }`; `undo(change)` removes only what that change added (`revertChange`), so a later rename or hide stays. A read waits for pending writes, and the newest read wins.
 - **A new open and a refresh differ** (audit 4): `load()` starts a new open (a new seed, the top card first); `refresh()` reads again and keeps the open's seed, order and place. `useResurface` loads when `chronicleSection.visit()` changed (the app was elsewhere), else refreshes.
 - **The Map keeps its view** (audit 8): `ChronicleMap` saves its camera and framed places into `chronicleSection.keepMap` as it unmounts and starts from them.
-- **Lately is strictly newest first** (MC13, the owner's call, Nov 5): no thread priority, ties by id. A thread's moments are reached from the rail.
+- **The page is strictly by time** (MC13; book order, oldest above, since JN1): no thread priority, ties by id (`journal/page.ts`). A thread's moments are reached from the rail, in the contents' Threads.
 - **A moment arrives whole** (MC1-MC5, MC17): `context.ts` writes the line (street within 40 m, town, time of day, walked minutes, "just after" by kind). The shell's `contextFor(ids)` reads it once per moment per open, for the cards that mount (`ReadsContext`); `pending` and `failed` make no place claim. A refresh drops the lines of a walk that lost a capture.
 - **Hidden, the switch and Forget** (MC8-MC10): `prefs.off` empties the top card and Another only; Forget keeps the switch; every sentence is in `copy.ts` and asserted verbatim.
 - **Seeding the e2e's street cache:** the app clears derived caches on a fresh database as it starts, so seed streets after it is running, not before a reload.
