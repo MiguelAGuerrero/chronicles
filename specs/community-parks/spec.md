@@ -49,9 +49,8 @@ The kind:
 
 1. **PC1 A demotion needs a name that says so.** A named park point is a community park only when its name holds a word of
    the community list (playground, playfield, tot lot, ball field, courts, matched as whole words, data in
-   `communityWords.json`) and nothing notable (PC2) is inside or near it. Any other park keeps the kind `parks`. Size alone
-   never demotes (the owner's default, Nov 11: false positives for notable, and the tiles cannot see most of what makes
-   a park worth the walk).
+   `communityWords.json`) and nothing notable (PC2) is inside or near it. Any other park keeps the kind `parks`, **except** (amended Nov 13, fix community-park, decision 0163): a park whose
+   outline is under 2 ha (and at least 500 m2) with nothing notable (PC2) in or near it is a community park whatever its name.
 2. **PC2 A notable signal keeps a park.** A park stays `parks` when any of these holds: a place of History, Art,
    Viewpoints or a museum or theatre of Culture inside its outline (within 60 m of its point when it has none); a place
    of the places archive within 150 m; a word from `notable.json` or `parkNotable.json` ("State Park", "Memorial",
@@ -107,8 +106,9 @@ From the steward's review (Nov 11, triaged in the plan):
 16. **PC16 A park is never named for its kind before it is found.** The area card's "Waiting to be found", a "?", the pocket
     alert and a route's words say "Parks and gardens" for both kinds; "Community parks" is named only in "What I'm into"
     and on a found place (the owner's default, Nov 11).
-17. **PC17 Size never demotes.** A park whose name holds no community word is `parks` whatever its outline's area, and an
-    outline cut by a tile edge or adjoining another park outline never changes a kind. (Steward findings 1 and 2.)
+17. **PC17 Size demotes only small and bare (amended Nov 13, 0163).** A park whose name holds no community word is `parks` unless
+    its outline is under 2 ha and holds nothing notable; a 2 ha or larger outline, no outline, and a sliver under 500 m2 (a
+    cut at a tile edge) leave it `parks`. (Steward findings 1 and 2, narrowed.)
 
 The pipeline (the owner, Nov 11: "classifications and derived data separate from the shell … pure functions that fit into
 an overall pipeline that produces these filters … a flexible pipeline that categorizes large categories into fine

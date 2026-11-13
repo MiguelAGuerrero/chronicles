@@ -12,14 +12,17 @@ import type { Place } from './types';
  * Community parks (specs/community-parks, PC1-PC5, PC11): the first refinement of the kind pipeline (`refine.ts`). The parks
  * of the map are one kind, `parks`, and a park that the data says is a plain neighbourhood one is the kind
  * `community_parks`, which the reader can switch off. The default
- * is a park; a demotion needs a name that says playground, playfield or the like, and nothing notable inside or near
- * it. Size never demotes (the tiles cannot see what makes a park worth the walk). Nothing says why a park is one kind or
- * the other.
+ * is a park; a demotion needs a name that says playground, playfield or the like, or an outline under 2 ha (fix
+ * community-park, 0163), and nothing notable inside or near it. Nothing says why a park is one kind or the other.
  */
 
 export const PARK_RULES = {
   /** An outline this big is never a community park (PC2): 5 ha. */
   largeM2: 50_000,
+  /** An outline under this is a small neighbourhood park, community with no sign of more (fix community-park, 0163): 2 ha. */
+  smallM2: 20_000,
+  /** An outline under this is a sliver (a park cut at a tile edge) and says nothing of size: 500 m2. */
+  sliverM2: 500,
   /** With no outline, a notable place within this of the park's point keeps it a park (PC2). */
   signalNearM: 60,
   /** An archive place this near keeps a park a park (PC2, PC21: the context of the refinement, never of the merge). */
@@ -85,9 +88,13 @@ export const communityParks: Refinement = {
   judge(places, ctx) {
     const signals = places.filter(isSignal);
     return (p) => {
-      if (!communityName(p.name) || notablePark(p.name)) return false;
+      if (notablePark(p.name)) return false;
       const outline = ctx.outlines.find((o) => inRings(p.at, o.rings));
-      if (outline && (areaM2(outline.rings) >= PARK_RULES.largeM2 || signals.some((s) => inRings(s.at, outline.rings)))) return false;
+      const area = outline ? areaM2(outline.rings) : null;
+      // A name that says play is evidence; so is a small outline (fix community-park): a park with neither stays a park.
+      const small = area !== null && area >= PARK_RULES.sliverM2 && area < PARK_RULES.smallM2;
+      if (!communityName(p.name) && !small) return false;
+      if (outline && (area! >= PARK_RULES.largeM2 || signals.some((s) => inRings(s.at, outline.rings)))) return false;
       if (signals.some((s) => distanceM(s.at, p.at) <= PARK_RULES.signalNearM)) return false;
       return !ctx.archive.some((a) => distanceM(a.at, p.at) <= PARK_RULES.archiveNearM);
     };
