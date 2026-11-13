@@ -188,6 +188,24 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   await pg8.setViewportSize({ width: 390, height: 844 });
   await pg8.waitForTimeout(1000);
 
+  // Two boxes that do not overlap.
+  const apart = (a, b) => !a || !b || a.r <= b.l || b.r <= a.l || a.b <= b.t || b.b <= a.t;
+  // tend map audit 24: a reminder on the pin of a photo and a note; its bell stands clear of both discs.
+  const four = pg8.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])[aria-label^="A photo and a note"]');
+  await four.first().click();
+  await pg8.waitForSelector('[data-testid=viewer-more]');
+  await pg8.locator('[data-testid=viewer-more]').filter({ visible: true }).first().click();
+  await pg8.locator('[data-testid=viewer-remind]').filter({ visible: true }).first().click();
+  await pg8.waitForSelector('[data-testid=remind-editor]');
+  await pg8.click('[data-testid=remind-save]');
+  await pg8.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
+  await pg8.locator('[data-testid=viewer-close]').filter({ visible: true }).first().click();
+  await pg8.waitForTimeout(1200);
+  const belled = (await several(false)).find((p) => /^A photo and a note/.test(p.label));
+  check(!!belled && !!belled.bell && belled.discs.length === 2 && belled.discs.every((d) => apart(belled.bell, d.box)) && /reminder set/.test(belled.label),
+    `tend map audit 24: a pin of several with a reminder shows its bell clear of its discs, and says so (${JSON.stringify(belled)})`);
+  await shot(pg8, 'qol-16-pin-several-bell');
+
   // Stop; then a second walk past the first one's pins brings them back as memories.
   const b = await pg8.locator('[data-testid=stop]').boundingBox();
   await pg8.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
@@ -221,6 +239,24 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   await shot(pg8, 'qol-18-memory-several-320');
   await pg8.setViewportSize({ width: 390, height: 844 });
   await pg8.waitForTimeout(1000);
+
+  // tend map audit 24, on a memory: a reminder set from the memory's viewer; the bell top left stays clear of the discs.
+  const memoryPin = pg8.locator('.maplibregl-map [data-testid=memory-pin][data-ids*=","]').first();
+  await memoryPin.click();
+  await pg8.waitForSelector('[data-testid=memory-preview]');
+  await pg8.click('[data-testid=memory-open]');
+  await pg8.waitForSelector('text=Memories here');
+  await pg8.locator('[data-testid=viewer-more]').filter({ visible: true }).last().click();
+  await pg8.locator('[data-testid=viewer-remind]').filter({ visible: true }).last().click();
+  await pg8.waitForSelector('[data-testid=remind-editor]');
+  await pg8.click('[data-testid=remind-save]');
+  await pg8.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
+  await pg8.locator('[data-testid=viewer-close]').filter({ visible: true }).last().click();
+  await pg8.waitForTimeout(1500);
+  const faintBell = (await several(true)).find((p) => p.bell);
+  check(!!faintBell && faintBell.discs.length === 2 && faintBell.discs.every((d) => apart(faintBell.bell, d.box)) && /reminder set/.test(faintBell.label),
+    `tend map audit 24: a memory pin of several with a reminder shows its bell clear of its discs (${JSON.stringify(faintBell)})`);
+  await shot(pg8, 'qol-19-memory-several-bell');
 }
 
 async function run(h) {

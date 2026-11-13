@@ -85,7 +85,9 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
           <View style={styles.fanHead}>
             {fan.map((k, i) => (
               <View key={i} testID="pin-kind" style={[styles.fan, i ? styles.fanFront : styles.fanBack, { backgroundColor: PIN_COLOR[k] }]}>
-                <Icon name={KIND_ICON[k]} size={11} color="#ffffff" />
+                <View style={i ? styles.turnFront : styles.turnBack}>
+                  <Icon name={KIND_ICON[k]} size={11} color="#ffffff" />
+                </View>
               </View>
             ))}
           </View>
@@ -103,7 +105,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
       {/* A reminder set here: a bell, never a number (RB1). Solid and full size like the clock;
           on a memory pin it takes the other corner, so both read (RB4). */}
       {reminded && (
-        <View testID="pin-reminder" style={[styles.bell, faint ? styles.bellLeft : styles.bellRight]}>
+        <View testID="pin-reminder" style={[styles.bell, faint ? styles.bellLeft : styles.bellRight, fan && (faint ? styles.bellLeftFan : styles.bellRightFan)]}>
           <Icon name="notifications" size={12} color="#ffffff" />
         </View>
       )}
@@ -149,6 +151,10 @@ const styles = StyleSheet.create({
   bellRight: { right: -3 },
   // Over the faded head's top left, mirroring the clock (it shrinks toward its foot, to 75%).
   bellLeft: { left: -2, top: 4 },
+  // Over a pin of several, out from the corner, clear of its first kind's disc (tend map audit 24): 2 pt on a pin, and
+  // on a memory, whose discs shrink toward the stem's foot.
+  bellRightFan: { right: -6, top: -6 },
+  bellLeftFan: { left: -6, top: -6 },
   head: {
     width: 36,
     height: 36,
@@ -174,8 +180,11 @@ const styles = StyleSheet.create({
     position: 'absolute', width: 19, height: 19, borderRadius: 9.5, borderWidth: 1.5, borderColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',
   },
-  fanBack: { left: 1, top: 2, transform: [{ rotate: '-12deg' }] },
-  fanFront: { right: 1, bottom: 2, transform: [{ rotate: '12deg' }] },
+  fanBack: { left: 1, top: 2 },
+  fanFront: { right: 1, bottom: 2 },
+  // The icons turn, never the discs, so a disc's box stays its circle's (tend map audit 24 reads the boxes).
+  turnBack: { transform: [{ rotate: '-12deg' }] },
+  turnFront: { transform: [{ rotate: '12deg' }] },
   fanLayer: { position: 'absolute', left: 0, top: 0, width: 36, height: PIN_HEIGHT },
   // The head's inside, within its 2 pt white edge.
   fanHead: { position: 'absolute', left: 2, top: 2, width: 32, height: 32 },
