@@ -382,7 +382,7 @@ export type PageFramed = { page: string; build: string | null; towns: string[] }
  * once the border is known (yours near you, or the open town's). Within a visit nothing else
  * refits: areas listed after the border, a border briefly unknown (the tab blurred), you moving, a
  * Locate or a pan, or coming back into a town it already framed. A new page, a new build or
- * another town frames again. `last` is null at the start of a visit. Two separate frames once
+ * another town frames again; so does a town selected in the row (`townPicked`, fix town-fit). `last` is null at the start of a visit. Two separate frames once
  * raced, and the areas' won.
  */
 export function nextFrame(
@@ -401,14 +401,18 @@ export function nextFrame(
 
 /**
  * A town selected in the row, by a swipe or a key (fix town-fit, the owner, Nov 13): its whole border when known, else
- * its reach around its point and its border once known (`nextFrame`, which the returned record leaves only that town
- * in, so it frames the border once). Every selection frames again: `nextFrame`'s once-per-visit rule kept a town
- * selected a second time at the zoom the last one left, since its own frame was the same reach for every town.
+ * its reach around its point and its border once known (`nextFrame`). Every selection frames again: `nextFrame`'s
+ * once-a-visit rule kept a town selected a second time at the zoom the last one left, its own frame being the same
+ * reach for every town. The visit's record gains the town, never loses one, so a town framed in it still isn't framed
+ * again unasked (Locate back into yours, audit 1).
  */
 export function townPicked(
+  last: PageFramed | null,
   p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; at: LngLat; padM: number },
 ): { framed: PageFramed; bounds: Bounds } {
-  return { framed: { page: p.page, build: p.build, towns: p.town ? [p.town.id] : [] }, bounds: p.town?.bounds ?? boundsOf([p.at], p.padM)! };
+  const kept = last && last.page === p.page && last.build === p.build ? last.towns : [];
+  const towns = p.town && !kept.includes(p.town.id) ? [...kept, p.town.id] : kept;
+  return { framed: { page: p.page, build: p.build, towns }, bounds: p.town?.bounds ?? boundsOf([p.at], p.padM)! };
 }
 
 /** How far around a town's point its neighborhoods are looked for. */

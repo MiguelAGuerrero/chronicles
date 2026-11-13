@@ -505,7 +505,7 @@ export default function Explore() {
       // Its whole border when known, each time it is selected (fix town-fit); the page's frame then leaves it be.
       const { drawn: set, page, build } = pickFrom.current;
       const border = townFrame(set, outlineOf({ name: l.area.name, at: l.area.at }, set)?.id);
-      const pick = townPicked({ page, build, town: border, at: l.area.at, padM: townReachM(l.area) * 0.6 });
+      const pick = townPicked(framed.current, { page, build, town: border, at: l.area.at, padM: townReachM(l.area) * 0.6 });
       framed.current = pick.framed;
       setFit((f) => ({ bounds: pick.bounds, key: f.key + 1 }));
     } else mapRef.current?.showPoint(l.area.at, mapPad);
