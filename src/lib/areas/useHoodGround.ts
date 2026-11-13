@@ -26,6 +26,14 @@ export function useHoodGround(area: { level: string; name: string; at: LngLat } 
   useEffect(() => {
     stillRef.current = stillness;
   });
+  const [kept, setKept] = useState<KeptGround[]>([]);
+  // What the effects derive from, read when they run.
+  const keptNow = useRef(kept);
+  const nearNow = useRef(near);
+  useEffect(() => {
+    keptNow.current = kept;
+    nearNow.current = near;
+  });
   const [read, setRead] = useState<{ key: string; set: OutlineSet } | null>(null);
   // The neighborhood's own read keeps its tiles a moment after it is selected: look in the cache again, a few times, never the network.
   const [tried, setTried] = useState<{ key: string; n: number }>({ key: '', n: 0 });
@@ -45,12 +53,27 @@ export function useHoodGround(area: { level: string; name: string; at: LngLat } 
       }
     };
     settled().then(() => (live ? outlines.known(probes, OUTLINE_ZOOM) : Promise.reject(new Error('gone')))).then(
-      (set) => {
+      async (set) => {
         if (!live) return;
-        // The ground is computed again only when a tile arrived (audit 5), never on every look.
-        setRead((was) => (was && was.key === key && was.set.tiles.size === set.tiles.size ? was : { key, set }));
         // Until every tile beside it is kept too: a neighbor's shape not yet read would let a share run over it.
         if (lookAgain(set, probes, tries)) timer = setTimeout(() => live && setTried({ key, n: tries + 1 }), LOOK_MS);
+        // The ground is computed again only when a tile arrived (audit 5), never on every look.
+        const read = (was: { key: string; set: OutlineSet } | null) => (was && was.key === key && was.set.tiles.size === set.tiles.size ? was : { key, set });
+        const gkNow = groundKey(hood, set.tiles.size, nearNow.current);
+        if (groundFor(keptNow.current, key, gkNow)) return setRead(read);
+        // Derived in a task of its own (the camera's last frame drawn first), and stored with the read in one update, so a
+        // first visit renders the screen once for both (DC12).
+        for (;;) {
+          await new Promise((res) => setTimeout(res, 0));
+          if (!live) return;
+          if (!still?.().moving) break;
+          await settled();
+        }
+        perfCount('hood:ground');
+        perfMark('mark:hood-ground');
+        const ground = groundOf(hood, nearNow.current, set);
+        setRead(read);
+        setKept((k) => keepGround(k, { hood: key, key: gkNow, ground }));
       },
       () => {},
     );
@@ -63,12 +86,6 @@ export function useHoodGround(area: { level: string; name: string; at: LngLat } 
   // A read for another neighborhood is not this one's.
   const set = read && read.key === key ? read.set : null;
   const gk = hood && set ? groundKey(hood, set.tiles.size, near) : null;
-  const [kept, setKept] = useState<KeptGround[]>([]);
-  // What it was derived from, read in the effect: the key stands for all three.
-  const from = useRef({ hood, set, near });
-  useEffect(() => {
-    from.current = { hood, set, near };
-  });
   const exact = gk ? groundFor(kept, key, gk) : undefined;
   useEffect(() => {
     if (!gk || exact) return;
@@ -86,8 +103,10 @@ export function useHoodGround(area: { level: string; name: string; at: LngLat } 
         if (!live) return;
         if (!still?.().moving) break;
       }
-      const { hood: h, set: s, near: n } = from.current;
-      if (!live || !h || !s) return;
+      const h = hood;
+      const s = set;
+      const n = nearNow.current;
+      if (!live || !h || !s || groundFor(keptNow.current, key, gk)) return;
       perfCount('hood:ground');
       perfMark('mark:hood-ground');
       const ground = groundOf(h, n, s);

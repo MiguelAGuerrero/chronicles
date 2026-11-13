@@ -124,8 +124,9 @@ export function AtlasCarousel(props: {
       scrollEventThrottle={16}
       onScroll={onScroll}
       // Size to the cards, never `flex: 1` (react-native-web would stretch it down the screen).
-      style={styles.row}
-      contentContainerStyle={[styles.content, { paddingHorizontal: sidePad }, minH ? { minHeight: minH } : null]}
+      // The row keeps its tallest height; the cards stay as tall as the tallest now in it (smooth-switches ui 1).
+      style={[styles.row, minH ? { minHeight: minH } : null]}
+      contentContainerStyle={[styles.content, { paddingHorizontal: sidePad }]}
     >
       {items.map((l) => (
         <View key={l.area.key} style={{ width: cardW }}>
@@ -139,5 +140,6 @@ export function AtlasCarousel(props: {
 const styles = StyleSheet.create({
   row: { flexGrow: 0, flexShrink: 0 },
   // Every card as tall as the tallest (fix card-heights): the row stretches them, each card fills its slot.
-  content: { gap: GAP, alignItems: 'stretch', paddingVertical: 6 },
+  // Never stretched to the row's kept height (smooth-switches ui 1): the spare room is the row's ground, not an empty card.
+  content: { gap: GAP, alignItems: 'stretch', alignSelf: 'flex-start', paddingVertical: 6 },
 });

@@ -64,7 +64,8 @@ async function run(h) {
 
     // Forward to the end of the row, then back: every step back is a revisit.
     const n = row.length - 1;
-    const keys = [...Array(n).fill('ArrowRight'), ...Array(n).fill('ArrowLeft')];
+    // Twice, so SS9's median is over 20 paired moves (the camera alone's frames vary from run to run).
+    const keys = [...Array(n).fill('ArrowRight'), ...Array(n).fill('ArrowLeft'), ...Array(n).fill('ArrowRight'), ...Array(n).fill('ArrowLeft')];
     // A move's frames and long tasks, from its start to its settle.
     const measure = (m, x) => pg.evaluate(([a, b]) => {
       const iv = window.__frames.filter((t) => t >= a && t <= b).map((t, j, f) => (j ? t - f[j - 1] : 0)).slice(1);
