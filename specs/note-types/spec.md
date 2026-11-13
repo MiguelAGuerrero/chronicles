@@ -128,3 +128,26 @@ piece. The resurfaced card (deleted on main by the journal) took its audit-16 ch
 re-pointed at the page (`note-input`, `note-done`, the Type tool in place of the Type row; `note-types ui 1` now asks that
 the tool shows pressed, and audit 9 that the menu and the bar stay in view at 320 x 520).
 
+## A type at capture, by choice (added Nov 13, the owner's call)
+
+The journal replaced the moment card and the capture band, and with them the places a type was seen and set: on the journal a type could be chosen only on the note's page, two taps away. The owner: "a quick button or fill-in slot the user can press"; "I wouldn't want there to be a gate on writing by selecting what note you're trying to represent. That should be an opt-in rather than a point of friction"; and it is a note's type, never a "stamp".
+
+### Vision (Nov 13)
+
+Idea: A note's type is an opt-in mark you can add while capturing, in the journal and on a walk, and never a step before writing.
+Verb: honour (the moment keeps why it was made, chosen at the moment itself).
+Touches: Always "Capture is one tap away" and Never "A capture behind a menu, a drawer or an extra tap" (writing never waits on a type); Never "A feed, followers, likes" as settled by decision 0161; Always "Restraint" and Never "Nagging" (one faint slot, not eight faces above every note).
+Verdict: aligned if reshaped
+Shape: The word stays "Type" (not "reaction": the word for likes on someone else's post). One slot, in the corner of the entry being written, opens the eight in the bar for one pick; a kept entry shows its glyph in that corner and changes it from More; a new note's page, on a walk or anywhere, carries the page's own Type tool. A type marks a note that has words and never keeps a moment by itself.
+Criteria: NY18-NY25 below.
+Open: none. The owner chose the corner, the bar as the picker and "write first" on a walk (Nov 13); the gate argued once for a slot over a row always in view on a walk, and the owner said to proceed with the defaults.
+
+18. **NY18** In the journal nothing about a type is on screen before the entry being written has its first character: no slot, no row, no glyph.
+19. **NY19** Once it has, a slot named "Type" sits at the trailing end of that entry's dateline. A tap on it turns the bar at the foot into one row of the eight, in the fixed order, each with its spoken name; a tap on one marks the note and the bar returns, with the caret still on the page; a tap on the marked one clears it.
+20. **NY20** Choosing is never a step: writing, Done, the camera and the mic work as they did whether or not the row was opened, and the next character typed puts the bar back.
+21. **NY21** A type chosen in the journal is kept at once on the note's own piece and is there after Done and after the app is opened again.
+22. **NY22** A kept entry whose note has a type shows that type's glyph in the corner of its dateline, said as "Type, <name>"; an entry with none shows nothing there. A second typed note in the same entry keeps its mark above its own words.
+23. **NY23** An entry's More offers "Type" when the entry has a note, and shows the eight and "No type" in that same sheet; choosing one keeps it and closes the sheet.
+24. **NY24** A new note's page (on a walk, from the ready screen, from the journal's line) carries the page's Type tool. A type chosen there, before or after the first words, is on the note when it is kept; choosing none keeps a note with no type; a page left without words keeps nothing, whatever was chosen. This amends NY8's "the composers that exist today make a note with no type": they still do, unless the owner chooses one.
+25. **NY25** At 320 px the row of eight is one row, nothing cut, each target the bar's full height (44 px) and at least 36 px wide. (Eight 44 px targets do not fit 320 px; the height is kept.)
+

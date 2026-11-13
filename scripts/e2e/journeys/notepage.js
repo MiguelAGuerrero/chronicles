@@ -415,6 +415,37 @@ async function run(h) {
   const readyPage = await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.keyboard.press('Escape');
   check(readyPage, 'NP1: Navigate\'s pencil opens the page in one tap');
+  // NY24 (note types at capture): a new note's page carries the Type tool; a type chosen before the first words is on
+  // the note when it is kept, and a page left without words keeps nothing.
+  await pg.goto(url);
+  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForTimeout(1200);
+  const n24 = (await stored(pg)).length;
+  await openPage();
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
+  await pg.waitForTimeout(600);
+  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-type-item-idea]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(500);
+  await pg.click('[data-testid=note-done]');
+  await pg.waitForTimeout(1200);
+  const none24 = (await stored(pg)).length === n24;
+  await openPage();
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
+  await pg.waitForTimeout(600);
+  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-type-item-idea]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-page] [data-testid=note-input]');
+  await pg.keyboard.type('A typed page from the start.');
+  await pg.waitForTimeout(2500);
+  await pg.click('[data-testid=note-done]');
+  await pg.waitForTimeout(1200);
+  const got24 = (await stored(pg)).flatMap((m) => m.pieces).find((x) => /A typed page from the start/.test(x.body ?? ''));
+  check.todo(none24 && got24?.note_type === 'idea', `NY24: a new page carries the Type tool; chosen before the words it is on the kept note, and a wordless page keeps nothing (${JSON.stringify({ none24, type: got24?.note_type })})`);
+
   await c.close();
 }
 

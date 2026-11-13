@@ -385,6 +385,72 @@ async function run(h) {
   check(!!again42.head && !!again42.last && again42.last.top - again42.head.bottom < 40 && again42.last.top >= again42.head.bottom - 2 && (!again42.prev || again42.prev.bottom <= again42.head.bottom + 2),
     `chronicle-journal audit 42: coming back to Memories opens on the last entry (${JSON.stringify(again42)})`);
 
+  // NY18-NY25 (note types at capture, by choice): the slot in the corner of the entry being written, the bar as the
+  // row of eight, the glyph on a kept entry, and Type in More.
+  const typeOfNote = async (re) => (await stored(pg)).moments.flatMap((m) => m.pieces).find((x) => re.test(x.body ?? ''))?.note_type ?? null;
+  const slotLabel = () => pg.locator('[data-testid=type-slot]').getAttribute('aria-label').catch(() => null);
+  await toLine();
+  await pg.waitForTimeout(500);
+  const before18 = await pg.locator('[data-testid=type-slot], [data-testid=type-row], [data-testid=journal-page] [data-testid=entry-type]').filter({ visible: true }).count();
+  check.todo(before18 === 0, `NY18: nothing about a type is on screen before the first character (${before18})`);
+  await pg.keyboard.type('Why is the bakery shut', { delay: 10 });
+  await pg.waitForTimeout(1400);
+  const label19 = await slotLabel();
+  await pg.click('[data-testid=type-slot]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(500);
+  const row19 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=type-row] [data-testid^=type-pick-]')].map((e) => { const r = e.getBoundingClientRect(); return { id: e.dataset.testid.slice(10), name: e.getAttribute('aria-label'), x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) }; }));
+  await shot(pg, 'journal-22-type-row');
+  await pg.setViewportSize({ width: 320, height: 844 });
+  await pg.waitForTimeout(500);
+  const row25 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=type-row] [data-testid^=type-pick-]')].map((e) => { const r = e.getBoundingClientRect(); return { y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right) }; }));
+  await shot(pg, 'journal-23-type-row-320');
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(500);
+  check.todo(row25.length === 8 && row25.every((b) => b.y === row25[0].y && b.h >= 44 && b.w >= 36 && b.l >= 0 && b.r <= 320), `NY25: at 320 px the eight are one row, nothing cut, 44 px tall (${JSON.stringify(row25)})`);
+  await pg.click('[data-testid=type-pick-idea]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(900);
+  const after19 = { row: await pg.locator('[data-testid=type-row]').count(), focus: await pg.evaluate(() => document.activeElement?.getAttribute('data-testid')), label: await slotLabel(), stored: await typeOfNote(/bakery shut/) };
+  check.todo(label19 === 'Type, No type' && row19.map((r) => r.id).join() === 'question,emphasis,idea,happy,neutral,sad,like,dislike' && row19.map((r) => r.name).join() === 'Question,Emphasis,Idea,Happy,Neutral,Sad,Like,Dislike'
+    && after19.row === 0 && after19.focus === 'line-input' && after19.label === 'Type, Idea',
+    `NY19: the slot opens the eight in the bar; one tap marks the note and the caret stays on the page (${JSON.stringify({ label19, row19: row19.map((r) => r.id), after19 })})`);
+  await pg.click('[data-testid=type-slot]').catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=type-pick-idea]').catch(() => {});
+  await pg.waitForTimeout(900);
+  const cleared19 = { label: await slotLabel(), stored: await typeOfNote(/bakery shut/) };
+  check.todo(cleared19.label === 'Type, No type' && cleared19.stored == null, `NY19: a tap on the marked one clears it (${JSON.stringify(cleared19)})`);
+  await pg.click('[data-testid=type-slot]').catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=line-input]').catch(() => {});
+  await pg.keyboard.type('?', { delay: 10 });
+  await pg.waitForTimeout(1200);
+  const typed20 = { row: await pg.locator('[data-testid=type-row]').count(), done: await pg.locator('[data-testid=line-done]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), body: (await stored(pg)).moments.flatMap((m) => m.pieces).some((x) => x.body === 'Why is the bakery shut?') };
+  check.todo(typed20.row === 0 && typed20.done === 1 && typed20.cam === 1 && typed20.body, `NY20: the next character puts the bar back, and the words are kept as ever (${JSON.stringify(typed20)})`);
+  await pg.click('[data-testid=type-slot]').catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=type-pick-question]').catch(() => {});
+  await pg.waitForTimeout(900);
+  await done();
+  await pg.waitForTimeout(1200);
+  const kept22 = await pg.evaluate(() => { const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')]; const of = (c) => c?.querySelector('[data-testid=entry-type]')?.getAttribute('aria-label') ?? null; return { last: of(cards[cards.length - 1]), prev: of(cards[cards.length - 2]), slot: document.querySelectorAll('[data-testid=type-slot]').length }; });
+  check.todo(kept22.last === 'Type, Question' && kept22.prev == null && kept22.slot === 0, `NY22: a kept entry shows its type's glyph in the corner, said by name; one with none shows nothing (${JSON.stringify(kept22)})`);
+  await shot(pg, 'journal-24-type-on-entry');
+  await pg.reload();
+  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForTimeout(1500);
+  const again21 = { stored: await typeOfNote(/bakery shut/), shown: await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=entry-type]').getAttribute('aria-label').catch(() => null) };
+  check.todo(again21.stored === 'question' && again21.shown === 'Type, Question', `NY21: the type is kept at once and is there when the app is opened again (${JSON.stringify(again21)})`);
+  await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]').click();
+  await pg.waitForTimeout(800);
+  await pg.click('[data-testid=menu-type]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(500);
+  const items23 = await pg.locator('[data-testid=memory-menu] [data-testid^=note-type-item-]').count();
+  await shot(pg, 'journal-25-type-in-more');
+  await pg.click('[data-testid=note-type-item-sad]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const more23 = { items: items23, menu: await pg.locator('[data-testid=memory-menu]').count(), stored: await typeOfNote(/bakery shut/), shown: await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=entry-type]').getAttribute('aria-label').catch(() => null) };
+  check.todo(more23.items === 9 && more23.menu === 0 && more23.stored === 'sad' && more23.shown === 'Type, Sad', `NY23: More offers Type, the eight and No type in the same sheet, and choosing keeps it (${JSON.stringify(more23)})`);
+
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
     const e = document.querySelector(sel);
@@ -634,7 +700,7 @@ async function run(h) {
   check(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
   check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
   await shot(pg, 'journal-05-scrolled-back');
-  const marks54 = await pg.locator('[data-testid=journal-page] [data-testid=note-type-mark]').count();
+  const marks54 = await pg.locator('[data-testid=journal-page] [data-testid=entry-type]').count();
   check(marks54 >= 1, `chronicle-journal audit 54: a note's type shows on its entry in the journal (${marks54} marks)`);
   // JN9, JN11, audit 50: scrolled back, the empty page is out of view and the bar holds the pen: one tap brings
   // today's foot into view and the caret onto the page, with no scroll first.
