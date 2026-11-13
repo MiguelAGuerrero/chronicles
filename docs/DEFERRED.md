@@ -747,3 +747,9 @@ What the note types slice left out (`specs/note-types`, decision 0161).
 - [loop] **Note types** (0161, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
 - [loop] **Note types** (0161, audit 22): the Type menu on the note page, in two columns, may wrap or crowd at 200% text or below 320 px wide; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).
 - [owner] **Note types** (0161, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.
+- **The voicetrim journey waits for a test id main no longer has** (found deploying video thumbnails, Nov 13): it waits
+  for `[data-testid=memories-list] [data-testid=moment-card]`, and the journal page (`e43c64a`, JN1-JN24) dropped
+  `memories-list`, so the journey times out before its first check, on main as on any branch. Its seeding should find
+  the moment on the journal page. `npm run e2e:baseline -- voicetrim` printed each of its three runs as failed, then
+  "passed 3/3 on main": the baseline script's summary misreads a run that throws before a check.
+
