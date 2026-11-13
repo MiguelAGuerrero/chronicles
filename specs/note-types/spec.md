@@ -187,3 +187,9 @@ Report-only passes by the auditor (55-65), the steward (S4-S8) and the UX review
 - ux 20: the recording mark is a bare dot: reject, opinion; it is the recording bar's own dot, said by name.
 - **Native:** none of it has run on a device.
 
+### The slot in view (Nov 13, from the owner's phone, after the deploy)
+
+The owner: "I don't see any place to put a note type on the notes or pages at all." Two causes, both confirmed on the live build: the slot was a faint grey tag with no word at the end of the dateline, and the page the line opens into (Open as a page on an entry with words) had no Type tool; only a brand-new page did.
+
+26. **NY26** The slot says what it is in a word: "Type" beside its tag while none is chosen, the type's name beside its glyph once one is, in ink. The page the journal's line opens into carries the page's Type tool with the note's type as chosen, and choosing or clearing there is kept on that note.
+

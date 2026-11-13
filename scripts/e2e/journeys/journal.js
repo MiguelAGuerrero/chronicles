@@ -422,13 +422,37 @@ async function run(h) {
   await pg.waitForTimeout(900);
   const cleared19 = { label: await slotLabel(), stored: await typeOfNote(/bakery shut/) };
   check(cleared19.label === 'Type, No type' && cleared19.stored == null, `NY19: a tap on the marked one clears it (${JSON.stringify(cleared19)})`);
+  // The slot says what it is, in a word (the owner could not find a bare tag), and the page the line opens into
+  // carries the Type tool with the type already chosen.
   await pg.click('[data-testid=type-slot]').catch(() => {});
   await pg.waitForTimeout(400);
-  // The caret is still on the page: the next character is typed without another tap.
+  await pg.click('[data-testid=type-pick-happy]').catch(() => {});
+  await pg.waitForTimeout(900);
+  const word26 = { marked: (await pg.locator('[data-testid=type-slot]').innerText().catch(() => '')).trim().split('\n').pop() };
+  await pg.click('[data-testid=line-page]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const tool26 = await pg.locator('[data-testid=note-page] [data-testid=note-type-row]').getAttribute('aria-label').catch(() => null);
+  await shot(pg, 'journal-26-type-on-the-line-page');
+  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-type-item-none]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(700);
+  await pg.click('[data-testid=note-done]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  const after26 = await typeOfNote(/bakery shut/);
+  check.todo(word26.marked === 'Happy' && tool26 === 'Type, Happy' && after26 == null, `NY26: the slot says its type in a word, and the page the line opens into carries the Type tool, with the type chosen, and can clear it (${JSON.stringify({ word26, tool26, after26 })})`);
+  await toLine();
+  await pg.keyboard.type(' Still', { delay: 10 });
+  await pg.waitForTimeout(1300);
+  const word26b = (await pg.locator('[data-testid=type-slot]').innerText().catch(() => '')).trim().split('\n').pop();
+  check.todo(word26b === 'Type', `NY26: with no type chosen the slot reads Type (${word26b})`);
+  await pg.click('[data-testid=type-slot]').catch(() => {});
+  await pg.waitForTimeout(400);
   await pg.keyboard.press('End');
   await pg.keyboard.type('?', { delay: 10 });
   await pg.waitForTimeout(1200);
-  const typed20 = { row: await pg.locator('[data-testid=type-row]').count(), done: await pg.locator('[data-testid=line-done]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), body: (await stored(pg)).moments.flatMap((m) => m.pieces).some((x) => x.body === 'Why is the bakery shut?') };
+  const typed20 = { row: await pg.locator('[data-testid=type-row]').count(), done: await pg.locator('[data-testid=line-done]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), body: (await stored(pg)).moments.flatMap((m) => m.pieces).some((x) => /^Why is the bakery shut/.test(x.body ?? '') && /\?$/.test(x.body ?? '')) };
   check(typed20.row === 0 && typed20.done === 1 && typed20.cam === 1 && typed20.body, `NY20: the next character puts the bar back, and the words are kept as ever (${JSON.stringify(typed20)})`);
   await pg.click('[data-testid=type-slot]').catch(() => {});
   await pg.waitForTimeout(400);

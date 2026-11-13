@@ -459,6 +459,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'note-types': { branch: 'fix/type-in-view', since: '2026-11-13' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
