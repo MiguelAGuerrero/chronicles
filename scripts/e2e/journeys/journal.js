@@ -226,6 +226,54 @@ async function run(h) {
   check(!!headRow && Math.abs(headRow.dateline - headRow.more) <= 22 && headRow.w >= 44 && headRow.h >= 44,
     `chronicle-journal ui 4: More trails the dateline on the entry's first row, a thumb's target (${JSON.stringify(headRow)})`);
 
+  // JN28-JN30: the words are written on the page, one bar at the foot, and the tabs fold away while writing.
+  await pg.click('[data-testid=line-write]').catch(() => {});
+  await pg.keyboard.type('On the page itself.', { delay: 10 });
+  await pg.waitForTimeout(900);
+  const penOn = await pg.evaluate(() => {
+    const f = document.querySelector('[data-testid=line-input]');
+    const bar = document.querySelector('[data-testid=open-line]');
+    const page = document.querySelector('[data-testid=journal-page]');
+    if (!f || !bar || !page) return null;
+    const cs = getComputedStyle(f);
+    const r = f.getBoundingClientRect();
+    const b = bar.getBoundingClientRect();
+    const cards = [...page.querySelectorAll('[data-testid=moment-card]')];
+    const last = cards[cards.length - 1];
+    const row = [...bar.querySelectorAll('[data-testid=line-status], [data-testid=line-page], [data-testid=band-photo], [data-testid=band-voice], [data-testid=line-done]')].map((e) => { const x = e.getBoundingClientRect(); return { id: e.dataset.testid, y: Math.round(x.y + x.height / 2), w: Math.round(x.width), h: Math.round(x.height) }; });
+    return {
+      inPage: page.contains(f), inBar: bar.contains(f), focused: document.activeElement === f,
+      width: Math.round(r.width), pageWidth: Math.round(page.getBoundingClientRect().width),
+      outline: cs.outlineStyle, shadow: cs.boxShadow, border: parseFloat(cs.borderTopWidth) + parseFloat(cs.borderLeftWidth), font: cs.fontFamily,
+      underEntry: !!last && r.top >= last.getBoundingClientRect().top, aboveBar: r.bottom <= b.top + 1,
+      barH: Math.round(b.height), row,
+      tabs: [...document.querySelectorAll('[data-testid=tab-bar-wrap]')].filter((e) => e.getBoundingClientRect().height > 1 && getComputedStyle(e).display !== 'none').length,
+      barBottom: Math.round(window.innerHeight - b.bottom),
+    };
+  });
+  check.todo(!!penOn && penOn.inPage && !penOn.inBar && penOn.focused && penOn.width >= penOn.pageWidth - 60 && penOn.outline === 'none' && penOn.shadow === 'none' && penOn.border === 0 && /serif/.test((penOn.font ?? '').replace(/sans-serif/g, '')) && penOn.underEntry && penOn.aboveBar,
+    `JN28: the words are written on the page: the field is the page's last line, full width, in the serif, with no box or focus frame (${JSON.stringify(penOn)})`);
+  check.todo(!!penOn && penOn.row.length === 5 && penOn.row.every((x) => Math.abs(x.y - penOn.row[0].y) <= 2) && penOn.row.filter((x) => x.id !== 'line-status').every((x) => x.w >= 44 && x.h >= 44) && penOn.barH <= 64,
+    `JN29: while writing the bar is one row: the status, Open as a page, the camera, the mic and Done (${JSON.stringify(penOn?.row)}, ${penOn?.barH} px)`);
+  check.todo(!!penOn && penOn.tabs === 0 && penOn.barBottom <= 1, `JN30: while writing the tab bar folds away and the bar sits at the foot, on the keyboard (${JSON.stringify({ tabs: penOn?.tabs, barBottom: penOn?.barBottom })})`);
+  await shot(pg, 'journal-16-writing-on-the-page');
+  await pg.setViewportSize({ width: 320, height: 700 });
+  await pg.waitForTimeout(500);
+  const narrow = await pg.evaluate(() => { const bar = document.querySelector('[data-testid=open-line]'); return bar ? { h: Math.round(bar.getBoundingClientRect().height), over: bar.scrollWidth > bar.clientWidth + 1 } : null; });
+  await shot(pg, 'journal-17-writing-320');
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(500);
+  check.todo(!!narrow && narrow.h <= 64 && !narrow.over, `JN29: at 320 px the bar is still one row, nothing cut (${JSON.stringify(narrow)})`);
+  await done();
+  await pg.waitForTimeout(900);
+  const rest2 = await pg.evaluate(() => ({
+    tabs: [...document.querySelectorAll('[data-testid=tab-bar-wrap]')].filter((e) => e.getBoundingClientRect().height > 1).length,
+    write: (() => { const e = document.querySelector('[data-testid=line-write]'); const r = e?.getBoundingClientRect(); return e ? { label: e.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height) } : null; })(),
+    status: document.querySelector('[data-testid=line-status]')?.innerText ?? '',
+  }));
+  check.todo(rest2.tabs === 1 && !!rest2.write && rest2.write.label === 'Write an entry' && rest2.write.w >= 44 && rest2.write.h >= 44 && rest2.status.trim() === '',
+    `JN29, JN30: at rest the tabs are back and the bar holds the pen, the camera and the mic (${JSON.stringify(rest2)})`);
+
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
     const e = document.querySelector(sel);

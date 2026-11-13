@@ -72,6 +72,14 @@ Note pages (decision 0151) made a note a full-screen page written in a rich-text
 26. **JN26** An entry the page wrote is drawn on the sheet in its shape: a heading, bullets, numbered lines, checkboxes (ticked or not, never counted) and quotes, as plain native text in the owner's serif, with each mention as that moment's card. No raw mark (`#`, `-`, `[ ]`, `**`) shows, and the sheet never holds the editor or a web view. A note the page did not write stays literal (NP7).
 27. **JN27** A long entry shows its first twelve blocks on the sheet, then one line in the app's voice: "The entry goes on; open it to read the rest". The whole entry is in its viewer.
 
+### Writing on the page (added Nov 13, from the owner's phone)
+
+The owner's screenshot of the built line on an iPhone, and their call: it felt like a chat box, the field was small and boxed, and the recording bar, the tab bar and a blank band sat between it and the keyboard. The words are written on the page itself, as the approved drawing showed. Vision: Honour, with less chrome between the hand and the page; verdict aligned. This amends JN9, JN10, JN13, JN23 and JN25 where they place the field, the status and Open as a page in a row at the foot.
+
+28. **JN28** The words are written on the page: the field is the last line of today's page, under the entry being written (its dateline, its photo), the full width of the column, in the owner's serif, with no box, border or focus frame. It is not in the bar at the foot. Where no page is shown (a thread, the threads, Hidden) the field is in the bar, so the line is still one tap there.
+29. **JN29** One bar is fixed at the foot. At rest it holds a pen (named "Write an entry": it brings today's foot into view and puts the caret on the page, from anywhere on the sheet), the camera and the mic, each a thumb's target. While writing it holds, in one row, "Kept as you write" (or the failure and Retry), Open as a page (an icon with that name), the camera, the mic and Done; nothing wraps at 320 px.
+30. **JN30** While the field has the keyboard, the tab bar and the recording bar fold away and the bar sits directly on the keyboard: nothing else stands between the entry and the keys. They come back when writing stops, and a walk being recorded goes on recording.
+
 ## Amends
 
 - **Capture from Chronicle** (`specs/capture-from-chronicle/spec.md`): HC6-HC13 and HC15 (the band becomes the open line; "<Kind> kept here" and "saved to your walk" toasts go, since the entry itself appears); HC9's "heads Lately" and HC10's "not shown until the walk stops".
