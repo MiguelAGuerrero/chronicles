@@ -208,4 +208,4 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **Built:** JN33, tests first at `f4a922c`; JN32 amended. `lib/journal/rest.ts` lost its `writing` case and gained the anchor.
 - **Checked:** typecheck, lint, `npm test`; the journeys named in the commit.
 - **Not yet seen on the phone:** the slide as the stack grows with the keyboard up.
-
+- **`check:test-first`:** JN31 reports its todo and its real test in one commit, as JN26 did: its journey todo at `b56811f` was written across lines, which the line-based reader takes for a real check. JN32 and JN33 read as tested first.
