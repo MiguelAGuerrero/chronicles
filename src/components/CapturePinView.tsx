@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { pinNoteLabel, pinThumb, type CapturePin } from '../lib/pins';
+import { Image, StyleSheet, View } from 'react-native';
+import { pinHeadKinds, pinSpoken, pinThumb, type CapturePin, type WalkClock } from '../lib/pins';
 import { VideoMark } from './VideoMark';
 import { useStill } from '../lib/thumbs/useStill';
 import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
-import { captureIcon, Icon, KIND_ICON, KIND_LABEL } from './icons';
+import { captureIcon, Icon, KIND_ICON } from './icons';
 import { theme } from './ui';
 
 /** A neutral for pins holding several kinds, distinct from the trace's navy. */
@@ -30,9 +30,9 @@ const THUMB_SIZE = 36 - 2 * 2 - 2 * THUMB_RING;
 
 /**
  * A capture's marker on the map: a head with its kind's icon (or, for several
- * captures, their count) on a short stem, so the point it marks, and the
- * walker's dot there, stay visible beneath it. A pin with a reminder wears a
- * bell in its corner (RB1).
+ * moments, their kinds, two at most, fanned: never a numeral, tend map T14) on a
+ * short stem, so the point it marks, and the walker's dot there, stay visible
+ * beneath it. A pin with a reminder wears a bell in its corner (RB1).
  */
 export function CapturePinView({ pin, faint = false, drop: dropNow = false, reminded = false }: {
   pin: CapturePin;
@@ -44,6 +44,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   // Kept from mount, so a later render can't cut the drop short.
   const [drop] = useState(dropNow);
   const n = pin.captures.length;
+  const fan = pinHeadKinds(pin);
   const color = n > 1 ? (pin.kind === 'mixed' ? MIXED : PIN_COLOR[pin.kind]) : PIN_COLOR[pin.kind];
   // One photo's small copy, never the full photo (QL26). The ref is resolved once per
   // change of it (useMediaUri's effect keys on it), never per render.
@@ -61,7 +62,13 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
       <View style={[styles.pin, faint && styles.faint]}>
         <View style={[styles.head, { backgroundColor: color }]}>
-          {n > 1 ? <Text style={styles.count}>{n}</Text> : !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
+          {fan ? (
+            fan.map((k, i) => (
+              <View key={i} testID="pin-kind" style={[styles.fan, i ? styles.fanFront : styles.fanBack, { backgroundColor: PIN_COLOR[k] }]}>
+                <Icon name={KIND_ICON[k]} size={11} color="#ffffff" />
+              </View>
+            ))
+          ) : !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
           {picture && (
             <Image
               testID="pin-thumb"
@@ -98,11 +105,10 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   return drop ? <Enter kind="drop">{view}</Enter> : view;
 }
 
-export function pinLabel(pin: CapturePin, interactive = true, memory = false, reminded = false): string {
+/** A pin's spoken name: its moments in words (`pinSpoken`; several with the minutes in, tend map T14), its stack, its bell, "Open". */
+export function pinLabel(pin: CapturePin, interactive = true, memory = false, reminded = false, clocks?: readonly WalkClock[]): string {
   const n = pin.captures.length;
-  const kind = memory
-    ? n > 1 ? `${n} memories here` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
-    : n > 1 ? `${n} captures here` : pinNoteLabel(pin) ?? KIND_LABEL[pin.captures[0].kind];
+  const kind = pinSpoken(pin, { memory, clocks });
   // One moment with more than one piece says so in words, never how many (MS8, MS9).
   const stacked = n === 1 && hasMore(pin.captures[0]) ? `, ${STACK_SPOKEN}` : '';
   // The bell said in words (RB7).
@@ -152,5 +158,12 @@ const styles = StyleSheet.create({
     position: 'absolute', left: THUMB_RING, top: THUMB_RING, width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: THUMB_SIZE / 2,
   },
   stem: { width: 3, height: 8, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
-  count: { color: '#ffffff', fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  // A pin of several moments: its two kinds, each a small disc of its colour with a white edge, fanned across the
+  // head from top left to bottom right (tend map T14).
+  fan: {
+    position: 'absolute', width: 19, height: 19, borderRadius: 9.5, borderWidth: 1.5, borderColor: '#ffffff',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fanBack: { left: 1, top: 2, transform: [{ rotate: '-12deg' }] },
+  fanFront: { right: 1, bottom: 2, transform: [{ rotate: '12deg' }] },
 });

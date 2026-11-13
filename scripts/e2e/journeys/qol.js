@@ -651,7 +651,7 @@ async function run(h) {
 
     // A note edited from the replay's viewer reads the new words when opened again (QL24, QL25).
     const openNote = async () => {
-      await pg.locator('[aria-label$="captures here. Open"], [aria-label="Note. Open"]').last().click();
+      await pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), [aria-label="Note. Open"]').last().click();
       await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
       for (let i = 0; i < 4; i++) {
         if (await pg.locator('[data-testid=viewer-more]').count()) {
@@ -758,13 +758,18 @@ async function run(h) {
       await shot(pg, 'qol-07-note-type-card');
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(600);
-      // The note shares its pin with another capture here, so the pin keeps its count and its group's words (NY10).
-      const pin = await pg.locator('[aria-label="2 captures here. Open"]').count();
+      // The note shares its pin with the photo, so the pin says its group's kinds, not the type (NY10); since tend map T14
+      // (decision 0154) its head shows the two kinds fanned with no numeral, and its name says them in words with the
+      // minutes in, never "2 captures here".
+      const several = await pg.$$eval('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])', (es) => es.map((e) => ({
+        label: e.getAttribute('aria-label'), kinds: e.querySelectorAll('[data-testid=pin-kind]').length, digits: /\d/.test(e.textContent || ''),
+      })));
+      const pin = several.filter((p) => /^A photo and a note, (at the start|.+ minutes? in)\. Open$/.test(p.label) && p.kinds === 2 && !p.digits).length;
       check(bare === 0 && /Type/.test(rowBefore) && /No type/.test(rowBefore) && items === 9 && /Idea/.test(rowAfter),
         `NY6: the note page's Type tool opens a menu of eight and "No type", and shows the choice (bare ${bare}, row ${JSON.stringify(rowBefore)}, items ${items}, after ${JSON.stringify(rowAfter)})`);
       check(/Idea/.test(markText) && markLabel === 'Idea',
         `NY9: the viewer's note card shows the type's mark and its spoken name, none without a type (${JSON.stringify([markText, markLabel])})`);
-      check(pin >= 1, `NY10: a pin that holds the typed note and another capture keeps its count and its group's words (${pin})`);
+      check(pin >= 1, `NY10, tend map T14: a pin that holds the typed note and a photo shows the two kinds fanned, no numeral, and says "A photo and a note" with the minutes in (${JSON.stringify(several)})`);
       check(pressed === 'true', `note-types ui 1: the Type tool shows pressed while its menu is open, so it reads as a control (${pressed})`);
       check(!!nameStyle && nameStyle.color === 'rgb(29, 36, 48)' && nameStyle.size >= 14, `note-types ui 2: the mark's name is in ink and 14 px or more (${JSON.stringify(nameStyle)})`);
       check(items === 9 && colours.length === 1 && markLabel === 'Idea',

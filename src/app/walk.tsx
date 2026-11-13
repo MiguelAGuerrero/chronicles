@@ -783,6 +783,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
     .map((c) => c.id)
     .join(',');
+  // The walk's clock, so a pin of several says how far in it was (tend map T14).
+  const clocks = useMemo(() => (walk ? [{ id: walk.id, started_at: walk.started_at, pauses }] : undefined), [walk, pauses]);
   const memories = useMemo(() => {
     const ids = new Set(memoryIds.split(','));
     return memoryPool.filter((c) => ids.has(c.id));
@@ -1182,6 +1184,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {...drawn}
         busyNamesNear={namesNearYou(live.here)}
         captures={captures}
+        clocks={clocks}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}

@@ -608,7 +608,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View
               accessible
               accessibilityRole={props.onPinPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded))}
+              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded), props.clocks)}
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} reminded={pinReminded(pin, reminded)} />

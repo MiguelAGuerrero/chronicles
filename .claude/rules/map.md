@@ -150,6 +150,14 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     place, so focus returns to the pin when the viewer closes and a photo keeps its
     picture. On native it is in the Marker key (unverified whether children update
     without it).
+- **A pin of several moments** (`tend map T14`, decision 0154): its head shows its kinds, the first two taken,
+  fanned (`pin-kind` discs; one kind shows twice), never a numeral (`pinHeadKinds`, `lib/pins.ts`), and never a
+  still or a video's play mark, which are a pin of one moment's (VS3, VS4); its name says
+  them in words with the minutes in (`pinSpoken`, `pinInto`): "A photo and a note, twelve minutes in. Open". The
+  time needs the walk's clock, which the walk screen, the replay and a day pass as `clocks` (each walk's id, start
+  and pauses, memoized); without it (Chronicle's map, memory pins, moments of two walks) the name says the kinds
+  alone. On web the name is set in place when a clock arrives after the pin. The e2e finds a pin of several by
+  `button[data-ids*=","]:not([data-testid=memory-pin])`, never by its words.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 
