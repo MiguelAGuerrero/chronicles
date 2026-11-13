@@ -9,6 +9,7 @@ import { DERIVED_STORES } from '../../db/stores';
 import { SEGMENT_BATCH, type Db } from '../../db/types';
 import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Place, Recall } from '../../discovery/types';
+import type { Transcript } from '../../transcript/core';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
@@ -21,7 +22,7 @@ export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
-  'placesIn', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
+  'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
 
@@ -147,6 +148,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const places = new Table<Place>((p) => p.key);
   const marks = new Table<Mark>((m) => m.id);
   const recalls = new Table<Recall>((r) => r.capture_id);
+  const transcripts = new Table<Transcript>((r) => r.capture_id);
   const landings = new Table<LandingRow>((r) => r.key);
   const atlas = new Table<AtlasArea>((r) => r.key);
   const outlineTiles = new Table<OutlineTile>((r) => r.key);
@@ -281,6 +283,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       for (const c of moments.where(walkOf, walkId)) {
         moments.delete(c.id);
         recalls.delete(c.id);
+        for (const piece of c.pieces) transcripts.delete(piece.id);
       }
       points.dropWhere(walkOf, walkId);
       pauses.dropWhere(walkOf, walkId);
@@ -312,6 +315,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       for (const c of got) {
         moments.delete(c.id);
         recalls.delete(c.id);
+        for (const piece of c.pieces) transcripts.delete(piece.id);
       }
       if (!opts.keepFinds && got.length) {
         // As the web store: finds are looked up by their moments' walks (all of them when a
@@ -448,6 +452,15 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async listRecalls() {
       return out(recalls.all());
+    },
+    async setTranscript(t) {
+      transcripts.put(t);
+    },
+    async clearTranscript(captureId) {
+      transcripts.delete(captureId);
+    },
+    async listTranscripts() {
+      return out(transcripts.all());
     },
 
     async putLanding(r) {

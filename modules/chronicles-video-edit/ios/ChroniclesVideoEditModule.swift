@@ -12,6 +12,37 @@ public class ChroniclesVideoEditModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ChroniclesVideoEdit")
 
+    // A copy of a voice memo's kept part as an audio-only file, for the speech recognizer (memo transcripts, TX13).
+    AsyncFunction("exportTrimmedAudio") { (input: AudioTrimInput) async throws -> String in
+      let source = try fileURL(input.source, what: "source")
+      let output = try fileURL(input.output, what: "output")
+      guard input.startMs >= 0, input.endMs > input.startMs else {
+        throw VideoExportException("The kept part must have an end after its start, got \(input.startMs) to \(input.endMs)")
+      }
+      try? FileManager.default.createDirectory(at: output.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try? FileManager.default.removeItem(at: output)
+      let asset = AVURLAsset(url: source)
+      guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
+        throw VideoExportException("Could not prepare the audio export")
+      }
+      session.timeRange = CMTimeRange(
+        start: CMTime(seconds: input.startMs / 1000, preferredTimescale: 600),
+        end: CMTime(seconds: input.endMs / 1000, preferredTimescale: 600)
+      )
+      if #available(iOS 18.0, *) {
+        try await session.export(to: output, as: .m4a)
+      } else {
+        session.outputURL = output
+        session.outputFileType = .m4a
+        await session.export()
+        if session.status != .completed {
+          try? FileManager.default.removeItem(at: output)
+          throw VideoExportException(session.error?.localizedDescription ?? "The audio export failed")
+        }
+      }
+      return input.output
+    }
+
     AsyncFunction("exportEditedVideo") { (input: VideoExportInput) async throws -> String in
       let request = try VideoExportRequest(input)
       try await VideoExporter.export(request)
@@ -35,6 +66,13 @@ internal struct OutSizeRecord: Record {
 }
 
 internal struct TrimRecord: Record {
+  @Field(.keyed("start_ms")) var startMs: Double = 0
+  @Field(.keyed("end_ms")) var endMs: Double = 0
+}
+
+internal struct AudioTrimInput: Record {
+  @Field(.required) var source: String = ""
+  @Field(.required) var output: String = ""
   @Field(.keyed("start_ms")) var startMs: Double = 0
   @Field(.keyed("end_ms")) var endMs: Double = 0
 }

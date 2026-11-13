@@ -140,9 +140,9 @@ async function run(h) {
   await pg.waitForTimeout(900);
   const words = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').innerText().catch(() => '');
   const aria = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').getAttribute('aria-label').catch(() => null);
-  check.todo(none === 0 && seeded === true && words === 'the bakery before it opens', `TX7, TX9: nothing shows without words; the stored words appear under the memo in the viewer ("${words}")`);
-  check.todo(inLine === 'the bakery before it opens', `TX8: the journal's voice note shows the same words under its bar ("${inLine}")`);
-  check.todo(!!aria && /Read by your phone/.test(aria), `TX14: the caption is labelled as the phone's reading ("${aria}")`);
+  check(none === 0 && seeded === true && words === 'the bakery before it opens', `TX7, TX9: nothing shows without words; the stored words appear under the memo in the viewer ("${words}")`);
+  check(inLine === 'the bakery before it opens', `TX8: the journal's voice note shows the same words under its bar ("${inLine}")`);
+  check(!!aria && /Read by your phone/.test(aria), `TX14: the caption is labelled as the phone's reading ("${aria}")`);
   await c.close();
 }
 
@@ -153,6 +153,10 @@ module.exports = {
     'src/components/edit/**',
     'src/components/{CaptureView,ceremony/Bubbles,chronicle/MomentCard}.tsx',
     'src/components/threads/ResponseEntry.tsx',
+    // Memo transcripts (TX7-TX9, TX14): the caption under a memo.
+    'src/components/MemoTranscript.tsx',
+    'src/lib/useTranscript.ts',
+    'src/lib/transcript/**',
     'src/lib/{voiceTrim,editSession,mediaEdit}.ts',
   ],
   run,

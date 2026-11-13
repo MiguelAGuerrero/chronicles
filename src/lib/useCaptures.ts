@@ -14,6 +14,7 @@ import { newId } from './id';
 import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
+import { transcripts } from './transcript';
 import { nowPlaying, RECORDING } from './journal/nowPlaying';
 import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
@@ -524,7 +525,11 @@ export function useCaptures(
     if (!m.uri) throw new Error('The voice memo could not be saved.');
     // Native records AAC in .m4a; on web the extension is only part of the key.
     const ext = /\.(\w{2,4})$/.exec(m.uri.split('?')[0])?.[1] ?? (m.uri.startsWith('blob:') ? 'webm' : 'm4a');
-    await add('voice', m.stamp, await keepFile(m.uri, folder(), `${newId()}.${ext}`), String(Math.round(m.ms)));
+    const kept = await keepFile(m.uri, folder(), `${newId()}.${ext}`);
+    const body = String(Math.round(m.ms));
+    const id = await add('voice', m.stamp, kept, body);
+    // Its words are read in the background, when the phone can; the memo is already kept and never waits (TX1).
+    if (id) void transcripts.enqueue({ id, t: m.stamp.t, file_path: kept, body, edit: null }).catch(() => {});
   }
 
   /**

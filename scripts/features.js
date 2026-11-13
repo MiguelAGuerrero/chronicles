@@ -248,7 +248,7 @@ const FEATURES = [
       'src/components/VideoMark.tsx',
     ],
     journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails', 'memo-transcripts'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails'],
   },
   {
     name: 'chronicle',
@@ -265,6 +265,14 @@ const FEATURES = [
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
     specs: ['resurfaced-moments', 'memories-context'],
+  },
+  {
+    name: 'transcript',
+    about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0165)',
+    rule: 'captures-and-media',
+    source: ['src/lib/transcript/**', 'src/lib/useTranscript.ts', 'src/components/MemoTranscript.tsx'],
+    journeys: [],
+    specs: ['memo-transcripts'],
   },
   {
     name: 'journal',

@@ -24,8 +24,18 @@ export interface VideoExportInput {
   overlay: string | null;
 }
 
+export interface AudioTrimInput {
+  /** file:// URI of the recording. */
+  source: string;
+  /** file:// URI to write (in the cache dir); overwritten if present. */
+  output: string;
+  start_ms: number;
+  end_ms: number;
+}
+
 interface NativeVideoEdit {
   exportEditedVideo(input: VideoExportInput): Promise<string>;
+  exportTrimmedAudio(input: AudioTrimInput): Promise<string>;
 }
 
 const native = requireOptionalNativeModule<NativeVideoEdit>('ChroniclesVideoEdit');
@@ -44,4 +54,15 @@ export async function exportEditedVideo(input: VideoExportInput): Promise<string
     throw new Error('Video editing is not available on this platform (the ChroniclesVideoEdit native module is not linked).');
   }
   return native.exportEditedVideo(input);
+}
+
+/**
+ * Writes a copy of a recording's kept part as an audio-only file and resolves its URI (memo transcripts, TX13): the
+ * speech recognizer reads it, and the caller deletes it. Rejects where the module isn't linked.
+ */
+export async function exportTrimmedAudio(input: AudioTrimInput): Promise<string> {
+  if (native == null) {
+    throw new Error('Audio trimming is not available on this platform (the ChroniclesVideoEdit native module is not linked).');
+  }
+  return native.exportTrimmedAudio(input);
 }

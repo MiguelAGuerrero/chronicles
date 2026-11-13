@@ -32,6 +32,10 @@ export function createMemoGate() {
       if (recording) on.add(owner);
       else on.delete(owner);
     },
+    /** True while a memo records anywhere (the transcripts wait for it, TX15). */
+    recordingNow(): boolean {
+      return on.size > 0;
+    },
     /** A memo's save (or stop) under way; a start waits for it. */
     track(p: Promise<unknown>) {
       const settled = p.then(

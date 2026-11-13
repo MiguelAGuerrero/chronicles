@@ -10,6 +10,7 @@ import { useMediaUri } from '../../lib/useMediaUri';
 import { useStore } from '../../lib/useStore';
 import { voiceClock, voiceReachedEnd, voiceSpan, voiceState, wholeMs } from '../../lib/voiceTrim';
 import { Icon } from '../icons';
+import { MemoTranscript } from '../MemoTranscript';
 import { theme } from '../ui';
 
 /** A trimmed memo's player reports every 100 ms, so it stops at its end handle, not up to half a second late (VT6). */
@@ -34,6 +35,15 @@ const holderOf = (s: string | null) => s;
  * (`nowPlaying`). A trimmed note plays its kept part (VT6-VT8).
  */
 export function MemoLine({ piece, moment }: { piece: Capture; moment: Faced }) {
+  return (
+    <>
+      <MemoPlayer piece={piece} moment={moment} />
+      <MemoTranscript piece={piece} />
+    </>
+  );
+}
+
+function MemoPlayer({ piece, moment }: { piece: Capture; moment: Faced }) {
   const [started, setStarted] = useState(false);
   const holder = useStore(nowPlaying.store, holderOf);
   const ms = Number(piece.body);

@@ -8,6 +8,10 @@ paths:
   - "src/lib/audioMode*.ts"
   - "src/lib/export/**"
   - "src/lib/__tests__/captures/**"
+  - "src/lib/transcript/**"
+  - "src/lib/useTranscript.ts"
+  - "src/components/MemoTranscript.tsx"
+  - "src/lib/__tests__/transcript/**"
   - "src/lib/notePage/**"
   - "src/components/notePage/**"
   - "src/lib/noteEdit.ts"
@@ -260,3 +264,12 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 - **Note types** (NY1-NY17, decision 0161): `Capture.note_type` (SQLite migration 27, IndexedDB 20; raw as stored, read through `noteTypeOf`, so an unknown value is no type) is the owner's mark on a note: one of eight ink glyphs in `lib/noteType` (fixed order, spoken names). The note's page offers a Type tool in its bar only for an edit (`NotePage` given `type` and `onType`; never a new note's page or Respond's), opening `NoteTypeMenu`; a choice is kept at once through `onSaveNote(c, body, type, typeOnly)`. `notePatch(body, type, typeOnly)` (`lib/noteEdit`) is the one write: text and type together, or, `typeOnly`, the type alone (the body and its `body_format` stay as kept). Every `onSaveNote` call passes it on (`noteTypeScan.test` fails a call site that takes two arguments). `NoteMark` draws the glyph and name above the viewer's note and in the owner-thread bubble; `captureIcon` and `pinMark` put it on a pin of exactly one note (a pin of several keeps its count). Never count, sort, filter, search or infer a type, and never read one for a place (NY12, NY13): `noteTypeReaders.test` lists the files that may mention a type; a new reader goes through `/vision` and then onto that list.
   - Since `tend map T14` a pin of several shows its kinds fanned and says them in words, never its count (`map.md`, "A pin of several moments").
   - **A note save names its piece** (note-types audit 1, 12, 13): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).
+
+## Memo transcripts (TX1-TX18, decision 0165)
+
+- **The words are a cache beside the memo** (`transcript` table, SQLite migration 28, IndexedDB 21; `capture_id`, `text`, `lang`, `from_ms`, `to_ms`, `made_at`), never in the memo's `body`, `caption` or `edit`. `''` means the engine heard none, so the memo is not read again. A row read from another span than `spanOf(memo)` is stale (`isStale`): not served, and read again.
+- **Read in the background, one at a time** (`transcript/shell.ts`): after a memo is kept (`useCaptures.saveMemo`) and for older ones at launch (`backfillTranscripts`, `_layout`). It waits while a walk or a memo records or plays (`busy`), asks for the speech permission only for a memo kept this session on a quiet moment, never at launch, and remembers a refusal (meta `transcript_off`). Nothing is said when it cannot read.
+- **On the device only**: every request is `onDevice: true` (the type allows nothing else) and `supportsOnDevice(lang)` is asked before each read. The engine adapter and the cutter are `.native.ts`; the web has none (`engine.ts`).
+- **A trimmed memo is read from a cut copy** of its kept span (`exportTrimmedAudio` in the local module `chronicles-video-edit`), written to the cache and removed after the read.
+- **Shown as a caption** (`MemoTranscript`, `testID` `memo-transcript`, label "Read by your phone: ..."): nothing while pending or empty, no count, no confidence. A hit in search shows the moment's normal card, never a snippet. No edit or hide: a wrong word is part of the memo.
+- **Chronicle reads it through `resurface`'s `transcript` option** (`wordsOf`); `THREAD_RULES` is `resurface-2`.

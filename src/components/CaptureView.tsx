@@ -8,6 +8,7 @@ import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
 import { NoteMark } from './NoteMark';
+import { MemoTranscript } from './MemoTranscript';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
 import { editedRecall, liveRecalls, newRecall } from '../lib/discovery/recall';
@@ -361,6 +362,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} edit={capture.edit ?? null} />
           )}
+          {capture.kind === 'voice' && <MemoTranscript piece={{ id: capture.piece_id, t: capture.t, body: capture.body, edit: capture.edit }} />}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
             <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>

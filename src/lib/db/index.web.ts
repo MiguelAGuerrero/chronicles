@@ -9,6 +9,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
+import type { Transcript } from '../transcript/core';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
@@ -20,7 +21,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 20;
+const VERSION = 21;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -162,6 +163,10 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
   if (oldVersion < 20 && upTo >= 20) {
     // Note types (NY4, decision 0161): a piece's `note_type` lives inside its moment's record, so there is nothing to move;
     // the version marks the first build that writes it, and a note kept before reads as no type.
+  }
+  if (oldVersion < 21 && upTo >= 21) {
+    // Memo transcripts (TX12, decision 0165): a memo's words, a cache beside the memo, keyed by its piece's id.
+    d.createObjectStore('transcript', { keyPath: 'capture_id' });
   }
 }
 
@@ -437,7 +442,7 @@ export const db: Db = {
   },
 
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link'];
+    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link', 'transcript'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
@@ -446,6 +451,7 @@ export const db: Db = {
       for (const c of caps) {
         os('moment').delete(c.id);
         os('recall').delete(c.id);
+        for (const piece of c.pieces) os('transcript').delete(piece.id);
       }
       await dropBy(os('trace_point'), 'walk_id', walkId);
       await dropBy(os('pause'), 'walk_id', walkId);
@@ -473,7 +479,7 @@ export const db: Db = {
   },
   async deleteMoments(ids, opts = {}) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link', 'transcript'], 'readwrite');
     return atomically(tx, async () => {
       const capStore = tx.objectStore('moment');
       const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<MomentRecord | undefined>))).filter((c): c is MomentRecord => !!c);
@@ -481,6 +487,7 @@ export const db: Db = {
       for (const c of got) {
         capStore.delete(c.id);
         tx.objectStore('recall').delete(c.id);
+        for (const piece of c.pieces) tx.objectStore('transcript').delete(piece.id);
       }
       if (!opts.keepFinds && got.length) {
         // The find store is indexed by walk only, and an index skips a loose moment's null walk.
@@ -756,6 +763,19 @@ export const db: Db = {
   },
   async listRecalls() {
     return (await done((await store('recall')).getAll())) as Recall[];
+  },
+  async setTranscript(t) {
+    const tx = (await conn()).transaction('transcript', 'readwrite');
+    tx.objectStore('transcript').put(t);
+    await committed(tx);
+  },
+  async clearTranscript(captureId) {
+    const tx = (await conn()).transaction('transcript', 'readwrite');
+    tx.objectStore('transcript').delete(captureId);
+    await committed(tx);
+  },
+  async listTranscripts() {
+    return (await done((await store('transcript')).getAll())) as Transcript[];
   },
   async purgeDerived() {
     const tx = (await conn()).transaction([...DERIVED_STORES, 'walk'], 'readwrite');

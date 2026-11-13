@@ -1,3 +1,4 @@
+import { backfillTranscripts } from '../lib/transcript';
 import { deletions } from '../lib/deletion';
 import { router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -57,6 +58,8 @@ export default function RootLayout() {
     loadUnits().catch(() => {});
     // The scenic routes' leanings (SR1); until they load, all three are on.
     routeLeanings.load().catch(() => {});
+    // Memos kept before are read in the background, once the phone can and nothing records (TX2).
+    backfillTranscripts().catch(() => {});
     openWalkAtLaunch({
       findOpen: () => db.getOpenWalk(),
       showWalk: () =>

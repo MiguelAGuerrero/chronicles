@@ -5,6 +5,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
+import type { Transcript } from '../transcript/core';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { ThreadsChange, ThreadsData } from '../threads/types';
@@ -153,6 +154,11 @@ export interface Db {
   /** Stop reminding me, or a "once" that fired (R6, R8). */
   clearRecall(captureId: string): Promise<void>;
   listRecalls(): Promise<Recall[]>;
+
+  /** A memo's words, read on the phone (decision 0165): one per capture, replaced by capture. A cache beside the memo. */
+  setTranscript(t: Transcript): Promise<void>;
+  clearTranscript(captureId: string): Promise<void>;
+  listTranscripts(): Promise<Transcript[]>;
 
   /** Remembers an analyzed area (L11); the same key replaces it (L12). */
   putLanding(row: LandingRow): Promise<void>;

@@ -35,7 +35,7 @@ async function make(r: ReturnType<typeof rig>) {
   const meta = new Map<string, string>();
   const t = createTranscripts({
     db, engine: r.engine, cutter: r.cutter,
-    files: { resolve: (p: string) => `file:///${p}` },
+    files: { resolve: async (p: string) => `file:///${p}` },
     busy: () => r.state.busy,
     lang: () => 'en-US',
     meta: { get: async (k: string) => meta.get(k) ?? null, set: async (k: string, v: string) => { meta.set(k, v); } },
@@ -44,7 +44,7 @@ async function make(r: ReturnType<typeof rig>) {
   return { t, db, meta };
 }
 
-test('TX1: a kept memo is read in the background and its words are stored', { todo: 'test first' }, async () => {
+test('TX1: a kept memo is read in the background and its words are stored', async () => {
   const r = rig({ permission: 'granted' });
   const { t, db } = await make(r);
   await t.enqueue(memo('a', 1));
@@ -54,7 +54,7 @@ test('TX1: a kept memo is read in the background and its words are stored', { to
   assert.equal(t.words('a'), 'words of file:///memo-a.m4a');
 });
 
-test('TX1: memos are read one at a time', { todo: 'test first' }, async () => {
+test('TX1: memos are read one at a time', async () => {
   let live = 0; let peak = 0;
   const r = rig({ permission: 'granted' });
   const inner = r.engine.recognize;
@@ -66,7 +66,7 @@ test('TX1: memos are read one at a time', { todo: 'test first' }, async () => {
   assert.equal(r.reqs.length, 2);
 });
 
-test('TX2: memos kept before are read newest first, once, only when the engine is already allowed', { todo: 'test first' }, async () => {
+test('TX2: memos kept before are read newest first, once, only when the engine is already allowed', async () => {
   const r = rig({ permission: 'granted' });
   const { t } = await make(r);
   await t.backfill([memo('a', 1), memo('b', 3), memo('c', 2)]);
@@ -77,7 +77,7 @@ test('TX2: memos kept before are read newest first, once, only when the engine i
   assert.equal(r.reqs.length, 3, 'none is read twice');
 });
 
-test('TX4: an engine error on one memo does not block the next; a memo with no speech is recorded as read', { todo: 'test first' }, async () => {
+test('TX4: an engine error on one memo does not block the next; a memo with no speech is recorded as read', async () => {
   const r = rig({ permission: 'granted', say: (q) => (q.uri.includes('-a') ? new Error('boom') : q.uri.includes('-b') ? '' : 'fine') });
   const { t, db } = await make(r);
   await t.backfill([memo('a', 3), memo('b', 2), memo('c', 1)]);
@@ -89,7 +89,7 @@ test('TX4: an engine error on one memo does not block the next; a memo with no s
   assert.equal(r.reqs.filter((q) => q.uri.includes('-b')).length, 1, 'no speech is not read again');
 });
 
-test('TX5: every request is on-device, and a locale without an on-device recognizer is left unread', { todo: 'test first' }, async () => {
+test('TX5: every request is on-device, and a locale without an on-device recognizer is left unread', async () => {
   const r = rig({ permission: 'granted' });
   const a = await make(r);
   await a.t.enqueue(memo('a', 1));
@@ -103,7 +103,7 @@ test('TX5: every request is on-device, and a locale without an on-device recogni
   assert.deepEqual(await b.db.listTranscripts(), []);
 });
 
-test('TX6: a refusal is remembered, never asked again, and says nothing', { todo: 'test first' }, async () => {
+test('TX6: a refusal is remembered, never asked again, and says nothing', async () => {
   const r = rig({ ask: false });
   const { t, db, meta } = await make(r);
   await t.enqueue(memo('a', 1));
@@ -117,7 +117,7 @@ test('TX6: a refusal is remembered, never asked again, and says nothing', { todo
   assert.deepEqual(await db.listTranscripts(), []);
 });
 
-test('TX13: a trimmed memo is read from a cut copy of its kept span, never the file, and the copy is deleted', { todo: 'test first' }, async () => {
+test('TX13: a trimmed memo is read from a cut copy of its kept span, never the file, and the copy is deleted', async () => {
   const r = rig({ permission: 'granted' });
   const { t, db } = await make(r);
   await t.enqueue(memo('a', 1, { start_ms: 1000, end_ms: 5000 }));
@@ -129,18 +129,20 @@ test('TX13: a trimmed memo is read from a cut copy of its kept span, never the f
   assert.deepEqual([row.from_ms, row.to_ms], [1000, 5000]);
 });
 
-test('TX13: a trim that changed makes the words stale: they are not served, and the memo is read again', { todo: 'test first' }, async () => {
+test('TX13: a trim that changed makes the words stale: they are not served, and the memo is read again', async () => {
   const r = rig({ permission: 'granted' });
   const { t } = await make(r);
+  const trimmed = memo('a', 1, { start_ms: 1000, end_ms: 5000 });
   await t.enqueue(memo('a', 1));
   await t.settled();
-  await t.backfill([memo('a', 1, { start_ms: 1000, end_ms: 5000 })]);
+  assert.equal(t.words('a', trimmed), null, 'the row was read whole: it no longer fits the trim');
+  await t.backfill([trimmed]);
   await t.settled();
   assert.equal(r.reqs.length, 2);
-  assert.equal(t.words('a', { start_ms: 0, end_ms: 8000 }), null, 'the first row no longer fits a trim');
+  assert.equal(t.words('a', trimmed), 'words of cut:file:///memo-a.m4a:1000-5000');
 });
 
-test('TX13: a failed cut leaves the memo unread and the next memo is read', { todo: 'test first' }, async () => {
+test('TX13: a failed cut leaves the memo unread and the next memo is read', async () => {
   const r = rig({ permission: 'granted' });
   r.cutter.cut = async () => { throw new Error('no cut'); };
   const { t, db } = await make(r);
@@ -149,7 +151,7 @@ test('TX13: a failed cut leaves the memo unread and the next memo is read', { to
   assert.deepEqual((await db.listTranscripts()).map((x: { capture_id: string; text: string }) => x.capture_id), ['b']);
 });
 
-test('TX15: nothing runs while a walk or a memo is recording or playing, and it resumes after', { todo: 'test first' }, async () => {
+test('TX15: nothing runs while a walk or a memo is recording or playing, and it resumes after', async () => {
   const r = rig({ permission: 'granted', busy: true });
   const { t } = await make(r);
   await t.enqueue(memo('a', 1));
@@ -161,7 +163,7 @@ test('TX15: nothing runs while a walk or a memo is recording or playing, and it 
   assert.equal(r.reqs.length, 1);
 });
 
-test('TX15: the permission is not asked at the backfill, nor before a memo is kept this session, nor while busy', { todo: 'test first' }, async () => {
+test('TX15: the permission is not asked at the backfill, nor before a memo is kept this session, nor while busy', async () => {
   const r = rig();
   const { t } = await make(r);
   await t.backfill([memo('a', 1)]);
@@ -177,7 +179,7 @@ test('TX15: the permission is not asked at the backfill, nor before a memo is ke
   assert.equal(r.asked.length, 1, 'once a memo was kept and it is quiet');
 });
 
-test('TX3: forgetting a memo drops its words', { todo: 'test first' }, async () => {
+test('TX3: forgetting a memo drops its words', async () => {
   const r = rig({ permission: 'granted' });
   const { t, db } = await make(r);
   await t.enqueue(memo('a', 1));
@@ -187,7 +189,7 @@ test('TX3: forgetting a memo drops its words', { todo: 'test first' }, async () 
   assert.equal(t.words('a'), null);
 });
 
-test('TX16: the on-device check is asked for the memo\'s locale before every read', { todo: 'test first' }, async () => {
+test('TX16: the on-device check is asked for the memo\'s locale before every read', async () => {
   const r = rig({ permission: 'granted' });
   const asked: string[] = [];
   r.engine.supportsOnDevice = async (lang: string) => { asked.push(lang); return true; };

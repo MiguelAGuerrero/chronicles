@@ -95,6 +95,16 @@
         {
           "color": "#c2410c"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Chronicles listens to a voice note you kept so it can write its words on your phone.",
+          "speechRecognitionPermission": "Chronicles reads the words of your voice notes on your phone, so you can find them later.",
+          "androidSpeechServicePackages": [
+            "com.google.android.as"
+          ]
+        }
       ]
     ],
     "experiments": {
