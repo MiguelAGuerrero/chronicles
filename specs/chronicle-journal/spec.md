@@ -201,3 +201,11 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **Found on the way:** a pill above the bar (room left) covers the middle of the empty page and takes a tap aimed there. It has its own OK and the rest of the page takes the tap; left as it is, and the journeys tap the first lines.
 - **Not yet seen on the phone:** the movement as the page grows and comes back, the sticky date, and whether a tap on the empty page raises the keyboard in that one tap (`docs/NATIVE_UNVERIFIED.md`).
 
+## The day's entries stack: record (Nov 13, branch `fix/write-on-the-page`)
+
+- **Why:** the owner, on the grown page: a stack that grows per entry and slides up like a typewriter, so that writing shows the day's photos and voice notes with it; the page still opens as JN31 says.
+- **Adjacent practice, read Nov 13:** typewriter scrolling (iA Writer keeps the cursor vertically centred with nothing dimmed, and notes the screen can jump when a tap elsewhere fights the centring; Ulysses' fixed scrolling; Typora) holds the line and moves the document. Chat-style streams (Strflow, Monoline, Mynd) stack entries in time order over a docked field, the look the owner rejected. Day One and Apple Journal write in a separate editor; a Day One user's "Daily Stream / Append View" request, logged and not built, asks for this stack. Daily notes (Logseq, Roam, Reflect) put today on top. Ours takes the stream's order and the typewriter's movement, with the line a third of the way up from the bar rather than centred: a phone with its keyboard up has little room.
+- **Built:** JN33, tests first at `f4a922c`; JN32 amended. `lib/journal/rest.ts` lost its `writing` case and gained the anchor.
+- **Checked:** typecheck, lint, `npm test`; the journeys named in the commit.
+- **Not yet seen on the phone:** the slide as the stack grows with the keyboard up.
+

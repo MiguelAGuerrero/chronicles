@@ -315,11 +315,12 @@ recording, and a recording bar brings a minimized walk back.
     in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
-  - **At rest** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
+  - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
     down to the bar. Pull down to read back; each day's date holds at the top while its entries pass.
-  - **Writing on the page**: tap the empty page and it grows into the new entry: the last entry slides away and the
-    words are typed on the page itself, in your serif, with no box and no hint text; Done brings the page back with
-    the new entry on top. One bar is fixed at the foot: the camera and the mic; while you write it holds "Kept as you
+  - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
+    the page itself, in your serif, with no box and no hint text. The day's entries stack: each new one, words, photo
+    or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
+    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic; while you write it holds "Kept as you
     write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
     the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other

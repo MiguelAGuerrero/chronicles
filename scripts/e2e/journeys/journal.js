@@ -313,7 +313,7 @@ async function run(h) {
   await pg.waitForTimeout(900);
   const grown = await lay();
   check(grown.focused && !!grown.field && !!grown.last, `JN32: a tap on the empty page puts the caret on the page (${JSON.stringify(grown)})`);
-  check.todo(grown.focused && !!grown.last && Math.abs(grown.last.top - rest3.last.top) <= 2 && !!grown.field && grown.field.top >= grown.last.bottom - 2 && grown.field.top - grown.last.bottom < 80,
+  check(grown.focused && !!grown.last && Math.abs(grown.last.top - rest3.last.top) <= 2 && !!grown.field && grown.field.top >= grown.last.bottom - 2 && grown.field.top - grown.last.bottom < 80,
     `JN33: nothing slides away when writing begins: the last entry keeps its place and the caret is under it (${JSON.stringify({ rest: rest3.last, grown })})`);
   await shot(pg, 'journal-19-writing-under-the-last');
   await pg.keyboard.type('Stacked under the last.', { delay: 10 });
@@ -321,7 +321,7 @@ async function run(h) {
   await done();
   await pg.waitForTimeout(1000);
   const after3 = await lay();
-  check.todo(/Stacked under the last\./.test(after3.lastText) && !!after3.prev && Math.abs(after3.prev.top - rest3.last.top) <= 2 && after3.last.top >= after3.prev.bottom - 2 && !!after3.blank && after3.blank.top >= after3.last.bottom - 2,
+  check(/Stacked under the last\./.test(after3.lastText) && !!after3.prev && Math.abs(after3.prev.top - rest3.last.top) <= 2 && after3.last.top >= after3.prev.bottom - 2 && !!after3.blank && after3.blank.top >= after3.last.bottom - 2,
     `JN33: Done moves nothing: the new entry is under the one before, and the empty page under it (${JSON.stringify({ after3 })})`);
   // Enough entries to fill the page: the stack slides up and the line holds its place.
   const tops = [];
@@ -338,7 +338,7 @@ async function run(h) {
   const tw = await lay();
   const roomTw = tw.bar.top - (tw.head ? tw.head.bottom : tw.pageTop);
   const lineUp = tw.bar.top - (tw.field ? tw.field.top : 0);
-  check.todo(tw.focused && !!tw.head && tw.head.top - tw.pageTop < 60 && lineUp > roomTw * 0.22 && lineUp < roomTw * 0.5 && !!tw.last && tw.last.bottom <= tw.field.top + 2
+  check(tw.focused && !!tw.head && tw.head.top - tw.pageTop < 60 && lineUp > roomTw * 0.22 && lineUp < roomTw * 0.5 && !!tw.last && tw.last.bottom <= tw.field.top + 2
     && Math.abs(tops[4] - tops[3]) <= 30,
     `JN33: a full page slides up as it grows and the line holds a third of the way up from the bar (${JSON.stringify({ tw, tops, roomTw, lineUp })})`);
   await shot(pg, 'journal-20-typewriter');

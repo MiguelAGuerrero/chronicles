@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type Comp
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { LINE_LABELS, dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
-import { blankHeight, peekStart } from '../../lib/journal/rest';
+import { anchorOf, blankHeight, peekStart } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
 import { theme } from '../ui';
 
@@ -16,13 +16,14 @@ const SETTLE_MS = 450;
 const DATE_H = 66;
 
 /**
- * The journal's sheet (chronicle journal JN1, JN2, JN31, JN32): the rows in book order, each day's date held at the
+ * The journal's sheet (chronicle journal JN1, JN2, JN31-JN33): the rows in book order, each day's date held at the
  * top while its entries pass, and after them the empty page, where the next entry is written.
  *
- * It rests at its end. The empty page is as tall as it takes for that end to show the last entry under its date and
- * nothing older (`lib/journal/rest`), so the page reads as aligned to the top with where you left off in view. A tap
- * on the empty page gives the field the keyboard, and the empty page grows to the whole screen: the last entry
- * slides away and the entry being written has the page. Pulling down reads back; reaching the top asks for older
+ * It rests at its end. The empty page is as tall as it takes for that end to show the entry the page opened on under
+ * its date and nothing older (`lib/journal/rest`), so the page reads as aligned to the top with where you left off
+ * in view. A tap on the empty page gives the field the keyboard, under the last entry. Entries made since the page
+ * opened stack beneath it and stay in view; once they fill two thirds of the room the sheet slides up as it grows
+ * and the line being written holds its place, as paper in a typewriter. Pulling down reads back; reaching the top asks for older
  * entries, and what was on screen stays where it was as they are added above. A plain ScrollView: a page is a few
  * dozen entries, and an inverted list flips the wheel on the web.
  */
@@ -41,8 +42,6 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   onWrite?: () => void;
   /** The field has the keyboard. */
   writing?: boolean;
-  /** An entry is open: the last entry is the one being written. */
-  entryOpen?: boolean;
   /** Said under today's date when the page could not be read. */
   notice?: ReactNode;
 }>(function JournalPage(props, ref) {
@@ -69,18 +68,22 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const [heights, setHeights] = useState<Record<string, number>>({});
   const measured = (key: string, h: number) => setHeights((prev) => (prev[key] === h ? prev : { ...prev, [key]: h }));
   const writing = !!props.writing;
-  const from = peekStart(props.rows.map((r) => r.k), writing, !!props.entryOpen);
+  // The entry the page opened on (JN33): the peek begins with it, and every entry made since stacks beneath it.
+  const [opened0, setOpened0] = useState<string | null>(null);
+  const anchor = anchorOf(props.rows, opened0);
+  if (anchor !== opened0) setOpened0(anchor);
+  const from = peekStart(props.rows, anchor);
   const peek = props.rows.slice(from).reduce((sum, r) => sum + (heights[r.key] ?? 0), 0);
   const dateRow = props.rows.find((r) => r.k === 'day');
   const dateH = (dateRow && heights[dateRow.key]) || DATE_H;
   // A peek that begins with a date brings its own; otherwise the day's date is held above it.
   const sticky = props.rows[from]?.k === 'day' ? 0 : dateH;
-  const blank = view > 0 ? blankHeight({ view, foot: props.footPad, sticky, peek, writing }) : 0;
-  // The empty page growing into an entry, and coming back, is a movement the eye follows (JN32); anything else that
+  const blank = view > 0 ? blankHeight({ view, foot: props.footPad, sticky, peek }) : 0;
+  // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
   // changes the sheet's length while the reader is at its end just keeps the end in view.
   const moving = useRef(false);
-  // Growing and coming back change the sheet's height and its length in several steps (the bars fold, the empty page
-  // resizes). The reader is at the end before and must be at the end after, whatever a scroll event in between
+  // The keyboard coming and going changes the sheet's height and its length in several steps (the bars fold, the
+  // empty page resizes). The reader is at the end before and must be at the end after, whatever a scroll event in between
   // says: the end is held for a moment, and the sheet is taken there once more when it has settled.
   const hold = useRef(false);
   useEffect(() => {

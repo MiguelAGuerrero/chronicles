@@ -446,7 +446,6 @@ export function MemoriesScreen() {
       field={line.field}
       onWrite={() => lineRef.current?.write()}
       writing={line.writing}
-      entryOpen={line.entryOpen}
       slip={pick ? (
         <Slip
           pick={pick}
