@@ -271,7 +271,7 @@ const FEATURES = [
     about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0165)',
     rule: 'captures-and-media',
     source: ['src/lib/transcript/**', 'src/lib/useTranscript.ts', 'src/components/MemoTranscript.tsx'],
-    journeys: [],
+    journeys: ['transcript'],
     specs: ['memo-transcripts'],
   },
   {
@@ -467,7 +467,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'memo-transcripts': { branch: 'claude/amazing-shannon-5jejnz', since: '2026-11-13' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

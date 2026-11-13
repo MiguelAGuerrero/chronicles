@@ -115,34 +115,6 @@ async function run(h) {
   const card = await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').first().innerText();
   const len = (t) => (/Voice memo, (\d+:\d\d)/.exec(t) ?? [])[1];
   check(len(whole) && len(card) && len(card) !== len(whole), `VT10: the moment card says the kept length ("${len(whole)}" → "${len(card)}")`);
-
-  // Memo transcripts (TX7-TX9, TX14): nothing shows while there are no words; a stored transcript appears as a caption
-  // under the memo in the viewer and under its bar in the journal, labelled as the phone's reading.
-  const piece = await voiceRow();
-  const none = await pg.locator('[data-testid=memo-transcript]').count();
-  const seeded = await pg.evaluate((id) => new Promise((resolve) => {
-    const req = indexedDB.open('chronicles');
-    req.onsuccess = () => {
-      try {
-        const tx = req.result.transaction('transcript', 'readwrite');
-        tx.objectStore('transcript').put({ capture_id: id, text: ' the bakery  before it opens ', lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
-      } catch { resolve(false); }
-    };
-    req.onerror = () => resolve(false);
-  }), piece?.id).catch(() => false);
-  await pg.reload();
-  await pg.waitForSelector('[data-testid=memories-list] [data-testid=moment-card]', { timeout: 20000 }).catch(() => {});
-  const inLine = await pg.locator('[data-testid=memories-list] [data-testid=memo-transcript]').first().innerText().catch(() => '');
-  await pg.locator('[data-testid=memories-list] [data-testid=moment-open]').first().click().catch(() => {});
-  await there('[data-testid=capture-viewer]');
-  await pg.waitForTimeout(900);
-  const words = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').innerText().catch(() => '');
-  const aria = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').getAttribute('aria-label').catch(() => null);
-  check(none === 0 && seeded === true && words === 'the bakery before it opens', `TX7, TX9: nothing shows without words; the stored words appear under the memo in the viewer ("${words}")`);
-  check(inLine === 'the bakery before it opens', `TX8: the journal's voice note shows the same words under its bar ("${inLine}")`);
-  check(!!aria && /Read by your phone/.test(aria), `TX14: the caption is labelled as the phone's reading ("${aria}")`);
   await c.close();
 }
 
@@ -153,10 +125,6 @@ module.exports = {
     'src/components/edit/**',
     'src/components/{CaptureView,ceremony/Bubbles,chronicle/MomentCard}.tsx',
     'src/components/threads/ResponseEntry.tsx',
-    // Memo transcripts (TX7-TX9, TX14): the caption under a memo.
-    'src/components/MemoTranscript.tsx',
-    'src/lib/useTranscript.ts',
-    'src/lib/transcript/**',
     'src/lib/{voiceTrim,editSession,mediaEdit}.ts',
   ],
   run,
