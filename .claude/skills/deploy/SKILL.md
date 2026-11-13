@@ -43,6 +43,9 @@ CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_O
   is still in `IN_PROGRESS` in `scripts/features.js`.
 - `docs/STATUS.md` is updated (with the audit's counts, if one ran), through `npm run records --
   slice row set` (decision 0156), and `npm run check:records -- origin/main` passes.
+  Every agent commit is gated: the Pages run replays each commit of the push that carries a `Claude-Session:` or
+  `Co-Authored-By: Claude` trailer, so `node scripts/tend.js commits --loop-only origin/main..HEAD`
+  must pass too (it is what CI runs).
 - If the owner asked for an audit, its accepted findings are fixed.
 - `docs/PRODUCT.md` says what shipped. Run `/docs-gc` if it was not run.
 

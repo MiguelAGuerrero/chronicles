@@ -33,10 +33,13 @@ jobs:
       # The vision's mechanical half: score words, tallies, hosts, dependencies, spec verdicts (decision 0094).
       - run: npm run check:vision
       # The tending loop's limits, held outside the loop (decision 0133): every `tend …` commit in this push
-      # carries its own named test and a Source line and touches nothing the loop may not, and changes the
-      # record documents only by its declared operations (decision 0156). The check runs as the push's base
-      # had it, so no commit of the push can loosen the scripts that judge it (records audit 19).
-      - name: Loop commits keep to the loop's limits
+      # carries its own named test and a Source line and touches nothing the loop may not. Every loop commit
+      # and every agent commit (a Claude-Session or Co-Authored-By: Claude trailer: slices, fixes, docs-gc,
+      # all of them) changes the record documents only by its declared operations (decision 0156); the
+      # owner's own commits carry neither and are not gated. A refusal ends with its one-line fix. The check
+      # runs as the push's base had it, so no commit of the push can loosen the scripts that judge it
+      # (records audit 19).
+      - name: Loop and agent commits keep to the loop's limits and the record operations
         if: github.event_name == 'push'
         run: |
           if [ "${BEFORE}" = "0000000000000000000000000000000000000000" ]; then

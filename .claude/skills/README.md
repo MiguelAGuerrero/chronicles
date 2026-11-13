@@ -46,7 +46,9 @@ shell, and the other two a shell that `.claude/hooks/readonly-bash.sh` keeps to 
   a run reads them from a worktree of `origin/main` and publishes its changes to them with its work.
   The three documents change only through `npm run records -- <op>`, one whole entry at a time, each
   recorded and named in its commit's `Records-Op:` trailers, and `npm run check:records` before the
-  commit (decision 0156; `ship.md`, "The record documents").
+  commit (decision 0156; `ship.md`, "The record documents"). Every agent commit is gated, slices,
+  fixes and docs-gc as much as the loop: CI replays each commit that carries a `Claude-Session:` or
+  `Co-Authored-By: Claude` trailer; only the owner's own hand edits are left alone.
 - **A stopped slice is parked, not lost:** its branch is pushed as `slice/<slug>-parked`, its question
   is a `T` entry on `main`, and the owner's answer resumes it (`/tend`, section 7).
 - **Gates are scripts where they can be:** `check:docs` (a criterion without a test), `check:vision`,

@@ -118,7 +118,11 @@ Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state
 (`npm run records -- inflight add --file <row>`; it goes on top, newest first). Later
 changes to the row are `inflight set <match> --file <row>`. Every change to
 `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` is a `npm run
-records` operation (decision 0156, `.claude/skills/ship.md`, "The record documents").
+records` operation (decision 0156, `.claude/skills/ship.md`, "The record documents"). Every agent commit
+is gated, a slice's as much as the loop's: CI replays each commit that carries your `Claude-Session:` or
+`Co-Authored-By: Claude` trailer and fails one that changes the documents by hand. What the slice leaves
+for the owner's call goes in a "From <skill>" section (`section add`, then `section item add`). When
+merging `origin/main` conflicts in the documents, `npm run records -- redo` during the merge.
 
 ## 5. Tests first
 

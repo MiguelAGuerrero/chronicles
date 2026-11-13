@@ -91,7 +91,9 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 - `docs/NATIVE_UNVERIFIED.md`: the auditor's native list, merged in (`native item add`, one per check).
 - These three change only through `npm run records` (decision 0156, `.claude/skills/ship.md`, "The
   record documents"): run `npm run check:records -- origin/main` and commit with the trailers
-  `npm run records -- trailers` prints.
+  `npm run records -- trailers` prints. Every agent commit is gated, the audit's record too. What the
+  audit leaves for the owner's call is a bullet of a "From <skill>" section (`section add "From the
+  <slice>'s audit (<date>)"`, then `section item add`).
 - A new rule or trap learned from a finding: `.claude/rules/<area>.md`.
 
 ## 6. Verify, then deploy

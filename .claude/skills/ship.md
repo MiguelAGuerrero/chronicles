@@ -55,24 +55,40 @@ Who hears of it depends on who was typed:
 
 `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
 `npm run records -- <op>` (decision 0156; `scripts/records.js`'s header lists the operations: the
-inbox, "Last tend", "Open before the loop", the "In flight" and "Slices" rows, and the items of the
-other two). Each changes one entry and refuses to write if any other byte would move. Write the text
-to a file in the scratchpad and pass `--file`, so nothing needs quoting; never edit these files with
-Edit, Write or sed.
+inbox, "Last tend", "Open before the loop", the "From <skill>" sections of "Needs the owner", the "In
+flight" and "Slices" rows, and the items of the other two). Each changes one entry and refuses to write
+if any other byte would move. Write the text to a file in the scratchpad and pass `--file`, so nothing
+needs quoting; never edit these files with Edit, Write or sed.
 
+- **Every agent commit is gated, slices and fixes too.** An agent commit is one whose message has a
+  `Claude-Session:` or a `Co-Authored-By: Claude` trailer; write both on every commit you make, a revert
+  or a merge included (`git revert --no-edit` and `git merge --no-edit` write none: give the message
+  yourself). CI replays every agent commit and every loop commit (`tend …`, and the revert of one) of the
+  push; only the owner's own hand edits, which carry neither, are left alone. A refusal ends with its fix
+  in one line: the operation, `redo`, and this section.
 - **Each operation is recorded.** It is added to a pending sidecar under `.claude/records/`, staged as
   it is written. Commit the sidecar with the documents, and put the lines
   `npm run records -- trailers` prints (one `Records-Op:` per operation, in order) in the message's
-  last paragraph, beside `Co-Authored-By`. The gate replays them on the parent's documents and fails the commit unless
-  it gets the commit's documents byte for byte: a hand edit, a dropped trailer or a sidecar edited
-  afterwards all fail. CI runs it on every `tend …` commit and the revert of one.
+  last paragraph, beside `Co-Authored-By` and `Claude-Session`. The gate replays them on the parent's
+  documents and fails the commit unless it gets the commit's documents byte for byte: a hand edit, a
+  dropped trailer or a sidecar edited afterwards all fail.
 - **What the run did not file is the owner's.** Removing or rewriting an entry this run did not add
-  (`inbox remove`/`set`, `open remove`/`set`, `item remove`/`set`/`retag`) needs `--reason "<why>"`,
-  which goes into the trailer, and a commit does it to at most two entries per section. A tag moves
-  only toward `[owner]`, `[arch]` or `[kept]`. A shipped item is removed (`item remove`), never struck
-  through; a line that amends an entry is appended (`note`); a reworded one is `set`, with its reason.
+  (`inbox remove`/`set`, `open remove`/`set`, `section item remove`/`set`, `item remove`/`set`/`retag`)
+  needs `--reason "<why>"`, which goes into the trailer, and a commit does it to at most two entries per
+  section. A tag moves only toward `[owner]`, `[arch]` or `[kept]`. A shipped item is removed (`item
+  remove`), never struck through; a line that amends an entry is appended (`note`); a reworded one is
+  `set`, with its reason. An `inbox set` keeps every line an earlier `inbox note` added to the entry, word
+  for word and in order (the owner's answers): an answer is added to with `inbox note`, never rewritten.
+- **What waits on the owner from a slice, a fix or an audit** goes in a "From <skill>" section of
+  "Needs the owner": `npm run records -- section add "From /fix" [--intro <file>]` makes it right after
+  "From /tend" (newest first), `section item add "From /fix" --file <bullet>` adds each bullet, and
+  `section item note|set|remove "<section>" <match>` change them; `section remove "<section>"` takes one
+  with no bullet left. A section is never renamed by an agent.
 - **Before the commit:** `npm run check:records -- origin/main` (the commits since `main` and the
-  working tree with its pending operations). It names each change no operation makes.
+  working tree with its pending operations). It names each change no operation makes. A commit that
+  fails and is not pushed yet is made again: `git reset --soft HEAD~1` (the last commit), `git checkout
+  HEAD -- <the documents>`, the operations, the commit. A commit already on `main` stays (`main` is never
+  rewritten); the next push carries the record through operations.
 - **On a rebase conflict** in them, in the commit being replayed (its sidecar is pending again), take
   `main`'s side of the three documents and the ledger and run `npm run records -- redo`: it runs the
   commit's operations again on `HEAD`'s documents, an inbox entry numbering on from `main`'s ledger
@@ -80,8 +96,13 @@ Edit, Write or sed.
   stay as they are. It refuses when an entry an operation acted on is no longer the same: look again.
   A rebase that renumbers without a conflict cannot be redone, since the record is committed: stop
   and report (`/tend` section 10). Never amend a record commit: an amend after a further operation
-  carries two sidecars, and the gate fails it. A loop run never merges `main` into its branch; a merge
-  git makes by itself passes the gate, one resolved by hand in the documents fails it.
+  carries two sidecars, and the gate fails it.
+- **On a merge conflict** in them (`git merge origin/main` into a slice or fix branch), run `npm run
+  records -- redo` during the merge: it writes `main`'s documents with this branch's operations since
+  the merge base run again on them, whatever the conflict left, and stages them; commit the merge with
+  your trailers. The gate accepts a merge's documents as git's own merge or as `redo`'s; a merge you
+  resolve by hand in them fails. When `redo` refuses (an entry the branch acted on changed on `main`),
+  stop and ask the owner. A loop run never merges `main` into its branch; it rebases.
 
 ## Review
 

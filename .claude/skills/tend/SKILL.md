@@ -386,7 +386,7 @@ The owner picks; the loop never starts a `G` entry unasked.
    review of step 2 leads to a second record commit, write it there.
    Write facts, never a judgment of the run: no lesson, no rating, no advice.
 2. **Checks:** `npm run check:docs` and `npm run check:records -- origin/main..HEAD`
-   (CI replays every `tend …` commit's trailers; a later record commit of the run may
+   (CI replays the trailers of every `tend …` commit and every agent commit; a later record commit of the run may
    set or remove what an earlier one filed without a reason or a cap). A run that changed code (a sweep, a `T`
    build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
    a loop commit with its own named, real test and its source, and none

@@ -125,9 +125,11 @@ findings in the report.
   in the same commit, and `docs/STATUS.md` if a slice's state moved
   (`npm run records -- slice row set <match> --file <row>`).
 - `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
-  `npm run records` (decision 0156; a second issue is `deferred item add`). Run `npm run
-  check:records -- origin/main` before the commit, and put the lines `npm run records -- trailers`
-  prints in its message.
+  `npm run records` (decision 0156; a second issue is `deferred item add`; a question for the owner
+  is a bullet of a "From /fix" section, `section add "From /fix"` then `section item add`).
+  Every agent commit is gated, a fix's too: CI replays each commit carrying your
+  `Claude-Session:` or `Co-Authored-By: Claude` trailer. Run `npm run check:records -- origin/main` before the commit, and
+  put the lines `npm run records -- trailers` prints in its message.
 - A fix that settles a trap goes in `.claude/rules/<area>.md`.
 
 ## 7. Commit and push the branch

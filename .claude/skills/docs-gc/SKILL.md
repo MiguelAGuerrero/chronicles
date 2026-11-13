@@ -75,6 +75,9 @@ the spec's record and PRODUCT.md, and drop it from DEFERRED.md with
 (decision 0156: the three record documents change only through operations, two
 removals per section per commit; `npm run check:records -- origin/main` before
 the commit, whose message carries `npm run records -- trailers`).
+Every agent commit is gated, a docs clean-up's too: CI replays each commit carrying your
+`Claude-Session:` or `Co-Authored-By: Claude` trailer, so drift in these three is
+fixed by an operation, never by hand.
 
 ## 6. Native is still unverified
 

@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "open",
+        "remove",
+        "The record gate's questions",
+        "--reason",
+        "the owner answered both on Nov 13: decision 0156, points 6 and 7"
+      ],
+      "target": "sha256:1fc3becd2d37502dc8d2f0b40e579c6035a6d10a977239b45a662104e6387601"
+    }
+  ]
+}

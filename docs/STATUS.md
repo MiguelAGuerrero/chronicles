@@ -323,9 +323,6 @@ no area changed state. Nothing here has run on a phone; the `ends` layer is draw
 
 ### Open before the loop
 
-- **The record gate's questions** (Nov 12; decision 0156, "Left open for the owner"): whether `inbox set` must keep
-  the lines an `inbox note` added (an answer you gave can be cut by a reshape; the audit's F9), and whether CI replays
-  a G slice's commits too (they are named for the slice, not `tend …`, so only `check:records` reads them today).
 - **QL2's wording after T16** (Nov 12; decision 0154): the quality-of-life doc (mirrored in
   `specs/quality-of-life/spec.md`) says the end marker is "a white disc with a thick ring in the walked orange"; since
   `tend map T16` it is solid, a disc filled in the walked colour with a white ring, the start still hollow. Amend QL2 to
