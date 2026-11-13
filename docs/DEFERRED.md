@@ -222,6 +222,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] The selected star is not told to a screen reader: the web's star is a raw button with an `aria-label` only (`WalkMap.web.tsx`, the star markers), and native's `pinHit` View has no `accessibilityState` (`WalkMap.native.tsx`); give the web button `aria-current="true"` and native `accessibilityState={{ selected }}` (WCAG 4.1.2; the T15 review's U4, low; before T15 too)
 - [loop] At the zoom where two places' stars merge, a lone pin's head can cover the merged star's lower half, and their targets overlap (about 21 x 43 px in the T15 probe's `after-merged-390`, a star at 131,282 and a note pin at 126,309; the same before T15): the stars and the pins are grouped apart, each within 44 px, never against each other. Draw the star's target above the pins, or space pins from stars as they are spaced from each other (WCAG 2.5.8; the T15 review's U5 and F5, low)
 - [loop] `formatDistance` joins a number and its unit with a plain space, so a line can break between them: the place sheet's header reads "175" at the end of one line and "m" on the next at 390 px (`09-home-place` in the `chronicle` journey, after `tend places T15`; the same before). A no-break space in `formatDistance` (`lib/format.ts`) and its siblings keeps them together (the T15 review's U6 and F4, low)
+- [owner] A pin's part of the day nests the long-ago line's own comma in its comma list: "Memories: a photo and a
+  note, March, two years ago, evening, reminder set. Open" (`dayPartLine`'s words, verbatim, since `tend map T28`;
+  the T28 review's ux 4, low, opinion). A clearer form needs new words ("three weeks ago, in the afternoon", or the
+  span's "three weeks ago" alone), which are yours.
+- [loop] No journey jumps the clock past a boundary on the walk screen: `tend map audit 29` renews the pins' `now` on
+  return to the front and at `nextDayPartBoundary`, unit-tested only, because the e2e harness installs no page clock
+  and installing one mid-journey would replace every timer the mocked walk runs on. A journey that opens the ready
+  screen under `page.clock` at 23:55 and reads a pin's name before and after midnight would hold it (low).
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 

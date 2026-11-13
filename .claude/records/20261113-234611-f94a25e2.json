@@ -1,0 +1,119 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T28",
+        "--reason",
+        "the owner's yes, built in tend map T28"
+      ],
+      "target": "sha256:8ba866cc3f43be01fd8735fc421839d60a144257db6e9b5074a9f48a6ce6fc6e"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T19"
+      ],
+      "body": "  **Answered** by the owner in person (Nov 12; decision 0165): \"Clauses, one hint\", the recommended shape. Recorded\n  Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).\n",
+      "target": "sha256:4467191f0fbfb07708a16d9247a63d72d70c8dc1b03471ca67096bab1de2dedc"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T20"
+      ],
+      "body": "  **Answered** by the owner in person (Nov 12; decision 0165): \"Back to Chronicle\", the recommended shape. Recorded\n  Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).\n",
+      "target": "sha256:e64bac36ff0bda5e9bec9a8b9066f4945ab5d33d71d0499faf58c5e797219c6b"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T21"
+      ],
+      "body": "  **Answered** by the owner in person (Nov 12; decision 0165): \"A quiet Back\", the recommended shape. Recorded Nov 13;\n  waits for the next `/tend inbox`, one build per run (T28 was built first).\n",
+      "target": "sha256:5805e0a309f4822c435fd9376c963223cdeed1f27d56a2fb0f798be2b290b9f4"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T22"
+      ],
+      "body": "  **Answered** by the owner in person (Nov 12; decision 0165): \"Show me swatches\", not a yes to a hue: a later run\n  renders three walked hues apart from the accent, the owner picks one, then it is built. Recorded Nov 13; waits for\n  the next `/tend inbox`, one build per run (T28 was built first).\n",
+      "target": "sha256:001f8bc06d98b54366abf71ef3e6b4c9a44f91f064b392575e2ce1daf61fb9e1"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "QL26's, NY10's, MR2's and RB7's words after T14"
+      ],
+      "body": "  Since `tend map T28` (Nov 13; decision 0164) every pin says when: a pin of one moment its minutes too (\"Photo, twelve\n  minutes in. Open\"); a pin whose moments lie more than ten walked minutes apart the span (\"A photo and a note, from\n  the start to fifty-eight minutes in. Open\"); a pin no walk clock holds (Chronicle's map, the ready screen, memory\n  pins, moments of two walks on a day, a moment outside a walk) the part of the day of its first moment (\"A photo and\n  a note, Tuesday evening. Open\"; \"Memories: a photo and a note, Tuesday evening\"). So the amended examples of QL26,\n  NY10 and RB7 take the time too (RB7's \"A photo and a note, twelve minutes in, reminder set. Open\"), and MR2's memory\n  pin its part of the day. `.claude/rules/map.md` has a \"When a pin says it\" bullet, which supersedes the \"kinds\n  alone\" cases in the T14 bullet above it, and `.claude/rules/memories.md` a \"Since `tend map T28`\" line.\n  Since the T28 review (`tend map audit 27`-`30`; the owner's answers in decision 0165): a pin whose moments fall on\n  different days says the span of their days (\"Memories: a photo and a note, from three weeks ago to Tuesday\n  evening. Open\"); on a map of several walks every pin says its part of the day; a span under an hour shares its unit\n  (\"from twelve to fifty minutes in\"). And `.claude/rules/map.md`'s \"A pin of several moments\" bullet and its\n  sub-bullet (l.153-163: \"without it (Chronicle's map, memory pins, moments of two walks) the name says the kinds\n  alone\", \"says its kinds alone (`tend map audit 19`)\", `pinInto`, now deleted) contradict the \"When a pin says it\"\n  bullet under them (the T28 review's auditor 5): reword them when you amend the specs; the loop rewords no rule line.\n",
+      "target": "sha256:f69ee8133419095695d572497d3b38496df48d65586c88156e53022b6bb9b889"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers",
+        "--after",
+        "\"Memories: a photo and a note. Open\" (Map pins"
+      ],
+      "body": "- [ ] **Do:** since `tend map T28` (decision 0164; audit 27-30), with VoiceOver, then TalkBack: on a walk keep a photo alone, a photo and a note together, and an hour later a note at the walk's start; touch each pin; leave the app open on the walk screen across nine in the evening, background it and bring it back; Stop and touch them again; open the walk's replay, then a day's replay of two walks; then Chronicle's map and Navigate's ready map, and a later walk past them on another day. **Expect:** on the walk and its replay \"Photo, twelve minutes in. Open\", \"A photo and a note, twelve minutes in. Open\" and \"A photo and a note, from the start to one hour and five minutes in. Open\" (two ends under an hour: \"from twelve to fifty minutes in\"); after Stop, on the day replay of two walks, on Chronicle's map and the ready map, each pin's part of the day (\"Photo, this evening. Open\"), changing to \"tonight\" at nine without leaving the screen and renewed on return to the front (`pinNow`, `nextDayPartBoundary`); a memory pin whose moments fall on different days \"Memories: a photo and a note, from three weeks ago to Tuesday evening. Open\"; no digits said (`pinWhen`, `WalkMap.native.tsx`'s `accessibilityLabel` from `props.now`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "\"Memories: a photo and a note. Open\" (Map pins",
+        "--reason",
+        "the T28 review's auditor 2: the spoken names it expects changed with tend map T28"
+      ],
+      "body": "  Superseded in its spoken names by the \"Since `tend map T28`\" check below: every pin now says when (\"A photo and a\n  note, twelve minutes in. Open\"; \"Memories: a photo and a note, Tuesday evening. Open\").\n",
+      "target": "sha256:b0fb2ee42349d31839d1604a1ff8db6cd919b762008ba798939d2c9e8518083a"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "\"3 captures here, reminder set. Open\"",
+        "--reason",
+        "the T28 review's auditor 2: the names it expects changed with tend map T14 and T28"
+      ],
+      "body": "  Superseded in its spoken names: since `tend map T14` a pin of several says its kinds in words, and since `tend map\n  T28` every pin says when (\"Note, twelve minutes in, reminder set. Open\"; \"A photo and a note, twelve minutes in,\n  reminder set. Open\"); the \"Since `tend map T28`\" check under Map layers and markers holds the names.\n",
+      "target": "sha256:3cb7376855190014624f9f5e002ce9e754297099188e1f5bbd65c987629a1921"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [owner] A pin's part of the day nests the long-ago line's own comma in its comma list: \"Memories: a photo and a\n  note, March, two years ago, evening, reminder set. Open\" (`dayPartLine`'s words, verbatim, since `tend map T28`;\n  the T28 review's ux 4, low, opinion). A clearer form needs new words (\"three weeks ago, in the afternoon\", or the\n  span's \"three weeks ago\" alone), which are yours.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] No journey jumps the clock past a boundary on the walk screen: `tend map audit 29` renews the pins' `now` on\n  return to the front and at `nextDayPartBoundary`, unit-tested only, because the e2e harness installs no page clock\n  and installing one mid-journey would replace every timer the mocked walk runs on. A journey that opens the ready\n  screen under `page.clock` at 23:55 and reads a pin's name before and after midnight would hold it (low).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 13, `/tend inbox T28 yes, T19 yes, T20 yes, T21 yes, T22 swatches`** (from `63cf0214`, rebased on `da529bad`; the\nowner's own answers, in person: T28 on Nov 13 in decision 0164; T19-T22 on Nov 12 and the T28 review's ux 1 and ux 2\non Nov 13, recorded in decision 0165; one build per run, so T19, T20 and T21 wait, marked answered, and T22 waits for\nits swatches).\n- `tend map T28`: every pin says when: a pin of one moment its minutes too (\"Photo, twelve minutes in. Open\"); a pin\n  whose moments lie more than ten walked minutes apart the span (\"A photo and a note, from the start to fifty-eight\n  minutes in. Open\"); a pin no walk clock holds the part of the day of its first moment, in the moment's own line's\n  words (\"A photo and a note, Tuesday evening. Open\"). Nothing drawn changed. Sibling lens: the walk screen and the\n  replay have a clock; the walk screen after Stop, the ready screen, Chronicle's map and memory pins have none; a day\n  replay's pin of two walks, or of a moment outside a walk, has none either; Explore and the planner draw no pins of\n  moments.\nThe review's fixes (one round of the auditor and the ux-reviewer, decision 0145):\n- `tend map audit 27`: a pin whose moments fall on different days says the span of their days (\"from three weeks ago\n  to Tuesday evening\"; the owner's answer to ux 1).\n- `tend map audit 28`: on a map of several walks every pin says its part of the day (the owner's answer to ux 2).\n- `tend map audit 29`: the walk screen renews its pins' `now` on return to the front and at the next boundary the\n  words turn on (`nextDayPartBoundary`; auditor 1, ux 3); the e2e for it is a `[loop]` item in `docs/DEFERRED.md`.\n- `tend map audit 30`: the span is said in the minutes it names, its unit once (\"from twelve to fifty minutes in\");\n  `pinInto` deleted (auditor 3, ux 5, auditor 6).\n- `tend map audit 31`: `qol` reads a one-photo pin's minutes whole; the `days` checks keep to the map and take\n  \"yesterday night\" (auditor 4, auditor 7).\nReview: 9 accepted, 2 recorded (auditor 2: a native check for the new names, the two old checks noted superseded;\nauditor 5: the map rule's \"kinds alone\" lines, noted under \"Open before the loop\"), 1 deferred `[owner]` (ux 4, the\nlong-ago line's comma), 0 rejected. Each check was seen failing first: the unit tests on the code before each fix,\nthe journeys' T28 and audit 31 checks on main's build (`E2E_SOFT`).\nNot a sweep: no lens ran and no area changed state. Journeys green on the final code: `days`, `qol`, `walk`, `edit`,\n`launch`, `ready`. Nothing here has run on a phone; the spoken names on native are unverified\n(`docs/NATIVE_UNVERIFIED.md`). QL26's, NY10's, MR2's and RB7's words, and the map rule's \"kinds alone\" lines, wait for\nyour edit (noted under \"Open before the loop\").\n"
+    }
+  ]
+}
