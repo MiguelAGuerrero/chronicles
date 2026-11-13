@@ -231,6 +231,39 @@ const snapDivisionFeatures = [
 // every 60 m cut into blocks as OSM ways are, an unnamed alley between each pair, 2,000 places thickest in the middle, a
 // city point, eight neighborhoods on a 700 m ring and one, Far Point, 2.2 km west, past what the first busy read covers.
 // Served only while denseWorld.serve is on (the dense journey and scripts/perf-explore.js), so no other journey changes.
+// Smooth switches (SS1-SS10, the owner's small-town report, Nov 13): Smallton, 20 km east of the harness's other places, with
+// its Main Street, five neighborhoods 0.9-1.3 km from its point each with a short shopping street and a cross street, and Far
+// Hollow 2.4 km west, past one read's 1.5 km, so a town's page has more than one remembered area. Served only while
+// smallWorld.serve is on (the switches journey).
+const smallWorld = { serve: false };
+const SMALL_TOWN = [200, 0];
+const SMALL_HOODS = [['Mill End', 188, 2, 'Mill Street'], ['Church Hill', 196, 10, 'Church Street'], ['Depot', 212, 4, 'Depot Street'],
+  ['Riverside', 207, -6, 'River Road'], ['Westfield', 192, -9, 'Field Avenue'], ['Far Hollow', 176, 0, 'Hollow Lane']];
+const smallFeatures = (() => {
+  const out = [];
+  const kinds = [['cafe', 'cafe'], ['shop', 'gift'], ['restaurant', 'restaurant'], ['bar', 'bar'], ['bakery', 'bakery'], ['clothing_store', 'clothes']];
+  const street = (name, x0, y0, x1, y1, shops) => {
+    out.push({ type: 'Feature', properties: { class: 'tertiary', name }, geometry: { type: 'LineString', coordinates: [at(x0, y0), at(x1, y1)] } });
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    for (let i = 0; i < shops; i++) {
+      const f = (i + 0.5) / shops;
+      // 8 m off the street, on alternate sides.
+      const side = i % 2 ? 1 : -1;
+      const [cls, sub] = kinds[i % kinds.length];
+      out.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `${name} ${i}` },
+        geometry: { type: 'Point', coordinates: at(x0 + (x1 - x0) * f - ((y1 - y0) / len) * 0.08 * side, y0 + (y1 - y0) * f + ((x1 - x0) / len) * 0.08 * side) } });
+    }
+  };
+  out.push({ type: 'Feature', properties: { class: 'town', name: 'Smallton' }, geometry: { type: 'Point', coordinates: at(...SMALL_TOWN) } });
+  street('Main Street', 197, 0.3, 203, 0.3, 24);
+  street('Bridge Street', 200.3, -3, 200.3, 3, 12);
+  for (const [name, x, y, st] of SMALL_HOODS) {
+    out.push({ type: 'Feature', properties: { class: 'neighbourhood', name }, geometry: { type: 'Point', coordinates: at(x, y) } });
+    street(st, x - 2.5, y + 0.3, x + 2.5, y + 0.3, 14);
+    out.push({ type: 'Feature', properties: { class: 'minor', name: `${st} Cross` }, geometry: { type: 'LineString', coordinates: [at(x, y - 2), at(x, y + 2)] } });
+  }
+  return out;
+})();
 const denseWorld = { serve: false };
 const DENSE_HOODS = ['Old Market', 'Mount Hill', 'Harbor East', 'Little Port', 'Ridge Row', 'Canal Side', 'Upper Fells', 'Station North'];
 const denseFeatures = (() => {
@@ -521,7 +554,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : []), ...(denseWorld.serve ? denseFeatures : [])], z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : []), ...(denseWorld.serve ? denseFeatures : []), ...(smallWorld.serve ? smallFeatures : [])], z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -752,7 +785,7 @@ async function createHarness() {
   });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
 
