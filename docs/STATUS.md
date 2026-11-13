@@ -19,6 +19,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 
 | Slice (spec tab) | Status | Evidence (last related commit on main) | Spec | Audited |
 |---|---|---|---|---|
+| Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool; on the viewer's note, the single-note pin and the thread bubble; NY1-NY17, decision 0161) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |
 | Explorer App Concept (v0: record, capture, replay, storage; round 3) | shipped | `7cf5ab1` 2026-10-31 round 3; `565b244` 2026-10-31 | `specs/concept/spec.md` | yes (two audit rounds `7936f48`, `ce6dd26`; round-3 audit `712fdf8`) |
 | Explore in a dense city (busy names drawn by the map with collision, one per street within 300 m, none under a "?" pin or a control; on the walk maps only within 800 m of you; the Busy read and the atlas's ring reads in a web worker, the Busy read after the map settles; fewer renders per switch; DC1-DC19, decision 0160; the owner's Baltimore report, Nov 12) | shipped 2026-11-13 (web verified by the e2e `dense` on the /chronicles build; native unverified); a first read's longest task 3.3-3.8 s to 0.2 s at 4x CPU, the first Busy switch-on 600-700 ms to 90-170 ms; switches between read areas unchanged in Chromium; first "?" pins about 1 s later | branch `claude/trusting-cannon-f5wdhg`, merged 2026-11-13 | `specs/explore-dense-city/spec.md` | yes (19 findings: 12 fixed, 1 rejected, 3 deferred, 6 folded in) |
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
@@ -278,6 +279,9 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   none). And since `tend map T17` the web shows the two refusals on one screen in different tones and words: Locate's
   cream notice, then, a moment later in the same slot, Start's red alert; on `main` before it they were the same red and
   the same words. The split is this build's, which weighs how soon you answer.
+- **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
+  Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
+  Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
 
 ### Next evolutions
 

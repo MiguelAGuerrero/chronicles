@@ -572,3 +572,10 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** on a phone, play a trimmed memo to its end handle, then tap Play again straight away, several times. **Expect:** it starts at the start handle and keeps playing every time; it never stops at once on the old end position (`voiceReachedEnd`; audit 2, VT6)
 - [ ] **Do:** on a phone, open a trimmed memo's replay (a walk with a memo and a photo in one moment), and trim the memo from the viewer over it. **Expect:** the replay carries on after the viewer closes, the photo keeps its own edit, and the memo plays its new kept part (the bus's piece patch, `useAudioPlayer`'s `updateInterval` change; audit 1, 5, VT7)
 
+## Note types (NY1-NY17, decision 0161)
+
+What the note types slice wrote and has not run on a phone (`specs/note-types`, decision 0161).
+
+- [ ] **Do:** upgrade from a build before note types, open a note taken before it, open its page with Edit, set Type to Idea and leave, then kill and reopen the app. **Expect:** the app opens (SQLite migration 27 adds `capture.note_type`), the note kept before reads as no type and its words are unchanged, and after the choice the viewer shows the lightbulb and "Idea" above the page and the note's single pin wears the bulb after the reopen (NY4, NY7, NY9, NY10)
+- [ ] **Do:** on a phone, open a note's page with Edit and open its Type tool, with the keyboard up. **Expect:** nine entries in two columns with their glyphs (a question, exclamation, bulb, happy, a dash in a circle, sad, thumbs up, thumbs down) all in one ink colour, the menu and the bar both in view above the keyboard, each entry read aloud by its name by VoiceOver or TalkBack with which is selected, and "No type" clears the mark (NY6, NY11, note-types audit 8, 9, 20)
+- [ ] **Do:** on a phone, open a moment with a photo and a note, open the note by its piece, set Type to Question, then look at the moment's pin and its card, and Split the note out. **Expect:** the photo's pin and card keep the photo and show no type; the note shows the question mark when opened again; Split out keeps the type on the note (NY5, note-types audit 1, 12, 13)

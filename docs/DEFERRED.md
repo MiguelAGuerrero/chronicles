@@ -720,3 +720,13 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **A name along its whole street** (`symbol-placement: line-center`) was tried and dropped: a strip's pieces don't meet end to end (tile clipping) and a 120-300 m strip is shorter than its name at zoom 15, so none was placed. Names sit at the busiest point, turned along the street.
 - **The `drive` journey's DW14 flake:** Cranston's area card does not open within 15 s on its page about one run in two, on main and on the build before decision 0160 alike (spec record). Not investigated.
 - **From the audit (Nov 13):** iOS suspending a page past the read's 60 s worker timeout makes the page compute the read again on resume (audit 9); the busy names keep clear of controls and the map's edge on the web only, native does not (audit 11); a street's name is placed at its busiest point only, so at street zoom in a downtown dense with "?" pins few names fit and the card's busiest street may have none on the map: choosing a point along the street clear of the pins is a larger change (UX X3, audit 18); the "?" pins are the clutter that remains (audit 19, the owner's next round).
+
+## Note types (NY1-NY17, decision 0161)
+
+What the note types slice left out (`specs/note-types`, decision 0161).
+
+- [owner] **Note types** (0161): a type chosen while a note is first written (a new note's page and Respond's start with no type; Edit sets one, so capture stays one tap); searching, lensing or threading notes by type; a type on a photo, video or memo. Any feature that reads types goes through the vision gate again.
+- [loop] **Note types** (0161, audit 2): a pin's marker is rebuilt, and web focus lost, when its note's type changes (the key includes the mark); the reminder bell keeps the element. No test reaches a single-note pin in the e2e (the replay's is always a group).
+- [loop] **Note types** (0161, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
+- [loop] **Note types** (0161, audit 22): the Type menu on the note page, in two columns, may wrap or crowd at 200% text or below 320 px wide; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).
+- [owner] **Note types** (0161, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.
