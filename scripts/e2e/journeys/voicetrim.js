@@ -2,7 +2,7 @@
 // viewer and the card say. E2E_ONLY=voicetrim runs it alone.
 
 async function run(h) {
-  const { url, check, freshPage } = h;
+  const { url, check, freshPage, shot } = h;
   const { c, pg } = await freshPage('voicetrim', { permissions: ['geolocation', 'microphone'] });
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
   const voiceRow = () => pg.evaluate(() => new Promise((resolve) => {
@@ -34,6 +34,9 @@ async function run(h) {
   const tools = editor ? await pg.locator('[data-testid^=edit-tool-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid').slice(10))) : [];
   check(edit && editor && tools.join(',') === 'trim', `VT1: a voice memo's viewer offers Edit, opening a trim-only editor (${edit}, ${tools})`);
 
+  await pg.waitForTimeout(800);
+  await shot(pg, 'voicetrim-editor-whole');
+
   // VT2, VT3: the whole memo kept at first; the end handle changes the kept times; Play is there.
   const label = editor ? await pg.locator('[data-testid=trim-label]').innerText().catch(() => '') : '';
   const end = editor ? await pg.locator('[data-testid=trim-end]').boundingBox().catch(() => null) : null;
@@ -53,6 +56,8 @@ async function run(h) {
   const ofWhole = editor ? await pg.locator('[data-testid=trim-whole]').innerText().catch(() => '') : '';
   check(/^of 0:0[3-9]$/.test(ofWhole), `VT11: the editor shows the whole length beside the kept span ("${ofWhole}")`);
 
+  await shot(pg, 'voicetrim-editor-trimmed');
+
   // VT4, VT5: nothing stored until Done; then the trim is on the piece and the file is untouched.
   const before = await voiceRow();
   check(before && !before.edit?.trim, 'VT4: nothing is stored until Done');
@@ -67,6 +72,8 @@ async function run(h) {
   // VT6, VT11: the viewer says it in words with both times, and its clock reads against the kept part.
   const said = await pg.locator('[data-testid=capture-meta]').innerText().catch(() => '');
   check(/Trimmed · 0:0[1-3] of 0:0[3-9]/.test(said), `VT11: a trimmed memo's viewer says so with both times ("${said.replace(/\n/g, ' ')}")`);
+  await pg.waitForTimeout(800);
+  await shot(pg, 'voicetrim-viewer-trimmed');
   const clock = await pg.locator('[data-testid=voice-time]').innerText().catch(() => '');
   check(/^0:00 \/ 0:0[1-3]$/.test(clock), `VT6: the clock reads against the kept length ("${clock}")`);
   await pg.click('[aria-label="Play voice memo"]').catch(() => {});
