@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Explore in a dense city",
+        "--reason",
+        "shipped 2026-11-13: the row moves to Slices"
+      ],
+      "target": "sha256:ea377e21624cf1a9dc3c024041b68af5b338bc3bd168f354955a12b041615c4a"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--after",
+        "Explorer App Concept"
+      ],
+      "body": "| Explore in a dense city (busy names drawn by the map with collision, one per street within 300 m, none under a \"?\" pin or a control; on the walk maps only within 800 m of you; the Busy read and the atlas's ring reads in a web worker, the Busy read after the map settles; fewer renders per switch; DC1-DC19, decision 0159; the owner's Baltimore report, Nov 12) | shipped 2026-11-13 (web verified by the e2e `dense` on the /chronicles build; native unverified); a first read's longest task 3.3-3.8 s to 0.2 s at 4x CPU, the first Busy switch-on 600-700 ms to 90-170 ms; switches between read areas unchanged in Chromium; first \"?\" pins about 1 s later | branch `claude/trusting-cannon-f5wdhg`, merged 2026-11-13 | `specs/explore-dense-city/spec.md` | yes (19 findings: 12 fixed, 1 rejected, 3 deferred, 6 folded in) |\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "DW14 flake",
+        "--reason",
+        "the slice's decision is 0159 (main took 0156)"
+      ],
+      "body": "- **The `drive` journey's DW14 flake:** Cranston's area card does not open within 15 s on its page about one run in two, on main and on the build before decision 0159 alike (spec record). Not investigated.\n",
+      "target": "sha256:abd22c3d2a0203d36779ee53bd4c08000b83262000938f60a050596c7c5b3b28"
+    }
+  ]
+}
