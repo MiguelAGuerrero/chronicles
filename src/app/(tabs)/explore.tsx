@@ -241,7 +241,15 @@ export default function Explore() {
       setSpot(null);
       frame([at], ATLAS_RULES.ringM);
     },
-    onError: setLocError,
+    onError: (e) => {
+      setLocError(e);
+      // tend map audit 12: the quiet notice is no alert, so a screen reader hears the refusal through the hidden live
+      // region kept mounted on web (DN12's) and the call on a phone; the red error keeps its alert role.
+      if (e.tone === 'info') {
+        setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+        AccessibilityInfo.announceForAccessibility(e.message);
+      }
+    },
   });
   // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
   // so it can't wait for Navigate's. Once per launch; nothing tracks after.

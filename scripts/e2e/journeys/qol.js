@@ -1015,8 +1015,16 @@ async function run(h) {
         await pg4.setViewportSize({ width: w, height: hgt });
         await pg4.goto(url);
         await pg4.waitForTimeout(4000);
+        // tend map audit 12: the quiet notice is no alert, so a polite live region kept on screen says the refusal; one
+        // inserted with its words already in it is often never read.
+        const saidId = screen === 'Navigate' ? 'ready-said' : 'atlas-snap-said';
+        const said = () => pg4.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), saidId);
+        const saidBefore = await said();
         await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
         await pg4.waitForTimeout(2500);
+        const saidAfter = await said();
+        check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
+          `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
         await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
         await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
         await c4.close();
