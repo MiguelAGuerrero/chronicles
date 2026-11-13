@@ -3,7 +3,7 @@
 // (phones only), so the row is stored the way the phone's shell stores it. E2E_ONLY=transcript runs it alone.
 
 async function run(h) {
-  const { url, check, freshPage } = h;
+  const { url, check, freshPage, shot } = h;
   const { c, pg } = await freshPage('transcript', { permissions: ['geolocation', 'microphone'] });
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
@@ -44,6 +44,7 @@ async function run(h) {
   await pg.waitForSelector(entries, { timeout: 20000 }).catch(() => {});
   await pg.waitForTimeout(1200);
 
+  await shot(pg, 'transcript-journal');
   // TX8: the journal's voice note shows the words under its bar.
   const inLine = await pg.locator(`${entries} [data-testid=memo-transcript]`).first().innerText().catch(() => '');
   check(before === 0 && seeded === true && inLine === 'the bakery before it opens', `TX8, TX9: nothing shows without words; the stored words appear under the journal's voice note (${before}, ${seeded}, "${inLine}")`);
@@ -52,6 +53,7 @@ async function run(h) {
   await pg.locator(`${entries} [data-testid=moment-open]`).first().click().catch(() => {});
   await there('[data-testid=capture-viewer]');
   await pg.waitForTimeout(900);
+  await shot(pg, 'transcript-viewer');
   const words = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').innerText().catch(() => '');
   const aria = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').getAttribute('aria-label').catch(() => null);
   check(words === 'the bakery before it opens', `TX7: the viewer shows the words as a caption under the memo ("${words}")`);
