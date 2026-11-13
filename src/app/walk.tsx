@@ -796,7 +796,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
     .map((c) => c.id)
     .join(',');
-  // The walk's clock, so a pin of several says how far in it was (tend map T14).
+  // The walk's clock, so a pin says how far in it was (tend map T14, T28).
   // Only while the open walk is this one: after Stop its pauses are gone (tend map audit 21).
   const openRow = openWalk.walk;
   const clocks = useMemo(() => walkClocks(walk, openRow, pauses), [walk, openRow, pauses]);

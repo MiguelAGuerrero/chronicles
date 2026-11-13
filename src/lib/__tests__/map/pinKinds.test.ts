@@ -2,7 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { pinHeadKinds, pinInto, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, walkClocks, type CapturePin, type WalkClock } from '../../pins';
+import { pinHeadKinds, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, walkClocks, type CapturePin, type WalkClock } from '../../pins';
 import { nextDayPartBoundary } from '../../resurface/context';
 import type { CaptureKind } from '../../types';
 
@@ -46,16 +46,18 @@ test('tend map T14: its kinds in words, counts as words, never a numeral', () =>
 
 test('tend map T14: how far into its walk, in walked time, from its first moment', () => {
   const pin = pinOf(cap('a', 'photo', 12), cap('b', 'text', 15));
-  assert.equal(pinInto(pin, [W1]), 'twelve minutes in');
+  // On pinSpoken since tend map audit 30 (pinInto had no caller left).
+  assert.equal(pinSpoken(pin, { clocks: [W1] }), 'A photo and a note, twelve minutes in');
   // Walked time leaves out the pauses before it, as the moment's own line does (MC3).
-  assert.equal(pinInto(pin, [{ ...W1, pauses: [{ started_at: T0 + 2 * MIN, ended_at: T0 + 7 * MIN }] }]), 'seven minutes in');
-  assert.equal(pinInto(pinOf(cap('a', 'photo', 0), cap('b', 'text', 0.2)), [W1]), 'at the start');
-  assert.equal(pinInto(pinOf(cap('a', 'photo', 65), cap('b', 'text', 70)), [W1]), 'one hour and five minutes in');
-  // Unknown: the walk's clock not given, moments of two walks, or a moment made outside a walk.
-  assert.equal(pinInto(pin, []), null);
-  assert.equal(pinInto(pin, undefined), null);
-  assert.equal(pinInto(pinOf(cap('a', 'photo', 12), cap('b', 'text', 15, { walk_id: 'w2' })), [W1, { id: 'w2', started_at: T0, pauses: [] }]), null);
-  assert.equal(pinInto(pinOf(cap('a', 'photo', 12, { walk_id: null }), cap('b', 'text', 15, { walk_id: null })), [W1]), null);
+  assert.equal(pinSpoken(pin, { clocks: [{ ...W1, pauses: [{ started_at: T0 + 2 * MIN, ended_at: T0 + 7 * MIN }] }] }), 'A photo and a note, seven minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0), cap('b', 'text', 0.2)), { clocks: [W1] }), 'A photo and a note, at the start');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 65), cap('b', 'text', 70)), { clocks: [W1] }), 'A photo and a note, one hour and five minutes in');
+  // Unknown, with no `now` to say the part of the day: the walk's clock not given, moments of two walks, or a moment
+  // made outside a walk.
+  assert.equal(pinSpoken(pin, { clocks: [] }), 'A photo and a note');
+  assert.equal(pinSpoken(pin, {}), 'A photo and a note');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 15, { walk_id: 'w2' })), { clocks: [W1, { id: 'w2', started_at: T0, pauses: [] }] }), 'A photo and a note');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12, { walk_id: null }), cap('b', 'text', 15, { walk_id: null })), { clocks: [W1] }), 'A photo and a note');
 });
 
 test('tend map T14: the spoken name says the kinds and the minutes in; one moment keeps its name', () => {
@@ -91,10 +93,10 @@ test('tend map T14: a pin of two videos is the fan with no still; a pin of one v
 test('tend map audit 19: a pin of moments far apart in its walk says no one time; three kinds are all named', () => {
   // Amended by tend map T28 (decision 0164): it says the span, never the first one's time alone.
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0), cap('b', 'text', 58)), { clocks: [W1] }), 'A photo and a note, from the start to fifty-eight minutes in');
-  assert.equal(pinInto(pinOf(cap('a', 'photo', 12), cap('b', 'text', 50)), [W1]), null);
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 50)), { clocks: [W1] }), 'A photo and a note, from twelve to fifty minutes in');
   // Within ten walked minutes it still says the first one's time; a pause between them is not walked time.
-  assert.equal(pinInto(pinOf(cap('a', 'photo', 12), cap('b', 'text', 22)), [W1]), 'twelve minutes in');
-  assert.equal(pinInto(pinOf(cap('a', 'photo', 12), cap('b', 'text', 40)), [{ ...W1, pauses: [{ started_at: T0 + 15 * MIN, ended_at: T0 + 35 * MIN }] }]), 'twelve minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 22)), { clocks: [W1] }), 'A photo and a note, twelve minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 40)), { clocks: [{ ...W1, pauses: [{ started_at: T0 + 15 * MIN, ended_at: T0 + 35 * MIN }] }] }), 'A photo and a note, twelve minutes in');
   assert.equal(
     pinSpoken(pinOf(cap('a', 'photo', 1), cap('b', 'voice', 2), cap('c', 'text', 3)), { clocks: [W1] }),
     'A photo, a voice memo and a note, one minute in',
@@ -147,7 +149,7 @@ test('tend map T28: a pin of one moment says its minutes when its walk\'s clock 
 
 test('tend map T28: a pin whose moments lie more than ten walked minutes apart says the span', () => {
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0), cap('b', 'text', 58)), { clocks: [W1], now: NOW }), 'A photo and a note, from the start to fifty-eight minutes in');
-  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 50)), { clocks: [W1] }), 'A photo and a note, from twelve minutes to fifty minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 50)), { clocks: [W1] }), 'A photo and a note, from twelve to fifty minutes in', 'since tend map audit 30');
   assert.equal(
     pinSpoken(pinOf(cap('a', 'photo', 50), cap('b', 'voice', 52), cap('c', 'photo', 125)), { clocks: [W1] }),
     'Two photos and a voice memo, from fifty minutes to two hours and five minutes in',
@@ -156,7 +158,7 @@ test('tend map T28: a pin whose moments lie more than ten walked minutes apart s
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 22)), { clocks: [W1] }), 'A photo and a note, twelve minutes in');
   const paused = [{ ...W1, pauses: [{ started_at: T0 + 15 * MIN, ended_at: T0 + 35 * MIN }] }];
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 40)), { clocks: paused }), 'A photo and a note, twelve minutes in');
-  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 60)), { clocks: paused }), 'A photo and a note, from twelve minutes to forty minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 60)), { clocks: paused }), 'A photo and a note, from twelve to forty minutes in', 'since tend map audit 30');
 });
 
 test('tend map T28: with no walk clock, the part of the day of the pin\'s first moment, as a moment\'s own line says it', () => {
@@ -245,4 +247,17 @@ test('tend map audit 29: the next moment a pin\'s part of the day can change', (
   const b = nextDayPartBoundary(at(13, 23, 40));
   assert.notEqual(pinSpoken(pin, { now: b - 1 }), pinSpoken(pin, { now: b }));
   assert.equal(pinSpoken(pin, { now: b }), 'Photo, yesterday evening');
+});
+
+// tend map audit 30 (the T28 review's auditor 3, ux 5, auditor 6): the span's words. A pin whose moments lay 10.8
+// walked minutes apart said "from twelve minutes to twenty-two minutes in", ten apart in its own words: the span is
+// said only when the rounded minutes lie more than ten apart. Two ends under an hour share their unit, "from twelve to
+// fifty minutes in"; the mixed units and "from the start to ..." stay.
+test('tend map audit 30: the span is said in the minutes it names, and its unit once', () => {
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 11.6), cap('b', 'text', 22.4)), { clocks: [W1] }), 'A photo and a note, twelve minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 11.6), cap('b', 'text', 22.6)), { clocks: [W1] }), 'A photo and a note, from twelve to twenty-three minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 1), cap('b', 'text', 12)), { clocks: [W1] }), 'A photo and a note, from one to twelve minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0), cap('b', 'text', 58)), { clocks: [W1] }), 'A photo and a note, from the start to fifty-eight minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 60)), { clocks: [W1] }), 'A photo and a note, from twelve minutes to one hour in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 65), cap('b', 'text', 130)), { clocks: [W1] }), 'A photo and a note, from one hour and five minutes to two hours and ten minutes in');
 });

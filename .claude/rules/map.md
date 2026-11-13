@@ -184,6 +184,9 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     renewed on each return to the front and at `nextDayPartBoundary` (`resurface/context.ts`); the web relabels in
     place (`usePinMarkers`' deps), native re-renders its labels (unverified). Chronicle remounts its map on focus and
     the replays mount on open, so they need none (`tend map audit 29`).
+  - The span is said in the minutes it names: only when the rounded minutes lie more than ten apart, both under an
+    hour sharing their unit ("from twelve to fifty minutes in"), else "from the start to ..." or the mixed units
+    (`tend map audit 30`). `pinInto` is gone: `pinWhen` is the one place a pin's time is worded.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

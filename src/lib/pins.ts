@@ -7,6 +7,8 @@ import { numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
 
+const MIN = 60_000;
+
 /** Pins closer than this on screen merge into one, drawn with its kinds (tend map T14). */
 export const PIN_GROUP_PX = 44;
 /** Never group captures further apart than this, however far out the map is. */
@@ -196,21 +198,6 @@ function walkedAt(clock: WalkClock, t: number): number {
 
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
-/**
- * How far into its walk a pin's first moment was, in walked time and in words, as the moment's own line says it
- * (MC3): "twelve minutes in", "at the start". Null unless every moment of the pin is of one walk whose clock is given,
- * and they lie within JUST_AFTER_MS of each other in walked time (tend map audit 19; the span is `pinWhen`'s).
- */
-export function pinInto(pin: CapturePin, clocks: readonly WalkClock[] | undefined): string | null {
-  const clock = clockOf(pin, clocks);
-  if (!clock) return null;
-  const first = walkedAt(clock, pin.captures[0].t);
-  // Pins group by place, never time: moments far apart in the walk (a loop's start and end) share no one time (tend
-  // map audit 19).
-  if (walkedAt(clock, pin.captures[pin.captures.length - 1].t) - first > JUST_AFTER_MS) return null;
-  return lower(minutesInLine(first));
-}
-
 /** A day's part said after a comma: "Tuesday evening" keeps its capital, "This evening" is "this evening". */
 const NAMED = /^(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day\b|^(January|February|March|April|May|June|July|August|September|October|November|December)\b/;
 const afterComma = (line: string) => (NAMED.test(line) ? line : lower(line));
@@ -251,9 +238,13 @@ export function pinWhen(pin: CapturePin, clocks: readonly WalkClock[] | undefine
   if (!clock) return now == null ? null : dayWhen(pin, now);
   const from = walkedAt(clock, first.t);
   const to = walkedAt(clock, pin.captures[pin.captures.length - 1].t);
-  if (to - from <= JUST_AFTER_MS) return lower(minutesInLine(from));
-  const start = minutesInLine(from);
-  return `from ${start === 'At the start' ? 'the start' : lower(start.replace(/ in$/, ''))} to ${lower(minutesInLine(to))}`;
+  // In the minutes the words name: a span only when they lie more than ten apart (tend map audit 30).
+  const [a, b] = [Math.round(from / MIN), Math.round(to / MIN)];
+  if (b - a <= JUST_AFTER_MS / MIN) return lower(minutesInLine(from));
+  if (a === 0) return `from the start to ${lower(minutesInLine(to))}`;
+  // Both under an hour share their unit: "from twelve to fifty minutes in".
+  if (b < 60) return `from ${numberWord(a)} to ${numberWord(b)} minutes in`;
+  return `from ${lower(minutesInLine(from).replace(/ in$/, ''))} to ${lower(minutesInLine(to))}`;
 }
 
 const KIND_NAME: Record<CaptureKind, string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
@@ -285,7 +276,7 @@ export function pinKey(pin: CapturePin): string {
 /**
  * The walk screen's clocks (tend map audit 21): its walk's, with the open walk's pauses, only while the open walk is
  * that same walk. After Stop the open walk and its pauses are gone while the screen still shows the walk, and its
- * pins' minutes would count the pauses as walked; with no clock they say their kinds alone.
+ * pins' minutes would count the pauses as walked; with no clock they say their part of the day (tend map T28).
  */
 export function walkClocks(walk: { id: string; started_at: number } | null, open: { id: string } | null, pauses: PauseSpan[]): WalkClock[] | undefined {
   return walk && open?.id === walk.id ? [{ id: walk.id, started_at: walk.started_at, pauses }] : undefined;
