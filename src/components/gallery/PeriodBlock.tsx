@@ -7,6 +7,7 @@ import { Icon, KIND_ICON } from '../icons';
 import { theme } from '../ui';
 import { TILE_GROUND } from './GalleryTile';
 import { thumbShown } from '../../lib/thumbPlan';
+import { useStill } from '../../lib/thumbs/useStill';
 import { VideoMark } from '../VideoMark';
 
 /**
@@ -15,7 +16,8 @@ import { VideoMark } from '../VideoMark';
  */
 export const PeriodBlock = memo(function PeriodBlock(props: { block: Block; width: number; textH: number; coverH: number; fit: 'cover' | 'contain'; onPress: (b: Block) => void }) {
   const { block } = props;
-  const cover = block.cover.face;
+  // A video cover's still is the row's or one made since; a cover lacking one asks for it (video-thumbnails audit 5).
+  const cover = useStill(block.cover.face, { ask: block.cover.kind === 'video' });
   // A photo cover is the photo; a video cover (a block with no photo, MG19) is its 720 px still, never its file (VT3, VT5).
   const still = block.cover.kind === 'video' ? thumbShown(cover, false) : null;
   const uri = useMediaUri(block.cover.kind === 'photo' ? cover : still ? { ...cover, file_path: still } : null);

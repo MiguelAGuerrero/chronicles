@@ -1,9 +1,8 @@
 import type { Faced } from '../../lib/moment';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { thumbShown, wantsThumb } from '../../lib/thumbPlan';
-import { thumbs } from '../../lib/thumbs';
-import { useStore } from '../../lib/useStore';
+import { thumbShown } from '../../lib/thumbPlan';
+import { useStill } from '../../lib/thumbs/useStill';
 import { VideoMark } from '../VideoMark';
 
 import { useMediaUri } from '../../lib/useMediaUri';
@@ -20,15 +19,9 @@ export function MomentPicture(props: { capture: Faced; style?: StyleProp<ViewSty
   const { capture } = props;
   const [copyBroken, setCopyBroken] = useState(false);
   const [broken, setBroken] = useState<string | null>(null);
-  // A copy made since this card read its row (VT2), only while the row has none: a row read later is fresher (an
-  // edit's new still replaces the one made here, whose file it deletes; video-thumbnails ui 1).
-  const made = useStore(thumbs.store, (st) => st.made[capture.piece_id]);
-  const row = !capture.thumb_path && made ? { ...capture, thumb_path: made } : capture;
+  // The still to show: the row's, or one made or replaced since it was read; it asks for one it lacks (VT2).
+  const row = useStill(capture);
   const ref = capture.kind === 'photo' || capture.kind === 'video' ? thumbShown(row, copyBroken) : null;
-  const wants = !made && wantsThumb(capture);
-  useEffect(() => {
-    if (wants) void thumbs.ask(capture.id, capture.piece_id);
-  }, [wants, capture.id, capture.piece_id]);
   const uri = useMediaUri(ref ? { ...capture, file_path: ref } : null);
   return (
     <View style={[styles.box, props.style]} accessible={false}>

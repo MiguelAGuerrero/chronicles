@@ -34,6 +34,7 @@ const SEED = async ([lon, lat]) => {
   const DAY = 86400000;
   const now = Date.now();
   const lastYear = new Date(new Date().getFullYear() - 1, 5, 2, 10).getTime();
+  const longAgo = new Date(new Date().getFullYear() - 2, 2, 5, 10).getTime();
   const piece = (id, mid, t, o = {}) => ({ id, moment_id: mid, t, kind: 'video', file_path: 'v-clip', body: '3000', caption: null, caption_y: null, thumb_path: null, edit: null, ...o });
   const moment = (id, walk_id, t, o = {}, at = [null, null]) => ({ id, walk_id, t, lat: at[1], lon: at[0], segment_id: null, piece_ids: [id], pieces: [piece(id, id, t, o)] });
   const walk = { id: 'w-rep', started_at: now - 2 * DAY, ended_at: now - 2 * DAY + 600_000, title: 'A replay with a video', epilogue: null, open: false, area: null, snapped_build: null };
@@ -47,6 +48,8 @@ const SEED = async ([lon, lat]) => {
       tx.objectStore('media').put({ key: 'v-still', blob: still });
       tx.objectStore('moment').put(moment('vid', null, now - DAY, {}, [lon, lat]));
       tx.objectStore('moment').put(moment('vold', null, lastYear, { thumb_path: 'v-still' }));
+      // A video-only month with no still yet: its cover asks for one (video-thumbnails audit 5).
+      tx.objectStore('moment').put(moment('vlong', null, longAgo));
       tx.objectStore('walk').put(walk);
       for (const p of pts) tx.objectStore('trace_point').add(p);
       tx.objectStore('moment').put(moment('vrep', 'w-rep', pts[15].t, { thumb_path: 'v-still' }, [pts[15].lon, pts[15].lat]));
@@ -132,6 +135,13 @@ async function run(h) {
   const coverMark = await cover.locator('[data-testid=video-mark]').count().catch(() => 0);
   await shot(pg, 'vt-02-months');
   check(coverImg > 0 && coverMark === 1, `VT3, VT4: a video-only month's cover is its still under the play mark (${coverImg}, ${coverMark})`);
+  const longCover = pg.locator('[data-testid=gallery-block][data-cover=vlong]');
+  await longCover.scrollIntoViewIfNeeded().catch(() => {});
+  const asked = await pg.waitForFunction(() => {
+    const b = document.querySelector('[data-testid=gallery-block][data-cover=vlong]');
+    return !!(b && b.querySelector('[data-testid=video-mark]'));
+  }, null, { timeout: 30000 }).then(() => true, () => false);
+  check(asked && !!(await pieceOf(pg, 'vlong'))?.thumb_path, 'video-thumbnails audit 5: a video-only month with no still asks for one at Months, and shows it');
   await pg.click('[data-testid=gallery-zoom-days]');
 
   // VT6: a trim from the gallery's viewer makes the still again, from the new start (green), under a new name.
@@ -156,7 +166,10 @@ async function run(h) {
     await pg.mouse.up();
     await pg.waitForTimeout(400);
   }
+  const doneAt = Date.now();
   await pg.click('[data-testid=edit-done]');
+  const closedIn = await pg.waitForSelector('[data-testid=edit-done]', { state: 'detached', timeout: 15000 }).then(() => Date.now() - doneAt, () => null);
+  check(closedIn != null && closedIn < 1500, `video-thumbnails audit 6: Done closes the editor without waiting for the still (${closedIn} ms)`);
   // Polled from here: an async predicate in waitForFunction resolves at once with its pending promise.
   let renamed = null;
   for (let i = 0; i < 60 && !renamed; i++) {

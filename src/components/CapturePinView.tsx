@@ -4,6 +4,7 @@ import { StackMark, STACK_SPOKEN } from './StackMark';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { pinThumb, type CapturePin } from '../lib/pins';
 import { VideoMark } from './VideoMark';
+import { useStill } from '../lib/thumbs/useStill';
 import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
@@ -46,7 +47,9 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   const color = n > 1 ? (pin.kind === 'mixed' ? MIXED : PIN_COLOR[pin.kind]) : PIN_COLOR[pin.kind];
   // One photo's small copy, never the full photo (QL26). The ref is resolved once per
   // change of it (useMediaUri's effect keys on it), never per render.
-  const thumb = pinThumb(pin);
+  // One capture's copy or still, the row's or one made since; a pin asks for none itself (VT2).
+  const one = useStill(pin.captures[0], { ask: false });
+  const thumb = pinThumb(n === 1 ? { ...pin, captures: [one] } : pin);
   const uri = useMediaUri(thumb ? { ...pin.captures[0], file_path: thumb } : null);
   // The icon shows until the picture has painted, and again if it won't load.
   const [loaded, setLoaded] = useState<string | null>(null);

@@ -272,7 +272,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     async saveNote(c: Faced, body: string): Promise<void> {
       await p.db.updatePiece(c.piece_id, notePatch(body));
       captureBus.patch(c.walk_id, c.id, notePatch(body), null);
-      this.patch(c.id, notePatch(body));
+      this.patch(c.id, notePatch(body), c.piece_id);
     },
     /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
     async undo(change: PrefsChange): Promise<void> {

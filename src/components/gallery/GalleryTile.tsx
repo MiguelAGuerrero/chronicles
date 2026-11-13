@@ -1,8 +1,9 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Tile } from '../../lib/gallery/layout';
 import { lengthLabel } from '../../lib/gallery/layout';
-import { thumbShown, wantsThumb } from '../../lib/thumbPlan';
+import { thumbShown } from '../../lib/thumbPlan';
+import { useStill } from '../../lib/thumbs/useStill';
 import { VideoMark } from '../VideoMark';
 import { useMediaUri } from '../../lib/useMediaUri';
 import { Icon, KIND_ICON } from '../icons';
@@ -22,21 +23,16 @@ export const GalleryTile = memo(function GalleryTile(props: {
   fit: 'cover' | 'contain';
   label: string;
   onPress: (tile: Tile) => void;
-  /** A photo with no small copy asks for one (MG11). */
-  onWantsThumb: (pieceId: string) => void;
 }) {
   const { tile, size } = props;
-  const face = tile.face;
+  // Its copy or still, the row's or one made since; one it lacks is asked for (MG11, VT2).
+  const face = useStill(tile.face);
   const [copyBroken, setCopyBroken] = useState(false);
   const [broken, setBroken] = useState<string | null>(null);
   // A photo's small copy or a video's still (VT3); a video's file is never a picture (VT5).
   const ref = tile.kind === 'voice' ? null : thumbShown(face, copyBroken);
   const uri = useMediaUri(ref ? { ...face, file_path: ref } : null);
-  const wants = wantsThumb(face);
-  const onWantsThumb = props.onWantsThumb;
-  useEffect(() => {
-    if (wants) onWantsThumb(tile.key);
-  }, [wants, tile.key, onWantsThumb]);
+
   return (
     <Pressable
       testID="gallery-tile"

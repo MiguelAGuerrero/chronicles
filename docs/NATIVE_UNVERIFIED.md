@@ -556,3 +556,7 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** trim a video's start by a second or two in the editor and press Done. **Expect:** its tile, Memories' card and pin show the frame where the kept part now starts (VT6).
 - [ ] **Do:** with videos kept before this version, open Memories and Media. **Expect:** each older video's still appears once, one after another, without the scroll stuttering; reopening the app makes none again (VT2, VT9).
 - [ ] **Do:** on an iPhone's Safari (the web build), open Media with a video that has no still. **Expect:** the still appears (a muted play is used to load the first frame; no sound plays) (VT8).
+- [ ] **Do:** take a portrait video, then trim its start to a point between keyframes. **Expect:** the still is upright and shows the trim's start, not a keyframe seconds away (iOS's frame tolerance); `ImageManipulator.manipulate` takes the frame expo-video gives, and the frame is still valid after the player is released (VT1, VT6).
+- [ ] **Do:** on an iPhone in Low Power Mode, open Media with a video that has no still, then leave Low Power Mode and open it again. **Expect:** the glyph at first, then the still once the phone can load it; never a glyph for good (video-thumbnails audit 1).
+- [ ] **Do:** open Navigate with a few one-video pins near you. **Expect:** each pin shows its still without the map stuttering (a 720 px still drawn in a 36 px head), and a still made after an edit replaces the pin's picture (VT3).
+

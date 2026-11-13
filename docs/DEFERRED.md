@@ -712,4 +712,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   the scale bar and the (i) credits are drawn over the card, because the walk screen's `scaleInset` and corner buttons
   count the capture row but not the preview. Older than video thumbnails; a fix of its own (raise them above the card
   while it is up, as the tabs do above the sheet).
+- **Video thumbnails' audit, deferred:** the walk's memory preview writes its date with the current year and its line
+  is cut off ("Nov 12, 2026 · Not on ...", audit 10, older); a Memories entry with no place shows a place glyph and no
+  words (audit 11, older; the resurfaced card says "No place kept"). A capture-time still (`useCaptures`) still runs
+  beside the thumbs shell's queue, so a new video's still and an older one's can be made at once (two at most).
 

@@ -1,7 +1,8 @@
 // @layer shell
-// @instance: the small copies Memories' cards ask for, on the app's ports
+// @instance: every preview's small copies and stills, on the app's ports
+import { removeMedia } from '../media';
 import { makeThumb } from '../media/thumb';
 import { ports } from '../ports';
 import { createThumbs } from './shell';
 
-export const thumbs = createThumbs(ports, { makeThumb });
+export const thumbs = createThumbs(ports, { makeThumb, remove: (refs) => removeMedia(refs).then(() => {}) });

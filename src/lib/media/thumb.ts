@@ -65,13 +65,6 @@ export function makeThumb(c: Faced, name?: string): Promise<string | null> {
   }, name);
 }
 
-/**
- * An edited video's new still (VT6): taken where the new kept part starts, with its crop and rotation, named by the
- * edit (ME20) so every preview keyed by the ref loads it. Null when none can be made now; the old one stays.
- */
-export function makeEditedVideoThumb(c: Faced, edit: MediaEdit | null): Promise<string | null> {
-  return makeThumb({ ...c, edit, thumb_path: null }, editedThumbName({ id: c.piece_id }, edit));
-}
 
 /**
  * Keeps a small copy baked from the edited photo (ME20): crop, rotation,

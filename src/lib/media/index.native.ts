@@ -103,7 +103,8 @@ export async function mediaBytes(refs: string[], walkFolders: string[] = []): Pr
 async function whenReady(player: VideoPlayer): Promise<void> {
   if (player.status === 'readyToPlay') return;
   await new Promise<void>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error('timeout')), 10_000);
+    // Out of time is asked again later, never marked undecodable (video-thumbnails audit 1).
+    const t = setTimeout(() => reject(Object.assign(new Error('timeout'), { transient: true })), 10_000);
     const sub = player.addListener('statusChange', ({ status }) => {
       if (status === 'readyToPlay' || status === 'error') {
         clearTimeout(t);

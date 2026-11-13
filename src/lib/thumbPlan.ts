@@ -1,5 +1,5 @@
 // @layer core
-import { isEmptyEdit, serializeEdit, type MediaEdit } from './mediaEdit';
+import { isEmptyEdit, isFull, serializeEdit, type MediaEdit } from './mediaEdit';
 /**
  * Thumbnails (TH1-TH5, the owner's call, Nov 1): a small copy beside each
  * photo, so a 56 px preview never decodes the full photo. The job is pure with
@@ -63,3 +63,27 @@ export function thumbShown(c: ThumbCapture, copyBroken: boolean): string | null 
   return c.thumb_path ?? null;
 }
 
+
+/** What a video's still is taken from: where the kept part starts, its turn and its crop (VT1). Lines are not in it. */
+function stillOf(e: MediaEdit | null | undefined): string {
+  return JSON.stringify({ at: e?.trim ? e.trim.start_ms : 0, rotate: e?.rotate ?? 0, crop: e && !isFull(e.crop) ? e.crop : null });
+}
+
+/** Whether an edit makes a video's still again (VT6, video-thumbnails audit 8): a trim, crop or rotation changed. */
+export const stillChanged = (before: MediaEdit | null | undefined, after: MediaEdit | null | undefined): boolean => stillOf(before) !== stillOf(after);
+
+/** A still made or replaced this session (`lib/thumbs`): its ref (null when one was dropped), and the ref it replaced. */
+export interface MadeStill {
+  ref: string | null;
+  replaced: string | null;
+}
+
+/**
+ * The still a preview shows (video-thumbnails audit 2, 3, ui 1): what the shell made, while the row still holds the
+ * ref it replaced (or none); a row read later, holding anything else, is fresher and wins.
+ */
+export function shownStill(rowRef: string | null | undefined, made: MadeStill | undefined): string | null {
+  const row = rowRef ?? null;
+  if (!made) return row;
+  return row === null || row === made.replaced ? made.ref : row;
+}

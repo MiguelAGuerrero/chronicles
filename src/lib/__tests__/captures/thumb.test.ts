@@ -91,3 +91,23 @@ test('VT9: one copy at a time', async () => {
   assert.equal(a, b);
   assert.equal(calls.loads.length, 1, 'two asks for the same video share one job');
 });
+
+test('video-thumbnails audit 1: a timed-out still is asked again later, never stored as THUMB.none', async () => {
+  const transient = Object.assign(new Error('timeout'), { transient: true });
+  const deps: ThumbDeps = { ...fakeDeps().deps, render: async () => { throw transient; } };
+  assert.equal(await thumbJob(photo({ id: 'v9', kind: 'video', file_path: 'walks/w1/v9.mp4' }), deps), null, 'null: tried again next time');
+  const { deps: bad } = fakeDeps({ fail: true });
+  assert.equal(await thumbJob(photo({ id: 'v10', kind: 'video', file_path: 'walks/w1/v10.mp4' }), bad), THUMB.none, 'a file that will not decode is still marked');
+});
+
+test('video-thumbnails audit 8: only a trim, crop or rotation makes a video\'s still again', async () => {
+  const { stillChanged } = await import('../../thumbPlan');
+  const base = { v: 1 as const, rotate: 0 as const, crop: null, filter: 'original' as const, strokes: [], trim: null };
+  assert.equal(stillChanged(null, null), false, 'a caption-only save');
+  assert.equal(stillChanged(null, base), false, 'an empty edit is none');
+  assert.equal(stillChanged(base, { ...base, strokes: [{ color: '#fff', width: 0.01, points: [[0, 0], [1, 1]] }] as never }), false, 'lines are not in the still');
+  assert.equal(stillChanged(base, { ...base, trim: { start_ms: 1000, end_ms: 3000 } }), true);
+  assert.equal(stillChanged(base, { ...base, rotate: 90 }), true);
+  assert.equal(stillChanged(base, { ...base, crop: { x: 0, y: 0, w: 0.5, h: 0.5 } } as never), true);
+  assert.equal(stillChanged({ ...base, trim: { start_ms: 1000, end_ms: 3000 } }, base), true, 'undoing a trim');
+});

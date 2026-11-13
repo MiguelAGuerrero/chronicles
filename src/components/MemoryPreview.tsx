@@ -1,9 +1,8 @@
-import { type Faced, facedAll, hasMore } from '../lib/moment';
+import { type Faced, hasMore } from '../lib/moment';
 import { STACK_SPOKEN } from './StackMark';
-import { useEffect, useState } from 'react';
-import { db } from '../lib/db';
-import { makeThumb } from '../lib/media/thumb';
-import { thumbShown, wantsThumb } from '../lib/thumbPlan';
+import { useState } from 'react';
+import { thumbShown } from '../lib/thumbPlan';
+import { useStill } from '../lib/thumbs/useStill';
 import { VideoMark } from './VideoMark';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewLine } from '../lib/memories';
@@ -24,28 +23,10 @@ export function MemoryPreview(props: {
   onClose: () => void;
 }) {
   const first = props.captures[0];
-  // A photo's small copy (TH4). An older photo makes it once, here (TH3), read fresh from storage,
-  // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon
-  // rather than a second full decode (audit 7); a copy whose file is gone, the photo (audit 6).
-  const [row, setRow] = useState<Faced>(first);
-  useEffect(() => {
-    // A photo's copy or a video's still (VT2): an older one is made here, once.
-    if (first.kind !== 'photo' && first.kind !== 'video') return;
-    let alive = true;
-    (async () => {
-      const fresh = (await db.getMomentsByIds([first.id]).then(facedAll).catch(() => []))[0] ?? first;
-      if (!alive) return;
-      setRow(fresh);
-      if (!wantsThumb(fresh)) return;
-      const t = await makeThumb(fresh);
-      if (!t) return;
-      void db.updatePiece(fresh.piece_id, { thumb_path: t }).catch(() => {});
-      if (alive) setRow({ ...fresh, thumb_path: t });
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [first]);
+  // A photo's small copy (TH4) or a video's still (VT2): an older one is made through the thumbs shell, read fresh,
+  // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon rather than a second
+  // full decode (audit 7); a photo's copy whose file is gone, the photo (audit 6).
+  const row = useStill(first);
   const [copyBroken, setCopyBroken] = useState(false);
   const ref = thumbShown(row, copyBroken);
   const uri = useMediaUri(ref ? { ...row, file_path: ref } : null);

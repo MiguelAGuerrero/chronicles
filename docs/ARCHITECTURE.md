@@ -330,7 +330,7 @@ Captures and media
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
   space/                     storage awareness (SA1-SA10, 0107): core.ts levels, words, the once rule; shell.ts reads the probe, keeps meta space_said/space_persist; probe.native/web.ts
   media/thumb.ts             the 240 px copy with expo-image-manipulator, or a video's 720 px still through `videoFrame` (expo-video on phones, a `<video>` on the web; VT1); thumbPlan.ts decides when and where (`frameAt`); thumbJob.ts runs one job per piece and name at a time
-  thumbs/                    createThumbs(ports, { makeThumb }): the copy a preview with no shell asks for (Memories' cards, VT2), one at a time, read fresh first; index.ts the app instance
+  thumbs/                    createThumbs(ports, { makeThumb, remove }): every preview's copy or still on one queue (`ask`, read fresh, standing down when the piece changed) and an edit's new still (`remake`); `useStill` (view) gives a preview its shown still and asks for one it lacks; index.ts the app instance (video thumbnails VT2, the audit)
   VideoMark.tsx              (components/) the play mark on its own ink ground over a video's still, on every preview (VT4)
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell

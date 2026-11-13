@@ -62,3 +62,33 @@ S1-S4 accepted into VT2, VT3 and VT4 (the mark on every surface, the pin's room 
      this slice (the walk screen's insets don't count the card), recorded in `docs/DEFERRED.md`.
   5. U5, the pin's mark near the walker's dot: reject; an opinion, and moving the mark up would meet the bell's corner.
 - Deferred: `docs/DEFERRED.md`, "video thumbnails". Native: `docs/NATIVE_UNVERIFIED.md`, "Video thumbnails".
+
+## Audit (Nov 13, at the owner's request)
+
+The auditor, the ux-reviewer and the steward, over the code and six pictures from the `videothumbs` journey.
+
+1. A still that timed out once (iOS Low Power Mode, a slow load) was marked undecodable for good: accept. A timeout is
+   `transient` and asked again later (`video-thumbnails audit 1`, `captures/thumb`).
+2. A still made from a stale row could overwrite the one an edit stored: accept. The thumbs shell re-reads the piece
+   before writing and stands down (`audit 2`, `captures/thumbsShell`).
+3. An edit removed only the still its screen knew of, leaving one made since on disk: accept. `thumbs.remake` reads the
+   piece fresh and removes what it replaces (`audit 3`).
+4. The gallery and Memories made stills on two queues: accept. One shell (`lib/thumbs`), one queue, one hook
+   (`useStill`) for every preview; the gallery shell makes none (`audit 4`).
+5. A video-only month's cover never asked for its still: accept. The cover asks through `useStill` (`audit 5`, the
+   journey; written with its fix, which came with 4's hook, so not seen failing first).
+6. Done waited for the still before closing: accept. The editor hands it to the shell's queue and closes (`audit 6`,
+   the journey; as 5, written with its fix).
+7. A stacked note's save patched the face, not its piece (older): accept. `saveNote` passes its piece (`audit 7`).
+8. A caption-only save made the still again: accept. Only a trim, crop or turn does (`stillChanged`, `audit 8`).
+9. An edit whose new still could not be made kept the old one, which may show the part cut away (the steward): accept.
+   The old still is dropped and the glyph shows until one is made (`audit 3, 9`).
+10. The memory preview's date line is cut off, and writes the current year: defer, older than the slice.
+11. A Memories entry shows a place glyph with no place: defer, older than the slice.
+12. The mark is large on the 56 px resurfaced tile: reject, an opinion.
+13. The round mark reads as a play button: reject, an opinion; it is decorative (the card says Video) and a tap opens
+    the moment.
+
+13 findings: 9 fixed, 2 deferred, 2 rejected. The memory preview no longer imports the db (its FC5 suppression is
+gone; the ceiling is 23).
+

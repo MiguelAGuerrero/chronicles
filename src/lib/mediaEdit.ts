@@ -65,7 +65,7 @@ export const emptyEdit = (): MediaEdit => ({ v: 1, rotate: 0, crop: null, filter
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const FULL: Rect = { x: 0, y: 0, w: 1, h: 1 };
-const isFull = (r: Rect | null) => !r || (r.x <= 1e-6 && r.y <= 1e-6 && r.w >= 1 - 1e-6 && r.h >= 1 - 1e-6);
+export const isFull = (r: Rect | null) => !r || (r.x <= 1e-6 && r.y <= 1e-6 && r.w >= 1 - 1e-6 && r.h >= 1 - 1e-6);
 
 // ---------------------------------------------------------------- rotation and crop
 

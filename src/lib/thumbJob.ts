@@ -36,8 +36,10 @@ export function thumbJob(c: ThumbCapture, deps: ThumbDeps, name: string = thumbN
     let out: { uri: string; release(): void } | null = null;
     try {
       out = await deps.render(uri, thumbEdge(c.kind));
-    } catch {
-      return THUMB.none;
+    } catch (e) {
+      // A load that ran out of time (a slow phone, iOS Low Power Mode) is asked again later; only a file that will
+      // not decode is marked so for good (video-thumbnails audit 1).
+      return (e as { transient?: boolean } | null)?.transient ? null : THUMB.none;
     } finally {
       deps.releaseUri(uri);
     }

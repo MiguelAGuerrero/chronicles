@@ -109,7 +109,8 @@ export function videoFrame(uri: string, atSec: number, max: number): Promise<{ s
     v.playsInline = true;
     v.preload = 'auto';
     let settled = false;
-    const t = setTimeout(() => finish(new Error('timeout')), 15_000);
+    // A load that runs out of time is asked again later, never marked undecodable (video-thumbnails audit 1).
+    const t = setTimeout(() => finish(Object.assign(new Error('timeout'), { transient: true })), 15_000);
     function finish(err: Error | null, still?: string) {
       if (settled) return;
       settled = true;
