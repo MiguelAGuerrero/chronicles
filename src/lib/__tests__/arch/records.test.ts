@@ -18,7 +18,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 type Block = { kind: string; text: string; h2: string | null; h3: string | null; id?: string; level?: number };
 type Kind = 'status' | 'deferred' | 'native';
 type Args = { body?: string; match?: string; id?: string; ledger?: Record<string, unknown> | null; section?: string; create?: boolean; intro?: string; tag?: string; after?: string; top?: boolean; end?: boolean; reason?: string };
-type Op = { argv: string[]; body?: string; intro?: string };
+type Op = { argv: string[]; body?: string; intro?: string; target?: string };
 type Docs = Record<string, string>;
 type Ledger = { lastT?: number; lastG?: number } | null;
 type State = object;
@@ -27,14 +27,15 @@ const records = createRequire(__filename)(join(ROOT, 'scripts', 'records.js')) a
   CUTOVER: string;
   parse(text: string): { blocks: Block[]; lines: string[]; eol: boolean };
   apply(kind: Kind, name: string, text: string, args?: Args): { text: string; id?: string };
-  replay(docs: Docs, ops: Op[], o?: { ledger?: Ledger; removedIds?: string[]; notes?: Map<string, string[]> }): { docs: Docs };
+  replay(docs: Docs, ops: Op[], o?: { ledger?: Ledger; removedIds?: string[]; notes?: Map<string, string[]>; removedText?: Map<string, string> }): { docs: Docs; steps: { target?: string }[] };
   trailersOf(ops: Op[]): string[];
   sidecarOf(ops: Op[]): string;
   parseTrailer(line: string): { argv: string[]; body?: string; intro?: string };
   newRangeState(): State;
   checkCommit(c: { base: Docs; head: Docs; message: string; sidecar: string | null; ledger?: Ledger; state: State; notes?: Map<string, string[]> }): string[];
   isAgent(message: string): boolean;
-  gateRange(range: string, o: { cwd: string; loopOnly?: boolean; cutover?: string }): Gate;
+  gateRange(range: string, o: { cwd: string; loopOnly?: boolean; cutover?: string }): Gate & { stats: { notesReads: number } };
+  opsFor(base: Docs, head: Docs): string[];
   transact(doc: { blocks: Block[]; lines: string[]; eol: boolean }, made: { edit: { at: number; remove: number; lines: string[] }; mid: (mid: Block[]) => boolean }): string;
 };
 const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
@@ -174,13 +175,12 @@ const cut = (text: string, heading: string, keepHeading = false) => {
   return text.slice(0, start) + (keepHeading ? `${heading}\n\n` : '') + text.slice(end);
 };
 /** A commit made the right way: the operations replayed, their trailers in the message, their sidecar. */
-const made = (base: Docs, ops: Op[], ledger: Ledger = LEDGER) => ({
-  base,
-  head: records.replay(base, ops, { ledger }).docs,
-  message: `tend map: the run's record\n\n${records.trailersOf(ops).join('\n')}\n`,
-  sidecar: records.sidecarOf(ops),
-  ledger,
-});
+const made = (base: Docs, ops: Op[], ledger: Ledger = LEDGER) => {
+  const r = records.replay(base, ops, { ledger });
+  // Each operation carries the target the CLI records (F33: a targeted operation without one fails).
+  const recorded = ops.map((o, k) => (r.steps[k].target && !o.target ? { ...o, target: r.steps[k].target } : o));
+  return { base, head: r.docs, message: `tend map: the run's record\n\n${records.trailersOf(recorded).join('\n')}\n`, sidecar: records.sidecarOf(recorded), ledger };
+};
 const problems = (base: Docs, ops: Op[], state: State = records.newRangeState(), ledger: Ledger = LEDGER) => records.checkCommit({ ...made(base, ops, ledger), state });
 /** A commit whose documents were edited by hand: `head` as given, the trailers of `ops` declared. */
 const forged = (base: Docs, head: Docs, ops: Op[] = [], state: State = records.newRangeState()) =>
@@ -829,7 +829,7 @@ test('records audit 29: a link reference definition is refused as a body', () =>
 test('records audit 30: trailers without a sidecar must be canonical', () => {
   const head = made(DOCS0, [{ argv: ['open', 'remove', 'QL8', '--reason', 'x'] }]).head;
   const say = (line: string) => records.checkCommit({ base: DOCS0, head, message: `tend map: x\n\n${line}\n`, sidecar: null, ledger: LEDGER, state: records.newRangeState() });
-  assert.deepEqual(say('Records-Op: open remove QL8 --reason x'), []);
+  assert.match(say('Records-Op: open remove QL8 --reason x').join('\n'), /target/, 'a targeted operation needs its sidecar (F33)');
   assert.match(say('Records-Op: open remove QL8 --reason "x" --intro').join('\n'), /not as .*trailers.* prints|canonical/);
   assert.match(say('Records-Op: open  remove QL8 --reason x').join('\n'), /not as .*trailers.* prints|canonical/);
 });
@@ -967,9 +967,9 @@ test('records audit 31 (F9): an inbox set keeps every line an earlier inbox note
   const noted = records.replay(DOCS0, [noteT11], { ledger: LEDGER }).docs;
   const notes = new Map([['T11', [`  ${ANSWER}`]]]);
   assert.throws(() => records.replay(noted, [setT11(reshaped)], { ledger: LEDGER, notes }), /inbox note/);
-  assert.ok(records.replay(noted, [setT11(`${reshaped}\n  ${ANSWER}`)], { ledger: LEDGER, notes }));
+  assert.ok(records.replay(noted, [setT11(`${reshaped}\n  ${ANSWER}`)], { ledger: LEDGER, notes }).docs['docs/STATUS.md'].includes(`one tap from the bar** (2026-11-11)\n  Area: tabs.\n  ${ANSWER}\n`));
   // A noted line the owner already took out by hand binds nothing.
-  assert.ok(records.replay(DOCS0, [setT11(reshaped)], { ledger: LEDGER, notes }));
+  assert.ok(records.replay(DOCS0, [setT11(reshaped)], { ledger: LEDGER, notes }).docs['docs/STATUS.md'].includes(`${reshaped}\n- **T13`));
   // The gate refuses it too.
   const bad = { base: noted, head: records.replay(noted, [setT11(reshaped)], { ledger: LEDGER }).docs, message: `Slice: x\n\n${records.trailersOf([setT11(reshaped)]).join('\n')}\n`, sidecar: records.sidecarOf([setT11(reshaped)]), ledger: LEDGER };
   assert.match(records.checkCommit({ ...bad, state: records.newRangeState(), notes }).join('\n'), /inbox note/);
@@ -1036,7 +1036,7 @@ test('records audit 34: CI replays every agent commit that touches the documents
   assert.equal(ok.status, 0, ok.stderr);
 });
 
-test('records audit 35: an in-flight slice branch made before the gate: its old commits and the merge that brings the gate in are history; what it commits after is gated', () => {
+test('records audit 35: an in-flight branch made before the gate: its old commits are history; its merge of main is judged like any merge; what it commits after is gated', () => {
   const r = repo('in-flight', { gate: false });
   r.git('checkout', '-q', '-b', 'slice');
   r.write('docs/STATUS.md', STATUS.replace('| Rides | shipped |', '| Rides | shipped, by hand |'));
@@ -1048,10 +1048,18 @@ test('records audit 35: an in-flight slice branch made before the gate: its old 
   r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode, the owner\'s'));
   r.commit('Owner: a hand edit on main');
   r.git('checkout', '-q', 'slice');
-  r.git('merge', '-q', '--no-edit', 'main');
-  r.git('commit', '-q', '--amend', '-m', `Merge main into slice\n\n${AGENT}`);
+  assert.equal(r.git('merge', '-q', '-m', `Merge main into slice\n\n${AGENT}`, 'main').status, 0);
   const transition = r.node('scripts/tend.js', 'commits', '--loop-only', `${landed}..slice`);
   assert.equal(transition.status, 0, transition.stderr);
+  // The same merge with main's line dropped from the documents fails (no exemption for a pre-gate first parent).
+  r.git('checkout', '-q', '-b', 'dropped', 'slice^1');
+  r.git('merge', '-q', '--no-commit', 'main');
+  r.write('docs/DEFERRED.md', DEFERRED);
+  r.commit(`Merge main into slice\n\n${AGENT}\n`);
+  const dropped = r.node('scripts/tend.js', 'commits', '--loop-only', `${landed}..dropped`);
+  assert.equal(dropped.status, 1);
+  assert.match(dropped.stderr, /merge[\s\S]*docs\/DEFERRED\.md/);
+  r.git('checkout', '-q', 'slice');
   r.write('docs/STATUS.md', r.read('docs/STATUS.md').replace('| Motion (steps, MO1-MO10) | shipped |', '| Motion (steps, MO1-MO10) | shipped, by hand |'));
   r.commit(`Rides: after the gate (RI2)\n\n${AGENT}\n`);
   const after = r.node('scripts/tend.js', 'commits', '--loop-only', `${landed}..slice`);
@@ -1060,7 +1068,7 @@ test('records audit 35: an in-flight slice branch made before the gate: its old 
   assert.doesNotMatch(after.stderr, /RI1/);
 });
 
-test('records audit 36: an agent merge resolved by hand in the documents fails; redo in the merge writes main\'s side plus the branch\'s operations, and passes', () => {
+test('records audit 36: an agent merge resolved by hand in the documents fails; redo in the merge takes main\'s side, and the branch files its item again after it', () => {
   const r = repo('merge-redo');
   const base = r.git('rev-parse', 'HEAD').stdout.trim();
   r.git('checkout', '-q', '-b', 'run');
@@ -1069,29 +1077,35 @@ test('records audit 36: an agent merge resolved by hand in the documents fails; 
   r.git('checkout', '-q', 'main');
   r.write('docs/DEFERRED.md', DEFERRED.replace('main thread.\n', 'main thread.\n- [owner] Main\'s own item.\n'));
   r.commit('Owner: an item on main');
+  const mains = r.read('docs/DEFERRED.md');
   r.git('checkout', '-q', 'run');
   assert.notEqual(r.git('merge', '-q', '--no-edit', 'main').status, 0, 'the two adds conflict');
-  r.write('docs/DEFERRED.md', DEFERRED.replace('main thread.\n', 'main thread.\n- [loop] The branch\'s finding.\n- [owner] Main\'s own item, reworded.\n'));
+  r.write('docs/DEFERRED.md', DEFERRED.replace('main thread.\n', 'main thread.\n- [loop] The branch\'s finding.\n- [owner] Main\'s own item.\n'));
   r.commit(`Merge main into run\n\n${AGENT}\n`);
   const hand = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..run`);
-  assert.equal(hand.status, 1, 'an agent merge resolved by hand');
+  assert.equal(hand.status, 1, 'an agent merge resolved by hand, even keeping both sides');
   assert.match(hand.stderr, /merge[\s\S]*redo/);
-  // Done again with redo.
+  // Done again with redo: main's side, then the branch's item filed again.
   r.git('reset', '-q', '--hard', 'HEAD~1');
   r.git('merge', '-q', '--no-edit', 'main');
   const redo = r.node('scripts/records.js', 'redo');
   assert.equal(redo.status, 0, redo.stderr);
-  assert.ok(r.read('docs/DEFERRED.md').includes("main thread.\n- [owner] Main's own item.\n- [loop] The branch's finding.\n"), r.read('docs/DEFERRED.md'));
+  assert.equal(r.read('docs/DEFERRED.md'), mains, "main's side, exactly");
+  assert.match(redo.stdout, /TH1[\s\S]*deferred item add/, 'it names what to file again');
   r.commit(`Merge main into run\n\n${AGENT}\n`);
+  assert.equal(r.stdin('[loop] The branch\'s finding.\n', 'scripts/records.js', 'deferred', 'item', 'add', 'Navigation and routes').status, 0);
+  r.commit(`Threads: the reply's finding, filed again (TH1)\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
   const ok = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..run`);
   assert.equal(ok.status, 0, ok.stderr);
   assert.equal(r.node('scripts/records.js', 'verify', 'main..run').status, 0);
-  // The owner's own merge, resolved by hand with no trailers, in a push with no loop commit: a notice.
-  r.git('checkout', '-q', '-b', 'owner', 'run~1');
+  // The owner's own merge, resolved by hand with no trailers, in a push with no agent commit: a notice.
+  r.git('checkout', '-q', '-b', 'owner', 'run~1^1');
   r.git('merge', '-q', '--no-edit', 'main');
   r.write('docs/DEFERRED.md', DEFERRED.replace('main thread.\n', 'main thread.\n- [owner] Main\'s own item.\n- The owner\'s words.\n'));
   r.commit('Merge main, by the owner');
-  assert.ok(records.gateRange('owner~1..owner', { cwd: r.dir, loopOnly: true }).ok);
+  const own = records.gateRange('owner^1..owner', { cwd: r.dir, loopOnly: true });
+  assert.ok(own.ok, JSON.stringify(own.results));
+  assert.match(own.results.flatMap((x) => x.notices).join('\n'), /not gated/);
 });
 
 test('records audit 37: section add puts a "From <skill>" section after "From /tend", newest first; section item ops change its bullets; section remove takes an empty one', () => {
@@ -1131,10 +1145,12 @@ test('records audit 38: a "From <skill>" section\'s bullets keep the caps, the r
   const t = records.trailersOf([fixed])[0];
   assert.match(t, /^Records-Op: section add "From \/fix" --intro sha256:[0-9a-f]{64}$/);
   assert.deepEqual(records.parseTrailer(t).argv, ['section', 'add', 'From /fix']);
-  assert.throws(() => records.replay(DOCS0, [sec], { ledger: LEDGER }), /intro/, 'the intro is not a word of the command');
-  const empty = records.replay(DOCS0, [fixed], { ledger: LEDGER }).docs;
+  assert.throws(() => records.replay(DOCS0, [sec], { ledger: LEDGER }), /no flag --intro/, 'the intro is not a word of the command');
+  assert.throws(() => records.replay(DOCS0, [{ argv: ['open', 'add'], body: 'x', intro: 'y' }], { ledger: LEDGER }), /--intro goes with section add/, 'an intro on an operation that takes none');
+  const bare: Op = { argv: ['section', 'add', 'From /fix'] };
+  const empty = records.replay(DOCS0, [bare], { ledger: LEDGER }).docs;
   assert.match(problems(empty, [{ argv: ['section', 'remove', 'From /fix'] }]).join('\n'), /--reason/, 'a section the run did not add leaves with a reason');
-  assert.deepEqual(problems(DOCS0, [fixed, { argv: ['section', 'remove', 'From /fix'] }]), []);
+  assert.deepEqual(problems(DOCS0, [bare, { argv: ['section', 'remove', 'From /fix'] }]), []);
 });
 
 test('records audit 39: the skills that write the documents say every agent commit is gated, slices and fixes too', () => {
@@ -1152,7 +1168,7 @@ test('records audit 39: the skills that write the documents say every agent comm
   assert.doesNotMatch(decision, /Left open for the owner[\s\S]*F9/, 'F9 is decided');
 });
 
-test('records audit 40: redo in the merge that first brings the gate into a branch made before it says that merge is history', () => {
+test('records audit 40: redo in the merge that first brings the gate into a branch made before it takes main\'s side, and that merge passes', () => {
   const r = repo('first-merge', { gate: false });
   r.git('checkout', '-q', '-b', 'slice');
   r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode, the slice\'s'));
@@ -1161,10 +1177,262 @@ test('records audit 40: redo in the merge that first brings the gate into a bran
   copyFileSync(join(ROOT, 'scripts', 'records.js'), join(r.dir, 'scripts', 'records.js'));
   r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode, main\'s'));
   r.commit(`Records: the gate lands\n\n${AGENT}\n`);
+  const landed = r.git('rev-parse', 'HEAD').stdout.trim();
   r.git('checkout', '-q', 'slice');
   assert.notEqual(r.git('merge', '-q', '--no-edit', 'main').status, 0, 'a conflict');
   const redo = r.node('scripts/records.js', 'redo');
+  assert.equal(redo.status, 0, redo.stderr);
+  assert.ok(r.read('docs/DEFERRED.md').includes("3. Dark mode, main's"));
+  r.commit(`Merge main into slice\n\n${AGENT}\n`);
+  const g = r.node('scripts/tend.js', 'commits', '--loop-only', `${landed}..slice`);
+  assert.equal(g.status, 0, g.stderr);
+});
+
+// ---------------------------------------------------------------------------------------------------
+// Round 3's audit (records-r3-auditor, Nov 13): F27-F40. A merge's documents are git's clean merge or
+// main's side, nothing else; reverts, rebased pre-gate commits, squashes and the transition.
+
+/** A branch `run` with one record commit, and main with the owner's own line in the same place. */
+function forked(name: string) {
+  const r = repo(name);
+  const base = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('checkout', '-q', '-b', 'run');
+  assert.equal(r.stdin('[loop] The branch\'s finding.\n', 'scripts/records.js', 'deferred', 'item', 'add', 'Navigation and routes').status, 0);
+  r.commit(`Threads: a reply (TH1)\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  r.write('docs/STATUS.md', STATUS.replace('### Open before the loop\n\n', "### Open before the loop\n\n- **The owner's new item** (Nov 13): keep this.\n"));
+  r.commit('Owner: a new open item');
+  r.git('checkout', '-q', 'run');
+  return { r, base };
+}
+
+test('records audit 41 (F27): a merge that keeps the branch\'s side of a document over main\'s change fails', () => {
+  const { r, base } = forked('ours');
+  assert.equal(r.git('merge', '-q', '-s', 'ours', '-m', `Merge main into run\n\n${AGENT}`, 'main').status, 0);
+  assert.ok(!r.read('docs/STATUS.md').includes("The owner's new item"));
+  const g = records.gateRange(`${base}..run`, { cwd: r.dir, loopOnly: true });
+  assert.ok(!g.ok);
+  assert.match(g.results.flatMap((x) => x.problems).join('\n'), /merge[\s\S]*docs\/STATUS\.md/);
+  // A conflict-free merge with the branch's STATUS checked out by hand: the same.
+  r.git('reset', '-q', '--hard', 'HEAD~1');
+  r.git('merge', '-q', '--no-commit', 'main');
+  r.git('checkout', 'HEAD', '--', 'docs/STATUS.md');
+  r.commit(`Merge main into run\n\n${AGENT}\n`);
+  assert.ok(!records.gateRange(`${base}..run`, { cwd: r.dir, loopOnly: true }).ok);
+  // Git's own merge passes; so does main's side of a document.
+  r.git('reset', '-q', '--hard', 'HEAD~1');
+  r.git('merge', '-q', '-m', `Merge main into run\n\n${AGENT}`, 'main');
+  assert.ok(records.gateRange(`${base}..run`, { cwd: r.dir, loopOnly: true }).ok);
+});
+
+test('records audit 42 (F28): a merge onto a first parent made before the gate that drops main\'s blocks fails', () => {
+  const r = repo('pre-gate-merge', { gate: false });
+  const pre = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('checkout', '-q', 'main');
+  copyFileSync(join(ROOT, 'scripts', 'records.js'), join(r.dir, 'scripts', 'records.js'));
+  r.commit(`Records: the gate lands\n\n${AGENT}\n`);
+  const tip = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('checkout', '-q', '-b', 'x', pre);
+  r.git('merge', '-q', '--no-ff', '--no-commit', 'main');
+  r.write('docs/STATUS.md', cut(r.read('docs/STATUS.md'), '### Open before the loop', true));
+  r.commit(`Merge main into x\n\n${AGENT}\n`);
+  const g = r.node('scripts/tend.js', 'commits', '--loop-only', `${tip}..x`);
+  assert.equal(g.status, 1, 'the pre-gate first parent exempts nothing');
+  assert.match(g.stderr, /merge[\s\S]*docs\/STATUS\.md/);
+});
+
+test('records audit 43 (F29): the revert of an agent\'s record commit passes when it is that commit\'s exact inverse; slice row remove undoes a row the range added', () => {
+  const r = repo('revert');
+  assert.equal(r.stdin('| Slice X (SX1-SX4) | shipped | a | b | no |\n', 'scripts/records.js', 'slice', 'row', 'add', '--top').status, 0);
+  r.write('code.txt', 'slice\n');
+  r.commit(`Slice X: done (SX1-SX4)\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  const red = r.git('rev-parse', 'HEAD').stdout.trim();
+  assert.equal(r.git('revert', '--no-commit', 'HEAD').status, 0);
+  r.commit(`Revert "Slice X: done (SX1-SX4)"\n\nThis reverts commit ${red}.\n\nThe Pages run was red.\n\n${AGENT}\n`);
+  const ok = r.node('scripts/tend.js', 'commits', '--loop-only', `${red}..HEAD`);
+  assert.equal(ok.status, 0, ok.stderr);
+  // A revert that also edits a document by hand, or that does not say what it reverts, fails.
+  r.git('reset', '-q', '--hard', red);
+  r.git('revert', '--no-commit', 'HEAD');
+  r.write('docs/STATUS.md', r.read('docs/STATUS.md').replace('reword l.68.', 'reworded.'));
+  r.commit(`Revert "Slice X: done (SX1-SX4)"\n\nThis reverts commit ${red}.\n\n${AGENT}\n`);
+  assert.equal(r.node('scripts/tend.js', 'commits', '--loop-only', `${red}..HEAD`).status, 1);
+  r.git('reset', '-q', '--hard', red);
+  r.git('revert', '--no-commit', 'HEAD');
+  r.commit(`Revert "Slice X: done (SX1-SX4)"\n\nThe Pages run was red.\n\n${AGENT}\n`);
+  assert.equal(r.node('scripts/tend.js', 'commits', '--loop-only', `${red}..HEAD`).status, 1);
+  // Fix-forward: the row this range added leaves by slice row remove; a row it did not add does not.
+  r.git('reset', '-q', '--hard', red);
+  r.git('update-ref', 'refs/remotes/origin/main', `${red}~1`);
+  const rm = r.node('scripts/records.js', 'slice', 'row', 'remove', 'Slice X');
+  assert.equal(rm.status, 0, rm.stderr);
+  r.commit(`Slice X: the row leaves with the code (SX1-SX4)\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  assert.equal(r.node('scripts/tend.js', 'commits', '--loop-only', `${red}~1..HEAD`).status, 0);
+  const owners = r.node('scripts/records.js', 'slice', 'row', 'remove', 'Rides', '--reason', 'x');
+  assert.equal(owners.status, 1);
+  assert.match(owners.stderr, /slice row remove[\s\S]*added/);
+});
+
+test('records audit 44 (F30): a pre-gate commit rebased onto the gate is refused by name, with how to drop and remake the edit; redo says the same', () => {
+  const r = repo('rebased', { gate: false });
+  r.git('checkout', '-q', '-b', 'fix');
+  r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode\n4. The fix\'s second issue, by hand'));
+  r.write('a.txt', 'code\n');
+  r.commit(`fix gallery: the header (FX1)\n\n${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  copyFileSync(join(ROOT, 'scripts', 'records.js'), join(r.dir, 'scripts', 'records.js'));
+  r.commit(`Records: the gate lands\n\n${AGENT}\n`);
+  const tip = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('checkout', '-q', 'fix');
+  assert.equal(r.git('rebase', '-q', 'main').status, 0);
+  const sha = r.git('rev-parse', '--short=7', 'HEAD').stdout.trim();
+  r.git('update-ref', 'refs/remotes/origin/main', tip);
+  const ci = r.node('scripts/tend.js', 'commits', '--loop-only', `${tip}..fix`);
+  assert.equal(ci.status, 1);
+  const line = ci.stderr.split('\n').find((l) => /no Records-Op trailer/.test(l)) ?? '';
+  assert.match(line, /hand-edit/);
+  assert.match(line, /decision 0156[^.]*new|new[^.]*decision 0156/);
+  assert.match(line, new RegExp(`git checkout ${sha}\\^ -- docs/DEFERRED\\.md`));
+  assert.match(line, /amend|split/);
+  assert.match(line, /deferred item add/);
+  assert.doesNotMatch(line, /take main's side/);
+  const redo = r.node('scripts/records.js', 'redo');
   assert.equal(redo.status, 1);
-  assert.match(redo.stderr, /before the gate[\s\S]*history[\s\S]*by hand/);
-  assert.doesNotMatch(redo.stderr, /ask the owner/);
+  assert.match(redo.stderr, new RegExp(`${sha}[\\s\\S]*git checkout ${sha}\\^ -- docs/DEFERRED\\.md`));
+});
+
+test('records audit 45 (F31): a second merge of main into a branch made before the gate goes through redo as the first did', () => {
+  const r = repo('second-merge', { gate: false });
+  r.git('checkout', '-q', '-b', 'slice');
+  r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode, the slice\'s'));
+  r.commit(`Slice: by hand before the gate (SL1)\n\n${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  copyFileSync(join(ROOT, 'scripts', 'records.js'), join(r.dir, 'scripts', 'records.js'));
+  r.commit(`Records: the gate lands\n\n${AGENT}\n`);
+  const landed = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('checkout', '-q', 'slice');
+  assert.equal(r.git('merge', '-q', '-m', `Merge main into slice\n\n${AGENT}`, 'main').status, 0);
+  assert.equal(r.stdin('Slice item.\n', 'scripts/records.js', 'open', 'add').status, 0);
+  r.commit(`Slice: an open item (SL2)\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  r.write('docs/STATUS.md', STATUS.replace('### Open before the loop\n\n', '### Open before the loop\n\n- **Main\'s item** (Nov 13).\n'));
+  r.commit('Owner: main moves');
+  r.git('checkout', '-q', 'slice');
+  assert.notEqual(r.git('merge', '-q', '--no-edit', 'main').status, 0);
+  const redo = r.node('scripts/records.js', 'redo');
+  assert.equal(redo.status, 0, redo.stderr);
+  r.commit(`Merge main into slice again\n\n${AGENT}\n`);
+  const g = r.node('scripts/tend.js', 'commits', '--loop-only', `${landed}..slice`);
+  assert.equal(g.status, 0, g.stderr);
+});
+
+test('records audit 46 (F32): section remove takes only a truly empty section, and its target is the whole section', () => {
+  const one = records.apply('status', 'section add', STATUS, { section: 'From /fix' }).text;
+  const said = one.replace('### From /fix\n\n', "### From /fix\n\nStill open, keep this.\n\n");
+  assert.throws(() => records.apply('status', 'section remove', said, { section: 'From /fix' }), /empty/);
+  const withIntro = records.apply('status', 'section add', STATUS, { section: 'From /fix', intro: 'What /fix left.' }).text;
+  assert.throws(() => records.apply('status', 'section remove', withIntro, { section: 'From /fix' }), /empty/, 'an intro is words: the owner removes it');
+  const op = { argv: ['section', 'remove', 'From /fix', '--reason', 'emptied'] };
+  const t = records.replay({ ...DOCS0, 'docs/STATUS.md': one }, [op], { ledger: LEDGER }).steps[0].target;
+  assert.ok(t);
+  const other = records.apply('status', 'section add', STATUS, { section: 'From /fix' }).text.replace('### From /fix\n', '### From /fix\n\n- **A bullet** (Nov 13).\n');
+  assert.notEqual(t, records.replay({ ...DOCS0, 'docs/STATUS.md': records.apply('status', 'section item remove', other, { section: 'From /fix', match: 'A bullet' }).text.replace('### From /fix\n\n### Next', '### From /fix\n\n\n### Next') }, [op], { ledger: LEDGER }).steps[0].target, 'the target covers more than the heading');
+});
+
+test('records audit 47 (F33): an operation that acts on an entry carries its target in a sidecar, or the commit fails', () => {
+  const op: Op = { argv: ['open', 'remove', 'QL8', '--reason', 'x'] };
+  const m = made(DOCS0, [op]);
+  assert.deepEqual(records.checkCommit({ ...m, state: records.newRangeState() }), []);
+  const bare = records.sidecarOf([op]);
+  assert.match(records.checkCommit({ ...m, sidecar: bare, state: records.newRangeState() }).join('\n'), /target/);
+  assert.deepEqual(problems(DOCS0, [{ argv: ['open', 'add'], body: 'An add acts on no entry.' }]), [], 'an add needs no target');
+});
+
+test('records audit 48 (F34): an inbox entry removed and put back under its number keeps its noted lines', () => {
+  const noted = records.replay(DOCS0, [noteT11], { ledger: LEDGER }).docs;
+  const notes = new Map([['T11', [`  ${ANSWER}`]]]);
+  const gone: Op = { argv: ['inbox', 'remove', 'T11', '--reason', 'reshaped'] };
+  const back = (body: string): Op => ({ argv: ['inbox', 'add', '--id', 'T11'], body });
+  assert.throws(() => records.replay(noted, [gone, back('- **T11 [owner] Voice and note, one tap** (2026-11-11)')], { ledger: LEDGER, notes }), /inbox note/);
+  assert.ok(records.replay(noted, [gone, back(`- **T11 [owner] Voice and note, one tap** (2026-11-11)\n  ${ANSWER}`)], { ledger: LEDGER, notes }).docs['docs/STATUS.md'].includes(ANSWER));
+  // Across two commits of the range.
+  const state = records.newRangeState();
+  const m1 = made(noted, [gone]);
+  assert.deepEqual(records.checkCommit({ ...m1, state, notes }), []);
+  const add = back('- **T11 [owner] Voice and note, one tap** (2026-11-11)');
+  const head = records.replay(m1.head, [add], { ledger: LEDGER, removedIds: ['T11'] }).docs;
+  assert.match(records.checkCommit({ base: m1.head, head, message: `tend inbox: x\n\n${records.trailersOf([add]).join('\n')}\n`, sidecar: records.sidecarOf([add]), ledger: LEDGER, state, notes }).join('\n'), /inbox note/);
+});
+
+test('records audit 49 (F35): the record check runs in its own job, outside the deploy\'s cancelling concurrency', () => {
+  const wf = read('.github/workflows/pages.yml');
+  const top = wf.slice(0, wf.indexOf('\njobs:'));
+  assert.doesNotMatch(top, /cancel-in-progress:\s*true/, 'no workflow-wide cancelling group');
+  const jobs = wf.slice(wf.indexOf('\njobs:'));
+  const job = (name: string) => jobs.slice(jobs.indexOf(`\n  ${name}:`), (jobs.slice(jobs.indexOf(`\n  ${name}:`) + 3).search(/\n  [a-z-]+:\n/) + jobs.indexOf(`\n  ${name}:`) + 3) || undefined);
+  assert.match(job('records'), /tend\.js commits --loop-only/);
+  assert.doesNotMatch(job('records'), /cancel-in-progress/);
+  assert.match(job('build'), /needs:\s*\[?\s*records/);
+  assert.match(job('deploy'), /concurrency:[\s\S]*group:\s*pages[\s\S]*cancel-in-progress:\s*true/);
+});
+
+test('records audit 50 (F36): AGENTS.md says the record documents change only through npm run records', () => {
+  const agents = read('AGENTS.md');
+  assert.match(agents, /npm run records/);
+  assert.match(agents, /0156/);
+});
+
+test('records audit 51 (F37): an untrailered merge resolved by hand fails in a push that holds an agent commit', () => {
+  const { r, base } = forked('untrailered');
+  r.git('merge', '-q', '--no-commit', 'main');
+  r.write('docs/STATUS.md', r.read('docs/STATUS.md').replace("keep this.", 'kept, reworded.'));
+  r.commit('Merge main into run');
+  const g = records.gateRange(`${base}..run`, { cwd: r.dir, loopOnly: true });
+  assert.ok(!g.ok);
+  assert.match(g.results.flatMap((x) => x.problems).join('\n'), /merge[\s\S]*agent/);
+});
+
+test('records audit 52 (F38): a squash that adds several sidecars is read in its trailers\' order', () => {
+  const r = repo('squash');
+  r.git('checkout', '-q', '-b', 'b');
+  assert.equal(r.stdin('First.\n', 'scripts/records.js', 'open', 'add').status, 0);
+  const t1 = r.node('scripts/records.js', 'trailers').stdout;
+  r.commit(`Slice: one (SQ1)\n\n${t1}${AGENT}\n`);
+  assert.equal(r.stdin('[loop] Second.\n', 'scripts/records.js', 'deferred', 'item', 'add', 'Navigation and routes').status, 0);
+  const t2 = r.node('scripts/records.js', 'trailers').stdout;
+  r.commit(`Slice: two (SQ2)\n\n${t2}${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  const base = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('merge', '-q', '--squash', 'b');
+  r.commit(`Slice (#5)\n\n* Slice: one (SQ1)\n\n${t1}\n* Slice: two (SQ2)\n\n${t2}\nCo-authored-by: Claude <noreply@anthropic.com>\n`);
+  const ok = records.gateRange(`${base}..main`, { cwd: r.dir, loopOnly: true });
+  assert.ok(ok.ok, JSON.stringify(ok.results));
+  r.git('reset', '-q', '--hard', base);
+  r.git('merge', '-q', '--squash', 'b');
+  r.commit(`Slice (#5)\n\n* Slice: one (SQ1)\n\n${t1}\nCo-authored-by: Claude <noreply@anthropic.com>\n`);
+  assert.ok(!records.gateRange(`${base}..main`, { cwd: r.dir, loopOnly: true }).ok, 'a sidecar its trailers do not name');
+});
+
+test('records audit 53 (F39): the fix line names a parse error, and a removed Slices row is not an add', () => {
+  assert.match(records.opsFor(DOCS0, withStatus(DOCS0, `${STATUS}x\ry\n`)).join('\n'), /carriage return/);
+  assert.doesNotMatch(records.opsFor(DOCS0, withStatus(DOCS0, `${STATUS}x\ry\n`)).join('\n'), /"\?"/);
+  const gone = records.opsFor(DOCS0, withStatus(DOCS0, STATUS.replace(/\| Rides \|[^\n]*\n/, ''))).join('\n');
+  assert.doesNotMatch(gone, /slice row add/);
+  assert.match(gone, /slice row remove|owner/);
+});
+
+test('records audit 54 (F40): the notes history is read once per range', () => {
+  const r = repo('notes-once');
+  const base = r.git('rev-parse', 'HEAD').stdout.trim();
+  assert.equal(r.stdin(`${ANSWER}\n`, 'scripts/records.js', 'inbox', 'note', 'T11').status, 0);
+  r.commit(`tend inbox: a note\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  for (const [id, title] of [['T11', 'Voice and note, one tap'], ['T13', 'The tabs, largest text']]) {
+    const keep = id === 'T11' ? `  ${ANSWER}\n` : '';
+    const set = r.stdin(`- **${id} [owner] ${title}** (2026-11-11)\n${keep}`, 'scripts/records.js', 'inbox', 'set', id, '--reason', 'reshaped');
+    assert.equal(set.status, 0, set.stderr);
+    r.commit(`tend inbox: ${id} reshaped\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  }
+  const g = records.gateRange(`${base}..HEAD`, { cwd: r.dir, loopOnly: true });
+  assert.ok(g.ok, JSON.stringify(g.results));
+  assert.ok(g.stats.notesReads <= 1, `read ${g.stats.notesReads} times`);
 });
