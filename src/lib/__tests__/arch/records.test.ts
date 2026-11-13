@@ -1151,3 +1151,20 @@ test('records audit 39: the skills that write the documents say every agent comm
   assert.match(decision, /Claude-Session/);
   assert.doesNotMatch(decision, /Left open for the owner[\s\S]*F9/, 'F9 is decided');
 });
+
+test('records audit 40: redo in the merge that first brings the gate into a branch made before it says that merge is history', () => {
+  const r = repo('first-merge', { gate: false });
+  r.git('checkout', '-q', '-b', 'slice');
+  r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode, the slice\'s'));
+  r.commit(`Slice: by hand before the gate (SL1)\n\n${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  copyFileSync(join(ROOT, 'scripts', 'records.js'), join(r.dir, 'scripts', 'records.js'));
+  r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode, main\'s'));
+  r.commit(`Records: the gate lands\n\n${AGENT}\n`);
+  r.git('checkout', '-q', 'slice');
+  assert.notEqual(r.git('merge', '-q', '--no-edit', 'main').status, 0, 'a conflict');
+  const redo = r.node('scripts/records.js', 'redo');
+  assert.equal(redo.status, 1);
+  assert.match(redo.stderr, /before the gate[\s\S]*history[\s\S]*by hand/);
+  assert.doesNotMatch(redo.stderr, /ask the owner/);
+});
