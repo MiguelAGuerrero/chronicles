@@ -414,6 +414,7 @@ async function run(h) {
   const pauseNow = await memoRow.locator('[data-testid=entry-voice-play]').getAttribute('aria-label').catch(() => '');
   check(hasPlay && hasBar && !viewerOpened,
     `journal voice note: it plays in line, with a play button and a progress bar, and pressing play does not open the viewer (${JSON.stringify({ hasPlay, hasBar, viewerOpened, label: pauseNow })})`);
+  await shot(pg, 'journal-20-voice-note-playing');
   // Pause it so the next steps run in silence.
   if (/Pause/.test(pauseNow || '')) await memoRow.locator('[data-testid=entry-voice-play]').click().catch(() => {});
   // JN15: after Done the next piece begins a new entry.
