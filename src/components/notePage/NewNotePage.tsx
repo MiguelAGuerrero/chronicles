@@ -26,6 +26,8 @@ export const NewNotePage = forwardRef<NotePageHandle, {
   onClose: () => void;
   /** It was kept (its first words landed): the host says so as it says any capture. */
   onKept?: () => void;
+  /** The page carries the Type tool (NY24): a capture surface's page does; a response's does not (NY15). */
+  typed?: boolean;
   /** The camera is offered on the page (NP14). */
   camera?: boolean;
 }>(function NewNotePage(props, ref) {
@@ -39,7 +41,9 @@ export const NewNotePage = forwardRef<NotePageHandle, {
         const k = await cap.keepNote(stamp, body);
         if (k) {
           typed.current.ids = k;
-          if (typed.current.chosen) await cap.setNote(k, body, typed.current.chosen, true);
+          // The note is kept whether or not its type is: a failed type write must never look like a failed keep,
+          // or the page keeps the note a second time (note-types audit 58).
+          if (typed.current.chosen) await cap.setNote(k, body, typed.current.chosen, true).catch(() => {});
           onKept?.();
         }
         return k;
@@ -67,12 +71,12 @@ export const NewNotePage = forwardRef<NotePageHandle, {
       head={head}
       store={store}
       self={stamp.into ?? null}
-      type={null}
-      onType={async (t) => {
+      type={props.typed ? null : undefined}
+      onType={props.typed ? async (t) => {
         const w = typed.current;
         w.chosen = t;
-        if (typeForNewNote({ kept: !!w.ids, chosen: t }) === 'set' && w.ids) await cap.setNote(w.ids, '', t, true);
-      }}
+        if (typeForNewNote({ kept: !!w.ids, chosen: t }) === 'set' && w.ids) await cap.setNote(w.ids, '', t, true).catch(() => {});
+      } : undefined}
       onClose={props.onClose}
       onCamera={
         props.camera

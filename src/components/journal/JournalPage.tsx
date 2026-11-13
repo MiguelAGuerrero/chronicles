@@ -125,6 +125,11 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   }, [focused]);
 
   const away = useRef(false);
+  // A page just drawn is at its foot, with the empty page in view (audit 60).
+  const { onAway } = props;
+  useEffect(() => {
+    onAway?.(false);
+  }, [onAway]);
   const { more, onMore } = props;
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
@@ -132,7 +137,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     if (!hold.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
     if (pinned.current) opened.current = true;
     // The empty page is the sheet's last `blank` px above its foot's padding.
-    const out = contentOffset.y + layoutMeasurement.height < contentSize.height - blank - props.footPad + 24;
+    // Out of view: its top is under the bar or below it (audit 61).
+    const out = contentOffset.y + layoutMeasurement.height < contentSize.height - blank + 24;
     if (out !== away.current) {
       away.current = out;
       props.onAway?.(out);

@@ -50,7 +50,7 @@ const FIELD_MAX = 132;
 
 /** What the page asks of the line: a tap on the empty page gives the field the keyboard (JN32). */
 /** `pickType`: the bar becomes the row of eight for one pick (note types NY19); asked again, it goes back. */
-export type TypeAsk = { type: string | null | undefined; onPick: (t: NoteType | null) => void };
+export type TypeAsk = { piece: string; type: string | null | undefined; onPick: (t: NoteType | null) => void };
 export type OpenLineHandle = { write: () => void; pickType: (ask: TypeAsk) => void };
 
 type LineProps = {
@@ -75,6 +75,8 @@ type LineProps = {
   onHeight?: (h: number) => void;
   /** No page is shown (a thread, the threads, Hidden): the field sits in the bar. On the page it is the page's last line (JN28). */
   inBar: boolean;
+  /** The eight are open above the bar, or not (NY19): the slot shows it. */
+  onTypeOpen?: (open: boolean) => void;
   /** The empty page is out of view (the reader pulled the page down): the bar holds the pen (audit 50). */
   penInBar?: boolean;
   /** The screen's body, given the field and what the page needs to grow round it (null when the field is in the bar). */
@@ -331,6 +333,15 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const [picking, setPicking] = useState<number | null>(null);
   // The bar as the row of eight (NY19), for one pick. The next character puts the bar back (NY20).
   const [typeAsk, setTypeAsk] = useState<TypeAsk | null>(null);
+  // They belong to the note being written, on the screen in front: when that entry closes (Done, two minutes, a
+  // capture, the page) or Memories is no longer in front, they go (note-types audit 56).
+  if (typeAsk && (pen.entry?.pieceId !== typeAsk.piece || focused === false)) setTypeAsk(null);
+  const asking = typeAsk && pen.entry?.pieceId === typeAsk.piece && focused !== false ? typeAsk : null;
+  const typeOpen = !!asking;
+  const { onTypeOpen } = props;
+  useEffect(() => {
+    onTypeOpen?.(typeOpen);
+  }, [onTypeOpen, typeOpen]);
   const onChangeText = (next: string) => {
     setTypeAsk(null);
     const edited = editRefs(text, next, refs);
@@ -512,7 +523,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   // A tap on the empty page: the field takes the keyboard in the tap itself, so a phone raises it.
   useImperativeHandle(props.handle, () => ({
     pickType: (ask: TypeAsk) => {
-      setTypeAsk((was) => (was ? null : ask));
+      setTypeAsk((was) => (was && was.piece === ask.piece ? null : ask));
       // The caret stays on the page: the tap on the slot took it from the field.
       input.current?.focus();
     },
@@ -600,10 +611,11 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
         <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height))}>
-          {typeAsk ? (
-            <View style={styles.row} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
+          {asking ? (
+            // The eight, named, just above the bar (NY19, NY25): two rows of four. The bar below keeps its places.
+            <View style={styles.types} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
               {NOTE_TYPES.map((t) => {
-                const on = noteTypeOf(typeAsk.type) === t.id;
+                const on = noteTypeOf(asking.type) === t.id;
                 return (
                   <Pressable
                     key={t.id}
@@ -612,27 +624,32 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
                     accessibilityLabel={t.name}
                     accessibilityState={{ checked: on }}
                     onPress={() => {
-                      typeAsk.onPick(pickType(typeAsk.type, t.id));
+                      asking.onPick(pickType(asking.type, t.id));
                       setTypeAsk(null);
                       input.current?.focus();
                     }}
                     style={[styles.pick, on && styles.pickOn]}
                   >
-                    <Icon name={t.glyph as IconName} size={22} color={theme.ink} />
+                    <Icon name={t.glyph as IconName} size={20} color={theme.ink} />
+                    <Text style={[styles.pickName, on && styles.pickNameOn]} numberOfLines={1}>{t.name}</Text>
                   </Pressable>
                 );
               })}
             </View>
-          ) : (
+          ) : null}
           <View style={styles.row}>
             {inBar ? (
-              fieldEl
+              <>
+                {/* In a thread too, the recording's mark stays while the tabs are folded (audit 62). */}
+                {walk && typing ? <View style={styles.walkDot} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
+                {fieldEl}
+              </>
             ) : recording ? (
               <View style={styles.lead}>{timer}{discard}</View>
             ) : active || pen.failed ? (
               <>
                 {/* The recording bar is folded away while the field has the keyboard (JN30): its mark stays (audit 53). */}
-                {walk && typing ? <View style={styles.walkDot} testID="line-recording" accessible accessibilityLabel="Walk recording" /> : null}
+                {walk && typing ? <View style={styles.walkDot} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
                 <Text style={styles.status} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
               </>
             ) : (
@@ -679,7 +696,6 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               </View>
             )}
           </View>
-          )}
         </View>
       </View>
     </View>
@@ -692,7 +708,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {inBar ? [body, bar] : [bar, body]}
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
-          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
+          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} typed onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
         )}
         {page?.entry && (
           <NotePage
@@ -782,10 +798,13 @@ const styles = StyleSheet.create({
   done: { minWidth: 44, height: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
-  // One row of eight at any width: the bar's height, and what the width gives (NY25).
-  pick: { flex: 1, minWidth: 36, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  // The chosen one: a tint and an ink rule under it, never colour alone.
+  // The eight above the bar's row: two rows of four, each the glyph over its name (NY19, NY25).
+  types: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', maxWidth: 624, alignSelf: 'center', paddingBottom: 4 },
+  pick: { width: '25%', minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  // The chosen one: a tint, an ink rule under it and a heavier name, never colour alone.
   pickOn: { backgroundColor: '#ebe7df', borderBottomColor: theme.ink },
+  pickName: { color: theme.ink, fontSize: 12 },
+  pickNameOn: { fontWeight: '700' },
   walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: 8 },
   unseen: { opacity: 0 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },

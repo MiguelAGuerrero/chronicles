@@ -16,6 +16,8 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
   // Type (NY23): the eight and No type, in this same sheet; never a second Modal.
   const [typing, setTyping] = useState(false);
   const type = props.type;
+  // Closed by anything (an item, the host), it opens on its list again (note-types audit 63).
+  if (!props.open && typing) setTyping(false);
   const close = () => {
     setTyping(false);
     props.onClose();
@@ -26,6 +28,8 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
         <Pressable style={StyleSheet.absoluteFill} onPress={close} accessible={false} />
         <View style={styles.sheet} testID="memory-menu" accessibilityViewIsModal>
           {typing && type ? (
+            <>
+            <Text style={styles.heading} accessibilityRole="header">Type</Text>
             <NoteTypeMenu
               chosen={type.chosen}
               onChoose={(t) => {
@@ -33,7 +37,10 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
                 type.onChoose(t);
               }}
             />
+            </>
           ) : null}
+          {typing && type ? null : (
+            <>
           {!typing && type ? item('menu-type', 'Type', 'A mark for why you wrote this note', () => setTyping(true)) : null}
           {props.onRelive && item('resurfaced-relive', 'Relive it', 'Replays the walk or the day it came from', props.onRelive)}
           {props.onAnother && item('resurfaced-another', 'Another', 'Brings back a different moment', props.onAnother)}
@@ -41,6 +48,8 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
           {item('menu-hide', 'Not this one', 'Keeps it, but never brings it back up', props.onHide)}
           {props.onMap && item('menu-map', 'Show on the map', 'Where this moment was made', props.onMap)}
           {item('menu-open', 'Open the moment', 'Full screen, with its own menu', props.onOpen)}
+            </>
+          )}
           <Pressable testID="menu-cancel" accessibilityRole="button" onPress={close} style={styles.item}>
             <Text style={[styles.label, { color: theme.muted }]}>Cancel</Text>
           </Pressable>
@@ -55,5 +64,6 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 12, paddingBottom: 24, gap: 2, width: '100%', maxWidth: 640, alignSelf: 'center' },
   item: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
   label: { color: theme.ink, fontSize: 16, fontWeight: '600' },
+  heading: { color: theme.ink, fontSize: 16, fontWeight: '600', paddingHorizontal: 12, paddingVertical: 10 },
   hint: { color: theme.muted, fontSize: 13 },
 });

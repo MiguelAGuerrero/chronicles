@@ -300,7 +300,8 @@ export function MemoriesScreen() {
   ) : null;
   const menuMoment = menuFor ? inThreadById.get(menuFor) ?? null : null;
   // The moment's first note: what Type in More marks (note types NY23).
-  const menuNote = menuMoment?.capture.pieces.find((p) => p.kind === 'text') ?? null;
+  // The note that has a type, else the first (audit 57): what the sheet shows is what the page shows.
+  const menuNote = menuMoment?.capture.pieces.find((p) => p.kind === 'text' && noteTypeOf(p.note_type)) ?? menuMoment?.capture.pieces.find((p) => p.kind === 'text') ?? null;
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   // A reply says what it answers wherever it is listed (audit 1).
   const answerLine = (m: MomentView) => {
@@ -323,7 +324,8 @@ export function MemoriesScreen() {
         onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
         onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
         onMore={() => { setMenuFromSlip(false); setMenuFor(m.id); }}
-        onType={(piece) => lineRef.current?.pickType({ type: piece.note_type, onPick: (t) => void resurface.saveNote({ ...c, piece_id: piece.id }, '', t, true) })}
+        onType={(piece) => lineRef.current?.pickType({ piece: piece.id, type: piece.note_type, onPick: (t) => void resurface.saveNote({ ...c, piece_id: piece.id }, '', t, true).catch(() => {}) })}
+        typeOpen={typeOpen}
         onOpenRef={open}
       />
     );
@@ -439,6 +441,7 @@ export function MemoriesScreen() {
   const lineRef = useRef<OpenLineHandle>(null);
   // The empty page is out of view: the bar holds the pen (audit 50).
   const [away, setAway] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
   const journal = (line: { field: ReactNode; writing: boolean; entryOpen: boolean }) => (
     <JournalPage
       ref={pageRef}
@@ -479,7 +482,7 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine ref={lineRef} inBar={body != null} penInBar={away} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
+      <OpenLine ref={lineRef} inBar={body != null} penInBar={away} onTypeOpen={setTypeOpen} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
         {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu
@@ -505,7 +508,7 @@ export function MemoriesScreen() {
       />
       <MemoryMenu
         open={!!menuMoment}
-        type={menuNote && menuMoment ? { chosen: noteTypeOf(menuNote.note_type), onChoose: (t) => { const m = menuMoment; setMenuFor(null); void resurface.saveNote({ ...m.capture, piece_id: menuNote.id }, '', t, true); } } : undefined}
+        type={menuNote && menuMoment ? { chosen: noteTypeOf(menuNote.note_type), onChoose: (t) => { const m = menuMoment; setMenuFor(null); void resurface.saveNote({ ...m.capture, piece_id: menuNote.id }, '', t, true).catch(() => {}); } } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;

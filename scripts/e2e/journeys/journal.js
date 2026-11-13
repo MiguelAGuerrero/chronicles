@@ -398,7 +398,7 @@ async function run(h) {
   const label19 = await slotLabel();
   await pg.click('[data-testid=type-slot]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(500);
-  const row19 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=type-row] [data-testid^=type-pick-]')].map((e) => { const r = e.getBoundingClientRect(); return { id: e.dataset.testid.slice(10), name: e.getAttribute('aria-label'), text: e.innerText.trim(), x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) }; }));
+  const row19 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=type-row] [data-testid^=type-pick-]')].map((e) => { const r = e.getBoundingClientRect(); return { id: e.dataset.testid.slice(10), name: e.getAttribute('aria-label'), text: e.innerText.trim().split('\n').pop(), x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) }; }));
   const open19 = await pg.evaluate(() => ({ expanded: document.querySelector('[data-testid=type-slot]')?.getAttribute('aria-expanded'), bar: ['band-photo', 'band-voice', 'line-done'].filter((id) => { const r = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect(); return !!r && r.width > 0; }).length }));
   await shot(pg, 'journal-22-type-row');
   await pg.setViewportSize({ width: 320, height: 844 });
@@ -407,14 +407,14 @@ async function run(h) {
   await shot(pg, 'journal-23-type-row-320');
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(500);
-  check.todo(row25.length === 8 && new Set(row25.map((b) => b.y)).size === 2 && row25.every((b) => b.h >= 44 && b.w >= 44 && b.l >= 0 && b.r <= 320), `NY25: at 320 px the eight are two rows of four, nothing cut, each 44 px or more both ways (${JSON.stringify(row25)})`);
+  check(row25.length === 8 && new Set(row25.map((b) => b.y)).size === 2 && row25.every((b) => b.h >= 44 && b.w >= 44 && b.l >= 0 && b.r <= 320), `NY25: at 320 px the eight are two rows of four, nothing cut, each 44 px or more both ways (${JSON.stringify(row25)})`);
   await pg.click('[data-testid=type-pick-idea]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(900);
   const after19 = { row: await pg.locator('[data-testid=type-row]').count(), focus: await pg.evaluate(() => document.activeElement?.getAttribute('data-testid')), label: await slotLabel(), stored: await typeOfNote(/bakery shut/) };
   check(label19 === 'Type, No type' && row19.map((r) => r.id).join() === 'question,emphasis,idea,happy,neutral,sad,like,dislike' && row19.map((r) => r.name).join() === 'Question,Emphasis,Idea,Happy,Neutral,Sad,Like,Dislike'
     && after19.row === 0 && after19.focus === 'line-input' && after19.label === 'Type, Idea',
     `NY19: the slot opens the eight; one tap marks the note and the caret stays on the page (${JSON.stringify({ label19, row19: row19.map((r) => r.id), after19 })})`);
-  check.todo(row19.every((r) => r.text === r.name) && open19.expanded === 'true' && open19.bar === 3,
+  check(row19.every((r) => r.text === r.name) && open19.expanded === 'true' && open19.bar === 3,
     `NY19, NY20: each of the eight shows its name, the slot shows it is open, and the camera, the mic and Done stay in the bar (${JSON.stringify({ open19, texts: row19.map((r) => r.text) })})`);
   await pg.click('[data-testid=type-slot]').catch(() => {});
   await pg.waitForTimeout(400);
@@ -438,7 +438,7 @@ async function run(h) {
   await done();
   await pg.waitForTimeout(1200);
   const kept22 = await pg.evaluate(() => { const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')]; const of = (c) => c?.querySelector('[data-testid=note-type-mark]')?.getAttribute('aria-label') ?? null; return { last: of(cards[cards.length - 1]), prev: of(cards[cards.length - 2]), slot: document.querySelectorAll('[data-testid=type-slot]').length }; });
-  check.todo(kept22.last === 'Question' && kept22.prev == null && kept22.slot === 0 && marked22 === 'Question', `NY22: a typed note shows its glyph and name above its words, while it is written and once kept; one with none shows nothing (${JSON.stringify({ kept22, marked22 })})`);
+  check(kept22.last === 'Question' && kept22.prev == null && kept22.slot === 0 && marked22 === 'Question', `NY22: a typed note shows its glyph and name above its words, while it is written and once kept; one with none shows nothing (${JSON.stringify({ kept22, marked22 })})`);
   await shot(pg, 'journal-24-type-on-entry');
   await pg.reload();
   await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
@@ -455,7 +455,7 @@ async function run(h) {
   await pg.click('[data-testid=note-type-item-sad]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1200);
   const more23 = { items: items23, menu: await pg.locator('[data-testid=memory-menu]').count(), stored: await typeOfNote(/bakery shut/), shown: await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=note-type-mark]').getAttribute('aria-label').catch(() => null) };
-  check.todo(more23.items === 9 && alone23 === 0 && more23.menu === 0 && more23.stored === 'sad' && more23.shown === 'Sad', `NY23: More offers Type; the eight and No type take the sheet by themselves, and choosing keeps it (${JSON.stringify({ more23, alone23 })})`);
+  check(more23.items === 9 && alone23 === 0 && more23.menu === 0 && more23.stored === 'sad' && more23.shown === 'Sad', `NY23: More offers Type; the eight and No type take the sheet by themselves, and choosing keeps it (${JSON.stringify({ more23, alone23 })})`);
   // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
   const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
   await lastMore().click();
@@ -467,7 +467,7 @@ async function run(h) {
   await lastMore().click();
   await pg.waitForTimeout(700);
   const list63 = { type: await pg.locator('[data-testid=memory-menu] [data-testid=menu-type]').count(), grid: await pg.locator('[data-testid=memory-menu] [data-testid=note-type-menu]').count() };
-  check.todo(list63.type === 1 && list63.grid === 0, `note-types audit 63: More reopens on its list (${JSON.stringify(list63)})`);
+  check(list63.type === 1 && list63.grid === 0, `note-types audit 63: More reopens on its list (${JSON.stringify(list63)})`);
   await pg.click('[data-testid=menu-cancel]');
   await pg.waitForTimeout(700);
   // note-types audit 56: the eight go when Memories is no longer in front (a menu opens), and the bar is whole.
@@ -482,7 +482,7 @@ async function run(h) {
   await pg.click('[data-testid=menu-cancel]').catch(() => {});
   await pg.waitForTimeout(900);
   const gone56 = { row: await pg.locator('[data-testid=type-row]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), mic: await pg.locator('[data-testid=band-voice]').count() };
-  check.todo(up56 === 1 && gone56.row === 0 && gone56.cam === 1 && gone56.mic === 1, `note-types audit 56: the eight go when Memories loses focus, and the bar keeps the camera and the mic (${JSON.stringify({ up56, gone56 })})`);
+  check(up56 === 1 && gone56.row === 0 && gone56.cam === 1 && gone56.mic === 1, `note-types audit 56: the eight go when Memories loses focus, and the bar keeps the camera and the mic (${JSON.stringify({ up56, gone56 })})`);
   await pg.evaluate(() => document.activeElement?.blur?.());
   await done();
   await pg.waitForTimeout(900);
@@ -490,12 +490,12 @@ async function run(h) {
   await pg.evaluate(() => { document.querySelector('[data-testid=journal-page]').scrollTop = 0; });
   await pg.waitForTimeout(700);
   const pen60 = await pg.locator('[data-testid=bar-write]').count();
-  await toThreads(pg);
+  await h.toThreads(pg);
   await pg.waitForTimeout(600);
-  await toJournal(pg);
+  await h.toJournal(pg);
   await pg.waitForTimeout(1200);
   const back60 = await pg.locator('[data-testid=bar-write]').count();
-  check.todo(pen60 === 1 && back60 === 0, `chronicle-journal audit 60: back from Threads the page is at its foot and the bar holds no pen (${pen60} -> ${back60})`);
+  check(pen60 === 1 && back60 === 0, `chronicle-journal audit 60: back from Threads the page is at its foot and the bar holds no pen (${pen60} -> ${back60})`);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
