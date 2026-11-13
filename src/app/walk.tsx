@@ -14,7 +14,7 @@ import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
 import { LayersControl, LayersKey } from '../components/LayersControl';
-import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
+import { COLORS, HOTSPOT, namesNearYou, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
 import { CaptureViewer } from '../components/CaptureView';
@@ -1160,6 +1160,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <WalkMap
         {...drawn}
+        busyNamesNear={namesNearYou(live.here)}
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).

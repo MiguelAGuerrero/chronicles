@@ -179,8 +179,8 @@ const FEATURES = [
     about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
     rule: 'layers',
     source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
-    journeys: ['layers'],
-    specs: ['map-layers'],
+    journeys: ['layers', 'dense'],
+    specs: ['map-layers', 'explore-dense-city'],
   },
   {
     name: 'walkability',
@@ -194,7 +194,7 @@ const FEATURES = [
     name: 'landing',
     about: 'what\'s good here: landing analysis, busy streets, activity density',
     rule: 'landing',
-    source: ['src/lib/landing/**', 'src/lib/activity/**', 'src/components/LandingMarks.tsx'],
+    source: ['src/lib/landing/**', 'src/lib/activity/**'],
     journeys: [],
     specs: ['v1.5-landing', 'activity-density'],
   },
@@ -204,7 +204,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll}.ts', 'src/lib/backlog/**', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence'],
+    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence', 'neighborhood-boundaries'],
   },
   {
     name: 'map',
@@ -238,11 +238,11 @@ const FEATURES = [
       // Media editing (ME1-ME23): the editor, edited photos and videos, the Edit offer.
       'src/components/edit/**',
       'src/components/Baker*.ts',
-      'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
+      'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
     ],
-    journeys: ['edit', 'stacks'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
+    journeys: ['edit', 'stacks', 'voicetrim'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim'],
   },
   {
     name: 'chronicle',
@@ -434,6 +434,8 @@ const UNTESTED = {
     RP12: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
   },
   // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
+  // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
+  'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
 };
 

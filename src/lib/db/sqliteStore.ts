@@ -22,7 +22,7 @@ import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment,
 import { segmentBbox } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
-import type { Db } from './types';
+import { SEGMENT_BATCH, type Db } from './types';
 import { serializeEdit } from '../mediaEdit';
 import { foldRows, type JoinedRow } from '../moment';
 
@@ -350,21 +350,26 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       );
     },
 
-    putSegments(segments) {
-      if (segments.length === 0) return Promise.resolve();
-      return write(async (t) => {
-        const seg = await t.prepareAsync(
-          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        );
-        try {
-          for (const x of segments) {
-            const [w, so, e, n] = segmentBbox(x);
-            await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+    async putSegments(segments, shouldStop) {
+      // DC10: one queued write per batch, so other writes can go between them. A caller stopped before the write starts
+      // writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
+      if (shouldStop?.()) return;
+      for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
+        const batch = segments.slice(i, i + SEGMENT_BATCH);
+        await write(async (t) => {
+          const seg = await t.prepareAsync(
+            'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          );
+          try {
+            for (const x of batch) {
+              const [w, so, e, n] = segmentBbox(x);
+              await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+            }
+          } finally {
+            await seg.finalizeAsync();
           }
-        } finally {
-          await seg.finalizeAsync();
-        }
-      });
+        });
+      }
     },
 
     saveSnap(walkId, segments, visited, snapSummary, placed, complete = true) {
@@ -560,8 +565,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return write(async (t) => {
         for (const r of tiles) {
           await t.runAsync(
-            'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
+            'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points, hoods) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points), JSON.stringify(r.hoods ?? []),
           );
         }
       });
@@ -569,9 +574,13 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     async getOutlineTiles(keys) {
       if (!keys.length) return [];
       const want = [...new Set(keys)].sort();
-      type Row = Omit<OutlineTile, 'pieces' | 'points'> & { pieces: string; points: string };
+      type Row = Omit<OutlineTile, 'pieces' | 'points' | 'hoods'> & { pieces: string; points: string; hoods: string };
       const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM outline_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
-      return rows.map((r) => ({ ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points) }));
+      return rows.map(({ hoods, ...r }) => {
+        const shapes: OutlineTile['hoods'] = JSON.parse(hoods);
+        // A tile kept before the shapes were cut has none, as IndexedDB's has no field (HB12).
+        return { ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points), ...(shapes?.length ? { hoods: shapes } : {}) };
+      });
     },
     putWalkTiles(tiles) {
       if (!tiles.length) return Promise.resolve();

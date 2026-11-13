@@ -127,3 +127,9 @@ export function busyRadiusM(level: 'neighborhood' | 'town', ringM: number, townR
 export function busyNamesOn(zoom: number, minZoom: number): boolean {
   return zoom >= minZoom;
 }
+
+/**
+ * Whether the map draws the 800 m ring for a selected neighborhood (audit 5): only while the card counts across a ring and no
+ * ground is known. A card that counted across a shape never shows a ring over it, whatever the cache holds yet.
+ */
+export const shouldDrawRing = (extent: string | null | undefined, ground: { polygons: unknown[] } | null | undefined): boolean => !ground && extent !== 'shape';

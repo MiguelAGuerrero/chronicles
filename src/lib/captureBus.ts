@@ -14,12 +14,12 @@ import type { Faced } from './moment';
 export type CapturePatch = Partial<Pick<Faced, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'edit'>>;
 /** The channel for loose moments, which belong to no walk (media-editing audit 2). */
 export const LOOSE_MOMENTS = '@loose-moments';
-type Listener = { walkId: string; owner: object; fn: (c: Faced) => void; onPatch?: (id: string, patch: CapturePatch) => void };
+type Listener = { walkId: string; owner: object; fn: (c: Faced) => void; onPatch?: (id: string, patch: CapturePatch, pieceId?: string) => void };
 const listeners = new Set<Listener>();
 
 export const captureBus = {
   /** Listen for captures of a walk kept (or changed) by any path but the owner's own. */
-  subscribe(walkId: string, owner: object, fn: (c: Faced) => void, onPatch?: (id: string, patch: CapturePatch) => void): () => void {
+  subscribe(walkId: string, owner: object, fn: (c: Faced) => void, onPatch?: (id: string, patch: CapturePatch, pieceId?: string) => void): () => void {
     const l = { walkId, owner, fn, onPatch };
     listeners.add(l);
     return () => {
@@ -35,17 +35,23 @@ export const captureBus = {
    * note's text, QL25). `from` null: a screen with no path of its own (the
    * replay, a day), so every listener hears it.
    */
-  patch(walkId: string | null, id: string, patch: CapturePatch, from: object | null) {
+  patch(walkId: string | null, id: string, patch: CapturePatch, from: object | null, pieceId?: string) {
     // A loose moment's change goes to whoever lists loose moments (Navigate, ready).
     const key = walkId ?? LOOSE_MOMENTS;
-    for (const l of [...listeners]) if (l.walkId === key && l.owner !== from) l.onPatch?.(id, patch);
+    for (const l of [...listeners]) if (l.walkId === key && l.owner !== from) l.onPatch?.(id, patch, pieceId);
   },
 };
 
 /** A list with one capture's fields changed; the same list when it isn't there. */
-export function applyPatch(list: Faced[], id: string, patch: CapturePatch): Faced[] {
+export function applyPatch(list: Faced[], id: string, patch: CapturePatch, pieceId?: string): Faced[] {
   if (!list.some((c) => c.id === id)) return list;
-  return list.map((c) => (c.id === id ? { ...c, ...patch } : c));
+  return list.map((c) => {
+    if (c.id !== id) return c;
+    // A change to one of the moment's other pieces is that piece's: the face keeps its own edit, caption and copy
+    // (voice-trim audit 1). With no piece named it is the face's, as before.
+    if (pieceId && pieceId !== c.piece_id) return { ...c, pieces: c.pieces.map((p) => (p.id === pieceId ? ({ ...p, ...patch } as typeof p) : p)) };
+    return { ...c, ...patch };
+  });
 }
 
 /**

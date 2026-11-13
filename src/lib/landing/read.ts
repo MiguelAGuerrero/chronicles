@@ -1,20 +1,16 @@
 // @layer shell
 import { readOverture } from '../activity/overture';
-import { activityFromTilePois, mergeSources } from '../activity/points';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
-import { fetchTiles } from '../discovery/tileFetch';
-import { placesFromTilePois, transitFromTilePois } from '../discovery/tilePois';
+import { fetchTileBodies, fetchTiles } from '../discovery/tileFetch';
 import { boundsOf } from '../geo';
-import { deriveSegments } from '../streets';
 import { ensureTileBuild } from '../tiles';
-import { tilesIn } from '../tileMath';
+import { TILE_ZOOM, tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
-import { analyzeArea, centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyze';
+import { centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyze';
 import { keyFor, LANDING_VERSION, replacesRow, type LandingRow } from './view';
 import { placesArchive } from '../discovery/archive';
-import { mergePlaces } from '../discovery/archiveMerge';
-import { refineRead } from '../discovery/refinements';
+import { offPage } from './runOffPage';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
@@ -23,28 +19,30 @@ class Cancelled extends Error {}
 
 export type AreaRead = { ok: true; centre: LngLat; analysis: AreaAnalysis; overture: string | null } | { ok: false; reason: 'failed' | 'cancelled' };
 
-export async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean, withOverture = true) {
+export async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean, withOverture = true, analyzeAt: LngLat | null = null) {
   const tiles = readTiles(at);
   // Overture's places for the same tiles (AD3), beside the map's; without them the read goes on (AD7). A read that
   // measures no density (a quiet walk's checklists) asks Overture for nothing (activity-density audit 4).
   // The places archive for the same tiles (PW1, PW9), on every read, quiet walks too, so a capture can find one;
   // without it the read goes on from the map alone (PW3).
-  const [features, overture, archive] = await Promise.all([
-    fetchTiles(url, tiles, undefined, shouldStop),
+  const [bodies, overture, archive] = await Promise.all([
+    fetchTileBodies(url, tiles, undefined, shouldStop),
     withOverture ? readOverture(tiles, shouldStop) : null,
     placesArchive.read(tiles, at, shouldStop).catch(() => null),
   ]);
   if (shouldStop()) throw new Cancelled();
-  const segments = deriveSegments(features.roads, features.names, build);
-  const tilePlaces = placesFromTilePois(features.pois, build);
-  // Cached like any read, tagged with the build (L2). Overture's places, and the archive's, are never stored.
-  await db.putSegments(segments).catch(() => {});
-  await db.putPlaces(tilePlaces).catch(() => {});
-  // PW8, PW13: one mark per place across the map and the archive, then the owner's removals and adds.
-  // community-parks PC21: merged first, then refined with the tiles' outlines and the archive's places.
-  const places = refineRead(archive ? mergePlaces(tilePlaces, archive.places) : tilePlaces, { landcover: features.landcover, archive: archive?.places });
-  const points = mergeSources(activityFromTilePois(features.pois), overture?.points ?? []);
-  return { segments, places, points, overture: overture?.release ?? null, archive: archive?.version ?? null, towns: placesFromTiles(features.places), transit: transitFromTilePois(features.pois) };
+  // Decoding, the streets, the places and the measure run off the page on the web (DC7, DC13), between turns on native (DC11).
+  const out = await offPage.run({ bodies, tiles, zoom: TILE_ZOOM, build, overturePoints: overture?.points ?? [], archivePlaces: archive?.places ?? null, analyzeAt }, shouldStop)
+    .catch((e) => { throw shouldStop() ? new Cancelled() : e; });
+  if (shouldStop()) throw new Cancelled();
+  // Cached like any read, tagged with the build (L2), in batches the page draws between (DC10). A write once started
+  // finishes, so no tile is left half stored (audit 5); places are not stored after a cancel. Overture's places, and the
+  // archive's, are never stored.
+  await db.putSegments(out.segments, shouldStop).catch(() => {});
+  if (shouldStop()) throw new Cancelled();
+  await db.putPlaces(out.tilePlaces).catch(() => {});
+  const { segments, places, points, towns, transit, analysis } = out;
+  return { segments, places, points, overture: overture?.release ?? null, archive: archive?.version ?? null, towns, transit, analysis };
 }
 
 /**
@@ -64,9 +62,9 @@ export async function readArea(pressed: LngLat, shouldStop: () => boolean): Prom
     const wide = await fetchTiles(url, tilesIn(boundsOf([pressed], LANDING_RULES.townM)!, TOWNS_ZOOM), TOWNS_ZOOM, shouldStop).catch(() => null);
     if (shouldStop()) return { ok: false, reason: 'cancelled' };
     const centre = centreFor(pressed, wide ? placesFromTiles(wide.places) : []);
-    const read = await readAround(url, build, centre, shouldStop);
-    if (shouldStop()) return { ok: false, reason: 'cancelled' };
-    return { ok: true, centre, analysis: analyzeArea({ centre, ...read }), overture: read.overture };
+    const read = await readAround(url, build, centre, shouldStop, true, centre);
+    if (shouldStop() || !read.analysis) return { ok: false, reason: 'cancelled' };
+    return { ok: true, centre, analysis: read.analysis, overture: read.overture };
   } catch (e) {
     return { ok: false, reason: e instanceof Cancelled || shouldStop() ? 'cancelled' : 'failed' };
   }

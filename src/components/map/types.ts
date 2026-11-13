@@ -6,6 +6,8 @@ import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
 import type { ComplexMap } from '../../lib/complexes/mapLayer';
 import type { LandingView } from '../../lib/landing/view';
+import { busyNames } from '../../lib/landing/names';
+import { distanceM } from '../../lib/geo';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
@@ -93,6 +95,11 @@ export interface WalkMapProps {
   ended?: boolean | LngLat[][];
   /** Where the scale bar sits, from the map's bottom-left corner, clear of the screen's own bottom UI (QL8). */
   scaleInset?: { bottom: number; left?: number };
+  /**
+   * Navigate and Explore (T17, decision 0154): with no fix (`walker`) and nothing drawn in view, no scale bar over a
+   * blank world. Other maps always draw their bar.
+   */
+  hideScaleOnBlank?: boolean;
   walked: StreetSegment[];
   fog: StreetSegment[];
   /**
@@ -140,6 +147,19 @@ export interface WalkMapProps {
   waitingDots?: WaitingDot[];
   /** Remembered hotspots: pockets shaded, strips drawn and named, as information (v1.5). */
   landing?: LandingView | null;
+  /**
+   * DC16: the busy names go over every layer, placed before the base map's labels (Explore); otherwise under the base map's
+   * labels and so under the trace and the route (the walk screen, Navigate).
+   */
+  busyNamesOver?: boolean;
+  /** The camera started (true) or settled (false), once each, never per frame: Explore's read waits for a settle (DC9). */
+  onMoveState?: (moving: boolean) => void;
+  /** DC14: the selected area's name, whose room on the map no busy name takes (Explore). */
+  busyNamesReserve?: { name: string; at: LngLat } | null;
+  /** DC18: the walk maps name busy streets only near you (`namesNearYou`); Explore passes none (EC7 has its own limit). */
+  busyNamesNear?: { at: LngLat; m: number } | null;
+  /** audit 11: the test ids of the screen's controls over the map, whose room no busy name takes (web). */
+  busyNamesClearOf?: readonly string[];
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
   /** Explore's areas: quiet dots, the selected one named (atlas round 3, fix pins-selected-only). */
@@ -148,6 +168,8 @@ export interface WalkMapProps {
   complexes?: ComplexMap | null;
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;
+  /** A selected neighborhood's own ground, drawn as one line (HB9): the same for every neighborhood, never a fill or a figure (HB10, HB14). */
+  ground?: { polygons: LngLat[][][] } | null;
   /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */
   borders?: BorderView | null;
   /** The Walkability layer (UF9): areas easy on foot tinted green and built around cars warm, under the trace and fog; null or absent draws none. */
@@ -434,6 +456,171 @@ export function stripsGeoJSON(v: LandingView | null | undefined): GeoJSON.Featur
       return { type: 'Feature', properties: { grade: g.grade, stale: g.stale, width: look.width, opacity }, geometry: { type: 'MultiLineString', coordinates: g.lines } };
     }),
   };
+}
+
+/**
+ * The busy names' font (DC1): one the base style's glyphs serve (Positron's, from `MAP_STYLE_URL`'s host). If OpenFreeMap
+ * renames it, the names stop drawing with a console error; `map/busyNames.test.ts` reads it from a copy of the style.
+ */
+export const BUSY_NAME_FONT = ['Noto Sans Bold'];
+/**
+ * The base style's first label layer (Positron's): on native, busy names go under it off Explore (DC16). The web finds the
+ * first symbol layer itself; native can't read the style, so it names it (held by `map/busyNames.test.ts`).
+ */
+export const BASE_FIRST_LABEL = 'waterway_line_label';
+
+/**
+ * A stale area's names (DC6, explore-dense-city ui 1): a greyer ink at full opacity, 5.4:1 on the halo and 4.5:1 on the
+ * bare base map. Dimming the text would dim its halo too, under 3:1.
+ */
+export const BUSY_NAME_STALE_INK = '#7d6274';
+/**
+ * The names' turn on a map turned to `bearing` (explore-dense-city ui 3): a name is map-aligned, so on screen it turns by
+ * its rotation less the bearing; this folds that into [-95, 85), the same rule as `alongAngle`, so no name is ever upside
+ * down. Only ever half a turn off `angle`, so it still runs along its street. Set again as the map turns.
+ */
+export function busyNameRotate(bearing: number): unknown[] {
+  const b = Math.round(bearing * 10) / 10;
+  return ['+', ['-', ['%', ['+', ['-', ['get', 'angle'], b], 455], 180], 95], b];
+}
+
+/**
+ * A "?" pin's room (DC17): one wide letter at this size and padding covers the pin's drawn box (48 px wide, 42 above its
+ * point, 6 below, `MarkPinView` on the web marker), standing on the point as the pin does.
+ */
+const PIN_ROOM_TEXT = 'W';
+const PIN_ROOM = { size: 40, offsetEm: 0.15, padding: 5 };
+
+/** DC18: on the walk screen and Navigate, busy names only within this of you (Explore's ring, `ATLAS_RULES.ringM`). */
+export const BUSY_NAMES_NEAR_M = 800;
+export const namesNearYou = (at: LngLat | null | undefined): { at: LngLat; m: number } | null => (at ? { at, m: BUSY_NAMES_NEAR_M } : null);
+
+/** Where the busy names and the busy lines sit among the layers on native (explore-dense-city DC16, audit 6). */
+export function busyLayerOrder(over: boolean): { lines: string | undefined; names: string | undefined } {
+  // The lines under the base labels, as the web puts them under its first symbol layer; the names over the lines, and on
+  // Explore over everything. Native adds layers in their order, so the names, added after the lines, sit above them.
+  return { lines: BASE_FIRST_LABEL, names: over ? undefined : BASE_FIRST_LABEL };
+}
+
+/**
+ * Room points covering a screen rectangle, for a control or the map's edge the names keep clear of (audit 11): a grid at
+ * most `ROOM_CELL_PX` apart, edges included, each the centre of a room box about that wide.
+ */
+export const ROOM_CELL_PX = 40;
+export function roomCells(rect: { x: number; y: number; w: number; h: number }): [number, number][] {
+  const nx = Math.max(1, Math.ceil(rect.w / ROOM_CELL_PX));
+  const ny = Math.max(1, Math.ceil(rect.h / ROOM_CELL_PX));
+  const out: [number, number][] = [];
+  for (let i = 0; i <= nx; i++) for (let j = 0; j <= ny; j++) out.push([rect.x + (rect.w * i) / nx, rect.y + (rect.h * j) / ny]);
+  return out;
+}
+
+/** The busy names' size, the same for every name whatever its street's grade (DC4). */
+const BUSY_NAME_SIZE = 13;
+/** A name turned less than this runs level enough to slide along its street (audit 1). */
+const LEVEL_DEG = 15;
+/** How far a name slides along its street off a point it can't sit on (DC17): 34 px at 13 px, past a pin's half width. */
+const BUSY_NAME_SLIDE_EM = 2.6;
+/** The selected area's name on the map (AreaPointView: 11 px bold under a 14 px dot, 140 px wide), as the room it reserves (DC14). */
+const AREA_NAME_ROOM = { size: 12, offsetEm: 0.85, widthEm: 11.5 };
+
+/**
+ * The busy names' layer (DC1-DC6, DC14): one name per street at its busiest point, turned along the street there (it turns
+ * with the map), or a pocket's name level at its centre. Names collide with each other and with the base map's labels
+ * (never overlap, never ignore placement), are placed in their `sort` order, and look the same whatever the grade: only a
+ * stale area's names change, to a greyer ink. A long name wraps at its width; nothing cuts it.
+ */
+export function busyNameLayers() {
+  const box = ['get', 'box'];
+  const cell = ['get', 'cell'];
+  const paint = { 'text-color': ['case', ['get', 'stale'], BUSY_NAME_STALE_INK, HOTSPOT_INK], 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': ['get', 'opacity'] } as Record<string, unknown>;
+  const text = {
+    'symbol-placement': 'point',
+    'text-field': ['get', 'name'],
+    'text-font': BUSY_NAME_FONT,
+    'text-ignore-placement': false,
+    'symbol-sort-key': ['get', 'sort'],
+  };
+  const name = {
+    ...text,
+    'text-size': BUSY_NAME_SIZE,
+    'text-allow-overlap': false,
+    'text-padding': 4,
+    'text-rotate': busyNameRotate(0),
+    'text-rotation-alignment': 'map',
+    'text-max-width': 9,
+  };
+  const levelTurn = ['<=', ['abs', ['get', 'angle']], LEVEL_DEG];
+  return {
+    /** From zoom 13 on every map (EC7 for Explore, DC18 for the walk maps). */
+    minzoom: 13,
+    /**
+     * A near-level name (DC17): centred on its point if there is room, else starting or ending beside it, clear of a pin
+     * there (24 px each side of its point). maplibre shifts a variable anchor across the screen, never along `text-rotate`,
+     * so only a name that runs level may slide (audit 1): it slides along its street.
+     */
+    layout: {
+      ...name,
+      'text-variable-anchor': ['center', 'left', 'right'],
+      'text-radial-offset': BUSY_NAME_SLIDE_EM,
+    } as Record<string, unknown>,
+    paint,
+    filter: ['all', ['!', ['get', 'reserve']], levelTurn] as unknown[],
+    /** A turned name (a street that isn't level): centred on its street or left out, never slid across it (audit 1). */
+    turned: {
+      layout: { ...name, 'text-anchor': 'center' } as Record<string, unknown>,
+      paint,
+      filter: ['all', ['!', ['get', 'reserve']], ['!', levelTurn]] as unknown[],
+    },
+    /**
+     * The room kept for what the map draws over itself (DC14, DC17, audit 11): the selected area's name under its dot,
+     * each "?" pin, Explore's controls and the map's edge. Invisible, always placed (two pins side by side both keep
+     * theirs), and no name is placed over it.
+     */
+    room: {
+      layout: {
+        ...text,
+        'text-allow-overlap': true,
+        'text-size': ['case', box, PIN_ROOM.size, AREA_NAME_ROOM.size],
+        // One padding for every kind (it can't follow a feature): the boxes are sized by their letter.
+        'text-padding': PIN_ROOM.padding,
+        'text-max-width': AREA_NAME_ROOM.widthEm,
+        // The area's name sits under its dot, as AreaPointView draws it; a pin stands on its point; a cell is centred.
+        'text-anchor': ['case', cell, 'center', box, 'bottom', 'top'],
+        'text-offset': ['case', cell, ['literal', [0, 0]], box, ['literal', [0, PIN_ROOM.offsetEm]], ['literal', [0, AREA_NAME_ROOM.offsetEm]]],
+      } as Record<string, unknown>,
+      paint: { 'text-opacity': 0 } as Record<string, unknown>,
+      filter: ['get', 'reserve'] as unknown[],
+    },
+  };
+}
+
+/**
+ * The busy names as map points (DC1, DC4): each with its `sort` (the view's order: heavier first), its turn and whether
+ * it is stale (a greyer ink, DC6). The selected area's name, when given, is drawn at opacity 0 and placed before every
+ * busy name, so none is placed under it (DC14).
+ */
+export function busyNamesGeoJSON(
+  v: LandingView | null | undefined,
+  reserve: { name: string; at: LngLat } | null = null,
+  pins: readonly LngLat[] = [],
+  near: { at: LngLat; m: number } | null = null,
+  cells: readonly LngLat[] = [],
+): GeoJSON.FeatureCollection {
+  const features: GeoJSON.Feature[] = [];
+  // audit 8: with the layer off, no names and no rooms, so nothing hides a base label.
+  if (!v) return { type: 'FeatureCollection', features };
+  if (reserve) features.push({ type: 'Feature', properties: { name: reserve.name, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true, box: false, cell: false }, geometry: { type: 'Point', coordinates: reserve.at } });
+  // DC17: each "?" pin's room, an invisible box standing over its point as the pin does.
+  for (const at of pins) features.push({ type: 'Feature', properties: { name: PIN_ROOM_TEXT, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true, box: true, cell: false }, geometry: { type: 'Point', coordinates: at } });
+  // audit 11: a control over the map, or the map's edge, as a grid of room cells (centred, not standing like a pin).
+  for (const at of cells) features.push({ type: 'Feature', properties: { name: PIN_ROOM_TEXT, sort: -1, opacity: 0, angle: 0, stale: false, reserve: true, box: true, cell: true }, geometry: { type: 'Point', coordinates: at } });
+  for (const n of busyNames(v)) {
+    // DC18: off Explore, only names near you.
+    if (near && distanceM(n.at, near.at) > near.m) continue;
+    features.push({ type: 'Feature', properties: { name: n.name, sort: n.order, opacity: 1, angle: n.angle, stale: n.stale, reserve: false, box: false }, geometry: { type: 'Point', coordinates: n.at } });
+  }
+  return { type: 'FeatureCollection', features };
 }
 
 /** The range preview's ring (E21), as a 64-sided polygon. */

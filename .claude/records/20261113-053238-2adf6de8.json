@@ -1,0 +1,28 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Explore in a dense city (busy names drawn",
+        "--reason",
+        "the slice's decision is 0160 (main's voice trim took 0159)"
+      ],
+      "body": "| Explore in a dense city (busy names drawn by the map with collision, one per street within 300 m, none under a \"?\" pin or a control; on the walk maps only within 800 m of you; the Busy read and the atlas's ring reads in a web worker, the Busy read after the map settles; fewer renders per switch; DC1-DC19, decision 0160; the owner's Baltimore report, Nov 12) | shipped 2026-11-13 (web verified by the e2e `dense` on the /chronicles build; native unverified); a first read's longest task 3.3-3.8 s to 0.2 s at 4x CPU, the first Busy switch-on 600-700 ms to 90-170 ms; switches between read areas unchanged in Chromium; first \"?\" pins about 1 s later | branch `claude/trusting-cannon-f5wdhg`, merged 2026-11-13 | `specs/explore-dense-city/spec.md` | yes (19 findings: 12 fixed, 1 rejected, 3 deferred, 6 folded in) |\n",
+      "target": "sha256:0c663863697b11ddb22a3b2972d8b4f4b3608152193ba061f3891f9c80cbc503"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "DW14 flake",
+        "--reason",
+        "the slice's decision is 0160 (main's voice trim took 0159)"
+      ],
+      "body": "- **The `drive` journey's DW14 flake:** Cranston's area card does not open within 15 s on its page about one run in two, on main and on the build before decision 0160 alike (spec record). Not investigated.\n",
+      "target": "sha256:123dff90696aad42703a92eb15594394b815a61935123ef73a7e389354b376df"
+    }
+  ]
+}

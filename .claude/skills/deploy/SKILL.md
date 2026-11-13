@@ -41,7 +41,11 @@ CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_O
 - `npm run check:test-first <slug>` passes for each slice that ships (its
   tests were committed as todos before its code), and no shipped slice's spec
   is still in `IN_PROGRESS` in `scripts/features.js`.
-- `docs/STATUS.md` is updated (with the audit's counts, if one ran).
+- `docs/STATUS.md` is updated (with the audit's counts, if one ran), through `npm run records --
+  slice row set` (decision 0156), and `npm run check:records -- origin/main` passes.
+  Every agent commit is gated: the Pages run replays each commit of the push that carries a `Claude-Session:` or
+  `Co-Authored-By: Claude` trailer, so `node scripts/tend.js commits --loop-only origin/main..HEAD`
+  must pass too (it is what CI runs).
 - If the owner asked for an audit, its accepted findings are fixed.
 - `docs/PRODUCT.md` says what shipped. Run `/docs-gc` if it was not run.
 
@@ -52,7 +56,7 @@ Stop if any precondition fails; say which.
 ```bash
 git fetch origin main
 git log --oneline origin/main..HEAD      # what ships
-git checkout main && git merge --ff-only <branch>   # or the owner's merge
+git checkout main && git merge --ff-only <branch>   # a fast-forward: the record gate replays each commit, and a merge resolved by hand in the record documents fails it
 git push origin main
 ```
 

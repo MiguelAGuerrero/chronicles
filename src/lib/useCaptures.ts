@@ -161,8 +161,8 @@ export function useCaptures(
         if (alive.current) setCaptures((prev) => mergeCaptures(prev, [c]));
       },
       // A later change from that path (its thumbnail), sent even once that path is gone (tabs audit 5).
-      (id, patch) => {
-        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
+      (id, patch, pieceId) => {
+        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, pieceId));
       },
     );
     db.getMoments(walkId).then(facedAll).then((stored) => {
@@ -632,8 +632,8 @@ export function useCaptures(
     const id = c.id;
     // The edit is the piece's own; the screens show it on the moment (decision 0123).
     await db.updatePiece(c.piece_id, patch);
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
-    captureBus.patch(walkId, id, patch, self);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, c.piece_id));
+    captureBus.patch(walkId, id, patch, self, c.piece_id);
   }
 
   /**

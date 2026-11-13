@@ -188,6 +188,11 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** stop a walk with a photo kept where it ends, open its replay and its day's replay. **Expect:** MapLibre RN draws `ENDS_PAINT` (`components/map/types.ts`, spread into the `ends` layer with the trace's opacity) as the web does: the start a white disc ringed in green, the end a disc filled in the walked orange with a white ring, both `match` expressions read, the photo's pin over the end (`tend map T16`, decision 0154). (QL2)
 - [ ] **Do:** zoom each map in and out (the walk screen, Explore, Chronicle, a replay). **Expect:** the scale bar over the native map (`components/map/ScaleBar.tsx`) sits bottom-left clear of each screen's bottom UI and follows the zoom with a round length (Quality of life). (QL5, QL7, QL8)
 - [ ] **Do:** after a drive, tap Locate on Explore. **Expect:** `locateOnce` fresh on expo-location (`lib/useLocate.ts`) reads a fix taken after the tap, never a cached one, and centres on where you are (Quality of life). (QL10)
+- [ ] **Do:** turn location off for Chronicles in Settings, open Navigate and Explore and tap Locate on each; then do it again in airplane mode on a first open, so no tiles have loaded. **Expect:** the refusal is the quiet notice (the cream banner in dark text, `tone: 'info'`, no `alert` role, read politely), "Location is turned off for Chronicles. Turn it on in Settings to find your position.", with Open Settings that opens the app's settings (`locate/notice.ts`); with tiles drawn the scale bar shows as before, and with none it is gone: native reads whether the tiles drew anything from the `omt-query` source's `place` features after `onDidFinishRenderingMapFully` (`WalkMap.native.tsx`), which may report tiles cached outside the view as drawn (`tend map T17`, decision 0154).
+  - Since `tend map audit 14` native counts the `omt-query` source's roads (`transportation`), water (a hidden `q-water`
+  layer, added so its tiles load) and places as drawn (`drawnFrom`): check that Explore with no fix over open sea,
+  forest or farmland at z13-16 keeps its scale bar, and that querying three source layers on each full render does not
+  stall the map.
 - [ ] **Do:** tap Locate on Explore and on Navigate's ready screen, twice quickly. **Expect:** the Locate edge button over the native sheet (`components/LocateButton.tsx`) is 44 pt, shows busy while reading, and ignores the second tap (Quality of life). (QL9, QL11)
 - [ ] **Do:** start a walk, turn location off for Chronicles in Settings, come back to the app (the chip says Not recording), then turn it back on in Settings and return. **Expect:** the recorder is retried on the return to the front through expo-location's permission request and the background task, once (`session.restartRecording` beside the recorder's own AppState listener), and the trace carries on with no second notice (Quality of life). (QL20)
 - [ ] **Do:** with location denied mid-walk, tap the "Not recording" chip, dismiss the notice and tap again, then use Open Settings. **Expect:** the pressable chip over the native map brings back the sticky notice each time; its Open Settings action opens the app's page in Settings (Quality of life). (QL19)
@@ -331,6 +336,15 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** pull the ready bar up, and open the walk's drawer, and turn each "Scenic routes" switch off and on; force-quit and reopen. **Expect:** Green, Sights and Streets with life show in both native drawers (`RouteLeaningSettings`), each change is kept after the relaunch, and with all three off Go here starts the direct route with no preview. (SR1)
 - [ ] **Do:** outdoors on cellular, Go here to a destination about 5 km away with all three leanings on, and time "Finding a route" to the preview. **Expect:** the corridor read (shared JS over `fetch`: `fetchTiles`, `readOverture`) finishes well under the 30 s timeout (about 1 s on Node for three leanings over 5 km of Zurich; a phone is likely several times that), and Cancel during it stops the read and starts no route. Record the time. (SR13)
 - [ ] **Do:** on Android, open the preview and press the system Back. **Expect:** the preview closes, no destination is set, and the walk keeps recording. (SR8)
+
+## Explore in a dense city (DC1-DC19, decision 0156)
+
+- [ ] **Do:** turn the Busy layer on, open Explore on a town page in a busy downtown and zoom to 15, then 17. **Expect:** the busy names are the map's own text (magenta on a white halo), one per street at its busiest point and turned along it, none over another or over a base-map label; more appear zooming in; none under the selected area's name or a "?" pin, a crowded name sliding along its street beside a pin; none at zoom 12 (DC1-DC6, DC14, DC17; the invisible `busy-names-room` layer, `busy-names` symbol layer, font `Noto Sans Bold` from the style's glyphs).
+- [ ] **Do:** with the Busy layer on, open Navigate's ready screen and start a walk in the same downtown. **Expect:** the base map's own street names keep their room and the trace and route draw over the busy names (DC16; `beforeId` `BASE_FIRST_LABEL`, Positron's `waterway_line_label`).
+- [ ] **Do:** with the Busy layer on, swipe Explore's row to a neighborhood more than 1.5 km from any read area, and keep swiping while it reads. **Expect:** the map keeps up during each ease (no freeze), the read starts only once the map has stopped, and its streets and names appear (DC9 through `onRegionWillChange` / `onRegionDidChange`, DC11's turn per tile and stage on the JS thread).
+- [ ] **Do:** on Navigate in a dense downtown with the Busy layer on, look at the magenta lines and their names; walk 1 km. **Expect:** the names sit over the magenta lines (the lines under the base labels, `busyLayerOrder`, audit 6), only within about 800 m of you (DC18), a north-south name centred on its street, never slid across it (audit 1); switching tabs mid-swipe on Explore never leaves the Busy read waiting (audit 7, the native unmount's settle).
+- [ ] **Do:** after that read, force-quit, reopen in airplane mode and turn the Busy layer on there. **Expect:** the area's busy streets are drawn from what was stored; no error (DC10: street pieces written in batches of 150 through the SQLite queue).
+- [ ] **Do:** watch busy names appear and go as the map zooms, with Reduce Motion on. **Expect:** note how they fade: MapLibre Native has no setting for symbol fades (only `rasterFadeDuration`), so they fade on the library's timing whatever the setting (DEFERRED).
 
 ## The web e2e's stand-ins
 
@@ -535,6 +549,12 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with Move map on, press and hold a far spot and tap Walk here. **Expect:** a question, Walk now or When I get there, before anything starts; a drag that pans never starts the hold (FL10, FL12).
 - [ ] **Do:** after a drag on a native map with Move map on, tap a "?" or a dot. **Expect:** the tap acts as usual (onPress after a native drag, FL3).
 
+## Neighborhood boundaries (HB1-HB16, decision 0152)
+
+- [ ] **Do:** on a phone, open Explore in a city with neighborhood shapes (Baltimore), pick a neighborhood from a town's page, and wait a few seconds. **Expect:** the ring gives way to one dark line around that neighborhood's own ground, with no fill and no figure; selecting its neighbor draws that one's line and the first is gone, and the two lines do not cross (HB9, HB14; the native `ground` line layer).
+- [ ] **Do:** update the app over a version with walks already placed (migration 26 adds `outline_tile.hoods`), open Chronicle, then Explore. **Expect:** it opens without error, the walks are placed again in the background and keep a place each, and a tile read before the update is read again (HB7, HB12; the SQLite migration and the `hoods` column on a phone).
+- [ ] **Do:** with airplane mode on, select a neighborhood in a city you have already read. **Expect:** its line draws from the kept tiles with no error; in a city never read the ring stays and nothing is said (HB12).
+
 ## The replay sweep (`/tend replay`, Nov 12)
 
 - [ ] **Do:** on Android, finish a walk, Name it, type a name, press Back; press Back again on the card. **Expect:** the first Back returns to the card with the name kept; the second leaves for Chronicle (`tend replay 4`, `BackHandler`).
@@ -545,3 +565,12 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 ## The tab labels' line height (fix tab-label-clip, Nov 12)
 
 - [ ] **Do:** on an iPhone, look at the bottom tabs in portrait, then in landscape. **Expect:** the stems of the p in Explore and the g in Navigate are whole, and the bar is 62 pt above the home indicator (`tabBarLabelStyle` lineHeight 14, 24 when wider than tall; seen only in desktop Chromium).
+
+## Voice trim (VT1-VT12, Nov 12)
+
+- [ ] **Do:** on a phone, record a memo of about a minute, open it, tap Edit, drag the end handle back by ten seconds, tap Play kept part, then Done. **Expect:** the preview plays and stops within a fraction of a second of the end handle (the player reports every 100 ms); the viewer says "Trimmed · 0:50 of 1:00" and its clock reads against 0:50; Play starts at the start handle, and again after the end starts it over (VT1-VT6, VT12)
+- [ ] **Do:** on a phone, drag the start handle in, Done, open the memo and tap Play. **Expect:** it starts at the start handle, not at 0, with no audible lead-in from the cut part (`expo-audio` `seekTo` before `play`; VT3, VT6)
+- [ ] **Do:** on a phone, trim a memo, then replay the walk it belongs to. **Expect:** the memo's bubble plays only the kept part and the replay moves on at its end handle, not at the file's end (VT7)
+- [ ] **Do:** on a phone, play a trimmed memo to its end handle, then tap Play again straight away, several times. **Expect:** it starts at the start handle and keeps playing every time; it never stops at once on the old end position (`voiceReachedEnd`; audit 2, VT6)
+- [ ] **Do:** on a phone, open a trimmed memo's replay (a walk with a memo and a photo in one moment), and trim the memo from the viewer over it. **Expect:** the replay carries on after the viewer closes, the photo keeps its own edit, and the memo plays its new kept part (the bus's piece patch, `useAudioPlayer`'s `updateInterval` change; audit 1, 5, VT7)
+

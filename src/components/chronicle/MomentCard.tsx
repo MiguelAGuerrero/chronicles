@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatElapsed } from '../../lib/format';
+import { memoWords } from '../../lib/voiceTrim';
 import { whenLine } from '../../lib/resurface/lines';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
@@ -42,7 +42,6 @@ export function MomentCard(props: {
 }) {
   const { moment: m, walk, now } = props;
   const from = fromLine(walk);
-  const memo = m.kind === 'voice' ? Number(m.capture.body) : NaN;
   return (
     <View style={styles.card} testID="moment-card">
       <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context)}. Open`} onPress={props.onOpen}>
@@ -52,7 +51,7 @@ export function MomentCard(props: {
           {m.kind === 'voice' && (
             <View style={styles.memo}>
               <View style={styles.play}><Icon name="play" size={14} color={theme.accentInk} /></View>
-              <Text style={styles.memoText}>{Number.isFinite(memo) && memo > 0 ? `Voice memo, ${formatElapsed(memo)}` : 'Voice memo'}</Text>
+              <Text style={styles.memoText}>{memoWords(m.capture)}</Text>
             </View>
           )}
           {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}

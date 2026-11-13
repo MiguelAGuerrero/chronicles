@@ -51,6 +51,66 @@ Who hears of it depends on who was typed:
   the run goes on. A slice built from a proposal returns "Stopped on" in its result block; `/tend` files
   the question in the inbox, pushes the branch for review and cleans up.
 
+## The record documents
+
+`docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
+`npm run records -- <op>` (decision 0156; `scripts/records.js`'s header lists the operations: the
+inbox, "Last tend", "Open before the loop", the "From <skill>" sections of "Needs the owner", the "In
+flight" and "Slices" rows, and the items of the other two). Each changes one entry and refuses to write
+if any other byte would move. Write the text to a file in the scratchpad and pass `--file`, so nothing
+needs quoting; never edit these files with Edit, Write or sed.
+
+- **Every agent commit is gated, slices and fixes too.** An agent commit is one whose message has a
+  `Claude-Session:` or a `Co-Authored-By: Claude` trailer; write both on every commit you make, a revert
+  or a merge included (`git revert --no-edit` and `git merge --no-edit` write none: give the message
+  yourself). CI replays every agent commit and every loop commit (`tend …`, and the revert of one) of the
+  push; only the owner's own hand edits, which carry neither, are left alone. A refusal ends with its fix
+  in one line: the operation, `redo`, and this section.
+- **Each operation is recorded.** It is added to a pending sidecar under `.claude/records/`, staged as
+  it is written. Commit the sidecar with the documents, and put the lines
+  `npm run records -- trailers` prints (one `Records-Op:` per operation, in order) in the message's
+  last paragraph, beside `Co-Authored-By` and `Claude-Session`. The gate replays them on the parent's
+  documents and fails the commit unless it gets the commit's documents byte for byte: a hand edit, a
+  dropped trailer or a sidecar edited afterwards all fail.
+- **What the run did not file is the owner's.** Removing or rewriting an entry this run did not add
+  (`inbox remove`/`set`, `open remove`/`set`, `section item remove`/`set`, `item remove`/`set`/`retag`)
+  needs `--reason "<why>"`, which goes into the trailer, and a commit does it to at most two entries per
+  section. A tag moves only toward `[owner]`, `[arch]` or `[kept]`. A shipped item is removed (`item
+  remove`), never struck through; a line that amends an entry is appended (`note`); a reworded one is
+  `set`, with its reason. An `inbox set` keeps every line an earlier `inbox note` added to the entry, word
+  for word and in order (the owner's answers): an answer is added to with `inbox note`, never rewritten.
+- **What waits on the owner from a slice, a fix or an audit** goes in a "From <skill>" section of
+  "Needs the owner": `npm run records -- section add "From /fix" [--intro <file>]` makes it right after
+  "From /tend" (newest first), `section item add "From /fix" --file <bullet>` adds each bullet, and
+  `section item note|set|remove "<section>" <match>` change them; `section remove "<section>"` takes one
+  with no bullet left. A section is never renamed by an agent.
+- **Before the commit:** `npm run check:records -- origin/main` (the commits since `main` and the
+  working tree with its pending operations). It names each change no operation makes. A commit that
+  fails and is not pushed yet is made again: `git reset --soft HEAD~1` (the last commit), `git checkout
+  HEAD -- <the documents>`, the operations, the commit. A commit already on `main` stays (`main` is never
+  rewritten); the next push carries the record through operations.
+- **On a rebase conflict** in them, in the commit being replayed (its sidecar is pending again), take
+  `main`'s side of the three documents and the ledger and run `npm run records -- redo`: it runs the
+  commit's operations again on `HEAD`'s documents, an inbox entry numbering on from `main`'s ledger
+  (an operation that named the run's own new entry follows it by its handle, `@1`), and the trailers
+  stay as they are. It refuses when an entry an operation acted on is no longer the same: look again.
+  A rebase that renumbers without a conflict cannot be redone, since the record is committed: stop
+  and report (`/tend` section 10). Never amend a record commit: an amend after a further operation
+  carries two sidecars, and the gate fails it.
+- **On a merge conflict** in them (`git merge origin/main` into a slice or fix branch), run `npm run
+  records -- redo` during the merge: it writes `main`'s side of the three documents, exactly, whatever
+  the conflict left, stages them, and lists this branch's record commits since the merge base. Commit
+  the merge with your trailers, then file the branch's entries again with `npm run records` in a commit
+  of its own. The gate accepts a merge's documents only as git's clean merge or as `main`'s side (the
+  second parent's); any other resolution fails, with or without trailers when the push holds an agent
+  commit. This holds for a branch made before the gate too: its merge of the gated `main` is judged the
+  same. A loop run never merges `main` into its branch; it rebases.
+- **A commit from before the gate, rebased onto it**, is gated like any other: if it edited the
+  documents by hand, CI refuses it by name. Drop the edit from that commit (`git checkout <sha>^ --
+  <document>` and amend it when it is the last commit, or split it out) and make it again with `npm
+  run records` in a commit of its own; `npm run records -- redo` with nothing pending names such
+  commits. A branch made before the gate is better merged with `main` than rebased.
+
 ## Review
 
 A review reads the diff in a context that did not write it: spawn the `auditor` subagent with the
@@ -83,7 +143,10 @@ with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
 2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
-   then continue. On a conflict, stop and keep the branch.
+   then continue. On a conflict, stop and keep the branch. The checks include `node scripts/tend.js
+   commits --loop-only origin/main..HEAD`, what CI runs: a commit of the branch made before the record
+   gate landed and hand-editing the documents is refused there by name, with how to mend it ("The
+   record documents").
 3. `main` is checked out elsewhere, so publish with `git push origin <branch>:main` (a fast-forward; no
    force, no history rewrite, no empty commits), once.
 4. Watch the Pages run with the GitHub MCP tools until it completes (`/deploy` section 3).
@@ -101,10 +164,15 @@ What to revert:
 
 - **A fix:** its commit.
 - **A sweep:** the commit the log names as the cause, alone. If the log does not name one, every code
-  commit of the run. The same push carries a corrected record (documents and the ledger only): the
+  commit of the run. The same push carries a corrected record (documents and the ledger only, through `npm run records`): the
   finding filed as `[owner]` with the log's cause, "Last tend" saying what was reverted, the area `rough`.
 - **A slice:** all of it as one unit, its record included (`git revert --no-commit <base>..<tip>`), so
   the spec, the feature map and the proposal's entry go back together and the docs check stays green.
+
+A revert commit's message keeps git's `This reverts commit <sha>.` line, one for each commit it
+reverts, and your trailers: the record gate accepts it when its documents are exactly those commits'
+undone and their sidecars deleted, nothing else. A fix-forward that takes a slice's row back out uses
+`npm run records -- slice row remove <match>`, which undoes only a row the same range added.
 
 After a revert, diagnose: reproduce the failure locally with the job's own command, name the cause,
 and put a corrected change on `<branch>-retry` with the failing check passing. Push that branch, not

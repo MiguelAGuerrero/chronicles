@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "open",
+        "note",
+        "QL11's and the map rule's words after T17"
+      ],
+      "body": "  QL5 is amended too (the T17 review's F2): it says \"Every map shows a scale bar in its bottom-left corner\"; since\n  `tend map T17` Navigate and Explore show none with no fix and no tiles drawn. Amend QL5 beside QL11, in the doc and\n  the mirror, so a sweep does not read the hidden bar as a regression; decision 0154's header names neither.\n",
+      "target": "sha256:99b9271408a406abff43a1f6682f5a41d3a47ea1d34b87125e84c696ebff321f"
+    }
+  ]
+}

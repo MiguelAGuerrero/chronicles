@@ -18,6 +18,7 @@ import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
 import { LayersControl } from '../../components/LayersControl';
 import { layerNotes } from '../../lib/layers/notes';
+import { createMotion } from '../../lib/layers/motion';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
@@ -33,13 +34,14 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, shouldDrawRing, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
+import { candidatesOf, useHoodGround } from '../../lib/areas/useHoodGround';
 import { db } from '../../lib/db';
 import type { Find } from '../../lib/explore/explore';
 import { formatDistance } from '../../lib/format';
@@ -71,6 +73,8 @@ const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const BUSY_NAMES_ZOOM = 13;
+/** audit 11: Explore's controls over the map, whose room no busy name takes. */
+const NAMES_CLEAR_OF = ['atlas-title-card', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
@@ -196,6 +200,14 @@ export default function Explore() {
   // The settled camera and the map's size, for the split of the selected area's places (whole-towns audits 3, 6).
   const [cam, setCam] = useState<{ center: LngLat; zoom: number } | null>(null);
   const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
+  // explore-dense-city DC12: a layout that reports the same size sets nothing (a new object of the same size renders).
+  const mapSizeNow = useRef(mapSize);
+  const onMapLayout = useCallback((width: number, height: number) => {
+    const was = mapSizeNow.current;
+    if (was && was.width === width && was.height === height) return;
+    mapSizeNow.current = { width, height };
+    setMapSize(mapSizeNow.current);
+  }, []);
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
@@ -229,7 +241,15 @@ export default function Explore() {
       setSpot(null);
       frame([at], ATLAS_RULES.ringM);
     },
-    onError: setLocError,
+    onError: (e) => {
+      setLocError(e);
+      // tend map audit 12: the quiet notice is no alert, so a screen reader hears the refusal through the hidden live
+      // region kept mounted on web (DN12's) and the call on a phone; the red error keeps its alert role.
+      if (e.tone === 'info') {
+        setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+        AccessibilityInfo.announceForAccessibility(e.message);
+      }
+    },
   });
   // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
   // so it can't wait for Navigate's. Once per launch; nothing tracks after.
@@ -280,7 +300,15 @@ export default function Explore() {
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
+  // DC14: the selected area's name keeps its room on the map; no busy name is placed under it.
+  const namedPoint = areaPoints.find((p) => p.selected && p.name);
+  const reserveName = namedPoint?.name ?? null;
+  const reserveAt = namedPoint?.at ?? null;
+  const busyReserve = useMemo(() => (reserveName && reserveAt ? { name: reserveName, at: reserveAt } : null), [reserveName, reserveAt]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // HB9: the selected neighborhood's own ground, from the kept tiles; its ring until they are known (HB12).
+  const hoodCands = useMemo(() => candidatesOf([...neighborhoods, ...allTowns].map((l) => l.area)), [neighborhoods, allTowns]);
+  const ground = useHoodGround(sel && sel.area.level === 'neighborhood' ? sel.area : null, hoodCands, focused);
   // CX9, CX16: the selected area's complexes, read silently once it is selected, drawn as quiet outlines named at close zoom.
   const { hidden: hiddenKinds } = useHiddenKinds();
   // With every kind switched off nothing would show, so nothing is read (complexes audit 15).
@@ -328,7 +356,12 @@ export default function Explore() {
   const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
-  const busy = useBusyLayer(layersAt, !!layers.on.busy);
+  // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the busy read waits for a settle.
+  // A map taken down mid-move reports still (audit 7), so a read waiting for its settle goes on.
+  const [motion] = useState(createMotion);
+  const onMoveState = useCallback((moving: boolean) => motion.set(moving), [motion]);
+  const stillness = useCallback(() => ({ moving: motion.moving, settled: () => motion.settled() }), [motion]);
+  const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
@@ -520,7 +553,8 @@ export default function Explore() {
   const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
   const overlay = error ? (
     <Banner
-      tone="error"
+      // Location refused is a quiet notice in ink, not a fault (T17); a failed Start stays an error.
+      tone={walkStart.error ? 'error' : (locError?.tone ?? 'error')}
       onDismiss={() => {
         walkStart.setError(null);
         setLocError(null);
@@ -558,7 +592,7 @@ export default function Explore() {
   // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.
   const slots = exploreSlots({ spot: !!spot, town: !!town, free });
   const mapPane = (
-    <View style={styles.map} onLayout={(e) => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
+    <View style={styles.map} onLayout={(e) => onMapLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
       {focused && !plan && (
         <WalkMap
@@ -578,12 +612,17 @@ export default function Explore() {
           // A "?" opens the selected area's card, where its kinds are named (AT7: the map never names them); one with
           // places under it zooms in first (whole-towns audit 4).
           onDiscoveryPress={pressPin}
-          // A neighborhood by its ring; a town by its tinted border (EC5).
-          ring={sel?.area.level === 'neighborhood' ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          // A neighborhood by its own ground as one line, its ring until the tiles are kept; a town by its tinted border (EC5, HB9).
+          ring={sel?.area.level === 'neighborhood' && shouldDrawRing(sel.area.profile?.extent, ground) ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          ground={ground}
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
           landing={busyView}
+          busyNamesOver
+          busyNamesReserve={busyReserve}
+          busyNamesClearOf={NAMES_CLEAR_OF}
+          onMoveState={onMoveState}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {
@@ -622,6 +661,8 @@ export default function Explore() {
             setCam(c);
           }}
           scaleInset={{ bottom: slots.scaleBottom, left: SCALE_LEFT }}
+          // No scale bar over a blank world while no fix places the map (T17).
+          hideScaleOnBlank
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
@@ -634,7 +675,7 @@ export default function Explore() {
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
       <View style={[styles.titleWrap, { top: topInset + 8, left: 12 }]} pointerEvents="box-none">
-        <View style={styles.titleCard}>
+        <View style={styles.titleCard} testID="atlas-title-card">
           <View accessibilityRole="header" style={styles.titleText} testID="atlas-title">
             <View style={styles.titleRow}>
               <Text testID="explore-area" style={styles.title} numberOfLines={lookOn && !town ? 2 : 1}>{title}</Text>

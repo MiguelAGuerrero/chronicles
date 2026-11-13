@@ -1,0 +1,47 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T17",
+        "--reason",
+        "the owner's yes, built in tend map T17"
+      ],
+      "target": "sha256:35cb06d0d0aeee76ff0653a97a4bf6efe8770ccf33792407c5c2e6a41d253c65"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Walk: Start refused still reads as a fault, in other words than Locate's** (2026-11-13)\n  Area: recording (Start on Navigate; the walk's \"Not recording\" notice). Seen: `src/lib/recorder/index.web.ts` l.102, the\n  `qol` and `ready` journeys' QL19 checks: Start, refused, says \"Location permission was denied. Allow location for this\n  site in the browser settings, then try again.\" in the red error banner; since `tend map T17` Locate says \"Location is\n  off for this site. Turn it on in the browser's settings to see where you are.\" as a quiet notice. Rests on: decision\n  0154, which took T17's words for the recorder's start's (they never were: the web recorder's line was Locate's old\n  one); `.claude/rules/map.md`, \"Denied says what the recorder's start says\"; VISION.md Always, \"Restraint in motion,\n  colour and copy\". New copy on Start, so yours.\n  Recommended: the recorder's web start reads its line from `locate/notice.ts`, beside Locate's, with its own end:\n  \"Location is off for this site. Turn it on in the browser's settings to record a walk.\", in the quiet notice on the\n  ready screen and in the walk's \"Not recording\" notice; on a phone the words stay (\"Location is turned off for\n  Chronicles. Turn it on in Settings to record a walk.\", with Open Settings), quiet too. /vision: aligned (honour;\n  restraint, as T17).\n  Otherwise: T17's line word for word on Start too (\"... to see where you are.\"); or the words alone, left red; or leave it.\n",
+      "number": "T26"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in\n  `specs/quality-of-life/spec.md`) says \"Denied location shows the error banner a moment's placement shows\"; since\n  `tend map T17` a refused location is the quiet notice (the cream banner, ink, no alert), \"Location is off for this site.\n  Turn it on in the browser's settings to see where you are.\" on the web, and with no fix and no tiles drawn Navigate and\n  Explore show no scale bar. Amend QL11 to say so, in the doc and the mirror; the loop may not edit a spec. Decision 0154\n  calls T17's words \"the words the recorder's start uses\", which they never were: the web recorder's start says \"Location\n  permission was denied. Allow location for this site in the browser settings, then try again.\" (`recorder/index.web.ts`),\n  Locate's old line. So `.claude/rules/map.md`'s \"Denied says what the recorder's start says\" (the Locate line) is no\n  longer true on the web until the inbox entry \"Walk: Start refused still reads as a fault\" is answered; the loop\n  rewords no rule line.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life",
+        "--after",
+        "after a drive, tap Locate on Explore"
+      ],
+      "body": "- [ ] **Do:** turn location off for Chronicles in Settings, open Navigate and Explore and tap Locate on each; then do it again in airplane mode on a first open, so no tiles have loaded. **Expect:** the refusal is the quiet notice (the cream banner in dark text, `tone: 'info'`, no `alert` role, read politely), \"Location is turned off for Chronicles. Turn it on in Settings to find your position.\", with Open Settings that opens the app's settings (`locate/notice.ts`); with tiles drawn the scale bar shows as before, and with none it is gone: native reads whether the tiles drew anything from the `omt-query` source's `place` features after `onDidFinishRenderingMapFully` (`WalkMap.native.tsx`), which may report tiles cached outside the view as drawn (`tend map T17`, decision 0154).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 13, `/tend inbox T17 yes, T14 yes, T15 reshape`** (from `df1aefb0`; the owner's own answers, in person, Nov 12;\ndecision 0154; T17 built, T14 and T15 wait for the next inbox run, one build per run).\n- `tend map T17`: Locate refused, on Navigate and Explore, is the app's quiet notice (the cream banner, ink, no alert,\n  read politely), not the red error: \"Location is off for this site. Turn it on in the browser's settings to see where\n  you are.\"; on a phone the recorder's own words, \"... Turn it on in Settings ...\", with Open Settings. The words live\n  once, in `locate/notice.ts`. With no fix and no tiles drawn (the base map's own layers drew nothing in view), the two\n  screens show no scale bar over the blank world; with the tiles drawn, or a fix, it stays. The `qol` journey pictures\n  the refusal on both screens at 390 and 320 px over an empty world, and keeps the bar where the fake streets draw.\nFound on the way: T17's words were never the recorder's start's (decision 0154 says they were): Start, refused, still\nsays \"Location permission was denied. ...\" in red. Filed as T26 `[owner]`, with QL11's wording and the map rule's\nLocate line in \"Open before the loop\". One native check.\nAnswered and waiting: T14 yes (kinds, no numeral, the time in the spoken name), T15 reshaped to \"Ink star, no numeral\".\nNot a sweep: no lens ran and no area changed state. The review (one round of the auditor and the ux-reviewer, decision\n0145) is pending. Nothing here has run on a phone; the notice's tone and the scale bar's tile read are native too\n(`docs/NATIVE_UNVERIFIED.md`).\n"
+    }
+  ]
+}

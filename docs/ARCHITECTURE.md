@@ -121,7 +121,6 @@ Home / tabs
   walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
-  LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
@@ -193,7 +192,11 @@ Places and areas (v0.5)
   areas/rules.ts             AREA_RULES and the reaches
   areas/tilePlaces.ts the OpenMapTiles place classes (the only file that knows them)
   areas/outlines.ts          town outlines: townAt (the smallest outline holding a point, else points), withOutlines, hoodAllowed, the z12 tiles
-  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points
+  areas/shapes.ts            plane geometry shared by outlines and hoods: ring area, point in polygon, bbox, a point inside a shape
+  areas/hoods.ts             neighborhood boundaries (HB1-HB16): `hoodAt` (the one rule for placing and Explore), `hoodGround`, `hoodExtentFor`, `groundOf`
+  areas/groundDraw.ts        the selected neighborhood's line: one look, no properties (HB10, HB14)
+  areas/useHoodGround.ts     the view hook: the ground from the kept tiles only
+  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points and, at z12, its neighborhood shapes
   areas/outlineRead.ts       createOutlines: outlines read by tile and kept (`outline_tile`); outlineReader.ts is the app's instance
   areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range (z12 to decide, z10 to draw), the places' release
   areas/borders.ts           town borders to draw: bordersFor (tinted, firm, lined; simplified, 40 at most), outlineIdHere, outlineOf
@@ -304,7 +307,15 @@ Landing (v1.5)
   landing/analyze.ts         busy streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read
   landing/spatial.ts         buckets, single linkage, hulls: the analysis's planar helpers
-  landing/read.ts            What's good here: decoder reads, remembered areas
+  landing/read.ts            What's good here: decoder reads, remembered areas; the tiles' bytes go to runOffPage
+  landing/compute.ts         computeRead: decode, streets, places, activity and the measure, one staged generator (DC13)
+  landing/offPage.ts         createOffPage: a worker per read, else the page; same result either way (DC7, DC8)
+  landing/runOffPage(.web).ts the instances: a worker on web (compute.worker.ts), the JS thread with a turn per stage on native
+  landing/names.ts           busyNames: one name per strip at its label point, turned along its street (DC1, DC3)
+  landing/workerJobs.ts      the worker's jobs: a read (computeRead) or an atlas ring (atlas/ringCompute.ts, audit 2)
+  atlas/profile.ts           profileFrom: what a ring read keeps, from decoded tiles (core, so the worker runs it)
+  layers/motion.ts           createMotion: whether the map moves, a promise for its settle (DC9, audit 7)
+  complexes/shown.ts         nextShown: the complexes hook's next state, the same object when nothing changes (DC12)
   landing/view.ts            LANDING_CODE, LandingRow / LandingView, staleness
   landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days
@@ -318,6 +329,7 @@ Captures and media
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
   notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
+  voiceTrim.ts               a voice memo's kept part (core, VT6-VT12): span, clock, state, the length and "Trimmed" words
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
   editOffer.ts               the after-capture Edit offer's timing and words (core)
@@ -470,6 +482,10 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
+- **A busy read's background thread** (explore-dense-city DC7, decision 0160): a web worker (`landing/runOffPage.web.ts`,
+  `landing/compute.worker.ts`, built by Expo's export as a file of its own). No Expo module gives the web, or a phone, a
+  background JS thread; native runs the same `computeRead` on the JS thread with a turn before each tile and stage. A
+  worker that can't start (a page left open across a deploy asks for the old worker's file) leaves the read to the page.
 - **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
   react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
   that call alone, since a live region as well would say it twice on Android.

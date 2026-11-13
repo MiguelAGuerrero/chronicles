@@ -414,7 +414,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         onSaveEdit={async (c, patch) => {
           // Stored and told on the bus first (ME21); Chronicle's pins then show it.
           await captureEdits.save(c, patch);
-          setCaptures((prev) => applyPatch(prev, c.id, patch));
+          setCaptures((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).

@@ -1,8 +1,9 @@
 import type { Faced } from '../../lib/moment';
+import { namesNearYou } from '../map/types';
 import { notePatch } from '../../lib/noteEdit';
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject } from 'react';
-import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
 import { LayersControl } from '../LayersControl';
@@ -69,7 +70,10 @@ export function useReady(props: {
   const at = useStackLayout();
   const { height: screenH } = useWindowDimensions();
   const walkStart = useStartWalk();
-  const [momentError, setMomentError] = useState<{ message: string; openSettings?: boolean } | null>(null);
+  // A Locate refusal carries its own tone (T17: a quiet notice in ink); a moment's failure is an error.
+  // What the screen says to a screen reader without moving focus (tend map audit 12); `n` makes a repeat a change.
+  const [said, setSaid] = useState({ text: '', n: 0 });
+  const [momentError, setMomentError] = useState<{ message: string; openSettings?: boolean; tone?: 'info' | 'error' } | null>(null);
   const error = walkStart.error ?? momentError;
   const [fix, setFix] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
@@ -159,7 +163,15 @@ export function useReady(props: {
       const box = boundsOf([p], LOCATE_FIT_M);
       if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
     },
-    onError: setMomentError,
+    onError: (e) => {
+      setMomentError(e);
+      // tend map audit 12: the quiet notice is no alert, so a screen reader hears the refusal through a hidden live region
+      // kept mounted on web (react-native-web's announceForAccessibility does nothing) and the call on a phone.
+      if (e.tone === 'info') {
+        setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+        AccessibilityInfo.announceForAccessibility(e.message);
+      }
+    },
   });
 
   const start = async () => {
@@ -172,7 +184,7 @@ export function useReady(props: {
   // A loose moment changed elsewhere (edited from the moment row's Edit offer): its pin shows it (media-editing audit 2).
   useEffect(() => {
     const owner = {};
-    return captureBus.subscribe(LOOSE_MOMENTS, owner, () => {}, (id, patch) => setMoments((prev) => applyPatch(prev, id, patch)));
+    return captureBus.subscribe(LOOSE_MOMENTS, owner, () => {}, (id, patch, pieceId) => setMoments((prev) => applyPatch(prev, id, patch, pieceId)));
   }, []);
 
   // The chevron and Back (NR4): the raised bar lowers first. Mid-memo the chevron still closes, and the
@@ -202,6 +214,8 @@ export function useReady(props: {
   const mapProps = {
     walkability: wk.draw,
     landing: busy.view,
+    // DC18: names only near you.
+    busyNamesNear: namesNearYou(fix),
     /** A tap on the map closes the Layers panel (ML4). */
     onPress: () => layers.closePanel(),
     trace: NONE,
@@ -213,6 +227,8 @@ export function useReady(props: {
     onPinPress: (cs: Faced[]) => !memoOn && !up && setViewing(cs),
     onViewChange: (v: { zoom: number }) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM),
     walker: fix,
+    // No scale bar over a blank world while no fix places the map (T17).
+    hideScaleOnBlank: true,
     marks: dest ? [dest.at] : undefined,
     ring,
     // The destination is a long press on the ready map (NV23), never mid-memo or with the bar up.
@@ -254,7 +270,7 @@ export function useReady(props: {
         </View>
         {error && (
           <Banner
-            tone="error"
+            tone={walkStart.error ? 'error' : (momentError?.tone ?? 'error')}
             onDismiss={() => {
               walkStart.setError(null);
               setMomentError(null);
@@ -264,6 +280,8 @@ export function useReady(props: {
             {error.message}
           </Banner>
         )}
+        {/* tend map audit 12: mounted before anything is said, so a polite region's change is read (as Explore's DN12 one). */}
+        {Platform.OS === 'web' ? <Text testID="ready-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
         {firstWalk && !webNoteOff && !ready.background() && (
           // Said once, and gone for good once dismissed (U9).
           <Banner onDismiss={dismissWebNote}>On the web, a walk is traced while this page is open and on screen.</Banner>
@@ -322,7 +340,7 @@ export function useReady(props: {
         remind
         onSaveEdit={async (c, patch) => {
           await captureEdits.save(c, patch);
-          setMoments((prev) => applyPatch(prev, c.id, patch));
+          setMoments((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
         onSaveNote={async (c, body) => {
           await ready.saveNote(c.piece_id, body);
@@ -336,6 +354,7 @@ export function useReady(props: {
 }
 
 const styles = StyleSheet.create({
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   top: { position: 'absolute', gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center', zIndex: 2 },
   closeRow: { alignSelf: 'stretch', flexDirection: 'row' },
   edgeBtn: {

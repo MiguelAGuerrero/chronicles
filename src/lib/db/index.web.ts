@@ -14,7 +14,7 @@ import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePo
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
-import type { Db } from './types';
+import { SEGMENT_BATCH, type Db } from './types';
 import { parseEdit } from '../mediaEdit';
 import { momentOf, type Flat } from '../moment';
 
@@ -538,12 +538,17 @@ export const db: Db = {
     await committed(tx);
   },
 
-  async putSegments(segments) {
-    if (segments.length === 0) return;
-    const tx = (await conn()).transaction('street_segment', 'readwrite');
-    const st = tx.objectStore('street_segment');
-    for (const x of segments) st.put({ ...x, tile: segmentTile(x) });
-    await committed(tx);
+  async putSegments(segments, shouldStop) {
+    // DC10: one transaction per batch, a turn for the page between them. A caller that has stopped before the write
+    // starts writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
+    if (shouldStop?.()) return;
+    for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
+      if (i) await new Promise((resolve) => setTimeout(resolve, 0));
+      const tx = (await conn()).transaction('street_segment', 'readwrite');
+      const st = tx.objectStore('street_segment');
+      for (const x of segments.slice(i, i + SEGMENT_BATCH)) st.put({ ...x, tile: segmentTile(x) });
+      await committed(tx);
+    }
   },
 
   async saveSnap(walkId, segments, visited, summary, placed, complete = true) {

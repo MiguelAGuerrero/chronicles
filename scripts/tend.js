@@ -13,7 +13,9 @@
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
 //                                                       real test and its source, and none touches what
 //                                                       the loop may not (exit 1 otherwise); CI runs
-//                                                       it with --loop-only on every push to main
+//                                                       it with --loop-only on every push to main: these
+//                                                       limits on loop commits, and the record gate
+//                                                       (scripts/records.js) on loop and agent commits
 //
 // The decisions are pure and exported for arch/tend.test.ts; git and the files are read in main().
 // None of this is shown in the app: nothing is a score there (decision 0020).
@@ -22,7 +24,8 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const ROOT = path.join(__dirname, '..');
+// TEND_ROOT: the checkout to read, when CI runs these scripts as the push's base had them (pages.yml).
+const ROOT = process.env.TEND_ROOT ? path.resolve(process.env.TEND_ROOT) : path.join(__dirname, '..');
 const LEDGER = path.join(ROOT, '.claude', 'skills', 'tend', 'ledger.json');
 const RUNS = path.join(ROOT, '.claude', 'skills', 'tend', 'runs.jsonl');
 const RUNS_REL = '.claude/skills/tend/runs.jsonl';
@@ -144,6 +147,11 @@ const FORBIDDEN = [
   /\.baseline\.json$/,
   /^eslint-suppressions\.json$/,
   /^scripts\/(?!e2e\/journeys\/)/,
+  // The record documents' gate (decision 0156): the loop changes them only through scripts/records.js,
+  // and never the script or the tests that hold it (the line above covers the script; it is named here
+  // so that loosening that line does not free the gate).
+  /^scripts\/records\.js$/,
+  /^src\/lib\/__tests__\/arch\/(records|tend)\.test\.ts$/,
   /^\.claude\/(hooks|agents)\//,
   /^\.claude\/settings/,
   /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl)$)/,
@@ -156,7 +164,7 @@ const FORBIDDEN = [
   /^src\/lib\/db\/migrations\.ts$/,
 ];
 // The run's record and the notes: no test asked of these.
-const RECORD = [/^docs\//, /^\.claude\/rules\//, /^\.claude\/skills\/tend\/(ledger\.json|runs\.jsonl)$/, /^README\.md$/];
+const RECORD = [/^docs\//, /^\.claude\/rules\//, /^\.claude\/skills\/tend\/(ledger\.json|runs\.jsonl)$/, /^\.claude\/records\/[^/]+\.json$/, /^README\.md$/];
 const TEST_FILE = /(^src\/lib\/__tests__\/.+\.test\.tsx?$|^scripts\/e2e\/journeys\/.+\.js$)/;
 const UNREAL_TEST = /(\{\s*todo\b|\btodo:|\.todo\(|\.skip\(|\bskip:|\bx(test|it)\()/;
 
@@ -389,7 +397,8 @@ function next() {
 
 function commits(argv) {
   const range = argv.find((a) => !a.startsWith('--'));
-  // CI reads a push that may hold anyone's commits: with --loop-only the others are left alone.
+  // CI reads a push that may hold anyone's commits: with --loop-only the loop's limits read loop commits
+  // alone, and the record gate loop and agent commits; the owner's own are left alone.
   const loopOnly = argv.includes('--loop-only');
   if (!range) {
     console.error('usage: node scripts/tend.js commits [--loop-only] <range>, e.g. origin/main..HEAD');
@@ -399,6 +408,11 @@ function commits(argv) {
   const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
   let bad = 0;
   const read = [];
+  // The record documents (decision 0156): each commit that touches them is its declared operations,
+  // replayed on its parent's; a merge that touches them fails in a push that holds loop commits.
+  const records = require('./records').gateRange(range, { cwd: ROOT, loopOnly });
+  for (const r of records.results) for (const n of r.notices) console.log(`check:tend: ${r.sha.slice(0, 7)} ${r.subject}: ${n}`);
+  const recordIssues = new Map(records.results.map((r) => [r.sha, r.problems]));
   for (const sha of shas) {
     const [subject, ...rest] = git('show', '-s', '--format=%s%n%b', sha).split('\n');
     const files = git('show', '--name-status', '--format=', sha).split('\n').filter(Boolean).map((l) => {
@@ -413,9 +427,19 @@ function commits(argv) {
     const rewritesLog = files.some((f) => f.path === RUNS_REL) && removes(RUNS_REL);
     const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && removes(f.path)).map((f) => f.path);
     read.push({ subject, body: rest.join('\n'), files });
-    for (const p of tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules })) {
+    const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules });
+    problems.push(...(recordIssues.get(sha) ?? []));
+    recordIssues.delete(sha);
+    for (const p of problems) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
+    }
+  }
+  // What the record gate found in commits this loop does not read itself: agent commits, merges, reverts.
+  for (const [sha, problems] of recordIssues) {
+    for (const p of problems) {
+      bad += 1;
+      console.error(`${sha.slice(0, 7)} ${git('show', '-s', '--format=%s', sha).trim()}\n  ${p}`);
     }
   }
   for (const { subject, problem } of citedOwnEdits(read)) {
@@ -433,9 +457,9 @@ if (require.main === module) {
   else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> '<json>' | commits [--loop-only] <range>');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range>');
     process.exit(2);
   }
 }
 
-module.exports = { LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, logProblems, runLine };
+module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, logProblems, runLine };

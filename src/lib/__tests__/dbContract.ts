@@ -5,7 +5,7 @@ import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
-import type { Db } from '../db/types';
+import { SEGMENT_BATCH, type Db } from '../db/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
@@ -593,6 +593,24 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
     });
 
+    test('DC10 putSegments: written in batches; a caller stopped before the write starts writes nothing', async () => {
+      const db = await fresh();
+      const many = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => segment(`${prefix}${i}`));
+      await db.putSegments(many('a', SEGMENT_BATCH * 2 + 10));
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10, 'every batch written');
+      const db3 = await fresh();
+      await db3.putSegments(many('c', 10), () => true);
+      assert.equal((await db3.getSegmentsIn(box)).length, 0, 'stopped before the first batch: nothing written');
+    });
+
+    test('explore-dense-city audit 5 putSegments: a write once started finishes, so no tile is left half stored', async () => {
+      const db = await fresh();
+      const many = Array.from({ length: SEGMENT_BATCH * 2 + 10 }, (_, i) => segment(`s${i}`));
+      let asked = 0;
+      await db.putSegments(many, () => ++asked > 1);
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10);
+    });
+
     test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box, MT11)', async () => {
       // The web store files pieces under one z14 tile and reads the bounds' tiles widened by 250 m
       // (pieces are at most 200 m); SQLite compares each piece's box.
@@ -780,6 +798,17 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       await db.putOutlineTiles([outlineTile('10/1/2', 3)]);
       assert.deepEqual((await db.getOutlineTiles(['10/1/2']))[0], outlineTile('10/1/2', 3));
       assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
+    });
+
+    test('HB12 outline tile: neighborhood shapes are kept with the tile, and a tile stored without them reads back with none', async () => {
+      const db = await fresh();
+      const shaped: OutlineTile = {
+        ...outlineTile('12/5/6', 1),
+        hoods: [{ id: 'h1', name: 'Riverside', subtype: 'neighborhood', polygons: [[[[-75.5, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.5, 40.6]]]] }],
+      };
+      await db.putOutlineTiles([shaped, outlineTile('12/7/8', 1)]);
+      assert.deepEqual((await db.getOutlineTiles(['12/5/6']))[0], shaped);
+      assert.equal((await db.getOutlineTiles(['12/7/8']))[0].hoods, undefined);
     });
 
     // ---- explore

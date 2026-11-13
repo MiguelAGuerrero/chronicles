@@ -97,6 +97,12 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Go here.
+- **A neighborhood has its own ground** (neighborhood boundaries, decision 0152): selecting one on Explore draws one thin dark
+  line around where it is, in place of the old 800 m ring: its real shape where the map data has one (Overture's neighborhoods and
+  macrohoods; plazas and homeowners' associations are left out), or the edge of its nearest-point share where it has none. Two
+  neighborhoods never claim one place: the smallest shape holding a point owns it, and a name inside another's shape is not listed.
+  The same rule places a walk (every walk is placed again), Explore names a place, and the card counts across the line it draws.
+  The line is one look for every neighborhood, with no fill, name or figure, and is gone when the selection changes.
 - **The small map moves in steps** (discrete navigation, decision 0092, an
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into
@@ -296,7 +302,11 @@ recording, and a recording bar brings a minimized walk back.
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
 - **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
-  remembered reads the area once.
+  remembered reads the area once, in the background on the web and only once the map has stopped moving, so moving between neighborhoods stays
+  smooth in a dense city (decision 0160). Its street names are the map's own text: one per street within 300 m, at its busiest point, turned along it, never over
+  another name, a "?" pin, the selected area's name or one of Explore's buttons; where they crowd, the heavier streets (a
+  current area's first) keep theirs and zooming in brings the rest. On Explore they take the room first; on the walk screen
+  and Navigate the map's own street names do, the trace draws over them, and only those within 800 m of you are named.
 - An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
   "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
 - While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
@@ -430,7 +440,7 @@ recording, and a recording bar brings a minimized walk back.
   Free, Square, 4:5 and 16:9, and Rotate; nine filters a phone's photo app has
   (Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia; photos only);
   drawing like the iPhone's Markup (Pen, Marker, Eraser, three thicknesses, six
-  swatches, Undo, Redo); a text bar; a trim for videos. The file is never changed:
+  swatches, Undo, Redo); a text bar; a trim for videos, and for voice memos (Edit in the viewer opens a trim-only editor: start and end handles, the kept times, Play kept part; the memo then plays only that part everywhere, says "Trimmed · 0:39 of 0:58" in the viewer and its kept length in lists; VT1-VT12). The file is never changed:
   edits are kept with the moment and can be changed or reverted later. Saving out
   renders everything into one photo or video.
 - **Deletes** (a walk, a walk's media, one moment, a thread) hide at once with an
@@ -511,7 +521,7 @@ recording, and a recording bar brings a minimized walk back.
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
-| Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
+| Media editing: crop, rotate, filters, drawing, text, video and voice-memo trim, all saved out (a memo is never saved out) | Shipped on web (native unverified; the video module never compiled) |
 | Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |

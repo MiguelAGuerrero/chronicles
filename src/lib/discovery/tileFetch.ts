@@ -33,18 +33,26 @@ async function fetchTile(url: string, shouldStop?: () => boolean): Promise<Array
 }
 
 /**
+ * Fetches z14 tiles' bytes, in parallel, each with its own timeout; nothing decoded (a read decodes them off the page,
+ * explore-dense-city DC7). All or nothing: any failure rejects, so a partial read is never used.
+ */
+export async function fetchTileBodies(url: string, tiles: [number, number][], zoom = TILE_ZOOM, shouldStop?: () => boolean): Promise<ArrayBuffer[]> {
+  if (!tiles.length) throw new Error('No tiles to read');
+  return Promise.all(
+    tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(zoom)).replace('{x}', String(x)).replace('{y}', String(y)), shouldStop)),
+  );
+}
+
+/**
  * Fetches and decodes z14 tiles in code, in parallel, each with its own
  * timeout. All or nothing: any failure rejects, so a partial read is never used.
  */
-export async function fetchTiles(url: string, tiles: [number, number][], zoom = TILE_ZOOM, shouldStop?: () => boolean): Promise<CollectedFeatures> {
-  if (!tiles.length) throw new Error('No tiles to read');
-  const bodies = await Promise.all(
-    tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(zoom)).replace('{x}', String(x)).replace('{y}', String(y)), shouldStop)),
-  );
+export async function fetchTiles(url: string, tiles: [number, number][], zoom = TILE_ZOOM, shouldStop?: () => boolean, only?: Parameters<typeof decodeTile>[4]): Promise<CollectedFeatures> {
+  const bodies = await fetchTileBodies(url, tiles, zoom, shouldStop);
   const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], landcover: [], complete: true };
   for (let i = 0; i < tiles.length; i++) {
     const [x, y] = tiles[i];
-    const f = decodeTile(new Uint8Array(bodies[i]), zoom, x, y);
+    const f = decodeTile(new Uint8Array(bodies[i]), zoom, x, y, only);
     out.roads.push(...f.roads);
     out.names.push(...f.names);
     out.places.push(...f.places);

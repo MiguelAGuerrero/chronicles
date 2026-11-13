@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "**The record gate's questions** (Nov 12; decision 0156, \"Left open for the owner\"): whether `inbox set` must keep\nthe lines an `inbox note` added (an answer you gave can be cut by a reshape; the audit's F9), and whether CI replays\na G slice's commits too (they are named for the slice, not `tend …`, so only `check:records` reads them today).\n"
+    }
+  ]
+}
