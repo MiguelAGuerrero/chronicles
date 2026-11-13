@@ -115,10 +115,13 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   return drop ? <Enter kind="drop">{view}</Enter> : view;
 }
 
-/** A pin's spoken name: its moments in words (`pinSpoken`; several with the minutes in, tend map T14), its stack, its bell, "Open". */
-export function pinLabel(pin: CapturePin, interactive = true, memory = false, reminded = false, clocks?: readonly WalkClock[]): string {
+/**
+ * A pin's spoken name: its moments in words and when (`pinSpoken`: its minutes in with its walk's clock, else the part
+ * of the day by `now`, tend map T28), its stack, its bell, "Open".
+ */
+export function pinLabel(pin: CapturePin, interactive = true, memory = false, reminded = false, clocks?: readonly WalkClock[], now?: number): string {
   const n = pin.captures.length;
-  const kind = pinSpoken(pin, { memory, clocks });
+  const kind = pinSpoken(pin, { memory, clocks, now });
   // One moment with more than one piece says so in words, never how many (MS8, MS9).
   const stacked = n === 1 && hasMore(pin.captures[0]) ? `, ${STACK_SPOKEN}` : '';
   // The bell said in words (RB7).

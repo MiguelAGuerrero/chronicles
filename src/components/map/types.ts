@@ -116,8 +116,9 @@ export interface WalkMapProps {
    */
   onBearingChange?: (bearing: number) => void;
   /**
-   * The walks of the pins' moments, with their pauses, so a pin of several says how far into its walk it was (tend map
-   * T14): "A photo and a note, twelve minutes in". Without its walk's clock, a pin says its kinds alone.
+   * The walks of the pins' moments, with their pauses, so a pin says how far into its walk it was (tend map
+   * T14): "A photo and a note, twelve minutes in". Without its walk's clock, a pin says the part of the day of its
+   * first moment (tend map T28): "A photo and a note, Tuesday evening".
    */
   clocks?: readonly WalkClock[];
   /** Opens a pin's captures; without it, pins are shown but not pressable. */

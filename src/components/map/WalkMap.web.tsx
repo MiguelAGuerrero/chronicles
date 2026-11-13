@@ -1416,8 +1416,9 @@ function usePinMarkers(
       // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
       const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${pinMark(pin)?.id ?? ''}`;
       const existing = markers.current.get(pin.id);
-      // Its walk's clock may come after the pin (tend map T14): the name follows in place.
-      const label = pinLabel(pin, interactive, memory, bell, clocks);
+      // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
+      // day is told from when the map opened (tend map T28).
+      const label = pinLabel(pin, interactive, memory, bell, clocks, openedAt);
       if (existing?.key === key && existing.bell === bell && existing.marker.getElement().getAttribute('aria-label') !== label) {
         existing.marker.getElement().setAttribute('aria-label', label);
       }

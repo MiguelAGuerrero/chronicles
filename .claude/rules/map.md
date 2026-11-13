@@ -166,6 +166,14 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     map audit 23`); its icons turn, never its discs, so a disc's box is its circle. On a pin of several the bell sits
     out from its corner (`bellRightFan`, `bellLeftFan`), clear of the discs (`tend map audit 24`). The `qol` journey's
     `pinsOfSeveral` walks its own pins of every shape and reads the heads, discs, opacities and bell boxes.
+- **When a pin says it** (`tend map T28`, decision 0164), every pin, one moment or several (`pinWhen`, `lib/pins.ts`):
+  with its walk's clock, its first moment's minutes in ("Photo, twelve minutes in. Open"), or, when its moments lie
+  more than `JUST_AFTER_MS` apart in walked time, the span ("A photo and a note, from the start to fifty-eight minutes
+  in. Open"); with none (no `clocks`, as on Chronicle's map and the ready screen; moments of two walks on a day; a
+  moment outside a walk; a memory pin, always), the part of the day of its first moment by `dayPartLine`, the moment's
+  own line's words ("Memories: a photo and a note, Tuesday evening"). `now` is the map's `openedAt`. This supersedes
+  the "kinds alone" cases in the two bullets above. The e2e finds a pin of one moment by its kind and ". Open"
+  (`[aria-label^="Photo, "][aria-label$=". Open"]`), never by its whole name, which holds the time.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

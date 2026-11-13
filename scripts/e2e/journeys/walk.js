@@ -198,7 +198,7 @@ async function checks(h) {
         await page.click('[data-testid=voice-undo]');
         await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached' });
         await page.waitForTimeout(2500);
-        check((await page.locator('[aria-label="Voice memo. Open"]').count()) === 1, 'undo brings a discarded memo back');
+        check((await page.locator('[aria-label^="Voice memo, "][aria-label$=". Open"]').count()) === 1, 'undo brings a discarded memo back');
         // A tap and an immediate save is an accidental tap: not kept, and said so.
         await page.click('[data-testid=cap-voice]');
         await page.waitForSelector('[data-testid=voice-save]');
@@ -297,12 +297,14 @@ async function checks(h) {
         const expectShared = apartM == null || apartM <= reachM;
         await page.waitForFunction((one) => {
           const labels = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')].map((e) => e.getAttribute('aria-label'));
-          return one ? labels.some((l) => /^A voice memo and a video, .+\. Open$/.test(l)) : labels.includes('Voice memo. Open') && labels.includes('Video. Open');
+          return one ? labels.some((l) => /^A voice memo and a video, .+\. Open$/.test(l)) : labels.some((l) => /^Voice memo, .+\. Open$/.test(l)) && labels.some((l) => /^Video, .+\. Open$/.test(l));
         }, expectShared, { timeout: 10000 }).catch(() => {});
         // tend map T14: the shared pin names its kinds in words with the minutes in, never "2 captures here".
         const shared = (await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')))).filter((l) => /^A voice memo and a video, (at the start|.+ minutes? in)\. Open$/.test(l)).length === 1;
         const pinsAfter = await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
-        const twoPins = pinsAfter.includes('Voice memo. Open') && pinsAfter.includes('Video. Open');
+        // tend map T28: a pin of one moment says its minutes too ("Voice memo, twelve minutes in. Open").
+        const one = (kind) => pinsAfter.some((l) => new RegExp(`^${kind}, (at the start|.+ minutes? in)\\. Open$`).test(l));
+        const twoPins = one('Voice memo') && one('Video');
         const fair = apartM == null ? shared : apartM <= reachM ? shared : twoPins;
         check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
@@ -317,7 +319,7 @@ async function checks(h) {
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
         await page.click('[data-testid=note-done]');
         await page.waitForTimeout(2500);
-        check((await page.locator('[aria-label="Note. Open"], .maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])').count()) >= 1, 'the note is pinned on the map');
+        check((await page.locator('[aria-label^="Note, "][aria-label$=". Open"], .maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');
         // What happened here: a long press near where the note was taken (the
         // map follows the walker, so near the map's center) shows it. A plain

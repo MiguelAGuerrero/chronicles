@@ -87,7 +87,7 @@ async function run(h) {
       await pg.click('[data-testid=edit-rotate]');
       await pg.click('[data-testid=edit-done]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 15000 });
-      const momentPin = pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), .maplibregl-map [aria-label="Photo. Open"]');
+      const momentPin = pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), .maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"]');
       await momentPin.first().waitFor({ timeout: 20000 });
       await momentPin.first().click();
       // The pin may hold both moments: step through them all.
@@ -122,7 +122,7 @@ async function run(h) {
       check(/Photo saved here/.test(offer), `ME23: the walk screen offers Edit after a photo ("${offer.replace(/\n/g, ' ')}")`);
       photoId = (await rowOf('photo'))?.id;
       // The pin's small copy before the edit (media-editing audit 3).
-      const pinThumb = pg.locator('.maplibregl-map [aria-label="Photo. Open"] [data-testid=pin-thumb]');
+      const pinThumb = pg.locator('.maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"] [data-testid=pin-thumb]');
       // Within the offer's 6 s: the copy is made about a second after the photo is kept.
       await pinThumb.first().waitFor({ timeout: 3500 }).catch(() => {});
       // Read at once, never waited on: the offer only lasts 6 s.
@@ -251,7 +251,7 @@ async function run(h) {
     // ME4: the viewer shows the edits; ME3: the editor opens on them.
     await step('ME3, ME4, ME16 viewer', async () => {
       await pg.waitForTimeout(1500);
-      const pin = pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), .maplibregl-map [aria-label="Photo. Open"]');
+      const pin = pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), .maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"]');
       await pin.first().click();
       await pg.waitForSelector('[data-testid=edited-photo]', { timeout: 10000 });
       await pg.waitForTimeout(1200);
