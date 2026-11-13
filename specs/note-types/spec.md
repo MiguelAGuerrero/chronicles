@@ -191,6 +191,6 @@ Report-only passes by the auditor (55-65), the steward (S4-S8) and the UX review
 
 The owner: "I don't see any place to put a note type on the notes or pages at all." Two causes, both confirmed on the live build: the slot was a faint grey tag with no word at the end of the dateline, and the page the line opens into (Open as a page on an entry with words) had no Type tool; only a brand-new page did.
 
-26. **NY26** The slot says what it is in a word: "Type" beside its tag while none is chosen, the type's name beside its glyph once one is, in ink. The page the journal's line opens into carries the page's Type tool with the note's type as chosen, and choosing or clearing there is kept on that note.
+26. **NY26** The slot is a sign, not a word (the owner, Nov 13, decision 0166: "an emoji indicator ... a reaction as an icon", so that it does not say "Type"): unmarked, a face with a small plus, the sign people know for adding a reaction, in ink at a target's size; marked, the type's own glyph. (First fixed that evening as the word "Type" beside a tag.) The page the journal's line opens into carries the page's Type tool with the note's type as chosen, and choosing or clearing there is kept on that note.
 
 Built the same evening, test first (the `journal` journey's NY26 check); the fault was found by opening the live build in a phone-sized browser. Native: not run on a device.

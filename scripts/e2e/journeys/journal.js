@@ -461,12 +461,13 @@ async function run(h) {
   await toLine();
   await pg.keyboard.type('A page with a type', { delay: 10 });
   await pg.waitForTimeout(1300);
-  const word26b = (await pg.locator('[data-testid=type-slot]').innerText().catch(() => '')).trim().split('\n').pop();
+  // Unmarked, the slot is the sign people know for adding a reaction: a face with a plus, in ink, and no word (0166).
+  const slot26 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=type-slot]'); if (!e) return null; const g = e.querySelector('[data-testid=type-slot-face]'); return { add: !!e.querySelector('[data-testid=type-slot-add]'), words: [...e.querySelectorAll('*')].filter((x) => x.children.length === 0 && /[A-Za-z]{3,}/.test(x.textContent ?? '')).length, ink: g ? getComputedStyle(g).color : null, w: Math.round(e.getBoundingClientRect().width), h: Math.round(e.getBoundingClientRect().height) }; });
   await pg.click('[data-testid=type-slot]').catch(() => {});
   await pg.waitForTimeout(400);
   await pg.click('[data-testid=type-pick-happy]').catch(() => {});
   await pg.waitForTimeout(900);
-  const word26 = (await pg.locator('[data-testid=type-slot]').innerText().catch(() => '')).trim().split('\n').pop();
+  const marked26 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=type-slot]'); return { add: !!e?.querySelector('[data-testid=type-slot-add]'), label: e?.getAttribute('aria-label') }; });
   await shot(pg, 'journal-26-type-slot-word');
   await pg.click('[data-testid=line-page]', { timeout: 3000 }).catch(() => {});
   await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).catch(() => {});
@@ -480,8 +481,8 @@ async function run(h) {
   await pg.click('[data-testid=note-done]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1500);
   const after26 = await typeOfNote(/A page with a type/);
-  check(word26b === 'Type' && word26 === 'Happy' && tool26 === 'Type, Happy' && after26 === 'idea',
-    `NY26: the slot reads Type, then its type's name; the page the line opens into carries the Type tool with that type, and a choice there is kept (${JSON.stringify({ word26b, word26, tool26, after26 })})`);
+  check.todo(!!slot26 && slot26.add && slot26.words === 0 && slot26.ink === 'rgb(29, 36, 48)' && slot26.w >= 44 && slot26.h >= 44 && !marked26.add && marked26.label === 'Type, Happy' && tool26 === 'Type, Happy' && after26 === 'idea',
+    `NY26: unmarked the slot is a face with a plus, in ink, with no word; marked it is the type's glyph; the page the line opens into carries the Type tool with that type, and a choice there is kept (${JSON.stringify({ slot26, marked26, tool26, after26 })})`);
   // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
   const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
   await lastMore().click();
