@@ -245,7 +245,9 @@ function dayWhen(pin: CapturePin, now: number): string {
 export function pinWhen(pin: CapturePin, clocks: readonly WalkClock[] | undefined, now: number | undefined): string | null {
   const first = pin.captures[0];
   if (!first) return null;
-  const clock = clockOf(pin, clocks);
+  // A map of several walks (a day's replay) says every pin's part of the day: "ten minutes in" would not say which
+  // walk (tend map audit 28, the owner's answer to ux 2).
+  const clock = clocks && clocks.length > 1 ? null : clockOf(pin, clocks);
   if (!clock) return now == null ? null : dayWhen(pin, now);
   const from = walkedAt(clock, first.t);
   const to = walkedAt(clock, pin.captures[pin.captures.length - 1].t);

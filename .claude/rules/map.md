@@ -177,6 +177,8 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   - A pin no clock holds whose moments fall on different days (as `dayPartLine` reckons a day: the small hours are
     the evening before's) says the span of their days, "from three weeks ago to Tuesday evening", an end whose line
     has its own comma giving the part before it, and two ends that read alike said once (`dayWhen`, `tend map audit 27`).
+  - A map whose `clocks` hold more than one walk (a day's replay of several walks) says every pin's part of the day:
+    "ten minutes in" would not say which walk. A day of one walk keeps the minutes or the span (`tend map audit 28`).
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

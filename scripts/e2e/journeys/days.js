@@ -196,6 +196,11 @@ async function checks(h) {
       const cardText = await p2.locator('[data-testid=day-card]').innerText();
       check(/^3 moments · 2 places$/.test(line) && /walked/.test(cardText) && !/streak|badge/i.test(cardText), `the day ends on a quiet card (${line})`);
       await shot(p2, '23-day-card');
+      // tend map T28, audit 28: on the day's map every pin says when: a pin of its one walk the minutes in (a day of
+      // several walks would say each one's part of the day), a moment outside a walk its part of the day.
+      const dayPins = await p2.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+      const said = /, (at the start|.+ minutes? in|from .+|this (morning|afternoon|evening)|tonight|late last night|yesterday night)\. Open$/;
+      check(dayPins.length >= 1 && dayPins.every((l) => said.test(l)), `tend map audit 28: the day replay's pins each say when (${dayPins.join(' / ')})`);
       // Watching again moves on by itself (M12).
       await p2.click('[data-testid=day-again]');
       check(await p2.waitForSelector('[data-testid=day-card]', { timeout: 90000 }).then(() => true, () => false), 'watching the day again reaches the card with no taps (M12)');

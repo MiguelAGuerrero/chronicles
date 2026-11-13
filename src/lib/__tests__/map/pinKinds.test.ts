@@ -181,8 +181,9 @@ test('tend map T28: with no walk clock, the part of the day of the pin\'s first 
   const clocks: WalkClock[] = [{ id: 'w1', started_at: at(10, 18, 30), pauses: [] }, { id: 'w2', started_at: at(10, 18, 50), pauses: [] }];
   assert.equal(pinSpoken(pinOf(evening('a', 'photo'), evening('b', 'text', 3, { walk_id: 'w2' })), { clocks, now: NOW }), 'A photo and a note, Tuesday evening');
   assert.equal(pinSpoken(pinOf(evening('a', 'photo', 0, { walk_id: null })), { clocks, now: NOW }), 'Photo, Tuesday evening');
-  // The same day's map gives each walk's own pin its minutes.
-  assert.equal(pinSpoken(pinOf(evening('a', 'photo', 0, { walk_id: 'w2' })), { clocks, now: NOW }), 'Photo, ten minutes in');
+  // Amended by tend map audit 28 (the owner's answer to ux 2): on a map of several walks a pin of one walk says its
+  // part of the day too.
+  assert.equal(pinSpoken(pinOf(evening('a', 'photo', 0, { walk_id: 'w2' })), { clocks, now: NOW }), 'Photo, Tuesday evening');
   // No clock and no now (a caller that gives neither): the kinds alone, never a guess.
   assert.equal(pinSpoken(two, {}), 'A photo and a note');
   for (const p of [two, pinOf(evening('a', 'photo'))]) assert.doesNotMatch(pinSpoken(p, { now: NOW }), /\d/);
@@ -211,4 +212,18 @@ test('tend map audit 27: a pin whose moments fall on different days says the spa
   // The small hours of Wednesday are Tuesday's night: one day, not a span.
   assert.equal(pinSpoken(pinOf(tue, day('c', 'photo', at(11, 1, 30))), { now: NOW }), 'A note and a photo, Tuesday evening');
   for (const o of [{ now: NOW }, { memory: true, now: NOW }]) assert.doesNotMatch(pinSpoken(pinOf(old, tue), o), /\d/);
+});
+
+// tend map audit 28 (the T28 review's ux 2; the owner's answer, "Part of the day"): on a day replay of two walks a
+// pin said "ten minutes in" of its own walk beside another's "fifty minutes in", never saying which walk. When a
+// map's clocks hold more than one walk, every pin says its part of the day; a day of one walk keeps the minutes or
+// the span.
+test('tend map audit 28: on a map of several walks every pin says its part of the day', () => {
+  const clocks: WalkClock[] = [{ id: 'w1', started_at: at(10, 18, 30), pauses: [] }, { id: 'w2', started_at: at(10, 18, 50), pauses: [] }];
+  const e = (id: string, kind: CaptureKind, min: number, walk: string) => day(id, kind, at(10, 19, min), { walk_id: walk });
+  assert.equal(pinSpoken(pinOf(e('a', 'photo', 0, 'w2')), { clocks, now: NOW }), 'Photo, Tuesday evening');
+  assert.equal(pinSpoken(pinOf(e('a', 'photo', 0, 'w1'), e('b', 'text', 3, 'w1')), { clocks, now: NOW }), 'A photo and a note, Tuesday evening');
+  assert.equal(pinSpoken(pinOf(e('a', 'photo', 0, 'w1'), e('b', 'text', 3, 'w2')), { clocks, now: NOW }), 'A photo and a note, Tuesday evening');
+  // A day of one walk: its minutes, as the walk's own replay says them.
+  assert.equal(pinSpoken(pinOf(e('a', 'photo', 0, 'w1')), { clocks: clocks.slice(0, 1), now: NOW }), 'Photo, thirty minutes in');
 });
