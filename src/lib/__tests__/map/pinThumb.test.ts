@@ -46,3 +46,5 @@ test('QL26: other kinds keep their icon, whatever their thumb_path', () => {
     assert.equal(pinThumb(pinOf(cap('a', kind, { thumb_path: 'walks/w1/a.thumb.jpg' }))), null, kind);
   }
 });
+
+test('VT3: a pin of one video shows its copy, never its file', { todo: 'test first' }, () => {});

@@ -73,3 +73,8 @@ test('TH5: one module makes the copy on both platforms, over expo-image-manipula
   assert.match(src, /from 'expo-image-manipulator'/, 'made with expo-image-manipulator, which has a web build');
   assert.match(src, /from '\.\.\/thumbJob'/, 'through the shared thumb job');
 });
+
+// Video thumbnails (specs/video-thumbnails).
+test('VT1: a video wants a copy, from its kept part\'s start, at 720 px', { todo: 'test first' }, () => {});
+test('VT5: a preview never shows the video file', { todo: 'test first' }, () => {});
+test('VT6: an edit makes a new copy', { todo: 'test first' }, () => {});

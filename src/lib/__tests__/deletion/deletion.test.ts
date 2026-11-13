@@ -308,3 +308,5 @@ test('MS13: deleting a piece keeps the rest and the moment\'s threads, reminder 
   assert.deepEqual(await db.getMomentsByIds(['m']), [], 'the last piece takes the moment');
   assert.equal((await db.listRecalls()).length, 0);
 });
+
+test('VT7: a video\'s delete takes its copy', { todo: 'test first' }, () => {});

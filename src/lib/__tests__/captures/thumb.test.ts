@@ -69,3 +69,7 @@ test('thumbnails TH4, audit 6, 7: what a preview shows', () => {
   assert.equal(thumbShown(photo({ thumb_path: THUMB.none }), false), 'walks/w1/abc.jpg', 'undecodable: the photo as before');
   assert.equal(thumbShown(photo(), false), null, 'while its copy is made: the icon, not a second full decode');
 });
+
+// Video thumbnails (specs/video-thumbnails).
+test('VT1: the job renders a video through its frame', { todo: 'test first' }, () => {});
+test('VT9: one copy at a time', { todo: 'test first' }, () => {});
