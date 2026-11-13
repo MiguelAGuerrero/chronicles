@@ -1369,7 +1369,7 @@ test('records audit 49 (F35): the record check runs in its own job, outside the 
   const top = wf.slice(0, wf.indexOf('\njobs:'));
   assert.doesNotMatch(top, /cancel-in-progress:\s*true/, 'no workflow-wide cancelling group');
   const jobs = wf.slice(wf.indexOf('\njobs:'));
-  const job = (name: string) => jobs.slice(jobs.indexOf(`\n  ${name}:`), (jobs.slice(jobs.indexOf(`\n  ${name}:`) + 3).search(/\n  [a-z-]+:\n/) + jobs.indexOf(`\n  ${name}:`) + 3) || undefined);
+  const job = (name: string) => new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n  [a-z-]+:\\n|$)`).exec(jobs)?.[1] ?? '';
   assert.match(job('records'), /tend\.js commits --loop-only/);
   assert.doesNotMatch(job('records'), /cancel-in-progress/);
   assert.match(job('build'), /needs:\s*\[?\s*records/);
