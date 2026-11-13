@@ -242,7 +242,7 @@ const FEATURES = [
       'src/lib/{captureEdits,videoEdit}/**',
     ],
     journeys: ['edit', 'stacks'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'video-thumbnails'],
   },
   {
     name: 'chronicle',
@@ -442,6 +442,7 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
+  'video-thumbnails': { branch: 'claude/intelligent-galileo-4ptpyf', since: '2026-11-13' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
