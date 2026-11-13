@@ -112,5 +112,5 @@ The auditor, the steward and the `ux-reviewer` ran again, told what the first ro
 24. The card's label contrast (`ux-reviewer`): **reject**, already ink at 14 px (`note-types ui 2`).
 25. The keyboard hides the menu (`ux-reviewer`): **reject**, fixed in the first audit (9, the card scrolls); closing the keyboard when the menu opens would lose the caret.
 
-Journeys run after the fixes: `qol`, `threads`, `responses`, `resurface`, `stacks`, `upgrade`, `replay`, `days`, `chronicle`, `walk`, `edit`, `tabs`, once each (`qol` also once before the fix, red). Typecheck, lint and `npm test` pass.
+Journeys run after the fixes (all green): `qol`, `threads`, `responses`, `resurface`, `stacks`, `upgrade`, `replay`, `days`, `chronicle`, `walk`, `edit`, `tabs`, once each (`qol` also once before the fix, red). Typecheck, lint and `npm test` pass.
 

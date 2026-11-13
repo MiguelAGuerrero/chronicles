@@ -516,6 +516,7 @@ async function run(h) {
       check(!!saveBox && canReach, `note-types audit 9: at 320 x 520 with the menu open, Save can be reached (${JSON.stringify(saveBox)}, reached ${canReach})`);
       await shot(pg, 'qol-06-note-type-menu');
       if (items) await pg.click('[data-testid=note-type-item-idea]');
+      await pg.waitForTimeout(300);
       const focusedAfter = await pg.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-testid'));
       check(focusedAfter === 'note-type-row', `note-types audit 21: choosing a type returns focus to the Type row (${focusedAfter})`);
       const rowAfter = (await row.count()) ? await row.innerText() : '';
