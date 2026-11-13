@@ -32,7 +32,9 @@
 //                                                           base with HEAD and the working tree against HEAD
 //
 // Bodies come from --file <path> or stdin, so nothing needs shell quoting. <match> is text that occurs in
-// exactly one entry of the operation's scope. A remove, set or retag of an entry the run did not file
+// exactly one entry of the operation's scope; an inbox entry the pending operations added is recorded by its
+// handle (@1 for the first operation's), which redo renumbers with it. Each operation records the entry it
+// acted on, and replay refuses another. A remove, set or retag of an entry the run did not file
 // (filed: added by inbox add, open add or item add earlier in the range) needs --reason, and a commit
 // makes at most two of them per section. A tag moves only toward [owner], [arch] or [kept].
 // Plain Node, no dependencies; scripts/tend.js runs the gate on every loop commit.
