@@ -17,7 +17,7 @@ import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb } from '../../lib/pins';
 import { useReminded } from '../../lib/useReminded';
-import { scaleBar, scaleShown } from '../../lib/scaleBar';
+import { drawnFrom, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
@@ -218,12 +218,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const blankWatch = !!props.hideScaleOnBlank && !props.walker;
   const [drawn, setDrawn] = useState<boolean | null>(null);
   // The base tiles, read through the query source (the app's own layers, the world's veil among them, cover the world
-  // whatever the tiles did): a tile with places in it has drawn something, down to the world's continents.
+  // whatever the tiles did): roads, water or places in them have drawn something (`drawnFrom`, tend map audit 14).
   const lookDrawn = () => {
-    if (!blankWatch || !queryRef.current) return;
-    queryRef.current
-      .querySourceFeatures({ sourceLayer: 'place' })
-      .then((fs) => setDrawn(fs.length > 0))
+    const source = queryRef.current;
+    if (!blankWatch || !source) return;
+    const count = (sourceLayer: string) => source.querySourceFeatures({ sourceLayer }).then((fs) => fs.length, () => 0);
+    Promise.all([count('transportation'), count('water'), count('place')])
+      .then(([roads, water, places]) => setDrawn(drawnFrom({ roads, water, places })))
       .catch(() => {});
   };
   const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
@@ -441,6 +442,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           <Layer id="q-names" type="line" source-layer="transportation_name" paint={HIDDEN} />
           <Layer id="q-places" type="circle" source-layer="place" paint={{ 'circle-opacity': 0 }} />
           <Layer id="q-pois" type="circle" source-layer="poi" paint={{ 'circle-opacity': 0 }} />
+          {/* Water, so its tiles load for the blank-world look (tend map audit 14). */}
+          <Layer id="q-water" type="fill" source-layer="water" paint={{ 'fill-opacity': 0 }} />
         </VectorSource>
         {/* Town borders, the first overlay: under everything the app draws (TB8). MapLibre RN has no
             base road layer id to go below, so they sit over the base map's streets (unverified on a device). */}

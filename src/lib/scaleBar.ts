@@ -37,6 +37,14 @@ export function scaleShown(o: { hideOnBlank: boolean; fix: boolean; drawn: boole
   return !o.hideOnBlank || o.fix || o.drawn === true;
 }
 
+/**
+ * Whether the base tiles drew anything, from how many features each of their layers holds (tend map audit 14): roads,
+ * water or places, any one is enough. Places alone missed a view of sea, forest or farmland with no name in it.
+ */
+export function drawnFrom(counts: { roads: number; water: number; places: number }): boolean {
+  return counts.roads > 0 || counts.water > 0 || counts.places > 0;
+}
+
 /** The longest 1, 2 or 5 × 10^n no more than `max` (in whatever unit `max` is). */
 function longestRound(max: number): number {
   // The decade the maximum falls in, nudged so a length that fits exactly isn't lost to rounding.

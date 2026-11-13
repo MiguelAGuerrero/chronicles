@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { LOCATION_OFF, locateNotice } from '../../locate/notice';
-import { scaleShown } from '../../scaleBar';
+import { drawnFrom, scaleShown } from '../../scaleBar';
 
 // T17 (the owner's yes, decision 0154): a refused location is a quiet notice in ink, not a fault, and with no fix and
 // nothing drawn the map shows no scale bar over a blank world. Navigate and Explore (Locate).
@@ -33,4 +33,13 @@ test('tend map T17: with no fix and nothing drawn, no scale bar over a blank wor
   assert.equal(scaleShown({ hideOnBlank: true, fix: true, drawn: null }), true);
   // Every other map (the walk, the replay, Chronicle) always draws its bar.
   for (const drawn of [false, null, true]) assert.equal(scaleShown({ hideOnBlank: false, fix: false, drawn }), true);
+});
+
+test('tend map audit 14: native counts drawn tiles from roads or water, not places alone', () => {
+  // Sea, forest or farmland at z13-16: water or roads, and no place named in view.
+  assert.equal(drawnFrom({ roads: 0, water: 3, places: 0 }), true);
+  assert.equal(drawnFrom({ roads: 12, water: 0, places: 0 }), true);
+  assert.equal(drawnFrom({ roads: 0, water: 0, places: 4 }), true);
+  // Nothing loaded: a blank world.
+  assert.equal(drawnFrom({ roads: 0, water: 0, places: 0 }), false);
 });
