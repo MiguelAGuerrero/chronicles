@@ -1122,10 +1122,17 @@ async function run(h) {
       await c5.close();
     }
 
-    // tend recording audit 1: the same refusal is the same quiet notice, said, wherever a walk is asked for: Resume on a
+    // tend recording audit 1-2: the same refusal is the same quiet notice, said, wherever a walk is asked for: Resume on a
     // paused walk (never "Could not resume: ..."), Walk here on Explore, and Walk here on Chronicle. Location is granted
     // first, so the screens have a fix and the map is near, then taken back before the tap. At 390 and 320.
     const noOldWords = async (page) => (await page.getByText(/Could not resume|Location permission was denied/).count()) === 0;
+    const longPress = async (page) => {
+      const box = await page.locator('canvas.maplibregl-canvas').filter({ visible: true }).last().boundingBox();
+      await page.mouse.move(box.x + box.width / 2 + 30, box.y + box.height / 2 - 40);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+    };
     for (const [w, hgt] of [[390, 844], [320, 700]]) {
       {
         const { c: c6, pg: pg6 } = await freshPage(`qol-resume-refused-${w}`);
@@ -1149,6 +1156,29 @@ async function run(h) {
         check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && old && said.length === 1 && said[0].text === T26_WORDS,
           `tend recording audit 1: at ${w}, a refused Resume is the quiet notice in Start's words, said, never "Could not resume" (${JSON.stringify({ ...seen, said, old })})`);
         await c6.close();
+      }
+      // tend recording audit 2: Walk here on Explore.
+      for (const [tab, region, name] of [['explore', 'atlas-snap-said', 'Explore']]) {
+        const { c: c7, pg: pg7 } = await freshPage(`qol-walk-here-refused-${tab}-${w}`);
+        await pg7.setViewportSize({ width: w, height: hgt });
+        await pg7.goto(navUrl);
+        await pg7.waitForSelector('[data-testid=start]');
+        await pg7.waitForTimeout(1500);
+        await tabTo(pg7, tab);
+        await pg7.waitForTimeout(3000);
+        await c7.clearPermissions();
+        await longPress(pg7);
+        await pg7.locator('[data-testid=walk-here]').filter({ visible: true }).first().click({ timeout: 10000 }).catch(() => {});
+        await pg7.waitForTimeout(600);
+        if (await pg7.locator('[data-testid=spot-walk-now]').filter({ visible: true }).count()) await pg7.locator('[data-testid=spot-walk-now]').filter({ visible: true }).first().click();
+        await pg7.waitForTimeout(3000);
+        const seen = await readNotice(pg7, T26_WORDS);
+        const said = await saidIn(pg7, region);
+        const old = await noOldWords(pg7);
+        await shot(pg7, `qol-13${tab === 'explore' ? 'e' : 'f'}-${tab}-walk-here-refused-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && old && said.length === 1 && said[0].text === T26_WORDS,
+          `tend recording audit ${tab === 'explore' ? 2 : 3}: ${name} at ${w}, Walk here refused is the quiet notice in Start's words and its live region says it (${JSON.stringify({ ...seen, said, old })})`);
+        await c7.close();
       }
     }
 

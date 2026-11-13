@@ -54,6 +54,7 @@ import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
+import type { Waypoint } from '../../lib/nav/types';
 import { walkToChoice } from '../../lib/startPlan';
 import { inPolygons } from '../../lib/complexes/geom';
 import { readsWanted, shown as shownComplexes } from '../../lib/complexes/kinds';
@@ -133,6 +134,16 @@ export default function Explore() {
   // What a swipe landed on, for the screen reader (DN12): web's live region, since react-native-web's announce does nothing.
   // A count beside it, so the same name twice in a row still changes the region and is said again (audit 7).
   const [said, setSaid] = useState({ text: '', n: 0 });
+  // tend map audit 12: a quiet notice is no alert, so a screen reader hears a refusal through this hidden live region on
+  // web (DN12's) and the call on a phone; the red error keeps its alert role. Locate's refusal and Walk here's
+  // (tend recording audit 2).
+  const sayQuiet = (e: { message: string; tone?: 'info' | 'error' }) => {
+    if (e.tone !== 'info') return;
+    setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+    AccessibilityInfo.announceForAccessibility(e.message);
+  };
+  // Every walk asked for here: a refusal is the quiet notice, said (tend recording audit 2).
+  const startWalk = (dest: Waypoint) => walkStart.start(dest, undefined, { onError: sayQuiet });
   const [open, setOpen] = useState<string | null>(null);
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
@@ -243,12 +254,7 @@ export default function Explore() {
     },
     onError: (e) => {
       setLocError(e);
-      // tend map audit 12: the quiet notice is no alert, so a screen reader hears the refusal through the hidden live
-      // region kept mounted on web (DN12's) and the call on a phone; the red error keeps its alert role.
-      if (e.tone === 'info') {
-        setSaid((s) => ({ text: e.message, n: s.n + 1 }));
-        AccessibilityInfo.announceForAccessibility(e.message);
-      }
+      sayQuiet(e);
     },
   });
   // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
@@ -565,8 +571,8 @@ export default function Explore() {
   const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
   const overlay = error ? (
     <Banner
-      // Location refused is a quiet notice in ink, not a fault (T17); a failed Start stays an error.
-      tone={walkStart.error ? 'error' : (locError?.tone ?? 'error')}
+      // Location refused, by Locate (T17) or by Walk here (tend recording audit 2), is the quiet notice; anything else a fault.
+      tone={walkStart.error ? (walkStart.error.tone ?? 'error') : (locError?.tone ?? 'error')}
       onDismiss={() => {
         walkStart.setError(null);
         setLocError(null);
@@ -723,7 +729,7 @@ export default function Explore() {
                   onPress={() => {
                     const at = spot.at;
                     setSpot(null);
-                    walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                    startWalk({ at, label: 'Your spot', kind: 'point' });
                   }}
                 />
               )}
@@ -754,7 +760,7 @@ export default function Explore() {
                 const choice = walkToChoice(you ? metresBetween(you, at) : null, stale ? null : fixSeen.current || null, Date.now());
                 if (openInfo.walk || choice === 'start') {
                   setSpot(null);
-                  walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                  startWalk({ at, label: 'Your spot', kind: 'point' });
                 } else setSpot({ ...spot, ask: choice });
               }}
             />
@@ -875,14 +881,14 @@ export default function Explore() {
           starting={walkStart.starting}
           onWalkAt={(at, label) => {
             setOpen(null);
-            walkStart.start({ at, label, kind: 'point' });
+            startWalk({ at, label, kind: 'point' });
           }}
           onPlan={(k) => setPlan(k)}
           covered={plan != null}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
-            walkStart.start({ at: t.at, label: t.label, kind: 'point' });
+            startWalk({ at: t.at, label: t.label, kind: 'point' });
           }}
           onPick={pick}
           onClose={() => setOpen(null)}
@@ -901,7 +907,7 @@ export default function Explore() {
           onStart={(dest) => {
             setPlan(null);
             setOpen(null);
-            walkStart.start(dest);
+            startWalk(dest);
           }}
         />
       )}
