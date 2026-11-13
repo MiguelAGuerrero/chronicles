@@ -86,7 +86,8 @@ async function checks(h) {
     // (tend places audit 1).
     const starLook = () => page.evaluate(() => {
       const b = document.querySelector('[aria-label^="Fox Point,"]');
-      const disc = [...(b?.querySelectorAll('div') ?? [])].find((e) => Math.round(e.getBoundingClientRect().width) === 36 && getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)');
+      // By its testID, never its drawn width, which a selection's bounce scales (tend places audit 2).
+      const disc = b?.querySelector('[data-testid=star-disc]');
       const cs = disc && getComputedStyle(disc);
       const glyph = [...(disc?.querySelectorAll('*') ?? [])].find((e) => !e.childElementCount && e.textContent);
       const ring = b?.querySelector('[data-testid=star-ring]');
@@ -104,6 +105,8 @@ async function checks(h) {
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
+    // tend places audit 2: read once the selection's bounce has settled.
+    await page.waitForSelector('[data-testid=enter-bounce]', { state: 'detached', timeout: 5000 }).catch(() => {});
     const chosen = await starLook();
     check(rest.outer === null && chosen.bg === ink && chosen.ring === 'rgb(255, 255, 255)' && chosen.ringW === '2px' && chosen.glyph === 'rgb(255, 255, 255)'
       && chosen.outer?.bg === ink && chosen.outer?.w === 42,
