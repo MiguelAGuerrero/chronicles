@@ -396,6 +396,27 @@ browser's script, layout and style time, the map's DOM markers and, per switch, 
   of a profile is mostly that) and doesn't model WebKit's compositing of DOM markers, so a drag that is smooth here
   can still stutter on an iPhone. Treat it as a gate for main-thread work, and confirm on the phone.
 
+### Smooth switches: the `switches` journey
+
+```bash
+npm run export:web && E2E_ONLY=switches E2E_FORCE=1 npm run e2e:web
+```
+
+The owner's small-town report (Nov 13, decision 0164). The harness's `smallWorld` (Smallton, five neighborhoods 0.9-1.3
+km out and Far Hollow 2.4 km west, each with a short shopping street) is served while it runs. On Smallton's page with
+the Busy layer on it steps every neighborhood once at normal speed, then at 4x CPU (`E2E_SWITCH_RATE`) steps to the end
+of the row and back, so every step back is a revisit. It reads the app's `perfCount`/`perfMark` through a Proxy on
+`window.__perf` that stamps each with the page clock, so a switch's map sends, outline derivations and listings are
+placed before, during or after its move (`mark:moved` to `mark:settled`).
+
+- **SS9 is measured against the camera alone**: after each switch the camera goes back where the switch began and makes
+  the same move with the app idle, started by a key (`window.__easeNext`, then F9). A move started from
+  `page.evaluate` got almost no frames in headless Chromium, so it measured nothing.
+- At 4x CPU the camera alone's long tasks vary from 0 to about 350 ms per round trip from run to run: compare medians,
+  side by side, never a fixed sum.
+- In this world only the town's own streets are named (each neighborhood is more than its ring from them), so SS10
+  zooms on the town's card.
+
 ## 5. CI
 
 `.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`,

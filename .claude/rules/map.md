@@ -68,6 +68,19 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     no data expression: maplibre refuses the layer with a console error (the
     `dense` journey's "no console errors" caught it). The style spec package
     is not a declared dependency, so no unit test can validate a layer.
+  - **A switch redraws nothing it already showed** (smooth-switches SS1-SS10, decision 0164; the `switches` journey on
+    the harness's `smallWorld`, at 4x CPU, each switch paired with the same move by the camera alone):
+    - The `strips` and `pockets` sources are sent only when `landing.graded` or `landing.pockets` change, never because
+      the names near the selected area did (web effect deps; native memo keys): each `setData` drops the source's tiles.
+    - Explore bumps `busyNamesSwitch` as a selection's move starts: the web map clears the names once and sends them once
+      at that move's `moveend`, a frame on (a move cut short by the next ends before that one starts). Nothing else
+      clears them (SS10). Native keeps the old timing (DEFERRED).
+    - Area markers (web) are kept by id and re-rendered in place; `marker:area` counts only new ones.
+    - **Traps the journey found:** a hook that sets state when nothing changed renders Explore mid-move (the atlas
+      loop's `townsKnown`, the complexes retry); and the row of cards changed height with the selection (only the
+      selected card has a footer), resizing the map mid-move: `AtlasCarousel` keeps the tallest it has been for the same
+      cards. A move started from a script (`easeTo` in `page.evaluate`) got almost no frames in headless Chromium:
+      the journey's control is started by a key (`window.__easeNext`, then F9), as a switch is.
   - **E2E hooks** (only with `window.__perf`): `data-busy-names` (written at
     `idle`), `data-busy-given`, `data-busy-over`, `data-idle`,
     `window.__zoomTo`, `__busyNamesIn`, `__busyNamePoint` (only where the canvas

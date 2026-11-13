@@ -54,4 +54,13 @@ And a bug: a switch away during a Busy read marks the area tried, so its lines n
 
 ## Record
 
-Not built yet.
+Built 2026-11-13, tests first (`2f0793d`), on `claude/trusting-cannon-f5wdhg`.
+
+- **SS1-SS10 pass**: unit tests in `places/groundKept.test.ts` and `layers/switches.test.ts`; the `switches` journey on the harness's `smallWorld`.
+- **Before** (the journey at 4x CPU, the code as it was): every switch sent unchanged lines and pockets, names mid-move, rebuilt six area markers; the lines swapped between 14 and 18 strips on the way back; long tasks inside the move 186-419 ms, worst frame 67-167 ms.
+- **After**: one Explore render per move (the selection), nothing sent that didn't change, the names once at the settle; two runs paired with the camera alone: median 0 ms of long tasks over it, the worst frame within one frame.
+- **Found on the way, fixed at the cause** (outside the plan): the atlas loop set a new `townsKnown` object at every step, rendering Explore mid-move; the complexes hook rendered Explore to set its retry timer, and read mid-move; the row of cards changed height with the selection (only the selected card has a footer), resizing the map mid-move.
+- **SS9 amended** on the owner's call (decision 0164): the fixed 100 ms couldn't be met by the camera alone.
+- **SS10** guards a regression that did not exist before the slice (nothing cleared the names until SS5's hold). Its first runs read no names at all, the check zooming where no street is named; it now zooms on the town's card.
+- **Deferred**: native's names timing; the card, ring and name held until the settle (`docs/DEFERRED.md`).
+- **Native** has never run on a device: the lines' memo keys, the outline and complexes waiting on `onRegionDidChange` (`docs/NATIVE_UNVERIFIED.md`).

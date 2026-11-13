@@ -756,3 +756,7 @@ What the note types slice left out (`specs/note-types`, decision 0161).
   the moment on the journal page. `npm run e2e:baseline -- voicetrim` printed each of its three runs as failed, then
   "passed 3/3 on main": the baseline script's summary misreads a run that throws before a check.
 
+## Smooth neighborhood switches (SS1-SS10, decision 0164)
+
+- **Native's busy names at a switch's settle** (SS5 is the web's): on a phone the names still follow the selection at the move's start. MapLibre RN has no `moveend` the names can wait on in the same way; do it with `onRegionDidChange` if the phone shows the names flicker.
+- **The card, ring and name held until the camera settles** (the owner, Nov 13: not now, re-measure first). After the slice a switch's one Explore render, the selection's, is what it adds to the camera alone's cost (SS9); holding it would put the card about 0.4 s behind the camera.

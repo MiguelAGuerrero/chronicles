@@ -109,7 +109,7 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     cells `hoodAt` gives it, traced on a grid fixed to the map so two shares meet edge to edge, kept inside the outline-decided town that holds its point (the line never crosses the border drawn beside it), and smoothed (corner cutting, an even resample, a moving average; an average by vertex index goes wrong where a long edge has few vertices). `hoodExtentFor` gives a card the
     shape to count across (`Extent.shape`, profile `extent: 'shape'`); a share-only neighborhood still counts across the ring.
     `groundOf` is what a screen asks, from the kept tiles only: `useHoodGround` looks in the cache a few times and never the
-    network (selecting makes no request, HB12), and the map keeps its ring until the tiles are kept.
+    network (selecting makes no request, HB12), and the map keeps its ring until the tiles are kept. `useHoodGround` keeps each outline it derived for the screen's life (`keepGround`, `groundFor`, keyed by `groundKey`: the neighborhood, the tiles read and the candidates), so a revisit draws at once, and with a `stillness` it looks up and derives only once the camera is still, in a task of its own (smooth-switches SS1, SS2).
   - **Drawn:** `groundDraw.ts`: one line in the app's ink, no fill, no properties; the same for a shape and a share; never a name,
     a count or a tint, and never an accessible label of its own (HB10, HB14, HB15). Adding a fill, a colour by walks or finds, or
     a figure to it is the coverage view the vision rules out.

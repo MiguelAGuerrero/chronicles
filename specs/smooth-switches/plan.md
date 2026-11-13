@@ -33,16 +33,16 @@ The owner reviews this before any code. The numbers come from the fresh agent's 
 
 | Id | Test |
 |---|---|
-| SS1 | `places/hoodGround.test.ts` "SS1: a neighborhood's outline is kept by its key, tile count and candidates; a revisit takes it"; e2e `switches` "SS1: a revisit derives no outline" (`perfCount('hood:ground')` 0 on the way back) |
-| SS2 | e2e `switches` "SS2: no outline is derived during a switch's camera move" (`perfMark` stamps against `mark:moved`/`mark:settled`) |
-| SS3 | `map/busyNames.test.ts` "SS3: the lines' data is keyed by the lines, not the names"; e2e `switches` "SS3: a switch with the same lines sends no strips or pockets" (`setData:strips`, `setData:pockets` per switch) |
-| SS4 | `explore/carousel.test.ts` "SS4: on a town's page the areas drawn are the same for every neighborhood, an outer one's included", "SS4: names stay near the selected neighborhood"; e2e `switches` "SS4: switching neighborhoods on a town's page keeps the same lines" (`data-busy` unchanged after every area was read) |
-| SS5 | e2e `switches` "SS5: no busy name drawn mid-move; one names send at the settle" (`setData:busy-names` per switch: an empty one at the start, one full at the end; `data-busy-names` read mid-move) |
-| SS6 | e2e `switches` "SS6: a switch rebuilds no area marker" (`marker:area` counts creations only) |
-| SS7 | `layers/state.test.ts` "SS7: a read cut short is not tried; selected again it reads" |
-| SS8 | `layers/state.test.ts` "SS8: the remembered areas are listed at the start, after a read and on reload only"; e2e `switches` "SS8: a switch lists no remembered areas" (`busy:list`) |
-| SS9 | e2e `switches` "SS9: at 4x CPU a switch's long tasks inside the ease total under 100 ms and its worst frame is under 100 ms, revisits too" |
-| SS10 | e2e `switches` "SS10: a zoom and a drag (Move map) clear no busy name" (`setData:busy-names` with no empty send, `data-busy-names` kept); e2e `walk` keeps DC16's names checks |
+| SS1 | `places/groundKept.test.ts` "SS1: a neighborhood's outline is kept by its key, tile count and candidates; a revisit takes it"; e2e `switches` "SS1: a revisit derives no outline" |
+| SS2 | e2e `switches` "SS2: no outline is derived during a switch's camera move" |
+| SS3 | e2e `switches` "SS3: a switch with the same lines sends no strips or pockets" (no unit test: the fix is the map's effect and memo keys) |
+| SS4 | `layers/switches.test.ts` "SS4: on a town's page the areas drawn are the same for every neighborhood, an outer one's included" (`busyHold`, `drawnAreas`, a stateless rule in place of the plan's `busyLinesAround`); e2e `switches` "SS4: switching neighborhoods on a town's page keeps the same lines" |
+| SS5 | e2e `switches` "SS5: no busy names sent mid-move, one send at the settle" |
+| SS6 | e2e `switches` "SS6: a switch rebuilds no area marker" |
+| SS7 | `layers/switches.test.ts` "SS7: a read cut short is not tried; selected again it reads" |
+| SS8 | `layers/switches.test.ts` "SS8: the remembered areas are listed at the start, after a read and on reload only"; e2e `switches` "SS8: a switch lists no remembered areas" |
+| SS9 | e2e `switches` "SS9: at 4x CPU a switch renders Explore at most once mid-move and costs what the camera alone does on the same move, give or take that render" (each switch paired with the camera alone's move) |
+| SS10 | e2e `switches` "SS10: a zoom clears no busy name" |
 
 - **New journey `switches`.** The harness gains `smallWorld`, served only while the journey asks, like `snapWorld`. The journey goes on the `explore`, `layers` and `map` features, and the spec on `layers`.
 - **SS9 is the measured target.** Before, it was 192-260 ms of long tasks and 117-147 ms worst frames. If the fixes can't reach it on Chromium's model of a phone, I'll come back to you with the numbers, not loosen it.

@@ -599,3 +599,6 @@ What the note types slice wrote and has not run on a phone (`specs/note-types`, 
 - [ ] **Do:** on an iPhone in Low Power Mode, open Media with a video that has no still, then leave Low Power Mode and open it again. **Expect:** the glyph at first, then the still once the phone can load it; never a glyph for good (video-thumbnails audit 1).
 - [ ] **Do:** open Navigate with a few one-video pins near you. **Expect:** each pin shows its still without the map stuttering (a 720 px still drawn in a 36 px head), and a still made after an edit replaces the pin's picture (VS3).
 
+## Smooth neighborhood switches (SS1-SS10, decision 0164)
+
+- [ ] **Do:** with the Busy layer on, open a town's page and swipe through its neighborhoods to the end of the row and back. **Expect:** the magenta lines stay put, none redrawn or swapped (SS3: native's strips and pockets made again only when `graded` or `pockets` change; SS4: the areas within the town's reach held); each neighborhood's outline appears once the map stops, and at once on the way back (SS1, SS2: `useHoodGround`'s kept outlines, waiting on `onRegionDidChange`); the map never resizes as the selected card changes (the row keeps its tallest height).
