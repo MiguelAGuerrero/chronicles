@@ -82,7 +82,7 @@ The owner's screenshot of the built line on an iPhone, and their call: it felt l
 
 ### The page at rest, and the empty page as the pen (added Nov 13, the owner's call)
 
-The owner, on seeing the page pushed to its foot: "have like a peek to show the last entry, but the page is mostly aligned to the top, and when you click on the empty space, it expands out, or rather transitions out to create a moment." Vision: Honour (the empty page is the invitation, with no prompt and no control standing for it), Return (where you left off is the first thing seen); verdict aligned. This amends JN1 (the page rests with its last entry on top, not at the foot), JN11 and JN29 (the empty page is the pen; the bar holds no pen).
+The owner, on seeing the page pushed to its foot: "have like a peek to show the last entry, but the page is mostly aligned to the top, and when you click on the empty space, it expands out, or rather transitions out to create a moment." Vision: Honour (the empty page is where writing begins, with no prompt and no control standing for it), Return (where you left off is the first thing seen); verdict aligned. This amends JN1 (the page rests with its last entry on top, not at the foot), JN11 and JN29 (the empty page is the pen; the bar holds no pen).
 
 31. **JN31** At rest the page is aligned to the top: the day's date, then the most recent entry under it, then the empty page filling the rest of the screen above the bar. Nothing older shows until the page is pulled down, which reads back through the journal with each day's date held at the top as its entries pass. A last entry too long for this shows its end, and the empty page still takes at least a third of the screen.
 32. **JN32** A tap anywhere on the empty page (named "Write an entry") puts the caret on the page, directly under the last entry, and the bar sits on the keyboard (JN30). The bar at rest holds only the camera and the mic. (Amended by JN33 the same day: the last entry no longer slides away, and Done no longer rearranges the page.)
@@ -209,3 +209,72 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **Checked:** typecheck, lint, `npm test`; the journeys named in the commit.
 - **Not yet seen on the phone:** the slide as the stack grows with the keyboard up.
 - **`check:test-first`:** JN31 reports its todo and its real test in one commit, as JN26 did: its journey todo at `b56811f` was written across lines, which the line-based reader takes for a real check. JN32 and JN33 read as tested first.
+
+## Audit of JN28-JN33 (Nov 13)
+
+Report-only passes by the auditor (40-49), the steward (S1-S3) and the UX reviewer (U1-U10), triaged. 23 findings: 10 fixed, 4 deferred, 6 to the owner (three questions; S1, U1 and audit 44's order are one, S2 and U7 another), 3 rejected. Regression tests are named `chronicle-journal audit N`: a unit test in `src/lib/__tests__/journal/rest.test.ts` (48) and checks in the `journal` journey (40, 42, 43, 44, 45), committed as todos first.
+
+- audit 40: The sheet does not know the keyboard, so the line being written sits behind it: accept. The bar reports its height and its lift together, and the sheet pads its foot by both.
+- audit 41: Tabs stay folded when the focused field moves from the bar to the page: accept. Typing belongs to the slot it began in. No automated test: the path needs an entry to close by time while the field is focused in a thread; covered by typecheck and the phone check.
+- audit 42: The anchor outlives the sitting: accept. Coming back to Memories is a new sitting.
+- audit 43: A reader scrolled back is pulled to the foot when the keyboard goes: accept.
+- audit 44: A screen reader reaches the field last, and twice: the double name, accept (the tappable page is not said); the order, to the owner with S1.
+- audit 45: A dead band directly under the last entry: accept. The tappable page lies under the whole empty page.
+- audit 46: Recording from a thread at 320 px: defer.
+- audit 47: Deleting the anchor rearranges the page: defer.
+- audit 48: The sticky height is the oldest drawn day's: accept (`stickyDay`).
+- audit 49: The slide ignores reduce motion: accept; the hard-coded settle time is deferred with it.
+- steward 1: Scrolled back, the pen is no longer one tap: to the owner (it reverses part of their call on the bar).
+- steward 2: The typewriter cuts the top entry out of its context: to the owner (how the slide should settle).
+- steward 3: The spec calls the empty page "the invitation": accept, reworded.
+- ux 1: As S1.
+- ux 2: The still mark is the only sign of where to write: reject, the owner's call (decision 0155, JN10); it rests on S1's answer.
+- ux 3: A toolbar and the tab bar show together at rest: to the owner (the bars, as ui 1).
+- ux 4: Open as a page is an ambiguous document icon: accept, an expand glyph.
+- ux 5: Camera and mic change position between rest and writing: to the owner.
+- ux 6: The bar at rest reads as a blank band: reject as its own finding; settled by S1 or U3.
+- ux 7: The held date has no edge; a More shows through it: the More, accept (the date is above the entries passing under it); the edge, to the owner with S2.
+- ux 8: The line being written sits 22 px lower than a kept entry: defer.
+- ux 9: The bar's failed save is not pictured at 320 px: defer.
+- ux 10: Nothing at rest says there is a journal above: reject, the owner's call (JN31); Contents is in view.
+
+- **Journeys:** `journal` ran four times while the checks were made to pass (three stopped at an older check that read the spoken name off the tappable page); the others named by `check:affected` once.
+- **Native:** none of it has run on a device; three checks added to `docs/NATIVE_UNVERIFIED.md`.
+
+### The owner's answers (Nov 13): "go with your recommendations"
+
+Built as `chronicle-journal audit 50-54`, checks in the `journal` journey, committed as todos first. JN29 and JN32 are read with these.
+
+- audit 50 (steward 1, ux 1, audit 44's order): with the empty page out of view the bar holds a pen ("Write an entry") at its leading side; one tap brings today's foot back with the caret on the page. In view, the empty page is the pen and the bar holds none.
+- audit 51 (ux 5): Done's place is kept at rest, so the camera and the mic never move between rest and writing.
+- audit 52 (steward 2, ux 7): entries fade under the held date instead of being cut. The slide still stops where the stack ends; settling on an entry's first line was the other option, not taken.
+- ux 3 (a second bar above the tab bar at rest): left as it is.
+- audit 53 (the steward's question): while the field has the keyboard on a walk, the bar keeps the recording's mark, a red dot said as "Walk recording".
+- audit 54 (the owner: note types "are no longer accessible given the new UI"): the journal's entry draws a note's type above its words, as the moment card it replaced did (note types NY9, decision 0161). Choosing a type is still on the note's page only; where it should live in the journal waits on the owner (`docs/STATUS.md`).
+- Counts after the answers: 23 findings, 15 fixed, 4 deferred, 4 rejected.
+
+## Audit (Nov 13, the in-line voice note)
+
+The owner's request: a voice note on the page plays in line, with a progress bar, and does not open the viewer (`components/journal/MemoLine`). Report-only passes by the auditor (1-9), the steward (10-12) and the UX reviewer (13-19), triaged. 19 findings: 12 fixed (three of them the same fix as another), 3 deferred, 3 rejected, 1 a pass with nothing to change. The owner chose ink over the voice purple, and one note at a time with a recording pausing playback.
+
+1. A trimmed note could stop again right after a restart (high): accept, `isRestarting` (`lib/journal/memoPlay`), as the viewer's player does. Test `journal voice audit 1`.
+2. The play button is not its own focus target for a screen reader on a phone, being inside the entry's open button (high): defer, the viewer still plays a note for a screen reader; the fix changes the entry's open target (`docs/DEFERRED.md`).
+3. Nothing stopped a playing note when a recording started (high): accept, `nowPlaying` (`lib/journal/nowPlaying`) and `startVoice` claims it. Test `journal voice audit 3`.
+4. Two notes played at once (medium): accept, the owner's call: the second takes the sound, the first lets go of its player. Test `journal voice audit 4`.
+5. A file that would not resolve left a pause button that plays nothing (medium): accept, the row is given back after `MEMO_LOAD_WAIT_MS`. Test `journal voice audit 5` (the constant and its use; the timer itself is covered by typecheck and the journey).
+6. A refused autoplay (web, iOS) has no handling (medium): reject, the row is left with a Play button that works on the next tap, as the viewer's player does; the replay's own refusal path is for a replay that moves on by itself.
+7. The purple against "no accent colour" (medium): accept, the owner's call: the disc and fill are ink (`theme.ink`), the track `theme.edge`. Test `journal voice audit 7`. The recording purple stays the line's own (audit 20 of Nov 12).
+8. An untrimmed note whose stored length outruns its file did not restart from 0 (low): accept, `fileEnded`. Test `journal voice audit 9`.
+9. Sizes and screen reader (low): accept the size and the position (13 and 16); a tap on the bar or clock now does nothing instead of opening the viewer, because they sit beside the entry's open button, not in it (see 2).
+10. The purple again (steward S1): the same fix as 7.
+11. The digits are within the rule (steward S2): a pass with nothing to change.
+12. In-line playback fits a quiet page (steward S3): a note; the bar returns to nothing after the end, as built.
+13. The play button was 44 pt only by hit slop (medium): accept, 48 pt in itself (`MEMO_PLAY_HIT`). Test `journal voice audit 13` and the journey.
+14. The clock changed width when play began, so the bar jumped (medium): accept, always "a / b" (`memoClockText`). Test `journal voice audit 14` and the journey.
+15. The unfilled track under 3:1 (medium): accept, `theme.edge`. Test `journal voice audit 7`.
+16. Progress hidden from a screen reader (medium): accept, the bar is a progress bar with its position in words (`memoProgressText`). Test `journal voice audit 16` and the journey. The viewer says "voice memo", the journal "voice note": defer.
+17. Scrubbing (low, opinion): reject, the viewer's bar is not seekable either; scrubbing is built there first if ever.
+18. The purple (UX U6): the same fix as 7.
+19. The loading state shows a pause glyph before the file resolves, and the clock floors while the bar is exact (low, opinion): defer the first, reject the second.
+
+Journeys run: `journal` (80 checks), `edit`, `walk`, `space`, `threads`, each once, green. Native, not run on a device: `expo-audio`'s player, `seekTo` and `updateInterval`, whether a finished file rewinds, the interruption by a recording, silent mode after a recording (`docs/NATIVE_UNVERIFIED.md`).

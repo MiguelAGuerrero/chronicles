@@ -16,6 +16,10 @@ const ALLOWED = new Set([
   'components/threads/NoteBubble.tsx',
   'components/map/WalkMap.web.tsx', 'components/map/WalkMap.native.tsx',
   'app/(tabs)/index.tsx', 'app/replay/[id].tsx', 'app/day/[key].tsx', 'components/walk/useReady.tsx',
+  // A type by choice at capture (NY18-NY25; the gate of Nov 13, `specs/note-types/spec.md`): the journal's entry and
+  // bar, More's Type, and a new note's page. They draw and set the owner's own mark; none counts, sorts or filters.
+  'lib/noteTypeChoice.ts', 'components/journal/Entry.tsx', 'components/journal/OpenLine.tsx', 'components/chronicle/MemoriesScreen.tsx',
+  'components/chronicle/MemoryMenu.tsx', 'components/notePage/NewNotePage.tsx',
 ]);
 const WORDS = /\b(note_type|noteTypeOf|markOf|NOTE_TYPES|pinMark|pinNoteLabel|captureIcon|isFacePiece|patchFaced)\b|lib\/noteType|\.\/noteType/;
 const files = (dir: string): string[] =>

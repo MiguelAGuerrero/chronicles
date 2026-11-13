@@ -402,7 +402,7 @@ browser's script, layout and style time, the map's DOM markers and, per switch, 
 npm run export:web && E2E_ONLY=switches E2E_FORCE=1 npm run e2e:web
 ```
 
-The owner's small-town report (Nov 13, decision 0164). The harness's `smallWorld` (Smallton, five neighborhoods 0.9-1.3
+The owner's small-town report (Nov 13, decision 0165). The harness's `smallWorld` (Smallton, five neighborhoods 0.9-1.3
 km out and Far Hollow 2.4 km west, each with a short shopping street) is served while it runs. On Smallton's page with
 the Busy layer on it steps every neighborhood once at normal speed, then at 4x CPU (`E2E_SWITCH_RATE`) steps to the end
 of the row and back, so every step back is a revisit. It reads the app's `perfCount`/`perfMark` through a Proxy on

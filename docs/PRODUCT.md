@@ -307,7 +307,7 @@ recording, and a recording bar brings a minimized walk back.
   another name, a "?" pin, the selected area's name or one of Explore's buttons; where they crowd, the heavier streets (a
   current area's first) keep theirs and zooming in brings the rest. On Explore they take the room first; on the walk screen
   and Navigate the map's own street names do, the trace draws over them, and only those within 800 m of you are named.
-  Moving between neighborhoods redraws nothing already shown (decision 0164): on a town's page the lines stay put, a
+  Moving between neighborhoods redraws nothing already shown (decision 0165): on a town's page the lines stay put, a
   neighborhood's outline comes back at once, and the names leave as the map starts moving and come back once when it stops.
 - An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
   "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
@@ -332,11 +332,13 @@ recording, and a recording bar brings a minimized walk back.
   - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
     the page itself, in your serif, with no box and no hint text. The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
-    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic; while you write it holds "Kept as you
+    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic, each always in the same place, and a pen at its left once
+    the page is pulled down and the empty page is out of view; while you write it holds "Kept as you
     write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
     the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
-    are one entry; Done ends it, as do two minutes without a piece. Typing **@** references another moment, drawn on
+    are one entry; Done ends it, as do two minutes without a piece. A note can carry a **type** by choice: a small tag in the corner of the entry being written opens
+    the eight, named, just above the bar for one pick, and the mark then sits above the note's words; it is never asked for. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
     walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
     is today's date and the empty page.

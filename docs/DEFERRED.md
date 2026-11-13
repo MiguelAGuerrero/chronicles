@@ -159,6 +159,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
 - A caption dragged near the bottom of a portrait photo sits behind the viewer's Respond row while the viewer is open (fix respond-bottom audit 5); the saved photo and the replay's card are not affected
 - On Android with edge-to-edge, the reported keyboard height leaves out the navigation bar beneath it, so Respond's Cancel and Keep reply may sit partly under the keyboard (fix respond-bottom audit 7): waits on a device run (NATIVE_UNVERIFIED), since whether the keyboard events reach the Modal's field at all is unknown
+- The journal's in-line voice note is not a focus target apart from its entry's open button for a screen reader on a phone, because it sits inside it; the viewer still plays the note. The fix splits the entry's open target, a navigation call for the owner (journal voice audit 2)
+- The viewer's player says "voice memo" where the journal's says "voice note": one noun for both (journal voice audit 16, opinion)
+- The journal's in-line voice note shows its pause glyph while the file is still resolving, before anything plays: a brief busy state would be honest (journal voice audit 19, opinion)
 
 ## Deletion
 
@@ -199,10 +202,17 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   reads as a 14 px orange dot (`23-day-card`, `rr-day-card` after `tend map T16`). The pair still reads began and
   ended. A radius of 9 with a 2 px ring would keep 22 px and show about 18 px of orange; the marker's size is yours
   (the T16 review's U2, low)
+  Since `tend map T25` (decision 0162) the end is a bullseye: a walked outer ring 9.5 px out with a 1.5 px white edge,
+  round a white band and a walked centre, 22 px across like the start, so about 3.5 px of walked ring shows outside
+  the band.
+  The T25 pictures show the end and the start at one width, about 21 px each at 3x (`390-replay-card-zoom3x` in the
+  T25 probe; the T25 review's ux-reviewer), so this item no longer matches what is drawn: you may close it.
 - [owner] A capture pin standing on a start or end puts its stalk inside the marker: the "2" pin's stalk lands in the
   solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
   `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
   the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
+  Since `tend map T25` the stalk crosses the bullseye's white band, so the end reads like a power glyph at 1x
+  (`qol-03-replay-card`, `qol-17-pins-several-replay`; the T25 review's ux 25, low). The fix stays yours.
 - [loop] A pin of one memory says "Memory: Voice memo" where a pin of several says "Memories: a photo and a note": two tables for one thing (`pinSpoken`, `src/lib/pins.ts`); "Memory: a voice memo" from the same table would match (the T14 review's U5, low; a pin of one moment is not T14's subject)
 - [loop] At 320 px the walk's "Add to this moment" offer, a toast with four controls, lies over the pins it refers to (`after3x-walk-320` in the T14 probe, the same before T14; `.claude/rules/ui-patterns.md`, a control may not float over its content) (the T14 review's U6, low)
 - [loop] No test runs the web's in-place relabel of a pin (`usePinMarkers` in `WalkMap.web.tsx`, the name set again when a walk clock comes or goes after the pin was drawn): every journey's clock arrives with or before the pins (the T14 review's test finding; `tend map audit 21` makes the clock go at Stop, and the walk screen leaves for the replay at once)
@@ -734,6 +744,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   is cut off ("Nov 12, 2026 · Not on ...", audit 10, older); a Memories entry with no place shows a place glyph and no
   words (audit 11, older; the resurfaced card says "No place kept"). A capture-time still (`useCaptures`) still runs
   beside the thumbs shell's queue, so a new video's still and an older one's can be made at once (two at most).
+- **Recording a voice note from a thread at 320 px leaves the field about 20 px, and a failed save in a thread shows Retry with no "Not kept yet"** (audit 46): the bar's row holds the field, the timer, Discard, the camera, stop and Done in 304 px; with the field in the bar the status is never drawn. Fix: the timer row replaces the field while recording there, and the status is drawn above the row.
+- **Deleting the entry the page opened on rearranges the stack, and Undo does not put it back** (audit 47): `anchorOf` falls to the last entry, so the entries written since slide away. Fix: remember the anchor's time and fall to the first entry after it.
+- **The line being written sits about 22 px lower under its dateline than a kept entry's words** (ui U8): the field's own padding and the entry's foot stand between them, so the words rise that much on Done. Fix: give the field a kept entry's offset, checked against a photo as the entry's last piece.
+- **No picture of the bar's failed save ("Not kept yet", Retry) at 320 px** (ui U9): the status has about 120 px there. Add a `shot()` at 390 and 320 and see whether it fits.
+- **The page's slide waits a hard-coded 450 ms** (`SETTLE_MS` in `JournalPage`, audit 49's second half): a timing outside `lib/motionTokens`. The animated scroll itself now respects reduce motion.
+- **A type save that fails is not said, and a type never reaches the page's own copy while a read has failed** (note-types audit 59): the rejection is caught and the slot goes on showing what is stored, but nothing tells the owner; with the page drawing its sitting's copy (`session`), a pick is stored and not shown until the read succeeds. Fix: say it in the bar as a failed save is, and patch `session`.
+- **A second tap on the Type slot within the write's few milliseconds reads the old type** (note-types audit 64): the ask carries the type as it was, so the same pick sets it again instead of clearing. Fix: toggle against the stored value when the write lands.
+- **Neutral is a minus in a circle, which reads as "remove", and the eight above the bar have no "No type"** (ux 13; the glyph is note-types audit 23, already deferred): clearing is a tap on the marked one, shown by its tint, rule and heavier name. Fix: a flat-mouthed face when the icon set has one; a ninth "No type" if the owner wants the two pickers alike.
 
 ## Explore in a dense city (decision 0156)
 

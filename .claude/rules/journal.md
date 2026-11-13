@@ -65,6 +65,34 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 - **The day's entries stack; nothing rearranges** (JN33). The first build of JN32 slid the last entry away so the new one had a blank screen, and Done brought the page back with it on top: the owner's call was a stack that slides up "almost like a typewriter", so that writing never looks like words only. The anchor is the entry the page opened on (state in `JournalPage`, replaced only when that entry is gone); the rule takes no `writing` flag. Once the stack fills two thirds of the room the empty page stays a third, with the line at its top, and the sheet's end is kept in view as it grows. The keyboard changes the sheet's height in several steps while the bars fold, so `JournalPage` holds `pinned` for `SETTLE_MS` and scrolls to the end once more after it; a scroll event in between must not unpin.
 - **A pill above the bar (room left, the edit offer, Undo) can cover the middle of the empty page.** It takes its own taps; the journeys tap the page's first lines (`position: { x: 40, y: 16 }`). A centre click on `line-write` hit the room-left pill and typed nowhere.
 
+## After the second audit (chronicle-journal audit 40-49, Nov 13)
+
+- **The sheet pads its foot by the bar and the keyboard's lift together** (audit 40): `OpenLine` reports `barH + lift` through `onHeight`, so the empty page's room is what is left above the keyboard. Report only the bar and the line being written sits behind the keys.
+- **Typing belongs to the slot it began in** (audit 41): the field is drawn in the bar or on the page, and moving between them while focused is a new field with no blur. `typing` is true only while `typedInBar` matches `inBar`, or the tabs stay folded.
+- **A sitting ends when Memories is left** (audit 42): `JournalPage` takes `focused` and drops the anchor when it comes back, holding the end as it does for the keyboard.
+- **The keyboard going never moves a reader who scrolled back** (audit 43); coming up, it always brings the line into view.
+- **The tappable page lies under the whole empty page** (audit 45: `absoluteFill`, the field's dateline room lets taps through) **and is hidden from a screen reader** (audit 44): the field has the name. A journey clicks it with `force: true`, since the field can lie over the point.
+
+## The owner's answers to the second audit (audit 50-54, Nov 13)
+
+- **The bar holds a pen only while the empty page is out of view** (audit 50): `JournalPage` tells `onAway` from its scroll, `MemoriesScreen` passes `penInBar`. In view, the page is the pen.
+- **Done's place is kept at rest** (audit 51): an unseen, untappable Done of the same width, so the camera and the mic have one place each.
+- **The held date has an edge** (audit 52): four bands of the page's ground under it, none fainter than a fifth. A fainter band is drawn a shade off the ground it lies on and shows as a line under every date.
+- **Writing on a walk, the bar keeps the recording's mark** (audit 53): the recording bar is folded with the tabs.
+- **An entry draws its note's type** (audit 54, `NoteMark`): the journal replaced the moment card, which drew it. The Type tool is on the note's page only.
+
+## A note's type in the journal (note types NY18-NY25, Nov 13)
+
+- **Opt-in, never a step.** Nothing about a type shows before the first character. The entry being written has a `type-slot` at the end of its dateline; a tap asks `OpenLine` (its handle, `pickType`) to open the eight above the bar's row (`type-row`: two rows of four, each a glyph over its name); the next character, a pick, the slot again or Done closes them. **Never put them in the bar's own row:** the first build did, as glyphs alone, and it had no names, no way out, 38 px targets at 320 and type buttons where Done, the mic and the camera came back under the same finger. They belong to the note being written on the screen in front (`asking`), so a closed entry or a menu takes them away. The word is "Type", never "stamp" or "reaction".
+- **`MemoriesScreen` saves it** with `resurface.saveNote(..., typeOnly)`, which patches the page's moments at once; `OpenLine` only shows the row and reports the pick.
+- **A typed note draws `NoteMark` above its words** (glyph and name), while it is written and once kept, so Done moves nothing; a bare glyph beside More read as a button. More has Type, with `NoteTypeMenu` alone in the same sheet under a heading. A response's page has no Type tool (NY15): `NewNotePage` takes `typed` from capture surfaces only.
+
+## A voice note plays in line (the owner, Nov 13; journal voice audit 1-19)
+
+- **It never opens the viewer.** An entry's voice piece is `MemoLine` (`components/journal`): a 48 pt play control, a progress bar filling as it plays, and a clock that always reads "a / b" (`lib/journal/memoPlay`). It is drawn in ink (`theme.ink`, the track `theme.edge`): the voice purple is the line's own recording colour, never the page's. Its file is resolved and loaded only on the first press, and a file that does not resolve gives the row back after `MEMO_LOAD_WAIT_MS`.
+- **One note plays at a time, and a recording stops it** (`lib/journal/nowPlaying`): a note claims the sound when it starts and lets go of its player when another claims it; `useCaptures.startVoice` claims it as `RECORDING`. A trimmed note plays its kept part through `lib/voiceTrim` and restarts as the viewer's player does (`isRestarting`).
+- **Known gap:** the play control sits inside the entry's open button, so a screen reader on a phone may not reach it apart from the entry (the viewer still plays the note): `docs/DEFERRED.md`.
+
 ## Traps
 
 - **An iPhone floats the keyboard's own row (previous, next, a tick) over the page** (fix keyboard-accessory, the owner's phone, Nov 13). A web page cannot turn it off or measure it, and `visualViewport` does not count it, so it sat on the bar's camera, mic and Done. The bar keeps `ACCESSORY_ROOM` empty under its controls while the keyboard is up (`accessoryRoom`, `floatsAccessory` in `lib/journal/keyboard.ts`: an iPhone or iPad whose engine has `anchor-name`, which arrived in the release that began floating the row; the Home Screen app's agent names no version). The 56 is read off a screenshot; never seen to work on a phone.

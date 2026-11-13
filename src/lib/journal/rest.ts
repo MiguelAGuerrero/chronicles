@@ -42,6 +42,16 @@ export function anchorOf(rows: readonly Row[], anchor: string | null): string | 
   return null;
 }
 
+/**
+ * The date held over the peek (audit 48): the day the peek's first row belongs to, or none when the peek begins
+ * with a date of its own. Past the end (nothing kept) it is the last day drawn.
+ */
+export function stickyDay(rows: readonly Row[], from: number): string | null {
+  if (rows[from]?.k === 'day') return null;
+  for (let i = Math.min(from, rows.length) - 1; i >= 0; i--) if (rows[i].k === 'day') return rows[i].key;
+  return null;
+}
+
 /** Which row the peek begins with (JN31, JN33): the anchor's, or past the end when nothing is kept. */
 export function peekStart(rows: readonly Row[], anchor: string | null): number {
   const at = anchor == null ? -1 : rows.findIndex((r) => r.k === 'entry' && r.key === anchor);

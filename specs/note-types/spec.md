@@ -128,3 +128,62 @@ piece. The resurfaced card (deleted on main by the journal) took its audit-16 ch
 re-pointed at the page (`note-input`, `note-done`, the Type tool in place of the Type row; `note-types ui 1` now asks that
 the tool shows pressed, and audit 9 that the menu and the bar stay in view at 320 x 520).
 
+## A type at capture, by choice (added Nov 13, the owner's call)
+
+The journal replaced the moment card and the capture band, and with them the places a type was seen and set: on the journal a type could be chosen only on the note's page, two taps away. The owner: "a quick button or fill-in slot the user can press"; "I wouldn't want there to be a gate on writing by selecting what note you're trying to represent. That should be an opt-in rather than a point of friction"; and it is a note's type, never a "stamp".
+
+### Vision (Nov 13)
+
+Idea: A note's type is an opt-in mark you can add while capturing, in the journal and on a walk, and never a step before writing.
+Verb: honour (the moment keeps why it was made, chosen at the moment itself).
+Touches: Always "Capture is one tap away" and Never "A capture behind a menu, a drawer or an extra tap" (writing never waits on a type); Never "A feed, followers, likes" as settled by decision 0161; Always "Restraint" and Never "Nagging" (one faint slot, not eight faces above every note).
+Verdict: aligned if reshaped
+Shape: The word stays "Type" (not "reaction": the word for likes on someone else's post). One slot, in the corner of the entry being written, opens the eight in the bar for one pick; a kept entry shows its glyph in that corner and changes it from More; a new note's page, on a walk or anywhere, carries the page's own Type tool. A type marks a note that has words and never keeps a moment by itself.
+Criteria: NY18-NY25 below.
+Open: none. The owner chose the corner, the bar as the picker and "write first" on a walk (Nov 13); the gate argued once for a slot over a row always in view on a walk, and the owner said to proceed with the defaults.
+
+18. **NY18** In the journal nothing about a type is on screen before the entry being written has its first character: no slot, no row, no glyph.
+19. **NY19** Once it has, a slot named "Type" sits at the trailing end of that entry's dateline. A tap on it opens the eight just above the bar, in the fixed order, each with its glyph and its name in words, and the slot shows that it is open; a tap on one marks the note and the eight leave, with the caret still on the page; a tap on the marked one clears it; a tap on the slot again closes them. (Amended by the audit the same day: first built as a row of glyphs in place of the bar.)
+20. **NY20** Choosing is never a step: writing, Done, the camera and the mic stay in the bar, in their places, while the eight are open, and the next character typed closes them.
+21. **NY21** A type chosen in the journal is kept at once on the note's own piece and is there after Done and after the app is opened again.
+22. **NY22** A note with a type shows its glyph and its name above its words on the journal's page, as the viewer does (NY9), from the moment it is chosen: Done moves nothing. A note with none shows nothing. (Amended by the audit: first built as a bare glyph in the dateline's corner, which read as a button beside More.)
+23. **NY23** An entry's More offers "Type" when the entry has a note, and shows the eight and "No type" in that same sheet, by themselves under the word Type; choosing one keeps it and closes the sheet.
+24. **NY24** A new note's page (on a walk, from the ready screen, from the journal's line) carries the page's Type tool. A type chosen there, before or after the first words, is on the note when it is kept; choosing none keeps a note with no type; a page left without words keeps nothing, whatever was chosen. This amends NY8's "the composers that exist today make a note with no type": they still do, unless the owner chooses one.
+25. **NY25** At 320 px the eight are two rows of four, nothing cut, each target 44 px or more both ways.
+
+### Record (Nov 13, branch `fix/journal-audit-2`)
+
+- **Built:** NY18-NY25, tests first at the commit before. `pickType` and `typeForNewNote` in `lib/noteType.ts`; the slot and the corner glyph in the journal's `Entry`; the row of eight in `OpenLine`'s bar (asked for through its handle, saved by `resurface.saveNote`, so the page shows it at once); Type in `MemoryMenu`, the existing `NoteTypeMenu` in the same sheet; the Type tool on `NewNotePage`.
+- **Defaults taken, the owner having said to proceed:** a type needs a note (a glyph alone keeps nothing); on a walk the page's own Type tool, one tap to open, not a row of eight always in view; the slot's resting glyph is a plain tag.
+- **Checked:** unit tests `captures/typePick` (NY19, NY24); the `journal` journey (NY18-NY23, NY25) and `notepage` (NY24, and NP4 now names the Type tool on a new page).
+- **Native:** none of it has run on a device.
+
+### Audit of NY18-NY25 and the journal's bar (Nov 13)
+
+Report-only passes by the auditor (55-65), the steward (S4-S8) and the UX reviewer (U11-U20) over NY18-NY25 and chronicle-journal audit 50-54, triaged. 26 findings: 21 fixed, 3 deferred, 2 rejected. The first build put the eight in the bar's own row, as glyphs alone; the steward and the UX reviewer both found it nameless, without a way out, 38 px wide at 320 and lying where Done, the mic and the camera come back under the same finger. It was rebuilt as a named panel above the bar, which settles S4, S6, U11, U12, U14 and U15, and NY19, NY20, NY22, NY23 and NY25 were amended to say so. Regression checks, todos first: `note-types audit 56` and `63` and `chronicle-journal audit 60` in the `journal` journey; the amended NY checks cover the rest.
+
+- audit 55: Respond's page offered Type (NY15): accept. The Type tool is on a capture surface's page only (`typed`); the `responses` and `threads` journeys' own checks hold it.
+- audit 56: the eight outlived their entry and left the bar with no camera, mic or Done: accept. They belong to the note being written on the screen in front, and the bar is never replaced.
+- audit 57: the corner and More's Type meant different notes: accept. The mark is above its own note; More's Type marks the note that has a type, else the first.
+- audit 58: a failed type write after a new page's first keep kept the note twice: accept. The keep never fails for its type. No automated test (it needs a store failure between two writes).
+- audit 59: type saves fail silently and never reach the session copy: the unhandled rejection, accept; saying it and the session copy, defer.
+- audit 60: the pen stayed in the bar after the page remounted: accept.
+- audit 61: a band where neither pen existed: accept (the pen is in the bar until the empty page shows above it).
+- audit 62: no recording mark while typing in a thread: accept.
+- audit 63: More reopened on the type grid: accept.
+- audit 64: a quick second ask reads the old type: defer.
+- audit 65: the recording mark was a labelled View with no role: accept (an image). The kept glyph in the corner is gone with steward 7.
+- steward 4: the row read as a scale of faces and thumbs, without names: accept. Names in words; two rows of four.
+- steward 5: Like and Dislike sat above "Show less like this": accept. The eight take the sheet by themselves.
+- steward 6: the camera, the mic, Done and the recording mark went while the row was open: accept.
+- steward 7: a kept entry's mark was a bare glyph beside More: accept. Glyph and name above the words, as the viewer draws it.
+- steward 8: the slot's resting glyph is a tag: reject. It is the glyph the page's Type tool rests on, and the UX reviewer passed it.
+- ux 11, 12, 14, 15: no way out, no names, 38 px targets, type buttons under Done's finger: accept, the panel.
+- ux 13: Neutral reads as "remove", and no "No type" above the bar: defer.
+- ux 16: the slot showed no open state: accept.
+- ux 17: the slot and More were 40 px apart: accept.
+- ux 18: as steward 7.
+- ux 19: the grid in More had no heading and shared the sheet: accept (heading, alone); "No type" without a glyph is `NoteTypeMenu`'s own, left.
+- ux 20: the recording mark is a bare dot: reject, opinion; it is the recording bar's own dot, said by name.
+- **Native:** none of it has run on a device.
+

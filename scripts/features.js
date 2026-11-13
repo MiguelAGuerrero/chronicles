@@ -241,7 +241,7 @@ const FEATURES = [
       'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
       // Note types (NY1-NY17): the model and the mark a note wears.
-      'src/lib/noteType.ts',
+      'src/lib/noteType{,Choice}.ts',
       'src/components/NoteMark.tsx',
       // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
       'src/lib/thumbs/**',

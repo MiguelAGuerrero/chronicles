@@ -1903,6 +1903,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {page && (
           <NewNotePage
             key={page.key}
+            typed
             ref={pageRef}
             cap={cap}
             into={page.into}

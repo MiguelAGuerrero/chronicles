@@ -19,13 +19,13 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 
 | Slice (spec tab) | Status | Evidence (last related commit on main) | Spec | Audited |
 |---|---|---|---|---|
-| Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool; on the viewer's note, the single-note pin and the thread bubble; NY1-NY17, decision 0161) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |
+| Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool, and since Nov 13 by choice at capture: a slot in the corner of the journal's entry being written that opens the eight, named, above the bar; Type in an entry's More; the Type tool on a new note's page; on the viewer's note, the single-note pin and the thread bubble; NY1-NY25, decision 0161) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected; NY18-NY25 with the journal's bar, 26 findings: 21 fixed, 3 deferred, 2 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |
 | Explorer App Concept (v0: record, capture, replay, storage; round 3) | shipped | `7cf5ab1` 2026-10-31 round 3; `565b244` 2026-10-31 | `specs/concept/spec.md` | yes (two audit rounds `7936f48`, `ce6dd26`; round-3 audit `712fdf8`) |
 | Explore in a dense city (busy names drawn by the map with collision, one per street within 300 m, none under a "?" pin or a control; on the walk maps only within 800 m of you; the Busy read and the atlas's ring reads in a web worker, the Busy read after the map settles; fewer renders per switch; DC1-DC19, decision 0160; the owner's Baltimore report, Nov 12) | shipped 2026-11-13 (web verified by the e2e `dense` on the /chronicles build; native unverified); a first read's longest task 3.3-3.8 s to 0.2 s at 4x CPU, the first Busy switch-on 600-700 ms to 90-170 ms; switches between read areas unchanged in Chromium; first "?" pins about 1 s later | branch `claude/trusting-cannon-f5wdhg`, merged 2026-11-13 | `specs/explore-dense-city/spec.md` | yes (19 findings: 12 fixed, 1 rejected, 3 deferred, 6 folded in) |
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
 | v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
 | v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
-| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; JN1-JN33, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, not audited (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; a voice note plays in line with its bar; JN1-JN33, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, audited 2026-11-13 with the owner's answers built (the pen in the bar when the page is pulled down, fixed places for the camera and the mic, an edge under the held date, the recording's mark while writing); the in-line voice note built and audited 2026-11-13 from the owner's request (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page`, `claude/determined-heisenberg-b894d7`, `fix/journal-audit-2` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred; JN28-JN33, 23: 15 fixed, 4 deferred, 4 rejected; the in-line voice note, 19: 12 fixed, 3 deferred, 3 rejected, 1 a pass) |
 | Free look (Explore: Move map frees one-finger panning, Show areas here lists the areas around the map's middle; FL1-FL21, decision 0150, amends EC10) | built 2026-11-11 on `slice/free-look`; not deployed | `slice/free-look` | `specs/free-look/spec.md` | plan audited (16 findings: 15 accepted, 1 rejected); the built slice not audited |
 | Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
@@ -225,22 +225,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   edit, `tend replay 9`); the steps go through the moments with Continue, then the card (RR17); the day's card is said
   after Skip; Back on the name step returns to the card with the name kept (`tend replay 4`), and Back on the card
   leaves for Chronicle.
-- **T25 [owner] Replay: the walker's dot and the solid end differ by colour alone** (2026-11-12)
-  Area: map (the replay and the day replay). Seen: `22-day-replay-walk` after `tend map T16`: mid-path the walker is
-  a solid navy disc with a white ring and, about 45 px away, the end a solid orange disc with a white ring, about one
-  size; before T16 the end was hollow (the T16 review's F1 and U1; `ENDS_PAINT`, `components/map/types.ts`; the dot,
-  `WalkMap.web.tsx` `points` l.137). Rests on: WCAG 2.2, 1.4.1 Use of Color; ui-patterns, "Never colour alone to show
-  state" (X3). The motion tells them apart while the path plays, not on Hold or with reduced motion. QL2 says "the dot
-  is its end" on a live walk; the two are drawn together only on a replay. The marker's shape is yours (decision 0154).
-  Recommended: a bullseye end, a walked centre, a white band and a walked outer ring (two circle layers on the `ends`
-  source, the outer one drawn first), so the end differs in shape from the hollow start and from the solid dot; the
-  start and the dot unchanged. It takes T22's hue when you pick one, with nothing of its own. /vision: aligned
-  (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
-  Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
-  instead; or leave it (the motion tells them apart while it plays).
-  **Answered yes** by the owner in person (`/tend inbox T26 yes, T25 yes`, Nov 13; decision 0162): the recommended
-  bullseye end, the start and the dot unchanged, no hue of its own. Waits for the next `/tend inbox`, one build per run
-  (T26 was built first).
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
@@ -260,6 +244,11 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   spoken examples again.
   Otherwise: as built (a pin of several says its time, a pin of one moment does not, a spread pin and a map with no
   clock say none); or only the span, and nothing more.
+  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): "Time on
+  every pin", the recommended shape: a pin of one moment says its minutes when its walk's clock is known; a pin whose
+  moments lie more than ten walked minutes apart says the span ("from the start to fifty-eight minutes in"); a map with
+  no walk clock says the part of the day of the pin's first moment. Waits for the next `/tend inbox`, one build per run
+  (T25 was built first).
 - **T29 [owner] Reminders say their counts in digits beside pins that say words** (2026-11-13)
   Area: notifications, memories (the T14 sibling lens). Seen: two memories in reach are the reminder "2 memories here"
   with the body "2 voice memos and a note" (`discovery/recall.ts` l.99 and `kindsOf` l.114, its kinds in a fixed
@@ -274,6 +263,10 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   words"); F7 is no breach ("Distances and times are fine"), so it is left. It amends v1-discovery R7's example "2
   memories here".
   Otherwise: also "twelve minutes in" for "What happened here", one voice with the pins; or leave them.
+  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): "Words;
+  keep '12 min in'", the recommended shape: a reminder of several says "Two memories here" and its body takes the
+  pins' words from one table (`pinKindsWords`, in the order taken); the announcements say the same; "What happened
+  here" keeps "12 min in". Waits for the next `/tend inbox`, one build per run (T25 was built first).
 
 ### Next evolutions
 
@@ -301,32 +294,30 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T15 reshape`** (from `cd34f840`, rebased on `f4dd88ff`; the owner's own answer, in person,
-Nov 12, decision 0154: "Ink star, no numeral"; T25 yes waits for the next inbox run, one build per run).
-- `tend places T15`: a walked place keeps its star (decision 0019), a white star on an ink disc, never the accent, one
-  size; a merged star draws no numeral, and its spoken name says its places and walks in words through `lib/quietLines`
-  (`starSpoken`: "Two places, two walks. Zoom in"). Sibling lens: `StarView` is the only view that draws a walked-place
-  star, named through `starLabel` on both maps; Explore's area points, atlas and mini-maps use the accent for selection
-  and links, not for "walked"; the "?" marks are ink but never on Chronicle's map; Explore's merged "?" stars (OP11) are
-  not built. Left, not the star: the place sheet's "1 walk" (filed below).
+**Nov 13, `/tend inbox T25 yes, T28 yes, T29 yes`** (from `67a46a17`, rebased on `741f3b31`; the owner's own answers,
+in person, Nov 13: T25 in decision 0162, T28 and T29 in decision 0164; one build per run, so T28 and T29 wait, marked
+answered).
+- `tend map T25`: the replay's end is a bullseye, a walked centre, a white band and a walked outer ring with a thin
+  white edge, 22 px across like the start, so it differs in shape from the walker's solid dot as well as from the hollow
+  start; the start and the dot unchanged, no hue of its own. Sibling lens: only the replay and the day replay pass
+  `ended`, so only they draw an end, web and native, through one paint; the live walk has none (its dot is its end);
+  Chronicle's map, Explore and the planner draw no trace; no walk card or mini-map draws a trace's end.
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend places audit 1`: a selected star keeps its ink disc and white star and gains a 3 pt ink ring outside its white
-  edge (the build had turned it over, white in an ink ring: the one hollow marker, the reverse of "filled is chosen";
-  U1).
-- `tend places audit 2`: the journey reads the star by its testID once its bounce has settled (F1).
-- `tend places audit 3`: the `chronicle` journey merges two places on a page of its own and reads the merged star's
-  words, with no digit (F2).
-- `tend places audit 4`: the source check holds the disc's own style to ink and its one Text to the name (F3).
-- `tend places audit 5`: a lone star says "Fox Point, one walk. Open", as a pin says ". Open" (U3).
-Review: 5 accepted (U1, U3, F1, F2, F3), 5 deferred (U2 and F4 `[owner]`; U4, the merged star under a pin (U5, F5),
-the distance's wrap (U6) `[loop]`; all low, in `docs/DEFERRED.md`, Map, walk screen and motion polish), the wording of
-v0.5-places' "with a count" under "Open before the loop" (F6), F5's look-alike no action: the ink star and T14's pin of
-several are told apart by glyph and stem, their grounds about 1.5:1 (noted on T22). 0 rejected.
-Each check was seen failing first: the unit tests on the code before each fix, the journey's T15 and audit 1 and 3
-checks on main's star code (`E2E_SOFT`).
-Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `chronicle`, `walk`; main's two
-community-park commits landed meanwhile and touch neither (typecheck, lint, `npm test` again on the rebase). Nothing
-here has run on a phone; the ink star, its ring and its words on native are unverified (`docs/NATIVE_UNVERIFIED.md`).
+- `tend map audit 25`: a walk that ends on or near its start keeps its bullseye whole: the start is drawn in the first
+  layer, under the end's ring, and the second draws the end's centre and band alone (auditor 25, high: the start had
+  covered the end's ring, a regression from T16). The `qol` journey walks a small loop and reads the end over the start
+  at 390 and 320.
+- `tend map audit 26`: at Hold, with motion, the dot and the end are both on the map, apart, checked and pictured at
+  390 and 320 (ux 26).
+Review: 2 accepted (auditor 25, ux 26); 2 noted on `[owner]` items in `docs/DEFERRED.md` (ux 25, a pin's stalk across
+the bullseye's band; the solid end's size item, which the pictures no longer match: you may close it); ux 27 no action
+(the dot arriving on the end covers it, as before); 0 rejected. Both reviewers ruled the white edge inside your answer.
+Each check was seen failing first: the unit tests on the code before each fix, the journey's T25 check on main's end
+and audit 25's on the T25 build (`E2E_SOFT`); audit 26 is evidence with no code change.
+Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `qol`, `replay`, `days` (and on
+the T25 build `layers`, `walkability`, `snap`, `freelook`, `dense`, `carousel`); main's four journal commits landed
+before the review and touch none of them. Nothing here has run on a phone; the bullseye on native is unverified
+(`docs/NATIVE_UNVERIFIED.md`). QL2's wording waits for your edit (noted under "Open before the loop").
 
 ### Open before the loop
 
@@ -389,6 +380,12 @@ here has run on a phone; the ink star, its ring and its words on native are unve
   `docs/NATIVE_UNVERIFIED.md`'s first Quality of life check ("with the `match` stroke colour"; an indented note under
   it points to the next check), and T22 above ("QL2's end ring ('in the walked orange') takes it too": since T16 the
   end is a fill, which takes it the same way).
+  Since `tend map T25` (Nov 13; decision 0162): the end is a bullseye, a walked centre, a white band and a walked
+  outer ring with a thin white edge, as wide as the start (22 px); the start and the walker's dot are unchanged. Amend
+  QL2 instead to "a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not
+  colour alone, tells it from the start and from the walker's dot", in the doc and the mirror. `.claude/rules/map.md`
+  has a "Since `tend map T25`" line under the T16 one, whose "the end solid" now says the old paint, as does
+  `docs/NATIVE_UNVERIFIED.md`'s T16 check (noted there).
 - **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
   bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
   north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`

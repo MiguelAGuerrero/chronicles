@@ -31,7 +31,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -117,9 +117,13 @@ function addOverlay(map: MapLibreMap) {
   map.addLayer({ id: 'drawing', type: 'line', source: 'drawing', layout: { 'line-cap': 'butt', 'line-join': 'round' },
     paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH } });
   // Where the walk began and ended (QL1-QL3): above the trace, under the walker; the capture pins
-  // are DOM markers, so they sit above every layer. The start hollow, ringed in the trace's green;
-  // the end solid, filled in the walked colour with a white ring (tend map T16).
-  map.addLayer({ id: 'ends', type: 'circle', source: 'ends',
+  // are DOM markers, so they sit above every layer. The start hollow, ringed in the trace's green
+  // (tend map T16); the end a bullseye (tend map T25): the start and the end's walked outer ring
+  // first, then the end's walked centre and white band alone, so a walk that ends on its start keeps
+  // its end whole (tend map audit 25).
+  map.addLayer({ id: 'ends-ring', type: 'circle', source: 'ends',
+    paint: ENDS_RING_PAINT });
+  map.addLayer({ id: 'ends', type: 'circle', source: 'ends', filter: ['==', ['get', 'kind'], 'end'],
     paint: ENDS_PAINT });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   // The range preview (E21): a soft disc with a firm edge, under the walker.
@@ -983,8 +987,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     mapRef.current?.setPaintProperty('gap-links', 'line-opacity', 0.8 * (props.traceOpacity ?? 1));
     mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', 0.9 * FAINT_OPACITY * (props.traceOpacity ?? 1));
     // The markers go with the trace (QL3): hidden while navigating, faint in the replay's first beats.
-    mapRef.current?.setPaintProperty('ends', 'circle-opacity', props.traceOpacity ?? 1);
-    mapRef.current?.setPaintProperty('ends', 'circle-stroke-opacity', props.traceOpacity ?? 1);
+    for (const id of ['ends-ring', 'ends']) {
+      mapRef.current?.setPaintProperty(id, 'circle-opacity', props.traceOpacity ?? 1);
+      mapRef.current?.setPaintProperty(id, 'circle-stroke-opacity', props.traceOpacity ?? 1);
+    }
   }, [ready, props.traceOpacity]);
   useEffect(() => {
     if (!ready) return;

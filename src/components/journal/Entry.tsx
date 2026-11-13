@@ -1,6 +1,7 @@
+import { markOf } from '../../lib/noteType';
+import { NoteMark } from '../NoteMark';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
-import { formatElapsed } from '../../lib/format';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
 import { facedAt, hasMore } from '../../lib/moment';
 import { parseRefs, plainRefs } from '../../lib/refs';
@@ -9,9 +10,10 @@ import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import type { Capture, Walk } from '../../lib/types';
 import { MomentPicture } from '../chronicle/MomentPicture';
-import { Icon } from '../icons';
+import { Icon, type IconName } from '../icons';
 import { NoteText } from '../threads/NoteText';
 import { theme } from '../ui';
+import { MemoLine } from './MemoLine';
 import { OWNER_FONT } from './type';
 
 export type NoFix = 'denied' | 'timeout' | 'unavailable';
@@ -35,6 +37,10 @@ export function Entry(props: {
   onMap?: () => void;
   onWalk: (walkId: string) => void;
   onMore: () => void;
+  /** The Type slot of the note being written was tapped (note types NY19). */
+  onType?: (piece: Capture) => void;
+  /** The eight are open for the note being written: the slot shows it. */
+  typeOpen?: boolean;
   onOpenRef: (v: MomentView) => void;
 }) {
   const { moment: m, walk } = props;
@@ -51,6 +57,10 @@ export function Entry(props: {
   });
   const from = fromLine(walk);
   const pieces = c.pieces.filter((p) => p.id !== props.writing);
+  // The note being written has a Type slot in the dateline's corner (note types NY19). Its mark, once chosen, is
+  // drawn where a kept note's is, above its words (NY22), so Done moves nothing.
+  const written = props.onType ? c.pieces.find((p) => p.id === props.writing && p.kind === 'text') : undefined;
+  const mark = written ? markOf(written) : null;
   // A placed dateline wears a small pin, so it reads as the way to the map (ui 3); an unplaced one is plain words.
   const lineText = (
     <View style={styles.lineRow}>
@@ -69,6 +79,18 @@ export function Entry(props: {
         ) : (
           <View style={styles.dateline}>{lineText}</View>
         )}
+        {written ? (
+          <Pressable
+            testID="type-slot"
+            accessibilityRole="button"
+            accessibilityLabel={`Type, ${mark?.name ?? 'No type'}`}
+            aria-expanded={!!props.typeOpen}
+            onPress={() => props.onType?.(written)}
+            style={[styles.type, props.typeOpen && styles.typeOpen]}
+          >
+            <Icon name={(mark?.glyph ?? 'pricetag-outline') as IconName} size={18} color={mark || props.typeOpen ? theme.ink : theme.muted} />
+          </Pressable>
+        ) : null}
         <Pressable testID="moment-more" accessibilityRole="button" accessibilityLabel="More about this moment" onPress={props.onMore} style={styles.more}>
           <Icon name="ellipsis-horizontal" size={18} color={theme.muted} />
         </Pressable>
@@ -80,6 +102,7 @@ export function Entry(props: {
           ))}
         </Pressable>
       )}
+      {written && mark ? <View testID="entry-writing-type"><NoteMark capture={written} /></View> : null}
       {props.answering ? <Text style={[styles.app, styles.answering]} testID="moment-answering">{props.answering}</Text> : null}
       {from && walk ? (
         <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} style={styles.from}>
@@ -95,10 +118,13 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
     const body = p.body ?? '';
     if (!body.trim()) return null;
     // An entry the page wrote is drawn in its shape, natively (JN26); one it did not stays literal (NP7).
-    if (p.body_format === 'md') return <View testID="entry-piece-text"><Blocks body={body} onOpenRef={onOpenRef} /></View>;
+    // The type the owner chose for the note, in ink above its words (note types, decision 0161; audit 54).
+    const mark = <NoteMark capture={p} />;
+    if (p.body_format === 'md') return <View testID="entry-piece-text">{mark}<Blocks body={body} onOpenRef={onOpenRef} /></View>;
     // A reference is drawn as the moment it names (JN16, RF4); the words around it stay the owner's.
     return (
       <View testID="entry-piece-text">
+        {mark}
         {parseRefs(body).some((x) => 'ref' in x) ? (
           <View testID="entry-words"><NoteText body={body} style={styles.words} onOpen={onOpenRef} /></View>
         ) : (
@@ -107,16 +133,8 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
       </View>
     );
   }
-  if (p.kind === 'voice') {
-    const ms = Number(p.body);
-    return (
-      <View style={styles.memo} testID="entry-piece-voice">
-        {/* A mic, not a play button: the row opens the entry, where the note plays (ui 2). */}
-        <Icon name="mic-outline" size={20} color={theme.ink} />
-        <Text style={styles.memoText}>{Number.isFinite(ms) && ms > 0 ? `Voice note, ${formatElapsed(ms)}` : 'Voice note'}</Text>
-      </View>
-    );
-  }
+  // A voice note plays in line, with its bar filling as it goes; it never opens the viewer.
+  if (p.kind === 'voice') return <MemoLine piece={p} moment={m.capture} />;
   return (
     <View testID={`entry-piece-${p.kind}`} style={styles.plate}>
       <MomentPicture capture={facedAt(m.capture, p.id)} style={styles.picture} iconSize={36} />
@@ -203,8 +221,8 @@ const styles = StyleSheet.create({
   words: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 28 },
   plate: { gap: 8 },
   picture: { height: 200, width: '100%' },
-  memo: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
-  memoText: { color: theme.ink, fontSize: 15 },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  type: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  typeOpen: { backgroundColor: '#ebe7df' },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
 });

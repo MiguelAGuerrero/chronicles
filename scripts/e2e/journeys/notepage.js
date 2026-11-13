@@ -61,8 +61,9 @@ async function run(h) {
   // On Memories a page opens from the journal's open line (chronicle journal JN25, decision 0155): a tap in the line,
   // then Open as a page. The pencil that opened it in one tap went with the band; the line itself is the one tap.
   const openPage = async () => {
-    // The bar's pen puts the caret on the page (JN29), wherever the sheet is scrolled; then Open as a page.
-    await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 } });
+    // The caret goes on the page by a tap on the field, the empty page's first line (JN32); then Open as a page.
+    // Not a forced click on the empty page: that lands on whatever is still over it (a page fading out) and types nowhere.
+    await pg.click('[data-testid=line-input]');
     await pg.click('[data-testid=line-page]');
   };
   const before = (await stored(pg)).length;
@@ -129,9 +130,10 @@ async function run(h) {
   const boldOn = await pg.getAttribute('[data-testid=note-format-bold]', 'aria-pressed');
   await pg.click('[data-testid=note-format-bold]');
   const names = ['Heading', 'Subheading', 'Body', 'Bold', 'Italic', 'Bulleted list', 'Numbered list', 'Checklist', 'Quote'];
-  check(bar.map((b) => b.name).join('|') === 'Format|Mention a moment|Take a photo or video' && bar.every((b) => b.w >= 44 && b.h >= 44)
+  // A new page carries the Type tool too (note types NY24).
+  check(bar.map((b) => b.name).join('|') === 'Format|Mention a moment|Type, No type|Take a photo or video' && bar.every((b) => b.w >= 44 && b.h >= 44)
     && names.every((n) => panel.some((p) => p.name === n)) && panel.every((p) => p.w >= 44 && p.h >= 44 && (p.pressed === 'true' || p.pressed === 'false')) && boldOn === 'true',
-    `NP4: Aa, @ and the camera above the keyboard; the panel's nine named, 44 px, pressed or not (bold ${boldOn}; ${JSON.stringify(panel.map((p) => p.name))})`);
+    `NP4: Aa, @, Type and the camera above the keyboard (${bar.map((b) => b.name).join('|')}); the panel's nine named, 44 px, pressed or not (bold ${boldOn}; ${JSON.stringify(panel.map((p) => p.name))})`);
   await pg.setViewportSize({ width: 320, height: 640 });
   await pg.waitForTimeout(400);
   const rows = await pg.locator('[data-testid=note-bar] [role=button]').evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
@@ -268,6 +270,9 @@ async function run(h) {
   // NP9: an existing note emptied and left goes, with the usual Undo.
   await pg.click('[data-testid=viewer-edit-note]');
   await there('[data-testid=note-page] [data-testid=note-input]');
+  // The editor takes its words a moment after it is drawn; emptied before that, it fills again and Done leaves the
+  // note as it was (NP9's flake: the page gone, the viewer up, the note whole). The step above waits the same.
+  await pg.waitForTimeout(1500);
   await input().fill('');
   await pg.waitForTimeout(1500);
   const notEmptied = (await stored(pg)).find((m) => m.id === 'old')?.pieces[0].body === '> 5 km\n*sigh*\nsnake_case\n# 3 buses';
@@ -414,6 +419,37 @@ async function run(h) {
   const readyPage = await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.keyboard.press('Escape');
   check(readyPage, 'NP1: Navigate\'s pencil opens the page in one tap');
+  // NY24 (note types at capture): a new note's page carries the Type tool; a type chosen before the first words is on
+  // the note when it is kept, and a page left without words keeps nothing.
+  await pg.goto(url);
+  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForTimeout(1200);
+  const n24 = (await stored(pg)).length;
+  await openPage();
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
+  await pg.waitForTimeout(600);
+  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-type-item-idea]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(500);
+  await pg.click('[data-testid=note-done]');
+  await pg.waitForTimeout(1200);
+  const none24 = (await stored(pg)).length === n24;
+  await openPage();
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
+  await pg.waitForTimeout(600);
+  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-type-item-idea]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-page] [data-testid=note-input]');
+  await pg.keyboard.type('A typed page from the start.');
+  await pg.waitForTimeout(2500);
+  await pg.click('[data-testid=note-done]');
+  await pg.waitForTimeout(1200);
+  const got24 = (await stored(pg)).flatMap((m) => m.pieces).find((x) => /A typed page from the start/.test(x.body ?? ''));
+  check(none24 && got24?.note_type === 'idea', `NY24: a new page carries the Type tool; chosen before the words it is on the kept note, and a wordless page keeps nothing (${JSON.stringify({ none24, type: got24?.note_type })})`);
+
   await c.close();
 }
 

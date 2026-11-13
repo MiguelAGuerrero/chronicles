@@ -1,9 +1,10 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { LINE_LABELS, dayHeading } from '../../lib/journal/lines';
+import { dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
-import { anchorOf, blankHeight, peekStart } from '../../lib/journal/rest';
+import { anchorOf, blankHeight, peekStart, stickyDay } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
+import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
 
 export type JournalPageHandle = { toFoot: (animated?: boolean) => void };
@@ -42,6 +43,10 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   onWrite?: () => void;
   /** The field has the keyboard. */
   writing?: boolean;
+  /** The empty page went out of view, or came back (audit 50): out of view, the bar holds the pen. */
+  onAway?: (away: boolean) => void;
+  /** Memories is the screen in front. Coming back to it is a new sitting: the page opens on the last entry again (audit 42). */
+  focused?: boolean;
   /** Said under today's date when the page could not be read. */
   notice?: ReactNode;
 }>(function JournalPage(props, ref) {
@@ -70,14 +75,17 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const writing = !!props.writing;
   // The entry the page opened on (JN33): the peek begins with it, and every entry made since stacks beneath it.
   const [opened0, setOpened0] = useState<string | null>(null);
-  const anchor = anchorOf(props.rows, opened0);
+  // A sitting ends when Memories is left (audit 42): back in front, the page opens on its last entry again.
+  const focused = props.focused !== false;
+  const [wasFocused, setWasFocused] = useState(focused);
+  if (wasFocused !== focused) setWasFocused(focused);
+  const anchor = anchorOf(props.rows, focused && !wasFocused ? null : opened0);
   if (anchor !== opened0) setOpened0(anchor);
   const from = peekStart(props.rows, anchor);
   const peek = props.rows.slice(from).reduce((sum, r) => sum + (heights[r.key] ?? 0), 0);
-  const dateRow = props.rows.find((r) => r.k === 'day');
-  const dateH = (dateRow && heights[dateRow.key]) || DATE_H;
-  // A peek that begins with a date brings its own; otherwise the day's date is held above it.
-  const sticky = props.rows[from]?.k === 'day' ? 0 : dateH;
+  // A peek that begins with a date brings its own; otherwise its day's date is held above it (audit 48).
+  const held = stickyDay(props.rows, from);
+  const sticky = held == null ? 0 : heights[held] || DATE_H;
   const blank = view > 0 ? blankHeight({ view, foot: props.footPad, sticky, peek }) : 0;
   // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
   // changes the sheet's length while the reader is at its end just keeps the end in view.
@@ -86,8 +94,12 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   // empty page resizes). The reader is at the end before and must be at the end after, whatever a scroll event in between
   // says: the end is held for a moment, and the sheet is taken there once more when it has settled.
   const hold = useRef(false);
+  const reduced = useReducedMotion();
   useEffect(() => {
-    moving.current = true;
+    // A reader who scrolled back while writing stays there when the keyboard goes (audit 43); the keyboard coming
+    // up always brings the line into view.
+    if (!writing && !pinned.current) return;
+    moving.current = !reduced;
     hold.current = true;
     pinned.current = true;
     const t = setTimeout(() => {
@@ -95,14 +107,42 @@ export const JournalPage = forwardRef<JournalPageHandle, {
       scroll.current?.scrollToEnd({ animated: false });
     }, SETTLE_MS);
     return () => clearTimeout(t);
+    // `reduced` is read, not watched: a change of the setting is not a movement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [writing]);
 
+  // Back in front, the page opens at its end as it first did (audit 42): the anchor has moved to the last entry,
+  // the empty page resizes, and the end is held until that has settled.
+  useEffect(() => {
+    if (!focused) return;
+    hold.current = true;
+    pinned.current = true;
+    const t = setTimeout(() => {
+      hold.current = false;
+      scroll.current?.scrollToEnd({ animated: false });
+    }, SETTLE_MS);
+    return () => clearTimeout(t);
+  }, [focused]);
+
+  const away = useRef(false);
+  // A page just drawn is at its foot, with the empty page in view (audit 60).
+  const { onAway } = props;
+  useEffect(() => {
+    onAway?.(false);
+  }, [onAway]);
   const { more, onMore } = props;
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     at.current = { y: contentOffset.y, height: contentSize.height, view: layoutMeasurement.height };
     if (!hold.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
     if (pinned.current) opened.current = true;
+    // The empty page is the sheet's last `blank` px above its foot's padding.
+    // Out of view: its top is under the bar or below it (audit 61).
+    const out = contentOffset.y + layoutMeasurement.height < contentSize.height - blank + 24;
+    if (out !== away.current) {
+      away.current = out;
+      props.onAway?.(out);
+    }
     if (opened.current && contentOffset.y < NEAR_TOP && contentSize.height > layoutMeasurement.height && more && !adding.current) {
       adding.current = true;
       askedAt.current = count;
@@ -159,6 +199,10 @@ export const JournalPage = forwardRef<JournalPageHandle, {
             <View key={r.key} style={styles.day} onLayout={onLayout}>
               <Text style={styles.heading} accessibilityRole="header" testID="day-heading">{dayHeading(r.t, props.now)}</Text>
               {r.today ? props.notice : null}
+              {/* An edge (audit 52): what passes under the held date fades into the page's ground, not cut mid-line. */}
+              <View style={styles.edge} pointerEvents="none" testID="day-edge">
+                {EDGE.map((o) => <View key={o} style={[styles.edgeBand, { opacity: o }]} />)}
+              </View>
             </View>
           );
         }
@@ -167,18 +211,35 @@ export const JournalPage = forwardRef<JournalPageHandle, {
       })}
       {/* The empty page (JN31, JN32): the field is its first line, and the rest of it is one place to tap. */}
       <View key="blank" style={{ minHeight: blank }} testID="empty-page">
+        {/* Under the field, the whole of it: the room above the line takes the tap too (audit 45). The field has
+            the name for a screen reader; this is the same thing to a finger, so it is not said twice (audit 44). */}
+        <Pressable
+          testID="line-write"
+          onPress={props.onWrite}
+          style={StyleSheet.absoluteFill}
+          accessible={false}
+          importantForAccessibility="no"
+          aria-hidden
+          tabIndex={-1}
+        />
         {props.field}
-        <Pressable testID="line-write" accessibilityRole="button" accessibilityLabel={LINE_LABELS.write} onPress={props.onWrite} style={styles.tap} />
       </View>
     </ScrollView>
   );
 });
 
+/**
+ * The edge's bands, from the date's ground towards nothing. None fainter than a fifth: a fainter band is drawn a
+ * shade off the ground it lies on, and shows as a line under every date.
+ */
+const EDGE = [0.82, 0.6, 0.4, 0.22];
+
 const styles = StyleSheet.create({
+  edge: { position: 'absolute', left: 0, right: 0, top: '100%' },
+  edgeBand: { height: 4, backgroundColor: theme.bg },
   scroll: { flex: 1 },
   page: { flexGrow: 1, paddingHorizontal: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   // Its own ground: entries pass under the date held at the top.
-  day: { paddingTop: 28, paddingBottom: 10, gap: 10, backgroundColor: theme.bg },
+  day: { paddingTop: 28, paddingBottom: 10, gap: 10, backgroundColor: theme.bg, zIndex: 2 },
   heading: { color: theme.ink, fontSize: 22, lineHeight: 28, fontWeight: '600' },
-  tap: { flexGrow: 1, minHeight: 44 },
 });

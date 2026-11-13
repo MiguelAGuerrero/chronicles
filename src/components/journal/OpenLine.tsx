@@ -5,6 +5,8 @@ import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { deleteNoteNow } from '../../lib/deletion';
 import { KEPT_AS_YOU_WRITE, LINE_LABELS, NOT_KEPT } from '../../lib/journal/lines';
 import { noteHead } from '../../lib/notePage/head';
+import { NOTE_TYPES, noteTypeOf, type NoteType } from '../../lib/noteType';
+import { pickType } from '../../lib/noteTypeChoice';
 import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../lib/journal/pen';
 import { captureTarget } from '../../lib/journal/target';
 import type { Faced } from '../../lib/moment';
@@ -47,7 +49,9 @@ const FIELD_MIN = 44;
 const FIELD_MAX = 132;
 
 /** What the page asks of the line: a tap on the empty page gives the field the keyboard (JN32). */
-export type OpenLineHandle = { write: () => void };
+/** `pickType`: the bar becomes the row of eight for one pick (note types NY19); asked again, it goes back. */
+export type TypeAsk = { piece: string; type: string | null | undefined; onPick: (t: NoteType | null) => void };
+export type OpenLineHandle = { write: () => void; pickType: (ask: TypeAsk) => void };
 
 type LineProps = {
   /** Memories is in front and nothing is open over it: leaving, or opening something, saves a note being recorded (JN14). */
@@ -71,6 +75,10 @@ type LineProps = {
   onHeight?: (h: number) => void;
   /** No page is shown (a thread, the threads, Hidden): the field sits in the bar. On the page it is the page's last line (JN28). */
   inBar: boolean;
+  /** The eight are open above the bar, or not (NY19): the slot shows it. */
+  onTypeOpen?: (open: boolean) => void;
+  /** The empty page is out of view (the reader pulled the page down): the bar holds the pen (audit 50). */
+  penInBar?: boolean;
   /** The screen's body, given the field and what the page needs to grow round it (null when the field is in the bar). */
   children: (page: { field: ReactNode; writing: boolean; entryOpen: boolean } | null) => ReactNode;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
@@ -164,7 +172,12 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const pending = useRef<{ timer: ReturnType<typeof setTimeout>; save: Extract<PenEffect, { k: 'save' }> } | null>(null);
   const send = useRef<(e: PenEvent) => void>(() => {});
   const input = useRef<ComponentRef<typeof TextInput>>(null);
-  const [typing, setTyping] = useState(false);
+  const [typingRaw, setTyping] = useState(false);
+  // The field is drawn in the bar or on the page; when it moves from one to the other while it has the keyboard it
+  // is a new field, and no blur is told (audit 41). Typing is only ever in the slot it began in.
+  const [typedInBar, setTypedInBar] = useState(props.inBar);
+  if (typingRaw && typedInBar !== props.inBar) setTyping(false);
+  const typing = typingRaw && typedInBar === props.inBar;
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
     if (blurTimer.current) clearTimeout(blurTimer.current);
@@ -318,7 +331,19 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
 
   // Writing: a reference reads as "@" and its words and goes whole (RF3); what is stored puts its token back.
   const [picking, setPicking] = useState<number | null>(null);
+  // The bar as the row of eight (NY19), for one pick. The next character puts the bar back (NY20).
+  const [typeAsk, setTypeAsk] = useState<TypeAsk | null>(null);
+  // They belong to the note being written, on the screen in front: when that entry closes (Done, two minutes, a
+  // capture, the page) or Memories is no longer in front, they go (note-types audit 56).
+  if (typeAsk && (pen.entry?.pieceId !== typeAsk.piece || focused === false)) setTypeAsk(null);
+  const asking = typeAsk && pen.entry?.pieceId === typeAsk.piece && focused !== false ? typeAsk : null;
+  const typeOpen = !!asking;
+  const { onTypeOpen } = props;
+  useEffect(() => {
+    onTypeOpen?.(typeOpen);
+  }, [onTypeOpen, typeOpen]);
   const onChangeText = (next: string) => {
+    setTypeAsk(null);
     const edited = editRefs(text, next, refs);
     setText(edited.text);
     setRefs(edited.refs);
@@ -396,6 +421,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   };
 
   const done = () => {
+    setTypeAsk(null);
     input.current?.blur();
     send.current({ k: 'done' });
   };
@@ -456,6 +482,13 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     return hideTabs();
   }, [typing]);
   const lift = lineLift(keyboard, typing ? 0 : below);
+  // The sheet pads its foot by the bar and by how far the keyboard lifted it (audit 40): the line being written
+  // is above both.
+  const [barH, setBarH] = useState(LINE_REST_H);
+  const { onHeight } = props;
+  useEffect(() => {
+    onHeight?.(barH + lift);
+  }, [onHeight, barH, lift]);
   // An iPhone's browser floats the keyboard's own row (previous, next, a tick) over the page, on whatever sits
   // just above the keys: the bar keeps that much of itself empty under its controls (fix keyboard-accessory).
   const [floating] = useState(
@@ -489,6 +522,11 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const { inBar } = props;
   // A tap on the empty page: the field takes the keyboard in the tap itself, so a phone raises it.
   useImperativeHandle(props.handle, () => ({
+    pickType: (ask: TypeAsk) => {
+      setTypeAsk((was) => (was && was.piece === ask.piece ? null : ask));
+      // The caret stays on the page: the tap on the slot took it from the field.
+      input.current?.focus();
+    },
     write: () => {
       input.current?.focus();
       onFoot();
@@ -497,9 +535,10 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   // The field (JN28). On the page it is the last line of today's page, as wide as the column, in the owner's serif,
   // with no box: the words are written where they will stay. Where no page shows, it sits in the bar.
   const fieldEl = (
-    <View key="field" style={inBar ? styles.fieldInBar : styles.fieldOnPage}>
-      {/* Room for the dateline that arrives with the first character, so the line being written does not jump. */}
-      {!inBar && !entryOpen && <View style={styles.datelineRoom} />}
+    <View key="field" style={inBar ? styles.fieldInBar : styles.fieldOnPage} pointerEvents="box-none">
+      {/* Room for the dateline that arrives with the first character, so the line being written does not jump.
+          A tap on it is a tap on the empty page beneath (audit 45). */}
+      {!inBar && !entryOpen && <View style={styles.datelineRoom} pointerEvents="none" />}
       <View>
         {/* A still mark where writing begins: the page says "here" without a hint or a prompt (JN10). */}
         {!typing && text.length === 0 && <View style={styles.mark} pointerEvents="none" />}
@@ -517,6 +556,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           onContentSizeChange={(e) => setFieldH(Math.max(FIELD_MIN, Math.ceil(e.nativeEvent.contentSize.height)))}
           onFocus={() => {
             if (blurTimer.current) clearTimeout(blurTimer.current);
+            setTypedInBar(inBar);
             setTyping(true);
             onFoot();
           }}
@@ -570,17 +610,65 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           {!recording && focused && <SpaceLine />}
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
-        <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => props.onHeight?.(Math.round(e.nativeEvent.layout.height))}>
+        <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height))}>
+          {asking ? (
+            // The eight, named, just above the bar (NY19, NY25): two rows of four. The bar below keeps its places.
+            <View style={styles.types} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
+              {NOTE_TYPES.map((t) => {
+                const on = noteTypeOf(asking.type) === t.id;
+                return (
+                  <Pressable
+                    key={t.id}
+                    testID={`type-pick-${t.id}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={t.name}
+                    accessibilityState={{ checked: on }}
+                    onPress={() => {
+                      asking.onPick(pickType(asking.type, t.id));
+                      setTypeAsk(null);
+                      input.current?.focus();
+                    }}
+                    style={[styles.pick, on && styles.pickOn]}
+                  >
+                    <Icon name={t.glyph as IconName} size={20} color={theme.ink} />
+                    <Text style={[styles.pickName, on && styles.pickNameOn]} numberOfLines={1}>{t.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
           <View style={styles.row}>
             {inBar ? (
-              fieldEl
+              <>
+                {/* In a thread too, the recording's mark stays while the tabs are folded (audit 62). */}
+                {walk && typing ? <View style={styles.walkDot} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
+                {fieldEl}
+              </>
             ) : recording ? (
               <View style={styles.lead}>{timer}{discard}</View>
             ) : active || pen.failed ? (
-              <Text style={styles.status} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
+              <>
+                {/* The recording bar is folded away while the field has the keyboard (JN30): its mark stays (audit 53). */}
+                {walk && typing ? <View style={styles.walkDot} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
+                <Text style={styles.status} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
+              </>
             ) : (
-              // At rest the bar holds no pen: the empty page is the pen (JN32).
-              <View style={styles.lead} />
+              // At rest the empty page is the pen (JN32); pulled out of view, the bar holds one, so words stay one
+              // tap away from anywhere on the sheet (JN9, audit 50).
+              <View style={styles.lead}>
+                {props.penInBar ? (
+                  <IconButton
+                    testID="bar-write"
+                    icon="create-outline"
+                    label={LINE_LABELS.write}
+                    onPress={() => {
+                      input.current?.focus();
+                      onFoot();
+                    }}
+                    disabled={props.disabled}
+                  />
+                ) : null}
+              </View>
             )}
             {inBar && recording ? <>{timer}{discard}</> : null}
             {pen.failed ? (
@@ -589,7 +677,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               </Pressable>
             ) : active && !recording ? (
               // The line opens into the note's page (JN25): for a long entry, or one with a shape.
-              <IconButton testID="line-page" icon="document-text-outline" label="Open as a page" onPress={openPage} disabled={pen.beginning} />
+              <IconButton testID="line-page" icon="expand-outline" label="Open as a page" onPress={openPage} disabled={pen.beginning} />
             ) : null}
             <IconButton testID="band-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
             {recording ? (
@@ -597,10 +685,15 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             ) : (
               <IconButton testID="band-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={voice} busy={cap.busy === 'voice'} disabled={props.disabled} />
             )}
-            {showDone && (
+            {showDone ? (
               <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
                 <Text style={styles.doneText}>Done</Text>
               </Pressable>
+            ) : (
+              // Done's place is kept at rest, so the camera and the mic never move under a thumb (audit 51).
+              <View style={styles.done} pointerEvents="none" aria-hidden importantForAccessibility="no-hide-descendants">
+                <Text style={[styles.doneText, styles.unseen]}>Done</Text>
+              </View>
             )}
           </View>
         </View>
@@ -615,7 +708,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {inBar ? [body, bar] : [bar, body]}
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
-          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
+          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} typed onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
         )}
         {page?.entry && (
           <NotePage
@@ -705,6 +798,15 @@ const styles = StyleSheet.create({
   done: { minWidth: 44, height: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
+  // The eight above the bar's row: two rows of four, each the glyph over its name (NY19, NY25).
+  types: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', maxWidth: 624, alignSelf: 'center', paddingBottom: 4 },
+  pick: { width: '25%', minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  // The chosen one: a tint, an ink rule under it and a heavier name, never colour alone.
+  pickOn: { backgroundColor: '#ebe7df', borderBottomColor: theme.ink },
+  pickName: { color: theme.ink, fontSize: 12 },
+  pickNameOn: { fontWeight: '700' },
+  walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: 8 },
+  unseen: { opacity: 0 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
   timerText: { color: theme.ink, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   textBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },

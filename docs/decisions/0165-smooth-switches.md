@@ -1,4 +1,4 @@
-# 0164. Smooth neighborhood switches: names once at the settle, lines held on a town's page, measured against the camera
+# 0165. Smooth neighborhood switches: names once at the settle, lines held on a town's page, measured against the camera
 
 Date: 2026-11-13 · Status: accepted · Area: explore, map, layers
 

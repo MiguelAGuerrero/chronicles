@@ -68,7 +68,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     no data expression: maplibre refuses the layer with a console error (the
     `dense` journey's "no console errors" caught it). The style spec package
     is not a declared dependency, so no unit test can validate a layer.
-  - **A switch redraws nothing it already showed** (smooth-switches SS1-SS10, decision 0164; the `switches` journey on
+  - **A switch redraws nothing it already showed** (smooth-switches SS1-SS10, decision 0165; the `switches` journey on
     the harness's `smallWorld`, at 4x CPU, each switch paired with the same move by the camera alone):
     - The `strips` and `pockets` sources are sent only when `landing.graded` or `landing.pockets` change, never because
       the names near the selected area did (web effect deps; native memo keys): each `setData` drops the source's tiles.
@@ -199,6 +199,16 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     ringed in the trace's green), the end solid (filled in `COLORS.walked`, a white ring). One paint for both
     maps, `ENDS_PAINT` (`map/types.ts`). The `qol` journey reads both middles on the replay with the pins and the
     walker hidden: they are DOM markers standing over the end.
+  - Since `tend map T25` (decision 0162) the end is a bullseye, so it differs in shape from the walker's solid dot
+    too: a walked outer ring (`ENDS_RING_PAINT`, a second circle layer `ends-ring` on the `ends` source, filtered to
+    the end and drawn first, with a thin white edge), then its walked centre and white band (`ENDS_PAINT`'s end
+    branch). The start and the dot are unchanged; the end is the start's width, 22 px. Both layers take the
+    trace's opacity. The `qol` journey reads the end across, at its band (5 px out) and its ring (8 px out).
+  - Since `tend map audit 25` the start is drawn in `ends-ring` too, under the end's ring (`ENDS_RING_PAINT`
+    matches on kind; the start is `endsGeoJSON`'s first feature), and `ends` is filtered to the end, drawing only its
+    centre and band (`ENDS_PAINT`): a walk that ends on or near its start keeps its bullseye whole. The line above
+    reads so: `ends-ring` is no longer filtered, and `ENDS_PAINT` has no branches. The `qol` journey walks a small
+    loop and reads the end over the start, and pictures Hold with the dot and the end both on the map.
 - **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
   longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
   latitude), in the bottom-left corner, as a sibling of the map inside the
