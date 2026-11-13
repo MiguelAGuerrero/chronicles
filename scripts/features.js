@@ -459,7 +459,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'smooth-switches': { branch: 'claude/trusting-cannon-f5wdhg', since: '2026-11-13' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
