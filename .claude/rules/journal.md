@@ -15,7 +15,7 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 - **Typographic, never a costume.** No paper, binding, page turn or accent colour; no card around an entry.
 - **The journal starts no walk and no trace.** An entry reads one fix when it begins (0036); with a walk open it reads none and is placed from the trace.
 - **The past is fixed.** New entries land at the end; nothing inserts on a past page. A response is a new entry.
-- **No prompt.** No hint text in the line, no "nothing kept yet", no empty days, no count. The slip keeps its place while an entry is written: a card that leaves at the first character reads as a prompt (the steward's finding 7).
+- **One hint, no other prompt.** The line's muted placeholder (`LINE_PLACEHOLDER`, decision 0165) is the only hint; no "nothing kept yet", no empty days, no count. The slip keeps its place while an entry is written: a card that leaves at the first character reads as a prompt (the steward's finding 7).
 
 ## How it works
 

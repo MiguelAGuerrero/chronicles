@@ -3,7 +3,7 @@ import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleShee
 import { accessoryRoom, floatsAccessory, lineLift } from '../../lib/journal/keyboard';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { deleteNoteNow } from '../../lib/deletion';
-import { KEPT_AS_YOU_WRITE, LINE_LABELS, NOT_KEPT } from '../../lib/journal/lines';
+import { KEPT_AS_YOU_WRITE, LINE_LABELS, LINE_PLACEHOLDER, NOT_KEPT } from '../../lib/journal/lines';
 import { noteHead } from '../../lib/notePage/head';
 import { NOTE_TYPES, noteTypeOf, type NoteType } from '../../lib/noteType';
 import { pickType } from '../../lib/noteTypeChoice';
@@ -540,11 +540,11 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           A tap on it is a tap on the empty page beneath (audit 45). */}
       {!inBar && !entryOpen && <View style={styles.datelineRoom} pointerEvents="none" />}
       <View>
-        {/* A still mark where writing begins: the page says "here" without a hint or a prompt (JN10). */}
-        {!typing && text.length === 0 && <View style={styles.mark} pointerEvents="none" />}
         <TextInput
           ref={input}
           testID="line-input"
+          placeholder={LINE_PLACEHOLDER}
+          placeholderTextColor={theme.muted}
           multiline
           value={text}
           onChangeText={onChangeText}
@@ -789,8 +789,7 @@ const styles = StyleSheet.create({
   fieldOnPage: { width: '100%' },
   fieldInBar: { flex: 1, minHeight: 44, justifyContent: 'center', paddingLeft: 8 },
   datelineRoom: { height: 58 },
-  mark: { position: 'absolute', left: 0, top: 9, width: 2, height: 26, backgroundColor: theme.ink },
-  // 16 px or more, or iOS Safari zooms the page on focus; no outline: the mark and the caret say where.
+  // 16 px or more, or iOS Safari zooms the page on focus; no outline: the placeholder and the caret say where.
   field: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 26, paddingVertical: 9, paddingHorizontal: 0, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   iconVoice: { backgroundColor: '#6b21a8' },

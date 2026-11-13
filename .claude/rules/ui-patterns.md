@@ -52,7 +52,7 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 - **Never colour alone to show state** (X3).
 - **Nothing wraps on a 320 px phone at the default text size** **[app]**: a row that can't fit has too many
   controls. At 200% text, labels may wrap (M3, WCAG 1.4.4); content must not be lost.
-- **The journal's open line has no visible label or hint** **[app]** (decision 0155, JN10; matrix 17 asks for one): the owner's call, so the line never prompts. It keeps a spoken name ("Write an entry"), a still mark where writing begins and an edge at 3:1.
+- **The journal's open line carries one muted placeholder, "What’s on your mind?"** (decision 0165, JN10; matrix 17 asks for a hint): the owner's call, reversing 0155's no-hint rule. Nothing else on the line prompts. It keeps a spoken name ("Write an entry") and an edge at 3:1; the still mark is gone, the placeholder says where writing begins.
 - **Inputs are 16 px or more on the web** **[app]** (iOS zooms otherwise; `react-native-web.md`).
 - **In the moment viewer, a tap on a photo hides the bars** (T7, V1; UC7) and the photo fills the screen; it is
   centred in the whole screen in both states and never moves, the bars sitting over its margins (T7; UC7, audit 28). A screen reader keeps them up (T2; UC8). A video's own controls

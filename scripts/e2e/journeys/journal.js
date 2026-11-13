@@ -132,8 +132,8 @@ async function run(h) {
     return out;
   }, { sel: line, accent: ACCENT });
   const notices = await pg.evaluate(() => (window.__notified ?? []).length);
-  check(!!rest && rest.placeholder === '' && !rest.focused && rest.loud.length === 0 && !/[0-9?]/.test(rest.text) && notices === 0,
-    `JN10: at rest the line has no hint, no accent, no number, no question, and the keyboard is not raised (${JSON.stringify(rest)})`);
+  check(!!rest && rest.placeholder === 'What’s on your mind?' && !rest.focused && rest.loud.length === 0 && !/[0-9?]/.test(rest.text) && notices === 0,
+    `JN10 (amended Nov 13): at rest the line's only hint is its muted placeholder; no accent, no number, no question on the page, and the keyboard is not raised (${JSON.stringify(rest)})`);
   check(!!rest && rest.labels.every((l) => l.w >= 44 && l.h >= 44) && rest.labels.map((l) => l.label).join('|') === 'Write an entry|Add a photo or video|Record a voice note'
     && rest.labels[0].x < rest.labels[1].x && rest.labels[1].x < rest.labels[2].x,
     `JN10: the field, the camera and the mic, in that order, each a thumb's target with its spoken name (${JSON.stringify(rest?.labels)})`);
