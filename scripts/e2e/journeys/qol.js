@@ -210,6 +210,11 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   for (let i = 1; i <= 20; i++) await go(-0.5 + i * 0.04, -0.3);
   await pg8.waitForSelector('[data-testid=memory-pin][data-ids*=","]', { timeout: 15000 }).catch(() => null);
   await pg8.waitForTimeout(1500);
+
+  // tend map audit 23: on a memory, the discs keep their full opacity at the faint pin's size; the head stays faded.
+  const faint = await several(true);
+  check(faint.length >= 1 && faint.every((p) => p.headSeen === 0.55 && p.discs.length === 2 && p.discs.every((d) => d.seen === 1) && /^Memories: /.test(p.label) && !p.digits),
+    `tend map audit 23: a memory pin of several shows its discs solid over its faded head (${JSON.stringify(faint.map((p) => ({ label: p.label, head: p.headSeen, discs: p.discs.map((d) => d.seen) })))})`);
   await shot(pg8, 'qol-18-memory-several-390');
   await pg8.setViewportSize({ width: 320, height: 640 });
   await pg8.waitForTimeout(1500);

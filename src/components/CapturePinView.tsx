@@ -63,13 +63,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
       <View style={[styles.pin, faint && styles.faint]}>
         <View testID="pin-head" style={[styles.head, { backgroundColor: color }]}>
-          {fan ? (
-            fan.map((k, i) => (
-              <View key={i} testID="pin-kind" style={[styles.fan, i ? styles.fanFront : styles.fanBack, { backgroundColor: PIN_COLOR[k] }]}>
-                <Icon name={KIND_ICON[k]} size={11} color="#ffffff" />
-              </View>
-            ))
-          ) : !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
+          {!fan && !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
           {picture && (
             <Image
               testID="pin-thumb"
@@ -84,6 +78,19 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
         </View>
         <View style={[styles.stem, { backgroundColor: color }]} />
       </View>
+      {/* A pin of several: its kinds fanned over the head, outside a memory's fade at its size, as its clock is (tend
+          map audit 23, MR10). */}
+      {fan && (
+        <View style={[styles.fanLayer, faint && styles.faintShape]} pointerEvents="none">
+          <View style={styles.fanHead}>
+            {fan.map((k, i) => (
+              <View key={i} testID="pin-kind" style={[styles.fan, i ? styles.fanFront : styles.fanBack, { backgroundColor: PIN_COLOR[k] }]}>
+                <Icon name={KIND_ICON[k]} size={11} color="#ffffff" />
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
       {n === 1 && hasMore(pin.captures[0]) && <StackMark silent size={10} style={styles.stack} />}
       {/* A video's still keeps its play mark, bottom right of the head, clear of the stack, clock and bell (VS4). */}
       {n === 1 && pin.captures[0].kind === 'video' && painted && <VideoMark testID="pin-video-mark" size={faint ? 7 : 9} style={[styles.videoMark, faint && styles.videoMarkFaint]} />}
@@ -126,6 +133,8 @@ const styles = StyleSheet.create({
   pin: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
   // Shrunk toward the stem's foot, so it still marks its point (audit 7).
   faint: { opacity: 0.55, transform: [{ scale: 0.75 }], transformOrigin: 'bottom' },
+  // The same shrink without the fade, for what stays solid over a memory (tend map audit 23).
+  faintShape: { transform: [{ scale: 0.75 }], transformOrigin: 'bottom' },
   // Over the faded head's top right corner (it shrinks toward its foot, to 75%).
   badge: {
     position: 'absolute', right: -2, top: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#1d2430',
@@ -167,4 +176,7 @@ const styles = StyleSheet.create({
   },
   fanBack: { left: 1, top: 2, transform: [{ rotate: '-12deg' }] },
   fanFront: { right: 1, bottom: 2, transform: [{ rotate: '12deg' }] },
+  fanLayer: { position: 'absolute', left: 0, top: 0, width: 36, height: PIN_HEIGHT },
+  // The head's inside, within its 2 pt white edge.
+  fanHead: { position: 'absolute', left: 2, top: 2, width: 32, height: 32 },
 });
