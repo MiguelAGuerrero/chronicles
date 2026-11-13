@@ -36,9 +36,15 @@ test('tend places T15: the star is drawn in ink, never the accent, and a merged 
   assert.match(view, /starSpoken/, 'the maps\' starLabel is starSpoken');
 });
 
-test('tend places T15: a selected star stays told apart on its ink: inverted, white with an ink ring and an ink star', () => {
-  const selected = /selected:\s*\{([^}]*)\}/.exec(view)?.[1] ?? '';
-  assert.match(selected, /backgroundColor: '#ffffff'/, selected);
-  assert.match(selected, /borderColor: theme\.ink/, selected);
-  assert.match(view, /color=\{selected \? theme\.ink : '#ffffff'\}/, 'the glyph turns ink on the white');
+// tend places audit 1 (the UX review's U1): turned over, the selected star was the one hollow marker on the map, the
+// reverse of the app's "filled is chosen" (the section bar). It stays an ink disc with its white star and white edge,
+// and gains an ink ring outside that edge: ink, white, ink.
+test('tend places audit 1: a selected star keeps its ink disc and white star, and gains an ink ring outside its white edge', () => {
+  assert.doesNotMatch(view, /styles\.selected|selected \? theme\.ink/, 'nothing turns the disc or the glyph over');
+  assert.match(view, /<Icon name="star" size=\{18\} color="#ffffff" \/>/, 'the star is white, selected or not');
+  assert.match(view, /\{selected && <View testID="star-ring" style=\{styles\.ring\} \/>\}/, 'the ring is drawn only when selected');
+  const ring = /\n  ring: \{([^}]*)\}/.exec(view)?.[1] ?? '';
+  assert.match(ring, /backgroundColor: theme\.ink/, ring);
+  assert.match(ring, /width: STAR_SIZE \+ 2 \* RING/, ring);
+  assert.match(view, /const RING = 3;/, 'a 3 pt ring');
 });
