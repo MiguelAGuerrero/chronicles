@@ -12,7 +12,7 @@ import { keepEditedThumb } from '../../lib/media/thumb';
 import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
 import { THUMB } from '../../lib/thumbPlan';
 import { formatElapsed } from '../../lib/format';
-import { voiceSpan, voiceState } from '../../lib/voiceTrim';
+import { voiceReachedEnd, voiceSpan, wholeMs } from '../../lib/voiceTrim';
 
 import { useMediaUri } from '../../lib/useMediaUri';
 import { useBaker } from '../Baker';
@@ -91,10 +91,13 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   });
   const videoSize = useVideoSize(player, kind === 'video' ? uri : null);
   const size = kind === 'photo' ? photoSize : videoSize;
-  const durationMs = Number(c.body) || 0;
   // A voice memo previews through its own player: no picture, only the kept part (VT3).
   const voice = useAudioPlayer(kind === 'voice' ? (uri ?? undefined) : undefined, { updateInterval: 100 });
   const voiceStatus = useAudioPlayerStatus(voice);
+  // A memo with no length on record is measured by its file (audit 3, 4).
+  const durationMs = kind === 'voice' ? wholeMs(c.body, (voiceStatus.duration || 0) * 1000) : Number(c.body) || 0;
+  // The press that restarts the preview names the position it left: until it moves, that is not the end (audit 2).
+  const [restartedFrom, setRestartedFrom] = useState<number | null>(null);
 
   const save = async (patch: CapturePatch) => {
     setSaving(true);
@@ -143,7 +146,8 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   const edit = s.edit;
   // The preview stops at the end handle (VT3).
   const span = voiceSpan(edit.trim, durationMs);
-  const voiceAtEnd = kind === 'voice' && voiceStatus.playing && voiceState(voiceStatus.currentTime, span) === 'end';
+  const restarting = restartedFrom !== null && voiceStatus.currentTime === restartedFrom;
+  const voiceAtEnd = kind === 'voice' && voiceStatus.playing && voiceReachedEnd(voiceStatus.currentTime, span, restarting);
   useEffect(() => {
     if (voiceAtEnd) pauseAudio(voice);
   }, [voiceAtEnd, voice]);
@@ -323,6 +327,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
               pauseAudio(voice);
               return;
             }
+            setRestartedFrom(voiceStatus.currentTime);
             seekAudio(voice, span.startMs / 1000);
             playAudio(voice);
           }, 'play')}

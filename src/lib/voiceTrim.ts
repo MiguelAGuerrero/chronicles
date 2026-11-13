@@ -37,27 +37,41 @@ export function voiceState(posS: number, span: VoiceSpan): VoiceState {
   return ms >= span.endMs - END_SLACK_MS ? 'end' : 'inside';
 }
 
-const wholeMs = (m: Memo) => Math.max(0, Number(m.body) || 0);
+const storedMs = (m: Memo) => Math.max(0, Number(m.body) || 0);
 
 /** The length a memo is said to have: the kept part's (VT10). 0 when it has none on record. */
-export const memoLengthMs = (m: Memo): number => voiceSpan(m.edit?.trim, wholeMs(m)).lengthMs;
+export const memoLengthMs = (m: Memo): number => voiceSpan(m.edit?.trim, storedMs(m)).lengthMs;
+
+/** "0:39", the kept length said as a time; none when the memo has no length on record (audit 9). */
+export function memoLengthText(m: Memo): string | null {
+  const len = memoLengthMs(m);
+  return len > 0 ? formatElapsed(len) : null;
+}
 
 /** "Voice memo, 0:39": the words wherever a memo is listed (VT10). */
 export function memoWords(m: Memo): string {
-  const len = memoLengthMs(m);
-  return len > 0 ? `Voice memo, ${formatElapsed(len)}` : 'Voice memo';
+  const text = memoLengthText(m);
+  return text ? `Voice memo, ${text}` : 'Voice memo';
 }
+
+/** The whole memo's length: the stored one, else the file's own when none is on record (audit 3, 4). */
+export function wholeMs(bodyMs: string | number | null | undefined, fileMs: number): number {
+  const stored = Number(bodyMs) || 0;
+  return stored > 0 ? stored : Math.max(0, Math.round(fileMs) || 0);
+}
+
+/**
+ * A player at the kept part's end has finished, unless the press that restarts it has not been seen yet: its seek is
+ * async, so one more status can still carry the old position and would stop the memo again (audit 2).
+ */
+export const voiceReachedEnd = (posS: number, span: VoiceSpan, restarting: boolean): boolean => !restarting && voiceState(posS, span) === 'end';
 
 /** "Trimmed · 0:39 of 0:58" for a memo with a trim, else none (VT11): times, never a badge. */
 export function trimmedLine(m: Memo): string | null {
-  const whole = wholeMs(m);
+  const whole = storedMs(m);
   const trim = m.edit?.trim ?? null;
   if (!trim || whole <= 0 || isFullTrim(trim, whole)) return null;
   // vision-ok: two times of one memo (kept, whole), never a tally of places, streets or finds
   return `Trimmed · ${formatElapsed(memoLengthMs(m))} of ${formatElapsed(whole)}`;
 }
 
-// Stubs for the audit's tests first; the fixes follow.
-export const voiceReachedEnd = (_posS: number, _span: VoiceSpan, _restarting: boolean): boolean => todo();
-export const wholeMs = (_bodyMs: string | null | undefined, _fileMs: number): number => todo();
-export const memoLengthText = (_m: Memo): string | null => todo();

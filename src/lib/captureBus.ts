@@ -35,17 +35,23 @@ export const captureBus = {
    * note's text, QL25). `from` null: a screen with no path of its own (the
    * replay, a day), so every listener hears it.
    */
-  patch(walkId: string | null, id: string, patch: CapturePatch, from: object | null, _pieceId?: string) {
+  patch(walkId: string | null, id: string, patch: CapturePatch, from: object | null, pieceId?: string) {
     // A loose moment's change goes to whoever lists loose moments (Navigate, ready).
     const key = walkId ?? LOOSE_MOMENTS;
-    for (const l of [...listeners]) if (l.walkId === key && l.owner !== from) l.onPatch?.(id, patch);
+    for (const l of [...listeners]) if (l.walkId === key && l.owner !== from) l.onPatch?.(id, patch, pieceId);
   },
 };
 
 /** A list with one capture's fields changed; the same list when it isn't there. */
-export function applyPatch(list: Faced[], id: string, patch: CapturePatch, _pieceId?: string): Faced[] {
+export function applyPatch(list: Faced[], id: string, patch: CapturePatch, pieceId?: string): Faced[] {
   if (!list.some((c) => c.id === id)) return list;
-  return list.map((c) => (c.id === id ? { ...c, ...patch } : c));
+  return list.map((c) => {
+    if (c.id !== id) return c;
+    // A change to one of the moment's other pieces is that piece's: the face keeps its own edit, caption and copy
+    // (voice-trim audit 1). With no piece named it is the face's, as before.
+    if (pieceId && pieceId !== c.piece_id) return { ...c, pieces: c.pieces.map((p) => (p.id === pieceId ? ({ ...p, ...patch } as typeof p) : p)) };
+    return { ...c, ...patch };
+  });
 }
 
 /**

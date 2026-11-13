@@ -533,7 +533,7 @@ export default function Replay() {
         onSaveEdit={async (c, patch) => {
           // A failed write throws to the viewer, which says so; the screen only changes once it is stored (ME21).
           await captureEdits.save(c, patch);
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch) });
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch, c.piece_id) });
         }}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).

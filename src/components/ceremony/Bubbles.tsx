@@ -10,7 +10,7 @@ import { cornerHeight, STAGE_BOTTOM, timeOf, type StageCtx } from './layout';
 import { Skeleton } from './Skeleton';
 import { useMediaWait } from './useMediaWait';
 import { plainNote } from '../../lib/refs';
-import { memoLengthMs, voiceClock, voiceSpan, voiceState } from '../../lib/voiceTrim';
+import { memoLengthMs, memoLengthText, voiceClock, voiceSpan, voiceState, wholeMs } from '../../lib/voiceTrim';
 
 const BARS = 22;
 /** A waveform's bar heights, fixed per memo: a picture of a voice, not a measurement. */
@@ -21,7 +21,6 @@ function bars(id: string): number[] {
     return 5 + (h % 17);
   });
 }
-const secs = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 
 /** A trimmed memo reports every 100 ms, so it stops at its end handle, not up to half a second late (VT7). */
 const TRIMMED_PLAYER = { updateInterval: 100 };
@@ -43,7 +42,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   const [handPaused, setHandPaused] = useState(false);
   const stopped = ctx.held || ctx.paused;
   const len = memoLengthMs(o.capture);
-  const span = voiceSpan(trim, status.duration ? status.duration * 1000 : Number(o.capture.body) || 0);
+  const span = voiceSpan(trim, wholeMs(o.capture.body, (status.duration || 0) * 1000));
   const ended = status.didJustFinish || (trim ? voiceState(status.currentTime, span) === 'end' : status.duration > 0 && status.currentTime >= status.duration - 0.05);
   // Started once it has moved: a file that won't play can still say it is playing.
   const started = trim ? status.currentTime * 1000 > span.startMs : status.currentTime > 0;
@@ -97,7 +96,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
         )}
         {/* The time stays whole on a 320 px phone; the label gives way first (tend replay 8). */}
         <View style={styles.meta}>
-          <Text style={[styles.when, styles.label]} numberOfLines={1}>Voice memo · {secs(len)}{' ·\u00a0'}</Text>
+          <Text style={[styles.when, styles.label]} numberOfLines={1}>{memoLengthText(o.capture) ? `Voice memo · ${memoLengthText(o.capture)}` : 'Voice memo'}{' ·\u00a0'}</Text>
           <Text testID="memo-time" style={[styles.when, styles.time]} numberOfLines={1}>{timeOf(o.capture.t)}</Text>
         </View>
       </View>

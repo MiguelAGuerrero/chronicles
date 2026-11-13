@@ -58,3 +58,23 @@ Found by the steward (Nov 12), accepted
 - **UI review** (the `ux-reviewer`, three pictures at 390 x 844, decision 0145): U1 accepted and fixed (the trim bar was about 50 px wide; it fills the row, 306 px, also for a video's trim; test `voice-trim ui 1`), U3 accepted (the "Trimmed" phrase no longer splits across lines; `voice-trim ui 3`), U4 accepted (Revert says it is disabled; `voice-trim ui 4`, already true, kept as a guard), U6 accepted as a unit guard (`voice-trim ui 6`). U2 deferred (the handles' hit areas overlap on a short span; the same bar serves videos; `docs/DEFERRED.md`). U5 rejected (the one-tab row matches the photo and video editors).
 - **Steward** (Nov 12): S1-S3 accepted (VT10-VT12), S6 accepted, S4 and S5 recorded in `docs/DEFERRED.md`.
 - **Not audited** (decision 0074). Native code has not run on a device.
+
+## Audit (Nov 13)
+
+12 findings (the auditor's 1-8, the steward's 9-12; the UX reviewer ran in the slice): 6 fixed, 2 deferred, 4 rejected, 0 for the owner. Tests: `voice-trim audit 1, 2, 3, 4, 9, 10`.
+
+1. A second piece's edit patched the face (photo loses its edit; two memos swap trims): accept, fixed. The capture bus and `applyPatch` carry the piece's id, so a non-face piece's change lands in `pieces` and the face keeps its own. Tests `voice-trim audit 1` (two, in `captures/voiceTrim.test.ts`). The flaw predated the slice (any second photo or video piece).
+2. Play after the trimmed end could stop itself on a stale position: accept, fixed (`voiceReachedEnd`: the press that restarts names the position it left). Tests `voice-trim audit 2` (unit and the journey's replay-after-end check). Not shown failing on the web before the fix: the stale position is a native timing race, so it stays in `NATIVE_UNVERIFIED`.
+3. A memo with no stored length could not be trimmed or previewed: accept, fixed (`wholeMs`: the stored length, else the file's). Test `voice-trim audit 3, 4`.
+4. The editor, viewer and info line could disagree on the whole length: accept, fixed with 3 (the stored length wins everywhere; the file's only when none is on record).
+5. The viewer's memo plays under the editor: reject for the first part: the viewer unmounts the shown capture while the editor is up (`!editing`, captures-and-media rule). The recreated player after Done: defer (`docs/DEFERRED.md`).
+6. Dragging a handle pauses the preview: reject. The video trim does the same (ME14), and VT3's "moves the position" is met.
+7. A seek failure or slow seek is swallowed: defer.
+8. Every photo and video editor builds an audio player: defer (a voice-only child component).
+9. A memo with no length said "0:00" in a mention and the bubble: accept, fixed (`memoLengthText`; all four surfaces say no time). Test `voice-trim audit 9`.
+10. Reopening Edit on a trimmed memo: accept as a guard, passes (the saved handles, the whole length beside them, Revert on, Close writes nothing). Test `voice-trim audit 10` (journey).
+11. The whole-memo trim bar is a full accent bar: reject (the video's shared bar; taste, recorded as a question for the owner below).
+12. The viewer says "Trimmed" but cards say the kept length: reject, VT10 chose it knowingly.
+
+For the owner: (a) does "The lows stay in" stand as the reading that a reversible trim of a recording's dead air is not editing out the lows? (b) the trim bar's yellow full-width fill in the "whole memo kept" state, shared with the video editor: neutral until a handle moves, or as it is? (c) should a transcript, when built, read the kept part only (recorded in `docs/DEFERRED.md`)?
+

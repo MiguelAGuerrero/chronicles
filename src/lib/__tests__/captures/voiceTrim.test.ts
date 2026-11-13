@@ -95,7 +95,7 @@ const twoPieces = () => ({
   pieces: [{ id: 'm1', kind: 'photo', edit: PHOTO_EDIT }, { id: 'p2', kind: 'voice', body: '58000', edit: null }],
 }) as unknown as Faced;
 
-test('voice-trim audit 1: an edit on a moment\u2019s second piece leaves the face alone and lands on that piece', { todo: 'test first' }, () => {
+test('voice-trim audit 1: an edit on a moment\u2019s second piece leaves the face alone and lands on that piece', () => {
   const patch = { edit: trimmed(2000, 41_000) };
   const after = applyPatch([twoPieces()], 'm1', patch, 'p2');
   assert.deepEqual(after[0].edit, PHOTO_EDIT, 'the photo keeps its own edit');
@@ -104,7 +104,7 @@ test('voice-trim audit 1: an edit on a moment\u2019s second piece leaves the fac
   assert.deepEqual(applyPatch([twoPieces()], 'm1', patch)[0].edit, patch.edit, 'with no piece named, the face is patched as before');
 });
 
-test('voice-trim audit 1: the bus tells a listener which piece changed', { todo: 'test first' }, () => {
+test('voice-trim audit 1: the bus tells a listener which piece changed', () => {
   const heard: unknown[] = [];
   const off = captureBus.subscribe('w1', {}, () => {}, (id, _patch, pieceId) => heard.push([id, pieceId]));
   captureBus.patch('w1', 'm1', { edit: trimmed(2000, 41_000) }, null, 'p2');
@@ -112,21 +112,21 @@ test('voice-trim audit 1: the bus tells a listener which piece changed', { todo:
   assert.deepEqual(heard, [['m1', 'p2']]);
 });
 
-test('voice-trim audit 2: a press at the end, until the position has left it, is not the end again', { todo: 'test first' }, () => {
+test('voice-trim audit 2: a press at the end, until the position has left it, is not the end again', () => {
   const span = voiceSpan({ start_ms: 2000, end_ms: 41_000 }, 58_000);
   assert.equal(voiceReachedEnd(41, span, false), true);
   assert.equal(voiceReachedEnd(41, span, true), false, 'a stale position right after the press');
   assert.equal(voiceReachedEnd(20, span, false), false);
 });
 
-test('voice-trim audit 3, 4: the whole length is the stored one, else the file\u2019s', { todo: 'test first' }, () => {
+test('voice-trim audit 3, 4: the whole length is the stored one, else the file\u2019s', () => {
   assert.equal(wholeMs('4000', 3800), 4000);
   assert.equal(wholeMs('', 3800), 3800);
   assert.equal(wholeMs('0', 3800), 3800);
   assert.equal(wholeMs(null, 0), 0);
 });
 
-test('voice-trim audit 9: a memo with no length says no time anywhere', { todo: 'test first' }, () => {
+test('voice-trim audit 9: a memo with no length says no time anywhere', () => {
   assert.equal(memoLengthText({ body: '' }), null);
   assert.equal(memoLengthText({ body: '0', edit: trimmed(0, 1000) }), null);
   assert.equal(memoLengthText({ body: '58000', edit: trimmed(2000, 41_000) }), '0:39');

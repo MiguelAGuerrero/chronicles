@@ -44,7 +44,7 @@ import { ResponsesSheet } from './threads/ResponsesSheet';
 import { responseRows, responsesOf } from '../lib/threads/responses';
 import { IN_A_THREAD, MENTIONED, responsesWord } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
-import { trimmedLine, voiceClock, voiceSpan, voiceState } from '../lib/voiceTrim';
+import { trimmedLine, voiceClock, voiceReachedEnd, voiceSpan, voiceState, wholeMs } from '../lib/voiceTrim';
 import type { MediaEdit } from '../lib/mediaEdit';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
@@ -97,10 +97,14 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     playing.current = status.playing;
     finished.current = onFinished;
   }, [status.playing, onFinished]);
-  const wholeMs = status.duration ? status.duration * 1000 : props.durationMs;
-  const span = voiceSpan(trim, wholeMs);
+  // The stored length wins; the file's own only for a memo with none on record, so every surface agrees (audit 3, 4).
+  const whole = wholeMs(props.durationMs, (status.duration || 0) * 1000);
+  const span = voiceSpan(trim, whole);
   const where = voiceState(status.currentTime, span);
-  const atEnd = !!trim && where === 'end';
+  // The press that restarts the kept part names the position it left: until the player moves off it, it is not the end (audit 2).
+  const [restartedFrom, setRestartedFrom] = useState<number | null>(null);
+  const restarting = restartedFrom !== null && status.currentTime === restartedFrom;
+  const atEnd = !!trim && voiceReachedEnd(status.currentTime, span, restarting);
   // Once per play: the trim's end and the file's end can both say so.
   const reported = useRef(false);
   const report = () => {
@@ -156,8 +160,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
           if (refused.current) clearTimeout(refused.current);
           if (status.playing) player.pause();
           else {
-            if (atEnd) seekMemo(player, span.startMs / 1000);
-            else if (status.didJustFinish || (!trim && wholeMs && status.currentTime * 1000 >= wholeMs - 100)) player.seekTo(span.startMs / 1000);
+            if (trim && where === 'end') {
+              setRestartedFrom(status.currentTime);
+              seekMemo(player, span.startMs / 1000);
+            } else if (status.didJustFinish || (!trim && whole && status.currentTime * 1000 >= whole - 100)) player.seekTo(span.startMs / 1000);
             player.play();
           }
         }}
