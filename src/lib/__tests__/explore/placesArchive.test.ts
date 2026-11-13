@@ -233,7 +233,7 @@ test('PW10: a read without the archive never replaces one measured with it; a ri
 });
 
 test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again too (PK7: the bars changed at every level); a9 too (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a10.p2', 'a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
+  assert.equal(ATLAS_CODE, 'a11.p2', 'a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
   for (const level of ['neighborhood', 'town'] as const)
     assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), false, `${level} rows from a6 are read again`);
 });

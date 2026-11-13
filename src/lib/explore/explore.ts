@@ -1,5 +1,6 @@
 // @layer core
-import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
+import { hoodAt } from '../areas/hoods';
+import { townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
@@ -153,14 +154,11 @@ export const checklistKey = (a: AreaRef): string => JSON.stringify([a.level, a.n
 export function areaFor(at: LngLat, candidates: PlaceCandidate[], outlines: OutlineSet | null = null): AreaRef | null {
   const cands = withOutlines(candidates, outlines);
   const town = townAt(at, cands, outlines, { within: coverM });
-  let hood: PlaceCandidate | null = null;
-  let hoodD = Infinity;
-  for (const c of cands) {
-    if (c.level !== 'neighborhood') continue;
-    const d = distanceM(at, c.at);
-    if (d <= coverM(c) && d < hoodD && hoodAllowed(c, town, outlines)) [hood, hoodD] = [c, d];
-  }
-  if (hood) return { level: 'neighborhood', name: hood.name, at: hood.at };
+  // HB8: the neighborhood is decided as placing decides it, by the town at its own reach; the cap above is for the town returned.
+  const hood = hoodAt(at, cands, townAt(at, cands, outlines), outlines, coverM);
+  // A shape's far corner is past what its checklist reads around its point: that is the town's, or no one's, never dropped (audit 3).
+  const seen = hood && distanceM(at, hood.at) <= coverM(hood) ? hood : null;
+  if (seen) return { level: 'neighborhood', name: seen.name, at: seen.at };
   if (!town || distanceM(at, town.c.at) > coverM(town.c)) return null;
   return { level: 'town', name: town.c.name, at: town.c.at };
 }
@@ -350,7 +348,7 @@ export function findCandidates(at: LngLat, items: ChecklistItem[], found: Set<st
 /**
  * The place a capture finds by itself: the one unfound place within 60 m. With two or more in reach
  * the nearest is only a guess (a park's marker can sit farther than a statue in it), so nothing is
- * found until the reader picks from `findCandidates`.
+ * found: the walker taps a mark to make a moment about it.
  */
 export function findFor(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem | null {
   const c = findCandidates(at, items, found);

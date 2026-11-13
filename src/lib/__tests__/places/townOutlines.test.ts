@@ -229,7 +229,7 @@ test('TO8: places are read only when the outlines were too; an unread outline me
 });
 
 test('TO9: the rules tag changes with AREA_RULES, not with the Overture release', () => {
-  assert.equal(AREA_RULES, '4');
+  assert.equal(AREA_RULES, '5');
   const tiles = realTiles();
   const other = tiles.map((t) => ({ ...t, release: '2027-01-01.0' }));
   const path = walk([GYM, stepToward(GYM, CATASAUQUA, 200)]);

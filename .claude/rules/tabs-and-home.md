@@ -26,8 +26,8 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
   stacks a second set of tabs (two tab bars; the e2e counts one).
 - **Memories keeps a moment in one tap** (HC6-HC15): see `.claude/rules/moments-and-days.md`
-  for the band. With a walk minimized, the recording bar shows no camera on Memories
-  (`barCamera`, `lib/captureBand`), since the band files into the walk.
+  for the open line (the journal, decision 0155; `.claude/rules/journal.md`). With a walk minimized, the recording bar
+  shows no camera on Memories (`barCamera`, `lib/captureBand`), since the open line files into the walk.
 - **A stale replay link at launch goes to Chronicle** (NV2, HC5): the root layout notes
   every path in `lib/launchRoute`; a replay or day that finds nothing on the
   path the app opened on calls `router.dismissTo('/')` (the replay first sets
@@ -57,7 +57,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   viewport back with only a `visualViewport` resize, as iOS ends a zoom.
 - **The page covers the whole screen** (`viewport-fit=cover`, set by `components/pwa.web.ts` through `coverViewport`
   in `lib/safeInsets`; fix home-indicator, the owner's Home Screen app, Nov 12). Without it iOS reports every inset
-  as 0 and every bottom bar (the tab bar, Memories' capture band) sat in the home-indicator strip. `SafeInsets` hears
+  as 0 and every bottom bar (the tab bar, Memories' capture band, now the journal's open line) sat in the home-indicator strip. `SafeInsets` hears
   an `env()` change with no resize through its probe's `transitionend` (the fit is set after the HTML loads).
   Chromium's `env()` is 0, so the e2e can't show a real inset; the owner's phone is the check.
 - **e2e:** `url` opens Chronicle's Memories; `exploreUrl` (`${url}explore`) opens the

@@ -4,6 +4,8 @@ import { readOverture } from '../activity/overture';
 import { activityFromTilePois, mergeSources, type ActivityPoint } from '../activity/points';
 import { outlineOf } from '../areas/borders';
 import { outlines } from '../areas/outlineReader';
+import type { OutlineRead } from '../areas/outlineRead';
+import { hoodExtent, hoodExtentFor, hoodProbe } from '../areas/hoods';
 import { listable, withOutlines } from '../areas/outlines';
 import type { PlaceCandidate, TownOutline } from '../areas/types';
 import { hamletsFromTiles, placesFromTiles } from '../areas/tilePlaces';
@@ -21,7 +23,7 @@ import {
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead, type Within,
 } from './atlas';
 import { extentTiles, inExtent } from './extent';
-import { borderReach, isWard, listingBy, townHoods } from './hoods';
+import { borderReach, insideTown, isWard, listingBy, shapedHoods, shapeUnread, townHoods } from './hoods';
 import { findPockets, type Pocket } from './pockets';
 import { placesArchive } from '../discovery/archive';
 import type { ArchiveRead } from '../discovery/archive/shell';
@@ -94,6 +96,10 @@ export function readNear(
         const f = await fetchTiles(url, extentTiles(outline, town.at).tiles, ZOOM.neighborhood, shouldStop).catch(() => null);
         if (!f || shouldStop()) return false;
         candidates = townHoods({ hoods: placesFromTiles(f.places), hamlets: hamletsFromTiles(f.places), outline, set: border.set });
+        // Audit 1: as placing knows them, by the tiles already kept (a listing asks for no more): a name inside a shape is no
+        // row, and a shape with no point inside the town's border is one.
+        const kept = await outlines.known(candidates.map((c) => c.at)).catch(() => null);
+        candidates = shapedHoods(candidates, kept, (c) => insideTown(c.at, outline, border.set));
       }
     }
     if (!candidates) {
@@ -105,6 +111,11 @@ export function readNear(
         const read = await outlines.read([at], shouldStop).catch(() => null);
         if (shouldStop()) return false;
         if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
+      } else if (level === 'neighborhood') {
+        // Audit 1: the neighborhoods around you as placing knows them, by the tile under you: a name inside a shape is no row, and a shape with no point within reach is one.
+        const read = await outlines.read([at], shouldStop).catch(() => null);
+        if (shouldStop()) return false;
+        candidates = shapedHoods(candidates, read?.set, (c) => distanceM(c.at, at) <= reach);
       }
       candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach && !(level === 'neighborhood' && isWard(c.name)));
     }
@@ -120,6 +131,8 @@ export function readNear(
 export interface Extent {
   outline: Pick<TownOutline, 'polygons' | 'bbox'>;
   partial: boolean;
+  /** HB11: a neighborhood's own shape: what is counted is across it, and nothing else of a town's read changes. */
+  shape?: boolean;
 }
 
 /**
@@ -142,10 +155,11 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   const analyze = (centre: LngLat) =>
     analyzeArea({
       centre, points, towns, transit,
-      segments: extent ? segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, centre) <= LANDING_RULES.radiusM + 300))) : segments,
+      segments: wholeTown ? segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, centre) <= LANDING_RULES.radiusM + 300))) : segments,
     });
   // TP4: a graded town's pockets, each named for the busiest street through it.
-  const pockets: Pocket[] = extent ? findPockets(points.filter((p) => within(p.at))) : [];
+  const wholeTown = !!extent && !extent.shape;
+  const pockets: Pocket[] = wholeTown ? findPockets(points.filter((p) => within(p.at))) : [];
   let first: ReturnType<typeof analyze> | null = null;
   const stripsAt: { name: string; peak: LngLat }[] = [];
   const named = pockets.map((pocket, i) => {
@@ -157,7 +171,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   });
   const view = named[0]?.at ?? at;
   const analysis = first ?? analyze(at);
-  const strips = extent ? stripsAt : analysis.strips.filter((s) => within(s.peak)).map((s) => ({ name: s.name, peak: s.peak }));
+  const strips = wholeTown ? stripsAt : analysis.strips.filter((s) => within(s.peak)).map((s) => ({ name: s.name, peak: s.peak }));
   // What the frame can show: a little past the ring's corners.
   const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
   const profile: AtlasProfile = {
@@ -174,7 +188,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
     }),
     overture: overture?.release ?? null,
     archive: archive?.version ?? null,
-    ...(extent ? { extent: 'outline' as const, partial: extent.partial, pockets: named, ...(named[0] ? { sketchAt: view } : {}) } : { extent: 'ring' as const }),
+    ...(wholeTown ? { extent: 'outline' as const, partial: extent!.partial, pockets: named, ...(named[0] ? { sketchAt: view } : {}) } : extent ? { extent: 'shape' as const, partial: extent.partial } : { extent: 'ring' as const }),
   };
   return { profile, cache: { segments, places } };
 }
@@ -195,6 +209,7 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     // TP1-TP3: a town with an outline is read across it (the whole-town z10 outline), at most a budget of tiles.
     let extent: Extent | null = null;
     let outlineRetry = false;
+    let hoodRead: OutlineRead | null = null;
     if (area.level === 'town') {
       const read = await wholeBorder(area, shouldStop);
       if (shouldStop()) return null;
@@ -205,6 +220,18 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
         const e = extentTiles(outline, area.at);
         tiles = e.tiles;
         extent = { outline, partial: e.partial };
+      }
+    } else if (area.level === 'neighborhood') {
+      // HB11: counted across its own shape where the tiles hold one; its share after the places are read; the ring where
+      // they hold neither, and a failed read is tried again (audit 4). The probe reads the tiles beside it too, so a
+      // shape crossing a tile edge is whole.
+      hoodRead = await outlines.read(hoodProbe(area.at), shouldStop).catch(() => null);
+      if (shouldStop()) return null;
+      const own = hoodRead ? hoodExtentFor(area, hoodRead.set) : null;
+      if (own) {
+        const e = extentTiles(own.outline, area.at);
+        tiles = e.tiles;
+        extent = { outline: own.outline, partial: e.partial, shape: true };
       }
     }
     // Overture's places for the same tiles (AD3); without them the ring is measured from the map's alone (AD7).
@@ -218,6 +245,12 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     const finds = archive ? await db.listFinds().catch(() => []) : [];
     if (shouldStop()) return null;
     if (!f) return failed();
+    // Audit 4: a neighborhood with no shape of its own is counted across its share, the ground its line draws, from the places just read.
+    if (area.level === 'neighborhood' && !extent && hoodRead) {
+      const share = hoodExtent(area, [...placesFromTiles(f.places), ...hamletsFromTiles(f.places)], hoodRead.set);
+      if (share) extent = { outline: share.outline, partial: share.partial, shape: true };
+    }
+    if (area.level === 'neighborhood' && shapeUnread(hoodRead, extent)) outlineRetry = true;
     try {
       // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
       // rewritten into the shared caches, so the write queue stays free for the walk.

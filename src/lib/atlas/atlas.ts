@@ -33,9 +33,10 @@ import type { Pocket } from './pockets';
 /** a8: presence by bars (PK1-PK7): a museum the data calls historic lights History too; community spaces join Culture. */
 /** a9: a park whose name says a playground or the like, with nothing notable in it, is a community park (PC13); curation over presence's classes, so presence's own code is unchanged. */
 /** a10: community parks reads a park's name as presence reads a museum's, past a neighbourhood's "Old Town", and "heritage" keeps no park (tend explore T9); none carried. */
-/** The atlas's own part of a row's code (a10). */
-const ATLAS_OWN = 'a10';
-/** A row's code: the atlas's own (a10) and presence's (PR6), so a reclassification re-reads every row. */
+/** a11: a neighborhood with a real shape is counted across it (neighborhood boundaries, HB11); towns stand as under a10. */
+/** The atlas's own part of a row's code (a11). */
+const ATLAS_OWN = 'a11';
+/** A row's code: the atlas's own (a11) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
 /**
@@ -45,7 +46,9 @@ export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
  * specs/presence-readers PS9: a9.p1 under a9.p2, now a10.p1 under a10.p2), so a bump of the atlas's own part carries none.
  */
 const CARRIED_PRESENCE = PRESENCE_CARRIED.map((c) => `${ATLAS_OWN}.${c}`);
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: CARRIED_PRESENCE };
+/** a10's codes, which a town's rows still stand under (a11 changed neighborhoods only). */
+const A10_CODES = [PRESENCE_CODE, ...PRESENCE_CARRIED].map((c) => `a10.${c}`);
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: [...CARRIED_PRESENCE, ...A10_CODES] };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -141,8 +144,8 @@ export interface AtlasProfile {
   archive?: string | null;
   /** The map knows almost nothing here: the kinds say nothing (AG3). */
   thin?: boolean;
-  /** TP1: what the bars were counted across: the town's whole outline, or the 800 m ring around its point (absent: the ring). */
-  extent?: 'outline' | 'ring';
+  /** TP1: what the bars were counted across: the town's whole outline, a neighborhood's own shape (HB11), or the 800 m ring around its point (absent: the ring). */
+  extent?: 'outline' | 'ring' | 'shape';
   /** TP3: the outline needed more tiles than a read takes, so this covers part of the town. */
   partial?: boolean;
   /** TP4: the town's pockets of activity, busiest first. */
@@ -625,9 +628,12 @@ export const MARKS_EXPLAINED: readonly string[] = [
 /** The line a town counted across its whole outline says in place of the ring's (TP8). */
 const WHOLE_TOWN_LINE = 'A town is counted across its whole outline, and a neighborhood within about a ten-minute walk of its point, so the same marks mean the same anywhere. Where a town is busiest is listed apart.';
 
+/** HB11: the line a neighborhood counted across its own shape says in place of the ring's. */
+const SHAPE_LINE = 'A neighborhood is counted across the ground drawn around it where the map has one, and within about a ten-minute walk of its point where it has not.';
+
 /** TP8: how the marks work for an area: a graded town says it is counted across its outline (no digits, AT11). */
 export const marksExplained = (p: Pick<AtlasProfile, 'extent'> | null | undefined): readonly string[] =>
-  p?.extent === 'outline' ? [...MARKS_EXPLAINED.slice(0, -1), WHOLE_TOWN_LINE] : MARKS_EXPLAINED;
+  p?.extent === 'outline' ? [...MARKS_EXPLAINED.slice(0, -1), WHOLE_TOWN_LINE] : p?.extent === 'shape' ? [...MARKS_EXPLAINED.slice(0, -1), SHAPE_LINE] : MARKS_EXPLAINED;
 
 /** TP8: the card's heading over the kinds: a town counted across its outline is no longer "around its centre". */
 export const kindsHeading = (level: AtlasLevel, p: Pick<AtlasProfile, 'extent'> | null | undefined): string =>

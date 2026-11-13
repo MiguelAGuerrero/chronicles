@@ -156,21 +156,28 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on a phone at the largest text size, with nothing walked and a walk minimized, open Chronicle's Map. **Expect:** the peek's line, "This walk is starred here when it ends", sits whole under the grabber; the peek is the plain 76 pt with no button, and a line that wraps to two at a large size may be clipped (the header is 48 pt; the T10 review's native notes; see T13).
 - [ ] **Do:** set Distances to miles, set a destination and pull up the ready bar; step the "?" range from 60 to 300 m. **Expect:** the destination and the range read in feet or miles, each range step a different number of feet, on the ready bar and the walk's options alike (`tend tabs 6`, audits 5-7).
 
-## Capture from Chronicle (HC1-HC15, decision 0112)
+## Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)
 
-- [ ] **Do:** on an iPhone with a home indicator, open the app on Memories and keep a photo, a voice memo and a note from the band. **Expect:** the band sits just above the tab bar and clear of the home indicator, each button takes one tap, and each moment heads Lately at once with its place once its fix comes. (HC6, HC7, HC9)
-- [ ] **Do:** start a voice memo from the band, then switch to Walks with the section bar (no route change). **Expect:** the memo is saved as the band loses focus, and plays back from Lately. (HC11)
-- [ ] **Do:** start a walk, minimize it, open Chronicle and keep a note and a photo from the band. **Expect:** the band sits above the recording bar, which shows no camera there; both say "saved to your walk" and are the walk's own captures on its replay. (HC7, HC10)
-- [ ] **Do:** with VoiceOver on, open the app and swipe right from the Memories options button. **Expect:** VoiceOver reaches the band's camera next, named "Keep a moment: take a photo or video", before the resurfaced card and Lately. (HC8)
+- [ ] **Do:** on an iPhone with a home indicator, open the app on Memories; write a line in the open line, then add a photo and a voice note without tapping Done; then tap Done. **Expect:** the line sits just above the tab bar and clear of the home indicator; the words are on the page under one dateline with the photo and the note, each taking one tap; the dateline gains its place once the one fix comes. (HC6, HC7, HC9, JN9, JN12, JN14, JN15)
+- [ ] **Do:** tap in the open line and type three lines. **Expect:** the line rides above the keyboard with "Kept as you write", the camera, the mic and Done; the entry's dateline stays in view above it; Done lowers the keyboard. (JN13, JN19)
+- [ ] **Do:** on an iPhone in Safari (the Home Screen app too), tap in the open line and type. **Expect:** the page does not zoom, the line stays above the keyboard, and after Done the tab bar is back at the foot. (JN19)
+- [ ] **Do:** type a line, close the app from the switcher mid-sentence, and open it again. **Expect:** the words are on the page as an entry and the line is empty. (JN13)
+- [ ] **Do:** open a journal with a few hundred entries and scroll up through two pages of older ones. **Expect:** it opens at the foot on today; older entries arrive above without the ones on screen jumping (`maintainVisibleContentPosition`). (JN1)
+- [ ] **Do:** look at an entry's words beside its dateline on an iPhone and on an Android phone. **Expect:** the words are in a serif (Georgia on iOS, the system serif on Android) and the dateline in the system sans. (JN4)
+- [ ] **Do:** start a voice note from the open line, then switch to Walks with the section bar (no route change). **Expect:** the note is saved as the line loses focus, and plays back from its entry. (JN14)
+- [ ] **Do:** start a walk, minimize it, open Chronicle and write a line and take a photo from the open line. **Expect:** the line sits above the recording bar, which shows no camera there; both are on the page at once and in the walk's replay. (HC7, HC10, JN8)
+- [ ] **Do:** with VoiceOver on, open the app and swipe right from the contents button. **Expect:** VoiceOver reaches the open line next, named "Write an entry", then "Add a photo or video" and "Record a voice note", before the slip and the entries. (JN10, JN23)
 
-- [ ] **Do:** start a walk on Navigate, then record a voice memo from the walk screen; minimize mid-memo is off, so stop it, minimize, open Memories and record one from the band; go back to Navigate's walk screen at once and tap its mic. **Expect:** both memos are kept and play; the band's audio-mode reset never leaves the walk screen's recorder unable to record (iOS audio session; capture-from-chronicle audit). (HC11)
-- [ ] **Do:** from Memories' band, take a photo with the system camera, then a 15 s video; with a walk minimized, hold the bar's Stop while the video is still being kept. **Expect:** the camera opens over the tab, each is kept with its one fix, and the stopped walk's replay plays the video (`memoGate.kept()`, capture-from-chronicle audit 6). (HC9, HC10)
-- [ ] **Do:** deny the camera to Chronicles, tap the band's Photo, and tap Settings on the error. **Expect:** iOS opens Chronicles' settings (`Linking.openSettings`). (HC6)
-- [ ] **Do:** on Memories, write a note from the band with the keyboard up. **Expect:** the note editor sits above the keyboard (`KeyboardAvoidingView` over a tab). (HC6)
-- [ ] **Do:** with TalkBack on Android, open the app and move through Memories, then open a thread. **Expect:** the band comes right after the options button on Memories, and after the thread's Back inside a thread (an absolute layer with `zIndex: 2`; capture-from-chronicle audit 9). (HC8)
-- [ ] **Do:** scroll Lately so a card sits under the band, and tap the band's empty space between buttons. **Expect:** nothing opens; the band's hairline top border draws on iOS and Android (capture-from-chronicle audit 5). (HC7)
-- [ ] **Do:** with a walk minimized, tap Chronicle, then Explore, then Chronicle's Walks. **Expect:** the recording bar keeps its height and layout as its camera hides on Memories and comes back elsewhere (`barCamera`). (HC7)
-- [ ] **Do:** with no walk open, tap a reminder notification while the app is closed. **Expect:** the app opens on Chronicle with the moment's viewer (`router.navigate('/')` on a cold start). (HC1, NV13)
+- [ ] **Do:** start a walk on Navigate, then record a voice memo from the walk screen; minimize mid-memo is off, so stop it, minimize, open Memories and record one from the open line; go back to Navigate's walk screen at once and tap its mic. **Expect:** both memos are kept and play; the line's audio-mode reset never leaves the walk screen's recorder unable to start. (JN14)
+- [ ] **Do:** from Memories' open line, take a photo with the system camera, then a 15 s video; with a walk minimized, hold the bar's Stop while the video is still being kept. **Expect:** the camera opens over the tab, each is kept, and the stopped walk's replay plays the video (`memoGate.kept()`, capture-from-chronicle audit 6). (HC6)
+- [ ] **Do:** record a voice note from the open line and press Android Back mid-note; then tap the camera mid-note. **Expect:** Back does nothing while it records (`BackHandler`); the camera's tap saves the note, then opens the camera. (JN14)
+- [ ] **Do:** type @ in the open line with the keyboard up and pick a moment. **Expect:** the picker opens in its own Modal over the keyboard, the reference lands at the caret, and the keyboard comes back. (JN16)
+- [ ] **Do:** write three entries, force-quit mid-sentence on the third, and reopen (SQLite, the single write queue). **Expect:** all three are on the page with their words; `beginNote`, `writeNote` and `dropNote` ran in order. Native has no `pagehide`: at most the last 400 ms of typing is missing. (JN13)
+- [ ] **Do:** tap a placed entry's dateline. **Expect:** Chronicle's Map comes up framed about 150 m around that moment (`takeFocus` on MapLibre RN's fit), not on everything walked. (JN6)
+- [ ] **Do:** type a line in the open line, tap Open as a page, add a bullet list and a checkbox, tap Done. **Expect:** the keyboard hands over from the line to the page with the words already there; back on the sheet the entry shows its list and its box as text in the serif, not as marks, and the line is empty. (JN25, JN26)
+- [ ] **Do:** from an empty line tap Open as a page, then take a photo with the page's camera, write a line and tap Done. **Expect:** the system camera opens from inside the page; the photo is its own entry and is mentioned in the note; the next words typed in the line begin a new entry. (JN25, NP14)
+- [ ] **Do:** open a note of several screens on the sheet. **Expect:** it is cut with "The entry goes on; open it to read the rest", and the sheet scrolls smoothly past it (no web view in the list). (JN27)
+- [ ] **Do:** deny the camera to Chronicles, tap the open line's camera, and tap Settings on the message. **Expect:** iOS opens Chronicles' settings (`Linking.openSettings`). (JN18)
 
 ## Quality of life
 
@@ -457,7 +464,6 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** start a walk, drive 3 km inside it, get out and walk 200 m. **Expect:** "On a ride" while driving; afterwards VoiceOver or TalkBack reads Walk me back as "Walk me back to where the ride ended", and it leads to where you got out, not to where the drive began. (DW6, DW8, DW9)
 - [ ] **Do:** press and hold the walk map, tap Walk back here, then force-quit and reopen the app. **Expect:** "Walk me back now leads here." once; after the relaunch Walk me back still leads to that spot; Stop clears it. (DW7)
 - [ ] **Do:** on a native map, stand where two revealed marks sit within a few metres of each other, then pinch in and out. **Expect:** only one mark shows its name while their names would overlap; both names show once you zoom in enough to part them; no flicker of the pins at the 0.25 zoom steps. (fix mark-names)
-- [ ] **Do:** on a phone, start an exploring walk and take a photo within 60 m of two unfound places (a park and a statue in it). **Expect:** nothing is tagged yet; "Which place is this moment about?" offers both by name and Neither; tapping the park shows "Found: <park>" once and the replay names it; Neither dismisses it and tags nothing; its buttons are reachable by VoiceOver and TalkBack. (fix which-place)
 - [ ] **Do:** on Explore, drag the area cards slowly and then flick across several. **Expect:** each card becomes the selected one, and the map eases to it, as it passes the middle, without waiting for the scroll to stop; the row never jumps back to a card you scrolled past; it comes to rest on one card. (fix carousel-live-select)
 
 
@@ -504,7 +510,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 
 The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@expo/dom-webview`) that has never run.
 
-- [ ] **Do:** on an iPhone and an Android phone, tap the pencil on Navigate, on the walk and on Memories' band. **Expect:** the note's page slides up full screen with the keyboard up and the cursor in the body, at once, in one tap; the day and "Not on a walk" or "On your walk" head it. (NP1, NP2)
+- [ ] **Do:** on an iPhone and an Android phone, tap the pencil on Navigate and on the walk; on Memories tap in the open line, then Open as a page. **Expect:** the note's page slides up full screen with the keyboard up and the cursor in the body, at once, in one tap; the day and "Not on a walk" or "On your walk" head it. (NP1, NP2)
 - [ ] **Do:** on the page, type `# `, `- `, `[ ] `, `1. `, `> ` at the start of lines, then `**two**`. **Expect:** each becomes its heading, list, checklist, numbered list, quote and bold at once in the WebView, with the marks gone; Return and Backspace behave as on the web. (NP3)
 - [ ] **Do:** with the keyboard up, tap Aa, then Bold, Checklist and Quote; then @ and the camera. **Expect:** the bar sits just above the keyboard on iOS and Android, the panel above it, every button reachable; Bold shows pressed; @ opens the moment picker over the page inside the same Modal. (NP4)
 - [ ] **Do:** write a few words, wait two seconds, then swipe the app away and reopen it. **Expect:** the note is there with the words written before the pause; writing then sending the app to the background keeps the last words too (AppState `background`). (NP9)
@@ -526,6 +532,12 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with Move map on, pan to another town and tap Show areas here, then a card, then Locate. **Expect:** the row lists the towns around the middle of the map with "Around the middle of the map" as the title; Locate brings the page back to you (FL6, FL7, FL8).
 - [ ] **Do:** with Move map on, press and hold a far spot and tap Walk here. **Expect:** a question, Walk now or When I get there, before anything starts; a drag that pans never starts the hold (FL10, FL12).
 - [ ] **Do:** after a drag on a native map with Move map on, tap a "?" or a dot. **Expect:** the tap acts as usual (onPress after a native drag, FL3).
+
+## Neighborhood boundaries (HB1-HB16, decision 0152)
+
+- [ ] **Do:** on a phone, open Explore in a city with neighborhood shapes (Baltimore), pick a neighborhood from a town's page, and wait a few seconds. **Expect:** the ring gives way to one dark line around that neighborhood's own ground, with no fill and no figure; selecting its neighbor draws that one's line and the first is gone, and the two lines do not cross (HB9, HB14; the native `ground` line layer).
+- [ ] **Do:** update the app over a version with walks already placed (migration 26 adds `outline_tile.hoods`), open Chronicle, then Explore. **Expect:** it opens without error, the walks are placed again in the background and keep a place each, and a tile read before the update is read again (HB7, HB12; the SQLite migration and the `hoods` column on a phone).
+- [ ] **Do:** with airplane mode on, select a neighborhood in a city you have already read. **Expect:** its line draws from the kept tiles with no error; in a city never read the ring stays and nothing is said (HB12).
 
 ## The replay sweep (`/tend replay`, Nov 12)
 

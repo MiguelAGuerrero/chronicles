@@ -223,6 +223,9 @@ const snapDivisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Allentown', division_id: 'allentown', id: 'allentown-area' } },
   { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(18, 4), at(24, 4), at(24, 10), at(18, 10), at(18, 4)]] },
     properties: { subtype: 'locality', class: 'land', '@name': 'Catasauqua', division_id: 'catasauqua', id: 'catasauqua-area' } },
+  // Neighborhood boundaries (HB9): Point Street has a real shape, 800 m across; the other three neighborhoods have only their points.
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-13, -4), at(-5, -4), at(-5, 4), at(-13, 4), at(-13, -4)]] },
+    properties: { subtype: 'neighborhood', class: 'land', '@name': 'Point Street', division_id: 'point-street', id: 'point-street-area' } },
 ];
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
@@ -414,6 +417,24 @@ async function createHarness() {
     if (id === 'chronicle' && section !== 'memories') {
       await pg.waitForSelector('[data-testid=chronicle-sections]', { timeout: 15000 }).catch(() => {});
       if (await pg.locator(`[data-testid=section-${section}]`).filter({ visible: true }).count()) await pg.click(`[data-testid=section-${section}]`);
+    }
+  };
+  // Memories is a journal (decision 0155): the threads, the Chronicle's and the owner's, are behind its contents
+  // button. `toThreads` opens them from the page; `toJournal` goes back to the page. Both do nothing when already there,
+  // or inside a thread or Hidden (their own Back comes first).
+  const toThreads = async (pg) => {
+    await pg.waitForSelector('[data-testid=threads-screen], [data-testid=memories-menu], [data-testid=thread-screen], [data-testid=own-thread]', { timeout: 20000, state: 'visible' }).catch(() => {});
+    if (await pg.locator('[data-testid=threads-screen], [data-testid=thread-screen], [data-testid=own-thread]').filter({ visible: true }).count()) return;
+    if (!(await pg.locator('[data-testid=memories-menu]').filter({ visible: true }).count())) return;
+    await pg.click('[data-testid=memories-menu]');
+    await pg.waitForSelector('[data-testid=menu-threads]', { timeout: 5000 }).catch(() => {});
+    await pg.click('[data-testid=menu-threads]').catch(() => {});
+    await pg.waitForSelector('[data-testid=threads-screen]', { timeout: 5000 }).catch(() => {});
+  };
+  const toJournal = async (pg) => {
+    if (await pg.locator('[data-testid=threads-back]').filter({ visible: true }).count()) {
+      await pg.click('[data-testid=threads-back]');
+      await pg.waitForSelector('[data-testid=journal-page]', { timeout: 5000 }).catch(() => {});
     }
   };
   // Chronicle opens on Memories (RM1); a journey that wants the map's sheet after leaving a replay brings it up.
@@ -680,7 +701,7 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
-    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint,
   };
 }

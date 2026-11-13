@@ -1,15 +1,15 @@
 import type { Faced } from '../lib/moment';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  AccessibilityInfo, BackHandler, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions,
+  AccessibilityInfo, BackHandler, Platform, Pressable, StyleSheet, Text, View,
 } from 'react-native';
-import { bandLayout, momentToast } from '../lib/captureBand';
+import { momentToast } from '../lib/captureBand';
 import { feedback } from '../lib/motion';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
-import type { Capture, LngLat } from '../lib/types';
+import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
 import { NewNotePage } from './notePage/NewNotePage';
@@ -22,18 +22,10 @@ import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { LiftIn, theme } from './ui';
 
-/** The open walk a moment from the band files into (HC10), with where the walk last was. */
-export interface BandWalk {
-  id: string;
-  here: LngLat | null;
-  lastFixAt: number | null;
-}
-
 /**
- * Camera, mic and pencil on the ready screen (M1, NR9) and on Chronicle's Memories (HC6): a moment in
- * one tap. With no walk open, each moment asks for one fix as it is begun and is kept at once; the toast
- * says where it landed when the fix comes, or "No location" (M2). Given an open walk (Memories with a
- * walk minimized, HC10), it keeps the walk's own captures instead, as the recording bar's camera does.
+ * Camera, mic and pencil on the ready screen (M1, NR9): a moment in one tap. Each moment asks for one fix as it
+ * is begun and is kept at once; the toast says where it landed when the fix comes, or "No location" (M2).
+ * Chronicle's Memories keeps moments from its own open line (`components/journal/OpenLine`, decision 0155).
  */
 export function MomentBar(props: {
   disabled?: boolean;
@@ -44,53 +36,25 @@ export function MomentBar(props: {
   onRecording?: (on: boolean) => void;
   /** Whether the tab is in front: leaving it mid-memo saves the memo (tabs audit 3). */
   focused?: boolean;
-  /** `band` on Memories (HC6, HC7); the walk screen's stack otherwise. */
-  layout?: 'stack' | 'band';
-  /** The ids' prefix: `moment` on the ready screen, `band` on Memories. */
-  idPrefix?: string;
-  /** Names for a screen reader (HC8); the ready screen's by default. */
-  labels?: { photo: string; voice: string; note: string };
-  /** An open walk to file into (HC10), or none for moments of their own. */
-  walk?: BandWalk | null;
-  /** What the screen says above the band (an error, its own Undo): first in the pills' column (audit 2, 3). */
-  above?: ReactNode;
 }) {
   const [toast, setToast] = useState<string | null>(null);
-  const { onMoment, walk } = props;
-  const cap = useCaptures(walk?.id ?? null, walk?.here ?? null, walk?.lastFixAt ?? null, props.onError, {
-    loose: !walk,
+  const { onMoment } = props;
+  const cap = useCaptures(null, null, null, props.onError, {
+    loose: true,
     // The pill (moment stacks, MS2, MS5): a new moment opens it; a piece keeps it.
-    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, !!walk)),
+    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, false)),
     onMoment: (c, state) => {
       // The toast waits for the place; the lists hear of the moment at once (audit).
-      if (state !== 'kept') setToast(momentToast(c.kind, 'loose', state === 'placed' ? undefined : state));
+      if (state !== 'kept') setToast(momentToast(c.kind, state === 'placed' ? undefined : state));
       onMoment(c, state);
     },
   });
-  // Navigate, ready, or Memories shown: the room left (SA3) and the web's request; a walk's band says it is recording (SA10).
+  // Navigate, ready: the room left (SA3) and the web's request.
   const { focused } = props;
-  const recording = !!walk;
   useEffect(() => {
-    if (focused !== false) void space.check({ recording });
-  }, [focused, recording]);
-  // A walk's capture is never a loose moment: it says it went to the walk, at once (HC10, HC15).
-  const onKept = walk ? (kind: Capture['kind']) => setToast(momentToast(kind, 'walk')) : undefined;
-  return (
-    <CaptureRow
-      cap={cap}
-      toast={toast}
-      setToast={setToast}
-      disabled={props.disabled}
-      onRecording={props.onRecording}
-      focused={props.focused}
-      layout={props.layout}
-      idPrefix={props.idPrefix}
-      labels={props.labels}
-      onKept={onKept}
-      above={props.above}
-      onWalk={!!walk}
-    />
-  );
+    if (focused !== false) void space.check({ recording: false });
+  }, [focused]);
+  return <CaptureRow cap={cap} toast={toast} setToast={setToast} disabled={props.disabled} onRecording={props.onRecording} focused={props.focused} />;
 }
 
 const READY_LABELS = { photo: 'Keep a moment: take a photo or video', voice: 'Keep a moment: record a voice memo', note: 'Keep a moment: write a note' };
@@ -111,22 +75,15 @@ export function CaptureRow(props: {
   disabled?: boolean;
   onRecording?: (on: boolean) => void;
   focused?: boolean;
-  layout?: 'stack' | 'band';
   idPrefix?: string;
   labels?: { photo: string; voice: string; note: string };
-  /** A capture was kept (after its tap): a walk's band says where it went (HC10). */
-  onKept?: (kind: Capture['kind']) => void;
-  /** Said above this row's own pills, in the same column, so nothing covers anything (audit 2, 3). */
-  above?: ReactNode;
   /** A note begun here goes to an open walk (NP2's draft line). */
   onWalk?: boolean;
 }) {
   const at = useStackLayout();
-  const { width } = useWindowDimensions();
-  const band = props.layout === 'band';
   const p = props.idPrefix ?? 'moment';
-  // Pills and toasts sit above the band on Memories (HC15), left of the stack on the walk screen (NR10).
-  const pillsAt = band ? { left: 16, right: 16, bottom: bandLayout(width).height + 12, alignItems: 'center' as const } : at.pills;
+  // Pills and toasts sit left of the stack on the walk screen (NR10).
+  const pillsAt = at.pills;
   const { cap, toast, setToast } = props;
   // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` is the open moment it joins (MS2, MS4).
   const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
@@ -159,10 +116,8 @@ export function CaptureRow(props: {
     };
   }, [recording]);
 
-  const { onKept } = props;
-  const saved = (kind: Capture['kind']) => {
+  const saved = (_kind: Capture['kind']) => {
     feedback('tap');
-    onKept?.(kind);
   };
   const saveVoice = async () => {
     const r = await cap.finishVoice();
@@ -210,7 +165,6 @@ export function CaptureRow(props: {
     <>
       {/* Pills and the toast: left of the stack, above the strip, so the stack never moves (NR10). */}
       <View style={[styles.pills, pillsAt]} pointerEvents="box-none">
-        {props.above}
         {editOffer.offer && !recording && (
           <EditOfferPill
             offer={editOffer.offer}
@@ -223,7 +177,7 @@ export function CaptureRow(props: {
           />
         )}
         <AddToMomentPill
-          hidden={band || recording || noteOpen}
+          hidden={recording || noteOpen}
           onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved(k.kind))}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
           onNote={() => openNote(momentPill.target())}
@@ -257,11 +211,10 @@ export function CaptureRow(props: {
             </Pressable>
           </View>
         )}
-        {/* Only on the screen in front: Memories' band stays mounted under Navigate, ready (decision 0112). */}
+        {/* Only on the screen in front. */}
         {!recording && props.focused !== false && <SpaceLine />}
       </View>
       <CaptureStack
-        layout={props.layout}
         ids={{ photo: `${p}-photo`, voice: `${p}-voice`, note: `${p}-note`, save: `${p}-voice-save`, discard: `${p}-voice-discard`, timer: `${p}-voice-timer` }}
         labels={props.labels ?? READY_LABELS}
         voiceStartedAt={cap.voiceStartedAt}
@@ -294,8 +247,6 @@ export function CaptureRow(props: {
             into={page.into}
             onWalk={!!props.onWalk}
             camera
-            // Kept a second into writing: the toast says where it went, with no buzz mid-sentence (note-pages audit 27).
-            onKept={() => onKept?.('text')}
             onClose={() => setPage(null)}
           />
         )}

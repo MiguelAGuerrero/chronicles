@@ -4,9 +4,6 @@ import { resurfaceOrder } from './pick';
 import { deriveThreads } from './threads';
 import type { MomentView, Pick, Prefs, SignalExtractor, Thread } from './types';
 
-/** Lately shows this many at first, and this many more as the end is reached (RM17). */
-export const LATELY_PAGE = 20;
-
 export interface Composed {
   /** What can be shown: the moments left after deletes (RM19). */
   moments: MomentView[];
@@ -34,13 +31,4 @@ export function compose(
   // With the switch off there is no top card and no Another; the rail and Lately stay (MC9).
   const order = prefs.off ? [] : resurfaceOrder(moments, { now, seed, prefs, threads, extractors });
   return { moments, threads, order };
-}
-
-/**
- * Lately (MC13): strictly newest first by the time each moment was kept, ties by id. A thread gives no priority:
- * its moments are reached from the rail, and "Newest first" is true. `limit` grows by a page as the end is reached.
- */
-export function lately(moments: MomentView[], _now: number, limit: number): { items: MomentView[]; more: boolean } {
-  const sorted = [...moments].sort((a, b) => b.t - a.t || (a.id < b.id ? -1 : 1));
-  return { items: sorted.slice(0, limit), more: sorted.length > limit };
 }

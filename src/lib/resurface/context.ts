@@ -131,3 +131,13 @@ export function arrivalLine(o: ArrivalInput): string {
   const into = `${minutesInLine(o.walkedMs)}${after ? `, ${after}` : ''}`;
   return [placeLine({ street: o.street, near: o.streetNear, town: o.town, complex: o.complex }), dayPartLine(o.t, o.now), into].join(' · ');
 }
+
+/**
+ * The same facts in two parts, for the journal's dateline (chronicle journal JN5), which says the time itself:
+ * the place, or null when nothing around the fix is known, and how far into its walk, or null outside one.
+ */
+export function arrivalParts(o: ArrivalInput): { place: string | null; into: string | null } {
+  const place = placeLine({ street: o.street, near: o.streetNear, town: o.town, complex: o.complex });
+  const after = o.walkedMs == null ? null : justAfter(o.prev);
+  return { place: place === NO_PLACE ? null : place, into: o.walkedMs == null ? null : `${minutesInLine(o.walkedMs)}${after ? `, ${after}` : ''}` };
+}
