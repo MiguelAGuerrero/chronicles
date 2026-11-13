@@ -1013,6 +1013,8 @@ async function run(h) {
     const T17_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to see where you are.';
     // tend recording T26 (decision 0162): Start's refusal, Locate's line with its own end.
     const T26_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to record a walk.';
+    // The region's text as written, the zero-width space a repeat adds kept (tend recording audit 4).
+    const rawSaid = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => e.textContent), id);
     const saidIn = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), id);
     // The quiet notice holding `words`, read from the page: its role and live region, its colours, and each line of its
     // words from the browser's own line boxes (getClientRects), none cut.
@@ -1119,6 +1121,13 @@ async function run(h) {
       check(isQuiet(firstSeen.banner) && firstSeen.lines >= 1 && firstSeen.cut === 0
         && firstSaid.length === 1 && firstSaid[0].live === 'polite' && firstSaid[0].text === T26_WORDS && goneSaid[0]?.text === '' && backSaid[0]?.text === T26_WORDS,
         `tend recording T26: the walk at ${w}, Not recording says "${T26_WORDS}" quietly, every line whole, and the live region says it each time it shows (${JSON.stringify({ ...firstSeen, said: [firstSaid, goneSaid, backSaid] })})`);
+      // tend recording audit 4: a second tap of the chip with the notice still up is said again: the region's text changes.
+      const upRaw = await rawSaid(pg5, 'walk-said');
+      if (await chip.count()) await chip.first().click();
+      await pg5.waitForTimeout(600);
+      const againRaw = await rawSaid(pg5, 'walk-said');
+      check(upRaw.length === 1 && againRaw.length === 1 && againRaw[0] !== upRaw[0] && againRaw[0].replace(/\u200B/g, '') === T26_WORDS,
+        `tend recording audit 4: at ${w}, the chip's tap with the notice up changes the walk's live region, so it is said again (${JSON.stringify([upRaw, againRaw])})`);
       await c5.close();
     }
 

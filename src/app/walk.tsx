@@ -149,8 +149,11 @@ type Notice = {
   forPause?: number;
   /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
   maps?: { at: LngLat; label: string };
-  /** A quiet refusal (T26): no alert, so the walk's live region says it to a screen reader. */
-  said?: boolean;
+  /**
+   * A quiet refusal (T26): no alert, so the walk's live region says it to a screen reader. A count, so a raise of the
+   * same words while they show still changes the region and is said again (tend recording audit 4).
+   */
+  said?: number;
 };
 
 
@@ -326,6 +329,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
   // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
   const raisedError = useRef<string | null>(null);
+  // Each quiet refusal raised, for the live region's repeat (tend recording audit 4).
+  const saidCount = useRef(0);
   const retrying = useRef(false);
   useEffect(
     () =>
@@ -341,7 +346,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // Location refused is a quiet notice (T26), said as Navigate's is (tend map audit 12): the live region below on
         // web, the call on a phone.
         const quiet = s.tone === 'info';
-        setNotice({ message: s.message, tone: s.tone ?? 'error', openSettings: s.openSettings, sticky: true, said: quiet });
+        setNotice({ message: s.message, tone: s.tone ?? 'error', openSettings: s.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
         if (quiet) AccessibilityInfo.announceForAccessibility(s.message);
       }),
     [],
@@ -1032,7 +1037,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // status raised it already; on a phone the start throws before any status, so it is raised here.
         if (raisedError.current !== fail.message) {
           raisedError.current = fail.message;
-          setNotice({ message: fail.message, tone: 'info', openSettings: fail.openSettings, sticky: true, said: true });
+          setNotice({ message: fail.message, tone: 'info', openSettings: fail.openSettings, sticky: true, said: ++saidCount.current });
           AccessibilityInfo.announceForAccessibility(fail.message);
         }
       } else setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${fail.message}`, tone: 'error', sticky: true });
@@ -1259,7 +1264,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       )}
 
       {/* T26, as tend map audit 12: kept mounted, so a quiet refusal on the walk is read as its words arrive. */}
-      {Platform.OS === 'web' ? <Text testID="walk-said" accessibilityLiveRegion="polite" style={styles.said}>{walk && notice?.said ? notice.message : ''}</Text> : null}
+      {Platform.OS === 'web' ? <Text testID="walk-said" accessibilityLiveRegion="polite" style={styles.said}>{walk && notice?.said ? (notice.said % 2 ? `${notice.message}\u200B` : notice.message) : ''}</Text> : null}
       {!walk ? (
         <>
           {ready.overlay}
@@ -1375,7 +1380,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               if (status.kind !== 'error') return;
               raisedError.current = status.message;
               const quiet = status.tone === 'info';
-              setNotice({ message: status.message, tone: status.tone ?? 'error', openSettings: status.openSettings, sticky: true, said: quiet });
+              setNotice({ message: status.message, tone: status.tone ?? 'error', openSettings: status.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
               if (quiet) AccessibilityInfo.announceForAccessibility(status.message);
             }}
             style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
