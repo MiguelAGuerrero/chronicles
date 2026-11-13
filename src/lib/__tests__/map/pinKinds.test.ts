@@ -2,7 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { pinHeadKinds, pinInto, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, type CapturePin, type WalkClock } from '../../pins';
+import { pinHeadKinds, pinInto, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, walkClocks, type CapturePin, type WalkClock } from '../../pins';
 import type { CaptureKind } from '../../types';
 
 // tend map T14 (the owner's yes, decision 0154; amends QL26, NY10, MR2, RB7): a pin of several moments is drawn with
@@ -107,4 +107,16 @@ test('tend map audit 20: a pin\'s key changes with its moments, not only with th
   assert.notEqual(k1, k2);
   assert.equal(pinKey(pinOf(a, cap('b', 'text', 2))), k1, 'the same moments, the same key');
   assert.notEqual(pinKey(pinOf(cap('a', 'photo', 1, { thumb_path: 'walks/w1/a.thumb.jpg' }))), pinKey(pinOf(a)), 'a small copy made since redraws it (QL27)');
+});
+
+// tend map audit 21 (the T14 review's F3): after Stop the open-walk state holds no walk and no pauses while the walk
+// screen still shows the walk, so its pins' minutes counted the pauses as walked. The walk screen's clock is given only
+// while the open-walk state holds that same walk.
+test('tend map audit 21: the walk screen gives its walk\'s clock only while the open walk is that walk', () => {
+  const walk = { id: 'w1', started_at: T0 };
+  const pauses = [{ started_at: T0 + 2 * MIN, ended_at: T0 + 7 * MIN }];
+  assert.deepEqual(walkClocks(walk, { id: 'w1' }, pauses), [{ id: 'w1', started_at: T0, pauses }]);
+  assert.equal(walkClocks(walk, null, []), undefined, 'stopped: the open walk is gone, and its pauses with it');
+  assert.equal(walkClocks(walk, { id: 'w2' }, pauses), undefined, 'another walk is open');
+  assert.equal(walkClocks(null, { id: 'w1' }, pauses), undefined, 'no walk on the screen');
 });

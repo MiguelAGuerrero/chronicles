@@ -3,6 +3,7 @@ import { NewNotePage } from '../components/notePage/NewNotePage';
 import type { NotePageHandle } from '../components/notePage/NotePage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { walkClocks } from '../lib/pins';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
@@ -784,7 +785,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
     .map((c) => c.id)
     .join(',');
   // The walk's clock, so a pin of several says how far in it was (tend map T14).
-  const clocks = useMemo(() => (walk ? [{ id: walk.id, started_at: walk.started_at, pauses }] : undefined), [walk, pauses]);
+  // Only while the open walk is this one: after Stop its pauses are gone (tend map audit 21).
+  const openRow = openWalk.walk;
+  const clocks = useMemo(() => walkClocks(walk, openRow, pauses), [walk, openRow, pauses]);
   const memories = useMemo(() => {
     const ids = new Set(memoryIds.split(','));
     return memoryPool.filter((c) => ids.has(c.id));

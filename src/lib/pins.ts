@@ -226,3 +226,12 @@ export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: reado
 export function pinKey(pin: CapturePin): string {
   return [pin.id, pin.captures.map((c) => c.id).join(','), pinThumb(pin) ?? '', pinMark(pin)?.id ?? ''].join(':');
 }
+
+/**
+ * The walk screen's clocks (tend map audit 21): its walk's, with the open walk's pauses, only while the open walk is
+ * that same walk. After Stop the open walk and its pauses are gone while the screen still shows the walk, and its
+ * pins' minutes would count the pauses as walked; with no clock they say their kinds alone.
+ */
+export function walkClocks(walk: { id: string; started_at: number } | null, open: { id: string } | null, pauses: PauseSpan[]): WalkClock[] | undefined {
+  return walk && open?.id === walk.id ? [{ id: walk.id, started_at: walk.started_at, pauses }] : undefined;
+}
