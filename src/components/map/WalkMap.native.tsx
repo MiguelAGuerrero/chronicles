@@ -523,15 +523,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         {/* Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins,
             going with the trace's opacity. The start hollow, ringed in the trace's green (tend map T16);
-            the end a bullseye, its walked outer ring drawn first, then its walked centre and white band
-            (tend map T25). */}
+            the end a bullseye (tend map T25): the start and the end's walked outer ring first, then the
+            end's walked centre and white band alone, so a walk that ends on its start keeps its end whole
+            (tend map audit 25). */}
         <GeoJSONSource id="ends" data={ends}>
-          <Layer id="ends-ring" type="circle" filter={['==', ['get', 'kind'], 'end']} paint={{
+          <Layer id="ends-ring" type="circle" paint={{
             ...ENDS_RING_PAINT,
             'circle-opacity': props.traceOpacity ?? 1,
             'circle-stroke-opacity': props.traceOpacity ?? 1,
           }} />
-          <Layer id="ends" type="circle" paint={{
+          <Layer id="ends" type="circle" filter={['==', ['get', 'kind'], 'end']} paint={{
             ...ENDS_PAINT,
             'circle-opacity': props.traceOpacity ?? 1,
             'circle-stroke-opacity': props.traceOpacity ?? 1,

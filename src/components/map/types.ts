@@ -723,34 +723,35 @@ export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollec
 }
 
 /**
- * The start and end markers' paint, the `ends` circle layer on both maps (QL1, QL2; tend map T16): shape tells
- * them apart, not colour alone (WCAG 2.2, 1.4.1). The start is hollow, a white disc ringed in the trace's green.
- * The end is a bullseye (tend map T25, decision 0162), so it differs in shape from the walker's solid dot too: here
- * its walked centre and white band, drawn over `ENDS_RING_PAINT`'s walked outer ring. One width across, 22 px, the
- * start's and the end's. No new hue: the end takes the walked streets' colour (T22, a walked colour apart from the
- * accent, is open).
+ * The start and end markers (QL1, QL2), two circle layers on the `ends` source, on both maps: shape tells them apart,
+ * not colour alone (WCAG 2.2, 1.4.1; tend map T16). The start is hollow, a white disc ringed in the trace's green.
+ * The end is a bullseye (tend map T25, decision 0162), so it differs in shape from the walker's solid dot too. This,
+ * the first layer (`ends-ring`), draws the start and the end's walked outer ring with a thin white edge that keeps it
+ * off the walked streets and the trace it stands on; the start comes first in `endsGeoJSON`, so a walk that ends on
+ * its start keeps the end's ring over it (tend map audit 25). One width across, 22 px, the start's and the end's. No
+ * new hue: the end takes the walked streets' colour (T22, a walked colour apart from the accent, is open).
  */
-export const ENDS_PAINT = {
+export const ENDS_RING_PAINT = {
   'circle-color': ['match', ['get', 'kind'], 'start', '#ffffff', COLORS.walked],
-  'circle-radius': ['match', ['get', 'kind'], 'start', 7, 3.5],
-  'circle-stroke-width': ['match', ['get', 'kind'], 'start', 4, 2.5],
+  'circle-radius': ['match', ['get', 'kind'], 'start', 7, 9.5],
+  'circle-stroke-width': ['match', ['get', 'kind'], 'start', 4, 1.5],
   'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, '#ffffff'],
 } satisfies NonNullable<CircleLayerSpecification['paint']>;
 
 /**
- * The end's walked outer ring (tend map T25): a second circle layer on the `ends` source, for the end alone, drawn
- * before `ENDS_PAINT`'s, which lays the centre and its white band over it. A thin white edge keeps the ring off the
- * walked streets and the trace it stands on.
+ * The end's walked centre and white band (tend map T25): the second layer (`ends`), filtered to the end, drawn over
+ * `ENDS_RING_PAINT`'s layer, so nothing of the start covers them (tend map audit 25).
  */
-export const ENDS_RING_PAINT = {
+export const ENDS_PAINT = {
   'circle-color': COLORS.walked,
-  'circle-radius': 9.5,
-  'circle-stroke-width': 1.5,
+  'circle-radius': 3.5,
+  'circle-stroke-width': 2.5,
   'circle-stroke-color': '#ffffff',
 } satisfies NonNullable<CircleLayerSpecification['paint']>;
 
 /**
- * Where the walk began and ended, as points with a `kind` (QL1, QL2), drawn with `ENDS_PAINT`.
+ * Where the walk began and ended, as points with a `kind` (QL1, QL2), drawn with `ENDS_RING_PAINT` and `ENDS_PAINT`;
+ * the start first, so a layer draws the end over it (tend map audit 25).
  */
 export function endsGeoJSON(start: LngLat | null, end: LngLat | null): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];

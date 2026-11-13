@@ -118,11 +118,12 @@ function addOverlay(map: MapLibreMap) {
     paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH } });
   // Where the walk began and ended (QL1-QL3): above the trace, under the walker; the capture pins
   // are DOM markers, so they sit above every layer. The start hollow, ringed in the trace's green
-  // (tend map T16); the end a bullseye, its walked outer ring drawn first, then its walked centre and
-  // white band (tend map T25).
-  map.addLayer({ id: 'ends-ring', type: 'circle', source: 'ends', filter: ['==', ['get', 'kind'], 'end'],
+  // (tend map T16); the end a bullseye (tend map T25): the start and the end's walked outer ring
+  // first, then the end's walked centre and white band alone, so a walk that ends on its start keeps
+  // its end whole (tend map audit 25).
+  map.addLayer({ id: 'ends-ring', type: 'circle', source: 'ends',
     paint: ENDS_RING_PAINT });
-  map.addLayer({ id: 'ends', type: 'circle', source: 'ends',
+  map.addLayer({ id: 'ends', type: 'circle', source: 'ends', filter: ['==', ['get', 'kind'], 'end'],
     paint: ENDS_PAINT });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   // The range preview (E21): a soft disc with a firm edge, under the walker.
