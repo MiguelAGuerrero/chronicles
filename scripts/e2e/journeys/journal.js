@@ -456,6 +456,46 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   const more23 = { items: items23, menu: await pg.locator('[data-testid=memory-menu]').count(), stored: await typeOfNote(/bakery shut/), shown: await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=note-type-mark]').getAttribute('aria-label').catch(() => null) };
   check.todo(more23.items === 9 && alone23 === 0 && more23.menu === 0 && more23.stored === 'sad' && more23.shown === 'Sad', `NY23: More offers Type; the eight and No type take the sheet by themselves, and choosing keeps it (${JSON.stringify({ more23, alone23 })})`);
+  // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
+  const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
+  await lastMore().click();
+  await pg.waitForTimeout(700);
+  await pg.click('[data-testid=menu-type]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=menu-cancel]');
+  await pg.waitForTimeout(700);
+  await lastMore().click();
+  await pg.waitForTimeout(700);
+  const list63 = { type: await pg.locator('[data-testid=memory-menu] [data-testid=menu-type]').count(), grid: await pg.locator('[data-testid=memory-menu] [data-testid=note-type-menu]').count() };
+  check.todo(list63.type === 1 && list63.grid === 0, `note-types audit 63: More reopens on its list (${JSON.stringify(list63)})`);
+  await pg.click('[data-testid=menu-cancel]');
+  await pg.waitForTimeout(700);
+  // note-types audit 56: the eight go when Memories is no longer in front (a menu opens), and the bar is whole.
+  await toLine();
+  await pg.keyboard.type('Let go.', { delay: 10 });
+  await pg.waitForTimeout(1300);
+  await pg.click('[data-testid=type-slot]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  const up56 = await pg.locator('[data-testid=type-row]').count();
+  await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').first().locator('[data-testid=moment-more]').click({ force: true });
+  await pg.waitForTimeout(700);
+  await pg.click('[data-testid=menu-cancel]').catch(() => {});
+  await pg.waitForTimeout(900);
+  const gone56 = { row: await pg.locator('[data-testid=type-row]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), mic: await pg.locator('[data-testid=band-voice]').count() };
+  check.todo(up56 === 1 && gone56.row === 0 && gone56.cam === 1 && gone56.mic === 1, `note-types audit 56: the eight go when Memories loses focus, and the bar keeps the camera and the mic (${JSON.stringify({ up56, gone56 })})`);
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await done();
+  await pg.waitForTimeout(900);
+  // chronicle-journal audit 60: back from Threads with the page at its foot, the bar holds no pen.
+  await pg.evaluate(() => { document.querySelector('[data-testid=journal-page]').scrollTop = 0; });
+  await pg.waitForTimeout(700);
+  const pen60 = await pg.locator('[data-testid=bar-write]').count();
+  await toThreads(pg);
+  await pg.waitForTimeout(600);
+  await toJournal(pg);
+  await pg.waitForTimeout(1200);
+  const back60 = await pg.locator('[data-testid=bar-write]').count();
+  check.todo(pen60 === 1 && back60 === 0, `chronicle-journal audit 60: back from Threads the page is at its foot and the bar holds no pen (${pen60} -> ${back60})`);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
