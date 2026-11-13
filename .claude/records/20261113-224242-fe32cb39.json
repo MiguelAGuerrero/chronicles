@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [fix carousel-height audit] The area cards' height still follows a long name (`AtlasTile.tsx` name, no line cap), the system's text scale on a phone (the reserved lines are fixed pixels), and a town card's 4 px stack edge (the towns row is 4 px taller than a town's page); the row's height is otherwise the same for every card of a list. Read in the code, not pictured; native unverified.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Whole towns (WT1-WT14, decision 0132)"
+      ],
+      "body": "- [ ] **Do:** On a phone, open Explore and swipe the area cards of a town with a busy area and a sparse one. **Expect:** every card is the same height, the row never grows or shrinks as you swipe or select, and a town's card keeps room for its \"See its neighborhoods\" footer when unselected. (fix carousel-height)\n"
+    }
+  ]
+}
