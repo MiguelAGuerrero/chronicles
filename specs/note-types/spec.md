@@ -194,3 +194,13 @@ The owner: "I don't see any place to put a note type on the notes or pages at al
 26. **NY26** The slot is a sign, not a word (the owner, Nov 13, decision 0166: "an emoji indicator ... a reaction as an icon", so that it does not say "Type"): unmarked, a face with a small plus, the sign people know for adding a reaction, in ink at a target's size; marked, the type's own glyph. (First fixed that evening as the word "Type" beside a tag.) The page the journal's line opens into carries the page's Type tool with the note's type as chosen, and choosing or clearing there is kept on that note.
 
 Built the same evening, test first (the `journal` journey's NY26 check); the fault was found by opening the live build in a phone-sized browser. Native: not run on a device.
+
+### The first cold find (Nov 13, decision 0165's new step, run on this fix)
+
+The UX reviewer, given four pictures and three tasks in a person's words and nothing else:
+- Writing a note, react to it: **found** (the face with a plus on the entry's row), after a glance at the bar first.
+- The note opened as a page: **found by elimination**. The tool's word "Type" beside "Aa Format" read as typing or typeface, and the page's plain face, the journal's face with a plus and the kept mark's name read as three names for one thing.
+- A note written earlier: changing a reaction, **found late** (the mark does not look tappable; More second); adding one where there is none, **not found**: nothing on the row says so.
+
+Left for the owner (`docs/STATUS.md`): the word (Type or Reaction, and the same sign everywhere), and whether a kept entry shows the sign on its own row or keeps it in More.
+

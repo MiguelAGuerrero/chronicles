@@ -142,6 +142,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **Three bars at the foot with a walk minimized** (ui 1): the open line, the recording bar and the tab bar. Recommended: fold the walk's time, distance and Stop into the line's own row in cut 2.
 - **The dateline's tap lands on a cluster** (audit 19): the Map frames 150 m around the moment, but entries made at one spot share a pin with a count. Recommended: arrive with that moment's preview open.
 - **JN19 on your phone**: the line above a real keyboard, in Safari and the Home Screen app, is the first thing to try (`docs/NATIVE_UNVERIFIED.md`).
+- **(Nov 13) A note's reaction: its word, and where a kept entry offers it** (decision 0166; the first cold find, `specs/note-types/spec.md`): the journal's slot is now a face with a plus and no word, but the page's tool, More and the spoken names still say "Type", which a cold reader took for typing or typeface, and a kept entry with no type shows nothing on its row (adding one is in More: not found). Yours: "Reaction" everywhere with the one sign, or keep "Type"; the sign on every entry's row, or More only; ink glyphs as now, or colour emoji.
 
 ### From /tend
 

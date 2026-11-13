@@ -481,7 +481,7 @@ async function run(h) {
   await pg.click('[data-testid=note-done]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1500);
   const after26 = await typeOfNote(/A page with a type/);
-  check.todo(!!slot26 && slot26.add && slot26.words === 0 && slot26.ink === 'rgb(29, 36, 48)' && slot26.w >= 44 && slot26.h >= 44 && !marked26.add && marked26.label === 'Type, Happy' && tool26 === 'Type, Happy' && after26 === 'idea',
+  check(!!slot26 && slot26.add && slot26.words === 0 && slot26.ink === 'rgb(29, 36, 48)' && slot26.w >= 44 && slot26.h >= 44 && !marked26.add && marked26.label === 'Type, Happy' && tool26 === 'Type, Happy' && after26 === 'idea',
     `NY26: unmarked the slot is a face with a plus, in ink, with no word; marked it is the type's glyph; the page the line opens into carries the Type tool with that type, and a choice there is kept (${JSON.stringify({ slot26, marked26, tool26, after26 })})`);
   // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
   const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');

@@ -88,9 +88,14 @@ export function Entry(props: {
             onPress={() => props.onType?.(written)}
             style={[styles.type, props.typeOpen && styles.typeOpen]}
           >
-            {/* In ink, with its word (NY26): a bare grey tag was not found on the owner's phone. */}
-            <Icon name={(mark?.glyph ?? 'pricetag-outline') as IconName} size={16} color={theme.ink} />
-            <Text style={styles.typeWord} numberOfLines={1}>{mark?.name ?? 'Type'}</Text>
+            {/* A sign, not a word (NY26, decision 0166): a face with a plus while unmarked, the type's glyph once
+                marked. In ink: a muted tag was not found on the owner's phone (0165). */}
+            <Icon name={(mark?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="type-slot-face" />
+            {mark ? null : (
+              <View style={styles.typeAdd} testID="type-slot-add">
+                <Icon name="add" size={11} color={theme.bg} />
+              </View>
+            )}
           </Pressable>
         ) : null}
         <Pressable testID="moment-more" accessibilityRole="button" accessibilityLabel="More about this moment" onPress={props.onMore} style={styles.more}>
@@ -224,8 +229,9 @@ const styles = StyleSheet.create({
   plate: { gap: 8 },
   picture: { height: 200, width: '100%' },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  type: { flexDirection: 'row', gap: 5, minWidth: 44, height: 44, paddingHorizontal: 10, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
-  typeWord: { color: theme.ink, fontSize: 13, fontWeight: '600' },
+  type: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  // The plus that makes the face "add": a small ink disc at its shoulder.
+  typeAdd: { position: 'absolute', top: 6, right: 4, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.bg },
   typeOpen: { backgroundColor: '#ebe7df' },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
 });
