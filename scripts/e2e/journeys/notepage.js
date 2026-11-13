@@ -270,6 +270,9 @@ async function run(h) {
   // NP9: an existing note emptied and left goes, with the usual Undo.
   await pg.click('[data-testid=viewer-edit-note]');
   await there('[data-testid=note-page] [data-testid=note-input]');
+  // The editor takes its words a moment after it is drawn; emptied before that, it fills again and Done leaves the
+  // note as it was (NP9's flake: the page gone, the viewer up, the note whole). The step above waits the same.
+  await pg.waitForTimeout(1500);
   await input().fill('');
   await pg.waitForTimeout(1500);
   const notEmptied = (await stored(pg)).find((m) => m.id === 'old')?.pieces[0].body === '> 5 km\n*sigh*\nsnake_case\n# 3 buses';
