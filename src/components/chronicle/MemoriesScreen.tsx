@@ -24,7 +24,7 @@ import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { Entry, type NoFix } from '../journal/Entry';
 import { JournalPage, type JournalPageHandle } from '../journal/JournalPage';
-import { LINE_REST_H, OpenLine } from '../journal/OpenLine';
+import { LINE_REST_H, OpenLine, type OpenLineHandle } from '../journal/OpenLine';
 import { Slip } from '../journal/Slip';
 import { HiddenScreen } from './HiddenScreen';
 import { MemoriesMenu } from './MemoriesMenu';
@@ -432,7 +432,8 @@ export function MemoriesScreen() {
   }
 
   const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
-  const journal = (field: ReactNode) => (
+  const lineRef = useRef<OpenLineHandle>(null);
+  const journal = (line: { field: ReactNode; writing: boolean; entryOpen: boolean }) => (
     <JournalPage
       ref={pageRef}
       rows={page.rows}
@@ -442,7 +443,10 @@ export function MemoriesScreen() {
       footPad={lineH + 16}
       notice={failedNotice}
       entry={entry}
-      field={field}
+      field={line.field}
+      onWrite={() => lineRef.current?.write()}
+      writing={line.writing}
+      entryOpen={line.entryOpen}
       slip={pick ? (
         <Slip
           pick={pick}
@@ -468,8 +472,8 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine inBar={body != null} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
-        {(field) => body ?? journal(field)}
+      <OpenLine ref={lineRef} inBar={body != null} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
+        {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu
         open={menuOpen}

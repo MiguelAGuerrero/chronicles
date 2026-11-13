@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type ForwardedRef, type ReactNode } from 'react';
 import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { lineLift } from '../../lib/journal/keyboard';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
@@ -46,7 +46,8 @@ export const LINE_REST_H = 61;
 const FIELD_MIN = 44;
 const FIELD_MAX = 132;
 
-export type OpenLineHandle = { focus: () => void };
+/** What the page asks of the line: a tap on the empty page gives the field the keyboard (JN32). */
+export type OpenLineHandle = { write: () => void };
 
 type LineProps = {
   /** Memories is in front and nothing is open over it: leaving, or opening something, saves a note being recorded (JN14). */
@@ -70,8 +71,8 @@ type LineProps = {
   onHeight?: (h: number) => void;
   /** No page is shown (a thread, the threads, Hidden): the field sits in the bar. On the page it is the page's last line (JN28). */
   inBar: boolean;
-  /** The screen's body, given the field to draw as its last line (null when the field is in the bar). */
-  children: (field: ReactNode) => ReactNode;
+  /** The screen's body, given the field and what the page needs to grow round it (null when the field is in the bar). */
+  children: (page: { field: ReactNode; writing: boolean; entryOpen: boolean } | null) => ReactNode;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
   above?: ReactNode;
 };
@@ -81,21 +82,23 @@ type LineProps = {
  * at the foot of Memories. Writing in it is the capture: the first character stores an entry, which is kept as it
  * is typed. With a walk minimized, what it keeps is the walk's; only that case reads the live trace.
  */
-export function OpenLine(props: LineProps) {
+export const OpenLine = forwardRef<OpenLineHandle, LineProps>(function OpenLine(props, ref) {
   const info = useOpenWalkInfo();
   const target = captureTarget(info.walk, info.known);
-  if ('walkId' in target) return <WalkLine key={target.walkId} {...props} />;
+  if ('walkId' in target) return <WalkLine key={target.walkId} {...props} handle={ref} />;
   // Until the keeper knows whether a walk is open, the line waits rather than keep a loose moment for a walk that is.
-  return <Line key="loose" {...props} walk={null} disabled={'wait' in target} />;
-}
+  return <Line key="loose" {...props} handle={ref} walk={null} disabled={'wait' in target} />;
+});
 
-function WalkLine(props: LineProps) {
+type Handle = { handle: ForwardedRef<OpenLineHandle> };
+
+function WalkLine(props: LineProps & Handle) {
   const open = useOpenWalk();
   const walk = open.walk ? { id: open.walk.id, here: open.live.here, lastFixAt: open.live.lastFixAt, distanceM: open.live.distanceM } : null;
   return <Line {...props} walk={walk} />;
 }
 
-function Line(props: LineProps & { walk: { id: string; here: LngLat | null; lastFixAt: number | null; distanceM: number } | null; disabled?: boolean }) {
+function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | null; lastFixAt: number | null; distanceM: number } | null; disabled?: boolean }) {
   const { walk, onChanged, onMoment, onWriting, onFoot, onRecording, focused } = props;
   const told = useRef({ written: props.onWritten, dropped: props.onDropped });
   useEffect(() => {
@@ -477,11 +480,13 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
   );
 
   const { inBar } = props;
-  const write = () => {
-    // In the tap itself, so a phone raises its keyboard; then today's foot comes into view.
-    input.current?.focus();
-    onFoot();
-  };
+  // A tap on the empty page: the field takes the keyboard in the tap itself, so a phone raises it.
+  useImperativeHandle(props.handle, () => ({
+    write: () => {
+      input.current?.focus();
+      onFoot();
+    },
+  }));
   // The field (JN28). On the page it is the last line of today's page, as wide as the column, in the owner's serif,
   // with no box: the words are written where they will stay. Where no page shows, it sits in the bar.
   const fieldEl = (
@@ -567,10 +572,8 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
             ) : active || pen.failed ? (
               <Text style={styles.status} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
             ) : (
-              // At rest: the pen. From anywhere on the sheet it brings today's foot up and puts the caret on the page.
-              <View style={styles.lead}>
-                <IconButton testID="line-write" icon="create-outline" label={LINE_LABELS.write} onPress={write} disabled={props.disabled} />
-              </View>
+              // At rest the bar holds no pen: the empty page is the pen (JN32).
+              <View style={styles.lead} />
             )}
             {inBar && recording ? <>{timer}{discard}</> : null}
             {pen.failed ? (
@@ -599,7 +602,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
   );
   // Keyed, so the bar and the screen keep their state when their order changes: the bar comes first for a screen
   // reader on the page, and after a thread's or Hidden's own Back.
-  const body = <View key="body" style={styles.body}>{props.children(inBar ? null : fieldEl)}</View>;
+  const body = <View key="body" style={styles.body}>{props.children(inBar ? null : { field: fieldEl, writing: typing, entryOpen })}</View>;
   return (
     <>
       {inBar ? [body, bar] : [bar, body]}

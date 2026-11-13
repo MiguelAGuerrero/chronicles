@@ -187,3 +187,11 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **Checked:** typecheck, lint, `npm test`; the `journal` journey (74 checks), `notepage` and `capturehome`.
 - **Not yet seen on the phone:** whether the bar sits directly on the keyboard in the Home Screen app and in Safari, and whether the pen raises the keyboard in one tap. Both are the owner's to try (`docs/NATIVE_UNVERIFIED.md`).
 
+## The page at rest: record (Nov 13, branch `fix/write-on-the-page`)
+
+- **Why:** the owner, on the page that opened pushed to its foot with the field against the bar: a peek of the last entry, the page aligned to the top, and the empty space as what is tapped to make a moment. Their three answers: the last entry on top with the blank below; the page itself grows; a thin bar at the foot.
+- **Built:** JN31, JN32, tests first at `b56811f`. The rule is `lib/journal/rest.ts` (the empty page's height; which rows are the peek); the dates are held at the top; the pen left the bar. JN29 is read with this: the bar at rest holds the camera and the mic.
+- **Checked:** typecheck, lint, `npm test`; the `journal`, `notepage` and `capturehome` journeys.
+- **Found on the way:** a pill above the bar (room left) covers the middle of the empty page and takes a tap aimed there. It has its own OK and the rest of the page takes the tap; left as it is, and the journeys tap the first lines.
+- **Not yet seen on the phone:** the movement as the page grows and comes back, the sticky date, and whether a tap on the empty page raises the keyboard in that one tap (`docs/NATIVE_UNVERIFIED.md`).
+

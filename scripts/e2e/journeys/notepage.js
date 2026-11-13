@@ -62,7 +62,7 @@ async function run(h) {
   // then Open as a page. The pencil that opened it in one tap went with the band; the line itself is the one tap.
   const openPage = async () => {
     // The bar's pen puts the caret on the page (JN29), wherever the sheet is scrolled; then Open as a page.
-    await pg.click('[data-testid=line-write]');
+    await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 } });
     await pg.click('[data-testid=line-page]');
   };
   const before = (await stored(pg)).length;

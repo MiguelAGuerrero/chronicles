@@ -52,10 +52,18 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 ## Writing on the page (JN28-JN30, Nov 13, from the owner's phone)
 
 - **The field is the page's last line, not a box at the foot** (JN28). `OpenLine` owns the pen, the captures and the bar, and takes the screen's body as a render prop: it hands the body the field (`children(field)`), and `JournalPage` draws it after its rows. Where no page shows (`inBar`: a thread, the threads, Hidden) the field sits in the bar. The first build put the field in a row at the foot; on the owner's iPhone it read as a chat box, small and boxed, with the recording bar, the tab bar and a blank band between it and the keyboard.
-- **One bar, one row** (JN29): at rest the pen (`line-write`: focus in the tap itself, so a phone raises its keyboard, then the foot), the camera and the mic; while writing the status, Open as a page (an icon), the camera, the mic and Done. Its height never changes.
+- **One bar, one row** (JN29): at rest the camera and the mic (the pen left the bar with JN32: the empty page is the pen); while writing the status, Open as a page (an icon), the camera, the mic and Done. Its height never changes.
 - **The tabs fold away while the field has the keyboard** (JN30): `hideTabs()` (`lib/tabsHidden`) for as long as `typing`, which takes the recording bar with them; the walk goes on recording. The lift is then measured from nothing (`lineLift(keyboard, 0)`), and `below` is never measured while typing.
 - **No focus frame on the field**: the app's `:focus-visible` ring is `!important`, so an inline `outlineStyle: 'none'` loses to it; the exception is in `webStyles.web.ts`, by test id.
 - **Room is kept for the dateline** (`datelineRoom`) above the field while no entry is open, so the line being written does not jump when its first character brings the dateline.
+
+## The page at rest, and the empty page as the pen (JN31, JN32, Nov 13, the owner's call)
+
+- **At rest the sheet is at its end, and its end is made to look like a top.** After the rows comes the empty page (`empty-page`), whose height `lib/journal/rest.ts` (`blankHeight`) sets from the sheet's height, the bar, and the measured heights of the rows in the peek (`peekStart`: the last entry, and what follows it), so the end of the sheet shows the day's date, the last entry under it and nothing older. Never go back to `scrollTo` a computed offset: the empty page's height is the one thing that decides it. A peek taller than two thirds of the screen shows its end; the empty page is never under `BLANK_MIN`.
+- **Dates are sticky** (`stickyHeaderIndices`), on their own ground (`theme.bg`), so the date is above the last entry at rest and entries pass under it reading back.
+- **The empty page is the pen.** The field is its first line and the rest is one Pressable (`line-write`, "Write an entry") whose press calls `OpenLine`'s handle (`write()`: focus inside the tap, so a phone raises its keyboard). `OpenLine` is a `forwardRef` for this: a function handed through the render prop is a ref read in render to the compiler's lint.
+- **Growing is the same rule with `writing`:** the peek drops the last entry (unless it is the one being written, `entryOpen`) and the empty page takes all but `WRITING_ROOM`. The sheet's height and length change in several steps while the bars fold, so `JournalPage` holds `pinned` for `SETTLE_MS` and scrolls to the end once more after it; a scroll event in between must not unpin.
+- **A pill above the bar (room left, the edit offer, Undo) can cover the middle of the empty page.** It takes its own taps; the journeys tap the page's first lines (`position: { x: 40, y: 16 }`). A centre click on `line-write` hit the room-left pill and typed nowhere.
 
 ## Traps
 
