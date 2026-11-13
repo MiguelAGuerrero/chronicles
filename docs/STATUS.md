@@ -224,22 +224,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   edit, `tend replay 9`); the steps go through the moments with Continue, then the card (RR17); the day's card is said
   after Skip; Back on the name step returns to the card with the name kept (`tend replay 4`), and Back on the card
   leaves for Chronicle.
-- **T25 [owner] Replay: the walker's dot and the solid end differ by colour alone** (2026-11-12)
-  Area: map (the replay and the day replay). Seen: `22-day-replay-walk` after `tend map T16`: mid-path the walker is
-  a solid navy disc with a white ring and, about 45 px away, the end a solid orange disc with a white ring, about one
-  size; before T16 the end was hollow (the T16 review's F1 and U1; `ENDS_PAINT`, `components/map/types.ts`; the dot,
-  `WalkMap.web.tsx` `points` l.137). Rests on: WCAG 2.2, 1.4.1 Use of Color; ui-patterns, "Never colour alone to show
-  state" (X3). The motion tells them apart while the path plays, not on Hold or with reduced motion. QL2 says "the dot
-  is its end" on a live walk; the two are drawn together only on a replay. The marker's shape is yours (decision 0154).
-  Recommended: a bullseye end, a walked centre, a white band and a walked outer ring (two circle layers on the `ends`
-  source, the outer one drawn first), so the end differs in shape from the hollow start and from the solid dot; the
-  start and the dot unchanged. It takes T22's hue when you pick one, with nothing of its own. /vision: aligned
-  (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
-  Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
-  instead; or leave it (the motion tells them apart while it plays).
-  **Answered yes** by the owner in person (`/tend inbox T26 yes, T25 yes`, Nov 13; decision 0162): the recommended
-  bullseye end, the start and the dot unchanged, no hue of its own. Waits for the next `/tend inbox`, one build per run
-  (T26 was built first).
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
@@ -259,6 +243,11 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   spoken examples again.
   Otherwise: as built (a pin of several says its time, a pin of one moment does not, a spread pin and a map with no
   clock say none); or only the span, and nothing more.
+  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): "Time on
+  every pin", the recommended shape: a pin of one moment says its minutes when its walk's clock is known; a pin whose
+  moments lie more than ten walked minutes apart says the span ("from the start to fifty-eight minutes in"); a map with
+  no walk clock says the part of the day of the pin's first moment. Waits for the next `/tend inbox`, one build per run
+  (T25 was built first).
 - **T29 [owner] Reminders say their counts in digits beside pins that say words** (2026-11-13)
   Area: notifications, memories (the T14 sibling lens). Seen: two memories in reach are the reminder "2 memories here"
   with the body "2 voice memos and a note" (`discovery/recall.ts` l.99 and `kindsOf` l.114, its kinds in a fixed
@@ -273,6 +262,10 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   words"); F7 is no breach ("Distances and times are fine"), so it is left. It amends v1-discovery R7's example "2
   memories here".
   Otherwise: also "twelve minutes in" for "What happened here", one voice with the pins; or leave them.
+  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): "Words;
+  keep '12 min in'", the recommended shape: a reminder of several says "Two memories here" and its body takes the
+  pins' words from one table (`pinKindsWords`, in the order taken); the announcements say the same; "What happened
+  here" keeps "12 min in". Waits for the next `/tend inbox`, one build per run (T25 was built first).
 
 ### Next evolutions
 
@@ -300,32 +293,30 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T15 reshape`** (from `cd34f840`, rebased on `f4dd88ff`; the owner's own answer, in person,
-Nov 12, decision 0154: "Ink star, no numeral"; T25 yes waits for the next inbox run, one build per run).
-- `tend places T15`: a walked place keeps its star (decision 0019), a white star on an ink disc, never the accent, one
-  size; a merged star draws no numeral, and its spoken name says its places and walks in words through `lib/quietLines`
-  (`starSpoken`: "Two places, two walks. Zoom in"). Sibling lens: `StarView` is the only view that draws a walked-place
-  star, named through `starLabel` on both maps; Explore's area points, atlas and mini-maps use the accent for selection
-  and links, not for "walked"; the "?" marks are ink but never on Chronicle's map; Explore's merged "?" stars (OP11) are
-  not built. Left, not the star: the place sheet's "1 walk" (filed below).
+**Nov 13, `/tend inbox T25 yes, T28 yes, T29 yes`** (from `67a46a17`, rebased on `741f3b31`; the owner's own answers,
+in person, Nov 13: T25 in decision 0162, T28 and T29 in decision 0164; one build per run, so T28 and T29 wait, marked
+answered).
+- `tend map T25`: the replay's end is a bullseye, a walked centre, a white band and a walked outer ring with a thin
+  white edge, 22 px across like the start, so it differs in shape from the walker's solid dot as well as from the hollow
+  start; the start and the dot unchanged, no hue of its own. Sibling lens: only the replay and the day replay pass
+  `ended`, so only they draw an end, web and native, through one paint; the live walk has none (its dot is its end);
+  Chronicle's map, Explore and the planner draw no trace; no walk card or mini-map draws a trace's end.
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend places audit 1`: a selected star keeps its ink disc and white star and gains a 3 pt ink ring outside its white
-  edge (the build had turned it over, white in an ink ring: the one hollow marker, the reverse of "filled is chosen";
-  U1).
-- `tend places audit 2`: the journey reads the star by its testID once its bounce has settled (F1).
-- `tend places audit 3`: the `chronicle` journey merges two places on a page of its own and reads the merged star's
-  words, with no digit (F2).
-- `tend places audit 4`: the source check holds the disc's own style to ink and its one Text to the name (F3).
-- `tend places audit 5`: a lone star says "Fox Point, one walk. Open", as a pin says ". Open" (U3).
-Review: 5 accepted (U1, U3, F1, F2, F3), 5 deferred (U2 and F4 `[owner]`; U4, the merged star under a pin (U5, F5),
-the distance's wrap (U6) `[loop]`; all low, in `docs/DEFERRED.md`, Map, walk screen and motion polish), the wording of
-v0.5-places' "with a count" under "Open before the loop" (F6), F5's look-alike no action: the ink star and T14's pin of
-several are told apart by glyph and stem, their grounds about 1.5:1 (noted on T22). 0 rejected.
-Each check was seen failing first: the unit tests on the code before each fix, the journey's T15 and audit 1 and 3
-checks on main's star code (`E2E_SOFT`).
-Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `chronicle`, `walk`; main's two
-community-park commits landed meanwhile and touch neither (typecheck, lint, `npm test` again on the rebase). Nothing
-here has run on a phone; the ink star, its ring and its words on native are unverified (`docs/NATIVE_UNVERIFIED.md`).
+- `tend map audit 25`: a walk that ends on or near its start keeps its bullseye whole: the start is drawn in the first
+  layer, under the end's ring, and the second draws the end's centre and band alone (auditor 25, high: the start had
+  covered the end's ring, a regression from T16). The `qol` journey walks a small loop and reads the end over the start
+  at 390 and 320.
+- `tend map audit 26`: at Hold, with motion, the dot and the end are both on the map, apart, checked and pictured at
+  390 and 320 (ux 26).
+Review: 2 accepted (auditor 25, ux 26); 2 noted on `[owner]` items in `docs/DEFERRED.md` (ux 25, a pin's stalk across
+the bullseye's band; the solid end's size item, which the pictures no longer match: you may close it); ux 27 no action
+(the dot arriving on the end covers it, as before); 0 rejected. Both reviewers ruled the white edge inside your answer.
+Each check was seen failing first: the unit tests on the code before each fix, the journey's T25 check on main's end
+and audit 25's on the T25 build (`E2E_SOFT`); audit 26 is evidence with no code change.
+Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `qol`, `replay`, `days` (and on
+the T25 build `layers`, `walkability`, `snap`, `freelook`, `dense`, `carousel`); main's four journal commits landed
+before the review and touch none of them. Nothing here has run on a phone; the bullseye on native is unverified
+(`docs/NATIVE_UNVERIFIED.md`). QL2's wording waits for your edit (noted under "Open before the loop").
 
 ### Open before the loop
 
@@ -388,6 +379,12 @@ here has run on a phone; the ink star, its ring and its words on native are unve
   `docs/NATIVE_UNVERIFIED.md`'s first Quality of life check ("with the `match` stroke colour"; an indented note under
   it points to the next check), and T22 above ("QL2's end ring ('in the walked orange') takes it too": since T16 the
   end is a fill, which takes it the same way).
+  Since `tend map T25` (Nov 13; decision 0162): the end is a bullseye, a walked centre, a white band and a walked
+  outer ring with a thin white edge, as wide as the start (22 px); the start and the walker's dot are unchanged. Amend
+  QL2 instead to "a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not
+  colour alone, tells it from the start and from the walker's dot", in the doc and the mirror. `.claude/rules/map.md`
+  has a "Since `tend map T25`" line under the T16 one, whose "the end solid" now says the old paint, as does
+  `docs/NATIVE_UNVERIFIED.md`'s T16 check (noted there).
 - **The map's rule lines after `/tend map`** (Nov 12): `.claude/rules/map.md` says "`fitBounds` keeps the current
   bearing in maplibre; never pass a bearing to a follow or a fit" (l.68), but maplibre-gl 6's fit turns the map to
   north unless given one; since `tend map 2` the web's fit passes the map's own bearing, and since `tend map audit 4`

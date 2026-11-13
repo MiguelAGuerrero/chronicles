@@ -344,10 +344,12 @@ async function run(h) {
 
     // What is drawn around a point of the map (QL3): green pixels (the trace's colour) and the middle one,
     // read from a screenshot of the composited page, decoded in the page.
-    const pixelsAround = async (p, r = 14) => {
-      const [x, y] = await pg.evaluate((q) => window.__project(q), p);
-      const png = await pg.screenshot({ clip: { x: x - r, y: y - r, width: 2 * r, height: 2 * r } });
-      return pg.evaluate(async (b64) => {
+    // `radial`: for each radius in CSS px from the point, the four pixels right, left, below and above it (tend map T25).
+    // `page`: another page than the journey's own (tend map audit 25's loop walk).
+    const pixelsAround = async (p, r = 14, radii = [], page = pg) => {
+      const [x, y] = await page.evaluate((q) => window.__project(q), p);
+      const png = await page.screenshot({ clip: { x: x - r, y: y - r, width: 2 * r, height: 2 * r } });
+      return page.evaluate(async ([b64, r, radii]) => {
         const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
         const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
         const cv = new OffscreenCanvas(bmp.width, bmp.height);
@@ -358,8 +360,14 @@ async function run(h) {
         let green = 0;
         for (let i = 0; i < d.length; i += 4) if (near(i, [0x15, 0x80, 0x3d], 90)) green++;
         const c = ((bmp.height >> 1) * bmp.width + (bmp.width >> 1)) * 4;
-        return { green, white: near(c, [255, 255, 255], 24), centre: [d[c], d[c + 1], d[c + 2]] };
-      }, png.toString('base64'));
+        const k = bmp.width / (2 * r);
+        const px = (dx, dy) => {
+          const i = ((Math.round(bmp.height / 2 + dy * k) * bmp.width) + Math.round(bmp.width / 2 + dx * k)) * 4;
+          return [d[i], d[i + 1], d[i + 2]];
+        };
+        const radial = radii.map((q) => [px(q, 0), px(-q, 0), px(0, q), px(0, -q)]);
+        return { green, white: near(c, [255, 255, 255], 24), centre: [d[c], d[c + 1], d[c + 2]], radial };
+      }, [png.toString('base64'), r, radii]);
     };
 
     // A real two-finger turn (tend map 1): two touches swung 90° about a point in the map's top third, sent through
@@ -762,7 +770,8 @@ async function run(h) {
         const hiddenNow = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => m.style.visibility === 'hidden').length);
         const thrown = await markersHidden(async () => { throw new Error('a read that fails'); }).then(() => false, () => true);
         const left = await hiddenNow();
-        const [pxStart, pxEnd] = await markersHidden(async () => [await pixelsAround(startAt), await pixelsAround(endAt)]);
+        // tend map T25: the end read across, 4 to 9 px out from its point.
+        const [pxStart, pxEnd] = await markersHidden(async () => [await pixelsAround(startAt), await pixelsAround(endAt, 14, [4, 5, 6, 7, 8, 9])]);
         const leftAfter = await hiddenNow();
         check(thrown && left === 0 && leftAfter === 0,
           `tend map audit 8: after the ends read every marker is visible again, a failed read too (hidden after a throw ${left}, after the read ${leftAfter})`);
@@ -770,6 +779,16 @@ async function run(h) {
         const nearWalked = (c) => Math.abs(c[0] - walked[0]) + Math.abs(c[1] - walked[1]) + Math.abs(c[2] - walked[2]) <= 60;
         check(pxStart.white && !pxEnd.white && nearWalked(pxEnd.centre),
           `tend map T16: the start is hollow (white middle) and the end solid in the walked colour (start ${JSON.stringify(pxStart.centre)}, end ${JSON.stringify(pxEnd.centre)})`);
+        // tend map T25 (the owner's yes, Nov 13; decision 0162): the end is a bullseye, so it differs in shape from the
+        // walker's solid dot as well as from the hollow start: in each of the four directions from the walked centre, a
+        // white band 4 to 6 px out and a walked ring 7 to 9 px out (a pixel's slack for where the point falls). The dot
+        // is one navy disc to 9 px, with no band.
+        const isWhite = (c) => Math.abs(c[0] - 255) + Math.abs(c[1] - 255) + Math.abs(c[2] - 255) <= 60;
+        const dirs = [0, 1, 2, 3].map((k) => pxEnd.radial.map((at) => at[k]));
+        const bandWhite = dirs.filter((d) => d.slice(0, 3).some(isWhite)).length;
+        const ringWalked = dirs.filter((d) => d.slice(3).some(nearWalked)).length;
+        check(nearWalked(pxEnd.centre) && bandWhite === 4 && ringWalked === 4,
+          `tend map T25: the end is a bullseye, a walked centre, a white band and a walked outer ring (centre ${JSON.stringify(pxEnd.centre)}, band white ${bandWhite}/4, ring walked ${ringWalked}/4; right, left, below, above from 4 to 9 px ${JSON.stringify(dirs)})`);
       }
       const s6 = await scaleBar();
       // The card: the outermost painted box around Name it.
@@ -1391,6 +1410,108 @@ async function run(h) {
         await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
         await c4.close();
       }
+    }
+
+    // tend map audit 25 (the T25 review): a loop walk, its end a few metres from its start. The start's marker drew over
+    // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Hold, with motion, the
+    // walker's dot and the end are both on the map, apart, and pictured, at 390 and at 320.
+    {
+      const { c: c9, pg: pg9 } = await freshPage('qol-loop');
+      await c9.addInitScript(() => { window.__perf = {}; });
+      try {
+        const go = async (x, y) => {
+          const p = at(x, y);
+          await c9.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+          await pg9.waitForTimeout(900);
+        };
+        await pg9.goto(navUrl);
+        await pg9.waitForSelector('[data-testid=start]');
+        await go(-0.5, -0.5);
+        await pg9.click('[data-testid=start]');
+        await pg9.waitForSelector('[data-testid=stop]');
+        // A square of about 60 m, walked round 4 m at a time (as the pins' walk is), ending 3 m short of where it began.
+        const corners = [[-0.5, -0.5], [0.1, -0.5], [0.1, 0.1], [-0.5, 0.1], [-0.5, -0.47]];
+        for (let k = 1; k < corners.length; k++) {
+          const [[x0, y0], [x1, y1]] = [corners[k - 1], corners[k]];
+          const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.04);
+          for (let i = 1; i <= n; i++) await go(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n);
+        }
+        await pg9.waitForTimeout(1500);
+        const stopBox = await pg9.locator('[data-testid=stop]').boundingBox();
+        await pg9.mouse.move(stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2);
+        await pg9.mouse.down();
+        await pg9.waitForTimeout(1100);
+        await pg9.mouse.up();
+        await pg9.waitForURL(/replay/, { timeout: 30000 });
+        const replayUrl = pg9.url().replace(/\?.*$/, '');
+        const lonLatOf = (s) => (s ? s.split(',').map(Number) : null);
+        // The replay's own map: the walk screen's stays mounted under it.
+        const mapAttr = (name) => pg9.evaluate((n) => {
+          const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+          return el ? el.getAttribute(n) : null;
+        }, name);
+        const isWhite = (cc) => Math.abs(cc[0] - 255) + Math.abs(cc[1] - 255) + Math.abs(cc[2] - 255) <= 60;
+        const nearWalked = (cc) => Math.abs(cc[0] - 0xc2) + Math.abs(cc[1] - 0x41) + Math.abs(cc[2] - 0x0c) <= 60;
+        const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
+
+        // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.
+        const holdApart = async (w) => {
+          await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
+          let d = null;
+          for (let k = 0; k < 400; k++) {
+            const [ends, walker] = [await mapAttr('data-ends'), await mapAttr('data-walker')];
+            const endAt = lonLatOf((ends ?? '').split('|')[1]);
+            const walkerAt = lonLatOf(walker);
+            if (endAt && walkerAt) {
+              const [a, b] = await pg9.evaluate(([p, q]) => [window.__project(p), window.__project(q)], [endAt, walkerAt]);
+              d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+              if (d >= 40) break;
+            }
+            await pg9.waitForTimeout(40);
+          }
+          await pg9.click('[data-testid=hold]');
+          await pg9.waitForTimeout(600);
+          const ends = await mapAttr('data-ends');
+          const endAt = lonLatOf((ends ?? '').split('|')[1]);
+          const walkerAt = lonLatOf(await mapAttr('data-walker'));
+          const canvas = await pg9.locator('xpath=//canvas[contains(@class,"maplibregl-canvas")][not(ancestor::*[@aria-hidden="true"])]').last().boundingBox();
+          const [a, b] = endAt && walkerAt ? await pg9.evaluate(([p, q]) => [window.__project(p), window.__project(q)], [endAt, walkerAt]) : [null, null];
+          const inside = (q) => !!q && !!canvas && q[0] >= canvas.x + 11 && q[0] <= canvas.x + canvas.width - 11 && q[1] >= canvas.y + 11 && q[1] <= canvas.y + canvas.height - 11;
+          const apartPx = a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : null;
+          const held = await pg9.locator('[data-testid=replay-held]').count();
+          check(held > 0 && inside(a) && inside(b) && apartPx >= 20,
+            `tend map audit 26: at Hold at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
+          await shot(pg9, `qol-20-loop-held-${w}`);
+          await pg9.click('[data-testid=hold]');
+        };
+        // tend map audit 25: on the card, the end read across, 4 to 9 px out, as for the walk above.
+        const loopEnd = async (w) => {
+          await pg9.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 120000 });
+          await pg9.waitForTimeout(1500);
+          const [a, b] = ((await mapAttr('data-ends')) ?? '').split('|');
+          const startAt = lonLatOf(a);
+          const endAt = lonLatOf(b);
+          const apartPx = startAt && endAt ? await pg9.evaluate(([p, q]) => { const [x, y] = [window.__project(p), window.__project(q)]; return Math.hypot(x[0] - y[0], x[1] - y[1]); }, [startAt, endAt]) : null;
+          await hideMarkers(true);
+          let px = null;
+          try { px = endAt ? await pixelsAround(endAt, 14, [4, 5, 6, 7, 8, 9], pg9) : null; } finally { await hideMarkers(false); }
+          const dirs = px ? [0, 1, 2, 3].map((k) => px.radial.map((q) => q[k])) : [];
+          const band = dirs.filter((dd) => dd.slice(0, 3).some(isWhite)).length;
+          const ring = dirs.filter((dd) => dd.slice(3).some(nearWalked)).length;
+          check(px && apartPx != null && apartPx < 11 && nearWalked(px.centre) && band === 4 && ring === 4,
+            `tend map audit 25: a loop walk at ${w}, its end ${apartPx != null ? apartPx.toFixed(1) : '-'} px from its start, shows the bullseye whole over the start (centre ${JSON.stringify(px && px.centre)}, band white ${band}/4, ring walked ${ring}/4; right, left, below, above from 4 to 9 px ${JSON.stringify(dirs)})`);
+          await shot(pg9, `qol-21-loop-card-${w}`);
+        };
+        await holdApart('390');
+        await loopEnd('390');
+        await pg9.setViewportSize({ width: 320, height: 568 });
+        await pg9.goto(`${replayUrl}?ceremony=0`);
+        await holdApart('320');
+        await loopEnd('320');
+      } catch (e) {
+        check(false, `tend map audit 25: the loop walk: ${String(e.message).split('\n')[0]}`);
+      }
+      await c9.close();
     }
 
     // tend map audit 22: pins of several, in a walk of their own.

@@ -30,7 +30,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -522,10 +522,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH }} />
         </GeoJSONSource>
         {/* Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins,
-            going with the trace's opacity. The start hollow, ringed in the trace's green; the end solid,
-            filled in the walked colour with a white ring (tend map T16). */}
+            going with the trace's opacity. The start hollow, ringed in the trace's green (tend map T16);
+            the end a bullseye (tend map T25): the start and the end's walked outer ring first, then the
+            end's walked centre and white band alone, so a walk that ends on its start keeps its end whole
+            (tend map audit 25). */}
         <GeoJSONSource id="ends" data={ends}>
-          <Layer id="ends" type="circle" paint={{
+          <Layer id="ends-ring" type="circle" paint={{
+            ...ENDS_RING_PAINT,
+            'circle-opacity': props.traceOpacity ?? 1,
+            'circle-stroke-opacity': props.traceOpacity ?? 1,
+          }} />
+          <Layer id="ends" type="circle" filter={['==', ['get', 'kind'], 'end']} paint={{
             ...ENDS_PAINT,
             'circle-opacity': props.traceOpacity ?? 1,
             'circle-stroke-opacity': props.traceOpacity ?? 1,
