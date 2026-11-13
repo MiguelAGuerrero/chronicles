@@ -61,8 +61,9 @@ async function run(h) {
   // On Memories a page opens from the journal's open line (chronicle journal JN25, decision 0155): a tap in the line,
   // then Open as a page. The pencil that opened it in one tap went with the band; the line itself is the one tap.
   const openPage = async () => {
-    // The bar's pen puts the caret on the page (JN29), wherever the sheet is scrolled; then Open as a page.
-    await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, force: true });
+    // The caret goes on the page by a tap on the field, the empty page's first line (JN32); then Open as a page.
+    // Not a forced click on the empty page: that lands on whatever is still over it (a page fading out) and types nowhere.
+    await pg.click('[data-testid=line-input]');
     await pg.click('[data-testid=line-page]');
   };
   const before = (await stored(pg)).length;
