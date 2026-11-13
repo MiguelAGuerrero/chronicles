@@ -481,7 +481,7 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
-- **A busy read's background thread** (explore-dense-city DC7, decision 0159): a web worker (`landing/runOffPage.web.ts`,
+- **A busy read's background thread** (explore-dense-city DC7, decision 0160): a web worker (`landing/runOffPage.web.ts`,
   `landing/compute.worker.ts`, built by Expo's export as a file of its own). No Expo module gives the web, or a phone, a
   background JS thread; native runs the same `computeRead` on the JS thread with a turn before each tile and stage. A
   worker that can't start (a page left open across a deploy asks for the old worker's file) leaves the read to the page.

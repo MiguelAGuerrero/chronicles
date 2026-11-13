@@ -1,4 +1,4 @@
-// Explore in a dense city (DC1-DC19, decision 0159): the Busy layer's names drawn by the map in the harness's dense
+// Explore in a dense city (DC1-DC19, decision 0160): the Busy layer's names drawn by the map in the harness's dense
 // downtown, the read off the page, the read after the settle, and how often Explore renders. E2E_ONLY=dense runs it alone.
 // The map's hooks it reads exist only while window.__perf is defined: data-busy-names (the names drawn, written at idle),
 // data-busy-given (what the map was given), data-busy-over, window.__zoomTo, __busyNamesIn and __busyNamePoint.

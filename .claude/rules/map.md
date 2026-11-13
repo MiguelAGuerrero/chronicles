@@ -37,7 +37,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     hook's empty result, each cost Explore a render per switch (fix DC12). Set
     state only when it changed; `scripts/perf-explore.js` and the `dense`
     journey count `render:explore`.
-- **Explore in a dense city** (decision 0159, `scripts/perf-explore.js`,
+- **Explore in a dense city** (decision 0160, `scripts/perf-explore.js`,
   `docs/TESTING.md`): measure on the dense downtown before tuning.
   - **Busy names are the map's own text** (DC1-DC6): one `busy-names` symbol
     layer (`busyNameLayers`, `busyNamesGeoJSON` in `map/types.ts`), a point per
