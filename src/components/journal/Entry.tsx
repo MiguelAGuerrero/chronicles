@@ -1,3 +1,4 @@
+import { NoteMark } from '../NoteMark';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
 import { formatElapsed } from '../../lib/format';
@@ -95,10 +96,13 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
     const body = p.body ?? '';
     if (!body.trim()) return null;
     // An entry the page wrote is drawn in its shape, natively (JN26); one it did not stays literal (NP7).
-    if (p.body_format === 'md') return <View testID="entry-piece-text"><Blocks body={body} onOpenRef={onOpenRef} /></View>;
+    // The type the owner chose for the note, in ink above its words (note types, decision 0161; audit 54).
+    const mark = <NoteMark capture={p} />;
+    if (p.body_format === 'md') return <View testID="entry-piece-text">{mark}<Blocks body={body} onOpenRef={onOpenRef} /></View>;
     // A reference is drawn as the moment it names (JN16, RF4); the words around it stay the owner's.
     return (
       <View testID="entry-piece-text">
+        {mark}
         {parseRefs(body).some((x) => 'ref' in x) ? (
           <View testID="entry-words"><NoteText body={body} style={styles.words} onOpen={onOpenRef} /></View>
         ) : (

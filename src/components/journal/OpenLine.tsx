@@ -71,6 +71,8 @@ type LineProps = {
   onHeight?: (h: number) => void;
   /** No page is shown (a thread, the threads, Hidden): the field sits in the bar. On the page it is the page's last line (JN28). */
   inBar: boolean;
+  /** The empty page is out of view (the reader pulled the page down): the bar holds the pen (audit 50). */
+  penInBar?: boolean;
   /** The screen's body, given the field and what the page needs to grow round it (null when the field is in the bar). */
   children: (page: { field: ReactNode; writing: boolean; entryOpen: boolean } | null) => ReactNode;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
@@ -591,10 +593,28 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             ) : recording ? (
               <View style={styles.lead}>{timer}{discard}</View>
             ) : active || pen.failed ? (
-              <Text style={styles.status} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
+              <>
+                {/* The recording bar is folded away while the field has the keyboard (JN30): its mark stays (audit 53). */}
+                {walk && typing ? <View style={styles.walkDot} testID="line-recording" accessible accessibilityLabel="Walk recording" /> : null}
+                <Text style={styles.status} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
+              </>
             ) : (
-              // At rest the bar holds no pen: the empty page is the pen (JN32).
-              <View style={styles.lead} />
+              // At rest the empty page is the pen (JN32); pulled out of view, the bar holds one, so words stay one
+              // tap away from anywhere on the sheet (JN9, audit 50).
+              <View style={styles.lead}>
+                {props.penInBar ? (
+                  <IconButton
+                    testID="bar-write"
+                    icon="create-outline"
+                    label={LINE_LABELS.write}
+                    onPress={() => {
+                      input.current?.focus();
+                      onFoot();
+                    }}
+                    disabled={props.disabled}
+                  />
+                ) : null}
+              </View>
             )}
             {inBar && recording ? <>{timer}{discard}</> : null}
             {pen.failed ? (
@@ -611,10 +631,15 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             ) : (
               <IconButton testID="band-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={voice} busy={cap.busy === 'voice'} disabled={props.disabled} />
             )}
-            {showDone && (
+            {showDone ? (
               <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
                 <Text style={styles.doneText}>Done</Text>
               </Pressable>
+            ) : (
+              // Done's place is kept at rest, so the camera and the mic never move under a thumb (audit 51).
+              <View style={styles.done} pointerEvents="none" aria-hidden importantForAccessibility="no-hide-descendants">
+                <Text style={[styles.doneText, styles.unseen]}>Done</Text>
+              </View>
             )}
           </View>
         </View>
@@ -719,6 +744,8 @@ const styles = StyleSheet.create({
   done: { minWidth: 44, height: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
+  walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: 8 },
+  unseen: { opacity: 0 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
   timerText: { color: theme.ink, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   textBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },

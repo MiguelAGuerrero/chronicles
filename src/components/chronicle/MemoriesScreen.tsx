@@ -433,6 +433,8 @@ export function MemoriesScreen() {
 
   const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
   const lineRef = useRef<OpenLineHandle>(null);
+  // The empty page is out of view: the bar holds the pen (audit 50).
+  const [away, setAway] = useState(false);
   const journal = (line: { field: ReactNode; writing: boolean; entryOpen: boolean }) => (
     <JournalPage
       ref={pageRef}
@@ -447,6 +449,7 @@ export function MemoriesScreen() {
       onWrite={() => lineRef.current?.write()}
       writing={line.writing}
       focused={isFocused}
+      onAway={setAway}
       slip={pick ? (
         <Slip
           pick={pick}
@@ -472,7 +475,7 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine ref={lineRef} inBar={body != null} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
+      <OpenLine ref={lineRef} inBar={body != null} penInBar={away} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
         {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu

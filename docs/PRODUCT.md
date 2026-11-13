@@ -330,7 +330,8 @@ recording, and a recording bar brings a minimized walk back.
   - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
     the page itself, in your serif, with no box and no hint text. The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
-    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic; while you write it holds "Kept as you
+    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic, each always in the same place, and a pen at its left once
+    the page is pulled down and the empty page is out of view; while you write it holds "Kept as you
     write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
     the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other

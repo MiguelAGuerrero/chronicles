@@ -73,6 +73,14 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 - **The keyboard going never moves a reader who scrolled back** (audit 43); coming up, it always brings the line into view.
 - **The tappable page lies under the whole empty page** (audit 45: `absoluteFill`, the field's dateline room lets taps through) **and is hidden from a screen reader** (audit 44): the field has the name. A journey clicks it with `force: true`, since the field can lie over the point.
 
+## The owner's answers to the second audit (audit 50-54, Nov 13)
+
+- **The bar holds a pen only while the empty page is out of view** (audit 50): `JournalPage` tells `onAway` from its scroll, `MemoriesScreen` passes `penInBar`. In view, the page is the pen.
+- **Done's place is kept at rest** (audit 51): an unseen, untappable Done of the same width, so the camera and the mic have one place each.
+- **The held date has an edge** (audit 52): four bands of the page's ground under it, none fainter than a fifth. A fainter band is drawn a shade off the ground it lies on and shows as a line under every date.
+- **Writing on a walk, the bar keeps the recording's mark** (audit 53): the recording bar is folded with the tabs.
+- **An entry draws its note's type** (audit 54, `NoteMark`): the journal replaced the moment card, which drew it. The Type tool is on the note's page only.
+
 ## Traps
 
 - **An iPhone floats the keyboard's own row (previous, next, a tick) over the page** (fix keyboard-accessory, the owner's phone, Nov 13). A web page cannot turn it off or measure it, and `visualViewport` does not count it, so it sat on the bar's camera, mic and Done. The bar keeps `ACCESSORY_ROOM` empty under its controls while the keyboard is up (`accessoryRoom`, `floatsAccessory` in `lib/journal/keyboard.ts`: an iPhone or iPad whose engine has `anchor-name`, which arrived in the release that began floating the row; the Home Screen app's agent names no version). The 56 is read off a screenshot; never seen to work on a phone.

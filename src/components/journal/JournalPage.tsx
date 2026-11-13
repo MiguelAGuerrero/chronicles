@@ -43,6 +43,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   onWrite?: () => void;
   /** The field has the keyboard. */
   writing?: boolean;
+  /** The empty page went out of view, or came back (audit 50): out of view, the bar holds the pen. */
+  onAway?: (away: boolean) => void;
   /** Memories is the screen in front. Coming back to it is a new sitting: the page opens on the last entry again (audit 42). */
   focused?: boolean;
   /** Said under today's date when the page could not be read. */
@@ -122,12 +124,19 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     return () => clearTimeout(t);
   }, [focused]);
 
+  const away = useRef(false);
   const { more, onMore } = props;
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     at.current = { y: contentOffset.y, height: contentSize.height, view: layoutMeasurement.height };
     if (!hold.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
     if (pinned.current) opened.current = true;
+    // The empty page is the sheet's last `blank` px above its foot's padding.
+    const out = contentOffset.y + layoutMeasurement.height < contentSize.height - blank - props.footPad + 24;
+    if (out !== away.current) {
+      away.current = out;
+      props.onAway?.(out);
+    }
     if (opened.current && contentOffset.y < NEAR_TOP && contentSize.height > layoutMeasurement.height && more && !adding.current) {
       adding.current = true;
       askedAt.current = count;
@@ -184,6 +193,10 @@ export const JournalPage = forwardRef<JournalPageHandle, {
             <View key={r.key} style={styles.day} onLayout={onLayout}>
               <Text style={styles.heading} accessibilityRole="header" testID="day-heading">{dayHeading(r.t, props.now)}</Text>
               {r.today ? props.notice : null}
+              {/* An edge (audit 52): what passes under the held date fades into the page's ground, not cut mid-line. */}
+              <View style={styles.edge} pointerEvents="none" testID="day-edge">
+                {EDGE.map((o) => <View key={o} style={[styles.edgeBand, { opacity: o }]} />)}
+              </View>
             </View>
           );
         }
@@ -209,7 +222,15 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   );
 });
 
+/**
+ * The edge's bands, from the date's ground towards nothing. None fainter than a fifth: a fainter band is drawn a
+ * shade off the ground it lies on, and shows as a line under every date.
+ */
+const EDGE = [0.82, 0.6, 0.4, 0.22];
+
 const styles = StyleSheet.create({
+  edge: { position: 'absolute', left: 0, right: 0, top: '100%' },
+  edgeBand: { height: 4, backgroundColor: theme.bg },
   scroll: { flex: 1 },
   page: { flexGrow: 1, paddingHorizontal: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   // Its own ground: entries pass under the date held at the top.

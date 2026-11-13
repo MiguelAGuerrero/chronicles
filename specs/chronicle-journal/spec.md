@@ -241,3 +241,15 @@ Report-only passes by the auditor (40-49), the steward (S1-S3) and the UX review
 - **Journeys:** `journal` ran four times while the checks were made to pass (three stopped at an older check that read the spoken name off the tappable page); the others named by `check:affected` once.
 - **Native:** none of it has run on a device; three checks added to `docs/NATIVE_UNVERIFIED.md`.
 
+### The owner's answers (Nov 13): "go with your recommendations"
+
+Built as `chronicle-journal audit 50-54`, checks in the `journal` journey, committed as todos first. JN29 and JN32 are read with these.
+
+- audit 50 (steward 1, ux 1, audit 44's order): with the empty page out of view the bar holds a pen ("Write an entry") at its leading side; one tap brings today's foot back with the caret on the page. In view, the empty page is the pen and the bar holds none.
+- audit 51 (ux 5): Done's place is kept at rest, so the camera and the mic never move between rest and writing.
+- audit 52 (steward 2, ux 7): entries fade under the held date instead of being cut. The slide still stops where the stack ends; settling on an entry's first line was the other option, not taken.
+- ux 3 (a second bar above the tab bar at rest): left as it is.
+- audit 53 (the steward's question): while the field has the keyboard on a walk, the bar keeps the recording's mark, a red dot said as "Walk recording".
+- audit 54 (the owner: note types "are no longer accessible given the new UI"): the journal's entry draws a note's type above its words, as the moment card it replaced did (note types NY9, decision 0161). Choosing a type is still on the note's page only; where it should live in the journal waits on the owner (`docs/STATUS.md`).
+- Counts after the answers: 23 findings, 15 fixed, 4 deferred, 4 rejected.
+
