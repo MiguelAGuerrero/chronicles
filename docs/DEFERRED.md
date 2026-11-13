@@ -226,6 +226,10 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 18. [kept] A walk kept with its suggestion shows the suggestion as the device reads it now, so a walk started at 01:00 in Lisbon reads "Tuesday evening" back in New York; walks left unnamed with Not now did already. The timezone item under Functional core is its fix (`/tend inbox` review F4, Nov 11, low)
 19. [loop] The section bar's checks miss the long press that lowers the sheet (SB1) and a bar press clearing a selected star or a Walk here card (SB2); only the drags, the switch and Map are checked (section-bar audit 3, Nov 11, low)
 20. [loop] Chronicle's day labels ("Today", "Yesterday") read the clock only when Chronicle comes to the front, so a section switch past midnight no longer refreshes them, as staying on Days never did (`now` in `ChronicleMap`; section-bar review F4, Nov 11, low)
+21. [loop] With the scale bar hidden over a blank world (T17), the map's credits (i) stays where `creditsAt` placed it for the bar's widest strip, so it floats near the middle of the bottom edge (Navigate at 390 x ~163; at 320 nearly centred; on Explore under the notice); it could take the bar's own slot while the bar is gone, keeping audit 2's open box (`scaleBar.ts` `creditsAt`; the T17 review's U3, Nov 13, low)
+22. [owner] Locate's web refusal names only the browser's settings; when the phone itself has location off for the browser (iOS Settings › Privacy › Location Services › Safari Websites) the line points to the wrong place; perhaps "Turn it on in your browser's or your phone's settings" (`locate/notice.ts`; NN/g H9; the T17 review's U4, Nov 13, low; copy, yours)
+23. [owner] Explore's empty card still offers Find me under the refusal's notice, a button that can only be refused again until location is turned on (pictures `qol-14-explore-locate-denied-390`, `-320`; as before T17; the T17 review's U5, Nov 13, low; copy, yours)
+24. [owner] Locate's timeout, "Couldn’t find your position" (red), names no next step (`locate/notice.ts`; NN/g H9; the T17 review's U6, Nov 13, low; copy, yours)
 
 ## Town outlines (TO1-TO12, decision 0083)
 

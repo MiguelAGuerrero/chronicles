@@ -305,20 +305,32 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T17 yes, T14 yes, T15 reshape`** (from `df1aefb0`; the owner's own answers, in person, Nov 12;
-decision 0154; T17 built, T14 and T15 wait for the next inbox run, one build per run).
-- `tend map T17`: Locate refused, on Navigate and Explore, is the app's quiet notice (the cream banner, ink, no alert,
-  read politely), not the red error: "Location is off for this site. Turn it on in the browser's settings to see where
-  you are."; on a phone the recorder's own words, "... Turn it on in Settings ...", with Open Settings. The words live
-  once, in `locate/notice.ts`. With no fix and no tiles drawn (the base map's own layers drew nothing in view), the two
-  screens show no scale bar over the blank world; with the tiles drawn, or a fix, it stays. The `qol` journey pictures
-  the refusal on both screens at 390 and 320 px over an empty world, and keeps the bar where the fake streets draw.
+**Nov 13, `/tend inbox T17 yes, T14 yes, T15 reshape`** (from `df1aefb0`, rebased on `d792f3b5`; the owner's own
+answers, in person, Nov 12; decision 0154; T17 built, T14 and T15 wait for the next inbox run, one build per run).
+- `tend map T17`: Locate refused, on Navigate and Explore, is the app's quiet notice (the cream banner, its text the
+  dark brown `#6b4500`, no alert, read politely), not the red error: "Location is off for this site. Turn it on in the
+  browser's settings to see where you are."; on a phone the words stay ("Location is turned off for Chronicles. Turn it
+  on in Settings to find your position."), with Open Settings. The words live once, in `locate/notice.ts`. With no fix
+  and no tiles drawn, the two screens show no scale bar over the blank world; with the tiles drawn, or a fix, it stays.
+  The `qol` journey pictures the refusal on both screens at 390 and 320 px over an empty world, and keeps the bar where
+  the fake streets draw.
+The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
+- `tend map audit 12`: the refusal is said to a screen reader through a polite live region kept on screen (Navigate's
+  own `ready-said`, Explore's DN12 one), and on a phone by `announceForAccessibility` (F1 with U1).
+- `tend map audit 13`: the open item names QL5 ("Every map shows a scale bar") beside QL11 as amended (F2).
+- `tend map audit 14`: native counts roads, water or places as drawn, not places alone (`drawnFrom`) (F3).
+- `tend map audit 15`: the web's look queries only the base fill layers, never buildings (`blankLookLayers`) (F4).
+- `tend map audit 16`: T26's evidence names `qol` alone and says T17 split the two refusals on one screen (F5, U2).
+- `tend map audit 17`: the map rule notes the hidden bar and the veil trap (F6).
+- `tend map audit 18`: the notice's test lives with the moments feature that owns `locate/` (F7).
+Review: 8 accepted (F1-F7, U1 with F1), 4 deferred to `docs/DEFERRED.md`, Quality of life (U3 `[loop]` low, the (i)
+where the bar was; U4-U6 `[owner]` low, copy), 0 rejected; U2 is yours through T26.
 Found on the way: T17's words were never the recorder's start's (decision 0154 says they were): Start, refused, still
-says "Location permission was denied. ..." in red. Filed as T26 `[owner]`, with QL11's wording and the map rule's
-Locate line in "Open before the loop". One native check.
+says "Location permission was denied. ..." in red. Filed as T26 `[owner]`; QL11's and QL5's wording and the map rule's
+Locate line in "Open before the loop". One native check, with a note.
 Answered and waiting: T14 yes (kinds, no numeral, the time in the spoken name), T15 reshaped to "Ink star, no numeral".
-Not a sweep: no lens ran and no area changed state. The review (one round of the auditor and the ux-reviewer, decision
-0145) is pending. Nothing here has run on a phone; the notice's tone and the scale bar's tile read are native too
+Not a sweep: no lens ran and no area changed state. The `drive` journey fails here and on `main` alike. Nothing here
+has run on a phone; the notice, its announcement and the scale bar's tile read are native too
 (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop

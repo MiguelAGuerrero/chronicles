@@ -1,0 +1,47 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "21. [loop] With the scale bar hidden over a blank world (T17), the map's credits (i) stays where `creditsAt` placed it for the bar's widest strip, so it floats near the middle of the bottom edge (Navigate at 390 x ~163; at 320 nearly centred; on Explore under the notice); it could take the bar's own slot while the bar is gone, keeping audit 2's open box (`scaleBar.ts` `creditsAt`; the T17 review's U3, Nov 13, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "22. [owner] Locate's web refusal names only the browser's settings; when the phone itself has location off for the browser (iOS Settings › Privacy › Location Services › Safari Websites) the line points to the wrong place; perhaps \"Turn it on in your browser's or your phone's settings\" (`locate/notice.ts`; NN/g H9; the T17 review's U4, Nov 13, low; copy, yours)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "23. [owner] Explore's empty card still offers Find me under the refusal's notice, a button that can only be refused again until location is turned on (pictures `qol-14-explore-locate-denied-390`, `-320`; as before T17; the T17 review's U5, Nov 13, low; copy, yours)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "24. [owner] Locate's timeout, \"Couldn’t find your position\" (red), names no next step (`locate/notice.ts`; NN/g H9; the T17 review's U6, Nov 13, low; copy, yours)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 13, `/tend inbox T17 yes, T14 yes, T15 reshape`** (from `df1aefb0`, rebased on `d792f3b5`; the owner's own\nanswers, in person, Nov 12; decision 0154; T17 built, T14 and T15 wait for the next inbox run, one build per run).\n- `tend map T17`: Locate refused, on Navigate and Explore, is the app's quiet notice (the cream banner, its text the\n  dark brown `#6b4500`, no alert, read politely), not the red error: \"Location is off for this site. Turn it on in the\n  browser's settings to see where you are.\"; on a phone the words stay (\"Location is turned off for Chronicles. Turn it\n  on in Settings to find your position.\"), with Open Settings. The words live once, in `locate/notice.ts`. With no fix\n  and no tiles drawn, the two screens show no scale bar over the blank world; with the tiles drawn, or a fix, it stays.\n  The `qol` journey pictures the refusal on both screens at 390 and 320 px over an empty world, and keeps the bar where\n  the fake streets draw.\nThe review's fixes (one round of the auditor and the ux-reviewer, decision 0145):\n- `tend map audit 12`: the refusal is said to a screen reader through a polite live region kept on screen (Navigate's\n  own `ready-said`, Explore's DN12 one), and on a phone by `announceForAccessibility` (F1 with U1).\n- `tend map audit 13`: the open item names QL5 (\"Every map shows a scale bar\") beside QL11 as amended (F2).\n- `tend map audit 14`: native counts roads, water or places as drawn, not places alone (`drawnFrom`) (F3).\n- `tend map audit 15`: the web's look queries only the base fill layers, never buildings (`blankLookLayers`) (F4).\n- `tend map audit 16`: T26's evidence names `qol` alone and says T17 split the two refusals on one screen (F5, U2).\n- `tend map audit 17`: the map rule notes the hidden bar and the veil trap (F6).\n- `tend map audit 18`: the notice's test lives with the moments feature that owns `locate/` (F7).\nReview: 8 accepted (F1-F7, U1 with F1), 4 deferred to `docs/DEFERRED.md`, Quality of life (U3 `[loop]` low, the (i)\nwhere the bar was; U4-U6 `[owner]` low, copy), 0 rejected; U2 is yours through T26.\nFound on the way: T17's words were never the recorder's start's (decision 0154 says they were): Start, refused, still\nsays \"Location permission was denied. ...\" in red. Filed as T26 `[owner]`; QL11's and QL5's wording and the map rule's\nLocate line in \"Open before the loop\". One native check, with a note.\nAnswered and waiting: T14 yes (kinds, no numeral, the time in the spoken name), T15 reshaped to \"Ink star, no numeral\".\nNot a sweep: no lens ran and no area changed state. The `drive` journey fails here and on `main` alike. Nothing here\nhas run on a phone; the notice, its announcement and the scale bar's tile read are native too\n(`docs/NATIVE_UNVERIFIED.md`).\n"
+    }
+  ]
+}
