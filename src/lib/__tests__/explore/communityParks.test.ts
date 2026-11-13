@@ -212,6 +212,34 @@ test('PC17 (amended, fix community-park): a small outline with nothing notable i
   assert.equal(kindOf(read([park('Cedar Park')], [grass([ring(at(0), 90)])], arch), 'Cedar Park'), 'parks', 'an archive place within 150 m');
 });
 
+test('fix community-park audit 1: an outline cut at a tile edge says nothing of size', () => {
+  // A z14 tile edge near O: the fragment of a large park, 1.5 ha, with a vertex on the edge.
+  const edge = (lon: number) => { const n = 2 ** 14; const x = Math.ceil(((lon + 180) / 360) * n); return (x / n) * 360 - 180; };
+  const ex = edge(O[0]);
+  const fragment: LngLat[] = [[ex - 0.0012, O[1] - 0.0006], [ex, O[1] - 0.0006], [ex, O[1] + 0.0006], [ex - 0.0012, O[1] + 0.0006], [ex - 0.0012, O[1] - 0.0006]];
+  const inside: LngLat = [ex - 0.0006, O[1]];
+  const f = grass([fragment]);
+  assert.equal(kindOf(read([park('Riverside Park', inside)], [f]), 'Riverside Park'), 'parks', 'a fragment on a tile edge');
+  const shifted = fragment.map(([x, y]) => [x - 0.00045, y] as LngLat);
+  assert.equal(kindOf(read([park('Riverside Park', [inside[0] - 0.00045, inside[1]])], [grass([shifted])]), 'Riverside Park'), CP, 'the same shape off the edge');
+});
+
+test('fix community-park audit 2: the largest outline holding the point decides, in either order; a signal in any keeps it', () => {
+  const small = grass([ring(at(0), 90)]);
+  const big = grass([ring(at(0), 400)]);
+  for (const order of [[small, big], [big, small]]) assert.equal(kindOf(read([park('Cedar Park')], order), 'Cedar Park'), 'parks');
+  const museum = poi('museum', 'museum', 'Park Museum', at(150, 0));
+  for (const order of [[small, big], [big, small]]) assert.equal(kindOf(read([park('Cedar Park'), museum], order), 'Cedar Park'), 'parks');
+});
+
+test('fix community-park audit 4: a mark in the hole of a small ring keeps the park', () => {
+  const hole = [at(-10, -10), at(-10, 10), at(10, 10), at(10, -10), at(-10, -10)];
+  const rings = [ring(at(0), 120), hole];
+  const inRing = at(40, 0);
+  assert.equal(kindOf(read([park('Cedar Park', inRing), poi('monument', 'memorial', 'Plaque', at(0, 0))], [grass(rings)]), 'Cedar Park'), 'parks');
+  assert.equal(kindOf(read([park('Cedar Park', inRing)], [grass(rings)]), 'Cedar Park'), CP);
+});
+
 test('tend explore T9: parkNotable.json holds no word notable.json leaves out as a neighbourhood\'s', () => {
   const list = (f: string) => JSON.parse(readFileSync(new URL(f, import.meta.url), 'utf8')) as { _note: string; words: string[] };
   const notable = list('../../presence/notable.json');

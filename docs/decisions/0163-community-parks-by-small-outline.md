@@ -15,6 +15,8 @@ so the switch could not hide it. The owner chose the fix in person on Nov 13 (a 
 - An outline under 500 m2 is a sliver (a park cut at a tile edge, the steward's finding 2 of 0143) and says nothing of
   size. No outline found stays a park unless the name says play (PC3). Everything notable stays a park: the default
   for any doubt is still the park.
+- An outline with a vertex on a z14 tile edge is a cut piece and says nothing of size (audit 1); when several outlines hold the
+  point the largest area decides and a mark inside any of them (outer ring) keeps it a park (audits 2, 4).
 - `PARK_RULES.smallM2` (2 ha) and `sliverM2` (500 m2). `ATLAS_CODE` a12, none carried (every level's park kinds change).
 
 ## Consequences

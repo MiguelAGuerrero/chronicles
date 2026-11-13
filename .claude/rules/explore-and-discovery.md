@@ -190,7 +190,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   name holds a word of `communityWords.json` (playground, tot lot, courts), or whose `landcover` outline is under 2 ha (and over a 500 m2 sliver), is the kind `community_parks`
   when nothing notable is in or near it: a mark inside the `landcover` outline (`discovery/green.ts`, `outlinesOf`; within 60 m
   of the point with none), a notable name (presence's `notableName`) or a word of `parkNotable.json`, an outline of 5 ha or more, or an archive place
-  within 150 m (the refinement's context). **An outline under 2 ha demotes only with nothing notable (0163).** The kind is of the parks category (same bar, colour, find,
+  within 150 m (the refinement's context). **An outline under 2 ha, not cut at a tile edge, demotes only with nothing notable (0163).** The kind is of the parks category (same bar, colour, find,
   mark); a switch hides only it. **Never name an unfound place for its kind**: bars and waiting kinds are categories, so
   "Community parks" shows only in "What I'm into" and on a found place (`foundLine`). The planner and scenic routes do not
   read "What I'm into" and count both as parks. It is curation (0140), so a change to the words bumps `ATLAS_CODE`'s own

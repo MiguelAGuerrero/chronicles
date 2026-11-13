@@ -1,6 +1,7 @@
 // @layer core
 import { distanceM, projector } from '../geo';
 import { inRings } from './green';
+import { onTileEdge } from '../tileMath';
 import type { LngLat } from '../types';
 import community from './communityWords.json';
 import { normalizeWords, notableName } from '../presence/notable';
@@ -89,12 +90,15 @@ export const communityParks: Refinement = {
     const signals = places.filter(isSignal);
     return (p) => {
       if (notablePark(p.name)) return false;
-      const outline = ctx.outlines.find((o) => inRings(p.at, o.rings));
-      const area = outline ? areaM2(outline.rings) : null;
+      // Every outline that holds the point decides together, in no order (fix community-park audit 2): the largest area, any signal
+      // inside any one's outer ring (a hole is no reason to miss it), and a cut at a z14 tile edge says nothing of size (audit 1).
+      const held = ctx.outlines.filter((o) => inRings(p.at, o.rings));
+      const area = held.length ? Math.max(...held.map((o) => areaM2(o.rings))) : null;
+      const cut = held.some((o) => o.rings[0].some((v) => onTileEdge(v)));
       // A name that says play is evidence; so is a small outline (fix community-park): a park with neither stays a park.
-      const small = area !== null && area >= PARK_RULES.sliverM2 && area < PARK_RULES.smallM2;
+      const small = area !== null && !cut && area >= PARK_RULES.sliverM2 && area < PARK_RULES.smallM2;
       if (!communityName(p.name) && !small) return false;
-      if (outline && (area! >= PARK_RULES.largeM2 || signals.some((s) => inRings(s.at, outline.rings)))) return false;
+      if (held.length && (area! >= PARK_RULES.largeM2 || held.some((o) => signals.some((s) => inRings(s.at, [o.rings[0]]))))) return false;
       if (signals.some((s) => distanceM(s.at, p.at) <= PARK_RULES.signalNearM)) return false;
       return !ctx.archive.some((a) => distanceM(a.at, p.at) <= PARK_RULES.archiveNearM);
     };
