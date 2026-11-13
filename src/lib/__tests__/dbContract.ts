@@ -771,6 +771,31 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listRecalls(), [recall('c1', 2)]);
     });
 
+    test('FC7 setTranscript, listTranscripts, clearTranscript, TX3: one row per capture, replaced by capture, cleared by capture', { todo: 'test first' }, async () => {
+      const db = await fresh() as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string; text: string }[] | void>>;
+      const row = (capture_id: string, text: string) => ({ capture_id, text, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
+      await db.setTranscript(row('c1', 'one'));
+      await db.setTranscript(row('c1', 'two'));
+      await db.setTranscript(row('c2', 'three'));
+      await db.clearTranscript('c2');
+      await db.clearTranscript('missing');
+      assert.deepEqual(((await db.listTranscripts()) as { capture_id: string; text: string }[]).map((r) => [r.capture_id, r.text]), [['c1', 'two']]);
+    });
+
+    test('FC7 deleteMoments, deleteWalk, TX3: a memo\'s transcript goes with its moment, and with its walk', { todo: 'test first' }, async () => {
+      const db = await planned();
+      const t = db as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string }[] | void>>;
+      await db.createWalk(walk('a', 1));
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      await db.addMoment(one('m3', 'a', 3));
+      for (const id of ['m1', 'm2', 'm3']) await t.setTranscript({ capture_id: id, text: id, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
+      await db.deleteMoments(['m1']);
+      assert.deepEqual(((await t.listTranscripts()) as { capture_id: string }[]).map((r) => r.capture_id).sort(), ['m2', 'm3']);
+      await db.deleteWalk('a');
+      assert.deepEqual(await t.listTranscripts(), []);
+    });
+
     // ---- landing and atlas
 
     test('FC7 putLanding, listLandings: the same key replaces; others stay', async () => {
