@@ -687,6 +687,9 @@ async function run(h) {
       const inPin = (await thumb.count()) > 0;
       check((await thumb.count()) === 1 && inPin && row && row.thumb_path && row.thumb_path !== 'none',
         `qol QL26, QL27: the photo's pin shows its small copy once it is made, without a reload (${await thumb.count()} pictures, in its pin ${inPin}, thumb ${row && row.thumb_path})`);
+      // tend map audit 31: the pin of one photo says its minutes in (tend map T28), read whole, not only by its kind.
+      const photoLabel = await pg.locator('.maplibregl-map [aria-label^="Photo"][aria-label$=". Open"]').first().getAttribute('aria-label').catch(() => null);
+      check(/^Photo, (at the start|.+ in)(, with more in this moment)?(, reminder set)?\. Open$/.test(photoLabel ?? ''), `tend map audit 31: a pin of one photo says its minutes in (${photoLabel})`);
     });
     await qstep('qol note', async () => {
       await pg.click('[data-testid=cap-note]');
