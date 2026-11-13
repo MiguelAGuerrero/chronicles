@@ -53,7 +53,7 @@ Stop if any precondition fails; say which.
 ```bash
 git fetch origin main
 git log --oneline origin/main..HEAD      # what ships
-git checkout main && git merge --ff-only <branch>   # or the owner's merge
+git checkout main && git merge --ff-only <branch>   # a fast-forward: the record gate replays each commit, and a merge resolved by hand in the record documents fails it
 git push origin main
 ```
 

@@ -190,7 +190,8 @@ tag at its start, by the table in section 1, keeping its words
 
 A bullet holding several items is split first, one item per bullet, the
 words kept (`npm run records -- deferred item split <match> --file <bullets>`,
-which refuses a split that drops a word). Then put
+whose parts keep the bullet's marker and checkbox and its words in their order, none dropped,
+added or moved). Then put
 the `[owner]` and `[arch]` items the owner would most want to answer (**five
 at most** per run, and none while ten wait) in the inbox with
 recommendations; the rest stay tagged in place. Nothing but docs ships in a
@@ -396,11 +397,15 @@ The owner picks; the loop never starts a `G` entry unasked.
 3. **Publish**, by `--deploy`:
    - `main`: `.claude/skills/ship.md`, "Publish to main", once. Whenever
      `main` moved, compare its `lastT` and `lastG` with the ones this run
-     started from: if they changed, or the rebase conflicts in
-     `docs/STATUS.md`, `docs/DEFERRED.md` or the ledger, take `main`'s side of
-     those three and run `npm run records -- redo` in the conflicted commit (it
-     runs its recorded operations again; the inbox numbers on from `main`'s
-     ledger and the trailers stay), then `check:records` again. Any other conflict is `ship.md`'s stop. A red run is handled
+     started from. If the rebase conflicts in `docs/STATUS.md`,
+     `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` and the ledger, take
+     `main`'s side of all four and run `npm run records -- redo` in the
+     conflicted commit (it runs its recorded operations again; the inbox
+     numbers on from `main`'s ledger and the trailers stay), then
+     `check:records` again. A record commit whose inbox numbers would move
+     but whose rebase does not conflict cannot be redone (it is committed, and
+     a record commit is never amended): stop and report, the branch pushed
+     for the owner, rather than publish a record the gate fails. Any other conflict is `ship.md`'s stop. A red run is handled
      by `ship.md`, "A red run".
    - `branch`: push the run's branch and stop; `none`: save a patch. Neither
      moves an area's state, the entry numbers are provisional, and step 5 is

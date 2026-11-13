@@ -113,6 +113,7 @@ function starts(line, inPara = false) {
  * an inbox entry (an item under "From /tend" or "Next evolutions") its id.
  */
 function parse(text) {
+  if (/\r(?!\n)/.test(text)) fail('the document holds a lone carriage return: markdown reads it as a line ending and this parser does not, so no operation can keep every other byte; the owner\'s file needs it removed');
   const eol = text.endsWith('\n');
   const body = eol ? text.slice(0, -1) : text;
   const lines = text === '' ? [] : body.split('\n');
@@ -262,6 +263,12 @@ const norm = (s) => s.replace(/\s+/g, ' ').trim();
 /** An item's words without its marker, checkbox or tag: what makes it the same item whatever its tag. */
 const untagged = (text) => norm(itemParts(text)?.rest ?? text);
 
+/** The words of a text in order, its marker, checkbox and tag left out. */
+function wordList(text) {
+  const p = itemParts(text);
+  return (p ? p.rest : text).toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
 /** The words of a text, its marker, checkbox and tag left out (for a split's every-word rule). */
 function tokens(text) {
   const p = itemParts(text);
@@ -275,6 +282,7 @@ function tokens(text) {
 function bodyLines(body, what) {
   const text = String(body ?? '').replace(/\r\n/g, '\n').replace(/\s+$/, '');
   if (!text.trim()) fail(`the ${what} is empty: give it with --file <path> or on stdin`);
+  if (text.includes('\r')) fail(`the ${what} holds a lone carriage return: markdown reads it as a line ending, so it could start a block the gate never sees; use a newline`);
   return text.split('\n');
 }
 
@@ -299,6 +307,7 @@ function checkBody(lines, what, { noFence = false } = {}) {
     }
     const at = `its line ${k + 1} ("${l}")`;
     if (/^#{1,6}(\s|$)/.test(t)) fail(`the ${what} would start a heading at ${at}: an entry holds no heading`);
+    if (/^\[[^\]]+\]:/.test(t)) fail(`the ${what} would be a link reference definition at ${at}: it renders as nothing and turns every "[label]" in the document into a link`);
     if (/^<(?:!--|\?|![A-Za-z]|!\[CDATA\[|\/?[A-Za-z][A-Za-z0-9-]*(?:\s|\/?>|$))/.test(t)) fail(`the ${what} would open an HTML block at ${at}: write it as text`);
     if (k > 0 && /^(=+|-+)\s*$/.test(t)) fail(`the ${what} would make a setext heading or a rule at ${at}`);
     if (/^([-*_])(?:[ \t]*\1){2,}[ \t]*$/.test(t)) fail(`the ${what} would make a thematic rule at ${at}`);
@@ -429,7 +438,7 @@ const anItem = (doc, match) => only(doc.blocks.filter((x) => x.kind === 'item' &
 const markerOf = (b) => itemParts(b.text)?.marker.replace(/\[[ xX]\]\s+$/, '') ?? '- ';
 
 const OPS = {
-  'inbox add'(doc, { body, id, ledger }) {
+  'inbox add'(doc, { body, id, ledger, reopen }) {
     const lines = asItem(body);
     const m = /^[-*+]\s+\*\*([TG])(\?|\d+)(?=\s|\*\*)/.exec(lines[0]);
     if (!m) fail('an inbox entry starts "- **T? [class] Title** (date)" or "- **G? [S|M|L] Title** (date)"; write T? or G? for its number');
@@ -446,7 +455,7 @@ const OPS = {
     const top = highest(doc, letter, ledger);
     if (doc.blocks.some((b) => b.id === `${letter}${num}`)) fail(`${letter}${num} is already in the inbox`);
     if (num === null) num = top + 1;
-    else if (num <= top) fail(`${letter}${num} was already given out (last ${letter}${top}); leave the number out and it is numbered ${letter}${top + 1}`);
+    else if (num <= top && !reopen?.has(`${letter}${num}`)) fail(`${letter}${num} was already given out (last ${letter}${top}); leave the number out and it is numbered ${letter}${top + 1}`);
     const newId = `${letter}${num}`;
     lines[0] = lines[0].replace(/^([-*+]\s+\*\*)[TG](\?|\d+)/, `$1${newId}`);
     const h3 = letter === 'T' ? INBOX : NEXT;
@@ -462,7 +471,7 @@ const OPS = {
   'inbox note'(doc, { match, body }) {
     const b = entry(doc, match);
     const lines = [...b.text.split('\n'), ...noteLines(b, body)];
-    return { edit: replaceBlock(b, lines), mid: oneItem({ h3: b.h3, id: b.id }, lines.join('\n')), step: { kind: 'note', section: b.h3, key: `id:${b.id}`, newKey: `id:${b.id}` } };
+    return { target: b, edit: replaceBlock(b, lines), mid: oneItem({ h3: b.h3, id: b.id }, lines.join('\n')), step: { kind: 'note', section: b.h3, key: `id:${b.id}`, newKey: `id:${b.id}` } };
   },
   'inbox set'(doc, { match, body }) {
     const b = entry(doc, match);
@@ -470,7 +479,7 @@ const OPS = {
     const m = /^[-*+]\s+\*\*([TG])(\?|\d+)(?=\s|\*\*)/.exec(lines[0]);
     if (!m || m[1] !== b.id[0] || (m[2] !== '?' && m[1] + m[2] !== b.id)) fail(`the new text must start "- **${b.id} …**" (or "- **${b.id[0]}? …**"): an entry keeps its number`);
     lines[0] = lines[0].replace(/^([-*+]\s+\*\*)[TG](\?|\d+)/, `$1${b.id}`);
-    return {
+    return { target: b,
       edit: replaceBlock(b, lines),
       mid: oneItem({ h3: b.h3, id: b.id }, lines.join('\n')),
       step: { kind: 'set', section: b.h3, key: `id:${b.id}`, newKey: `id:${b.id}`, what: first(b), oldTag: entryTag(b.text), newTag: entryTag(lines[0]) },
@@ -481,7 +490,7 @@ const OPS = {
     const sec = section(doc, OWNER, b.h3);
     const alone = sec.inner.filter((x) => x.kind === 'item').length === 1;
     const placeholder = alone && b.h3 === INBOX;
-    return {
+    return { target: b,
       edit: placeholder ? replaceBlock(b, ['Nothing open.']) : removeBlock(doc, b),
       mid: placeholder ? (mid) => mid.length === 1 && mid[0].kind === 'para' && PLACEHOLDER.test(mid[0].text) : nothing,
       step: { kind: 'remove', section: b.h3, key: `id:${b.id}`, what: first(b) },
@@ -508,22 +517,22 @@ const OPS = {
   'open note'(doc, { match, body }) {
     const b = only(openItems(doc), match, 'open item');
     const lines = [...b.text.split('\n'), ...noteLines(b, body)];
-    return { edit: replaceBlock(b, lines), mid: oneItem({ h3: OPEN, id: undefined }, lines.join('\n')), step: { kind: 'note', section: OPEN, key: openKey(b.text), newKey: openKey(lines.join('\n')) } };
+    return { target: b, edit: replaceBlock(b, lines), mid: oneItem({ h3: OPEN, id: undefined }, lines.join('\n')), step: { kind: 'note', section: OPEN, key: openKey(b.text), newKey: openKey(lines.join('\n')) } };
   },
   'open set'(doc, { match, body }) {
     const b = only(openItems(doc), match, 'open item');
     const lines = asItem(body, { marker: markerOf(b) });
-    return { edit: replaceBlock(b, lines), mid: oneItem({ h3: OPEN, id: undefined }, lines.join('\n')), step: { kind: 'set', section: OPEN, key: openKey(b.text), newKey: openKey(lines.join('\n')), what: first(b) } };
+    return { target: b, edit: replaceBlock(b, lines), mid: oneItem({ h3: OPEN, id: undefined }, lines.join('\n')), step: { kind: 'set', section: OPEN, key: openKey(b.text), newKey: openKey(lines.join('\n')), what: first(b) } };
   },
   'open remove'(doc, { match }) {
     const b = only(openItems(doc), match, 'open item');
-    return { edit: removeBlock(doc, b), mid: nothing, step: { kind: 'remove', section: OPEN, key: openKey(b.text), what: first(b) } };
+    return { target: b, edit: removeBlock(doc, b), mid: nothing, step: { kind: 'remove', section: OPEN, key: openKey(b.text), what: first(b) } };
   },
   'inflight add': (doc, { body, after, end }) => rowAdd(doc, INFLIGHT, body, { top: !end, after }),
   'inflight set': (doc, { match, body }) => rowSet(doc, INFLIGHT, match, body),
   'inflight remove'(doc, { match }) {
     const b = only(section(doc, INFLIGHT).inner.filter((x) => x.kind === 'row'), match, 'In flight row');
-    return { edit: removeBlock(doc, b), mid: nothing, step: { kind: 'other' } };
+    return { target: b, edit: removeBlock(doc, b), mid: nothing, step: { kind: 'other' } };
   },
   'slice row add': (doc, { body, after, top }) => rowAdd(doc, SLICES, body, { top, after }),
   'slice row set': (doc, { match, body }) => rowSet(doc, SLICES, match, body),
@@ -541,6 +550,7 @@ const OPS = {
     const tag = itemParts(text)?.tag ?? null;
     if (!h) {
       if (!create) fail(`no section "${name}"; --new makes it, at the end of the file`);
+      if (/\r/.test(name)) fail('a section title holds no carriage return');
       if (/[\n#]/.test(name) || name !== name.trim()) fail('a section title is one line of text');
       let lead = [];
       if (intro !== undefined) {
@@ -585,8 +595,12 @@ const OPS = {
     const had = tokens(b.text);
     const extra = [...all].filter((w) => !had.has(w));
     if (extra.length) fail(`a split is the bullet's own words, a tag on each part at most; it adds words: ${extra.join(', ')} (a rewrite is \`item set\` with its reason)`);
+    const marker = itemParts(b.text).marker;
+    const off = parts.find((x) => itemParts(x.text).marker !== marker);
+    if (off) fail(`each part keeps the bullet's marker and checkbox ("${marker}"), not "${itemParts(off.text).marker}": a split ticks nothing`);
+    if (parts.flatMap((x) => wordList(x.text)).join(' ') !== wordList(b.text).join(' ')) fail("a split keeps the bullet's words in their order, each once: the parts read in turn are the bullet");
     const lines = parts.flatMap((x) => x.text.split('\n'));
-    return {
+    return { target: b,
       edit: replaceBlock(b, lines),
       mid: (mid) => mid.length === parts.length && mid.every((x, k) => x.kind === 'item' && x.h2 === b.h2 && x.text === parts[k].text),
       step: { kind: 'split', section: b.h2, key: itemKey(b), newKeys: parts.map((x) => `${b.h2}\u0000${norm(x.text)}`), oldTag: itemParts(b.text).tag, partTags: parts.map((x) => itemParts(x.text)?.tag ?? null), what: first(b) },
@@ -594,18 +608,18 @@ const OPS = {
   },
   'item remove'(doc, { match }) {
     const b = anItem(doc, match);
-    return { edit: removeBlock(doc, b), mid: nothing, step: { kind: 'remove', section: b.h2, key: itemKey(b), oldTag: itemParts(b.text).tag, untagged: untagged(b.text), what: first(b) } };
+    return { target: b, edit: removeBlock(doc, b), mid: nothing, step: { kind: 'remove', section: b.h2, key: itemKey(b), oldTag: itemParts(b.text).tag, untagged: untagged(b.text), what: first(b) } };
   },
   'item note'(doc, { match, body }) {
     const b = anItem(doc, match);
     const lines = [...b.text.split('\n'), ...noteLines(b, body)];
-    return { edit: replaceBlock(b, lines), mid: oneItem({ h2: b.h2 }, lines.join('\n')), step: { kind: 'note', section: b.h2, key: itemKey(b), newKey: `${b.h2}\u0000${norm(lines.join('\n'))}` } };
+    return { target: b, edit: replaceBlock(b, lines), mid: oneItem({ h2: b.h2 }, lines.join('\n')), step: { kind: 'note', section: b.h2, key: itemKey(b), newKey: `${b.h2}\u0000${norm(lines.join('\n'))}` } };
   },
   'item set'(doc, { match, body }) {
     const b = anItem(doc, match);
     const lines = asItem(body, { marker: markerOf(b) });
     const text = lines.join('\n');
-    return {
+    return { target: b,
       edit: replaceBlock(b, lines),
       mid: oneItem({ h2: b.h2 }, text),
       step: { kind: 'set', section: b.h2, key: itemKey(b), newKey: `${b.h2}\u0000${norm(text)}`, oldTag: itemParts(b.text).tag, newTag: itemParts(text)?.tag ?? null, what: first(b) },
@@ -634,6 +648,7 @@ function tagged(b, p, tag, kind) {
   lines[0] = p.marker + `[${tag}] ` + lines[0].slice(bare).replace(/^\s+/, '');
   const text = lines.join('\n');
   return {
+    target: b,
     edit: replaceBlock(b, lines),
     mid: oneItem({ h2: b.h2 }, text),
     step: { kind, section: b.h2, key: itemKey(b), newKey: `${b.h2}\u0000${norm(text)}`, oldTag: p.tag, newTag: tag, what: first(b) },
@@ -652,7 +667,7 @@ function rowSet(doc, h2, match, body) {
   const b = only(sec.inner.filter((x) => x.kind === 'row'), match, `${h2} row`);
   const row = asRow(body, sec.inner.find((x) => x.kind === 'tablehead'));
   if (rowKey(row) !== b.key) fail(`a row keeps its name: "${b.key}", not "${rowKey(row)}" (a new slice is \`slice row add\`)`);
-  return { edit: replaceBlock(b, [row]), mid: oneRow(h2), step: { kind: 'other' } };
+  return { target: b, edit: replaceBlock(b, [row]), mid: oneRow(h2), step: { kind: 'other' } };
 }
 
 const same = (a, b) => a.kind === b.kind && a.text === b.text && a.h2 === b.h2 && a.h3 === b.h3;
@@ -697,7 +712,8 @@ function apply(kind, name, text, args = {}) {
   const made = op(doc, args);
   let out = transact(doc, made);
   if (crlf) out = out.replace(/\n/g, '\r\n');
-  return { text: out, ...(made.result ?? {}), step: { op: name, file: FILE_OF[kind], ...made.step } };
+  const target = made.edit && made.target ? targetOf(made.target) : undefined;
+  return { text: out, ...(made.result ?? {}), step: { op: name, file: FILE_OF[kind], ...made.step, ...(target ? { target } : {}) } };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -744,6 +760,8 @@ function command(argv) {
 const takesBody = (name) => /\b(add|set|note|split)$/.test(name);
 
 const sha = (text) => `sha256:${crypto.createHash('sha256').update(text, 'utf8').digest('hex')}`;
+/** What an operation acted on, as a hash: an inbox entry's text with its number left out (redo renumbers it). */
+const targetOf = (b) => sha(b.id ? b.text.replace(/^([-*+]\s+\*\*)[TG]\d+/, '$1#') : b.text);
 const bare = (w) => /^[\w./?+=,@%:-]+$/.test(w) && !w.startsWith('sha256:') && (!w.startsWith('-') || VALUE_FLAGS.includes(w) || BOOL_FLAGS.includes(w));
 
 /** The `Records-Op:` trailer of each operation, in order. */
@@ -787,7 +805,8 @@ function parseTrailer(line) {
 }
 
 /** A sidecar: the operations, bodies in plain text. */
-const sidecarOf = (ops) => JSON.stringify({ ops: ops.map((o) => ({ argv: o.argv, ...(o.body !== undefined ? { body: o.body } : {}), ...(o.intro !== undefined ? { intro: o.intro } : {}) })) }, null, 2) + '\n';
+const sidecarOf = (ops) =>
+  JSON.stringify({ ops: ops.map((o) => ({ argv: o.argv, ...Object.fromEntries(['body', 'intro', 'target', 'number'].filter((k) => o[k] !== undefined).map((k) => [k, o[k]])) })) }, null, 2) + '\n';
 
 function readSidecar(text, where) {
   let data;
@@ -796,47 +815,64 @@ function readSidecar(text, where) {
   } catch (e) {
     fail(`${where} is not JSON: ${e.message}`);
   }
-  const ok = data && Array.isArray(data.ops) && data.ops.every((o) => o && Array.isArray(o.argv) && o.argv.every((w) => typeof w === 'string') && ['body', 'intro'].every((k) => o[k] === undefined || typeof o[k] === 'string'));
-  if (!ok) fail(`${where} is not { ops: [{ argv, body?, intro? }] }`);
+  const ok = data && Array.isArray(data.ops) && data.ops.every((o) => o && Array.isArray(o.argv) && o.argv.every((w) => typeof w === 'string') && ['body', 'intro', 'target', 'number'].every((k) => o[k] === undefined || typeof o[k] === 'string'));
+  if (!ok) fail(`${where} is not { ops: [{ argv, body?, intro?, target?, number? }] }`);
   return data.ops;
 }
 
 const render = (op) => trailersOf([op])[0].replace(/^Records-Op: /, '').replace(/ ?(--intro )?sha256:[0-9a-f]{64}/g, '');
 
 /**
- * Replays operations on the documents ({ file: text }): { docs, steps, ledger }. An inbox entry is
- * numbered from the ledger and the document as they stand at that point of the replay, so the CLI and
- * the gate number it alike, and a rebase onto a moved main numbers it on from main.
+ * Replays operations on the documents ({ file: text }): { docs, steps, ledger, removedIds }. An inbox
+ * entry is numbered from the ledger and the document as they stand at that point of the replay, so the
+ * CLI and the gate number it alike, and a rebase onto a moved main numbers it on from main. `@k` in an
+ * operation's arguments is the entry operation k added (a handle, renumbered with it). An operation that
+ * recorded its `target` refuses to act on any other entry. `removedIds`: inbox numbers the range removed,
+ * which `inbox add --id` may give out again.
  */
-function replay(docs, ops, { ledger, unlabelled = false } = {}) {
+function replay(docs, ops, { ledger, unlabelled = false, removedIds = [] } = {}) {
   const out = { ...docs };
   const led = { lastT: Number(ledger?.lastT) || 0, lastG: Number(ledger?.lastG) || 0 };
+  const removed = new Set(removedIds);
+  const added = [];
   const steps = [];
   for (const [k, op] of ops.entries()) {
     const label = `operation ${k + 1} (${render(op)})`;
     try {
-      const { kind, name, args } = command(op.argv);
+      const argv = op.argv.map((w) => {
+        const h = /^@(\d+)$/.exec(w);
+        if (!h) return w;
+        const id = added[Number(h[1]) - 1];
+        if (!id) fail(`${w} names no entry an earlier inbox add of these operations made`);
+        return id;
+      });
+      const { kind, name, args } = command(argv);
       if (takesBody(name) && op.body === undefined) fail('it writes a body and none was recorded');
       if (!takesBody(name) && op.body !== undefined) fail('it takes no body');
       if (op.intro !== undefined && !(name === 'item add' && args.create)) fail('--intro goes with item add --new');
       const file = FILE_OF[kind];
-      const r = apply(kind, name, out[file] ?? '', { ...args, body: op.body, intro: op.intro, ledger: led });
+      const r = apply(kind, name, out[file] ?? '', { ...args, body: op.body, intro: op.intro, ledger: led, reopen: removed });
+      if (op.target !== undefined && r.step.target !== op.target) fail(`its target changed: the entry "${args.match}" names now is not the one it was recorded against (${op.target.slice(0, 19)}…); the document moved under it, so look again and run it anew`);
       out[file] = r.text;
       if (r.letter) led[`last${r.letter}`] = Math.max(led[`last${r.letter}`], r.num);
-      steps.push({ ...r.step, reason: args.reason, label });
+      added[k] = r.id;
+      if (name === 'inbox remove') removed.add(args.match);
+      steps.push({ ...r.step, reason: args.reason, label, ...(r.id ? { id: r.id } : {}) });
     } catch (e) {
       if (e instanceof RecordError && !unlabelled) fail(`${label}: ${e.message}`);
       throw e;
     }
   }
-  return { docs: out, steps, ledger: led };
+  return { docs: out, steps, ledger: led, removedIds: [...removed] };
 }
 
 // ---------------------------------------------------------------------------------------------------
 // The rules over a range: what the run filed, the caps, the reasons and the tags.
 
 /** What a range's earlier commits filed and removed, carried from commit to commit. */
-const newRangeState = () => ({ filed: new Set(), removed: new Map(), added: new Map() });
+const newRangeState = () => ({ filed: new Set(), removed: new Map(), added: new Map(), removedIds: new Set(), ownerRemoved: [], loopAdds: [] });
+/** The first words of an item, as a reason must quote them to name it. */
+const nameOf = (untaggedText) => untaggedText.slice(0, 40);
 
 const tagMove = (from, to) => (from && from !== to && !RAISED.includes(to) ? `moves the tag [${from}] to ${to ? `[${to}]` : 'no tag'}` : null);
 const TAG_RULE = 'a tag moves only toward [owner], [arch] or [kept], never from [owner] or [arch] to [loop] (decision 0156)';
@@ -851,6 +887,12 @@ function judge(steps, state) {
     const moveKey = s.untagged !== undefined ? k(s.untagged) : null;
     if (s.kind === 'file') {
       state.filed.add(k(s.newKey));
+      if (s.newTag === 'loop' && s.untagged !== undefined) {
+        for (const o of state.ownerRemoved) {
+          if (!(s.reason ?? '').toLowerCase().includes(o.name.toLowerCase())) problems.push(`${s.label} files a [loop] item in a range that removed the [${o.tag}] item "${o.what}": its --reason names that item (quote "${o.name}"), so the owner sees the move (decision 0156)`);
+        }
+        state.loopAdds.push({ reason: s.reason ?? '', label: s.label });
+      }
       if (moveKey) {
         const was = state.removed.get(moveKey);
         const move = was && tagMove(was.tag, s.newTag);
@@ -873,6 +915,14 @@ function judge(steps, state) {
         const move = tagMove(s.oldTag, t);
         if (move) problems.push(`${s.label} ${move} in a part of "${s.what}": ${TAG_RULE}`);
       }
+    }
+    if (s.kind === 'remove' && !own && s.key?.startsWith('id:')) state.removedIds.add(s.key.slice(3));
+    if (s.kind === 'remove' && !own && moveKey && (s.oldTag === 'owner' || s.oldTag === 'arch')) {
+      const o = { tag: s.oldTag, what: s.what, name: nameOf(s.untagged) };
+      for (const a of state.loopAdds) {
+        if (!a.reason.toLowerCase().includes(o.name.toLowerCase())) problems.push(`${s.label} removes the [${o.tag}] item "${o.what}" in a range that files a [loop] item (${a.label}): that item's --reason names this one (quote "${o.name}"), so the owner sees the move (decision 0156)`);
+      }
+      state.ownerRemoved.push(o);
     }
     if (s.kind === 'remove' && !own && moveKey && s.oldTag) {
       state.removed.set(moveKey, { tag: s.oldTag, what: s.what });
@@ -918,6 +968,8 @@ function checkCommit({ base, head, message, sidecar, ledger, state }) {
     if (sidecar === null) {
       if (declared.some((d) => d.body || d.intro)) return ['its Records-Op trailers name bodies (sha256:…) but the commit adds no sidecar under .claude/records/ to hold them: commit the pending sidecar `npm run records` staged'];
       ops = declared.map((d) => ({ argv: d.argv }));
+      const off = ops.findIndex((o, k) => trailersOf([o])[0] !== lines[k]);
+      if (off >= 0) return [`trailer ${off + 1} ("${lines[off]}") is not as \`npm run records -- trailers\` prints it ("${trailersOf([ops[off]])[0]}"): a trailer is the script's, never written by hand`];
     } else {
       ops = readSidecar(sidecar, 'the sidecar');
       const want = trailersOf(ops);
@@ -935,7 +987,7 @@ function checkCommit({ base, head, message, sidecar, ledger, state }) {
   }
   let r;
   try {
-    r = replay(base, ops, { ledger });
+    r = replay(base, ops, { ledger, removedIds: [...state.removedIds] });
   } catch (e) {
     if (e instanceof RecordError) return [`its declared operations do not run on the parent's documents: ${e.message}`];
     throw e;
@@ -988,12 +1040,20 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
   const subjects = new Map(shas.map((s) => [s, git('show', '-s', '--format=%s', s).trim()]));
   const anyLoop = shas.some((s) => LOOP.test(subjects.get(s)));
   const hasCutover = tryGit(git, 'cat-file', '-e', `${cutover}^{commit}`) !== null;
-  const gated = new Map();
+  const ancestor = (a, b) => a === b || tryGit(git, 'merge-base', '--is-ancestor', a, b) !== null;
+  // The commits whose scripts/records.js changed how often it says the marker: the gate's landing among them.
+  const markers = shas.length ? (tryGit(git, 'log', '--format=%H', '-S', GATE_MARK, shas[shas.length - 1], '--', 'scripts/records.js') ?? '').split('\n').filter(Boolean) : [];
+  const holds = new Map();
   const holdsGate = (rev) => {
-    if (!gated.has(rev)) gated.set(rev, showIn(git)(rev, 'scripts/records.js').includes(GATE_MARK));
-    return gated.get(rev);
+    if (!holds.has(rev)) holds.set(rev, showIn(git)(rev, 'scripts/records.js').includes(GATE_MARK));
+    return holds.get(rev);
   };
-  const legacy = (sha, parent) => !holdsGate(parent) || (hasCutover && tryGit(git, 'merge-base', '--is-ancestor', sha, cutover) !== null);
+  /** 'history', 'gated', or 'dropped' (a descendant of the gate whose parent no longer holds it). */
+  const era = (sha, parent) => {
+    if (hasCutover && ancestor(sha, cutover)) return 'history';
+    if (holdsGate(parent)) return 'gated';
+    return markers.some((m) => holdsGate(m) && ancestor(m, parent)) ? 'dropped' : 'history';
+  };
   let shallow = new Set();
   const shallowFile = tryGit(git, 'rev-parse', '--git-path', 'shallow');
   if (shallowFile) {
@@ -1008,35 +1068,55 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
     const res = { sha, subject: subj, problems: [], notices: [] };
     if (parents.length > 1) {
       const touched = git('diff', '--name-only', parents[0], sha).split('\n').filter((f) => f && watched(f));
-      if (!touched.length || legacy(sha, parents[0])) continue;
-      if (anyLoop) res.problems.push(`a merge that changes ${touched.join(', ')}: a merge cannot be replayed, so a push that holds loop commits holds no merge that touches the record documents (a loop run rebases on main, ship.md)`);
-      else res.notices.push(`a merge that changes ${touched.join(', ')}: not replayed (no loop commit in the range)`);
+      if (!touched.length || era(sha, parents[0]) === 'history') continue;
+      // A merge git makes by itself is no edit: its documents are what `git merge-tree` gives.
+      let clean = parents.length === 2;
+      if (clean) {
+        let out = '';
+        try {
+          out = execFileSync('git', ['merge-tree', '--write-tree', parents[0], parents[1]], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        } catch (e) {
+          out = e.status === 1 ? String(e.stdout ?? '') : ''; // 1: conflicts elsewhere; the tree is still written
+        }
+        const tree = out.split('\n')[0].trim();
+        clean = /^[0-9a-f]{40}$/.test(tree) && Object.keys(DOCS).every((f) => showIn(git)(tree, f) === showIn(git)(sha, f));
+      }
+      if (clean) continue;
+      const why = `a merge whose ${touched.filter((f) => DOCS[f]).join(', ') || touched.join(', ')} ${parents.length > 2 ? 'joins more than two parents' : 'is not what git merges by itself (a hand resolution)'}: it cannot be replayed`;
+      if (anyLoop) res.problems.push(`${why}, so a push that holds loop commits holds none (take main's side and \`npm run records -- redo\`, ship.md)`);
+      else res.notices.push(`${why}; not gated (no loop commit in the range)`);
       results.push(res);
       continue;
     }
-    if (loopOnly && !LOOP.test(subj)) continue;
+    const message = git('show', '-s', '--format=%B', sha);
     const files = git('show', '--name-status', '--format=', '--no-renames', sha).split('\n').filter(Boolean).map((l) => {
       const [status, file] = l.split('\t');
       return { status: status[0], file };
     });
-    const message = git('show', '-s', '--format=%B', sha);
     const sidecars = files.filter((f) => f.file.startsWith(`${RECORDS_DIR}/`));
     if (!files.some((f) => DOCS[f.file]) && !sidecars.length && !/^Records-Op:/m.test(message)) continue;
-    if (!parents.length && shallow.has(sha)) {
-      res.notices.push("a shallow clone's boundary commit: its parent is not fetched, so it is not replayed");
-      results.push(res);
+    if (!parents.length) {
+      if (shallow.has(sha)) {
+        res.notices.push("a shallow clone's boundary commit: its parent is not fetched, so it is not replayed");
+        results.push(res);
+      }
       continue;
     }
-    // A root commit, or one made before the gate reached its parent, is history.
-    if (!parents.length || legacy(sha, parents[0])) continue;
     const parent = parents[0];
-    for (const f of sidecars.filter((x) => x.status !== 'A')) res.problems.push(`changes another commit's sidecar ${f.file}: a sidecar is added once, with its commit, and never changed or removed`);
+    const when = era(sha, parent);
+    if (when === 'history') continue;
     const added = sidecars.filter((x) => x.status === 'A');
+    const run = () =>
+      checkCommit({ base: docsAt(git, parent), head: docsAt(git, sha), message, sidecar: added.length === 1 ? showIn(git)(sha, added[0].file) : null, ledger: ledgerAt(git, parent), state });
+    if (loopOnly && !LOOP.test(subj)) {
+      // Not the loop's to answer for, but what it filed is the run's, as the CLI reads it.
+      if (/^Records-Op:/m.test(message)) run();
+      continue;
+    }
+    if (when === 'dropped') res.problems.push(`its parent's scripts/records.js no longer holds the gate ("${GATE_MARK}"): a commit made after the gate is replayed whatever its parent says; the gate is never loosened by a commit`);
+    for (const f of sidecars.filter((x) => x.status !== 'A')) res.problems.push(`changes another commit's sidecar ${f.file}: a sidecar is added once, with its commit, and never changed or removed`);
     if (added.length > 1) res.problems.push(`adds ${added.length} sidecars (${added.map((x) => x.file).join(', ')}): one commit, one sidecar`);
-    const base = docsAt(git, parent);
-    const head = docsAt(git, sha);
-    const sidecar = added.length === 1 ? showIn(git)(sha, added[0].file) : null;
-    res.problems.push(...checkCommit({ base, head, message, sidecar, ledger: ledgerAt(git, parent), state }));
+    res.problems.push(...run());
     results.push(res);
   }
   return { results, ok: results.every((r) => !r.problems.length), state };
@@ -1115,16 +1195,26 @@ function runOperation(argv) {
     if (process.stdin.isTTY) fail('give the text with --file <path> or on stdin');
     body = fs.readFileSync(0, 'utf8');
   }
-  const op = { argv: opArgv, ...(body !== undefined ? { body } : {}), ...(intro !== undefined ? { intro } : {}) };
   // The documents must be HEAD's with the pending operations run on them, so the gate's replay of
   // this commit comes out as the working tree does.
+  const state = branchState();
   const pend = pendingSidecar();
-  const r = replay(docsAt(gitIn(ROOT), 'HEAD'), pend?.ops ?? [], { ledger: headLedger() });
+  const headDocs = docsAt(gitIn(ROOT), 'HEAD');
+  const r = replay(headDocs, pend?.ops ?? [], { ledger: headLedger(), removedIds: [...state.removedIds] });
   const working = workingDocs();
   const off = Object.keys(DOCS).filter((f) => r.docs[f] !== working[f]);
   if (off.length) fail(`${off.join(', ')} differ${off.length === 1 ? 's' : ''} from HEAD plus the pending operations (an edit by hand?): restore with \`git checkout HEAD -- ${off.join(' ')}\` and \`npm run records -- redo\`, then run this operation again`);
-  const next = replay(r.docs, [op], { ledger: r.ledger, unlabelled: true });
-  const problems = judge([...r.steps, ...next.steps], branchState());
+  // An entry these pending operations added is named by its handle, which a redo renumbers with it.
+  if (name.startsWith('inbox ') && name !== 'inbox add') {
+    const k = r.steps.findIndex((st) => st.op === 'inbox add' && st.id === opArgv[2]);
+    if (k >= 0) opArgv[2] = `@${k + 1}`;
+  }
+  const op = { argv: opArgv, ...(body !== undefined ? { body } : {}), ...(intro !== undefined ? { intro } : {}) };
+  const next = replay(headDocs, [...(pend?.ops ?? []), op], { ledger: headLedger(), unlabelled: true, removedIds: [...state.removedIds] });
+  const step = next.steps[next.steps.length - 1];
+  if (step.target) op.target = step.target;
+  if (step.id) op.number = step.id;
+  const problems = judge(next.steps, state);
   if (problems.length) fail(`refused, nothing was written:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
   const file = FILE_OF[kind];
   fs.writeFileSync(path.join(ROOT, file), next.docs[file]);
@@ -1133,17 +1223,28 @@ function runOperation(argv) {
   fs.mkdirSync(path.join(ROOT, RECORDS_DIR), { recursive: true });
   fs.writeFileSync(path.join(ROOT, rel), sidecarOf([...(pend?.ops ?? []), op]));
   tryGit(gitIn(ROOT), 'add', '--', rel);
-  const id = name === 'inbox add' ? ` ${next.steps[0].newKey.slice(3)}` : '';
-  console.log(`records: ${name}${id} in ${file} (recorded in ${rel}; \`npm run records -- trailers\` for the commit)`);
+  console.log(`records: ${name}${step.id ? ` ${step.id}` : ''} in ${file} (recorded in ${rel}; \`npm run records -- trailers\` for the commit)`);
   return 0;
 }
 
+/**
+ * The pending operations run again on HEAD's documents (after taking main's side of a conflict, in
+ * the commit being rebased). Only the documents they touch are written; another that differs from
+ * HEAD is an edit by hand, and refused. A target that changed refuses; an inbox entry renumbers.
+ */
 function redo() {
   const pend = pendingSidecar();
-  if (!pend) fail('nothing pending: no sidecar under .claude/records/ that HEAD lacks');
-  const r = replay(docsAt(gitIn(ROOT), 'HEAD'), pend.ops, { ledger: headLedger() });
-  for (const f of Object.keys(DOCS)) fs.writeFileSync(path.join(ROOT, f), r.docs[f]);
+  if (!pend) fail('nothing pending: no sidecar under .claude/records/ that HEAD lacks (a committed record is not redone: see ship.md)');
+  const git = gitIn(ROOT);
+  const head = docsAt(git, 'HEAD');
+  const r = replay(head, pend.ops, { ledger: headLedger(), removedIds: [...branchState().removedIds] });
+  const touched = new Set(r.steps.map((st) => st.file));
+  const working = workingDocs();
+  const hand = Object.keys(DOCS).filter((f) => !touched.has(f) && working[f] !== head[f]);
+  if (hand.length) fail(`${hand.join(', ')} differ${hand.length === 1 ? 's' : ''} from HEAD and no pending operation touches ${hand.length === 1 ? 'it' : 'them'}: an edit by hand, left as it is; restore it with \`git checkout HEAD -- ${hand.join(' ')}\` and redo`);
+  for (const f of touched) fs.writeFileSync(path.join(ROOT, f), r.docs[f]);
   bumpLedger(r.ledger);
+  for (const [k, st] of r.steps.entries()) if (pend.ops[k].number && st.id && st.id !== pend.ops[k].number) console.log(`records: ${pend.ops[k].number} is ${st.id} now (main gave out ${pend.ops[k].number} meanwhile)`);
   console.log(`records: ${pend.ops.length} pending operation${pend.ops.length === 1 ? '' : 's'} run again on HEAD's documents (${pend.rel})`);
   return 0;
 }
@@ -1228,4 +1329,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { DOCS, TAGS, CAP, CUTOVER, LOOP, LEDGER_REL, RECORDS_DIR, RecordError, parse, apply, command, replay, trailersOf, parseTrailer, sidecarOf, newRangeState, judge, checkCommit, gateRange };
+module.exports = { DOCS, TAGS, CAP, CUTOVER, LOOP, LEDGER_REL, RECORDS_DIR, RecordError, parse, transact, apply, command, replay, trailersOf, parseTrailer, sidecarOf, newRangeState, judge, checkCommit, gateRange };

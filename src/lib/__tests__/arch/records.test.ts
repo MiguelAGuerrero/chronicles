@@ -27,7 +27,7 @@ const records = createRequire(__filename)(join(ROOT, 'scripts', 'records.js')) a
   CUTOVER: string;
   parse(text: string): { blocks: Block[]; lines: string[]; eol: boolean };
   apply(kind: Kind, name: string, text: string, args?: Args): { text: string; id?: string };
-  replay(docs: Docs, ops: Op[], o?: { ledger?: Ledger }): { docs: Docs };
+  replay(docs: Docs, ops: Op[], o?: { ledger?: Ledger; removedIds?: string[] }): { docs: Docs };
   trailersOf(ops: Op[]): string[];
   sidecarOf(ops: Op[]): string;
   parseTrailer(line: string): { argv: string[]; body?: string; intro?: string };
@@ -542,7 +542,9 @@ test('records audit 11: a merge in a loop push that touches the documents fails;
   r.git('checkout', '-q', 'main');
   r.write('other.txt', 'x\n');
   r.commit('tend map 1: a loop commit');
-  r.git('merge', '-q', '--no-ff', '-m', 'Merge side', 'side');
+  r.git('merge', '-q', '--no-ff', '--no-commit', 'side');
+  r.write('docs/STATUS.md', STATUS.replace('reword l.68.', 'reworded while merging.'));
+  r.commit('Merge side');
   const g = records.gateRange('HEAD~2..HEAD', { cwd: r.dir, loopOnly: true });
   assert.ok(!g.ok);
   assert.match(g.results.flatMap((x) => x.problems).join('\n'), /merge[\s\S]*cannot be replayed/);
@@ -789,7 +791,7 @@ test('records audit 25: the deploy workflow fetches the whole pushed range and r
 test('records audit 26: a committed record whose numbers would move stops the run; a record commit is never amended', () => {
   assert.match(read('.claude/skills/tend/SKILL.md'), /record commit whose inbox numbers would move[\s\S]{0,200}stop/i);
   assert.match(read('.claude/skills/ship.md'), /never amend a record commit/i);
-  assert.match(read('.claude/skills/tend/SKILL.md'), /docs\/STATUS\.md`, `docs\/DEFERRED\.md`, `docs\/NATIVE_UNVERIFIED\.md` and the ledger/, 'all three documents and the ledger');
+  assert.match(read('.claude/skills/tend/SKILL.md'), /docs\/STATUS\.md`,\s+`docs\/DEFERRED\.md`,\s+`docs\/NATIVE_UNVERIFIED\.md`\s+and the ledger/, 'all three documents and the ledger');
   assert.doesNotMatch(read('.claude/skills/deploy/SKILL.md'), /or the owner's merge/);
   assert.match(read('.claude/skills/tend/SKILL.md'), /item split[^\n]*\n?[^\n]*(order|marker)/, 'the split\'s guard is said whole');
 });
@@ -813,7 +815,8 @@ test('records audit 28: an inbox entry removed in the range can be put back unde
   const state = records.newRangeState();
   const m1 = made(DOCS0, [gone]);
   assert.deepEqual(records.checkCommit({ ...m1, state }), []);
-  assert.deepEqual(records.checkCommit({ ...made(m1.head, [back]), state }), [], 'in a later commit of the range');
+  const head2 = records.replay(m1.head, [back], { ledger: LEDGER, removedIds: ['T11'] }).docs;
+  assert.deepEqual(records.checkCommit({ base: m1.head, head: head2, message: `tend map: x\n\n${records.trailersOf([back]).join('\n')}\n`, sidecar: records.sidecarOf([back]), ledger: LEDGER, state }), [], 'in a later commit of the range');
   assert.match(forged(m1.head, m1.head, [back]).join('\n'), /already given out/, 'outside the range that removed it, the number stays retired');
 });
 

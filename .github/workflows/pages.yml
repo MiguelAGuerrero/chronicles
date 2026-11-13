@@ -20,8 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Enough history to read the pushed range for the loop's commit check below.
-          fetch-depth: 50
+          # The whole history: the loop's commit check reads every commit of the push, however long
+          # (records audit 25), and the record gate's cut-over reads the commits' ancestry.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -32,17 +33,35 @@ jobs:
       # The vision's mechanical half: score words, tallies, hosts, dependencies, spec verdicts (decision 0094).
       - run: npm run check:vision
       # The tending loop's limits, held outside the loop (decision 0133): every `tend …` commit in this push
-      # carries its own named test and a Source line and touches nothing the loop may not.
+      # carries its own named test and a Source line and touches nothing the loop may not, and changes the
+      # record documents only by its declared operations (decision 0156). The check runs as the push's base
+      # had it, so no commit of the push can loosen the scripts that judge it (records audit 19).
       - name: Loop commits keep to the loop's limits
         if: github.event_name == 'push'
         run: |
-          if git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
-            node scripts/tend.js commits --loop-only "${BEFORE}..${GITHUB_SHA}"
+          if [ "${BEFORE}" = "0000000000000000000000000000000000000000" ]; then
+            echo "::notice::a new branch: no base to read the push from; loop commits not checked"
+          elif ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            if [ "${FORCED}" = "true" ]; then
+              echo "::notice::a forced push whose base ${BEFORE} is gone; loop commits not checked"
+            else
+              echo "::error::the push's base BEFORE (${BEFORE}) is not in the history: the loop's commits cannot be read"
+              exit 1
+            fi
           else
-            echo "::notice::the push's base is outside the fetched history; loop commits not checked"
+            gate="$(mktemp -d)"
+            # The base's scripts once it holds the gate (and the TEND_ROOT that lets them read this checkout).
+            if git show "${BEFORE}:scripts/records.js" 2>/dev/null | grep -q 'Records-Op' \
+              && git show "${BEFORE}:scripts/tend.js" 2>/dev/null | grep -q 'TEND_ROOT'; then
+              git archive "${BEFORE}" scripts | tar -x -C "${gate}"
+            else
+              cp -R scripts "${gate}/"
+            fi
+            TEND_ROOT="${PWD}" node "${gate}/scripts/tend.js" commits --loop-only "${BEFORE}..${GITHUB_SHA}"
           fi
         env:
           BEFORE: ${{ github.event.before }}
+          FORCED: ${{ github.event.forced }}
       - run: npm run typecheck
       - run: npm test
       # Lint holds the import boundaries and the functional core's layers (FC3, FC5).

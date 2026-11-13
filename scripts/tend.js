@@ -22,7 +22,8 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const ROOT = path.join(__dirname, '..');
+// TEND_ROOT: the checkout to read, when CI runs these scripts as the push's base had them (pages.yml).
+const ROOT = process.env.TEND_ROOT ? path.resolve(process.env.TEND_ROOT) : path.join(__dirname, '..');
 const LEDGER = path.join(ROOT, '.claude', 'skills', 'tend', 'ledger.json');
 const RUNS = path.join(ROOT, '.claude', 'skills', 'tend', 'runs.jsonl');
 const RUNS_REL = '.claude/skills/tend/runs.jsonl';

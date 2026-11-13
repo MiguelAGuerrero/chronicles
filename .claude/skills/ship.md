@@ -73,11 +73,15 @@ Edit, Write or sed.
   through; a line that amends an entry is appended (`note`); a reworded one is `set`, with its reason.
 - **Before the commit:** `npm run check:records -- origin/main` (the commits since `main` and the
   working tree with its pending operations). It names each change no operation makes.
-- **On a merge or rebase conflict** in them, take `main`'s side of the three documents and the ledger
-  and run `npm run records -- redo`: it runs the pending operations again on `HEAD`'s documents, the
-  inbox numbering on from `main`'s ledger, and the trailers stay as they are. A loop run never merges
-  `main` into its branch: a merge that touches the documents fails the gate in a push with loop
-  commits.
+- **On a rebase conflict** in them, in the commit being replayed (its sidecar is pending again), take
+  `main`'s side of the three documents and the ledger and run `npm run records -- redo`: it runs the
+  commit's operations again on `HEAD`'s documents, an inbox entry numbering on from `main`'s ledger
+  (an operation that named the run's own new entry follows it by its handle, `@1`), and the trailers
+  stay as they are. It refuses when an entry an operation acted on is no longer the same: look again.
+  A rebase that renumbers without a conflict cannot be redone, since the record is committed: stop
+  and report (`/tend` section 10). Never amend a record commit: an amend after a further operation
+  carries two sidecars, and the gate fails it. A loop run never merges `main` into its branch; a merge
+  git makes by itself passes the gate, one resolved by hand in the documents fails it.
 
 ## Review
 
