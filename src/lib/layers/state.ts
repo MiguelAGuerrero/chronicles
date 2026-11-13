@@ -1,6 +1,6 @@
 // @layer core
 import { distanceM } from '../geo';
-import { nearAreas, type LandingRow } from '../landing/view';
+import { NEAR_AREA_M, nearAreas, type LandingRow } from '../landing/view';
 import type { LngLat } from '../types';
 import { LAYERS, type LayerDef } from './registry';
 
@@ -53,3 +53,34 @@ export const nearKey = (rows: readonly LandingRow[], centre: LngLat | null): str
  * yet, and the map is still. A move before it starts waits for that move to settle.
  */
 export const busyReadDue = (s: { on: boolean; needs: boolean; tried: boolean; moving: boolean }): boolean => s.on && s.needs && !s.tried && !s.moving;
+
+/** A town's page (SS4): its point and how far around it the Busy areas are drawn while its neighborhoods are switched. */
+export interface BusyHold {
+  at: LngLat;
+  m: number;
+}
+
+/** SS4: around a town's point, far enough that every listed neighborhood's own reach is inside. */
+export function busyHold(town: LngLat, hoods: readonly LngLat[]): BusyHold {
+  return { at: town, m: Math.max(0, ...hoods.map((h) => distanceM(town, h))) + NEAR_AREA_M };
+}
+
+/**
+ * The remembered areas the Busy layer draws (SS4): those near the centre, as before; on a town's page (`hold`) every one
+ * within its reach too, so switching between its neighborhoods never takes an area's lines away, and lines come only with
+ * a read of an area not drawn before.
+ */
+export function drawnAreas(rows: readonly LandingRow[], centre: LngLat | null, hold: BusyHold | null): LandingRow[] {
+  const near = nearAreas([...rows], centre);
+  if (!hold) return near;
+  return rows.filter((r) => near.includes(r) || distanceM(r.centre, hold.at) <= hold.m);
+}
+
+/** Whether a Busy read leaves its place tried (SS7): a read or a failure does; one a switch cut short does not. */
+export const triedAfter = (outcome: 'read' | 'failed' | 'cut'): boolean => outcome !== 'cut';
+
+/**
+ * Whether the remembered areas are listed from storage again (SS8): when the layer comes on (`listed` null) and after a
+ * read finished or a reload (`version` moved on), never for a switch alone.
+ */
+export const needsListing = (p: { listed: number | null; version: number }): boolean => p.listed !== p.version;

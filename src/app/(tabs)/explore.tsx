@@ -19,6 +19,7 @@ import { CompassButton } from '../../components/CompassButton';
 import { LayersControl } from '../../components/LayersControl';
 import { layerNotes } from '../../lib/layers/notes';
 import { createMotion } from '../../lib/layers/motion';
+import { busyHold } from '../../lib/layers/state';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
@@ -128,6 +129,7 @@ export default function Explore() {
     };
   }, [you]);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
+  const [namesSwitch, setNamesSwitch] = useState(0);
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
   // What the reader chose; the selected area is this while it is in the row, else the row's first (EC1).
   const [picked, setSelected] = useState<string | null>(null);
@@ -314,11 +316,16 @@ export default function Explore() {
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // HB9: the selected neighborhood's own ground, from the kept tiles; its ring until they are known (HB12).
   const hoodCands = useMemo(() => candidatesOf([...neighborhoods, ...allTowns].map((l) => l.area)), [neighborhoods, allTowns]);
-  const ground = useHoodGround(sel && sel.area.level === 'neighborhood' ? sel.area : null, hoodCands, focused);
+  // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the busy read waits for a settle.
+  // A map taken down mid-move reports still (audit 7), so a read waiting for its settle goes on.
+  const [motion] = useState(createMotion);
+  const onMoveState = useCallback((moving: boolean) => motion.set(moving), [motion]);
+  const stillness = useCallback(() => ({ moving: motion.moving, settled: () => motion.settled() }), [motion]);
+  const ground = useHoodGround(sel && sel.area.level === 'neighborhood' ? sel.area : null, hoodCands, focused, stillness);
   // CX9, CX16: the selected area's complexes, read silently once it is selected, drawn as quiet outlines named at close zoom.
   const { hidden: hiddenKinds } = useHiddenKinds();
   // With every kind switched off nothing would show, so nothing is read (complexes audit 15).
-  const { complexes: areaComplexes, partial: complexPartial } = useComplexes(focused && readsWanted(hiddenKinds), sel ? { key: sel.area.key, at: sel.area.at, reachM: sel.area.reachM } : null);
+  const { complexes: areaComplexes, partial: complexPartial } = useComplexes(focused && readsWanted(hiddenKinds), sel ? { key: sel.area.key, at: sel.area.at, reachM: sel.area.reachM } : null, stillness);
   const complexesShown = useMemo(() => shownComplexes(areaComplexes, hiddenKinds), [areaComplexes, hiddenKinds]);
   // The selected area's places over the map (WT7, WT10, WT12, decision 0132; whole-towns audits 3, 6, 14): a
   // neighborhood's places still to find (a town's once zoomed in), a "?" where it has room and a dot where it would
@@ -362,12 +369,13 @@ export default function Explore() {
   const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
-  // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the busy read waits for a settle.
-  // A map taken down mid-move reports still (audit 7), so a read waiting for its settle goes on.
-  const [motion] = useState(createMotion);
-  const onMoveState = useCallback((moving: boolean) => motion.set(moving), [motion]);
-  const stillness = useCallback(() => ({ moving: motion.moving, settled: () => motion.settled() }), [motion]);
-  const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness);
+  // SS4: on a town's page the Busy areas within its reach stay drawn while its neighborhoods are switched.
+  const hoodsAtKey = townSeen ? shown.filter((l) => l.area.level === 'neighborhood').map((l) => l.area.at.join(',')).join('|') : '';
+  const hold = useMemo(
+    () => (townSeen ? busyHold(townSeen.at, hoodsAtKey ? hoodsAtKey.split('|').map((p) => p.split(',').map(Number) as LngLat) : []) : null),
+    [townSeen, hoodsAtKey],
+  );
+  const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness, hold);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
@@ -507,6 +515,8 @@ export default function Explore() {
     setSpot(null);
     setOpen(null);
     setSelected(key);
+    // SS5: the busy names leave as this move starts and come back once when it settles.
+    setNamesSwitch((n) => n + 1);
     if (l.area.level === 'town') {
       // Its whole border when known, each time it is selected (fix town-fit); the page's frame then leaves it be.
       const { drawn: set, page, build } = pickFrom.current;
@@ -670,6 +680,7 @@ export default function Explore() {
           onViewChange={setView}
           fitBounds={fit.bounds}
           fitKey={fit.key}
+          busyNamesSwitch={namesSwitch}
           onFitSettled={onFitSettled}
           fitPadding={mapPad}
           initialCenter={savedCamera?.center ?? from ?? WORLD.center}

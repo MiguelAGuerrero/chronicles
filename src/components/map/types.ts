@@ -165,6 +165,11 @@ export interface WalkMapProps {
   busyNamesNear?: { at: LngLat; m: number } | null;
   /** audit 11: the test ids of the screen's controls over the map, whose room no busy name takes (web). */
   busyNamesClearOf?: readonly string[];
+  /**
+   * SS5 (web): bumped by Explore as a switch's camera move begins: the busy names leave at once and the destination's are
+   * sent once, when that move settles. Any other move (a drag, a zoom, a follow camera) clears nothing (SS10).
+   */
+  busyNamesSwitch?: number;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
   /** Explore's areas: quiet dots, the selected one named (atlas round 3, fix pins-selected-only). */

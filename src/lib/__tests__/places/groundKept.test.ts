@@ -20,7 +20,7 @@ const A = { name: 'Mill End', at: [-75.4, 40.6] as [number, number] };
 const B = { name: 'Depot', at: [-75.38, 40.61] as [number, number] };
 const near: PlaceCandidate[] = [{ level: 'neighborhood', name: 'Mill End', at: A.at, reachM: 1000 }, { level: 'neighborhood', name: 'Depot', at: B.at, reachM: 1000 }];
 
-test('SS1: a neighborhood\'s outline is kept by its key, tile count and candidates; a revisit takes it', { todo: 'test first' }, async () => {
+test('SS1: a neighborhood\'s outline is kept by its key, tile count and candidates; a revisit takes it', async () => {
   const { groundKey, hoodKeyOf, keepGround, groundFor } = await api();
   const kA = groundKey(A, 4, near);
   // The key changes with the tiles read and the candidates weighed, never with a new array of the same.

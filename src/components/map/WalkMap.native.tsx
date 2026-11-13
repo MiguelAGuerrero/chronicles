@@ -159,8 +159,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const alternates = useMemo(() => alternatesGeoJSON(props.alternates), [props.alternates]);
   const routeGrades = useMemo(() => routeGradesGeoJSON(props.routeGrades), [props.routeGrades]);
   const foundPins = useMemo(() => pinsGeoJSON(props.foundPins), [props.foundPins]);
-  const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
-  const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
+  // SS3: the lines and pockets are made again only when they change, never because the names near the selected area did.
+  const landingGraded = props.landing?.graded;
+  const landingPockets = props.landing?.pockets;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const pockets = useMemo(() => pocketsGeoJSON(props.landing), [landingPockets]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const strips = useMemo(() => stripsGeoJSON(props.landing), [landingGraded]);
   // The busy names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
   const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
   // DC17: every "?" pin keeps its room; re-made only when the pins move.

@@ -101,16 +101,26 @@ async function run(h) {
     check(startAt === row[0] && steps.every((s) => s.moved && s.settled && s.to), `switches: every switch is between neighborhoods, moved the camera and settled (from ${startAt}: ${say(steps, (s) => `${s.moved ? 'm' : '-'}${s.settled ? 's' : '-'}`)})`);
 
     const groundsFirst = await pg.evaluate(() => window.__perfLog.filter(([k]) => k === 'hood:ground').length);
-    check.todo(groundsFirst > 0 && back.every((s) => s.ground === 0), `SS1: a revisit derives no outline (derived ${groundsFirst} in all; on the way back ${say(back, (s) => s.ground)})`);
-    check.todo(groundsFirst > 0 && steps.every((s) => s.groundMid === 0), `SS2: no outline is derived during a switch's camera move (${say(steps, (s) => s.groundMid)})`);
-    check.todo(back.every((s) => s.strips + s.pockets === 0), `SS3: a switch with the same lines sends no strips or pockets (on the way back ${say(back, (s) => s.strips + s.pockets)})`);
-    check.todo(back.every((s) => s.busyBefore === s.busyAfter && s.busyAfter), `SS4: switching neighborhoods on a town's page keeps the same lines (${say(back, (s) => `${s.busyBefore}>${s.busyAfter}`)})`);
-    check.todo(steps.every((s) => s.namesMid === 0 && s.namesAfter === 1), `SS5: no busy names sent mid-move, one send at the settle (mid/after: ${say(steps, (s) => `${s.namesMid}/${s.namesAfter}`)})`);
-    check.todo(steps.every((s) => s.markers === 0), `SS6: a switch rebuilds no area marker (${say(steps, (s) => s.markers)})`);
-    check.todo(listedAtStart > 0 && steps.every((s) => s.listed === 0), `SS8: a switch lists no remembered areas (at the start ${listedAtStart}; per switch ${say(steps, (s) => s.listed)})`);
+    check(groundsFirst > 0 && back.every((s) => s.ground === 0), `SS1: a revisit derives no outline (derived ${groundsFirst} in all; on the way back ${say(back, (s) => s.ground)})`);
+    check(groundsFirst > 0 && steps.every((s) => s.groundMid === 0), `SS2: no outline is derived during a switch's camera move (${say(steps, (s) => s.groundMid)})`);
+    check(back.every((s) => s.strips + s.pockets === 0), `SS3: a switch with the same lines sends no strips or pockets (on the way back ${say(back, (s) => s.strips + s.pockets)})`);
+    check(back.every((s) => s.busyBefore === s.busyAfter && s.busyAfter), `SS4: switching neighborhoods on a town's page keeps the same lines (${say(back, (s) => `${s.busyBefore}>${s.busyAfter}`)})`);
+    check(steps.every((s) => s.namesMid === 0 && s.namesAfter === 1), `SS5: no busy names sent mid-move, one send at the settle (mid/after: ${say(steps, (s) => `${s.namesMid}/${s.namesAfter}`)})`);
+    check(steps.every((s) => s.markers === 0), `SS6: a switch rebuilds no area marker (${say(steps, (s) => s.markers)})`);
+    check(listedAtStart > 0 && steps.every((s) => s.listed === 0), `SS8: a switch lists no remembered areas (at the start ${listedAtStart}; per switch ${say(steps, (s) => s.listed)})`);
     check.todo(steps.every((s) => s.longs < 100 && s.worst < 100), `SS9: at ${RATE}x CPU a switch's long tasks inside the ease total under 100 ms and its worst frame is under 100 ms (long tasks ${say(steps, (s) => s.longs)}; worst frame ${say(steps, (s) => s.worst)}; forward ${fwd.length}, back ${back.length})`);
 
-    // SS10: a zoom, by the wheel and in code, clears no name that is drawn.
+    // SS10: a zoom, by the wheel and in code, clears no name that is drawn. In this world only the town's own streets are
+    // busy enough to be named, more than a neighborhood's ring from each of them (EC7): the town's card, then its middle.
+    await pg.locator('.maplibregl-canvas').first().focus();
+    await pg.keyboard.press('ArrowLeft');
+    await pg.waitForTimeout(3000);
+    await pg.evaluate(([t, z]) => window.__zoomTo(t, z), [at(...SMALL_TOWN), 14.5]);
+    await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-names') ?? '[]') !== '[]', null, { timeout: 15000 }));
+    await pg.waitForTimeout(1000);
+    const givenBefore = JSON.parse((await safe(() => map().getAttribute('data-busy-given'), '[]')) || '[]').map((g) => g.name);
+    const drawnBefore = JSON.parse((await safe(() => map().getAttribute('data-busy-names'), '[]')) || '[]');
+    const zoomBefore = await safe(() => map().getAttribute('data-zoom'), '');
     const t0 = await now();
     const box = await map().boundingBox();
     if (box) {
@@ -124,7 +134,7 @@ async function run(h) {
     const ev = await events(t0, await now());
     const cleared = ev.filter(([k]) => k === 'busy-names:clear').length;
     const drawn = JSON.parse((await safe(() => map().getAttribute('data-busy-names'), '[]')) || '[]');
-    check.todo(cleared === 0 && drawn.length > 0, `SS10: a zoom clears no busy name (cleared ${cleared}; drawn after: ${drawn.slice(0, 4).join(', ')})`);
+    check(cleared === 0 && drawn.length > 0, `SS10: a zoom clears no busy name (cleared ${cleared}; at z${zoomBefore} given ${givenBefore.slice(0, 4).join(', ')}, drawn ${drawnBefore.slice(0, 4).join(', ')}; drawn after at z${await safe(() => map().getAttribute('data-zoom'), '')}: ${drawn.slice(0, 4).join(', ')})`);
   } finally {
     smallWorld.serve = false;
     await c.close();
