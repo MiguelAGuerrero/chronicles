@@ -737,6 +737,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   is cut off ("Nov 12, 2026 · Not on ...", audit 10, older); a Memories entry with no place shows a place glyph and no
   words (audit 11, older; the resurfaced card says "No place kept"). A capture-time still (`useCaptures`) still runs
   beside the thumbs shell's queue, so a new video's still and an older one's can be made at once (two at most).
+- **Recording a voice note from a thread at 320 px leaves the field about 20 px, and a failed save in a thread shows Retry with no "Not kept yet"** (audit 46): the bar's row holds the field, the timer, Discard, the camera, stop and Done in 304 px; with the field in the bar the status is never drawn. Fix: the timer row replaces the field while recording there, and the status is drawn above the row.
+- **Deleting the entry the page opened on rearranges the stack, and Undo does not put it back** (audit 47): `anchorOf` falls to the last entry, so the entries written since slide away. Fix: remember the anchor's time and fall to the first entry after it.
+- **The line being written sits about 22 px lower under its dateline than a kept entry's words** (ui U8): the field's own padding and the entry's foot stand between them, so the words rise that much on Done. Fix: give the field a kept entry's offset, checked against a photo as the entry's last piece.
+- **No picture of the bar's failed save ("Not kept yet", Retry) at 320 px** (ui U9): the status has about 120 px there. Add a `shot()` at 390 and 320 and see whether it fits.
+- **The page's slide waits a hard-coded 450 ms** (`SETTLE_MS` in `JournalPage`, audit 49's second half): a timing outside `lib/motionTokens`. The animated scroll itself now respects reduce motion.
+- **A type save that fails is not said, and a type never reaches the page's own copy while a read has failed** (note-types audit 59): the rejection is caught and the slot goes on showing what is stored, but nothing tells the owner; with the page drawing its sitting's copy (`session`), a pick is stored and not shown until the read succeeds. Fix: say it in the bar as a failed save is, and patch `session`.
+- **A second tap on the Type slot within the write's few milliseconds reads the old type** (note-types audit 64): the ask carries the type as it was, so the same pick sets it again instead of clearing. Fix: toggle against the stored value when the write lands.
+- **Neutral is a minus in a circle, which reads as "remove", and the eight above the bar have no "No type"** (ux 13; the glyph is note-types audit 23, already deferred): clearing is a tap on the marked one, shown by its tint, rule and heavier name. Fix: a flat-mouthed face when the icon set has one; a ninth "No type" if the owner wants the two pickers alike.
 
 ## Explore in a dense city (decision 0156)
 

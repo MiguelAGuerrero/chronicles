@@ -1,0 +1,150 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **Recording a voice note from a thread at 320 px leaves the field about 20 px, and a failed save in a thread shows Retry with no \"Not kept yet\"** (audit 46): the bar's row holds the field, the timer, Discard, the camera, stop and Done in 304 px; with the field in the bar the status is never drawn. Fix: the timer row replaces the field while recording there, and the status is drawn above the row.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **Deleting the entry the page opened on rearranges the stack, and Undo does not put it back** (audit 47): `anchorOf` falls to the last entry, so the entries written since slide away. Fix: remember the anchor's time and fall to the first entry after it.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **The line being written sits about 22 px lower under its dateline than a kept entry's words** (ui U8): the field's own padding and the entry's foot stand between them, so the words rise that much on Done. Fix: give the field a kept entry's offset, checked against a photo as the entry's last piece.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **No picture of the bar's failed save (\"Not kept yet\", Retry) at 320 px** (ui U9): the status has about 120 px there. Add a `shot()` at 390 and 320 and see whether it fits.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **The page's slide waits a hard-coded 450 ms** (`SETTLE_MS` in `JournalPage`, audit 49's second half): a timing outside `lib/motionTokens`. The animated scroll itself now respects reduce motion.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **A type save that fails is not said, and a type never reaches the page's own copy while a read has failed** (note-types audit 59): the rejection is caught and the slot goes on showing what is stored, but nothing tells the owner; with the page drawing its sitting's copy (`session`), a pick is stored and not shown until the read succeeds. Fix: say it in the bar as a failed save is, and patch `session`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **A second tap on the Type slot within the write's few milliseconds reads the old type** (note-types audit 64): the ask carries the type as it was, so the same pick sets it again instead of clearing. Fix: toggle against the stored value when the write lands.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **Neutral is a minus in a circle, which reads as \"remove\", and the eight above the bar have no \"No type\"** (ux 13; the glyph is note-types audit 23, already deferred): clearing is a tap on the marked one, shown by its tint, rule and heavier name. Fix: a flat-mouthed face when the icon set has one; a ninth \"No type\" if the owner wants the two pickers alike.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, in Memories with five or six entries today, tap the empty page and type three lines. **Expect:** the line being written stays visible above the bar and the keyboard the whole time (the sheet pads its foot by the keyboard's height since audit 40); the tab chips and the date are not pushed off the top of the screen. (chronicle-journal audit 40)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open a thread, type in its bar, and leave it two minutes without touching anything; and separately, in a thread, type and then take a photo. **Expect:** when the app returns to the journal's page the tab bar and the recording bar are back; they never stay folded with no keyboard up. (chronicle-journal audit 41, no automated test)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, in Memories: tap just under the last entry; scroll back while typing and hide the keyboard; go to Explore and come back. **Expect:** the tap raises the keyboard; the page stays where you scrolled it; coming back shows the last entry on top under its date. Never run on a device: the whole-page Pressable under the field, sticky dates with `maintainVisibleContentPosition`, the anchor's reset on focus. (chronicle-journal audit 42, 43, 45)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, in Memories: pull the page down and tap the pen that appears at the bar's left; write with a walk recording; fill the page with entries; open a note with a type. **Expect:** the pen brings today's foot back and raises the keyboard in that one tap, and is gone when the empty page is in view; the camera and the mic do not move when Done appears; a red dot sits at the bar's left while you type on a walk; entries fade under the held date instead of being cut, with no line under any date; the note's type (glyph and name) is above its words on the page. (chronicle-journal audit 50-54)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, in Memories: start an entry, tap the tag in the corner of its dateline, pick a type, keep typing, tap Done; then More on that entry, Type, another one. On a walk: tap the note button, choose a type on the page before writing, write, Done. **Expect:** nothing about a type shows before the first character; the tap on the tag turns the bar into one row of eight with the keyboard still up, and a pick puts the bar back with the caret still in the entry; the next key typed puts the bar back too; the glyph sits in the entry's corner afterwards; More's Type shows the eight and No type in the same sheet; the walk's note is kept with the type chosen before its words, and a page left empty keeps nothing. Never run on a device: focus held across the tap on the slot. (note types NY18-NY25)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, in Memories with the keyboard up, tap the tag in the corner of the entry being written. **Expect:** the eight types appear as two rows of four, named, just above the bar and above the keyboard, with the camera, the mic and Done still in their places; the entry being written is still visible above them; opening More, switching tabs or waiting two minutes takes the eight away. Never run on a device: the taller bar on the keyboard, and the sheet's room with it. (note types NY19, NY25; note-types audit 56)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; a voice note plays in line with its bar; JN1-JN33, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, audited 2026-11-13 with the owner's answers built (the pen in the bar when the page is pulled down, fixed places for the camera and the mic, an edge under the held date, the recording's mark while writing); the in-line voice note built and audited 2026-11-13 from the owner's request (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page`, `claude/determined-heisenberg-b894d7`, `fix/journal-audit-2` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred; JN28-JN33, 23: 15 fixed, 4 deferred, 4 rejected; the in-line voice note, 19: 12 fixed, 3 deferred, 3 rejected, 1 a pass) |\n",
+      "target": "sha256:9e218c23485c039fdd961013f74cc01f0052d14ffaa38a0ede14ba9418a39647"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Note types (a note carries"
+      ],
+      "body": "| Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool, and since Nov 13 by choice at capture: a slot in the corner of the journal's entry being written that opens the eight, named, above the bar; Type in an entry's More; the Type tool on a new note's page; on the viewer's note, the single-note pin and the thread bubble; NY1-NY25, decision 0161) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected; NY18-NY25 with the journal's bar, 26 findings: 21 fixed, 3 deferred, 2 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |\n",
+      "target": "sha256:8b7175f4a4faf9c11d62ad8b761c608c8e9799132cd49ffc2c19b4498befa969"
+    }
+  ]
+}
