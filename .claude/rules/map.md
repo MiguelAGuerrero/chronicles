@@ -77,9 +77,8 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
       clears them (SS10). Native keeps the old timing (DEFERRED).
     - Area markers (web) are kept by id and re-rendered in place; `marker:area` counts only new ones.
     - **Traps the journey found:** a hook that sets state when nothing changed renders Explore mid-move (the atlas
-      loop's `townsKnown`, the complexes retry); and the row of cards changed height with the selection (only the
-      selected card has a footer), resizing the map mid-move: `AtlasCarousel` keeps the tallest it has been for the same
-      cards. A move started from a script (`easeTo` in `page.evaluate`) got almost no frames in headless Chromium:
+      loop's `townsKnown`, the complexes retry); and the row of cards changed height with the selection, resizing the map mid-move (fix carousel-height: every
+      card reserves its lines and footer). A move started from a script (`easeTo` in `page.evaluate`) got almost no frames in headless Chromium:
       the journey's control is started by a key (`window.__easeNext`, then F9), as a switch is.
   - **E2E hooks** (only with `window.__perf`): `data-busy-names` (written at
     `idle`), `data-busy-given`, `data-busy-over`, `data-idle`,

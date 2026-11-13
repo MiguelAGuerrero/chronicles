@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import type { Listed } from '../../lib/atlas/atlas';
 import { liveReport, offsetOf, settledIndex, settleStep } from '../../lib/atlas/carousel';
@@ -97,20 +97,9 @@ export function AtlasCarousel(props: {
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
-  // smooth-switches SS9: the row keeps the tallest it has been for these cards. Only the selected card has a footer and
-  // names wrap, so the row's height followed the selection, and each switch resized the map mid-move.
-  const rowKey = items.map((l) => l.area.key).join('|');
-  const [tallest, setTallest] = useState<{ key: string; h: number }>({ key: '', h: 0 });
-  const minH = tallest.key === rowKey ? tallest.h : 0;
-  const onContentSize = useCallback(
-    (_w: number, h: number) => setTallest((t) => (t.key === rowKey && t.h >= h ? t : { key: rowKey, h: Math.max(h, t.key === rowKey ? t.h : 0) })),
-    [rowKey],
-  );
-
   return (
     <ScrollView
       ref={scroller}
-      onContentSizeChange={onContentSize}
       horizontal
       testID="atlas-carousel"
       accessibilityLabel={props.label}
@@ -124,8 +113,7 @@ export function AtlasCarousel(props: {
       scrollEventThrottle={16}
       onScroll={onScroll}
       // Size to the cards, never `flex: 1` (react-native-web would stretch it down the screen).
-      // The row keeps its tallest height; the cards stay as tall as the tallest now in it (smooth-switches ui 1).
-      style={[styles.row, minH ? { minHeight: minH } : null]}
+      style={styles.row}
       contentContainerStyle={[styles.content, { paddingHorizontal: sidePad }]}
     >
       {items.map((l) => (
@@ -140,6 +128,5 @@ export function AtlasCarousel(props: {
 const styles = StyleSheet.create({
   row: { flexGrow: 0, flexShrink: 0 },
   // Every card as tall as the tallest (fix card-heights): the row stretches them, each card fills its slot.
-  // Never stretched to the row's kept height (smooth-switches ui 1): the spare room is the row's ground, not an empty card.
-  content: { gap: GAP, alignItems: 'stretch', alignSelf: 'flex-start', paddingVertical: 6 },
+  content: { gap: GAP, alignItems: 'stretch', paddingVertical: 6 },
 });

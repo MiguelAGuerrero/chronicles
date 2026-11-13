@@ -30,5 +30,5 @@ The owner's calls, Nov 13:
 - After: a switch renders Explore once during its move (the selection), sends the map only what changed, and costs
   what the camera alone does give or take that render. The journey also found three causes outside the plan, each
   fixed at its cause: the atlas loop rendered Explore at every step, the complexes hook rendered it to set a retry
-  timer and read mid-move, and the row of cards changed height with the selection, resizing the map mid-move.
+  timer and read mid-move, and the row of cards changed height with the selection, resizing the map mid-move (main fixed that one meanwhile, fix carousel-height, which the slice took).
 - Specs: `specs/smooth-switches/spec.md` (SS1-SS10).
