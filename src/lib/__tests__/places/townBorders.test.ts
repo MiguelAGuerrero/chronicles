@@ -218,7 +218,7 @@ test('fix town-fit: a town selected in the row is framed whole each time, at its
   // A town whose border isn't known yet: its reach around its point, then its whole border once known.
   const u = townPicked(a.framed, { page: 'near', build: 'b1', town: null, key: 'cat', at: CAT, padM: 3000 });
   assert.deepEqual(u.bounds, boundsOf([CAT], 3000));
-  assert.deepEqual(nextFrame(u.framed, { page: 'near', build: 'b1', town: cat, points: PTS, from: ME, padM: 150 })?.bounds, cat.bounds);
+  assert.deepEqual(nextFrame(u.framed, { page: 'near', build: 'b1', town: cat, points: PTS, from: ME, padM: 150, lit: 'cat' })?.bounds, cat.bounds);
   // Unknown, it frames nothing more from the page's areas meanwhile.
   assert.equal(nextFrame(u.framed, { page: 'near', build: 'b1', town: null, points: PTS, from: ME, padM: 150 }), null);
   // On a town's page, its own card selected after a neighborhood: the whole town again.

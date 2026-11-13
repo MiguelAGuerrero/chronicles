@@ -30,7 +30,7 @@ import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, townPicked, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, readerTook, townPicked, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
@@ -392,12 +392,20 @@ export default function Explore() {
   useEffect(() => {
     shownRef.current = shown;
   }, [shown]);
+  const framePage = townSeen ? `town:${townSeen.key}` : looked ? lookPage(looked.at) : 'near';
+  // What a town selected in the row frames from (fix town-fit), or a pick marks the camera the reader's (late border), read in the handler, never a render.
+  const pickFrom = useRef({ drawn, page: framePage, build: fresh.build });
+  useEffect(() => {
+    pickFrom.current = { drawn, page: framePage, build: fresh.build };
+  }, [drawn, framePage, fresh.build]);
   const pick = useCallback((key: string) => {
     const l = shownRef.current.find((x) => x.area.key === key);
     if (!l) return;
     setSpot(null);
     setSelected(key);
     setOpen(key);
+    // The camera is the reader's now: a border that arrives later never frames over it (late border).
+    framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
     frame([l.area.at], ATLAS_RULES.ringM);
   }, [frame, setOpen, setSelected, setSpot]);
   // AT2: a town opens its page; Back, Escape and the back pill return (the title has no arrow: decision 0077).
@@ -437,12 +445,6 @@ export default function Explore() {
   }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
-  const framePage = townSeen ? `town:${townSeen.key}` : looked ? lookPage(looked.at) : 'near';
-  // What a town selected in the row frames from (fix town-fit), read in the handler, never a render.
-  const pickFrom = useRef({ drawn, page: framePage, build: fresh.build });
-  useEffect(() => {
-    pickFrom.current = { drawn, page: framePage, build: fresh.build };
-  }, [drawn, framePage, fresh.build]);
   useEffect(() => {
     const page = framePage;
     // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
@@ -524,7 +526,10 @@ export default function Explore() {
       const pick = townPicked(framed.current, { page, build, town: border, key: l.area.key, at: l.area.at, padM: townReachM(l.area) * 0.6 });
       framed.current = pick.framed;
       setFit((f) => ({ bounds: pick.bounds, key: f.key + 1 }));
-    } else mapRef.current?.showPoint(l.area.at, mapPad);
+    } else {
+      framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
+      mapRef.current?.showPoint(l.area.at, mapPad);
+    }
     say(l.area.name);
   }, [mapPad, say]);
   // Show areas here (FL5, FL6): the page lists around the map's settled middle; it is its own page, framed afresh.
@@ -559,6 +564,7 @@ export default function Explore() {
     }
     setSpot(null);
     setOpen(key);
+    framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
     frame([l.area.at], ATLAS_RULES.ringM);
   }, [selected, town, selectKey, enterArea, frame]);
 

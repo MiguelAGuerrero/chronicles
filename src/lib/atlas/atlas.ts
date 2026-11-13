@@ -373,7 +373,17 @@ export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: Outli
 
 /** What a visit to a page has framed (AT9, TB11): its page and build, and the towns whose whole border it framed. */
 /** `awaiting`: the key of a town picked in the row before its border was known, framed whole when it arrives while still selected (fix town-fit audit 2). */
-export type PageFramed = { page: string; build: string | null; towns: string[]; awaiting?: string };
+/**
+ * `held`: the reader picked or selected an area in this visit, so the camera is theirs: a border that arrives later never
+ * moves it (smooth-switches late border), but for a town picked before its border was known (`awaiting`).
+ */
+export type PageFramed = { page: string; build: string | null; towns: string[]; awaiting?: string; held?: boolean };
+
+/** The reader took the camera on this page (picked an area, selected one in the row): nothing frames over it (late border). */
+export function readerTook(last: PageFramed | null, page: string, build: string | null): PageFramed {
+  const same = !!last && last.page === page && last.build === build;
+  return { page, build, towns: same ? last.towns : [], held: true };
+}
 
 /**
  * What a visit to a page of the atlas frames next (AT9, TB11; fix explore-fit-area, Nov 4): its
@@ -392,9 +402,9 @@ export function nextFrame(
   const same = !!last && last.page === p.page && last.build === p.build;
   if (p.town) {
     const waited = same && last.awaiting != null && last.awaiting === p.lit;
-    if (same && last.towns.includes(p.town.id) && !waited) return null;
+    if (same && (last.towns.includes(p.town.id) || last.held) && !waited) return null;
     const kept = same ? last.towns.filter((t) => t !== p.town!.id) : [];
-    return { framed: { page: p.page, build: p.build, towns: [...kept, p.town.id] }, bounds: p.town.bounds };
+    return { framed: { page: p.page, build: p.build, towns: [...kept, p.town.id], held: same && last.held }, bounds: p.town.bounds };
   }
   if (same || !p.points.length) return null;
   const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, p.padM);
@@ -414,9 +424,10 @@ export function townPicked(
   p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; key: string; at: LngLat; padM: number },
 ): { framed: PageFramed; bounds: Bounds } {
   const kept = last && last.page === p.page && last.build === p.build ? last.towns : [];
-  if (!p.town) return { framed: { page: p.page, build: p.build, towns: kept, awaiting: p.key }, bounds: boundsOf([p.at], p.padM)! };
+  // A pick is the reader's: the camera is theirs from now on (late border), but for this town's own border.
+  if (!p.town) return { framed: { page: p.page, build: p.build, towns: kept, awaiting: p.key, held: true }, bounds: boundsOf([p.at], p.padM)! };
   const towns = kept.includes(p.town.id) ? kept : [...kept, p.town.id];
-  return { framed: { page: p.page, build: p.build, towns }, bounds: p.town.bounds };
+  return { framed: { page: p.page, build: p.build, towns, held: true }, bounds: p.town.bounds };
 }
 
 /** How far around a town's point its neighborhoods are looked for. */
