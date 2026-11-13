@@ -483,6 +483,25 @@ async function run(h) {
   const after26 = await typeOfNote(/A page with a type/);
   check(!!slot26 && slot26.add && slot26.words === 0 && slot26.ink === 'rgb(29, 36, 48)' && slot26.w >= 44 && slot26.h >= 44 && !marked26.add && marked26.label === 'Type, Happy' && tool26 === 'Type, Happy' && after26 === 'idea',
     `NY26: unmarked the slot is a face with a plus, in ink, with no word; marked it is the type's glyph; the page the line opens into carries the Type tool with that type, and a choice there is kept (${JSON.stringify({ slot26, marked26, tool26, after26 })})`);
+  // NY27: a note kept today offers the same sign on its row; one from an earlier day does not. A tap opens the eight
+  // at once, and the choice is kept.
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(900);
+  const rows27 = await pg.evaluate(() => { const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')]; return { today: cards.filter((c) => c.querySelector('[data-testid=entry-react]')).length, lastHas: !!cards[cards.length - 1]?.querySelector('[data-testid=entry-react]') }; });
+  await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').filter({ hasText: 'Stack 5' }).last().locator('[data-testid=entry-react]').click({ timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const sheet27 = { items: await pg.locator('[data-testid=memory-menu] [data-testid^=note-type-item-]').count(), other: await pg.locator('[data-testid=memory-menu] [data-testid=menu-less], [data-testid=memory-menu] [data-testid=menu-open]').count() };
+  await shot(pg, 'journal-28-react-to-todays-entry');
+  await pg.click('[data-testid=note-type-item-like]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const kept27 = await typeOfNote(/^Stack 5/);
+  await pg.evaluate(() => { document.querySelector('[data-testid=journal-page]').scrollTop = 0; });
+  await pg.waitForTimeout(900);
+  const old27 = await pg.locator('[data-testid=journal-page] [data-testid=entry-react]').filter({ visible: true }).count();
+  await pg.evaluate(() => { const el = document.querySelector('[data-testid=journal-page]'); el.scrollTop = el.scrollHeight; });
+  await pg.waitForTimeout(900);
+  check.todo(rows27.today >= 2 && rows27.lastHas && sheet27.items === 9 && sheet27.other === 0 && kept27 === 'like' && old27 === 0,
+    `NY27: a note kept today offers the sign on its row and one tap opens the eight; an earlier day's entry offers none (${JSON.stringify({ rows27, sheet27, kept27, old27 })})`);
   // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
   const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
   await lastMore().click();

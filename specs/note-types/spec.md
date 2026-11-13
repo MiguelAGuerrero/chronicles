@@ -204,3 +204,9 @@ The UX reviewer, given four pictures and three tasks in a person's words and not
 
 Left for the owner (`docs/STATUS.md`): the word (Type or Reaction, and the same sign everywhere), and whether a kept entry shows the sign on its own row or keeps it in More.
 
+### Today's entries offer it (Nov 13, the owner's answers after the cold find)
+
+The cold find could not place "add a reaction to a note I wrote earlier": nothing on the row offered it. The owner: "Only today", and ink glyphs, not colour emoji. NY18 is read with this: nothing about a type shows on the entry being written before its first character.
+
+27. **NY27** A note kept today shows the same sign at the end of its dateline as the one being written: the face with a plus while it has no type, its type's glyph once it has. One tap opens the eight and "No type" by themselves, and the choice is kept. An entry of an earlier day shows no sign there; its type is changed from More (NY23).
+
