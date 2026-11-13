@@ -36,6 +36,13 @@ async function run(h) {
 
   await pg.waitForTimeout(800);
   await shot(pg, 'voicetrim-editor-whole');
+  // voice-trim ui 1: the trim bar fills the row (at least 70% of the 390 px viewport, handles included).
+  const bar = editor ? await Promise.all([pg.locator('[data-testid=trim-start]').boundingBox(), pg.locator('[data-testid=trim-end]').boundingBox()]).catch(() => null) : null;
+  const barW = bar && bar[0] && bar[1] ? bar[1].x - bar[0].x : 0;
+  check.todo(barW >= 390 * 0.7, `voice-trim ui 1: the trim bar is wide enough to cut precisely (${Math.round(barW)} px between the handles)`);
+  // voice-trim ui 4: Revert says it is disabled while nothing is changed.
+  const revertOff = editor ? await pg.locator('[data-testid=edit-revert]').getAttribute('aria-disabled').catch(() => null) : null;
+  check.todo(revertOff === 'true', `voice-trim ui 4: Revert is disabled for a screen reader while nothing is changed (${revertOff})`);
 
   // VT2, VT3: the whole memo kept at first; the end handle changes the kept times; Play is there.
   const label = editor ? await pg.locator('[data-testid=trim-label]').innerText().catch(() => '') : '';
@@ -74,6 +81,8 @@ async function run(h) {
   check(/Trimmed · 0:0[1-3] of 0:0[3-9]/.test(said), `VT11: a trimmed memo's viewer says so with both times ("${said.replace(/\n/g, ' ')}")`);
   await pg.waitForTimeout(800);
   await shot(pg, 'voicetrim-viewer-trimmed');
+  // voice-trim ui 3: the trimmed phrase never splits across lines (its spaces do not break).
+  check.todo(/Trimmed\u00a0\u00b7\u00a00:\d\d\u00a0of\u00a00:\d\d/.test(said), `voice-trim ui 3: "Trimmed · kept of whole" is one unbreakable phrase (${JSON.stringify(said)})`);
   const clock = await pg.locator('[data-testid=voice-time]').innerText().catch(() => '');
   check(/^0:00 \/ 0:0[1-3]$/.test(clock), `VT6: the clock reads against the kept length ("${clock}")`);
   await pg.click('[aria-label="Play voice memo"]').catch(() => {});

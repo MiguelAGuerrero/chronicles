@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { emptyEdit } from '../../mediaEdit';
+import { emptyEdit, trimLabel } from '../../mediaEdit';
 import { memoLengthMs, memoWords, trimmedLine, voiceClock, voiceSpan, voiceState } from '../../voiceTrim';
 
 // Voice trim (VT6, VT8, VT10, VT11, VT12), written from the criteria before the code.
@@ -74,4 +74,14 @@ test('VT12: every file that plays a memo reads the trim through lib/voiceTrim', 
   assert.ok(players.length >= 2, `the viewer's and the replay's players are found (${players.length})`);
   const missing = players.filter((f) => !/lib\/voiceTrim/.test(readFileSync(f, 'utf8')));
   assert.deepEqual(missing, [], 'a memo player that never reads the trim plays the cut tail');
+});
+
+test('voice-trim ui 6: a long memo\u2019s lengths and kept times stay one line of plain numbers', { todo: 'test first' }, () => {
+  for (const ms of [754_000, 5_999_000, 6_000_000]) {
+    const words = memoWords({ body: String(ms), edit: trimmed(1000, ms - 1000) });
+    assert.ok(!/NaN|undefined|\n/.test(words), words);
+    const line = trimmedLine({ body: String(ms), edit: trimmed(1000, ms - 1000) });
+    assert.ok(line && !/NaN|undefined|\n/.test(line), String(line));
+    assert.ok(!/NaN|\n/.test(trimLabel(1000, ms - 1000)));
+  }
 });
