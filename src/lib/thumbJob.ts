@@ -22,7 +22,7 @@ const inFlight = new Map<string, Promise<string | null>>();
  * one job (audit 3).
  */
 /**
- * `name` overrides the copy's name: an edited video's still is named by its edit (VT6, ME20), so previews keyed by
+ * `name` overrides the copy's name: an edited video's still is named by its edit (VS6, ME20), so previews keyed by
  * the ref load the new one. A job runs per piece and name, so an edit's ask never shares a stale capture-time job.
  */
 export function thumbJob(c: ThumbCapture, deps: ThumbDeps, name: string = thumbName(c)): Promise<string | null> {

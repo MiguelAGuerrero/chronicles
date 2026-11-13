@@ -23,7 +23,7 @@ export function MemoryPreview(props: {
   onClose: () => void;
 }) {
   const first = props.captures[0];
-  // A photo's small copy (TH4) or a video's still (VT2): an older one is made through the thumbs shell, read fresh,
+  // A photo's small copy (TH4) or a video's still (VS2): an older one is made through the thumbs shell, read fresh,
   // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon rather than a second
   // full decode (audit 7); a photo's copy whose file is gone, the photo (audit 6).
   const row = useStill(first);

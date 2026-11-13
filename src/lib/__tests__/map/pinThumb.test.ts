@@ -41,13 +41,13 @@ test('QL26: a pin of several captures keeps its count, even all photos with copi
   assert.equal(pinThumb(pin), null);
 });
 
-test('QL26: other kinds keep their icon, whatever their thumb_path (a video shows its still since VT3)', () => {
+test('QL26: other kinds keep their icon, whatever their thumb_path (a video shows its still since VS3)', () => {
   for (const kind of ['voice', 'text'] as const) {
     assert.equal(pinThumb(pinOf(cap('a', kind, { thumb_path: 'walks/w1/a.thumb.jpg' }))), null, kind);
   }
 });
 
-test('VT3: a pin of one video shows its copy, never its file', () => {
+test('VS3: a pin of one video shows its copy, never its file', () => {
   const v = (o: Partial<Faced> = {}) => cap('v', 'video', { file_path: 'walks/w1/v.mp4', ...o });
   assert.equal(pinThumb(pinOf(v({ thumb_path: 'walks/w1/v.thumb.jpg' }))), 'walks/w1/v.thumb.jpg');
   assert.equal(pinThumb(pinOf(v())), null, 'no still yet: the icon, never the video file');

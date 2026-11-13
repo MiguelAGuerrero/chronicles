@@ -5,7 +5,7 @@ import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
-import type { Db } from '../db/types';
+import { SEGMENT_BATCH, type Db } from '../db/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
@@ -214,6 +214,48 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(got.caption, 'hi');
       await db.updatePiece('c1', { edit: null });
       assert.equal(parseEdit((flats(await db.getMoments('a')))[0].edit), null);
+    });
+
+    test('NY4: a note keeps its type: set, changed, cleared; one kept before reads as no type', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('n1', 'a', 1)));
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null, 'a note kept before has none');
+      await db.updatePiece('n1', { note_type: 'question' });
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'question');
+      await db.updatePiece('n1', { note_type: 'sad', body: 'new words' });
+      const [got] = flats(await db.getMoments('a'));
+      assert.equal(got.note_type, 'sad');
+      assert.equal(got.body, 'new words');
+      await db.updatePiece('n1', { note_type: null });
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null);
+    });
+
+    test('NY4: a note added with a type is read back with it', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('n1', 'a', 1, { note_type: 'idea' })));
+      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'idea');
+    });
+
+    test('note-types audit 14: a cleared type reads the same on every store: no field at all', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('n1', 'a', 1, { note_type: 'idea' })));
+      await db.updatePiece('n1', { note_type: null });
+      const [m] = await db.getMomentsByIds(['n1']);
+      assert.equal(m.pieces[0].note_type, undefined);
+      assert.equal('note_type' in m.pieces[0], false);
+    });
+
+    test('NY5: the type belongs to its piece: two notes of one moment hold different types', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('m1', 'a', 1)));
+      await db.addPiece('m1', { id: 'p2', moment_id: 'm1', t: 2, kind: 'text', file_path: null, body: 'second', note_type: 'happy' });
+      await db.updatePiece('m1', { note_type: 'question' });
+      const [m] = await db.getMomentsByIds(['m1']);
+      const byId = Object.fromEntries(m.pieces.map((x) => [x.id, x.note_type ?? null]));
+      assert.deepEqual(byId, { m1: 'question', p2: 'happy' });
+      await db.updatePiece('p2', { note_type: null });
+      const [again] = await db.getMomentsByIds(['m1']);
+      assert.deepEqual(Object.fromEntries(again.pieces.map((x) => [x.id, x.note_type ?? null])), { m1: 'question', p2: null });
     });
 
     test('NP7: a note keeps the mark that its body is Markdown, through addMoment and updatePiece; an older note has none', async () => {
@@ -591,6 +633,24 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       await db.putSegments([{ ...segment('near'), name: 'Renamed St' }]);
       assert.deepEqual(await db.getSegmentsIn(box), [{ ...segment('near'), name: 'Renamed St' }]);
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
+    });
+
+    test('DC10 putSegments: written in batches; a caller stopped before the write starts writes nothing', async () => {
+      const db = await fresh();
+      const many = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => segment(`${prefix}${i}`));
+      await db.putSegments(many('a', SEGMENT_BATCH * 2 + 10));
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10, 'every batch written');
+      const db3 = await fresh();
+      await db3.putSegments(many('c', 10), () => true);
+      assert.equal((await db3.getSegmentsIn(box)).length, 0, 'stopped before the first batch: nothing written');
+    });
+
+    test('explore-dense-city audit 5 putSegments: a write once started finishes, so no tile is left half stored', async () => {
+      const db = await fresh();
+      const many = Array.from({ length: SEGMENT_BATCH * 2 + 10 }, (_, i) => segment(`s${i}`));
+      let asked = 0;
+      await db.putSegments(many, () => ++asked > 1);
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10);
     });
 
     test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box, MT11)', async () => {

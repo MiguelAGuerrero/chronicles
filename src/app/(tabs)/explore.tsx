@@ -18,6 +18,7 @@ import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
 import { LayersControl } from '../../components/LayersControl';
 import { layerNotes } from '../../lib/layers/notes';
+import { createMotion } from '../../lib/layers/motion';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
@@ -28,7 +29,7 @@ import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, townPicked, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
@@ -53,6 +54,7 @@ import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
+import type { Waypoint } from '../../lib/nav/types';
 import { walkToChoice } from '../../lib/startPlan';
 import { inPolygons } from '../../lib/complexes/geom';
 import { readsWanted, shown as shownComplexes } from '../../lib/complexes/kinds';
@@ -72,6 +74,8 @@ const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const BUSY_NAMES_ZOOM = 13;
+/** audit 11: Explore's controls over the map, whose room no busy name takes. */
+const NAMES_CLEAR_OF = ['atlas-title-card', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
@@ -130,6 +134,16 @@ export default function Explore() {
   // What a swipe landed on, for the screen reader (DN12): web's live region, since react-native-web's announce does nothing.
   // A count beside it, so the same name twice in a row still changes the region and is said again (audit 7).
   const [said, setSaid] = useState({ text: '', n: 0 });
+  // tend map audit 12: a quiet notice is no alert, so a screen reader hears a refusal through this hidden live region on
+  // web (DN12's) and the call on a phone; the red error keeps its alert role. Locate's refusal and Walk here's
+  // (tend recording audit 2).
+  const sayQuiet = (e: { message: string; tone?: 'info' | 'error' }) => {
+    if (e.tone !== 'info') return;
+    setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+    AccessibilityInfo.announceForAccessibility(e.message);
+  };
+  // Every walk asked for here: a refusal is the quiet notice, said (tend recording audit 2).
+  const startWalk = (dest: Waypoint) => walkStart.start(dest, undefined, { onError: sayQuiet });
   const [open, setOpen] = useState<string | null>(null);
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
@@ -197,6 +211,14 @@ export default function Explore() {
   // The settled camera and the map's size, for the split of the selected area's places (whole-towns audits 3, 6).
   const [cam, setCam] = useState<{ center: LngLat; zoom: number } | null>(null);
   const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
+  // explore-dense-city DC12: a layout that reports the same size sets nothing (a new object of the same size renders).
+  const mapSizeNow = useRef(mapSize);
+  const onMapLayout = useCallback((width: number, height: number) => {
+    const was = mapSizeNow.current;
+    if (was && was.width === width && was.height === height) return;
+    mapSizeNow.current = { width, height };
+    setMapSize(mapSizeNow.current);
+  }, []);
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
@@ -230,7 +252,10 @@ export default function Explore() {
       setSpot(null);
       frame([at], ATLAS_RULES.ringM);
     },
-    onError: setLocError,
+    onError: (e) => {
+      setLocError(e);
+      sayQuiet(e);
+    },
   });
   // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
   // so it can't wait for Navigate's. Once per launch; nothing tracks after.
@@ -281,6 +306,11 @@ export default function Explore() {
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
+  // DC14: the selected area's name keeps its room on the map; no busy name is placed under it.
+  const namedPoint = areaPoints.find((p) => p.selected && p.name);
+  const reserveName = namedPoint?.name ?? null;
+  const reserveAt = namedPoint?.at ?? null;
+  const busyReserve = useMemo(() => (reserveName && reserveAt ? { name: reserveName, at: reserveAt } : null), [reserveName, reserveAt]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // HB9: the selected neighborhood's own ground, from the kept tiles; its ring until they are known (HB12).
   const hoodCands = useMemo(() => candidatesOf([...neighborhoods, ...allTowns].map((l) => l.area)), [neighborhoods, allTowns]);
@@ -332,7 +362,12 @@ export default function Explore() {
   const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
-  const busy = useBusyLayer(layersAt, !!layers.on.busy);
+  // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the busy read waits for a settle.
+  // A map taken down mid-move reports still (audit 7), so a read waiting for its settle goes on.
+  const [motion] = useState(createMotion);
+  const onMoveState = useCallback((moving: boolean) => motion.set(moving), [motion]);
+  const stillness = useCallback(() => ({ moving: motion.moving, settled: () => motion.settled() }), [motion]);
+  const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
@@ -394,15 +429,21 @@ export default function Explore() {
   }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
+  const framePage = townSeen ? `town:${townSeen.key}` : looked ? lookPage(looked.at) : 'near';
+  // What a town selected in the row frames from (fix town-fit), read in the handler, never a render.
+  const pickFrom = useRef({ drawn, page: framePage, build: fresh.build });
   useEffect(() => {
-    const page = townSeen ? `town:${townSeen.key}` : looked ? lookPage(looked.at) : 'near';
+    pickFrom.current = { drawn, page: framePage, build: fresh.build };
+  }, [drawn, framePage, fresh.build]);
+  useEffect(() => {
+    const page = framePage;
     // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
     const padM = townSeen ? townReachM(townSeen) * 0.6 : 150;
-    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM });
+    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM, lit: litKey });
     if (!next) return;
     framed.current = next.framed;
     setFit((f) => ({ bounds: next.bounds, key: f.key + 1 }));
-  }, [townSeen, looked, fresh.build, townBox, points, from]);
+  }, [townSeen, framePage, fresh.build, townBox, points, from, litKey]);
 
   const lookHere = async (at: LngLat) => {
     const started = startLook(look.current);
@@ -466,10 +507,16 @@ export default function Explore() {
     setSpot(null);
     setOpen(null);
     setSelected(key);
-    if (l.area.level === 'town') frame([l.area.at], townReachM(l.area) * 0.6);
-    else mapRef.current?.showPoint(l.area.at, mapPad);
+    if (l.area.level === 'town') {
+      // Its whole border when known, each time it is selected (fix town-fit); the page's frame then leaves it be.
+      const { drawn: set, page, build } = pickFrom.current;
+      const border = townFrame(set, outlineOf({ name: l.area.name, at: l.area.at }, set)?.id);
+      const pick = townPicked(framed.current, { page, build, town: border, key: l.area.key, at: l.area.at, padM: townReachM(l.area) * 0.6 });
+      framed.current = pick.framed;
+      setFit((f) => ({ bounds: pick.bounds, key: f.key + 1 }));
+    } else mapRef.current?.showPoint(l.area.at, mapPad);
     say(l.area.name);
-  }, [frame, mapPad, say]);
+  }, [mapPad, say]);
   // Show areas here (FL5, FL6): the page lists around the map's settled middle; it is its own page, framed afresh.
   const showHere = useCallback(() => {
     const at = centreOf(cam);
@@ -524,7 +571,8 @@ export default function Explore() {
   const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
   const overlay = error ? (
     <Banner
-      tone="error"
+      // Location refused, by Locate (T17) or by Walk here (tend recording audit 2), is the quiet notice; anything else a fault.
+      tone={walkStart.error ? (walkStart.error.tone ?? 'error') : (locError?.tone ?? 'error')}
       onDismiss={() => {
         walkStart.setError(null);
         setLocError(null);
@@ -562,7 +610,7 @@ export default function Explore() {
   // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.
   const slots = exploreSlots({ spot: !!spot, town: !!town, free });
   const mapPane = (
-    <View style={styles.map} onLayout={(e) => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
+    <View style={styles.map} onLayout={(e) => onMapLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
       {focused && !plan && (
         <WalkMap
@@ -589,6 +637,10 @@ export default function Explore() {
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
           landing={busyView}
+          busyNamesOver
+          busyNamesReserve={busyReserve}
+          busyNamesClearOf={NAMES_CLEAR_OF}
+          onMoveState={onMoveState}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {
@@ -627,6 +679,8 @@ export default function Explore() {
             setCam(c);
           }}
           scaleInset={{ bottom: slots.scaleBottom, left: SCALE_LEFT }}
+          // No scale bar over a blank world while no fix places the map (T17).
+          hideScaleOnBlank
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
@@ -639,7 +693,7 @@ export default function Explore() {
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
       <View style={[styles.titleWrap, { top: topInset + 8, left: 12 }]} pointerEvents="box-none">
-        <View style={styles.titleCard}>
+        <View style={styles.titleCard} testID="atlas-title-card">
           <View accessibilityRole="header" style={styles.titleText} testID="atlas-title">
             <View style={styles.titleRow}>
               <Text testID="explore-area" style={styles.title} numberOfLines={lookOn && !town ? 2 : 1}>{title}</Text>
@@ -675,7 +729,7 @@ export default function Explore() {
                   onPress={() => {
                     const at = spot.at;
                     setSpot(null);
-                    walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                    startWalk({ at, label: 'Your spot', kind: 'point' });
                   }}
                 />
               )}
@@ -706,7 +760,7 @@ export default function Explore() {
                 const choice = walkToChoice(you ? metresBetween(you, at) : null, stale ? null : fixSeen.current || null, Date.now());
                 if (openInfo.walk || choice === 'start') {
                   setSpot(null);
-                  walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                  startWalk({ at, label: 'Your spot', kind: 'point' });
                 } else setSpot({ ...spot, ask: choice });
               }}
             />
@@ -827,14 +881,14 @@ export default function Explore() {
           starting={walkStart.starting}
           onWalkAt={(at, label) => {
             setOpen(null);
-            walkStart.start({ at, label, kind: 'point' });
+            startWalk({ at, label, kind: 'point' });
           }}
           onPlan={(k) => setPlan(k)}
           covered={plan != null}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
-            walkStart.start({ at: t.at, label: t.label, kind: 'point' });
+            startWalk({ at: t.at, label: t.label, kind: 'point' });
           }}
           onPick={pick}
           onClose={() => setOpen(null)}
@@ -853,7 +907,7 @@ export default function Explore() {
           onStart={(dest) => {
             setPlan(null);
             setOpen(null);
-            walkStart.start(dest);
+            startWalk(dest);
           }}
         />
       )}

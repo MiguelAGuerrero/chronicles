@@ -2,11 +2,12 @@ import { type Faced, faced, facedAt, hasMore, pieceKey } from '../lib/moment';
 import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
+import { NoteMark } from './NoteMark';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
 import { editedRecall, liveRecalls, newRecall } from '../lib/discovery/recall';
@@ -44,6 +45,8 @@ import { ResponsesSheet } from './threads/ResponsesSheet';
 import { responseRows, responsesOf } from '../lib/threads/responses';
 import { IN_A_THREAD, MENTIONED, responsesWord } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
+import { trimmedLine, voiceClock, voiceReachedEnd, voiceSpan, voiceState, wholeMs } from '../lib/voiceTrim';
+import type { MediaEdit } from '../lib/mediaEdit';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
@@ -69,9 +72,24 @@ const VIEWER_TOP = 64;
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
 
-/** A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. */
-function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number }) {
-  const player = useAudioPlayer(props.uri);
+/** A trimmed memo's player reports every 100 ms, so it stops at the end handle, not up to half a second late (VT6). */
+const TRIMMED_PLAYER = { updateInterval: 100 };
+// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
+function seekMemo(player: AudioPlayer, s: number) {
+  void player.seekTo(s);
+}
+function pauseMemo(player: AudioPlayer) {
+  player.pause();
+}
+
+/**
+ * A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. A trimmed memo
+ * (VT6, VT7) starts at the start handle, stops at the end handle and counts as finished there; its clock and bar
+ * read against the kept part.
+ */
+function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number; edit?: MediaEdit | null }) {
+  const trim = props.edit?.trim ?? null;
+  const player = useAudioPlayer(props.uri, trim ? TRIMMED_PLAYER : undefined);
   const status = useAudioPlayerStatus(player);
   const { autoPlay, onFinished } = props;
   const playing = useRef(false);
@@ -80,12 +98,28 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     playing.current = status.playing;
     finished.current = onFinished;
   }, [status.playing, onFinished]);
+  // The stored length wins; the file's own only for a memo with none on record, so every surface agrees (audit 3, 4).
+  const whole = wholeMs(props.durationMs, (status.duration || 0) * 1000);
+  const span = voiceSpan(trim, whole);
+  const where = voiceState(status.currentTime, span);
+  // The press that restarts the kept part names the position it left: until the player moves off it, it is not the end (audit 2).
+  const [restartedFrom, setRestartedFrom] = useState<number | null>(null);
+  const restarting = restartedFrom !== null && status.currentTime === restartedFrom;
+  const atEnd = !!trim && voiceReachedEnd(status.currentTime, span, restarting);
+  // Once per play: the trim's end and the file's end can both say so.
+  const reported = useRef(false);
+  const report = () => {
+    if (reported.current) return;
+    reported.current = true;
+    finished.current?.();
+  };
   // A browser that refuses to start it without a tap (iOS) leaves the play
   // button showing; a replay that moves on by itself then moves on after a
   // while, instead of waiting for an end that never comes.
   const refused = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!autoPlay || !status.isLoaded) return;
+    if (trim) seekMemo(player, trim.start_ms / 1000);
     player.play();
     if (Platform.OS !== 'web') return;
     const check = setTimeout(() => {
@@ -99,10 +133,25 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.isLoaded]);
   useEffect(() => {
-    if (status.didJustFinish) onFinished?.();
-  }, [status.didJustFinish, onFinished]);
-  const total = status.duration || props.durationMs / 1000;
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    if (status.playing && !atEnd) reported.current = false;
+  }, [status.playing, atEnd]);
+  useEffect(() => {
+    if (status.didJustFinish) report();
+  }, [status.didJustFinish]);
+  // A trimmed memo that reaches its end handle stops and is finished; one found before its start is brought to it.
+  const stopAtEnd = status.playing && atEnd;
+  useEffect(() => {
+    if (!stopAtEnd) return;
+    pauseMemo(player);
+    report();
+  }, [stopAtEnd, player]);
+  const strayed = !!trim && status.playing && where === 'before';
+  useEffect(() => {
+    if (strayed) seekMemo(player, span.startMs / 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strayed, player]);
+  const clock = voiceClock(status.currentTime, span);
+  const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
   return (
     <View style={styles.voice}>
       <Pressable
@@ -112,7 +161,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
           if (refused.current) clearTimeout(refused.current);
           if (status.playing) player.pause();
           else {
-            if (status.didJustFinish || (total && status.currentTime >= total - 0.1)) player.seekTo(0);
+            if (trim && where === 'end') {
+              setRestartedFrom(status.currentTime);
+              seekMemo(player, span.startMs / 1000);
+            } else if (status.didJustFinish || (!trim && whole && status.currentTime * 1000 >= whole - 100)) player.seekTo(span.startMs / 1000);
             player.play();
           }
         }}
@@ -122,10 +174,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
         <Icon name={status.playing ? 'pause' : 'play'} size={26} color="#ffffff" />
       </Pressable>
       <View style={styles.track}>
-        <View style={[styles.trackFill, { width: `${total ? Math.min(100, (status.currentTime / total) * 100) : 0}%` }]} />
+        <View style={[styles.trackFill, { width: `${clock.ofMs ? Math.min(100, (clock.atMs / clock.ofMs) * 100) : 0}%` }]} />
       </View>
-      <Text style={styles.voiceTime}>
-        {fmt(status.currentTime)} / {fmt(total)}
+      <Text style={styles.voiceTime} testID="voice-time">
+        {fmt(clock.atMs)} / {fmt(clock.ofMs)}
       </Text>
     </View>
   );
@@ -288,6 +340,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
         {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
         <View testID="capture-card" style={styles.pageArea}>
+        {capture.note_type ? <View style={styles.pageMark}><NoteMark capture={capture} /></View> : null}
         <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
         <View style={[styles.metaRow, styles.pageMeta]}>
           <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
@@ -302,10 +355,11 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
+          {capture.kind === 'text' && <NoteMark capture={capture} />}
           {capture.kind === 'text' &&
             (props.onOpenRef ? <NoteText body={capture.body ?? ''} format={capture.body_format} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
           {capture.kind === 'voice' && uri && (
-            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
+            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} edit={capture.edit ?? null} />
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
@@ -338,7 +392,8 @@ export function CaptureViewer(props: {
    */
   onSaveEdit?: (c: Faced, patch: CapturePatch) => Promise<void>;
   /** Offers "Edit note" on notes (QL24); the editor opens inside the viewer. */
-  onSaveNote?: (c: Faced, body: string) => Promise<void>;
+  /** `type`: the chosen note type when the owner changed it (null clears), else undefined, the stored one standing (NY7, NY16); `typeOnly`: the words are not being saved, so the body and its format stay as kept. */
+  onSaveNote?: (c: Faced, body: string, type?: string | null, typeOnly?: boolean) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
   onGoHere?: (c: Faced) => void;
   /** Open in Maps (NH6): hands the capture's place to the phone's maps app, from the More menu. */
@@ -392,6 +447,8 @@ export function CaptureViewer(props: {
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
+  // The type chosen with it, by piece: null is "No type" (NY7).
+  const [editedType, setEditedType] = useState<Map<string, string | null>>(() => new Map());
   // What was deleted (D3, D5) leaves the viewer at once; a piece split out (MS16) shows at once as its own moment,
   // right after the one it came from, while its split waits or once it is stored.
   const visible = useVisible(props.captures);
@@ -509,7 +566,8 @@ export function CaptureViewer(props: {
   const listed = moment && pieces[pi] ? facedAt(moment, pieces[pi].id) : moment;
   // Edits and notes are the piece's own (MS11): kept by the piece's id.
   const editedBody = listed ? edited.get(listed.piece_id) : undefined;
-  const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody, body_format: 'md' as const } : listed;
+  const withText = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody, body_format: 'md' as const } : listed;
+  const withBody = withText && editedType.has(withText.piece_id) ? { ...withText, note_type: editedType.get(withText.piece_id) } : withText;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
   // The notes that mention the moment shown, read from their text (RF7): by date, never by count.
@@ -606,7 +664,7 @@ export function CaptureViewer(props: {
     router.navigate('/chronicle');
   };
   const editAction =
-    current && (current.kind === 'photo' || current.kind === 'video') && props.onSaveEdit
+    current && (current.kind === 'photo' || current.kind === 'video' || current.kind === 'voice') && props.onSaveEdit
       ? { label: 'Edit', testID: 'viewer-edit', onPress: () => setEditing(current) }
       : current && current.kind === 'text' && props.onSaveNote
         ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
@@ -659,6 +717,8 @@ export function CaptureViewer(props: {
               inThread,
               mentionedBy.length ? MENTIONED : null,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
+              // One phrase: its spaces do not break, so "of 0:04" never sits alone on a line (voice-trim ui 3).
+              current.kind === 'voice' ? trimmedLine(current)?.replace(/ /g, '\u00a0') : null,
               statusOf.get(current.id),
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
@@ -826,6 +886,25 @@ export function CaptureViewer(props: {
             key={noting.id}
             body={noting.body ?? ''}
             bodyFormat={noting.body_format ?? null}
+            type={noting.note_type ?? null}
+            onType={async (t) => {
+              // A type chosen on the page is kept at once, beside the words, and put back if it can't be (NY7).
+              const c = noting;
+              const had = editedType.has(c.piece_id);
+              const before = editedType.get(c.piece_id) ?? null;
+              setEditedType((m) => new Map(m).set(c.piece_id, t));
+              try {
+                await props.onSaveNote?.(c, edited.get(c.piece_id) ?? c.body ?? '', t, true);
+              } catch {
+                setEditedType((m) => {
+                  const n = new Map(m);
+                  if (had) n.set(c.piece_id, before);
+                  else n.delete(c.piece_id);
+                  return n;
+                });
+                setSaveState({ id: c.id, text: 'The type could not be saved' });
+              }
+            }}
             head={headOf(noting)}
             self={noting.id}
             onClose={() => setNoting(null)}
@@ -1095,6 +1174,8 @@ const styles = StyleSheet.create({
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   pageArea: { flex: 1 },
+  // A note's type, one line above the page it marks (NY9).
+  pageMark: { paddingHorizontal: 16, paddingTop: 10 },
   pageMeta: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.surface, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   nav: { flexDirection: 'row', gap: 8 },
   action: {

@@ -309,7 +309,8 @@ async function run(h) {
       await pg2.locator('[data-testid=locate]').filter({ visible: true }).first().click();
       await pg2.waitForTimeout(1500);
       const denied = (await pg2.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
-      check(/Location permission was denied/.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
+      // tend map T17: refused, Locate says where to turn location on (the quiet notice, `locate/notice.ts`).
+      check(/Location is off for this site/.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
         `ready NR13: a denied location says so on the ready screen (${denied})`);
       // M2 on the ready screen: a moment with no fix is kept and says so.
       await pg2.click('[data-testid=moment-note]');

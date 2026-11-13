@@ -5,12 +5,12 @@ import { memoGate } from './memoGate';
 import { askMotion } from './walkMotion';
 import { saveForLater } from './nav/store';
 import type { Waypoint } from './nav/types';
-import { RecorderError } from './recorder/types';
+import { startErrorFrom, type StartError } from './recorder/types';
 import { startWalk } from './session';
 import { parseStartMode, START_MODE_KEY, startPlan, walkHerePlan, type StartMode } from './startPlan';
 import { showWalk } from './walkNav';
 
-export type StartError = { message: string; openSettings?: boolean };
+export type { StartError };
 
 /**
  * Starts a walk at once (NV19, NV12, NV25): Navigate's Start, and Walk here on
@@ -29,7 +29,11 @@ export function useStartWalk() {
    * `inPlace` (NR6): the ready walk screen starts the walk itself, so nothing is opened; it gets the
    * walk's notice params back once the plan's meta is written, and `null` if the walk didn't start.
    */
-  const start = async (dest: Waypoint | null, mode?: StartMode, opts?: { inPlace?: boolean }): Promise<Record<string, string> | null> => {
+  const start = async (
+    dest: Waypoint | null,
+    mode?: StartMode,
+    opts?: { inPlace?: boolean; onError?: (e: StartError) => void },
+  ): Promise<Record<string, string> | null> => {
     // Motion first, straight from the tap: an iPhone's browser asks only then (Motion, MO1).
     void askMotion();
     setError(null);
@@ -56,10 +60,11 @@ export function useStartWalk() {
       showWalk(plan.params);
       return plan.params ?? {};
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      setError({ message, openSettings: e instanceof RecorderError && e.openSettings });
+      const said = startErrorFrom(e);
+      setError(said);
+      opts?.onError?.(said);
       // In place, a walk that opened before its plan failed shows the error on the walk (audit 10).
-      if (opts?.inPlace && (await db.getOpenWalk().catch(() => null))) return { error: message };
+      if (opts?.inPlace && (await db.getOpenWalk().catch(() => null))) return { error: said.message };
       return null;
     } finally {
       setStarting(false);

@@ -310,7 +310,7 @@ test('MS13: deleting a piece keeps the rest and the moment\'s threads, reminder 
   assert.equal((await db.listRecalls()).length, 0);
 });
 
-test("VT7: a video's delete takes its copy", async () => {
+test("VS7: a video's delete takes its copy", async () => {
   type Piece = Pick<Capture, 'file_path' | 'thumb_path'>;
   const { filesOfMoments } = (await import('../../deletion/core' + '')) as { filesOfMoments: (ms: { pieces: Piece[] }[]) => string[] };
   assert.deepEqual(filesOf([{ file_path: 'walks/w1/v.mp4', thumb_path: 'walks/w1/v.thumb.jpg' }]), ['walks/w1/v.mp4', 'walks/w1/v.thumb.jpg']);

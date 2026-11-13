@@ -1,5 +1,6 @@
 // @layer adapter
 import { db } from '../db';
+import { startOffNotice } from '../locate/notice';
 import type { TracePoint } from '../types';
 import { emit, setStatus, subscribe, subscribeStatus } from './emitter';
 import { RecorderError, type Recorder } from './types';
@@ -99,9 +100,10 @@ function watch(id: string): Promise<void> {
         clearTimeout(timer);
         stopWatch();
         walkId = null;
-        const message = 'Location permission was denied. Allow location for this site in the browser settings, then try again.';
-        setStatus({ kind: 'error', message });
-        settle(() => reject(new RecorderError(message)));
+        // Refused: Locate's line with the recorder's own end, as a quiet notice (T26).
+        const { message, tone } = startOffNotice('web');
+        setStatus({ kind: 'error', message, tone });
+        settle(() => reject(new RecorderError(message, false, tone)));
       },
       { enableHighAccuracy: true, maximumAge: 0 },
     );

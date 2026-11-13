@@ -227,6 +227,53 @@ const snapDivisionFeatures = [
   { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-13, -4), at(-5, -4), at(-5, 4), at(-13, 4), at(-13, -4)]] },
     properties: { subtype: 'neighborhood', class: 'land', '@name': 'Point Street', division_id: 'point-street', id: 'point-street-area' } },
 ];
+// A dense downtown (explore-dense-city, the owner's Baltimore report, Nov 12): 3 km around the start with a named street
+// every 60 m cut into blocks as OSM ways are, an unnamed alley between each pair, 2,000 places thickest in the middle, a
+// city point, eight neighborhoods on a 700 m ring and one, Far Point, 2.2 km west, past what the first busy read covers.
+// Served only while denseWorld.serve is on (the dense journey and scripts/perf-explore.js), so no other journey changes.
+const denseWorld = { serve: false };
+const DENSE_HOODS = ['Old Market', 'Mount Hill', 'Harbor East', 'Little Port', 'Ridge Row', 'Canal Side', 'Upper Fells', 'Station North'];
+const denseFeatures = (() => {
+  const out = [];
+  const P = (x, y) => at(-0.5 + x / 100, -0.5 + y / 100);
+  const HALF = 1500;
+  const STEP = 60;
+  let n = 0;
+  for (let v = -HALF; v <= HALF; v += STEP) {
+    n++;
+    for (let b = -HALF; b < HALF; b += STEP) {
+      out.push({ type: 'Feature', properties: { class: n % 5 ? 'minor' : 'tertiary', name: `${n} Avenue` }, geometry: { type: 'LineString', coordinates: [P(v, b), P(v, b + STEP)] } });
+      out.push({ type: 'Feature', properties: { class: n % 5 ? 'minor' : 'tertiary', name: `${n} Street` }, geometry: { type: 'LineString', coordinates: [P(b, v), P(b + STEP, v)] } });
+    }
+    if (v + STEP / 2 <= HALF) {
+      out.push({ type: 'Feature', properties: { class: 'service', subclass: 'alley' }, geometry: { type: 'LineString', coordinates: [P(v + STEP / 2, -HALF), P(v + STEP / 2, HALF)] } });
+      out.push({ type: 'Feature', properties: { class: 'service', subclass: 'alley' }, geometry: { type: 'LineString', coordinates: [P(-HALF, v + STEP / 2), P(HALF, v + STEP / 2)] } });
+    }
+  }
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const kinds = [['cafe', 'cafe'], ['restaurant', 'restaurant'], ['shop', 'gift'], ['bar', 'bar'], ['clothing_store', 'clothes'], ['museum', 'museum'],
+    ['art_gallery', 'artwork'], ['park', 'park'], ['monument', 'memorial'], ['library', 'library'], ['theatre', 'theatre'], ['bakery', 'bakery']];
+  for (let i = 0; i < 2000; i++) {
+    const [cls, sub] = kinds[i % kinds.length];
+    // Thickest in the middle; on a street's side, 8 m off it, clear of the corner, as the grading tests place them.
+    const r = HALF * Math.pow(rnd(), 1.4);
+    const a = rnd() * 2 * Math.PI;
+    const x = Math.round((r * Math.cos(a)) / STEP) * STEP + 8;
+    const y = r * Math.sin(a);
+    const [px, py] = i % 2 ? [x, y] : [y, x];
+    out.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Place ${i}` }, geometry: { type: 'Point', coordinates: P(px, py) } });
+  }
+  out.push({ type: 'Feature', properties: { class: 'city', name: 'Densburg' }, geometry: { type: 'Point', coordinates: P(0, 0) } });
+  DENSE_HOODS.forEach((name, i) => {
+    const a = (i / DENSE_HOODS.length) * 2 * Math.PI;
+    out.push({ type: 'Feature', properties: { class: 'neighbourhood', name }, geometry: { type: 'Point', coordinates: P(700 * Math.cos(a), 700 * Math.sin(a)) } });
+  });
+  out.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Far Point' }, geometry: { type: 'Point', coordinates: P(-2200, 0) } });
+  return out;
+})();
+// The map's text (explore-dense-city DC1): OpenFreeMap's Noto Sans Bold, Latin-1 block, served for every range the map asks.
+const GLYPHS = fs.readFileSync(path.join(__dirname, 'fixtures', 'fonts', 'Noto Sans Bold', '0-255.pbf'));
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -235,6 +282,8 @@ const style = {
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
   // The credit makes maplibre draw its attribution control, as the real tiles' do.
   sources: { openmaptiles: { type: 'geojson', maxzoom: 14, attribution: 'Data from OpenStreetMap', data: { type: 'FeatureCollection', features } } },
+  // The real style's glyphs (Positron's), so the map's own text draws (explore-dense-city DC1).
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   layers: [
     { id: 'bg', type: 'background', paint: { 'background-color': '#eeeae4' } },
     { id: 'roads', type: 'line', source: 'openmaptiles', paint: { 'line-color': '#ffffff', 'line-width': 6 } },
@@ -467,11 +516,12 @@ async function createHarness() {
   // A stalled TileJSON request on demand, as on a phone with a weak signal (bug: a blank replay after Stop).
   // tiles.stall: a stalled TileJSON request, set by a journey (tiles.stall = promise).
   const tileRoute = async (r) => {
+    if (/\/fonts\/[^/]+\/\d+-\d+\.pbf$/.test(r.request().url())) return r.fulfill({ contentType: 'application/x-protobuf', body: GLYPHS });
     const tile = /\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : [])], z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : []), ...(denseWorld.serve ? denseFeatures : [])], z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -702,7 +752,7 @@ async function createHarness() {
   });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS,
   };
 }
 

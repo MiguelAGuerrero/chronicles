@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ComponentRef } from 'react';
 import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NOTE_MAX } from '../../lib/noteEdit';
@@ -8,7 +8,10 @@ import { fits, roomOfCount } from '../../lib/notePage/room';
 import type { BodyFormat } from '../../lib/notePage/schema';
 import { refLabel } from '../../lib/threads/lines';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
-import { Icon } from '../icons';
+import { focusOn } from '../../lib/focus';
+import { markOf, noteTypeOf, type NoteType } from '../../lib/noteType';
+import { Icon, type IconName } from '../icons';
+import { NoteTypeMenu } from './NoteTypeMenu';
 import { MomentPicker } from '../threads/MomentPicker';
 import { useMomentPool } from '../threads/useMomentPool';
 import { theme } from '../ui';
@@ -121,9 +124,10 @@ const NONE: Formats = { h1: false, h2: false, bold: false, italic: false, bullet
 export type NotePageHandle = { requestClose(): void };
 
 /** One of the page's tools: 44 pt, named, and pressed or not where it toggles (NP4); the bar's say their name (note-pages audit 21). */
-function Tool(props: { testID: string; label: string; caption?: string; onPress: () => void; on?: boolean; disabled?: boolean; children: React.ReactNode }) {
+const Tool = forwardRef<ComponentRef<typeof Pressable>, { testID: string; label: string; caption?: string; onPress: () => void; on?: boolean; disabled?: boolean; children: React.ReactNode }>(function Tool(props, ref) {
   return (
     <Pressable
+      ref={ref}
       testID={props.testID}
       accessibilityRole="button"
       accessibilityLabel={props.label}
@@ -137,7 +141,7 @@ function Tool(props: { testID: string; label: string; caption?: string; onPress:
       {props.caption != null ? <Text style={styles.caption}>{props.caption}</Text> : null}
     </Pressable>
   );
-}
+});
 
 /**
  * A note's page (NP1-NP14, decision 0151), in Apple Journal's manner: the day and the moment's context at its head,
@@ -155,6 +159,10 @@ export const NotePage = forwardRef<NotePageHandle, {
   /** The moment the page belongs to, so @ never mentions it. */
   self: string | null;
   onCamera?: () => Promise<{ id: string; label: string } | null>;
+  /** The note's type as stored: with it the page offers the Type tool (NY6, decision 0161); a note being written new has none to offer (NY15). */
+  type?: string | null;
+  /** A type chosen on the page, kept at once, beside the words (NY7); null is "No type". */
+  onType?: (type: NoteType | null) => void;
 }>(function NotePage(props, ref) {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -163,6 +171,9 @@ export const NotePage = forwardRef<NotePageHandle, {
   const [formats, setFormats] = useState<Formats>(NONE);
   const [panel, setPanel] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [typePanel, setTypePanel] = useState(false);
+  const [chosen, setChosen] = useState<NoteType | null>(() => noteTypeOf(props.type));
+  const typeTool = useRef<ComponentRef<typeof Pressable>>(null);
   const [past, setPast] = useState(false);
   const [shown, setShown] = useState('');
   const [count, setCount] = useState(0);
@@ -176,6 +187,7 @@ export const NotePage = forwardRef<NotePageHandle, {
   useImperativeHandle(ref, () => ({
     requestClose: () => {
       if (picking) setPicking(false);
+      else if (typePanel) setTypePanel(false);
       else if (panel) setPanel(false);
       else leave();
     },
@@ -234,13 +246,30 @@ export const NotePage = forwardRef<NotePageHandle, {
           ))}
         </View>
       )}
+      {typePanel && (
+        <NoteTypeMenu
+          chosen={chosen}
+          onChoose={(t) => {
+            setChosen(t);
+            setTypePanel(false);
+            props.onType?.(t);
+            // The entry that held focus is gone: focus returns to the tool that opened the menu (note-types audit 21).
+            setTimeout(() => focusOn(typeTool), 0);
+          }}
+        />
+      )}
       <View style={[styles.bar, { paddingBottom: (keyboard && Platform.OS !== 'ios' ? 0 : insets.bottom) + 6, marginBottom: bottom }]} testID="note-bar" accessibilityRole="toolbar">
-        <Tool testID="note-format" label="Format" caption="Format" on={panel} onPress={() => setPanel((p) => !p)}>
+        <Tool testID="note-format" label="Format" caption="Format" on={panel} onPress={() => { setTypePanel(false); setPanel((p) => !p); }}>
           <Text style={styles.glyph}>Aa</Text>
         </Tool>
         <Tool testID="note-mention" label="Mention a moment" caption="Mention" onPress={() => setPicking(true)}>
           <Text style={styles.glyph}>@</Text>
         </Tool>
+        {props.type !== undefined && props.onType ? (
+          <Tool testID="note-type-row" ref={typeTool} label={`Type, ${markOf({ kind: 'text', note_type: chosen })?.name ?? 'No type'}`} caption="Type" on={typePanel} onPress={() => { setPanel(false); setTypePanel((o) => !o); }}>
+            <Icon name={(markOf({ kind: 'text', note_type: chosen })?.glyph ?? 'pricetag-outline') as IconName} size={22} color={theme.ink} />
+          </Tool>
+        ) : null}
         {camera ? (
           <Tool
             testID="note-camera"

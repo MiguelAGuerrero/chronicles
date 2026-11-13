@@ -5,7 +5,7 @@ paths:
   - "src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate}.ts"
   - "src/components/{LocateButton,CompassButton}.tsx"
   - "src/lib/compass.ts"
-  - "scripts/{copy-maplibre-worker,perf-walk}.js"
+  - "scripts/{copy-maplibre-worker,perf-walk,perf-explore}.js"
   - "src/lib/__tests__/map/**"
 ---
 # Map
@@ -31,6 +31,48 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   - Line sources use `tolerance: 1, buffer: 64`.
   - Profiling shows the app's own JavaScript under 2% of a desktop core; the
     rest is the map drawing. Fewer updates is what helps.
+  - **A setState with the value already held still renders** when React can't
+    bail out early (an effect's cleanup, an update queued beside others): the
+    Busy layer's `setReading(false)` and re-listed rows, and the complexes
+    hook's empty result, each cost Explore a render per switch (fix DC12). Set
+    state only when it changed; `scripts/perf-explore.js` and the `dense`
+    journey count `render:explore`.
+- **Explore in a dense city** (decision 0160, `scripts/perf-explore.js`,
+  `docs/TESTING.md`): measure on the dense downtown before tuning.
+  - **Busy names are the map's own text** (DC1-DC6): one `busy-names` symbol
+    layer (`busyNameLayers`, `busyNamesGeoJSON` in `map/types.ts`), a point per
+    strip at its label point turned along its street (`landing/names.ts`),
+    `text-allow-overlap` and `text-ignore-placement` false, `symbol-sort-key`
+    the view's order (heaviest first; no weight reaches the view, L9), one
+    size and colour for all. `text-font` is `BUSY_NAME_FONT`, a font the base
+    style's glyphs serve; the e2e's fake style has `glyphs` and the harness
+    serves one OFL glyph file. **Trap:** `line-center` placement drew nothing
+    (a strip's pieces don't meet end to end, and most strips are shorter than
+    their name at z15).
+  - **Where the names sit** (DC16): over everything on Explore
+    (`busyNamesOver`), so maplibre places them before the base map's labels;
+    elsewhere under the first base label layer (web finds it; native names it,
+    `BASE_FIRST_LABEL`), so a road keeps its own name and the trace draws over.
+    The selected area's name and every "?" pin reserve their room in a second,
+    invisible layer over the names (`busy-names-room`: `text-allow-overlap`
+    true, so two pins side by side both keep theirs; DC14, DC17). A name its
+    point can't hold slides along its street (`text-variable-anchor` center,
+    left, right with a 2.6 em radial offset) only when it runs near level:
+    maplibre shifts a variable anchor in screen x, never along `text-rotate`,
+    so a turned name has its own layer, centred or left out
+    (`busy-names-turned`, audit 1). Explore's controls (`busyNamesClearOf`) and
+    the canvas's edges are room too, sent again at each `moveend` and resize
+    (web, audit 11). With the layer off nothing is sent, rooms included
+    (audit 8). The walk maps name only within 800 m of you
+    (`busyNamesNear`, DC18), and every map from zoom 13 (`minzoom`). **Trap:** `text-padding` takes
+    no data expression: maplibre refuses the layer with a console error (the
+    `dense` journey's "no console errors" caught it). The style spec package
+    is not a declared dependency, so no unit test can validate a layer.
+  - **E2E hooks** (only with `window.__perf`): `data-busy-names` (written at
+    `idle`), `data-busy-given`, `data-busy-over`, `data-idle`,
+    `window.__zoomTo`, `__busyNamesIn`, `__busyNamePoint` (only where the canvas
+    is what a finger meets), and `perfMark` stamps `mark:moved`,
+    `mark:settled`, `mark:busy-read`.
 - **Web memory on iPhone:** the maps use `pixelRatio` ≤ 2,
   `maxTileCacheZoomLevels: 2` and `fadeDuration: 0`. The photo resize shrinks
   its canvas to 0 after use (iOS caps canvas memory per tab). Cached street
@@ -78,7 +120,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 ## Town borders (TB1-TB9, decision 0088)
 
 - `WalkMap`'s `borders` prop (`BorderView` from `areas/borders.ts`): one `borders` source, three layers (`border-fill` for tinted, `border-firm` for tinted and firm, `border-lined`), from `BORDER.minZoom` (8). On web the fill goes under the first base road layer (`source-layer` transportation, else the first line, else the first label) and the lines under the first label, over the streets, since a border often runs along a road (TB10: at 7% and under the streets the owner saw nothing on a phone); on native they are the first overlay (no road id to go below; unverified on a device).
-- Explore frames the tinted town's whole border (`townFrame`, TB11) through one rule, `nextFrame` (`atlas/atlas.ts`): each visit to a page (near you, a town's; opening one or going Back starts a visit) frames its areas until its town's border is known (150 m around them near you; a town's reach on its page, where its point may be all that is listed), then the whole town, and nothing undoes that within the visit (areas listed later, the borders null while the tab is blurred, Locate, a pan, coming back into a town it framed). Two separate frame-once effects raced and the areas' won, so a town's page never showed the whole town (fix explore-fit-area, Nov 4; the e2e reads the view from `data-bounds`). `useOutlineSet` retries a failed read every 30 s while mounted, and a z10 tile has 45 s (TB12).
+- Explore frames the tinted town's whole border (`townFrame`, TB11) through one rule, `nextFrame` (`atlas/atlas.ts`): each visit to a page (near you, a town's; opening one or going Back starts a visit) frames its areas until its town's border is known (150 m around them near you; a town's reach on its page, where its point may be all that is listed), then the whole town, and nothing undoes that within the visit (areas listed later, the borders null while the tab is blurred, Locate, a pan, coming back into a town it framed). Two separate frame-once effects raced and the areas' won, so a town's page never showed the whole town (fix explore-fit-area, Nov 4; the e2e reads the view from `data-bounds`). A town selected in the row is framed again each time (`townPicked`, fix town-fit, Nov 13: a town selected twice kept the last town's zoom); it writes the visit's record, adding the town and never dropping one, so Locate back into a town framed earlier keeps Locate's frame (audit 1). **Trap:** the outline set a pick reads holds only the z10 tiles under you and the last selection, so a town in another tile is picked before its border is known; the record waits for it by the area's key (`awaiting`, matched to `litKey`), never by outline id (audit 2). `useOutlineSet` retries a failed read every 30 s while mounted, and a z10 tile has 45 s (TB12).
 - Data is sent again only when `borders.key` changes (the towns and their roles), never per fix or zoom; the web writes `data-borders` (`role:name|...`) for the e2e.
 - Screens: Explore (`index.tsx`, yours tinted by `outlineIdHere`, the open town's by `outlineOf`), Chronicle (walked towns, `lined: false`), the walk screen (`firm` by `outlineIdAt`, no fill), the replay and a day (`useWalkBorders`). `BORDER` colours are held by `colors.test.ts` (TB8).
 
@@ -161,6 +203,12 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   units)`; imperial picks feet in 1, 2, 5 × 10^n up to 2,000 ft, then miles. `meters`
   stays in metres, so the e2e's `data-m` is always metres. Both maps call `useUnits()`
   and pass it, so the bar redraws on a change.
+- **No scale bar over a blank world** (`tend map T17`, decision 0154): Navigate and Explore pass `hideScaleOnBlank`; with
+  no fix (`walker`) and nothing the base tiles drew in view, the bar is gone (`scaleShown`, `lib/scaleBar.ts`). Trap: an
+  unfiltered `queryRenderedFeatures()` always finds the app's world-wide `veil` polygons, so the web keeps the base
+  style's layer ids at `load`, before `addOverlay`, and queries only their fills (`blankLookLayers`, audit 15); native
+  counts the `omt-query` source's roads, water and places (`drawnFrom`, audit 14). The e2e's fake streets draw at the
+  world's zoom, so its blank world needs a style with no features (`qol`).
 - **A photo's pin shows its small copy** (QL26, QL27): `pinThumb(pin)` (`lib/pins.ts`,
   pure) gives the copy's ref only for a pin of one photo, or since VT3 one video (its still), with a `thumb_path` other
   than `THUMB.none`, never `file_path`: a map never decodes full photos or plays a video. A video's pin wears

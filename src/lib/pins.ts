@@ -1,6 +1,7 @@
 // @layer core
 import type { Faced } from './moment';
 import { distanceM } from './geo';
+import { markOf, type NoteTypeInfo } from './noteType';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
 
@@ -121,10 +122,21 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
 
 /**
  * The stored ref of the small copy a pin's head shows (QL26): only for a pin of
- * one photo or one video (VT3) whose copy is made. Never the full photo or the
+ * one photo or one video (VS3) whose copy is made. Never the full photo or the
  * video's file: while the copy is being made, or for one that won't decode, the
  * pin keeps its icon, so a map never decodes full media. A pin of several keeps its count.
  */
+/** A pin of exactly one note with a type wears that type's mark (NY10); a pin of several keeps its kind's glyph and its count. */
+export function pinMark(pin: CapturePin): NoteTypeInfo | null {
+  return pin.captures.length === 1 ? markOf(pin.captures[0]) : null;
+}
+
+/** What a screen reader hears of a single typed note's pin: "Note, idea" (NY10, NY11); null when the pin wears no mark. */
+export function pinNoteLabel(pin: CapturePin): string | null {
+  const m = pinMark(pin);
+  return m ? `Note, ${m.name.toLowerCase()}` : null;
+}
+
 export function pinThumb(pin: CapturePin): string | null {
   if (pin.captures.length !== 1) return null;
   const c = pin.captures[0];

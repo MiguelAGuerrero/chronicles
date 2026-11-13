@@ -96,7 +96,7 @@ export function probeVideoSize(uri: string): Promise<{ w: number; h: number } | 
 }
 
 /**
- * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VT1, VT8): a web exception, since
+ * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VS1, VS8): a web exception, since
  * expo-video's web player cannot make one ("not supported on Web yet"). A detached, muted <video> loads the file from
  * its `blob:` URL, seeks to the frame and draws it on a canvas; the still is a `blob:` URL the image manipulator and
  * `keepFile` take. Nothing leaves the page. iOS Safari loads nothing until play() is called, so the video is played

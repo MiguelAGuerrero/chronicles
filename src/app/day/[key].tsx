@@ -1,4 +1,4 @@
-import { type Faced, facedAll } from '../../lib/moment';
+import { type Faced, facedAll, patchFaced } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
@@ -329,11 +329,12 @@ export default function DayReplay() {
         captures={viewing}
         onClose={() => setViewing(null)}
         remind
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type, only) => {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setData((d) => d && withNote(d, c.id, body));
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body, type, only);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && withNote(d, c.id, change, c.piece_id));
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
 
@@ -378,13 +379,13 @@ export default function DayReplay() {
 }
 
 /** The day with one note's new text, in its loose moments and its walks' captures (QL25). */
-function withNote(d: Loaded, id: string, body: string): Loaded {
+function withNote(d: Loaded, id: string, change: ReturnType<typeof notePatch>, pieceId: string): Loaded {
   const entries = d.day.entries.map((e) =>
     e.kind === 'walk'
-      ? { ...e, captures: applyPatch(e.captures, id, notePatch(body)) }
-      : e.capture.id === id ? { ...e, capture: { ...e.capture, ...notePatch(body) } } : e,
+      ? { ...e, captures: applyPatch(e.captures, id, change, pieceId) }
+      : e.capture.id === id ? { ...e, capture: patchFaced(e.capture, change, pieceId) } : e,
   );
-  const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, notePatch(body)) }]));
+  const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, change, pieceId) }]));
   return { ...d, day: { ...d.day, entries }, walks };
 }
 

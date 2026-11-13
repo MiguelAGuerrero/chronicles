@@ -1,4 +1,5 @@
 // @layer view
+import { nextShown } from './shown';
 import { useEffect, useRef, useState } from 'react';
 import { ensureOvertureRelease } from '../activity/overture';
 import type { LngLat } from '../types';
@@ -30,6 +31,10 @@ export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKi
 export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; reachM: number } | null): { complexes: Complex[]; partial: boolean } {
   const [state, setState] = useState<{ key: string | null; complexes: Complex[]; partial: boolean }>({ key: null, complexes: [], partial: false });
   const [tick, setTick] = useState(0);
+  const stateNow = useRef(state);
+  useEffect(() => {
+    stateNow.current = state;
+  }, [state]);
   const failedAt = useRef<{ key: string; t: number } | null>(null);
   const key = area?.key ?? null;
   const lon = area?.at[0];
@@ -56,7 +61,10 @@ export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; 
         return;
       }
       failedAt.current = null;
-      setState({ key, complexes: r.complexes, partial: r.partial });
+      // explore-dense-city DC12, audit 10: no update when nothing on screen changes: even a setState that hands back the
+      // same state renders once (map rules), so it is compared here first.
+      const next = nextShown(stateNow.current, key, r);
+      if (next !== stateNow.current) setState(next);
     })();
     return () => {
       live = false;

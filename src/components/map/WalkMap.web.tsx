@@ -1,22 +1,21 @@
 import type { Faced } from '../../lib/moment';
-import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type SymbolLayerSpecification, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { perfCount } from '../../lib/perfCount';
+import { perfCount, perfMark } from '../../lib/perfCount';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
-import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
-import { creditsAt, scaleBar } from '../../lib/scaleBar';
+import { metersPerPixel, pinMark, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
+import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
 import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
@@ -32,7 +31,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -144,6 +143,15 @@ function addOverlay(map: MapLibreMap) {
       'circle-stroke-color': '#ffffff',
       'circle-stroke-width': 2,
     } });
+  // The Busy layer's names (DC1-DC6, DC14): the map's own text, colliding with each other and the base map's labels. Where
+  // the layer sits in the stack is set by busyNamesOver (DC16); added on top here.
+  map.addSource('busy-names', { type: 'geojson', data: empty });
+  const names = busyNameLayers();
+  map.addLayer({ id: 'busy-names', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.filter, layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
+  // A turned name, centred or left out, never slid across its street (audit 1).
+  map.addLayer({ id: 'busy-names-turned', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.turned.filter, layout: names.turned.layout, paint: names.turned.paint } as unknown as SymbolLayerSpecification);
+  // The room the selected area's name and each "?" pin keep (DC14, DC17): above the names, so it is placed first.
+  map.addLayer({ id: 'busy-names-room', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
 }
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
@@ -270,6 +278,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
+  const baseLayers = useRef<string[]>([]);
   const readyPromise = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
   if (readyPromise.current == null) {
     let resolve!: () => void;
@@ -285,6 +294,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCreditsOpen = useRef(props.onCreditsOpen);
   const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
+  const onMoveState = useRef(props.onMoveState);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
@@ -297,6 +307,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onCreditsOpen.current = props.onCreditsOpen;
     freePan.current = !!props.freePan;
     fitPadding.current = props.fitPadding;
+    onMoveState.current = props.onMoveState;
   });
   const pointerDown = useRef(false);
   const creditsRef = useRef<ClosedAttribution | null>(null);
@@ -378,6 +389,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       map.keyboard.disableRotation();
     }
     map.on('load', () => {
+      // The base map's own layers, before the app adds its overlay (T17: whether the tiles drew anything).
+      baseLayers.current = blankLookLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[]);
       addOverlay(map);
       setReady(true);
       readyPromise.current!.resolve();
@@ -395,6 +408,35 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         };
         // A two-finger turn can't be made headless: the e2e turns the newest map in code (CP1-CP5).
         (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
+        // Explore in a dense city (DC5, DC6, DC14, DC15): the e2e moves the newest map in code and asks which busy names are
+        // drawn, where; names the map placed, never the reserved room (DC14).
+        const BUSY = ['busy-names', 'busy-names-turned'];
+        const busyIn = (box?: [[number, number], [number, number]]) =>
+          [...new Set((box ? map.queryRenderedFeatures(box, { layers: BUSY }) : map.queryRenderedFeatures({ layers: BUSY }))
+            .filter((f) => !f.properties?.reserve).map((f) => String(f.properties?.name)))];
+        const canvasXY = (x: number, y: number): [number, number] => {
+          const r = map.getCanvas().getBoundingClientRect();
+          return [x - r.left, y - r.top];
+        };
+        const w = window as { __zoomTo?: unknown; __busyNamesIn?: unknown; __busyNamePoint?: unknown };
+        w.__zoomTo = (at: LngLat, zoom: number) => map.jumpTo({ center: at, zoom });
+        w.__busyNamesIn = (x0: number, y0: number, x1: number, y1: number) => busyIn([canvasXY(x0, y0), canvasXY(x1, y1)]);
+        w.__busyNamePoint = () => {
+          const r = map.getCanvas().getBoundingClientRect();
+          for (let y = 60; y < r.height - 60; y += 8)
+            for (let x = 30; x < r.width - 30; x += 8) {
+              // Only where the name is what a finger meets: no pin or control over it.
+              if (document.elementFromPoint(r.left + x, r.top + y) !== map.getCanvas()) continue;
+              const hit = busyIn([[x - 1, y - 1], [x + 1, y + 1]]);
+              if (hit.length) return { x: r.left + x, y: r.top + y, name: hit[0] };
+            }
+          return null;
+        };
+        map.on('movestart', () => container.current?.setAttribute('data-idle', '0'));
+        map.on('idle', () => {
+          container.current?.setAttribute('data-idle', '1');
+          container.current?.setAttribute('data-busy-names', JSON.stringify(busyIn()));
+        });
       }
     });
     // maplibre fires click for each tap of a double-tap zoom: wait to see
@@ -619,6 +661,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('moveend', () => {
       northAsked.current = false;
     });
+    // explore-dense-city ui 3: the busy names fold upright for the bearing the map settles on (a turn, resetNorth).
+    let namesBearing = 0;
+    const uprightNames = () => {
+      const b = Math.round(map.getBearing());
+      if (b === namesBearing || !map.getLayer('busy-names')) return;
+      namesBearing = b;
+      map.setLayoutProperty('busy-names', 'text-rotate', busyNameRotate(b) as never);
+      map.setLayoutProperty('busy-names-turned', 'text-rotate', busyNameRotate(b) as never);
+    };
+    map.on('rotateend', uprightNames);
+    map.on('moveend', uprightNames);
     // A camera move made in code cancels a drag in progress, and the glide moves
     // the camera every frame. So follow-moves wait while a pointer is down.
     const down = () => { pointerDown.current = true; };
@@ -636,6 +689,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     credits.onOpen = (open) => onCreditsOpen.current?.(open);
     creditsRef.current = credits;
     map.addControl(credits, props.attributionTop ? 'top-right' : 'bottom-left');
+    // DC9: the camera's moves, once at their start and once at their settle (Explore's busy read waits for the settle).
+    map.on('movestart', () => {
+      perfMark('mark:moved');
+      onMoveState.current?.(true);
+    });
+    map.on('moveend', () => {
+      perfMark('mark:settled');
+      onMoveState.current?.(false);
+    });
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);
@@ -647,6 +709,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // A map that comes back opens north-up (CP8), so its screen hears north as it goes: a map taken down under the
       // planner left its last turn with the compass (tend map audit 6).
       if (sentBearing !== 0) onBearingChange.current?.(0);
+      // audit 7: a map taken down mid-move fires no moveend; whatever waits for its settle goes on.
+      onMoveState.current?.(false);
       map.remove();
       mapRef.current = null;
     };
@@ -727,6 +791,90 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
     container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
   }, [ready, props.landing]);
+  // The busy names (DC1, DC14): sent when the areas or the reserved name change, never per fix or zoom.
+  const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
+  const reserveRef = useRef(props.busyNamesReserve);
+  // DC17: every "?" pin keeps its room; sent again only when the pins move, never per render.
+  const pinsAt = (props.discoveries ?? []).map((d) => d.at);
+  const pinsKey = props.landing ? pinsAt.map((a) => a.join(',')).join('|') : '';
+  const pinsRef = useRef(pinsAt);
+  useEffect(() => {
+    pinsRef.current = (props.discoveries ?? []).map((d) => d.at);
+  });
+  useEffect(() => {
+    reserveRef.current = props.busyNamesReserve;
+  });
+  // DC18: the walk maps' names near you, re-sent only when you move about 100 m.
+  const nearRef = useRef(props.busyNamesNear);
+  const nearKey = props.busyNamesNear ? `${props.busyNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.busyNamesNear.m}` : '';
+  const clearOfRef = useRef(props.busyNamesClearOf);
+  const landingRef = useRef(props.landing);
+  useEffect(() => {
+    nearRef.current = props.busyNamesNear;
+    clearOfRef.current = props.busyNamesClearOf;
+    landingRef.current = props.landing;
+  });
+  // audit 11: the screen's controls over the map, and the map's edge, as room cells where the map now stands. Read from
+  // the page each time the map settles (a control never moves with the map); none while the Busy layer is off.
+  const roomOnScreen = (map: MapLibreMap): LngLat[] => {
+    const canvas = map.getCanvas().getBoundingClientRect();
+    const rects: { x: number; y: number; w: number; h: number }[] = [
+      { x: 0, y: 0, w: canvas.width, h: 0 }, { x: 0, y: canvas.height, w: canvas.width, h: 0 },
+      { x: 0, y: 0, w: 0, h: canvas.height }, { x: canvas.width, y: 0, w: 0, h: canvas.height },
+    ];
+    for (const id of clearOfRef.current ?? [])
+      for (const el of document.querySelectorAll(`[data-testid="${id}"]`)) {
+        const r = el.getBoundingClientRect();
+        if (!r.width || r.right < canvas.left || r.left > canvas.right || r.bottom < canvas.top || r.top > canvas.bottom) continue;
+        rects.push({ x: r.left - canvas.left, y: r.top - canvas.top, w: r.width, h: r.height });
+      }
+    return rects.flatMap((r) => roomCells(r)).map(([x, y]) => {
+      const c = map.unproject([x, y]);
+      return [c.lng, c.lat] as LngLat;
+    });
+  };
+  const sendNames = useRef<() => void>(() => {});
+  useEffect(() => {
+    sendNames.current = () => {
+      const map = mapRef.current;
+      if (!map || !map.getSource('busy-names')) return;
+      const landing = landingRef.current;
+      const names = busyNamesGeoJSON(landing, reserveRef.current ?? null, pinsRef.current, nearRef.current ?? null, landing ? roomOnScreen(map) : []);
+      setData('busy-names', names);
+      // The e2e reads what the map was given (only when it is measuring): each name and where it goes.
+      if ((window as { __perf?: unknown }).__perf && container.current) {
+        container.current.dataset.busyGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
+      }
+    };
+  });
+  useEffect(() => {
+    if (ready) sendNames.current();
+  }, [ready, props.landing, reserveKey, pinsKey, nearKey]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    // The rooms follow the map: once it settles, and when the screen changes size.
+    const again = () => { if (landingRef.current) sendNames.current(); };
+    map.on('moveend', again);
+    map.on('resize', again);
+    return () => {
+      map.off('moveend', again);
+      map.off('resize', again);
+    };
+  }, [ready]);
+  // DC16: over every layer on Explore, so its names are placed before the base map's; elsewhere under the base map's labels
+  // (placed after them, so a road keeps its own name) and so under the trace and the route.
+  const namesOver = !!props.busyNamesOver;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const firstSymbol = (map.getStyle().layers as { type: string; id: string }[]).find((l) => l.type === 'symbol' && !l.id.startsWith('busy-names'))?.id;
+    const below = namesOver ? undefined : firstSymbol ?? 'alternates-edge';
+    map.moveLayer('busy-names', below);
+    map.moveLayer('busy-names-turned', below);
+    map.moveLayer('busy-names-room', below);
+    container.current?.setAttribute('data-busy-over', namesOver ? '1' : '0');
+  }, [ready, namesOver]);
   useEffect(() => {
     if (!ready) return;
     setData('waiting-dots', waitingDotsGeoJSON(props.waitingDots));
@@ -818,6 +966,25 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
+  // No scale bar over a blank world (T17): with no fix, the map looks at what it drew each time it settles.
+  const blankWatch = !!props.hideScaleOnBlank && !props.walker;
+  const [drawn, setDrawn] = useState<boolean | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !blankWatch) return;
+    // Only the base map's layers: the app's own (the world's veil among them) cover the world whatever the tiles did.
+    const look = () => {
+      const layers = baseLayers.current.filter((id) => map.getLayer(id));
+      setDrawn(layers.length > 0 && map.queryRenderedFeatures({ layers }).length > 0);
+    };
+    map.on('idle', look);
+    // A map already settled fires no idle until it draws again.
+    map.triggerRepaint();
+    return () => {
+      map.off('idle', look);
+    };
+  }, [ready, blankWatch]);
+  const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
   // The live walk's dot and cone: one marker, drawn at the same size as the layers.
   useEffect(() => {
     const map = mapRef.current;
@@ -956,6 +1123,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           markLatest.current?.(id);
         });
       const root = createRoot(el);
+      perfCount('marker:mark');
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} />);
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
       markMarkers.current.set(pin.id, { marker, root, key, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
@@ -972,42 +1140,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     }
     markMarkers.current.clear();
-  }, []);
-  // Strip and pocket names, as DOM markers like the stars.
-  const landingMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!ready || !map) return;
-    for (const m of landingMarkers.current) {
-      m.marker.remove();
-      const r = m.root;
-      queueMicrotask(() => r.unmount());
-    }
-    landingMarkers.current = [];
-    for (const s of props.landing?.strips ?? []) {
-      const el = document.createElement('div');
-      el.style.pointerEvents = 'none';
-      el.setAttribute('aria-hidden', 'true');
-      const root = createRoot(el);
-      root.render(<StripLabel name={s.name} />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(s.at).addTo(map), root });
-    }
-    for (const l of props.landing?.labels ?? []) {
-      const el = document.createElement('div');
-      el.style.pointerEvents = 'none';
-      el.setAttribute('aria-hidden', 'true');
-      const root = createRoot(el);
-      root.render(<StripLabel name={l.name} />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
-    }
-  }, [ready, props.landing]);
-  useEffect(() => () => {
-    for (const m of landingMarkers.current) {
-      m.marker.remove();
-      const r = m.root;
-      queueMicrotask(() => r.unmount());
-    }
-    landingMarkers.current = [];
   }, []);
   // The complexes' names (CX9), DOM markers like the strip names, rebuilt only when they change; the map adds no summary of its own.
   const complexMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
@@ -1032,6 +1164,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.dataset.testid = 'complex-label';
       el.dataset.name = l.text;
       const root = createRoot(el);
+      perfCount('marker:complex');
       root.render(<ComplexLabelView text={l.text} />);
       complexMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
     }
@@ -1068,6 +1201,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       if (p.name) el.dataset.name = p.name;
       if (p.selected) el.dataset.selected = '1';
       const root = createRoot(el);
+      perfCount('marker:area');
       root.render(<AreaPointView pin={p} />);
       // Anchored at the top so the dot, not the label, sits on the point.
       areaMarkers.current.push({ marker: new Marker({ element: el, anchor: 'top', offset: [0, -6] }).setLngLat(p.at).addTo(map), root });
@@ -1225,7 +1359,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     <View style={[styles.wrap, props.style]}>
       <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-ground={props.ground ? String(props.ground.polygons.reduce((n, rings) => n + rings.length, 0)) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-graded={gradedKey} />
       {/* Beside the map's own DOM, not inside it, so React owns it. */}
-      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
+      {scale && scaleOn && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View testID="map-cover" style={styles.cover} pointerEvents="none" />}
     </View>
   );
@@ -1273,7 +1407,7 @@ function usePinMarkers(
       const ids = pin.captures.map((c) => c.id).join(',');
       const bell = pinReminded(pin, reminded);
       // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${pinMark(pin)?.id ?? ''}`;
       const existing = markers.current.get(pin.id);
       if (existing?.key === key) {
         // A reminder set or stopped (RB5) redraws the same element in place: focus returns to it when

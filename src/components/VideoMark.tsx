@@ -3,7 +3,7 @@ import { Icon } from './icons';
 import { theme } from './ui';
 
 /**
- * The play mark over a video's still (video thumbnails VT4): a white play glyph, and in the gallery the length, on a
+ * The play mark over a video's still (video thumbnails VS4): a white play glyph, and in the gallery the length, on a
  * solid ink ground of its own, edged in white, so it reads over any frame, dark ones too (V4: its own ground, 3:1 and more) and a video never passes
  * for a photo (X3: never colour alone). Decorative: the words around a preview say "Video".
  */

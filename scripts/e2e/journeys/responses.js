@@ -182,6 +182,7 @@ async function run(h) {
   await pg.click('[data-testid=respond-note]');
   await pg.waitForSelector('[data-testid=note-input]');
   const sheetUnder = await has('[data-testid=responses-sheet]');
+  const respondTypeRow = await pg.locator('[data-testid=note-type-row]').count();
   await pg.fill('[data-testid=note-input]', 'A new tree two doors down.');
   await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(1500);
@@ -191,6 +192,7 @@ async function run(h) {
   const linked = kept && s1.links.some((l) => l.from_id === kept.id && l.to_id === 'm');
   const toast = await pg.locator('[data-testid=viewer-pill]').count();
   await shot(pg, '93-responses-kept');
+  check(respondTypeRow === 0 && kept && (kept.pieces[0].note_type ?? null) === null, `NY15: a response note is made with no type and its editor offers none (${respondTypeRow})`);
   check(sheetUnder && linked && after.length === 4 && /two doors down/.test(after[3]) && toast === 0,
     `RT7: a note from the sheet's Respond answers its moment and arrives at the end, no pill (${after.length})`);
 

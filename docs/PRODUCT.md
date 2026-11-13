@@ -302,7 +302,11 @@ recording, and a recording bar brings a minimized walk back.
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
 - **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
-  remembered reads the area once.
+  remembered reads the area once, in the background on the web and only once the map has stopped moving, so moving between neighborhoods stays
+  smooth in a dense city (decision 0160). Its street names are the map's own text: one per street within 300 m, at its busiest point, turned along it, never over
+  another name, a "?" pin, the selected area's name or one of Explore's buttons; where they crowd, the heavier streets (a
+  current area's first) keep theirs and zooming in brings the rest. On Explore they take the room first; on the walk screen
+  and Navigate the map's own street names do, the trace draws over them, and only those within 800 m of you are named.
 - An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
   "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
 - While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
@@ -321,13 +325,19 @@ recording, and a recording bar brings a minimized walk back.
     in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
-  - **The open line** at the foot, fixed while the page scrolls and first for a screen reader: a field, the camera and
-    the mic, with no hint text. Writing is the capture: the first character begins an entry with its time and one fix,
+  - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
+    down to the bar. Pull down to read back; each day's date holds at the top while its entries pass.
+  - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
+    the page itself, in your serif, with no box and no hint text. The day's entries stack: each new one, words, photo
+    or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
+    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic; while you write it holds "Kept as you
+    write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
+    the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
     are one entry; Done ends it, as do two minutes without a piece. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
     walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
-    is today's date and the open line.
+    is today's date and the empty page.
   - **The line and the page**: while you write, the line offers **Open as a page**, which opens the note's page (below) on
     the same entry with what you typed already there; from an empty line it opens a new page. An entry a page wrote is
     drawn on the sheet in its shape (a heading, bullets, numbered lines, checkboxes, quotes) as plain text in your
@@ -430,7 +440,7 @@ recording, and a recording bar brings a minimized walk back.
   Free, Square, 4:5 and 16:9, and Rotate; nine filters a phone's photo app has
   (Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia; photos only);
   drawing like the iPhone's Markup (Pen, Marker, Eraser, three thicknesses, six
-  swatches, Undo, Redo); a text bar; a trim for videos. The file is never changed:
+  swatches, Undo, Redo); a text bar; a trim for videos, and for voice memos (Edit in the viewer opens a trim-only editor: start and end handles, the kept times, Play kept part; the memo then plays only that part everywhere, says "Trimmed · 0:39 of 0:58" in the viewer and its kept length in lists; VS1-VS12). The file is never changed:
   edits are kept with the moment and can be changed or reverted later. Saving out
   renders everything into one photo or video.
 - **Deletes** (a walk, a walk's media, one moment, a thread) hide at once with an
@@ -501,18 +511,19 @@ recording, and a recording bar brings a minimized walk back.
 | Chronicle journal, cut 1 (Memories as a journal page in book order, the open line where writing is the capture, the slip, the contents; JN1-JN24, decision 0155) | Built 2026-11-12 (web verified by the e2e `journal`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
-| Video thumbnails (a video's still where its kept part starts, in every preview, under a play mark; VT1-VT9) | Built (web verified by the e2e `videothumbs`; native unverified) |
+| Video thumbnails (a video's still where its kept part starts, in every preview, under a play mark; VS1-VS9) | Built (web verified by the e2e `videothumbs`; native unverified) |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in a grid under day headers; Years, Months, Days; Sort, Show, Zoom, Square or Aspect; MG1-MG22) | Built (web verified by the e2e `gallery`; native unverified) |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings) | Shipped on web (native unverified) |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
+| Note types (one of eight ink marks on a note, chosen on the note's page (its Type tool): question, emphasis, idea, happy, neutral, sad, like, dislike; shown above the viewer's page, a single note's pin and a thread's bubble; never counted, filtered or inferred) | Built 2026-11-12 (web verified by the e2e `qol`, `threads`, `responses`; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
-| Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
+| Media editing: crop, rotate, filters, drawing, text, video and voice-memo trim, all saved out (a memo is never saved out) | Shipped on web (native unverified; the video module never compiled) |
 | Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |

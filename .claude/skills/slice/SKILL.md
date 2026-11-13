@@ -114,7 +114,16 @@ Stop and show the owner the plan. Continue only on their go-ahead (`--from=G<n>`
 
 ## 4. Track
 
-Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state.
+Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state
+(`npm run records -- inflight add --file <row>`; it goes on top, newest first). Later
+changes to the row are `inflight set <match> --file <row>`. Every change to
+`docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` is a `npm run
+records` operation (decision 0156, `.claude/skills/ship.md`, "The record documents"). Every agent commit
+is gated, a slice's as much as the loop's: CI replays each commit that carries your `Claude-Session:` or
+`Co-Authored-By: Claude` trailer and fails one that changes the documents by hand. What the slice leaves
+for the owner's call goes in a "From <skill>" section (`section add`, then `section item add`). When
+merging `origin/main` conflicts in the documents, `npm run records -- redo` during the merge (it takes
+`main`'s side), then the slice's entries filed again in a commit of their own.
 
 ## 5. Tests first
 
@@ -172,8 +181,11 @@ paths right.
 
 - A new rule or trap: the matching `.claude/rules/<area>.md`.
 - An owner's call made during the slice: `docs/decisions/` (date, the call, why).
-- What was left out: `docs/DEFERRED.md`; untried native code: an item in
-  `docs/NATIVE_UNVERIFIED.md` (`**Do:** … **Expect:** …`).
+- What was left out: `docs/DEFERRED.md` (`npm run records -- deferred item add
+  "<section>" --file <item>`, `--new` for the slice's own section); untried native
+  code: an item in `docs/NATIVE_UNVERIFIED.md` (`**Do:** … **Expect:** …`;
+  `native item add`). A check the slice changed is removed and added again
+  (`item remove`, `item add`), or noted (`item note`), never rewritten in place.
 - A feature shipped or changed: `docs/PRODUCT.md`.
 - The spec's record section: what passed, what was deferred.
 
@@ -224,8 +236,12 @@ screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Take the spec out of `IN_PROGRESS` in `scripts/features.js`; `npm run
    check:docs` then holds every criterion to a test (TG20).
-2. Update `docs/STATUS.md`: move the row to "Shipped" (or leave it in flight
-   with its state), with the audit's counts if there was one.
+2. Update `docs/STATUS.md`: a row in "Slices" (`npm run records -- slice row add
+   --file <row>`, or `slice row set <match>` for one already there) and the "In flight"
+   row removed (`inflight remove <match>`), or left in flight with its state
+   (`inflight set`), with the audit's counts if there was one. Then `npm run
+   check:records -- origin/main`, and the commit's message carries the lines
+   `npm run records -- trailers` prints.
 3. Run `/docs-gc`.
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is

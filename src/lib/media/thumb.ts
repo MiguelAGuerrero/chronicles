@@ -37,11 +37,11 @@ async function withCropAndRotation(ref: ImageRef, c: Faced): Promise<ImageRef> {
  * worth failing a capture over (TH2).
  */
 export function makeThumb(c: Faced, name?: string): Promise<string | null> {
-  // Named by the piece it is a copy of (decision 0123), or by its edit (VT6).
+  // Named by the piece it is a copy of (decision 0123), or by its edit (VS6).
   return thumbJob({ ...c, id: c.piece_id }, {
     resolve: resolveMedia,
     async render(uri, max) {
-      // A video gives up its still where its kept part starts (VT1); a photo is decoded bounded as it loads.
+      // A video gives up its still where its kept part starts (VS1); a photo is decoded bounded as it loads.
       const frame = c.kind === 'video' ? await videoFrame(uri, frameAt(c.edit), max) : null;
       const ctx = frame ? ImageManipulator.manipulate(frame.source) : ImageManipulator.manipulate(uri, { maxWidth: max, maxHeight: max });
       try {

@@ -275,7 +275,7 @@ export function MediaScreen() {
           gallery.patch(c.piece_id, patch);
           resurface.patch(c.id, patch, c.piece_id);
         }}
-        onSaveNote={(c, body) => resurface.saveNote(c, body)}
+        onSaveNote={(c, body, type, only) => resurface.saveNote(c, body, type, only)}
       />
       <UndoToast style={{ bottom: 16 }} />
     </View>

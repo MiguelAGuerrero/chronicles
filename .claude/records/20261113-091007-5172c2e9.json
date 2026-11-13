@@ -1,0 +1,111 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T26",
+        "--reason",
+        "the owner's yes, built in tend recording T26"
+      ],
+      "target": "sha256:fb5af6db475899a127bffffec7a6c9ec98f5fced944d662316e45f165a6ea08f"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T25"
+      ],
+      "body": "  **Answered yes** by the owner in person (`/tend inbox T26 yes, T25 yes`, Nov 13; decision 0162): the recommended\n  bullseye end, the start and the dot unchanged, no hue of its own. Waits for the next `/tend inbox`, one build per run\n  (T26 was built first).\n",
+      "target": "sha256:5cd9b3ce407331146534affcf01f3ca9b30ce83fc100d935d8b5ccb29e8083b8"
+    },
+    {
+      "argv": [
+        "open",
+        "set",
+        "QL11's and the map rule's words after T17",
+        "--reason",
+        "the notice's colour named as it is (the dark brown #6b4500), not ink"
+      ],
+      "body": "- **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in\n  `specs/quality-of-life/spec.md`) says \"Denied location shows the error banner a moment's placement shows\"; since\n  `tend map T17` a refused location is the quiet notice (the cream banner, its text the dark brown `#6b4500`, no\n  alert), \"Location is off for this site.\n  Turn it on in the browser's settings to see where you are.\" on the web, and with no fix and no tiles drawn Navigate and\n  Explore show no scale bar. Amend QL11 to say so, in the doc and the mirror; the loop may not edit a spec. Decision 0154\n  calls T17's words \"the words the recorder's start uses\", which they never were: the web recorder's start says \"Location\n  permission was denied. Allow location for this site in the browser settings, then try again.\" (`recorder/index.web.ts`),\n  Locate's old line. So `.claude/rules/map.md`'s \"Denied says what the recorder's start says\" (the Locate line) is no\n  longer true on the web until the inbox entry \"Walk: Start refused still reads as a fault\" is answered; the loop\n  rewords no rule line.\n  QL5 is amended too (the T17 review's F2): it says \"Every map shows a scale bar in its bottom-left corner\"; since\n  `tend map T17` Navigate and Explore show none with no fix and no tiles drawn. Amend QL5 beside QL11, in the doc and\n  the mirror, so a sweep does not read the hidden bar as a regression; decision 0154's header names neither.\n",
+      "target": "sha256:09ce3db581fe64f64b7bc86df4fb6eaa1e53387add050fd518da22b2d7263b69"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "QL11's and the map rule's words after T17"
+      ],
+      "body": "  True again on the web since `tend recording T26` (the owner's yes, Nov 13; decision 0162): Start, refused, reads its\n  line from `locate/notice.ts` beside Locate's, \"Location is off for this site. Turn it on in the browser's settings to\n  record a walk.\", as the same quiet notice on the ready screen and in the walk's \"Not recording\" notice. So QL19 and\n  the map rule's \"Denied says what the recorder's start says\" hold on the web again, the two lines sharing their\n  beginning and each its own end. QL11's and QL5's wording still wait for your edit.\n",
+      "target": "sha256:b2c3eea3cd0d3ee5fcce79a349ac10049820c9f37895147ec847084607f97ce4"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life",
+        "--after",
+        "with location denied mid-walk, tap the"
+      ],
+      "body": "- [ ] **Do:** turn location off for Chronicles in Settings and tap Start on Navigate; then start a walk, turn it off, and come back to the app; then, on a fresh install, decline the location prompt at Start. **Expect:** each is the quiet notice (the cream banner in dark text, `tone: 'info'` on `RecorderError` and the recorder's error status, no `alert` role): Start says \"Location is turned off for Chronicles. Turn it on in Settings to record a walk.\" (`START_OFF.native`, `locate/notice.ts`) with Open Settings, the walk says \"Location is turned off for Chronicles, so this walk is not recording.\" with Open Settings beside the \"Not recording\" chip, the declined prompt says \"Location permission is needed to record a walk.\"; with VoiceOver, then TalkBack, on, each is announced once as it shows (`announceForAccessibility`), and again on a tap of the chip (`tend recording T26`, decision 0162). (QL19)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "decline the location prompt at Start"
+      ],
+      "body": "  - Since the review (`tend recording audit 1-3`): also Resume on a paused walk, refused, and Walk here on Explore and on\n    Chronicle (and Go on a place's card), refused: each the same quiet notice with Open Settings, announced once, never\n    \"Could not resume: ...\" in red.\n",
+      "target": "sha256:7defea2f2e939f1e6194572067416f111438eb4b89d03b792756bd84e9420a3a"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life",
+        "--after",
+        "decline the location prompt at Start"
+      ],
+      "body": "- [ ] **Do:** start a walk, then turn location off for Chronicles in Settings without leaving the app (Control Centre on iOS, the quick settings on Android) and look at the walk. **Expect:** what the location task's error shows (`recorder/index.native.ts`, the task's callback, `setStatus({ kind: 'error', message: error.message })`): today the OS's own words in red until the app returns to the front; record the words and whether it is red, for the deferred item that maps a denial to the quiet notice (the T26 review's F6). (QL19)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "25. [loop] A refused walk's quiet notice outlives a retry that records again: location re-allowed, back to the tab, `retryRecorder` restarts the recorder, the chip goes and the trace grows, but the sticky notice stays (nothing clears it when the status leaves error, `walk.tsx` around the status subscription). The race: the first `recording` status can come before `restartRecording` settles (the web start takes the wake lock first), so `retrying.current` is still true and `raisedError` keeps the message, and a later identical refusal in the same mount raises no notice. Fix: on `recording`, clear a sticky notice whose words are `raisedError`'s, and reset `raisedError` whatever `retrying` says (pre-existing, QL20; the T26 review's F5, Nov 13, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "26. [loop] On a phone, a permission taken back mid-walk reaches the screen through the location task's error, `setStatus({ kind: 'error', message: error.message })` (`recorder/index.native.ts`, the task's callback): the OS's own words in red, not the quiet notice, until the AppState return's resume replaces them with \"Location is turned off for Chronicles, so this walk is not recording.\" Map a denial (`kCLErrorDenied`, Android's equivalent) to the quiet tone and the resume's words through a pure mapping (the T26 review's F6, Nov 13, low; native, unverified)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "27. [owner] On the walk, \"Location is off for this site. Turn it on in the browser’s settings to record a walk.\" does not say what happens once it is on: the walk is already open, and the web recorder does not watch the permission (Locate's reader does), so a reload is likely needed and nothing says so. Perhaps \"... to keep recording this walk, then reload\", or the recorder resumes when the permission changes. Decision 0162 set the words, so the copy is yours (NN/g H9; the T26 review's U2, Nov 13, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "28. [loop] On Chronicle's map, a banner in the top slot (a refused Walk here or Go, a load error) lies over the map's credits (i) at the top right, so the (i) is mostly hidden and its tap lands on the banner while it shows (picture `qol-13f-chronicle-walk-here-refused-390`; as before T26, red; found in the T26 review round, Nov 13, low)\n"
+    }
+  ]
+}

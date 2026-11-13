@@ -72,6 +72,27 @@ Note pages (decision 0151) made a note a full-screen page written in a rich-text
 26. **JN26** An entry the page wrote is drawn on the sheet in its shape: a heading, bullets, numbered lines, checkboxes (ticked or not, never counted) and quotes, as plain native text in the owner's serif, with each mention as that moment's card. No raw mark (`#`, `-`, `[ ]`, `**`) shows, and the sheet never holds the editor or a web view. A note the page did not write stays literal (NP7).
 27. **JN27** A long entry shows its first twelve blocks on the sheet, then one line in the app's voice: "The entry goes on; open it to read the rest". The whole entry is in its viewer.
 
+### Writing on the page (added Nov 13, from the owner's phone)
+
+The owner's screenshot of the built line on an iPhone, and their call: it felt like a chat box, the field was small and boxed, and the recording bar, the tab bar and a blank band sat between it and the keyboard. The words are written on the page itself, as the approved drawing showed. Vision: Honour, with less chrome between the hand and the page; verdict aligned. This amends JN9, JN10, JN13, JN23 and JN25 where they place the field, the status and Open as a page in a row at the foot.
+
+28. **JN28** The words are written on the page: the field is the last line of today's page, under the entry being written (its dateline, its photo), the full width of the column, in the owner's serif, with no box, border or focus frame. It is not in the bar at the foot. Where no page is shown (a thread, the threads, Hidden) the field is in the bar, so the line is still one tap there.
+29. **JN29** One bar is fixed at the foot. At rest it holds a pen (named "Write an entry": it brings today's foot into view and puts the caret on the page, from anywhere on the sheet), the camera and the mic, each a thumb's target. While writing it holds, in one row, "Kept as you write" (or the failure and Retry), Open as a page (an icon with that name), the camera, the mic and Done; nothing wraps at 320 px.
+30. **JN30** While the field has the keyboard, the tab bar and the recording bar fold away and the bar sits directly on the keyboard: nothing else stands between the entry and the keys. They come back when writing stops, and a walk being recorded goes on recording.
+
+### The page at rest, and the empty page as the pen (added Nov 13, the owner's call)
+
+The owner, on seeing the page pushed to its foot: "have like a peek to show the last entry, but the page is mostly aligned to the top, and when you click on the empty space, it expands out, or rather transitions out to create a moment." Vision: Honour (the empty page is the invitation, with no prompt and no control standing for it), Return (where you left off is the first thing seen); verdict aligned. This amends JN1 (the page rests with its last entry on top, not at the foot), JN11 and JN29 (the empty page is the pen; the bar holds no pen).
+
+31. **JN31** At rest the page is aligned to the top: the day's date, then the most recent entry under it, then the empty page filling the rest of the screen above the bar. Nothing older shows until the page is pulled down, which reads back through the journal with each day's date held at the top as its entries pass. A last entry too long for this shows its end, and the empty page still takes at least a third of the screen.
+32. **JN32** A tap anywhere on the empty page (named "Write an entry") puts the caret on the page, directly under the last entry, and the bar sits on the keyboard (JN30). The bar at rest holds only the camera and the mic. (Amended by JN33 the same day: the last entry no longer slides away, and Done no longer rearranges the page.)
+
+### The day's entries stack (added Nov 13, the owner's call)
+
+The owner, after the grown page hid everything but the line being written: "keep it like a stack where the page just grows per entry and moment, and it just slides up almost like a typewriter"; and, on what it is for, "once you start writing, you don't feel like it's just writing and no multimedia. It's just growing entries throughout the day." The resting state of JN31 stays as how the page opens. Adjacent practice (typewriter scrolling in iA Writer, Ulysses and Typora; the append view asked of Day One) is in the record. Vision: Honour and Return, as JN31; verdict aligned.
+
+33. **JN33** The page opens as JN31 says, on the entry you left off at. From there the entries of the sitting stack beneath it in the order made, words, photos and voice notes alike, and stay in view while the next is written: nothing slides away when writing begins, and Done moves nothing. When the stack has filled two thirds of the page, it slides up as it grows, and the line being written holds its place a third of the way up from the bar.
+
 ## Amends
 
 - **Capture from Chronicle** (`specs/capture-from-chronicle/spec.md`): HC6-HC13 and HC15 (the band becomes the open line; "<Kind> kept here" and "saved to your walk" toasts go, since the entry itself appears); HC9's "heads Lately" and HC10's "not shown until the walk stops".
@@ -165,3 +186,26 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **Seen once, not reproduced:** the `journal` journey's "the entry that was on screen stays on screen" check failed in two of five runs while the journey was being changed and passed in the rest; it holds the page's position by adding the height that arrived, on the web. If it recurs, that is where to look.
 - **Native:** none of this has run on a device.
 
+## Writing on the page: record (Nov 13, branch `fix/write-on-the-page`)
+
+- **Why:** the owner's screenshot of the built line on an iPhone. The field was a small box with a black focus frame, the recording bar, the tab bar and a blank band stood between it and the keyboard, and it read as a chat box. The frame was the app's `:focus-visible` ring overriding the field's own style.
+- **Built:** JN28-JN30, tests first at `f7a45c4`. The field is the page's last line; the foot is one bar; the tab bar and the recording bar fold away while writing. JN9, JN10, JN13, JN23 and JN25 are read with these: the bar is what is fixed at the foot, the pen is its first control for a screen reader, and Open as a page is an icon in it.
+- **Checked:** typecheck, lint, `npm test`; the `journal` journey (74 checks), `notepage` and `capturehome`.
+- **Not yet seen on the phone:** whether the bar sits directly on the keyboard in the Home Screen app and in Safari, and whether the pen raises the keyboard in one tap. Both are the owner's to try (`docs/NATIVE_UNVERIFIED.md`).
+
+## The page at rest: record (Nov 13, branch `fix/write-on-the-page`)
+
+- **Why:** the owner, on the page that opened pushed to its foot with the field against the bar: a peek of the last entry, the page aligned to the top, and the empty space as what is tapped to make a moment. Their three answers: the last entry on top with the blank below; the page itself grows; a thin bar at the foot.
+- **Built:** JN31, JN32, tests first at `b56811f`. The rule is `lib/journal/rest.ts` (the empty page's height; which rows are the peek); the dates are held at the top; the pen left the bar. JN29 is read with this: the bar at rest holds the camera and the mic.
+- **Checked:** typecheck, lint, `npm test`; the `journal`, `notepage` and `capturehome` journeys.
+- **Found on the way:** a pill above the bar (room left) covers the middle of the empty page and takes a tap aimed there. It has its own OK and the rest of the page takes the tap; left as it is, and the journeys tap the first lines.
+- **Not yet seen on the phone:** the movement as the page grows and comes back, the sticky date, and whether a tap on the empty page raises the keyboard in that one tap (`docs/NATIVE_UNVERIFIED.md`).
+
+## The day's entries stack: record (Nov 13, branch `fix/write-on-the-page`)
+
+- **Why:** the owner, on the grown page: a stack that grows per entry and slides up like a typewriter, so that writing shows the day's photos and voice notes with it; the page still opens as JN31 says.
+- **Adjacent practice, read Nov 13:** typewriter scrolling (iA Writer keeps the cursor vertically centred with nothing dimmed, and notes the screen can jump when a tap elsewhere fights the centring; Ulysses' fixed scrolling; Typora) holds the line and moves the document. Chat-style streams (Strflow, Monoline, Mynd) stack entries in time order over a docked field, the look the owner rejected. Day One and Apple Journal write in a separate editor; a Day One user's "Daily Stream / Append View" request, logged and not built, asks for this stack. Daily notes (Logseq, Roam, Reflect) put today on top. Ours takes the stream's order and the typewriter's movement, with the line a third of the way up from the bar rather than centred: a phone with its keyboard up has little room.
+- **Built:** JN33, tests first at `f4a922c`; JN32 amended. `lib/journal/rest.ts` lost its `writing` case and gained the anchor.
+- **Checked:** typecheck, lint, `npm test`; the journeys named in the commit.
+- **Not yet seen on the phone:** the slide as the stack grows with the keyboard up.
+- **`check:test-first`:** JN31 reports its todo and its real test in one commit, as JN26 did: its journey todo at `b56811f` was written across lines, which the line-based reader takes for a real check. JN32 and JN33 read as tested first.

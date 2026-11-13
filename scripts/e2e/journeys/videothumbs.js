@@ -1,6 +1,6 @@
-// Video thumbnails (VT1-VT9): a video's still in every preview. A real WebM is recorded in the page (a second of red,
+// Video thumbnails (VS1-VS9): a video's still in every preview. A real WebM is recorded in the page (a second of red,
 // a second of green, a second of blue), so a still's colour says which frame it is. Seeded straight into IndexedDB.
-// E2E_ONLY=videothumbs runs it alone. VT2, VT5, VT7 and VT9 are unit tests (captures/, deletion/, map/).
+// E2E_ONLY=videothumbs runs it alone. VS2, VS5, VS7 and VS9 are unit tests (captures/, deletion/, map/).
 
 // Records the clip and seeds: a loose video at the start point (no still yet), a video-only month last year (its
 // still seeded), and a finished walk with a video moment (its still seeded) for the replay's pile.
@@ -100,7 +100,7 @@ async function run(h) {
   const has = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 15000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
 
-  // VT1, VT3, VT4, VT8: the gallery makes the loose video's still on the web; the tile draws it under its mark.
+  // VS1, VS3, VS4, VS8: the gallery makes the loose video's still on the web; the tile draws it under its mark.
   await tabTo(pg, 'chronicle', 'memories');
   outside.length = 0;
   await pg.click('[data-testid=section-media]');
@@ -113,19 +113,19 @@ async function run(h) {
   const stored = await pieceOf(pg, 'vid');
   const first = stored && stored.thumb_path ? await colourOf(pg, stored.thumb_path) : null;
   check(!!made && stored?.thumb_path === made && reddest(first) && Math.max(first.w, first.h) <= 720,
-    `VT1: a video kept on the web gets its first frame as its still, stored on the piece (${made}; ${JSON.stringify(first)})`);
-  check(outside.length === 0, `VT8: making the still sends nothing anywhere (${outside.join(', ') || 'none'})`);
+    `VS1: a video kept on the web gets its first frame as its still, stored on the piece (${made}; ${JSON.stringify(first)})`);
+  check(outside.length === 0, `VS8: making the still sends nothing anywhere (${outside.join(', ') || 'none'})`);
   const tileMark = await has(`${tileSel} [data-testid=video-mark]`);
   const tileLen = await pg.locator(`${tileSel} [data-testid=gallery-length]`).innerText().catch(() => '');
   const photoMarks = await pg.locator('[data-testid=gallery-tile][data-kind=photo] [data-testid=video-mark]').count();
   const ground = await pg.locator(`${tileSel} [data-testid=video-mark]`).evaluate((e) => getComputedStyle(e).backgroundColor).catch(() => '');
   await pg.waitForTimeout(500);
   await shot(pg, 'vt-01-gallery');
-  check(tileMark && tileLen === '0:03' && photoMarks === 0 && /rgb\(29, 36, 48\)/.test(ground), `VT3, VT4: the tile shows the still with its play mark and length on an ink ground (${tileLen}; ${ground})`);
+  check(tileMark && tileLen === '0:03' && photoMarks === 0 && /rgb\(29, 36, 48\)/.test(ground), `VS3, VS4: the tile shows the still with its play mark and length on an ink ground (${tileLen}; ${ground})`);
   const edge = await pg.locator(`${tileSel} [data-testid=video-mark]`).evaluate((e) => { const s = getComputedStyle(e); return `${s.borderTopWidth} ${s.borderTopColor}`; }).catch(() => '');
   check(/^1px rgb\(255, 255, 255\)$/.test(edge), `video-thumbnails ui 3: the mark's ground is edged in white, so it reads on a dark frame (${edge})`);
 
-  // VT3, VT4: a video-only month's cover is its still, marked.
+  // VS3, VS4: a video-only month's cover is its still, marked.
   await pg.click('[data-testid=gallery-zoom-months]');
   await pg.waitForSelector('[data-testid=gallery-block]', { timeout: 5000 });
   const cover = pg.locator(`[data-testid=gallery-block][data-cover=vold]`);
@@ -134,7 +134,7 @@ async function run(h) {
   const coverImg = await cover.locator('img, [style*="background-image"]').count().catch(() => 0);
   const coverMark = await cover.locator('[data-testid=video-mark]').count().catch(() => 0);
   await shot(pg, 'vt-02-months');
-  check(coverImg > 0 && coverMark === 1, `VT3, VT4: a video-only month's cover is its still under the play mark (${coverImg}, ${coverMark})`);
+  check(coverImg > 0 && coverMark === 1, `VS3, VS4: a video-only month's cover is its still under the play mark (${coverImg}, ${coverMark})`);
   const longCover = pg.locator('[data-testid=gallery-block][data-cover=vlong]');
   await longCover.scrollIntoViewIfNeeded().catch(() => {});
   const asked = await pg.waitForFunction(() => {
@@ -144,7 +144,7 @@ async function run(h) {
   check(asked && !!(await pieceOf(pg, 'vlong'))?.thumb_path, 'video-thumbnails audit 5: a video-only month with no still asks for one at Months, and shows it');
   await pg.click('[data-testid=gallery-zoom-days]');
 
-  // VT6: a trim from the gallery's viewer makes the still again, from the new start (green), under a new name.
+  // VS6: a trim from the gallery's viewer makes the still again, from the new start (green), under a new name.
   await pg.locator(tileSel).click();
   await pg.waitForSelector('[data-testid=viewer-edit]', { timeout: 10000 });
   await pg.waitForTimeout(800);
@@ -179,31 +179,31 @@ async function run(h) {
   }
   const after = renamed ?? (await pieceOf(pg, 'vid'));
   const second = renamed ? await colourOf(pg, renamed.thumb_path) : null;
-  check(!!renamed && renamed.edit.trim.start_ms >= 1100 && greenest(second), `VT6: a trim makes a new still from the kept part's start (${after?.thumb_path}; ${after?.edit?.trim?.start_ms} ms; ${JSON.stringify(second)})`);
+  check(!!renamed && renamed.edit.trim.start_ms >= 1100 && greenest(second), `VS6: a trim makes a new still from the kept part's start (${after?.thumb_path}; ${after?.edit?.trim?.start_ms} ms; ${JSON.stringify(second)})`);
   if (await has('[data-testid=viewer-close]')) await pg.click('[data-testid=viewer-close]');
   await pg.waitForTimeout(600);
 
-  // VT3, VT4: Memories' Lately card shows the still, marked.
+  // VS3, VS4: Memories' Lately card shows the still, marked.
   await pg.click('[data-testid=section-memories]');
   const card = '[data-testid=moment-card]';
   await there(card, 15000);
   const cardMark = await pg.waitForSelector(`${card} [data-testid=video-mark]`, { timeout: 15000 }).then(() => true, () => false);
   await shot(pg, 'vt-03-memories');
-  check(cardMark, 'VT3, VT4: a Lately card shows the video\'s still under its play mark');
+  check(cardMark, 'VS3, VS4: a Lately card shows the video\'s still under its play mark');
   // ui 1: the trimmed video's entry shows its new still, never the glyph its deleted old still would leave.
   await pg.waitForTimeout(1500);
   const cam = glyph('videocam');
   const glyphs = await pg.evaluate((g) => [...document.querySelectorAll('[data-testid=moment-card]')].filter((e) => !e.closest('[aria-hidden=true]') && e.innerText.includes(g)).length, cam);
   check(glyphs === 0, `video-thumbnails ui 1: no video entry on Memories falls back to its glyph after an edit (${glyphs})`);
 
-  // VT3, VT4: Navigate, ready: the loose video's pin (one video) shows its still with pin-video-mark, labelled Video.
+  // VS3, VS4: Navigate, ready: the loose video's pin (one video) shows its still with pin-video-mark, labelled Video.
   await tabTo(pg, 'navigate');
   const pinMark = await pg.waitForSelector('[data-testid=pin-video-mark]', { timeout: 30000 }).then(() => true, () => false);
   const pinLabel = pinMark ? await pg.locator('[data-testid=pin-video-mark]').first().evaluate((e) => e.closest('[aria-label]')?.getAttribute('aria-label') ?? '') : '';
   await shot(pg, 'vt-04-pin');
-  check(pinMark && /^Video/.test(pinLabel), `VT3, VT4: a one-video pin shows its still, marked, and is labelled Video (${pinLabel})`);
+  check(pinMark && /^Video/.test(pinLabel), `VS3, VS4: a one-video pin shows its still, marked, and is labelled Video (${pinLabel})`);
 
-  // VT3, VT4: on a walk, the earlier video is a memory pin whose preview shows the still, marked.
+  // VS3, VS4: on a walk, the earlier video is a memory pin whose preview shows the still, marked.
   await pg.click('[data-testid=start]');
   // A fixed position never refreshes the walk's last fix in the headless browser (moments-and-days.md): step a few metres.
   for (let i = 1; i <= 6 && !(await has('[data-testid=memory-pin]')); i++) {
@@ -226,10 +226,10 @@ async function run(h) {
     check(gap != null && gap >= 2, `video-thumbnails ui 4: a memory pin's play mark sits clear of its clock (${gap} px)`);
     await shot(pg, 'vt-05-memory-preview');
   }
-  check(memoryPin && previewMark, `VT3, VT4: a walk's memory preview shows the video's still under its play mark (${memoryPin}, ${previewMark})`);
+  check(memoryPin && previewMark, `VS3, VS4: a walk's memory preview shows the video's still under its play mark (${memoryPin}, ${previewMark})`);
   await c.close();
 
-  // VT3, VT4: the replay's pile shows the walk's video as its still, marked.
+  // VS3, VS4: the replay's pile shows the walk's video as its still, marked.
   const { c: c2, pg: rp } = await freshPage('videothumbs-replay');
   await rp.goto(url);
   await rp.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
@@ -237,7 +237,7 @@ async function run(h) {
   await rp.goto(`${url}replay/w-rep?ceremony=0`);
   const pileMark = await rp.waitForSelector('[data-testid=replay-pile] [data-testid=video-mark]', { timeout: 90000 }).then(() => true, () => false);
   await shot(rp, 'vt-06-pile');
-  check(pileMark, "VT3, VT4: the replay's pile shows a video as its still under the play mark");
+  check(pileMark, "VS3, VS4: the replay's pile shows a video as its still under the play mark");
   await c2.close();
 }
 

@@ -29,6 +29,33 @@ export function scaleBar(metersPerPixel: number, maxPx: number, units: Units = g
   return { meters, px: Math.min(maxPx, meters / metersPerPixel), label };
 }
 
+/**
+ * Whether a map draws its scale bar (T17, decision 0154): always, unless its screen hides it over a blank world and
+ * there is neither a fix nor anything drawn in view. `drawn` is null until the map has looked, and hides it till then.
+ */
+export function scaleShown(o: { hideOnBlank: boolean; fix: boolean; drawn: boolean | null }): boolean {
+  return !o.hideOnBlank || o.fix || o.drawn === true;
+}
+
+/**
+ * Whether the base tiles drew anything, from how many features each of their layers holds (tend map audit 14): roads,
+ * water or places, any one is enough. Places alone missed a view of sea, forest or farmland with no name in it.
+ */
+export function drawnFrom(counts: { roads: number; water: number; places: number }): boolean {
+  return counts.roads > 0 || counts.water > 0 || counts.places > 0;
+}
+
+/**
+ * The base layers the web map's blank-world look queries (tend map audit 15): its fills (water, land cover, land use),
+ * which cover any drawn view and are few, never buildings, which number thousands in a city; a style with no fill
+ * (the e2e's streets alone) is queried whole. Background layers draw everywhere and are never counted.
+ */
+export function blankLookLayers(layers: { id: string; type: string; 'source-layer'?: string }[]): string[] {
+  const base = layers.filter((l) => l.type !== 'background');
+  const fills = base.filter((l) => l.type === 'fill' && l['source-layer'] !== 'building');
+  return (fills.length ? fills : base).map((l) => l.id);
+}
+
 /** The longest 1, 2 or 5 × 10^n no more than `max` (in whatever unit `max` is). */
 function longestRound(max: number): number {
   // The decade the maximum falls in, nudged so a length that fits exactly isn't lost to rounding.

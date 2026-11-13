@@ -6,7 +6,7 @@ import { createStore } from '../store';
 import { editedThumbName, THUMB, wantsThumb, type MadeStill } from '../thumbPlan';
 
 /**
- * Every preview's small copies (video thumbnails VT2, VT6, VT9; the audit's 1-4, 9): a photo's copy or a video's
+ * Every preview's small copies (video thumbnails VS2, VS6, VS9; the audit's 1-4, 9): a photo's copy or a video's
  * still, made on one queue, one at a time, each from a row read fresh. A job stands down when the piece changed while
  * it ran (an edit's still landed), and an edit's still replaces the one stored, whatever a screen last read. `made`
  * holds what this session made or replaced, with the ref it replaced, so a preview whose row is older shows it
@@ -42,7 +42,7 @@ export function createThumbs(p: Pick<Ports, 'db'>, deps: ThumbsDeps) {
   return {
     store,
     /**
-     * A preview with no copy asks once (VT2): made from the row read fresh, and written only if the piece is as it was
+     * A preview with no copy asks once (VS2): made from the row read fresh, and written only if the piece is as it was
      * read (audit 2); a copy that cannot be made now is asked again next time (audit 1).
      */
     ask(momentId: string, pieceId: string): Promise<void> {
@@ -71,7 +71,7 @@ export function createThumbs(p: Pick<Ports, 'db'>, deps: ThumbsDeps) {
       });
     },
     /**
-     * After an edit that moves the still (`stillChanged`, VT6): a new still of the kept part, under its edit's name,
+     * After an edit that moves the still (`stillChanged`, VS6): a new still of the kept part, under its edit's name,
      * replacing the one stored now, read fresh (audit 3). With none made now, the old one, which may show the part cut
      * away, is dropped and the glyph shows until a still is made (audit 9); a file that will not decode is marked so.
      */

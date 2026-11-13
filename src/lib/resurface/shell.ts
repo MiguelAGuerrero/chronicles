@@ -1,6 +1,6 @@
 // @layer shell
 import { notePatch } from '../noteEdit';
-import { type Faced, facedAll } from '../moment';
+import { type Faced, facedAll, patchFaced } from '../moment';
 import { captureBus, type CapturePatch } from '../captureBus';
 import { createStore, type Store } from '../store';
 import type { Ports } from '../ports/types';
@@ -250,29 +250,21 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     rename: (term: string, name: string) => setPrefs(renameThread(store.get().prefs, term, name)),
     removeThread: (term: string) => setPrefs(removeThread(store.get().prefs, term)),
     /** A change made in the viewer (a note, a caption, an edit) shows here at once (RM18). */
-    /**
-     * A change saved on a moment's piece (`pieceId`, its face's by default): the piece in its list and, when that piece
-     * is the face, the face too, so a card drawn from either shows it (video-thumbnails ui 1: an entry draws its pieces).
-     * A place belongs to the moment (MT5).
-     */
     patch(id: string, change: CapturePatch, pieceId?: string): void {
       const patched = (m: MomentView): MomentView => {
         if (m.id !== id) return m;
-        const target = pieceId ?? m.capture.piece_id;
-        const { lat, lon, ...media } = change;
-        const pieces = m.capture.pieces.map((x) => (x.id === target ? { ...x, ...media } : x));
-        const face = target === m.capture.piece_id ? media : {};
-        const place = { ...(lat !== undefined ? { lat } : {}), ...(lon !== undefined ? { lon } : {}) };
-        const capture = { ...m.capture, ...face, ...place, pieces } as Faced;
+        const capture = patchFaced(m.capture, change, pieceId);
         return { ...m, capture, words: wordsOf(capture, opts.transcript) };
       };
       store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
-    async saveNote(c: Faced, body: string): Promise<void> {
-      await p.db.updatePiece(c.piece_id, notePatch(body));
-      captureBus.patch(c.walk_id, c.id, notePatch(body), null);
-      this.patch(c.id, notePatch(body), c.piece_id);
+    async saveNote(c: Faced, body: string, type?: string | null, typeOnly = false): Promise<void> {
+      const change = notePatch(body, type, typeOnly);
+      await p.db.updatePiece(c.piece_id, change);
+      // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
+      captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
+      this.patch(c.id, change, c.piece_id);
     },
     /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
     async undo(change: PrefsChange): Promise<void> {

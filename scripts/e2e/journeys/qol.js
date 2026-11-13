@@ -102,7 +102,7 @@ function creditsChecks({ check, shot }) {
 }
 
 async function run(h) {
-  const { navUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
+  const { navUrl, exploreUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
     const creditsCheck = creditsChecks(h);
     const { c, pg } = await freshPage('qol');
     await c.addInitScript(() => {
@@ -697,6 +697,91 @@ async function run(h) {
       await pg.waitForTimeout(400);
     });
 
+    // Note types (NY6, NY9, NY10, NY11): the page's Type tool and menu, the card's mark, the pin's label, in one ink.
+    await qstep('note-types NY6, NY9, NY10, NY11', async () => {
+      await openNote();
+      const bare = await pg.locator('[data-testid=note-type-mark]').count();
+      await pg.click('[data-testid=viewer-edit-note]');
+      await pg.locator('[data-testid=note-page]').waitFor({ timeout: 5000 });
+      const row = pg.locator('[data-testid=note-type-row]');
+      const rowBefore = (await row.count()) ? await row.getAttribute('aria-label') : '';
+      if (await row.count()) await row.click();
+      const pressed = (await row.count()) ? await row.getAttribute('aria-pressed') : null;
+      const items = await pg.locator('[data-testid^=note-type-item-]').count();
+      const colours = await pg.evaluate(() => [...new Set([...document.querySelectorAll('[data-testid^=note-type-glyph-]')].map((e) => getComputedStyle(e).color))]);
+      // note-types audit 8: the menu reads down its columns (No type to Happy, then Neutral to Dislike), the chosen row tinted.
+      const boxes = {};
+      for (const id of ['none', 'question', 'emphasis', 'idea', 'happy', 'neutral', 'sad', 'like', 'dislike']) boxes[id] = await pg.locator(`[data-testid=note-type-item-${id}]`).boundingBox().catch(() => null);
+      const colA = ['none', 'question', 'emphasis', 'idea', 'happy'].map((i) => boxes[i]);
+      const colB = ['neutral', 'sad', 'like', 'dislike'].map((i) => boxes[i]);
+      const down = (col) => col.every((b, i) => b && (i === 0 || (Math.abs(b.x - col[0].x) < 2 && b.y > col[i - 1].y)));
+      const tint = await pg.evaluate(() => getComputedStyle(document.querySelector('[data-testid=note-type-item-none]')).backgroundColor);
+      check(down(colA) && down(colB) && colB[0].x > colA[0].x && Math.abs(colB[0].y - colA[0].y) < 2 && tint !== 'rgba(0, 0, 0, 0)',
+        `note-types audit 8: the Type menu reads down its columns and tints the chosen row (${JSON.stringify([colA.map((b) => b && Math.round(b.y)), colB.map((b) => b && Math.round(b.y)), tint])})`);
+      // note-types audit 20: the chosen row is marked by a heavier label and an ink check as well as the tint.
+      const chosenRow = await pg.evaluate(() => {
+        const row = document.querySelector('[data-testid=note-type-item-none]');
+        const label = [...row.querySelectorAll('div')].find((e) => e.children.length === 0 && (e.textContent || '').trim() === 'No type');
+        const check = document.querySelector('[data-testid=note-type-check]');
+        return { weight: label ? Number(getComputedStyle(label).fontWeight) : 0, check: check ? getComputedStyle(check).color : null };
+      });
+      check(chosenRow.weight >= 600 && chosenRow.check === 'rgb(29, 36, 48)', `note-types audit 20: the chosen row has a heavier label and an ink check (${JSON.stringify(chosenRow)})`);
+      // note-types audit 9: on a small phone with the menu open, the whole menu and the page's bar stay in view.
+      const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 520 });
+      await pg.waitForTimeout(500);
+      const inView = await pg.evaluate(() => {
+        const m = document.querySelector('[data-testid=note-type-menu]').getBoundingClientRect();
+        const b = document.querySelector('[data-testid=note-bar]').getBoundingClientRect();
+        return { menuTop: Math.round(m.top), menuRight: Math.round(m.right), barBottom: Math.round(b.bottom), h: window.innerHeight, w: window.innerWidth };
+      });
+      await pg.setViewportSize(vp);
+      await pg.waitForTimeout(400);
+      check(inView.menuTop >= 0 && inView.barBottom <= inView.h && inView.menuRight <= inView.w, `note-types audit 9: at 320 x 520 with the menu open, the menu and the bar stay in view (${JSON.stringify(inView)})`);
+      await shot(pg, 'qol-06-note-type-menu');
+      if (items) await pg.click('[data-testid=note-type-item-idea]');
+      await pg.waitForTimeout(300);
+      const focusedAfter = await pg.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-testid'));
+      check(focusedAfter === 'note-type-row', `note-types audit 21: choosing a type returns focus to the Type row (${focusedAfter})`);
+      const rowAfter = (await row.count()) ? await row.getAttribute('aria-label') : '';
+      await pg.click('[data-testid=note-done]');
+      await pg.waitForTimeout(800);
+      const mark = pg.locator('[data-testid=note-type-mark]');
+      const markText = (await mark.count()) ? await mark.first().innerText() : '';
+      const markLabel = (await mark.count()) ? await mark.first().getAttribute('aria-label') : '';
+      const nameStyle = await pg.evaluate(() => {
+        const el = [...document.querySelectorAll('[data-testid=note-type-mark] *')].find((e) => /^Idea$/.test((e.textContent || '').trim()) && e.children.length === 0 && getComputedStyle(e).fontFamily && e.tagName !== 'I');
+        if (!el) return null;
+        const st = getComputedStyle(el);
+        return { color: st.color, size: parseFloat(st.fontSize) };
+      });
+      await shot(pg, 'qol-07-note-type-card');
+      await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(600);
+      // The note shares its pin with another capture here, so the pin keeps its count and its group's words (NY10).
+      const pin = await pg.locator('[aria-label="2 captures here. Open"]').count();
+      check(bare === 0 && /Type/.test(rowBefore) && /No type/.test(rowBefore) && items === 9 && /Idea/.test(rowAfter),
+        `NY6: the note page's Type tool opens a menu of eight and "No type", and shows the choice (bare ${bare}, row ${JSON.stringify(rowBefore)}, items ${items}, after ${JSON.stringify(rowAfter)})`);
+      check(/Idea/.test(markText) && markLabel === 'Idea',
+        `NY9: the viewer's note card shows the type's mark and its spoken name, none without a type (${JSON.stringify([markText, markLabel])})`);
+      check(pin >= 1, `NY10: a pin that holds the typed note and another capture keeps its count and its group's words (${pin})`);
+      check(pressed === 'true', `note-types ui 1: the Type tool shows pressed while its menu is open, so it reads as a control (${pressed})`);
+      check(!!nameStyle && nameStyle.color === 'rgb(29, 36, 48)' && nameStyle.size >= 14, `note-types ui 2: the mark's name is in ink and 14 px or more (${JSON.stringify(nameStyle)})`);
+      check(items === 9 && colours.length === 1 && markLabel === 'Idea',
+        `NY11: every glyph is drawn in one ink colour and each has its spoken name (${JSON.stringify(colours)})`);
+      // Back to no type, so the steps after this one meet the note as before (NY8).
+      await openNote();
+      await pg.click('[data-testid=viewer-edit-note]');
+      await pg.locator('[data-testid=note-type-row]').click().catch(() => null);
+      await pg.click('[data-testid=note-type-item-none]').catch(() => null);
+      await pg.click('[data-testid=note-done]').catch(() => null);
+      await pg.waitForTimeout(600);
+      const cleared = await pg.locator('[data-testid=note-type-mark]').count();
+      check(cleared === 0, `NY8: choosing "No type" clears the mark (${cleared})`);
+      await pg.click('[data-testid=viewer-close]').catch(() => null);
+      await pg.waitForTimeout(400);
+    });
+
     // tend chronicle 1: Escape with the @ picker open closes the picker alone; the editor keeps what was typed,
     // the @ as typed (RF1), as Escape steps out of the Rename editor before its sheet (QL22).
     await qstep('tend chronicle 1', async () => {
@@ -923,6 +1008,47 @@ async function run(h) {
       await c3.close();
     }
 
+    // tend map T17 (decision 0154): a refused location is a quiet notice in ink, never the red fault, in the owner's words,
+    // every word of it on screen; and with no fix and no tiles drawn, no scale bar over the blank world ("2,000 km").
+    const T17_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to see where you are.';
+    // tend recording T26 (decision 0162): Start's refusal, Locate's line with its own end.
+    const T26_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to record a walk.';
+    // The region's text as written, the zero-width space a repeat adds kept (tend recording audit 4).
+    const rawSaid = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => e.textContent), id);
+    const saidIn = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), id);
+    // The quiet notice holding `words`, read from the page: its role and live region, its colours, and each line of its
+    // words from the browser's own line boxes (getClientRects), none cut.
+    const readNotice = (page, words) => page.evaluate((words) => {
+      const shown = (el) => !el.closest('[aria-hidden=true]') && el.getBoundingClientRect().width > 0;
+      const banner = [...document.querySelectorAll('[data-testid=lift-in]')].filter(shown).find((b) => b.innerText.includes(words));
+      const bars = [...document.querySelectorAll('[data-testid=scale-bar]')].filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.innerText);
+      if (!banner) return { banner: null, bars, texts: [...document.querySelectorAll('[data-testid=lift-in]')].map((b) => b.innerText) };
+      const text = [...banner.querySelectorAll('div')].find((d) => d.innerText.trim() === words && !d.querySelector('div'));
+      const box = banner.getBoundingClientRect();
+      // Each line of the words, from the browser's own line boxes: none cut by the banner or the screen's edge.
+      const range = document.createRange();
+      if (text) range.selectNodeContents(text);
+      const lines = text ? [...range.getClientRects()].filter((q) => q.width > 0) : [];
+      const cut = lines.filter((q) => q.left < box.left - 0.5 || q.right > box.right + 0.5 || q.top < box.top - 0.5 || q.bottom > box.bottom + 0.5 || q.right > window.innerWidth || q.left < 0);
+      const textColor = text ? getComputedStyle(text).color : null;
+      return {
+        banner: { role: banner.getAttribute('role'), live: banner.getAttribute('aria-live'), bg: getComputedStyle(banner).backgroundColor, color: textColor },
+        lines: lines.length,
+        cut: cut.length,
+        bars,
+      };
+    }, words);
+    const isQuiet = (b) => !!b && b.role !== 'alert' && b.live === 'polite' && b.bg === 'rgb(255, 247, 230)' && b.color !== 'rgb(180, 35, 24)';
+    const deniedNotice = async (page, where, { blank }) => {
+      const seen = await readNotice(page, T17_WORDS);
+      const b = seen.banner;
+      // The error banner is #fdecea with the danger red's text; the quiet notice is the app's notice, dark amber on cream (#fff7e6).
+      check(isQuiet(b) && seen.lines >= 1 && seen.cut === 0,
+        `tend map T17: ${where}, Locate refused says "${T17_WORDS}" as a quiet notice, not an alert in red, every line whole (${JSON.stringify(seen)})`);
+      if (blank) check(seen.bars.length === 0, `tend map T17: ${where}, with no fix and no tiles drawn, no scale bar over a blank world (${JSON.stringify(seen.bars)})`);
+      else check(seen.bars.length === 1, `tend map T17: ${where}, with no fix but the tiles drawn, the scale bar stays (${JSON.stringify(seen.bars)})`);
+    };
+
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
     // button that brings the recorder's notice back after it was dismissed.
     {
@@ -931,7 +1057,7 @@ async function run(h) {
       await pg2.waitForSelector('[data-testid=start]');
       // QL21: Navigate's own fix as it comes to the front is refused, quietly: no banner, no chip. Locate
       // is the loud path: its tap says why.
-      const deniedSaid = () => pg2.getByText(/Location permission was denied|Couldn.t find your position/).count();
+      const deniedSaid = () => pg2.getByText(/Location is off for this site|Couldn.t find your position/).count();
       await pg2.waitForTimeout(3000);
       const quiet = { banners: await deniedSaid(), chip: await pg2.locator('[data-testid=status-chip]').count() };
       await pg2.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
@@ -940,32 +1066,168 @@ async function run(h) {
       await shot(pg2, 'qol-13-locate-denied');
       check(quiet.banners === 0 && quiet.chip === 0 && loud >= 1,
         `qol QL21: denied, Navigate's own fix on focus stays quiet; Locate says why (on focus ${JSON.stringify(quiet)}, after Locate ${loud})`);
+      // The fake streets draw at the world's zoom (a speck): tiles drawn, so the bar stays.
+      await deniedNotice(pg2, 'Navigate at 390', { blank: false });
       for (let i = 0; i < 4 && (await pg2.locator('[data-testid=banner-dismiss]').count()); i++) {
         await pg2.locator('[data-testid=banner-dismiss]').first().click();
         await pg2.waitForTimeout(300);
       }
       await pg2.waitForTimeout(800);
+      // tend recording T26 (decision 0162): Start refused says Locate's line with its own end, quietly, in the same slot,
+      // and the polite region kept on screen says it to a screen reader (as tend map audit 12).
       await pg2.click('[data-testid=start]');
-      const chip = pg2.locator('[data-testid=status-chip]');
-      await chip.waitFor({ timeout: 20000 }).catch(() => {});
-      const onWalk = /\/walk$/.test(new URL(pg2.url()).pathname);
-      if (onWalk && (await chip.count())) {
-        const noticeText = 'Location permission was denied';
-        const notice = () => pg2.locator('[data-testid=lift-in]', { hasText: noticeText });
-        const first = (await notice().count()) > 0;
-        const dismiss = pg2.locator('[data-testid=banner-dismiss]');
-        if (await dismiss.count()) await dismiss.first().click();
-        await pg2.waitForTimeout(400);
-        const gone = (await notice().count()) === 0;
-        await chip.first().click();
-        await pg2.waitForTimeout(600);
-        check((await chip.first().getAttribute('role')) === 'button' && (await chip.first().getAttribute('aria-label')) === 'Not recording. Why?' && first && gone && (await notice().count()) === 1,
-          `qol QL19: denied, the Not recording chip is a button whose tap brings the notice back (first ${first}, dismissed ${gone}, back ${await notice().count()})`);
-      } else {
-        const banner = await pg2.locator('[data-testid=lift-in]').allInnerTexts();
-        check(banner.some((t) => /Location permission was denied/.test(t)), `qol QL19: denied, Start explains where to allow location (walk opened: ${onWalk}; ${JSON.stringify(banner)})`);
-      }
+      await pg2.waitForTimeout(3000);
+      const startSeen = await readNotice(pg2, T26_WORDS);
+      const startSaid = await saidIn(pg2, 'ready-said');
+      await shot(pg2, 'qol-13b-start-denied');
+      check(isQuiet(startSeen.banner) && startSeen.lines >= 1 && startSeen.cut === 0 && startSaid.length === 1 && startSaid[0].text === T26_WORDS
+        && (await pg2.getByText(/Location permission was denied/).count()) === 0,
+        `tend recording T26: Navigate at 390, Start refused says "${T26_WORDS}" as a quiet notice, not an alert in red, every line whole, and the live region says it (${JSON.stringify({ ...startSeen, said: startSaid })})`);
       await c2.close();
+    }
+
+    // QL19 and tend recording T26: a walk whose location is refused once it is open (permission taken back, the page
+    // reloaded) shows the "Not recording" chip, a button whose tap brings the recorder's quiet notice back after a
+    // dismissal, in Start's words; the walk's live region says it. At 390 and 320.
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      const { c: c5, pg: pg5 } = await freshPage(`qol-denied-walk-${w}`);
+      await pg5.setViewportSize({ width: w, height: hgt });
+      await pg5.goto(navUrl);
+      await pg5.waitForSelector('[data-testid=start]');
+      await pg5.waitForTimeout(1500);
+      await pg5.click('[data-testid=start]');
+      await pg5.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg5.waitForTimeout(1500);
+      await c5.clearPermissions();
+      await pg5.reload();
+      const chip = pg5.locator('[data-testid=status-chip]');
+      await chip.waitFor({ timeout: 20000 }).catch(() => {});
+      await pg5.waitForTimeout(1500);
+      const notice = () => pg5.locator('[data-testid=lift-in]', { hasText: T26_WORDS });
+      const firstSeen = await readNotice(pg5, T26_WORDS);
+      const firstSaid = await saidIn(pg5, 'walk-said');
+      await shot(pg5, `qol-13c-walk-not-recording-${w}`);
+      const dismiss = pg5.locator('[data-testid=banner-dismiss]');
+      if (await dismiss.count()) await dismiss.first().click();
+      await pg5.waitForTimeout(400);
+      const gone = (await notice().count()) === 0;
+      const goneSaid = await saidIn(pg5, 'walk-said');
+      if (await chip.count()) await chip.first().click();
+      await pg5.waitForTimeout(600);
+      const back = await notice().count();
+      const backSaid = await saidIn(pg5, 'walk-said');
+      check((await chip.count()) === 1 && (await chip.first().getAttribute('role')) === 'button' && (await chip.first().getAttribute('aria-label')) === 'Not recording. Why?' && !!firstSeen.banner && gone && back === 1,
+        `qol QL19: ${w}, denied, the Not recording chip is a button whose tap brings the notice back (first ${!!firstSeen.banner}, dismissed ${gone}, back ${back})`);
+      check(isQuiet(firstSeen.banner) && firstSeen.lines >= 1 && firstSeen.cut === 0
+        && firstSaid.length === 1 && firstSaid[0].live === 'polite' && firstSaid[0].text === T26_WORDS && goneSaid[0]?.text === '' && backSaid[0]?.text === T26_WORDS,
+        `tend recording T26: the walk at ${w}, Not recording says "${T26_WORDS}" quietly, every line whole, and the live region says it each time it shows (${JSON.stringify({ ...firstSeen, said: [firstSaid, goneSaid, backSaid] })})`);
+      // tend recording audit 4: a second tap of the chip with the notice still up is said again: the region's text changes.
+      const upRaw = await rawSaid(pg5, 'walk-said');
+      if (await chip.count()) await chip.first().click();
+      await pg5.waitForTimeout(600);
+      const againRaw = await rawSaid(pg5, 'walk-said');
+      check(upRaw.length === 1 && againRaw.length === 1 && againRaw[0] !== upRaw[0] && againRaw[0].replace(/\u200B/g, '') === T26_WORDS,
+        `tend recording audit 4: at ${w}, the chip's tap with the notice up changes the walk's live region, so it is said again (${JSON.stringify([upRaw, againRaw])})`);
+      await c5.close();
+    }
+
+    // tend recording audit 1-3: the same refusal is the same quiet notice, said, wherever a walk is asked for: Resume on a
+    // paused walk (never "Could not resume: ..."), Walk here on Explore, and Walk here on Chronicle. Location is granted
+    // first, so the screens have a fix and the map is near, then taken back before the tap. At 390 and 320.
+    const noOldWords = async (page) => (await page.getByText(/Could not resume|Location permission was denied/).count()) === 0;
+    const longPress = async (page) => {
+      const box = await page.locator('canvas.maplibregl-canvas').filter({ visible: true }).last().boundingBox();
+      await page.mouse.move(box.x + box.width / 2 + 30, box.y + box.height / 2 - 40);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+    };
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      {
+        const { c: c6, pg: pg6 } = await freshPage(`qol-resume-refused-${w}`);
+        await pg6.setViewportSize({ width: w, height: hgt });
+        await pg6.goto(navUrl);
+        await pg6.waitForSelector('[data-testid=start]');
+        await pg6.waitForTimeout(1500);
+        await pg6.click('[data-testid=start]');
+        await pg6.waitForSelector('[data-testid=pause-walk]', { timeout: 20000 });
+        await pg6.waitForTimeout(1500);
+        await pg6.click('[data-testid=pause-walk]');
+        await pg6.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
+        await pg6.waitForTimeout(800);
+        await c6.clearPermissions();
+        await pg6.click('[data-testid=resume-walk]');
+        await pg6.waitForTimeout(3000);
+        const seen = await readNotice(pg6, T26_WORDS);
+        const said = await saidIn(pg6, 'walk-said');
+        const old = await noOldWords(pg6);
+        await shot(pg6, `qol-13d-resume-refused-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && old && said.length === 1 && said[0].text === T26_WORDS,
+          `tend recording audit 1: at ${w}, a refused Resume is the quiet notice in Start's words, said, never "Could not resume" (${JSON.stringify({ ...seen, said, old })})`);
+        await c6.close();
+      }
+      // tend recording audit 2: Walk here on Explore; tend recording audit 3: Walk here on Chronicle, with a region of its own.
+      for (const [tab, region, name] of [['explore', 'atlas-snap-said', 'Explore'], ['chronicle', 'chronicle-said', 'Chronicle']]) {
+        const { c: c7, pg: pg7 } = await freshPage(`qol-walk-here-refused-${tab}-${w}`);
+        await pg7.setViewportSize({ width: w, height: hgt });
+        await pg7.goto(navUrl);
+        await pg7.waitForSelector('[data-testid=start]');
+        await pg7.waitForTimeout(1500);
+        await tabTo(pg7, tab);
+        await pg7.waitForTimeout(3000);
+        if (tab === 'chronicle') {
+          // Chronicle offers Walk here only at street zoom (NV12); with no walks its map shows the world, so zoom in first.
+          const box = await pg7.locator('canvas.maplibregl-canvas').filter({ visible: true }).last().boundingBox();
+          await pg7.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40);
+          for (let i = 0; i < 30; i++) {
+            await pg7.mouse.wheel(0, -600);
+            await pg7.waitForTimeout(120);
+          }
+          await pg7.waitForTimeout(1500);
+        }
+        await c7.clearPermissions();
+        await longPress(pg7);
+        await pg7.locator('[data-testid=walk-here]').filter({ visible: true }).first().click({ timeout: 10000 }).catch(() => {});
+        await pg7.waitForTimeout(600);
+        if (await pg7.locator('[data-testid=spot-walk-now]').filter({ visible: true }).count()) await pg7.locator('[data-testid=spot-walk-now]').filter({ visible: true }).first().click();
+        await pg7.waitForTimeout(3000);
+        const seen = await readNotice(pg7, T26_WORDS);
+        const said = await saidIn(pg7, region);
+        const old = await noOldWords(pg7);
+        await shot(pg7, `qol-13${tab === 'explore' ? 'e' : 'f'}-${tab}-walk-here-refused-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && old && said.length === 1 && said[0].text === T26_WORDS,
+          `tend recording audit ${tab === 'explore' ? 2 : 3}: ${name} at ${w}, Walk here refused is the quiet notice in Start's words and its live region says it (${JSON.stringify({ ...seen, said, old })})`);
+        await c7.close();
+      }
+    }
+
+    // tend map T17: Locate refused on Navigate and Explore, at 390 and 320, with no tiles drawn (the tile host's style
+    // holds no streets, as when nothing has loaded): the same quiet notice, and no scale bar over the blank world.
+    for (const [screen, url] of [['Navigate', navUrl], ['Explore', exploreUrl]]) {
+      for (const [w, hgt] of [[390, 844], [320, 700]]) {
+        const { c: c4, pg: pg4 } = await freshPage(`qol-denied-${screen}-${w}`, { permissions: [] });
+        await c4.route('https://tiles.openfreemap.org/**', (r) => {
+          const u = r.request().url();
+          if (/\.pbf$/.test(u) || u.endsWith('/planet')) return r.fallback();
+          return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...style, sources: { openmaptiles: { ...style.sources.openmaptiles, data: { type: 'FeatureCollection', features: [] } } } }) });
+        });
+        await pg4.setViewportSize({ width: w, height: hgt });
+        await pg4.goto(url);
+        await pg4.waitForTimeout(4000);
+        // tend map audit 12: the quiet notice is no alert, so a polite live region kept on screen says the refusal; one
+        // inserted with its words already in it is often never read.
+        const saidId = screen === 'Navigate' ? 'ready-said' : 'atlas-snap-said';
+        const said = () => pg4.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), saidId);
+        const saidBefore = await said();
+        await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
+        await pg4.waitForTimeout(2500);
+        const saidAfter = await said();
+        check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
+          `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
+        await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
+        await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
+        await c4.close();
+      }
     }
 }
 
@@ -973,10 +1235,11 @@ module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
   covers: [
-    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions}.tsx',
+    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions,NoteMark}.tsx',
+    'src/components/notePage/{NotePage,NoteTypeMenu}.tsx',
     'src/components/map/**',
     'src/app/(tabs)/index.tsx',
-    'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
+    'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,noteType,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/unitsStore/**',
     'src/lib/nav/eta.ts',
   ],

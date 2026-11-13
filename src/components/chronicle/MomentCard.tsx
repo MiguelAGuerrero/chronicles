@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatElapsed } from '../../lib/format';
+import { memoWords } from '../../lib/voiceTrim';
 import { whenLine } from '../../lib/resurface/lines';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
@@ -10,6 +10,8 @@ import { theme } from '../ui';
 import { MomentPicture } from './MomentPicture';
 import { hasMore } from '../../lib/moment';
 import { StackMark, STACK_SPOKEN } from '../StackMark';
+import { markOf } from '../../lib/noteType';
+import { NoteMark } from '../NoteMark';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 
@@ -18,10 +20,10 @@ export function contextText(context: ContextEntry | undefined, m: MomentView, no
   return context?.state === 'done' ? context.line : whenLine(m.t, now);
 }
 
-/** What a moment says about itself in one line, for a screen reader (RM25). */
-export function momentSpoken(m: MomentView, now: number, context?: ContextEntry): string {
+/** What a moment says about itself in one line, for a screen reader (RM25). A note's type is said only where its mark is drawn (`typed`, note-types audit 16). */
+export function momentSpoken(m: MomentView, now: number, context?: ContextEntry, typed = true): string {
   // A moment with more than one piece says so in words (MS8), never how many (MS9).
-  return [KIND_WORD[m.kind], hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
+  return [KIND_WORD[m.kind], (typed ? markOf(m.capture)?.name : null) ?? null, hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**
@@ -42,7 +44,6 @@ export function MomentCard(props: {
 }) {
   const { moment: m, walk, now } = props;
   const from = fromLine(walk);
-  const memo = m.kind === 'voice' ? Number(m.capture.body) : NaN;
   return (
     <View style={styles.card} testID="moment-card">
       <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context)}. Open`} onPress={props.onOpen}>
@@ -52,9 +53,10 @@ export function MomentCard(props: {
           {m.kind === 'voice' && (
             <View style={styles.memo}>
               <View style={styles.play}><Icon name="play" size={14} color={theme.accentInk} /></View>
-              <Text style={styles.memoText}>{Number.isFinite(memo) && memo > 0 ? `Voice memo, ${formatElapsed(memo)}` : 'Voice memo'}</Text>
+              <Text style={styles.memoText}>{memoWords(m.capture)}</Text>
             </View>
           )}
+          {m.kind === 'text' && <NoteMark capture={m.capture} />}
           {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
           {props.answering ? <Text style={styles.meta} testID="moment-answering">{props.answering}</Text> : null}
           <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>

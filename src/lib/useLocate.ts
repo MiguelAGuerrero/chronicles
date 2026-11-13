@@ -3,28 +3,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { setLastFix } from './lastFix';
 import { locateOnce } from './locate';
+import { locateNotice, type LocateError } from './locate/notice';
 import type { LocateResult } from './locate/types';
 import type { LngLat } from './types';
 
-/** What a Locate tap says when no fix came, for the screen's error banner. */
-export type LocateError = { message: string; openSettings?: boolean };
+export type { LocateError } from './locate/notice';
 
 /** How far around the fix a Locate tap frames the map (QL10). */
 export const LOCATE_FIT_M = 250;
 
-/**
- * The banner for a Locate tap that found nothing (QL11). Denied says what the
- * recorder's start says when location is off, with Open Settings where the
- * platform has it (a browser's permission lives in the site settings); a
- * timeout or no location at all is one quiet line.
- */
+/** The banner for a Locate tap that found nothing (QL11; `locateNotice`, T17). */
 export function locateError(reason: LocateResult['reason']): LocateError {
-  if (reason === 'denied') {
-    return Platform.OS === 'web'
-      ? { message: 'Location permission was denied. Allow location for this site in the browser settings, then try again.' }
-      : { message: 'Location is turned off for Chronicles. Turn it on in Settings to find your position.', openSettings: true };
-  }
-  return { message: 'Couldn’t find your position' };
+  return locateNotice(reason, Platform.OS === 'web' ? 'web' : 'native');
 }
 
 /**

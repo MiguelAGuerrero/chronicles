@@ -260,4 +260,8 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE outline_tile ADD COLUMN hoods TEXT NOT NULL DEFAULT '[]';
   `,
+  // Note types (NY4, decision 0160): a note's type, chosen by the owner, raw; null for none and for every note kept before.
+  `
+  ALTER TABLE capture ADD COLUMN note_type TEXT;
+  `,
 ];

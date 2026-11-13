@@ -18,7 +18,7 @@ export const PeriodBlock = memo(function PeriodBlock(props: { block: Block; widt
   const { block } = props;
   // A video cover's still is the row's or one made since; a cover lacking one asks for it (video-thumbnails audit 5).
   const cover = useStill(block.cover.face, { ask: block.cover.kind === 'video' });
-  // A photo cover is the photo; a video cover (a block with no photo, MG19) is its 720 px still, never its file (VT3, VT5).
+  // A photo cover is the photo; a video cover (a block with no photo, MG19) is its 720 px still, never its file (VS3, VS5).
   const still = block.cover.kind === 'video' ? thumbShown(cover, false) : null;
   const uri = useMediaUri(block.cover.kind === 'photo' ? cover : still ? { ...cover, file_path: still } : null);
   return (

@@ -533,13 +533,14 @@ export default function Replay() {
         onSaveEdit={async (c, patch) => {
           // A failed write throws to the viewer, which says so; the screen only changes once it is stored (ME21).
           await captureEdits.save(c, patch);
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch) });
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch, c.piece_id) });
         }}
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type, only) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, notePatch(body)) });
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body, type, only);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
       <CaptureViewer
@@ -549,11 +550,12 @@ export default function Replay() {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type, only) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, notePatch(body)) });
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body, type, only);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
 

@@ -14,7 +14,7 @@ import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
 import { LayersControl, LayersKey } from '../components/LayersControl';
-import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
+import { COLORS, HOTSPOT, namesNearYou, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
 import { CaptureViewer } from '../components/CaptureView';
@@ -54,7 +54,7 @@ import { feedback } from '../lib/motion';
 import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
-import type { RecorderStatus } from '../lib/recorder/types';
+import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
@@ -149,6 +149,11 @@ type Notice = {
   forPause?: number;
   /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
   maps?: { at: LngLat; label: string };
+  /**
+   * A quiet refusal (T26): no alert, so the walk's live region says it to a screen reader. A count, so a raise of the
+   * same words while they show still changes the region and is said again (tend recording audit 4).
+   */
+  said?: number;
 };
 
 
@@ -324,6 +329,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
   // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
   const raisedError = useRef<string | null>(null);
+  // Each quiet refusal raised, for the live region's repeat (tend recording audit 4).
+  const saidCount = useRef(0);
   const retrying = useRef(false);
   useEffect(
     () =>
@@ -336,7 +343,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }
         if (raisedError.current === s.message) return;
         raisedError.current = s.message;
-        setNotice({ message: s.message, tone: 'error', openSettings: s.openSettings, sticky: true });
+        // Location refused is a quiet notice (T26), said as Navigate's is (tend map audit 12): the live region below on
+        // web, the call on a phone.
+        const quiet = s.tone === 'info';
+        setNotice({ message: s.message, tone: s.tone ?? 'error', openSettings: s.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
+        if (quiet) AccessibilityInfo.announceForAccessibility(s.message);
       }),
     [],
   );
@@ -1020,7 +1031,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
       }
       feedback('tap');
     } catch (e) {
-      setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
+      const fail = startErrorFrom(e);
+      if (paused && fail.tone === 'info') {
+        // Resume refused is the refusal's quiet notice, said, as Start's (tend recording audit 1). On the web the recorder's
+        // status raised it already; on a phone the start throws before any status, so it is raised here.
+        if (raisedError.current !== fail.message) {
+          raisedError.current = fail.message;
+          setNotice({ message: fail.message, tone: 'info', openSettings: fail.openSettings, sticky: true, said: ++saidCount.current });
+          AccessibilityInfo.announceForAccessibility(fail.message);
+        }
+      } else setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${fail.message}`, tone: 'error', sticky: true });
     } finally {
       // The screen shows whatever the database holds, even after a failure.
       await notifyWalkChanged();
@@ -1160,6 +1180,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <WalkMap
         {...drawn}
+        busyNamesNear={namesNearYou(live.here)}
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
@@ -1242,6 +1263,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
       )}
 
+      {/* T26, as tend map audit 12: kept mounted, so a quiet refusal on the walk is read as its words arrive. */}
+      {Platform.OS === 'web' ? <Text testID="walk-said" accessibilityLiveRegion="polite" style={styles.said}>{walk && notice?.said ? (notice.said % 2 ? `${notice.message}\u200B` : notice.message) : ''}</Text> : null}
       {!walk ? (
         <>
           {ready.overlay}
@@ -1356,7 +1379,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onPress={() => {
               if (status.kind !== 'error') return;
               raisedError.current = status.message;
-              setNotice({ message: status.message, tone: 'error', openSettings: status.openSettings, sticky: true });
+              const quiet = status.tone === 'info';
+              setNotice({ message: status.message, tone: status.tone ?? 'error', openSettings: status.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
+              if (quiet) AccessibilityInfo.announceForAccessibility(status.message);
             }}
             style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
           >
@@ -1745,7 +1770,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         remind
         walkId={walk?.id ?? null}
         onSaveEdit={(c, patch) => cap.setEdit(c, patch)}
-        onSaveNote={(c, body) => cap.setNote(c, body)}
+        onSaveNote={(c, body, type, only) => cap.setNote(c, body, type, only)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
@@ -1862,7 +1887,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={(c, body) => cap.setNote(c, body)}
+        onSaveNote={(c, body, type, only) => cap.setNote(c, body, type, only)}
       />
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
@@ -1893,6 +1918,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
 type PressableRef = ComponentRef<typeof Pressable>;
 
 const styles = StyleSheet.create({
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screen: { flex: 1, backgroundColor: theme.bg },
   top: { position: 'absolute', left: GUTTER, right: GUTTER, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
   chip: {

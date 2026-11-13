@@ -14,13 +14,13 @@ import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePo
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
-import type { Db } from './types';
+import { SEGMENT_BATCH, type Db } from './types';
 import { parseEdit } from '../mediaEdit';
 import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 19;
+const VERSION = 20;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -159,6 +159,17 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     // Complexes (CX14, specs/complexes): derived rows, one per named building made of other places; cleared with the derived stores.
     d.createObjectStore('complex', { keyPath: 'id' });
   }
+  if (oldVersion < 20 && upTo >= 20) {
+    // Note types (NY4, decision 0161): a piece's `note_type` lives inside its moment's record, so there is nothing to move;
+    // the version marks the first build that writes it, and a note kept before reads as no type.
+  }
+}
+
+/** A cleared note type leaves no field, as the SQLite store reads it (note-types audit 14). */
+function withoutClearedType<T extends { note_type?: string | null }>(piece: T): T {
+  if (piece.note_type != null) return piece;
+  const { note_type: _gone, ...rest } = piece;
+  return rest as T;
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -323,7 +334,7 @@ export const db: Db = {
     const tx = (await conn()).transaction('moment', 'readwrite');
     const st = tx.objectStore('moment');
     const m = (await done(st.index('piece_ids').get(id))) as MomentRecord | undefined;
-    if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
+    if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? withoutClearedType({ ...x, ...p }) : x)) });
     await committed(tx);
   },
   async addPiece(momentId, p) {
@@ -538,12 +549,17 @@ export const db: Db = {
     await committed(tx);
   },
 
-  async putSegments(segments) {
-    if (segments.length === 0) return;
-    const tx = (await conn()).transaction('street_segment', 'readwrite');
-    const st = tx.objectStore('street_segment');
-    for (const x of segments) st.put({ ...x, tile: segmentTile(x) });
-    await committed(tx);
+  async putSegments(segments, shouldStop) {
+    // DC10: one transaction per batch, a turn for the page between them. A caller that has stopped before the write
+    // starts writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
+    if (shouldStop?.()) return;
+    for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
+      if (i) await new Promise((resolve) => setTimeout(resolve, 0));
+      const tx = (await conn()).transaction('street_segment', 'readwrite');
+      const st = tx.objectStore('street_segment');
+      for (const x of segments.slice(i, i + SEGMENT_BATCH)) st.put({ ...x, tile: segmentTile(x) });
+      await committed(tx);
+    }
   },
 
   async saveSnap(walkId, segments, visited, summary, placed, complete = true) {

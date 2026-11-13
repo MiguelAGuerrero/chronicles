@@ -179,8 +179,8 @@ const FEATURES = [
     about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
     rule: 'layers',
     source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
-    journeys: ['layers'],
-    specs: ['map-layers'],
+    journeys: ['layers', 'dense'],
+    specs: ['map-layers', 'explore-dense-city'],
   },
   {
     name: 'walkability',
@@ -194,7 +194,7 @@ const FEATURES = [
     name: 'landing',
     about: 'what\'s good here: landing analysis, busy streets, activity density',
     rule: 'landing',
-    source: ['src/lib/landing/**', 'src/lib/activity/**', 'src/components/LandingMarks.tsx'],
+    source: ['src/lib/landing/**', 'src/lib/activity/**'],
     journeys: [],
     specs: ['v1.5-landing', 'activity-density'],
   },
@@ -238,14 +238,17 @@ const FEATURES = [
       // Media editing (ME1-ME23): the editor, edited photos and videos, the Edit offer.
       'src/components/edit/**',
       'src/components/Baker*.ts',
-      'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
+      'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
-      // Video thumbnails (VT1-VT9): the small copies Memories' cards ask for, and the play mark.
+      // Note types (NY1-NY17): the model and the mark a note wears.
+      'src/lib/noteType.ts',
+      'src/components/NoteMark.tsx',
+      // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
       'src/lib/thumbs/**',
       'src/components/VideoMark.tsx',
     ],
-    journeys: ['edit', 'stacks', 'videothumbs'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'video-thumbnails'],
+    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails'],
   },
   {
     name: 'chronicle',
@@ -437,6 +440,8 @@ const UNTESTED = {
     RP12: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
   },
   // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
+  // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
+  'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
 };
 
@@ -444,6 +449,15 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
+/**
+ * A spec whose criterion prefix was renamed after its tests were written, because another spec held the prefix first
+ * (check:docs, TG14): new prefix to old, so check:test-first reads the history under both. Never for any other reason.
+ */
+const RENAMED = {
+  // Video thumbnails were built as VT1-VT9 beside voice trim's VT1-VT12 on main; renamed on the merge (Nov 13).
+  'video-thumbnails': { VS: 'VT' },
+};
+
 const IN_PROGRESS = {
 };
 
@@ -483,4 +497,4 @@ const featureOfJourney = (name) => FEATURES.find((f) => f.journeys.includes(name
 /** The features that list a spec slug. */
 const featuresOfSpec = (slug) => FEATURES.filter((f) => f.specs.includes(slug));
 
-module.exports = { FEATURES, RETIRED, UNTESTED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };
+module.exports = { FEATURES, RETIRED, UNTESTED, RENAMED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };

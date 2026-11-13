@@ -13,11 +13,11 @@ import { PILE, pileCenter, tiltOf, type StageCtx } from './layout';
 
 /** A photo's small copy where it has one (a map never decodes full photos; nor does the pile). */
 const small = (c: Faced): Faced => (c.kind === 'photo' && c.thumb_path && c.thumb_path !== THUMB.none ? { ...c, file_path: c.thumb_path } : c);
-/** A video's still, or nothing: the pile never loads a video's file for its card (VT3, VT5). */
+/** A video's still, or nothing: the pile never loads a video's file for its card (VS3, VS5). */
 const still = (c: Faced): Faced | null => (c.kind === 'video' && c.thumb_path && c.thumb_path !== THUMB.none ? { ...c, file_path: c.thumb_path } : null);
 
 function Thumb({ capture: row }: { capture: Faced }) {
-  // The row's copy or still, or one made since it was read; the pile asks for none itself (VT2).
+  // The row's copy or still, or one made since it was read; the pile asks for none itself (VS2).
   const capture = useStill(row, { ask: false });
   const uri = useMediaUri(capture.kind === 'photo' ? small(capture) : still(capture));
   return (

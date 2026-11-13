@@ -343,7 +343,6 @@ module.exports = {
   covers: [
     'src/lib/landing/**',
     'src/lib/activity/**',
-    'src/components/LandingMarks.tsx',
     'src/components/atlas/**',
     'src/lib/atlas/**',
   ],

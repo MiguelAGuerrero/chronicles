@@ -19,11 +19,13 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 
 | Slice (spec tab) | Status | Evidence (last related commit on main) | Spec | Audited |
 |---|---|---|---|---|
+| Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool; on the viewer's note, the single-note pin and the thread bubble; NY1-NY17, decision 0161) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |
 | Explorer App Concept (v0: record, capture, replay, storage; round 3) | shipped | `7cf5ab1` 2026-10-31 round 3; `565b244` 2026-10-31 | `specs/concept/spec.md` | yes (two audit rounds `7936f48`, `ce6dd26`; round-3 audit `712fdf8`) |
+| Explore in a dense city (busy names drawn by the map with collision, one per street within 300 m, none under a "?" pin or a control; on the walk maps only within 800 m of you; the Busy read and the atlas's ring reads in a web worker, the Busy read after the map settles; fewer renders per switch; DC1-DC19, decision 0160; the owner's Baltimore report, Nov 12) | shipped 2026-11-13 (web verified by the e2e `dense` on the /chronicles build; native unverified); a first read's longest task 3.3-3.8 s to 0.2 s at 4x CPU, the first Busy switch-on 600-700 ms to 90-170 ms; switches between read areas unchanged in Chromium; first "?" pins about 1 s later | branch `claude/trusting-cannon-f5wdhg`, merged 2026-11-13 | `specs/explore-dense-city/spec.md` | yes (19 findings: 12 fixed, 1 rejected, 3 deferred, 6 folded in) |
 | v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
 | v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
 | v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
-| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; JN1-JN27, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix` (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |
+| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; JN1-JN33, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, not audited (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |
 | Free look (Explore: Move map frees one-finger panning, Show areas here lists the areas around the map's middle; FL1-FL21, decision 0150, amends EC10) | built 2026-11-11 on `slice/free-look`; not deployed | `slice/free-look` | `specs/free-look/spec.md` | plan audited (16 findings: 15 accepted, 1 rejected); the built slice not audited |
 | Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
@@ -186,19 +188,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise (the sweep's first shape): a plain ink mark with no star glyph; or leave it.
   **Answered reshape** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
   0154): still one commit's worth; waits for the next `/tend inbox`, one build per run (T16 was built first).
-- **T17 [owner] Map: location refused reads as a fault** (2026-11-12)
-  Area: map (Locate on Navigate and Explore). Seen: `probe-map-390-locate-denied-navigate`, `probe-map-390-locate-denied-explore`,
-  `qol-13-locate-denied` (a red error box: "Location permission was denied. Allow location for this site in the browser
-  settings, then try again."). Rests on: VISION.md Always, "Restraint in motion, colour and copy" (steward S5). New copy,
-  so yours.
-  Recommended: the refusal is a quiet notice in ink, not red: "Location is off for this site. Turn it on in the browser's
-  settings to see where you are." (on a phone, "... in Settings", with Open Settings), the same words the recorder's start
-  uses. And with no fix and no tiles drawn, the scale bar is not shown over a blank world ("2,000 km", steward S6).
-  /vision: aligned (honour; restraint).
-  Otherwise: keep the words and drop the red only; or leave it.
-  **Answered yes** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
-  0154): the recommended quiet ink notice, with no scale bar over a blank world. Waits for the next `/tend inbox`, one
-  build per run (T16 was built first).
 - **T18 [phone] The map's text and buttons at the largest text size** (2026-11-12)
   Area: map. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open a walk with two
@@ -272,6 +261,12 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
   Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
   instead; or leave it (the motion tells them apart while it plays).
+  **Answered yes** by the owner in person (`/tend inbox T26 yes, T25 yes`, Nov 13; decision 0162): the recommended
+  bullseye end, the start and the dot unchanged, no hue of its own. Waits for the next `/tend inbox`, one build per run
+  (T26 was built first).
+- **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
+  Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
+  Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
 
 ### Next evolutions
 
@@ -299,30 +294,66 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 12, `/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`** (from `ea34a2ca`; the owner's own answers, in person;
-T16 built, the others wait for the next inbox run, one build per run; decision 0154).
-- `tend map T16`: a walk's end marker is solid, a disc filled in the walked colour with a white ring; the start stays
-  hollow, white ringed in the trace's green, so shape tells them apart (WCAG 2.2, 1.4.1). One paint for both maps
-  (`ENDS_PAINT`, `components/map/types.ts`); no new hue (T22 is open and the end follows `COLORS.walked`). The `qol`
-  journey reads both markers' middles on the replay. A live walk still has no end marker (QL2).
+**Nov 13, `/tend inbox T26 yes, T25 yes`** (from `d3fe0f41`, rebased on `e0c32231`; the owner's own answers, in
+person, Nov 13; decision 0162, numbered after Note types took 0161; T26 built, T25 waits for the next inbox run, one build per run).
+- `tend recording T26`: Start, refused, is the quiet notice Locate's refusal is since T17 (the cream banner, its text the
+  dark brown `#6b4500`, no alert, read politely), in Locate's line with its own end, read from `locate/notice.ts`
+  (`START_OFF`): "Location is off for this site. Turn it on in the browser's settings to record a walk." on the web, on
+  the ready screen and in the walk's "Not recording" notice; on a phone the words stay ("Location is turned off for
+  Chronicles. Turn it on in Settings to record a walk."), with Open Settings, quiet too. A refusal travels as
+  `tone: 'info'` on `RecorderError` and the recorder's error status; any other failure stays the red fault, and the chip
+  keeps its red dot. A screen reader hears it as T17's: the ready screen's live region, a new `walk-said` region kept
+  mounted on the walk (web), `announceForAccessibility` on a phone. The `qol` journey's QL19 step pins the new words
+  on the ready screen at 390 and on the walk at 390 and 320, the chip bringing the notice back.
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend map audit 8`: the `qol` step that reads the ends restores every marker, a failed read too (F2).
-- `tend map audit 9`: `ENDS_PAINT` is type-checked as a circle paint, with no cast on either map (F3).
-- `tend map audit 10`: `endsGeoJSON`'s start and end take the paint's own branches; native adds only opacity (F5).
-- `tend map audit 11`: the replay journey pictures the walk's card at 375 and 320 px once its title shows, its map
-  drawing both ends (U4; the old pictures showed a moment's beat, now `rr-beat-<w>`).
-Review: 5 accepted (F2, F3, F5, U4; F4, two stale records, named in "Open before the loop" with a note under the
-native check), 2 deferred `[owner]` low in `docs/DEFERRED.md` (U2, the end reads smaller; U3, a pin's stalk inside a
-marker), 1 to you as T25 (F1 with U1: mid-replay the walker's dot and the solid end differ by colour alone), 0
-rejected. The end filled in the accent's hex is your accepted interim until T22 (0153, 0154).
-Answered and waiting: T17 yes (the quiet ink notice, no scale bar over a blank world), T14 yes (kinds, no numeral, the
-time in the spoken name), T15 reshaped by the owner to "Ink star, no numeral" (/vision: aligned). QL2's wording and the
-map rule's marker lines in "Open before the loop"; one native check. Filed: T25 `[owner]`. Not a sweep: no lens ran and
-no area changed state. Nothing here has run on a phone; the `ends` layer is drawn on native too
+- `tend recording audit 1`: a refused Resume is the quiet notice in Start's words, said, never "Could not resume: ..."
+  in red (F1).
+- `tend recording audit 2`: Walk here (and every start) on Explore, refused, is the quiet notice, said through
+  Explore's live region (F2, U1).
+- `tend recording audit 3`: Walk here and Go on Chronicle, refused, are the quiet notice, said through a new
+  `chronicle-said` region (F3, U1).
+- `tend recording audit 4`: a second tap of Not recording with the notice up is said again (F4).
+- `tend recording audit 5`: a failed start's tone is a pure mapping (`startErrorFrom`), unit-tested, in place of T26's
+  source grep (the review's test finding).
+The `qol` journey pictures each at 390 and 320 (`qol-13d` Resume, `qol-13e` Explore, `qol-13f` Chronicle).
+Review: 5 accepted (F1, F2, F3 with U1, F4, the test), 4 deferred (F5 `[loop]` low, a notice that outlives a retry;
+F6 `[loop]` low with a native check, the location task's denial in red; U2 `[owner]` low, the walk's line names no
+reload; U3 noted here, no action: two cream notices stacked, as since T17), 0 rejected; F5, F6 and U2 are in
+`docs/DEFERRED.md`, Quality of life, with one `[loop]` low found in the round: Chronicle's banner lies over the map's
+credits (i).
+Answered and waiting: T25 yes (the bullseye end). QL19 and the map rule's Locate line hold on the web again, noted on
+the open item, whose "ink" now names the notice's colour. Two native checks, the first with a note for the review's fixes.
+Not a sweep: no lens ran and no area changed state. Every covering journey is green (21, `drive` among them). Nothing
+here has run on a phone; the refusal's tone, Open Settings and the announcement on native are unverified
 (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in
+  `specs/quality-of-life/spec.md`) says "Denied location shows the error banner a moment's placement shows"; since
+  `tend map T17` a refused location is the quiet notice (the cream banner, its text the dark brown `#6b4500`, no
+  alert), "Location is off for this site.
+  Turn it on in the browser's settings to see where you are." on the web, and with no fix and no tiles drawn Navigate and
+  Explore show no scale bar. Amend QL11 to say so, in the doc and the mirror; the loop may not edit a spec. Decision 0154
+  calls T17's words "the words the recorder's start uses", which they never were: the web recorder's start says "Location
+  permission was denied. Allow location for this site in the browser settings, then try again." (`recorder/index.web.ts`),
+  Locate's old line. So `.claude/rules/map.md`'s "Denied says what the recorder's start says" (the Locate line) is no
+  longer true on the web until the inbox entry "Walk: Start refused still reads as a fault" is answered; the loop
+  rewords no rule line.
+  QL5 is amended too (the T17 review's F2): it says "Every map shows a scale bar in its bottom-left corner"; since
+  `tend map T17` Navigate and Explore show none with no fix and no tiles drawn. Amend QL5 beside QL11, in the doc and
+  the mirror, so a sweep does not read the hidden bar as a regression; decision 0154's header names neither.
+  True again on the web since `tend recording T26` (the owner's yes, Nov 13; decision 0162): Start, refused, reads its
+  line from `locate/notice.ts` beside Locate's, "Location is off for this site. Turn it on in the browser's settings to
+  record a walk.", as the same quiet notice on the ready screen and in the walk's "Not recording" notice. So QL19 and
+  the map rule's "Denied says what the recorder's start says" hold on the web again, the two lines sharing their
+  beginning and each its own end. QL11's and QL5's wording still wait for your edit.
+- **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
+  `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
+  agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A
+  session that was in flight merges `origin/main` (on a conflict in these three, `npm run records -- redo` takes
+  main's side, and the session files its entries again after the merge); a hand edit it commits after that, or one
+  made before and rebased on, is refused by name with its fix (`.claude/skills/ship.md`, "The record documents").
 - **QL2's wording after T16** (Nov 12; decision 0154): the quality-of-life doc (mirrored in
   `specs/quality-of-life/spec.md`) says the end marker is "a white disc with a thick ring in the walked orange"; since
   `tend map T16` it is solid, a disc filled in the walked colour with a white ring, the start still hollow. Amend QL2 to
@@ -442,7 +473,8 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Video thumbnails (a video's still where its kept part starts, in every preview under a play mark: the gallery, Memories, a walk's memory preview, a one-video pin, the replay's pile; a web exception for the frame; VT1-VT9) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-13, test-first by history (9 of 9): unit tests (2140), typecheck, lint, docs and vision checks; the `videothumbs` journey (14 checks, green four runs in a row) and the eleven journeys `check:affected` names pass; steward read (S1-S4 accepted); UI review (decision 0145): 5 findings, 3 fixed (`video-thumbnails ui 1, 3, 4`), 1 deferred (U1, older), 1 rejected; audited 2026-11-13 at the owner's request (13 findings: 9 fixed, tests `video-thumbnails audit 1-9`; 2 deferred; 2 rejected); native unverified; not merged or deployed (the owner's call). Spec `specs/video-thumbnails/spec.md` |
+| Voice trim (a voice memo trimmed with start and end handles, as data on the untouched recording; Edit in the viewer; the kept part plays everywhere, its length said in words; VT1-VT12, decision 0090) | `claude/upbeat-gates-s6xy90` | built 2026-11-12, test-first by intent, the owner waived `check:test-first` for it (6 of 11 criteria report todo-before-real: the unit tests' todos used a constant the history check does not read; VT7 is device-only): unit tests (2072), typecheck, lint, docs and vision checks; the `voicetrim` journey and the nine journeys `check:affected` named (edit, notepage, qol, replay, responses, resurface, stacks, threads, walk) pass on the web build; a first sweep failed on a build whose map worker was missing (`npm ci --ignore-scripts` skipped `copy-maplibre-worker.js`), so it is not the slice's; steward read once (6 findings, triaged in the plan); native unverified; audited 2026-11-13 at the owner's request (12 findings: 6 fixed, 2 deferred, 4 rejected; tests `voice-trim audit 1-4, 9, 10`; the UI review before it: `voice-trim ui 1, 3` fixed, `ui 4, 6` guards); spec `specs/voice-trim/spec.md` |
+| Video thumbnails (a video's still where its kept part starts, in every preview under a play mark: the gallery, Memories, a walk's memory preview, a one-video pin, the replay's pile; a web exception for the frame; VS1-VS9) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-13, test-first by history (9 of 9): unit tests (2140), typecheck, lint, docs and vision checks; the `videothumbs` journey (14 checks, green four runs in a row) and the eleven journeys `check:affected` names pass; steward read (S1-S4 accepted); UI review (decision 0145): 5 findings, 3 fixed (`video-thumbnails ui 1, 3, 4`), 1 deferred (U1, older), 1 rejected; audited 2026-11-13 at the owner's request (13 findings: 9 fixed, tests `video-thumbnails audit 1-9`; 2 deferred; 2 rejected); native unverified; not merged or deployed (the owner's call). Spec `specs/video-thumbnails/spec.md` |
 | Neighborhood boundaries (real Overture neighborhood shapes replace the 800 m ring and the 1 km nearest-point placement; a nearest-point share where a town has none; one rule draws and places; HB1-HB16) | `claude/elegant-brahmagupta-ficipi` | built 2026-11-12, test-first by history (16 of 16): HB1-HB16 and the `outlines` journey's HB9/HB10 checks; steward read twice; audited at the owner's request (12 accepted, 1 rejected, 2 deferred, 5 questions for the owner; tests `neighborhood-boundaries audit 1-9, 11-13`); native unverified (the ground line layer, SQLite migration 26); not merged or deployed; spec `specs/neighborhood-boundaries/spec.md` |
 | Note pages (a note is a journal entry in Apple Journal's manner: the pencil opens its page, TipTap through Expo DOM, Aa Format and @ and a camera above the keyboard, kept as it is written, older notes literal; NP1-NP14, decision 0151) | `claude/blissful-ptolemy-o3q79x` | built 2026-11-12, test-first by history (14 of 14): unit tests, typecheck, lint, docs and vision checks; the `notepage` journey and the 30 journeys `check:affected` named pass on the web build (one batch on the first build, then the twelve the audit's fixes touched, once, on the final build; `notepage` ran nine times in all while the audit's checks were written, its NP9 Undo check failing once); audited at the owner's request (27 findings: 20 fixed, two in part; 3 deferred; 4 merged; `note-pages audit N`); native unverified (a WebView editor never run on a phone); merged with main (decision renumbered 0151) and deployed 2026-11-12 (`92f021c`, Pages run 222; the live page opens the note page from Memories' pencil); spec `specs/note-pages/spec.md` |
 | Community parks and the kind pipeline (Parks gets a subset, "Community parks", the reader can switch off: a park whose name says playground or the like with nothing notable in or near it; size never demotes; never described; built as the first entry of a registry of pure refinements, kinds know their parent so a parent switch hides its children; PC1-PC23, decisions 0143, 0144) | `claude/confident-mendel-gf0ck0` | built 2026-11-11, test-first by history (23 of 23): unit tests, typecheck, lint, layers; merged with main (presence); the journeys `check:affected` names pass on the web build (marks, with its new PC6 check, atlas, grading, curiosities, outlines, replay, nudge) except `scenic`, whose check "fix preview-clutter audit 1" (the trace drawn again as the preview closes) fails the same way on `origin/main` (3 of 3 runs of `e2e:baseline`), so it is main's, not this slice's; steward read once (10 findings, triaged in the plan); the sub-path build passes marks, atlas, grading, curiosities, outlines, chronicle, replay, scenic and nudge, where nudge's PA2 counted the double-tap's taps at the instant the first "?" showed and read 1 when its 1 s poll fell between the two (about 150 ms apart): it now counts after the pair, 8 of 8 runs; native unverified; not audited (decision 0074); spec `specs/community-parks/spec.md` |

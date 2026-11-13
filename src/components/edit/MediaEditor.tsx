@@ -1,5 +1,6 @@
 import type { Faced } from '../../lib/moment';
 import { useEventListener } from 'expo';
+import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { useVideoPlayer } from 'expo-video';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
@@ -11,6 +12,8 @@ import { keepEditedThumb } from '../../lib/media/thumb';
 import { thumbs } from '../../lib/thumbs';
 import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
 import { stillChanged, THUMB } from '../../lib/thumbPlan';
+import { formatElapsed } from '../../lib/format';
+import { voiceReachedEnd, voiceSpan, wholeMs } from '../../lib/voiceTrim';
 
 import { useMediaUri } from '../../lib/useMediaUri';
 import { useBaker } from '../Baker';
@@ -29,6 +32,17 @@ const TOOL_META: Record<EditTool, { label: string; icon: IconName }> = {
   text: { label: 'Text', icon: 'text' },
   trim: { label: 'Trim', icon: 'cut' },
 };
+
+// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
+function seekAudio(player: AudioPlayer, s: number) {
+  void player.seekTo(s);
+}
+function playAudio(player: AudioPlayer) {
+  player.play();
+}
+function pauseAudio(player: AudioPlayer) {
+  player.pause();
+}
 
 const DRAW_TOOLS: { id: 'pen' | 'marker' | 'eraser'; label: string; icon: IconName }[] = [
   { id: 'pen', label: 'Pen', icon: 'pencil' },
@@ -56,7 +70,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   onClose: () => void;
 }>(function MediaEditor(props, ref) {
   const c = props.capture;
-  const kind = c.kind === 'video' ? 'video' : 'photo';
+  const kind = c.kind === 'video' ? 'video' : c.kind === 'voice' ? 'voice' : 'photo';
   const insets = useSafeAreaInsets();
   const uri = useMediaUri(c);
   const [s, setS] = useState<Session>(() => openSession(kind, { edit: c.edit ?? null, caption: c.caption ?? null, caption_y: c.caption_y ?? null }, props.initialTool));
@@ -78,7 +92,13 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   });
   const videoSize = useVideoSize(player, kind === 'video' ? uri : null);
   const size = kind === 'photo' ? photoSize : videoSize;
-  const durationMs = Number(c.body) || 0;
+  // A voice memo previews through its own player: no picture, only the kept part (VT3).
+  const voice = useAudioPlayer(kind === 'voice' ? (uri ?? undefined) : undefined, { updateInterval: 100 });
+  const voiceStatus = useAudioPlayerStatus(voice);
+  // A memo with no length on record is measured by its file (audit 3, 4).
+  const durationMs = kind === 'voice' ? wholeMs(c.body, (voiceStatus.duration || 0) * 1000) : Number(c.body) || 0;
+  // The press that restarts the preview names the position it left: until it moves, that is not the end (audit 2).
+  const [restartedFrom, setRestartedFrom] = useState<number | null>(null);
 
   const save = async (patch: CapturePatch) => {
     setSaving(true);
@@ -105,7 +125,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         // The old copy stays; the photo itself shows the edits.
       }
     }
-    // A video's still is taken again where the new kept part starts, with its crop and rotation (VT6), only when
+    // A video's still is taken again where the new kept part starts, with its crop and rotation (VS6), only when
     // the trim, crop or turn moved (audit 8), on the thumbs shell's queue after the editor closes (audit 6): it
     // replaces the still stored now, read fresh (audit 3), or drops it if none can be made (audit 9).
     const nextEdit = patch.edit === undefined ? c.edit : patch.edit;
@@ -130,6 +150,13 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   });
 
   const edit = s.edit;
+  // The preview stops at the end handle (VT3).
+  const span = voiceSpan(edit.trim, durationMs);
+  const restarting = restartedFrom !== null && voiceStatus.currentTime === restartedFrom;
+  const voiceAtEnd = kind === 'voice' && voiceStatus.playing && voiceReachedEnd(voiceStatus.currentTime, span, restarting);
+  useEffect(() => {
+    if (voiceAtEnd) pauseAudio(voice);
+  }, [voiceAtEnd, voice]);
   const cropping = s.tool === 'crop';
   // Cropping shows the whole turned picture with the frame over it; every other tool shows the result.
   const stageEdit: MediaEdit = cropping ? { ...edit, crop: null } : edit;
@@ -165,6 +192,12 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
 
   const stage = (
     <View style={styles.stage} onLayout={(e) => setBox(e.nativeEvent.layout)} testID="edit-stage" {...webData({ edit: JSON.stringify(edit), tool: s.tool })}>
+      {kind === 'voice' && (
+        <View style={styles.voiceCard} testID="voice-card">
+          <Icon name="mic" size={40} color="#ffffff" />
+          <Text style={styles.hint}>Voice memo</Text>
+        </View>
+      )}
       {rect && size && (
         <View style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height, overflow: 'hidden' }} pointerEvents="none">
           {kind === 'photo' ? (
@@ -282,6 +315,31 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         </View>
       );
     }
+    if (s.tool === 'trim' && kind === 'voice') {
+      return (
+        <View style={styles.trimRow}>
+          <TrimBar
+            durationMs={durationMs}
+            trim={edit.trim}
+            onChange={(start, end) => dispatch({ type: 'trim', start, end, duration: durationMs })}
+            onSeek={(ms) => {
+              pauseAudio(voice);
+              seekAudio(voice, ms / 1000);
+            }}
+          />
+          <Text testID="trim-whole" style={styles.hint}>{`of ${formatElapsed(durationMs)}`}</Text>
+          {chip('trim-play', voiceStatus.playing ? 'Pause' : 'Play kept part', false, () => {
+            if (voiceStatus.playing) {
+              pauseAudio(voice);
+              return;
+            }
+            setRestartedFrom(voiceStatus.currentTime);
+            seekAudio(voice, span.startMs / 1000);
+            playAudio(voice);
+          }, 'play')}
+        </View>
+      );
+    }
     if (s.tool === 'trim' && kind === 'video') {
       const dur = durationMs || Math.round((player.duration || 0) * 1000);
       return (
@@ -384,6 +442,7 @@ const styles = StyleSheet.create({
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '800' },
   dim: { opacity: 0.4 },
   stage: { flex: 1 },
+  voiceCard: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', gap: 8 },
   bottom: { paddingTop: 10, gap: 10 },
   controls: { minHeight: 56, justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 12, flexWrap: 'wrap' },

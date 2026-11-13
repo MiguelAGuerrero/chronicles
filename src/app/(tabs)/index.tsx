@@ -3,7 +3,7 @@ import { notePatch } from '../../lib/noteEdit';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Animated, Linking, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Animated, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
@@ -37,6 +37,7 @@ import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { fitWithMoments, MOMENT_PIN_ZOOM, placedMoments } from '../../lib/momentPins';
 import { useStartWalk } from '../../lib/useStartWalk';
+import type { Waypoint } from '../../lib/nav/types';
 import { showWalk } from '../../lib/walkNav';
 import { useTabMap, type Camera } from '../../lib/useTabMap';
 import { UndoToast } from '../../components/UndoToast';
@@ -97,6 +98,17 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   const [actionsFor, setActionsFor] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const walkStart = useStartWalk();
+  // A refused start is the quiet notice, no alert, so a screen reader hears it through a hidden live region kept mounted
+  // on web and the call on a phone (tend recording audit 3, as tend map audit 12); `n` makes a repeat a change.
+  const [said, setSaid] = useState({ text: '', n: 0 });
+  const startWalk = (dest: Waypoint) =>
+    walkStart.start(dest, undefined, {
+      onError: (e) => {
+        if (e.tone !== 'info') return;
+        setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+        AccessibilityInfo.announceForAccessibility(e.message);
+      },
+    });
   const [loadError, setLoadError] = useState<{ message: string; openSettings?: boolean } | null>(null);
   const error = walkStart.error ?? loadError;
   // Walks and Days open the sheet on that list (RM2); Map is the sheet at rest.
@@ -341,7 +353,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           busy={walkStart.starting}
           placingId={placingId}
           // A one-tap start to the place (NV12): the saved choices, never the drawer.
-          onGoToPlace={selected ? () => walkStart.start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
+          onGoToPlace={selected ? () => startWalk({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
           placeExtra={placeExtra}
           days={days}
           onOpenMoments={setViewing}
@@ -360,7 +372,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
       <View style={[styles.top, styles.over, { top: insets.top + 8 }]} pointerEvents="box-none">
         {error && (
           <Banner
-            tone="error"
+            // Location refused by Walk here or Go is the quiet notice (tend recording audit 3); anything else a fault.
+            tone={walkStart.error?.tone ?? 'error'}
             onDismiss={() => {
               walkStart.setError(null);
               setLoadError(null);
@@ -370,6 +383,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
             {error.message}
           </Banner>
         )}
+        {Platform.OS === 'web' ? <Text testID="chronicle-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
       </View>
 
       {spot && (
@@ -383,7 +397,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
               onPress={() => {
                 const at = spot;
                 setSpot(null);
-                walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                startWalk({ at, label: 'Your spot', kind: 'point' });
               }}
             />
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
@@ -399,11 +413,12 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         onClose={() => setRecalled(null)}
         autoPlay
         remind
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type, only) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setCaptures((prev) => applyPatch(prev, c.id, notePatch(body)));
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body, type, only);
+          await db.updatePiece(c.piece_id, change);
+          setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
       <CaptureViewer
@@ -414,13 +429,14 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         onSaveEdit={async (c, patch) => {
           // Stored and told on the bus first (ME21); Chronicle's pins then show it.
           await captureEdits.save(c, patch);
-          setCaptures((prev) => applyPatch(prev, c.id, patch));
+          setCaptures((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
-        onSaveNote={async (c, body) => {
+        onSaveNote={async (c, body, type, only) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setCaptures((prev) => applyPatch(prev, c.id, notePatch(body)));
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body, type, only);
+          await db.updatePiece(c.piece_id, change);
+          setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
       <WalkActions
@@ -480,6 +496,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
 });
 
 const styles = StyleSheet.create({
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screen: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
   under: { zIndex: 0 },

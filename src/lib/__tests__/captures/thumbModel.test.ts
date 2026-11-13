@@ -75,11 +75,11 @@ test('TH5: one module makes the copy on both platforms, over expo-image-manipula
 });
 
 // Video thumbnails (specs/video-thumbnails).
-test("VT1: a video wants a copy, from its kept part's start, at 720 px", async () => {
+test("VS1: a video wants a copy, from its kept part's start, at 720 px", async () => {
   const { wantsThumb, thumbEdge, frameAt, THUMB } = await import('../../thumbPlan');
   const v = { id: 'v', walk_id: null, kind: 'video', file_path: 'walks/moments/v.mp4', thumb_path: null };
   assert.equal(wantsThumb(v), true);
-  assert.equal(wantsThumb({ ...v, thumb_path: 'walks/moments/v.thumb.jpg' }), false, 'once made, never again (VT2)');
+  assert.equal(wantsThumb({ ...v, thumb_path: 'walks/moments/v.thumb.jpg' }), false, 'once made, never again (VS2)');
   assert.equal(wantsThumb({ ...v, thumb_path: THUMB.none }), false, 'one that will not decode is not tried again');
   assert.equal(wantsThumb({ ...v, kind: 'voice' }), false);
   assert.equal(thumbEdge('video'), 720);
@@ -88,7 +88,7 @@ test("VT1: a video wants a copy, from its kept part's start, at 720 px", async (
   assert.equal(frameAt({ v: 1, rotate: 0, crop: null, filter: 'original', strokes: [], trim: null }), 0);
 });
 
-test('VT5: a preview never shows the video file', async () => {
+test('VS5: a preview never shows the video file', async () => {
   const { thumbShown, THUMB } = await import('../../thumbPlan');
   const v = { id: 'v', walk_id: null, kind: 'video', file_path: 'walks/moments/v.mp4', thumb_path: null as string | null };
   assert.equal(thumbShown(v, false), null, 'while the still is being made: the glyph');
@@ -99,7 +99,7 @@ test('VT5: a preview never shows the video file', async () => {
   assert.equal(thumbShown({ ...v, kind: 'photo', file_path: 'p.jpg', thumb_path: THUMB.none }, false), 'p.jpg');
 });
 
-test('VT6: an edit makes a new copy', async () => {
+test('VS6: an edit makes a new copy', async () => {
   const { editedThumbName, frameAt } = await import('../../thumbPlan');
   const trim = { v: 1 as const, rotate: 0 as const, crop: null, filter: 'original' as const, strokes: [], trim: { start_ms: 2500, end_ms: 6000 } };
   assert.equal(frameAt(trim), 2.5, "the still is taken at the trim's start");

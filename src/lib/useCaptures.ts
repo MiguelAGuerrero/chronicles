@@ -161,8 +161,8 @@ export function useCaptures(
         if (alive.current) setCaptures((prev) => mergeCaptures(prev, [c]));
       },
       // A later change from that path (its thumbnail), sent even once that path is gone (tabs audit 5).
-      (id, patch) => {
-        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
+      (id, patch, pieceId) => {
+        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, pieceId));
       },
     );
     db.getMoments(walkId).then(facedAll).then((stored) => {
@@ -342,7 +342,7 @@ export function useCaptures(
     });
 
   /**
-   * A new photo's small copy, or a new video's still (TH1, VT1), after the capture is kept: never holds it up or fails
+   * A new photo's small copy, or a new video's still (TH1, VS1), after the capture is kept: never holds it up or fails
    * it (TH2). The copy is the piece's (`id`); the moment it sits in (`momentId`) is read fresh, and shows it when it is
    * its face.
    */
@@ -633,8 +633,8 @@ export function useCaptures(
     const id = c.id;
     // The edit is the piece's own; the screens show it on the moment (decision 0123).
     await db.updatePiece(c.piece_id, patch);
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
-    captureBus.patch(walkId, id, patch, self);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, c.piece_id));
+    captureBus.patch(walkId, id, patch, self, c.piece_id);
   }
 
   /**
@@ -642,11 +642,13 @@ export function useCaptures(
    * walk's other views (the walk screen, Navigate's live walk) show it too.
    * Its find and reminder hang on its id, so they stay.
    */
-  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string) {
+  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string, type?: string | null, typeOnly = false) {
     const id = c.id;
-    await db.updatePiece(c.piece_id, notePatch(body));
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, notePatch(body)));
-    captureBus.patch(walkId, id, notePatch(body), self);
+    const change = notePatch(body, type, typeOnly);
+    await db.updatePiece(c.piece_id, change);
+    // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, change, c.piece_id));
+    captureBus.patch(walkId, id, change, self, c.piece_id);
   }
 
   /** With `into`, the note joins that open moment as a piece (MS2, MS3). */

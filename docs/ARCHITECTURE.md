@@ -90,6 +90,7 @@ The journal (specs/chronicle-journal, JN1-JN24, decision 0155): Memories as one 
   journal/pen.ts             the open line's reducer: begin on the first character, save as typed, drop when emptied, Done, a kept capture, a failed save
   journal/target.ts          where an entry goes: the open walk, a moment of its own, or wait until the keeper knows
   journal/blocks.ts          noteBlocks (a page-written note's Markdown as blocks the sheet draws natively, mentions kept), sheetBlocks (the first twelve, and that it goes on)
+  journal/rest.ts            blankHeight (the empty page's height, so the sheet's end shows the entry the page opened on under its date, and the stack since), anchorOf, peekStart (which rows that is)
   journal/keyboard.ts        keyboardLift: how far a browser's keyboard hides the foot (used by threads/useKeyboardHeight.web)
   components/journal/        JournalPage (the sheet: opens at the foot, older entries added above), Entry (dateline and pieces, no card; a page-written note as native blocks), Slip (the resurfaced moment), OpenLine (the field, camera and mic; runs the pen through useCaptures; Open as a page hands the entry to the note's page), type (the owner's serif)
 Media gallery (specs/media-gallery, MG1-MG22, decision 0139)
@@ -120,13 +121,13 @@ Home / tabs
   walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
-  LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
-  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @ and the camera; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap)
-  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants
+  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and, for an edit, the Type tool; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap), NoteTypeMenu.tsx (the nine entries of a note's type, NY6)
+  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a single typed note wears its type's glyph (`pinMark`)
+  NoteMark.tsx               a note's type as an ink glyph and its spoken name, on the viewer's note and the owner-thread bubble (NY9, NY17)
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
   Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
   Baker(.native|.web).tsx    renders a photo's edits and caption into a saved copy, or the lines and caption alone into a clear PNG for a video (Baker.types.ts): react-native-view-shot over EditedPicture on native, canvas on web
@@ -307,7 +308,15 @@ Landing (v1.5)
   landing/analyze.ts         busy streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read
   landing/spatial.ts         buckets, single linkage, hulls: the analysis's planar helpers
-  landing/read.ts            What's good here: decoder reads, remembered areas
+  landing/read.ts            What's good here: decoder reads, remembered areas; the tiles' bytes go to runOffPage
+  landing/compute.ts         computeRead: decode, streets, places, activity and the measure, one staged generator (DC13)
+  landing/offPage.ts         createOffPage: a worker per read, else the page; same result either way (DC7, DC8)
+  landing/runOffPage(.web).ts the instances: a worker on web (compute.worker.ts), the JS thread with a turn per stage on native
+  landing/names.ts           busyNames: one name per strip at its label point, turned along its street (DC1, DC3)
+  landing/workerJobs.ts      the worker's jobs: a read (computeRead) or an atlas ring (atlas/ringCompute.ts, audit 2)
+  atlas/profile.ts           profileFrom: what a ring read keeps, from decoded tiles (core, so the worker runs it)
+  layers/motion.ts           createMotion: whether the map moves, a promise for its settle (DC9, audit 7)
+  complexes/shown.ts         nextShown: the complexes hook's next state, the same object when nothing changes (DC12)
   landing/view.ts            LANDING_CODE, LandingRow / LandingView, staleness
   landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days
@@ -318,9 +327,11 @@ Memories, moments, days
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
+  noteType.ts                a note's type (core, NY1-NY3, decision 0149): the eight ink marks in fixed order, `noteTypeOf` (unknown reads none), `markOf`; `noteEdit.notePatch` is the one write of text and type together
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
   notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
+  voiceTrim.ts               a voice memo's kept part (core, VT6-VT12): span, clock, state, the length and "Trimmed" words
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
   editOffer.ts               the after-capture Edit offer's timing and words (core)
@@ -329,9 +340,9 @@ Captures and media
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
   space/                     storage awareness (SA1-SA10, 0107): core.ts levels, words, the once rule; shell.ts reads the probe, keeps meta space_said/space_persist; probe.native/web.ts
-  media/thumb.ts             the 240 px copy with expo-image-manipulator, or a video's 720 px still through `videoFrame` (expo-video on phones, a `<video>` on the web; VT1); thumbPlan.ts decides when and where (`frameAt`); thumbJob.ts runs one job per piece and name at a time
-  thumbs/                    createThumbs(ports, { makeThumb, remove }): every preview's copy or still on one queue (`ask`, read fresh, standing down when the piece changed) and an edit's new still (`remake`); `useStill` (view) gives a preview its shown still and asks for one it lacks; index.ts the app instance (video thumbnails VT2, the audit)
-  VideoMark.tsx              (components/) the play mark on its own ink ground over a video's still, on every preview (VT4)
+  media/thumb.ts             the 240 px copy with expo-image-manipulator, or a video's 720 px still through `videoFrame` (expo-video on phones, a `<video>` on the web; VS1); thumbPlan.ts decides when and where (`frameAt`); thumbJob.ts runs one job per piece and name at a time
+  thumbs/                    createThumbs(ports, { makeThumb, remove }): every preview's copy or still on one queue (`ask`, read fresh, standing down when the piece changed) and an edit's new still (`remake`); `useStill` (view) gives a preview its shown still and asks for one it lacks; index.ts the app instance (video thumbnails VS2, the audit)
+  VideoMark.tsx              (components/) the play mark on its own ink ground over a video's still, on every preview (VS4)
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
@@ -475,6 +486,10 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
+- **A busy read's background thread** (explore-dense-city DC7, decision 0160): a web worker (`landing/runOffPage.web.ts`,
+  `landing/compute.worker.ts`, built by Expo's export as a file of its own). No Expo module gives the web, or a phone, a
+  background JS thread; native runs the same `computeRead` on the JS thread with a turn before each tile and stage. A
+  worker that can't start (a page left open across a deploy asks for the old worker's file) leaves the read to the page.
 - **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
   react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
   that call alone, since a live region as well would say it twice on Android.
@@ -493,7 +508,7 @@ own code only where no Expo module covers the feature on web:
   `modules/chronicles-video-edit`. The web player's video size comes from a
   detached `<video>`'s metadata (`probeVideoSize`): expo-video's web player has
   no video track.
-- **A video's still** (video thumbnails VT1, VT8): a detached, muted `<video>` seeked to the kept part's start and
+- **A video's still** (video thumbnails VS1, VS8): a detached, muted `<video>` seeked to the kept part's start and
   drawn on a canvas (`videoFrame` in `media/index.web.ts`). expo-video's web `generateThumbnailsAsync` throws "not
   supported on Web yet"; phones use it. The still is kept in the media store; nothing leaves the page.
 - **Notifications:** a service worker (`public/sw.js`, through
@@ -550,7 +565,7 @@ Truth (`lib/types.ts`):
   replies, reminders and finds point at the same ids as before.
 - `Capture`, a moment's piece: id, moment_id, t (its own capture time), kind
   (photo | video | voice | text), file_path, body, caption, caption_y,
-  thumb_path, edit (a photo's or video's edits as data: rotate, crop, filter,
+  thumb_path, note_type (a note's type, raw as stored, SQLite migration 25, IndexedDB 20; decision 0149), edit (a photo's or video's edits as data: rotate, crop, filter,
   lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
   object; `parseEdit` reads both, decision 0090), body_format (a note's body is
   Markdown the note page wrote: 'md'; null or absent, it reads as stored;

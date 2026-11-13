@@ -117,7 +117,7 @@ async function whenReady(player: VideoPlayer): Promise<void> {
 }
 
 /**
- * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VT1): expo-video's frame, a
+ * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VS1): expo-video's frame, a
  * `SharedRef<'image'>` the image manipulator takes as it is. Rejects when no frame can be made. Not run on a device.
  */
 export async function videoFrame(uri: string, atSec: number, max: number): Promise<{ source: string | SharedRef<'image'>; release(): void }> {

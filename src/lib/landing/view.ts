@@ -69,11 +69,12 @@ export const staleNote = (r: LandingRow, build: string, release: string | null =
 
 export interface LandingView {
   pockets: { hull: LngLat[]; name: string; stale: boolean }[];
+  /** Heaviest first across every area, so a heavier street's name is placed first (DC4); the weights stay out of the view (L9). */
   strips: { lines: LngLat[][]; name: string; at: LngLat; stale: boolean }[];
   /** Graded stretches to draw (AD12): every grade, named or not by a busy street. */
   graded: { lines: LngLat[][]; grade: 1 | 2 | 3; stale: boolean }[];
   /** Names of pockets with no strip of their own (a neighbourhood, "A busy pocket"), at their centre (L9). */
-  labels: { name: string; at: LngLat }[];
+  labels: { name: string; at: LngLat; stale?: boolean }[];
 }
 
 /** A strip's name keeps at least this far from its area's Start here pin, so the two never stack (audit). */
@@ -113,6 +114,7 @@ export const predatesStreetFix = (r: LandingRow) => Number(/^l(\d+):/.exec(r.rul
 export function landingView(rows: LandingRow[], build: string | null, release: string | null = null): LandingView {
   const v: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
   const drawn: Drawn[] = [];
+  const heavy = new Map<object, number>();
   for (const [i, r] of rows.entries()) {
     if (predatesStreetFix(r)) continue;
     const stale = build != null && isStale(r, build, release);
@@ -122,30 +124,50 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
     const pin = r.analysis.landing?.at ?? null;
     for (const p of r.analysis.pockets) {
       v.pockets.push({ hull: p.hull, name: p.name, stale });
-      if (!p.strips.length) place(v.labels, drawn, { name: p.name, at: p.centre }, i, stale);
+      if (!p.strips.length) {
+        const label = { name: p.name, at: p.centre, stale };
+        heavy.set(label, p.weight);
+        place(v.labels, drawn, label, i, stale);
+      }
     }
     for (const s of r.analysis.strips) {
-      place(v.strips, drawn, { lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale }, i, stale);
+      const strip = { lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale };
+      heavy.set(strip, s.weight);
+      place(v.strips, drawn, strip, i, stale, true);
     }
   }
+  // DC4, DC19: a current area's before a stale one's, then heaviest first, by the weight the analysis measured; only the
+  // order says so, never a number.
+  const byWeight = (a: { stale?: boolean }, b: { stale?: boolean }) => Number(!!a.stale) - Number(!!b.stale) || (heavy.get(b) ?? 0) - (heavy.get(a) ?? 0);
+  v.strips.sort(byWeight);
+  v.labels.sort(byWeight);
   return v;
 }
 
-/** Two remembered areas may cover the same street; its name is drawn once, not once per area (fix street-label-double). */
+/**
+ * Two remembered areas may cover the same street, and one area may find two busy stretches of it: its name is drawn once
+ * within this distance (fix street-label-double; explore-dense-city audit 4, the owner: once per 300 m).
+ */
 const SAME_LABEL_M = 300;
 interface Named { name: string; at: LngLat }
-interface Drawn extends Named { row: number; stale: boolean; list: Named[]; item: Named }
+interface Drawn extends Named { row: number; stale: boolean; street: boolean; list: Named[]; item: Named }
 
-/** Adds a label unless another row already names it nearby (strip or pocket); a current row's label replaces a stale row's. */
-function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number, stale: boolean) {
-  const dup = drawn.find((d) => d.row !== row && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);
+/**
+ * Adds a name unless one of that name is already drawn nearby, from any area; a current row's name replaces a stale
+ * row's. Within one area (explore-dense-city audit 4): a street's stretches carry one name (its strips come heaviest first,
+ * so the first placed keeps it), and a pocket named for a street gives way to that street's own name, which sits on it;
+ * two pockets of one name ("A busy pocket") stay two.
+ */
+function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number, stale: boolean, street = false) {
+  const dup = drawn.find((d) => (street || d.street || d.row !== row) && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);
   if (dup) {
-    if (!dup.stale || stale) return;
+    const streetOverPocket = dup.row === row && street && !dup.street;
+    if (!streetOverPocket && (!dup.stale || stale)) return;
     dup.list.splice(dup.list.indexOf(dup.item), 1);
     drawn.splice(drawn.indexOf(dup), 1);
   }
   list.push(item);
-  drawn.push({ name: item.name, at: item.at, row, stale, list, item });
+  drawn.push({ name: item.name, at: item.at, row, stale, street, list, item });
 }
 
 /**

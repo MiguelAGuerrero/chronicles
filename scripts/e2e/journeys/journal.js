@@ -72,8 +72,15 @@ async function run(h) {
   const line = '[data-testid=open-line]';
   const input = '[data-testid=line-input]';
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
+  // On the page the bar's pen brings today's foot up and puts the caret there (JN29); where no page shows (a thread,
+  // Hidden) the field is in the bar itself.
+  // A pill above the bar (room left, the edit offer) can sit over the middle of the empty page: tap its first lines.
+  const toLine = async () => {
+    if (await pg.locator('[data-testid=line-write]').filter({ visible: true }).count()) await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000 }).catch(() => {});
+    else await pg.click(input).catch(() => {});
+  };
   const type = async (text) => {
-    await pg.click(input).catch(() => {});
+    await toLine();
     await pg.keyboard.type(text, { delay: 15 });
   };
   const done = () => pg.click('[data-testid=line-done]').catch(() => {});
@@ -97,7 +104,8 @@ async function run(h) {
     headings: await pg.locator('[data-testid=day-heading]').filter({ visible: true }).allInnerTexts(),
     entries: await pg.locator(entries).count(),
     line: await shown(line),
-    buttons: await pg.locator('[data-testid=journal-page] [role=button], [data-testid=journal-page] button').filter({ visible: true }).count(),
+    // The empty page is itself the one thing to tap (JN32); nothing else on the sheet is a button.
+    buttons: await pg.locator('[data-testid=journal-page] [role=button]:not([data-testid=line-write]), [data-testid=journal-page] button:not([data-testid=line-write])').filter({ visible: true }).count(),
   };
   check(empty.path === `${BASE}/` && empty.headings.length === 1 && empty.headings[0] === today && empty.entries === 0 && empty.line && empty.buttons === 0,
     `JN2: a journal with nothing kept is today's date and the open line (${JSON.stringify(empty)})`);
@@ -106,14 +114,14 @@ async function run(h) {
   const rest = await pg.evaluate(({ sel, accent }) => {
     const root = document.querySelector(sel);
     if (!root) return null;
-    const field = root.querySelector('[data-testid=line-input]');
+    const field = document.querySelector('[data-testid=line-input]');
     const out = { placeholder: field?.getAttribute('placeholder') ?? '', focused: document.activeElement === field, loud: [], text: root.innerText.trim() };
     for (const e of [root, ...root.querySelectorAll('*')]) {
       const cs = getComputedStyle(e);
       if ([cs.color, cs.backgroundColor, cs.borderTopColor].includes(accent)) out.loud.push(e.dataset.testid ?? e.tagName);
     }
-    out.labels = ['line-input', 'band-photo', 'band-voice'].map((id) => {
-      const e = root.querySelector(`[data-testid=${id}]`);
+    out.labels = ['line-write', 'band-photo', 'band-voice'].map((id) => {
+      const e = document.querySelector(`[data-testid=${id}]`);
       const r = e?.getBoundingClientRect();
       return { id, label: e?.getAttribute('aria-label'), w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0, x: r ? Math.round(r.x) : -1 };
     });
@@ -133,7 +141,7 @@ async function run(h) {
     order = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
     await pg.evaluate(() => document.activeElement?.blur?.());
   }
-  check(order === 'line-input', `JN23: after the contents button, the open line comes next for a screen reader (${order})`);
+  check(order === 'band-photo', `JN23: after the contents button, the bar's camera comes next for a screen reader (${order})`);
   await shot(pg, 'journal-01-empty');
 
   // ui 5, ui 6: the line has a boundary that reads as a control's edge, and the contents button says what it is.
@@ -226,6 +234,117 @@ async function run(h) {
   check(!!headRow && Math.abs(headRow.dateline - headRow.more) <= 22 && headRow.w >= 44 && headRow.h >= 44,
     `chronicle-journal ui 4: More trails the dateline on the entry's first row, a thumb's target (${JSON.stringify(headRow)})`);
 
+  // JN28-JN30: the words are written on the page, one bar at the foot, and the tabs fold away while writing.
+  await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000 }).catch(() => {});
+  await pg.keyboard.type('On the page itself.', { delay: 10 });
+  await pg.waitForTimeout(900);
+  const penOn = await pg.evaluate(() => {
+    const f = document.querySelector('[data-testid=line-input]');
+    const bar = document.querySelector('[data-testid=open-line]');
+    const page = document.querySelector('[data-testid=journal-page]');
+    if (!f || !bar || !page) return null;
+    const cs = getComputedStyle(f);
+    const r = f.getBoundingClientRect();
+    const b = bar.getBoundingClientRect();
+    const cards = [...page.querySelectorAll('[data-testid=moment-card]')];
+    const last = cards[cards.length - 1];
+    const row = [...bar.querySelectorAll('[data-testid=line-status], [data-testid=line-page], [data-testid=band-photo], [data-testid=band-voice], [data-testid=line-done]')].map((e) => { const x = e.getBoundingClientRect(); return { id: e.dataset.testid, y: Math.round(x.y + x.height / 2), w: Math.round(x.width), h: Math.round(x.height) }; });
+    return {
+      inPage: page.contains(f), inBar: bar.contains(f), focused: document.activeElement === f,
+      width: Math.round(r.width), pageWidth: Math.round(page.getBoundingClientRect().width),
+      outline: cs.outlineStyle, shadow: cs.boxShadow, border: parseFloat(cs.borderTopWidth) + parseFloat(cs.borderLeftWidth), font: cs.fontFamily,
+      underEntry: !!last && r.top >= last.getBoundingClientRect().top, aboveBar: r.bottom <= b.top + 1,
+      barH: Math.round(b.height), row,
+      tabs: [...document.querySelectorAll('[data-testid=tab-bar-wrap]')].filter((e) => e.getBoundingClientRect().height > 1 && getComputedStyle(e).display !== 'none').length,
+      barBottom: Math.round(window.innerHeight - b.bottom),
+    };
+  });
+  check(!!penOn && penOn.inPage && !penOn.inBar && penOn.focused && penOn.width >= penOn.pageWidth - 60 && penOn.outline === 'none' && penOn.shadow === 'none' && penOn.border === 0 && /serif/.test((penOn.font ?? '').replace(/sans-serif/g, '')) && penOn.underEntry && penOn.aboveBar,
+    `JN28: the words are written on the page: the field is the page's last line, full width, in the serif, with no box or focus frame (${JSON.stringify(penOn)})`);
+  check(!!penOn && penOn.row.length === 5 && penOn.row.every((x) => Math.abs(x.y - penOn.row[0].y) <= 2) && penOn.row.filter((x) => x.id !== 'line-status').every((x) => x.w >= 44 && x.h >= 44) && penOn.barH <= 64,
+    `JN29: while writing the bar is one row: the status, Open as a page, the camera, the mic and Done (${JSON.stringify(penOn?.row)}, ${penOn?.barH} px)`);
+  check(!!penOn && penOn.tabs === 0 && penOn.barBottom <= 1, `JN30: while writing the tab bar folds away and the bar sits at the foot, on the keyboard (${JSON.stringify({ tabs: penOn?.tabs, barBottom: penOn?.barBottom })})`);
+  await shot(pg, 'journal-16-writing-on-the-page');
+  await pg.setViewportSize({ width: 320, height: 700 });
+  await pg.waitForTimeout(500);
+  const narrow = await pg.evaluate(() => { const bar = document.querySelector('[data-testid=open-line]'); return bar ? { h: Math.round(bar.getBoundingClientRect().height), over: bar.scrollWidth > bar.clientWidth + 1 } : null; });
+  await shot(pg, 'journal-17-writing-320');
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(500);
+  check(!!narrow && narrow.h <= 64 && !narrow.over, `JN29: at 320 px the bar is still one row, nothing cut (${JSON.stringify(narrow)})`);
+  await done();
+  await pg.waitForTimeout(900);
+  const rest2 = await pg.evaluate(() => ({
+    tabs: [...document.querySelectorAll('[data-testid=tab-bar-wrap]')].filter((e) => e.getBoundingClientRect().height > 1).length,
+    write: (() => { const e = document.querySelector('[data-testid=line-write]'); const r = e?.getBoundingClientRect(); return e ? { label: e.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height) } : null; })(),
+    status: document.querySelector('[data-testid=line-status]')?.innerText ?? '',
+  }));
+  check(rest2.tabs === 1 && !!rest2.write && rest2.write.label === 'Write an entry' && rest2.write.w >= 44 && rest2.write.h >= 44 && rest2.status.trim() === '',
+    `JN29, JN30: at rest the tabs are back and the bar holds the pen, the camera and the mic (${JSON.stringify(rest2)})`);
+
+  // JN31, JN32: at rest the last entry is on top under its date with the empty page below; a tap on the empty page
+  // grows it into the new entry, and Done brings the page back with that entry on top.
+  const lay = () => pg.evaluate(() => {
+    const vh = window.innerHeight;
+    const page = document.querySelector('[data-testid=journal-page]');
+    const cards = [...page.querySelectorAll('[data-testid=moment-card]')];
+    const r = (e) => { const x = e?.getBoundingClientRect(); return x ? { top: Math.round(x.top), bottom: Math.round(x.bottom), h: Math.round(x.height) } : null; };
+    // The date's row, with its ground: what it covers at the top is not seen.
+    const heads = [...page.querySelectorAll('[data-testid=day-heading]')].map((e) => ({ ...r(e.parentElement), text: e.innerText })).filter((h) => h.bottom > 0 && h.top < vh).sort((a, b) => a.top - b.top);
+    const blank = document.querySelector('[data-testid=line-write]');
+    const field = document.querySelector('[data-testid=line-input]');
+    const bar = document.querySelector('[data-testid=open-line]');
+    return {
+      vh, pageTop: Math.round(page.getBoundingClientRect().top), head: heads[0] ?? null, last: r(cards[cards.length - 1]), lastText: cards[cards.length - 1]?.innerText ?? '',
+      prev: r(cards[cards.length - 2]), blank: r(blank), field: r(field), bar: r(bar), focused: document.activeElement === field,
+    };
+  });
+  // The page opens on the entry left off at: read it afresh.
+  await pg.reload();
+  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForTimeout(1500);
+  const rest3 = await lay();
+  const headBottom = rest3.head ? rest3.head.bottom : 0;
+  check(!!rest3.head && rest3.head.top - rest3.pageTop < 60 && !!rest3.last && rest3.last.top >= headBottom - 2 && rest3.last.top - headBottom < 40
+    && (!rest3.prev || rest3.prev.bottom <= headBottom + 2) && !!rest3.blank && rest3.blank.top >= rest3.last.bottom - 2 && rest3.blank.h >= rest3.vh * 0.3 && rest3.blank.bottom <= rest3.bar.top + 2,
+    `JN31: at rest the last entry is on top under its date, nothing older shows, and the empty page fills the rest above the bar (${JSON.stringify(rest3)})`);
+  await shot(pg, 'journal-18-at-rest-peek');
+  await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000 }).catch(() => {});
+  await pg.waitForTimeout(900);
+  const grown = await lay();
+  check(grown.focused && !!grown.field && !!grown.last, `JN32: a tap on the empty page puts the caret on the page (${JSON.stringify(grown)})`);
+  check(grown.focused && !!grown.last && Math.abs(grown.last.top - rest3.last.top) <= 2 && !!grown.field && grown.field.top >= grown.last.bottom - 2 && grown.field.top - grown.last.bottom < 80,
+    `JN33: nothing slides away when writing begins: the last entry keeps its place and the caret is under it (${JSON.stringify({ rest: rest3.last, grown })})`);
+  await shot(pg, 'journal-19-writing-under-the-last');
+  await pg.keyboard.type('Stacked under the last.', { delay: 10 });
+  await pg.waitForTimeout(1000);
+  await done();
+  await pg.waitForTimeout(1000);
+  const after3 = await lay();
+  check(/Stacked under the last\./.test(after3.lastText) && !!after3.prev && Math.abs(after3.prev.top - rest3.last.top) <= 2 && after3.last.top >= after3.prev.bottom - 2 && !!after3.blank && after3.blank.top >= after3.last.bottom - 2,
+    `JN33: Done moves nothing: the new entry is under the one before, and the empty page under it (${JSON.stringify({ after3 })})`);
+  // Enough entries to fill the page: the stack slides up and the line holds its place.
+  const tops = [];
+  for (let i = 0; i < 5; i++) {
+    await toLine();
+    await pg.keyboard.type(`Stack ${i + 1}, a line long enough to run over onto a second line of the page.`, { delay: 4 });
+    await pg.waitForTimeout(700);
+    tops.push((await lay()).field?.top ?? -1);
+    await done();
+    await pg.waitForTimeout(700);
+  }
+  await toLine();
+  await pg.waitForTimeout(700);
+  const tw = await lay();
+  const roomTw = tw.bar.top - (tw.head ? tw.head.bottom : tw.pageTop);
+  const lineUp = tw.bar.top - (tw.field ? tw.field.top : 0);
+  check(tw.focused && !!tw.head && tw.head.top - tw.pageTop < 60 && lineUp > roomTw * 0.22 && lineUp < roomTw * 0.5 && !!tw.last && tw.last.bottom <= tw.field.top + 2
+    && Math.abs(tops[4] - tops[3]) <= 30,
+    `JN33: a full page slides up as it grows and the line holds a third of the way up from the bar (${JSON.stringify({ tw, tops, roomTw, lineUp })})`);
+  await shot(pg, 'journal-20-typewriter');
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(900);
+
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
     const e = document.querySelector(sel);
@@ -264,7 +383,7 @@ async function run(h) {
     onPage: await pg.locator(entries).last().locator('[data-testid=entry-words]').filter({ hasText: 'Same post as last week.' }).count(),
     camera: await pg.locator('[data-testid=band-photo]').getAttribute('aria-disabled').catch(() => 'missing'),
   };
-  check(photoOn && same(restBoxes.field, rec.field) && same(restBoxes.photo, rec.photo) && rec.discard && rec.timer && !!rec.save,
+  check(photoOn && !!rec.field && !!rec.photo && rec.photo.x === restBoxes.photo.x && rec.photo.w === restBoxes.photo.w && !!rec.save && rec.save.x === restBoxes.voice.x && rec.discard && rec.timer,
     `JN14: while a note records, only the mic's place changes: the field and the camera keep their boxes (${JSON.stringify({ restBoxes, rec })})`);
   check(rec.text === '' && rec.onPage === 1,
     `chronicle-journal audit 3: the words typed before the mic stand on the page as their own piece once the note starts, so emptying the line cannot remove the entry it records into (${JSON.stringify({ text: rec.text, onPage: rec.onPage })})`);
@@ -342,18 +461,18 @@ async function run(h) {
   await type('Starts in the line');
   await pg.waitForTimeout(1200);
   const pageBtn = await pg.locator('[data-testid=line-page]').filter({ visible: true }).first().evaluate((e) => { const r = e.getBoundingClientRect(); return { label: e.getAttribute('aria-label'), text: e.innerText.trim(), w: Math.round(r.width), h: Math.round(r.height) }; }).catch(() => null);
-  // fix journal-note-pages ui 1, ui 2: with its status row up the line is taller, and the sheet's last entry still
-  // ends above it; Open as a page is the quieter of the two words beside Done.
+  // fix journal-note-pages ui 1, ui 2 (as the bar is now, JN28, JN29): the field being written ends above the bar, and
+  // Done is the bar's one word, beside icons.
   await shot(pg, 'journal-14-status-row');
-  const tall = await pg.evaluate(({ sel, lineSel }) => {
-    const all = document.querySelectorAll(sel);
-    const last = all[all.length - 1]?.getBoundingClientRect();
+  const tall = await pg.evaluate(({ lineSel }) => {
+    const f = document.querySelector('[data-testid=line-input]')?.getBoundingClientRect();
     const l = document.querySelector(lineSel)?.getBoundingClientRect();
-    const w = (id) => { const e = document.querySelector(`[data-testid=${id}]`); const t = e && (e.querySelector('[dir]') ?? e); return t ? Number(getComputedStyle(t).fontWeight) : -1; };
-    return { lastBottom: last ? Math.round(last.bottom) : null, lineTop: l ? Math.round(l.top) : null, lineH: l ? Math.round(l.height) : null, page: w('line-page'), done: w('line-done') };
-  }, { sel: entries, lineSel: line });
-  check(tall.lineH > 61 && tall.lastBottom != null && tall.lastBottom <= tall.lineTop + 1, `fix journal-note-pages ui 1: the line with its status row covers none of the last entry (${JSON.stringify(tall)})`);
-  check(tall.page > 0 && tall.page < 600 && tall.done >= 600, `fix journal-note-pages ui 2: Open as a page is set lighter than Done, the row's one bold word (${tall.page} against ${tall.done})`);
+    const d = document.querySelector('[data-testid=line-done]');
+    const t = d && (d.querySelector('[dir]') ?? d);
+    return { fieldBottom: f ? Math.round(f.bottom) : null, lineTop: l ? Math.round(l.top) : null, done: t ? Number(getComputedStyle(t).fontWeight) : -1, pageText: document.querySelector('[data-testid=line-page]')?.innerText.replace(/[^A-Za-z]/g, '') ?? null };
+  }, { lineSel: line });
+  check(tall.fieldBottom != null && tall.fieldBottom <= tall.lineTop + 1, `fix journal-note-pages ui 1: the line being written ends above the bar, never under it (${JSON.stringify(tall)})`);
+  check(tall.done >= 600 && tall.pageText === '', `fix journal-note-pages ui 2: Done is the bar's one word; Open as a page is an icon beside it (${JSON.stringify(tall)})`);
   await pg.click('[data-testid=line-page]').catch(() => {});
   const pageUp = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
   await pg.waitForTimeout(800);
@@ -385,7 +504,8 @@ async function run(h) {
   await done();
   await pg.waitForTimeout(600);
   const beforeEmpty = (await stored(pg)).moments.length;
-  await pg.click(input).catch(() => {});
+  await toLine();
+  await pg.waitForTimeout(300);
   await pg.click('[data-testid=line-page]').catch(() => {});
   const newPageUp = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
   await pg.waitForTimeout(1200);
@@ -434,19 +554,22 @@ async function run(h) {
     const lineBox = document.querySelector(lineSel)?.getBoundingClientRect();
     const last = cards[cards.length - 1]?.getBoundingClientRect();
     const ys = cards.map((e) => e.getBoundingClientRect().y);
-    return { drawn: cards.length, lastBottom: last ? Math.round(last.bottom) : null, lineTop: lineBox ? Math.round(lineBox.top) : null, inOrder: ys.every((y, i) => i === 0 || y >= ys[i - 1]), lastText: cards[cards.length - 1]?.innerText ?? '' };
+    return { drawn: cards.length, lastTop: last ? Math.round(last.top) : null, lastBottom: last ? Math.round(last.bottom) : null, lineTop: lineBox ? Math.round(lineBox.top) : null, inOrder: ys.every((y, i) => i === 0 || y >= ys[i - 1]), lastText: cards[cards.length - 1]?.innerText ?? '' };
   }, { sel: entries, lineSel: line });
-  check(opened.drawn > 0 && opened.drawn <= 40 && opened.inOrder && /Second thought, kept\./.test(opened.lastText) && opened.lastBottom != null && opened.lastBottom <= opened.lineTop + 1 && opened.lastBottom > 300,
-    `JN1: a long journal opens at its foot with the latest entry above the line, and draws only its latest page (${JSON.stringify(opened)})`);
+  check(opened.drawn > 0 && opened.drawn <= 40 && opened.inOrder && /Second thought, kept\./.test(opened.lastText) && opened.lastTop != null && opened.lastTop > 0 && opened.lastTop < 320 && opened.lastBottom <= opened.lineTop + 1,
+    `JN1: a long journal opens at rest on its latest entry, at the top, and draws only its latest page (${JSON.stringify(opened)})`);
   const heads = await pg.locator('[data-testid=day-heading]').allInnerTexts();
   check(heads.length >= 3 && heads.at(-1) === today && new Set(heads).size === heads.length && heads.every((x) => /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}(, \d{4})?$/.test(x)),
     `JN2: each day with an entry has its date in full once, today's last, and no empty day appears (${heads.slice(-4).join(' | ')})`);
+  // The slip is above today's entries, off the resting screen: brought to the middle, with today's date in its own place over it.
+  await pg.locator('[data-testid=resurfaced]').evaluate((e) => e.scrollIntoView({ block: 'center' })).catch(() => {});
+  await pg.waitForTimeout(500);
   const slip = await pg.evaluate(() => {
     const s = document.querySelector('[data-testid=resurfaced]');
     if (!s) return null;
     const heads = [...document.querySelectorAll('[data-testid=day-heading]')];
     const todayHead = heads[heads.length - 1];
-    window.__slipGap = todayHead ? Math.round(s.getBoundingClientRect().top - todayHead.getBoundingClientRect().bottom) : -1;
+    window.__slipGap = todayHead ? Math.round(s.getBoundingClientRect().top - todayHead.parentElement.getBoundingClientRect().bottom) : -1;
     const firstToday = [...document.querySelectorAll('[data-testid=moment-card]')].find((e) => todayHead && (todayHead.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING));
     return {
       afterHeading: !!todayHead && !!(todayHead.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING),
@@ -471,11 +594,11 @@ async function run(h) {
   check(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
   check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
   await shot(pg, 'journal-05-scrolled-back');
-  // JN9, JN11: a tap in the line, scrolled back, brings today's foot into view.
-  await pg.click(input).catch(() => {});
+  // JN9, JN11: the bar's pen, scrolled back, brings today's foot into view and the caret onto the page.
+  await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000 }).catch(() => {});
   await pg.waitForTimeout(900);
-  const backAtFoot = await pg.evaluate((sel) => { const all = document.querySelectorAll(sel); const r = all[all.length - 1]?.getBoundingClientRect(); return !!r && r.bottom <= window.innerHeight && r.bottom > 0; }, entries);
-  check(backAtFoot, 'JN11: a tap in the line brings today\'s page to the foot');
+  const backAtFoot = await pg.evaluate(() => { const r = document.querySelector('[data-testid=line-input]')?.getBoundingClientRect(); return !!r && r.top > 0 && r.bottom <= window.innerHeight; });
+  check(backAtFoot && (await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'))) === 'line-input', 'JN11: the pen brings today\'s page to the foot, with the caret in it');
   await pg.evaluate(() => document.activeElement?.blur?.());
 
   // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
@@ -611,7 +734,8 @@ async function run(h) {
   check(lineInThreads && lineInThread, `JN9: the open line stays, unmoved, in the threads and in a thread (${JSON.stringify({ lineInThreads, lineInThread })})`);
 
   // JN17: nothing inserts on a past page; a response lands at the end and says what it answers.
-  const inserts = await pg.locator('[data-testid=journal-page] [data-testid*=insert], [data-testid=journal-page] input, [data-testid=journal-page] textarea').count();
+  // The one field on the page is its last line, after every entry (JN28): nothing writes into a past page.
+  const inserts = await pg.locator('[data-testid=journal-page] [data-testid*=insert], [data-testid=journal-page] input, [data-testid=journal-page] textarea:not([data-testid=line-input])').count();
   const countBefore = (await stored(pg)).moments.length;
   await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=moment-open]').click().catch(() => {});
   await there('[data-testid=viewer-close]', 5000);

@@ -10,17 +10,60 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
+# The deploy alone is in the cancelling group (its job, below): every push's record check runs to its end,
+# so a push superseded by the next is still read (records audit 49).
 jobs:
-  build:
+  records:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          # Enough history to read the pushed range for the loop's commit check below.
+          # The whole history: the loop's commit check reads every commit of the push, however long
+          # (records audit 25), and the record gate's cut-over reads the commits' ancestry.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The tending loop's limits, held outside the loop (decision 0133): every `tend …` commit in this push
+      # carries its own named test and a Source line and touches nothing the loop may not. Every loop commit
+      # and every agent commit (a Claude-Session or Co-Authored-By: Claude trailer: slices, fixes, docs-gc,
+      # all of them) changes the record documents only by its declared operations (decision 0156); the
+      # owner's own commits carry neither and are not gated. A refusal ends with its one-line fix. The check
+      # runs as the push's base had it, so no commit of the push can loosen the scripts that judge it
+      # (records audit 19).
+      - name: Loop and agent commits keep to the loop's limits and the record operations
+        if: github.event_name == 'push'
+        run: |
+          if [ "${BEFORE}" = "0000000000000000000000000000000000000000" ]; then
+            echo "::notice::a new branch: no base to read the push from; loop commits not checked"
+          elif ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            if [ "${FORCED}" = "true" ]; then
+              echo "::notice::a forced push whose base ${BEFORE} is gone; loop commits not checked"
+            else
+              echo "::error::the push's base BEFORE (${BEFORE}) is not in the history: the loop's commits cannot be read"
+              exit 1
+            fi
+          else
+            gate="$(mktemp -d)"
+            # The base's scripts once it holds the gate (and the TEND_ROOT that lets them read this checkout).
+            if git show "${BEFORE}:scripts/records.js" 2>/dev/null | grep -q 'Records-Op' \
+              && git show "${BEFORE}:scripts/tend.js" 2>/dev/null | grep -q 'TEND_ROOT'; then
+              git archive "${BEFORE}" scripts | tar -x -C "${gate}"
+            else
+              cp -R scripts "${gate}/"
+            fi
+            TEND_ROOT="${PWD}" node "${gate}"/scripts/tend.js commits --loop-only "${BEFORE}..${GITHUB_SHA}"
+          fi
+        env:
+          BEFORE: ${{ github.event.before }}
+          FORCED: ${{ github.event.forced }}
+
+  build:
+    needs: records
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
           fetch-depth: 50
       - uses: actions/setup-node@v4
         with:
@@ -31,18 +74,6 @@ jobs:
       - run: npm run check:docs
       # The vision's mechanical half: score words, tallies, hosts, dependencies, spec verdicts (decision 0094).
       - run: npm run check:vision
-      # The tending loop's limits, held outside the loop (decision 0133): every `tend …` commit in this push
-      # carries its own named test and a Source line and touches nothing the loop may not.
-      - name: Loop commits keep to the loop's limits
-        if: github.event_name == 'push'
-        run: |
-          if git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
-            node scripts/tend.js commits --loop-only "${BEFORE}..${GITHUB_SHA}"
-          else
-            echo "::notice::the push's base is outside the fetched history; loop commits not checked"
-          fi
-        env:
-          BEFORE: ${{ github.event.before }}
       - run: npm run typecheck
       - run: npm test
       # Lint holds the import boundaries and the functional core's layers (FC3, FC5).
@@ -53,11 +84,14 @@ jobs:
           CHRONICLES_BASE_URL: /chronicles
       # fix stale-chunk audit 1: one JS file. A deploy replaces every file, so a page left open across it
       # loses any file it hasn't loaded yet: a split route or import() showed "Loading module ... failed".
-      - name: The web export is one bundle
+      # One exception, the owner's call of Nov 13 (decision 0160): the busy and ring reads' web worker
+      # (compute-*.js). A page that can't load it after a deploy computes the read itself (explore-dense-city DC8).
+      - name: The web export is one bundle, and the read's worker
         run: |
-          n=$(find dist/_expo/static/js/web -name '*.js' | wc -l)
-          if [ "$n" -ne 1 ]; then
-            echo "::error::the web export wrote $n JS files; an open page loses all but the one it loaded to the next deploy (fix stale-chunk)"
+          n=$(find dist/_expo/static/js/web -name '*.js' ! -name 'compute-*.js' | wc -l)
+          w=$(find dist/_expo/static/js/web -name 'compute-*.js' | wc -l)
+          if [ "$n" -ne 1 ] || [ "$w" -gt 1 ]; then
+            echo "::error::the web export wrote $n JS files besides the read's worker ($w of it); an open page loses all but the one it loaded to the next deploy (fix stale-chunk)"
             find dist/_expo/static/js/web -name '*.js'
             exit 1
           fi
@@ -70,6 +104,9 @@ jobs:
 
   deploy:
     needs: build
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     environment:
       name: github-pages

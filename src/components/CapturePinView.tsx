@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { pinThumb, type CapturePin } from '../lib/pins';
+import { pinNoteLabel, pinThumb, type CapturePin } from '../lib/pins';
 import { VideoMark } from './VideoMark';
 import { useStill } from '../lib/thumbs/useStill';
 import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
-import { Icon, KIND_ICON, KIND_LABEL } from './icons';
+import { captureIcon, Icon, KIND_ICON, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
 /** A neutral for pins holding several kinds, distinct from the trace's navy. */
@@ -47,7 +47,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   const color = n > 1 ? (pin.kind === 'mixed' ? MIXED : PIN_COLOR[pin.kind]) : PIN_COLOR[pin.kind];
   // One photo's small copy, never the full photo (QL26). The ref is resolved once per
   // change of it (useMediaUri's effect keys on it), never per render.
-  // One capture's copy or still, the row's or one made since; a pin asks for none itself (VT2).
+  // One capture's copy or still, the row's or one made since; a pin asks for none itself (VS2).
   const one = useStill(pin.captures[0], { ask: false });
   const thumb = pinThumb(n === 1 ? { ...pin, captures: [one] } : pin);
   const uri = useMediaUri(thumb ? { ...pin.captures[0], file_path: thumb } : null);
@@ -61,7 +61,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
       <View style={[styles.pin, faint && styles.faint]}>
         <View style={[styles.head, { backgroundColor: color }]}>
-          {n > 1 ? <Text style={styles.count}>{n}</Text> : !painted && <Icon name={KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
+          {n > 1 ? <Text style={styles.count}>{n}</Text> : !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
           {picture && (
             <Image
               testID="pin-thumb"
@@ -77,7 +77,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
         <View style={[styles.stem, { backgroundColor: color }]} />
       </View>
       {n === 1 && hasMore(pin.captures[0]) && <StackMark silent size={10} style={styles.stack} />}
-      {/* A video's still keeps its play mark, bottom right of the head, clear of the stack, clock and bell (VT4). */}
+      {/* A video's still keeps its play mark, bottom right of the head, clear of the stack, clock and bell (VS4). */}
       {n === 1 && pin.captures[0].kind === 'video' && painted && <VideoMark testID="pin-video-mark" size={faint ? 7 : 9} style={[styles.videoMark, faint && styles.videoMarkFaint]} />}
       {/* Its clock stays solid and full size, so it reads as from the past at a glance (MR10, audit UX). */}
       {faint && (
@@ -102,7 +102,7 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
   const n = pin.captures.length;
   const kind = memory
     ? n > 1 ? `${n} memories here` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
-    : n > 1 ? `${n} captures here` : KIND_LABEL[pin.captures[0].kind];
+    : n > 1 ? `${n} captures here` : pinNoteLabel(pin) ?? KIND_LABEL[pin.captures[0].kind];
   // One moment with more than one piece says so in words, never how many (MS8, MS9).
   const stacked = n === 1 && hasMore(pin.captures[0]) ? `, ${STACK_SPOKEN}` : '';
   // The bell said in words (RB7).

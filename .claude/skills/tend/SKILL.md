@@ -155,8 +155,14 @@ entry per finding, written so a yes or no is enough:
   Otherwise: <the next shape>, or leave it.
 ```
 
-- **Numbers** go on from `lastT` in the worktree's ledger (which is `main`'s);
-  write the new `lastT` back. Section 10 renumbers if `main` moved meanwhile.
+- **File it** with `npm run records -- inbox add --file <entry>`, the entry written
+  as above with `T?` (or `G?`) for its number: the script numbers it on from
+  `lastT` in the ledger at `HEAD` (which is `main`'s) and the inbox, and writes
+  the new `lastT` back. Section 10 renumbers if `main` moved meanwhile. These
+  three documents change only through `npm run records` (decision 0156,
+  `.claude/skills/ship.md`, "The record documents"): each operation is
+  recorded, and its commit carries the trailers `npm run records -- trailers`
+  prints; never Edit, Write or sed.
 - Run `/vision` on each `[owner]` entry first (it returns its block and asks
   nothing): an **out** is not filed at all (say so in the report, with the
   rule), and a reshaping is filed in its reshaped form.
@@ -164,12 +170,16 @@ entry per finding, written so a yes or no is enough:
 - An addition too large for one commit is not a `T` entry: shape it as a `G`
   entry with criteria (section 9's form), so a yes has something to hold it to.
 - Findings that are real but not worth the owner's time now go to the area's
-  section of `docs/DEFERRED.md`, tagged.
+  section of `docs/DEFERRED.md`, tagged: `npm run records -- deferred item add
+  "<section>" --file <item>` (`--after <match>` beside its kin; `--new` for a
+  section that does not exist yet). A native path the sweep touched is a
+  `native item add` in `docs/NATIVE_UNVERIFIED.md`.
 
 ## 6. Triage the deferred ledger (`/tend triage`)
 
 Give every untagged bullet in `docs/DEFERRED.md` (or the named section's) one
-tag at its start, by the table in section 1, keeping its words:
+tag at its start, by the table in section 1, keeping its words
+(`npm run records -- deferred item tag <match> <tag>`):
 
 - `[loop]`: the loop may ship it;
 - `[owner]`: an addition, a product question, or an owner's call already
@@ -179,7 +189,9 @@ tag at its start, by the table in section 1, keeping its words:
 - `[kept]`: a limit recorded on purpose (a decision says so); nothing to do.
 
 A bullet holding several items is split first, one item per bullet, the
-words kept. Then put
+words kept (`npm run records -- deferred item split <match> --file <bullets>`,
+whose parts keep the bullet's marker and checkbox and its words in their order, none dropped,
+added or moved). Then put
 the `[owner]` and `[arch]` items the owner would most want to answer (**five
 at most** per run, and none while ten wait) in the inbox with
 recommendations; the rest stay tagged in place. Nothing but docs ships in a
@@ -195,7 +207,12 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
 - **Yes to an `[owner]` `T` entry** (one commit's worth, by section 5): build
   its recommended shape as section 4 does, one commit, subject
   `tend <area> T<n>: …`, its test named the same, `Source:` naming the entry
-  and what it rests on. The entry leaves the inbox.
+  and what it rests on. The entry leaves the inbox (`npm run records -- inbox
+  remove T<n> --reason "the owner's yes, built in tend <area> T<n>"`); a yes
+  that waits for the next run is noted on it instead (`inbox note T<n> --file
+  <line>`). An entry the run did not file leaves only with a `--reason`, and a
+  commit removes or rewrites at most two per section: with more answers, the
+  record takes a commit per pair.
 - **Yes to an `[arch]` entry** is the owner's architectural call, not a
   build: write its decision record, and shape the work as a `G` entry with
   criteria (section 9's form) for a yes of its own.
@@ -205,7 +222,8 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
   `slice` skill with `<slug> --from=G<n>` **in this run's worktree**: the
   entry's criteria and verdict are its start, its plan is written and read by
   the steward but not held for the owner, and it returns its result block
-  without publishing or asking. Remove the entry from "Next evolutions", then
+  without publishing or asking. Remove the entry from "Next evolutions"
+  (`npm run records -- inbox remove G<n> --reason "<why>"`), then
   section 10 (its checks are the slice's own step 9; the review's fixes are
   named `<slug> audit N`; `check:tend` is not run, since a slice's commits
   are not loop commits).
@@ -217,11 +235,13 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
   **A yes or no to such an entry** resumes it: check out the parked branch,
   rebase it on `origin/main`, apply the answer, and finish the slice as above;
   if the answer ends it, delete the parked branch and decline the `G` entry.
-- **Reshape** ("yes, but…"): rewrite the entry as told and run `/vision` on
+- **Reshape** ("yes, but…"): rewrite the entry as told (`npm run records --
+  inbox set <id> --reason "the owner's reshape" --file <entry>`, its number
+  kept) and run `/vision` on
   the new shape. A reshaped `T` entry is built only if it is still aligned
   and still one commit's worth. A reshaped `G` entry is never built in the
   same run: its rewritten criteria are filed for the owner's plain yes.
-- **No:** remove the entry and add `{ title, area, date, reason }` to the
+- **No:** remove the entry (`inbox remove <id> --reason "the owner's no"`) and add `{ title, area, date, reason }` to the
   ledger's `declined`, so no sweep proposes it again. A no that states a rule
   ("never a count there") is a new decision record too. A no to every
   evolution of a polished area makes it `resting`.
@@ -333,9 +353,18 @@ The owner picks; the loop never starts a `G` entry unasked.
    valid JSON, only those fields, the balance left to the script) and
    `docs/STATUS.md`, "Last tend", replaced with this run's digest (area,
    commits with one line each, entries filed, the balance in a sentence,
-   lenses not run). Commit it with the inbox and `docs/DEFERRED.md` edits as
-   `tend <area>: the run's record`. It holds documents, the ledger and the
-   run log only.
+   lenses not run): write the digest to a file and run `npm run records --
+   last-tend set --file <digest>`, which keeps the heading and every section
+   after it. What the owner must change by hand (a spec's or a rule's wording)
+   is an `open add` to "Open before the loop"; an item there that the run did
+   not file changes only by `open note`, or by `open set` and `open remove` with
+   a `--reason` (two at most per commit). Run `npm run check:records --
+   origin/main` (it replays the pending operations and names any change no
+   operation makes), then commit it with the inbox and `docs/DEFERRED.md`
+   operations as `tend <area>: the run's record`, the pending sidecar the
+   operations staged and the lines of `npm run records -- trailers` in
+   the message's last paragraph. It holds documents, the sidecar, the ledger
+   and the run log only.
 
    **The run log** (decision 0139) is `.claude/skills/tend/runs.jsonl`, one
    line a run, never edited afterwards. Every mode writes one, in its last
@@ -356,7 +385,9 @@ The owner picks; the loop never starts a `G` entry unasked.
    (`accepted`, `rejected`, `deferred`). The line is written once: when the
    review of step 2 leads to a second record commit, write it there.
    Write facts, never a judgment of the run: no lesson, no rating, no advice.
-2. **Checks:** `npm run check:docs`. A run that changed code (a sweep, a `T`
+2. **Checks:** `npm run check:docs` and `npm run check:records -- origin/main..HEAD`
+   (CI replays the trailers of every `tend …` commit and every agent commit; a later record commit of the run may
+   set or remove what an earlier one filed without a reason or a cap). A run that changed code (a sweep, a `T`
    build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
    a loop commit with its own named, real test and its source, and none
    touches what the loop may not), `npm run typecheck && npm run lint &&
@@ -366,10 +397,15 @@ The owner picks; the loop never starts a `G` entry unasked.
 3. **Publish**, by `--deploy`:
    - `main`: `.claude/skills/ship.md`, "Publish to main", once. Whenever
      `main` moved, compare its `lastT` and `lastG` with the ones this run
-     started from: if they changed, or the rebase conflicts in
-     `docs/STATUS.md`, `docs/DEFERRED.md` or the ledger, take `main`'s side of
-     those three and write this run's entries again, numbered on from
-     `main`'s. Any other conflict is `ship.md`'s stop. A red run is handled
+     started from. If the rebase conflicts in `docs/STATUS.md`,
+     `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` and the ledger, take
+     `main`'s side of all four and run `npm run records -- redo` in the
+     conflicted commit (it runs its recorded operations again; the inbox
+     numbers on from `main`'s ledger and the trailers stay), then
+     `check:records` again. A record commit whose inbox numbers would move
+     but whose rebase does not conflict cannot be redone (it is committed, and
+     a record commit is never amended): stop and report, the branch pushed
+     for the owner, rather than publish a record the gate fails. Any other conflict is `ship.md`'s stop. A red run is handled
      by `ship.md`, "A red run".
    - `branch`: push the run's branch and stop; `none`: save a patch. Neither
      moves an area's state, the entry numbers are provisional, and step 5 is

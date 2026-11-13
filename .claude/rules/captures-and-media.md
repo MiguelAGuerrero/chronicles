@@ -142,7 +142,7 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 - `THUMB.none` marks a photo that won't decode, so it isn't tried again. Two
   asks at once share one job. A leftover copy is replaced (`keepFile`
   `replace`).
-- **A video's still** (video thumbnails VT1-VT9): a 720 px JPEG of the frame where the kept part starts (`frameAt`:
+- **A video's still** (video thumbnails VS1-VS9): a 720 px JPEG of the frame where the kept part starts (`frameAt`:
   the trim's start, else 0), with its crop and rotation, as the piece's `thumb_path`, made after capture, on an edit's
   Done (named by the edit) and on first show (the gallery, the memory preview, Memories' cards through `lib/thumbs`).
   `videoFrame` takes it from expo-video on phones and from a detached `<video>` on the web (a listed exception).
@@ -170,6 +170,19 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   whether EXIF orientation survives the copy.
 
 ## Voice memos
+
+- **A memo can be trimmed** (voice trim VT1-VT12, Nov 12): Edit in the viewer opens `MediaEditor` on a `voice` kind (`editSession`
+  `TOOLS.voice = ['trim']`, no picture), the same `Capture.edit.trim` a video has, on the untouched recording. Everything that plays
+  a memo or says its length goes through `lib/voiceTrim` (`voiceSpan`, `voiceClock`, `voiceState`, `memoWords`, `trimmedLine`);
+  a test fails when a file calling `useAudioPlayer` does not import it (VT12). A trimmed memo's player asks `updateInterval: 100`
+  (the default 500 ms stops it up to half a second past the end handle), seeks to the start before `play()`, and pauses and says
+  finished at the end handle (`VoicePlayer`, the replay's `MemoBubble`). A player is only mutated from module-level helpers.
+- **A change to a moment's other piece is that piece's** (voice-trim audit 1): `captureBus.patch` and `applyPatch` take the piece's id
+  (`c.piece_id`); a piece that is not the face's lands in `pieces` and the face keeps its own edit, caption and copy, or a memo's trim
+  overwrote its photo's crop. Every `onSaveEdit` path passes it. Note text is still patched on the face (docs/DEFERRED.md).
+- **A restart names the position it left** (audit 2): a seek is async, so one more status can carry the old end position; the press
+  stores it (`restartedFrom`) and `voiceReachedEnd` ignores that position until the player moves off it. The whole length is
+  `wholeMs(body, file)`: the stored one, the file's only when none is on record (audit 3, 4).
 
 - Voice memos stop when the phone locks unless `setAudioModeAsync` gets
   `allowsBackgroundRecording: true` and the expo-audio plugin has
@@ -244,3 +257,5 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
     `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
     (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.
+- **Note types** (NY1-NY17, decision 0161): `Capture.note_type` (SQLite migration 27, IndexedDB 20; raw as stored, read through `noteTypeOf`, so an unknown value is no type) is the owner's mark on a note: one of eight ink glyphs in `lib/noteType` (fixed order, spoken names). The note's page offers a Type tool in its bar only for an edit (`NotePage` given `type` and `onType`; never a new note's page or Respond's), opening `NoteTypeMenu`; a choice is kept at once through `onSaveNote(c, body, type, typeOnly)`. `notePatch(body, type, typeOnly)` (`lib/noteEdit`) is the one write: text and type together, or, `typeOnly`, the type alone (the body and its `body_format` stay as kept). Every `onSaveNote` call passes it on (`noteTypeScan.test` fails a call site that takes two arguments). `NoteMark` draws the glyph and name above the viewer's note and in the owner-thread bubble; `captureIcon` and `pinMark` put it on a pin of exactly one note (a pin of several keeps its count). Never count, sort, filter, search or infer a type, and never read one for a place (NY12, NY13): `noteTypeReaders.test` lists the files that may mention a type; a new reader goes through `/vision` and then onto that list.
+  - **A note save names its piece** (note-types audit 1, 12, 13): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).

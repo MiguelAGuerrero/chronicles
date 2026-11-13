@@ -25,11 +25,11 @@ export const GalleryTile = memo(function GalleryTile(props: {
   onPress: (tile: Tile) => void;
 }) {
   const { tile, size } = props;
-  // Its copy or still, the row's or one made since; one it lacks is asked for (MG11, VT2).
+  // Its copy or still, the row's or one made since; one it lacks is asked for (MG11, VS2).
   const face = useStill(tile.face);
   const [copyBroken, setCopyBroken] = useState(false);
   const [broken, setBroken] = useState<string | null>(null);
-  // A photo's small copy or a video's still (VT3); a video's file is never a picture (VT5).
+  // A photo's small copy or a video's still (VS3); a video's file is never a picture (VS5).
   const ref = tile.kind === 'voice' ? null : thumbShown(face, copyBroken);
   const uri = useMediaUri(ref ? { ...face, file_path: ref } : null);
 
@@ -54,7 +54,7 @@ export const GalleryTile = memo(function GalleryTile(props: {
         <Icon name={KIND_ICON[tile.kind]} size={Math.min(32, size / 3)} color={theme.muted} />
       )}
       {tile.kind === 'video' && uri && broken !== uri ? (
-        // Over the still: the play mark and the length on their own ground (VT4).
+        // Over the still: the play mark and the length on their own ground (VS4).
         <VideoMark length={tile.lengthMs != null ? lengthLabel(tile.lengthMs) : null} style={styles.mark} />
       ) : tile.kind !== 'photo' && tile.lengthMs != null ? (
         <View style={styles.length} accessible={false}>

@@ -80,6 +80,8 @@ export interface Capture {
    * drawing, trim, as data on the untouched file. Null or absent: none.
    */
   edit?: MediaEdit | null;
+  /** A note's type, chosen by the owner (NY4, decision 0161): raw as stored; read it through `noteTypeOf`. Null or absent: none. */
+  note_type?: string | null;
 }
 
 /**

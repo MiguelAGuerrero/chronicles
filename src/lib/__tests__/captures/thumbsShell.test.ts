@@ -11,7 +11,7 @@ const video = (id: string, o: Partial<Moment['pieces'][number]> = {}): Moment =>
   pieces: [{ id, moment_id: id, t: 1, kind: 'video', file_path: `${id}.mp4`, body: '4000', ...o }],
 });
 
-test("VT2: an older video's copy is made once, read fresh first", async () => {
+test("VS2: an older video's copy is made once, read fresh first", async () => {
   const p = fakePorts();
   let made = 0;
   const t = createThumbs(p, { makeThumb: async (c) => (made++, `${c.piece_id}.thumb.jpg`), remove: async () => {} });
@@ -25,7 +25,7 @@ test("VT2: an older video's copy is made once, read fresh first", async () => {
   assert.equal(made, 1, 'never made again');
 });
 
-test('VT2: a still that cannot be made now is asked again next time', async () => {
+test('VS2: a still that cannot be made now is asked again next time', async () => {
   const p = fakePorts();
   let tries = 0;
   const t = createThumbs(p, { makeThumb: async () => (++tries === 1 ? null : 'v.thumb.jpg'), remove: async () => {} });
@@ -36,7 +36,7 @@ test('VT2: a still that cannot be made now is asked again next time', async () =
   assert.equal(t.store.get().made.v?.ref, 'v.thumb.jpg');
 });
 
-test('VT9: copies are made one at a time', async () => {
+test('VS9: copies are made one at a time', async () => {
   const p = fakePorts();
   let running = 0;
   let most = 0;
