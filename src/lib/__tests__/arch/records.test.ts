@@ -27,12 +27,13 @@ const records = createRequire(__filename)(join(ROOT, 'scripts', 'records.js')) a
   CUTOVER: string;
   parse(text: string): { blocks: Block[]; lines: string[]; eol: boolean };
   apply(kind: Kind, name: string, text: string, args?: Args): { text: string; id?: string };
-  replay(docs: Docs, ops: Op[], o?: { ledger?: Ledger; removedIds?: string[] }): { docs: Docs };
+  replay(docs: Docs, ops: Op[], o?: { ledger?: Ledger; removedIds?: string[]; notes?: Map<string, string[]> }): { docs: Docs };
   trailersOf(ops: Op[]): string[];
   sidecarOf(ops: Op[]): string;
   parseTrailer(line: string): { argv: string[]; body?: string; intro?: string };
   newRangeState(): State;
-  checkCommit(c: { base: Docs; head: Docs; message: string; sidecar: string | null; ledger?: Ledger; state: State }): string[];
+  checkCommit(c: { base: Docs; head: Docs; message: string; sidecar: string | null; ledger?: Ledger; state: State; notes?: Map<string, string[]> }): string[];
+  isAgent(message: string): boolean;
   gateRange(range: string, o: { cwd: string; loopOnly?: boolean; cutover?: string }): Gate;
   transact(doc: { blocks: Block[]; lines: string[]; eol: boolean }, made: { edit: { at: number; remove: number; lines: string[] }; mid: (mid: Block[]) => boolean }): string;
 };
@@ -942,4 +943,211 @@ test('records: tend.js fails a loop commit that edits the records by hand, or to
   r.commit('tend replay: a later commit');
   assert.match(r.node('scripts/tend.js', 'commits', '--loop-only', 'HEAD~1..HEAD').stderr, /sidecar/);
   assert.ok(existsSync(join(r.dir, '.claude', 'records', side)));
+});
+
+// ---------------------------------------------------------------------------------------------------
+// Round 3: the owner's decisions of Nov 13 (in person). F9: an inbox set keeps the entry's answer notes.
+// Every agent commit is gated, not only the loop's. A "From <skill>" section of "Needs the owner" is
+// added, and its bullets changed, by operations.
+
+/** The trailers that make a commit an agent's (the owner's rule, Nov 13). */
+const AGENT = 'Co-Authored-By: Claude <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_test';
+/** The note, then the entry as the owner reshaped it. */
+const ANSWER = '**Answered yes** (Nov 13): a mic beside the camera, as T11 recommends.';
+const noteT11: Op = { argv: ['inbox', 'note', 'T11'], body: ANSWER };
+const setT11 = (body: string): Op => ({ argv: ['inbox', 'set', 'T11', '--reason', 'the owner reshaped it'], body });
+
+test('records audit 31 (F9): an inbox set keeps every line an earlier inbox note added, unchanged and in order', () => {
+  const reshaped = '- **T11 [owner] Voice and note, one tap from the bar** (2026-11-11)\n  Area: tabs.';
+  assert.throws(() => records.replay(DOCS0, [noteT11, setT11(reshaped)], { ledger: LEDGER }), /inbox note/, 'a set that drops the answer is refused');
+  assert.throws(() => records.replay(DOCS0, [noteT11, setT11(`${reshaped}\n  **Answered yes** (Nov 13): a mic.`)], { ledger: LEDGER }), /inbox note/, 'a set that alters it is refused');
+  const kept = records.replay(DOCS0, [noteT11, setT11(`${reshaped}\n  ${ANSWER}`)], { ledger: LEDGER }).docs['docs/STATUS.md'];
+  assert.ok(kept.includes(`Area: tabs.\n  ${ANSWER}\n- **T13`), kept.slice(kept.indexOf('T11'), kept.indexOf('T13') + 4));
+  // A note recorded in an earlier commit, given as the history's notes, binds the same.
+  const noted = records.replay(DOCS0, [noteT11], { ledger: LEDGER }).docs;
+  const notes = new Map([['T11', [`  ${ANSWER}`]]]);
+  assert.throws(() => records.replay(noted, [setT11(reshaped)], { ledger: LEDGER, notes }), /inbox note/);
+  assert.ok(records.replay(noted, [setT11(`${reshaped}\n  ${ANSWER}`)], { ledger: LEDGER, notes }));
+  // A noted line the owner already took out by hand binds nothing.
+  assert.ok(records.replay(DOCS0, [setT11(reshaped)], { ledger: LEDGER, notes }));
+  // The gate refuses it too.
+  const bad = { base: noted, head: records.replay(noted, [setT11(reshaped)], { ledger: LEDGER }).docs, message: `Slice: x\n\n${records.trailersOf([setT11(reshaped)]).join('\n')}\n`, sidecar: records.sidecarOf([setT11(reshaped)]), ledger: LEDGER };
+  assert.match(records.checkCommit({ ...bad, state: records.newRangeState(), notes }).join('\n'), /inbox note/);
+});
+
+test('records audit 32 (F9): the CLI and the gate read the notes earlier commits made', () => {
+  const r = repo('f9');
+  assert.equal(r.stdin(`${ANSWER}\n`, 'scripts/records.js', 'inbox', 'note', 'T11').status, 0);
+  r.commit(`tend inbox: the answers\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  const reshaped = '- **T11 [owner] Voice and note, one tap from the bar** (2026-11-11)\n';
+  const dropped = r.stdin(reshaped, 'scripts/records.js', 'inbox', 'set', 'T11', '--reason', 'reshaped');
+  assert.equal(dropped.status, 1, 'the CLI refuses a set that drops the noted answer');
+  assert.match(dropped.stderr, /inbox note/);
+  assert.equal(r.stdin(`${reshaped}  ${ANSWER}\n`, 'scripts/records.js', 'inbox', 'set', 'T11', '--reason', 'reshaped').status, 0);
+  r.git('reset', '-q', '--hard');
+  r.git('clean', '-qfd');
+  // A commit that declares the dropping set, made around the CLI, fails the gate.
+  const before = { 'docs/STATUS.md': r.read('docs/STATUS.md'), 'docs/DEFERRED.md': r.read('docs/DEFERRED.md'), 'docs/NATIVE_UNVERIFIED.md': r.read('docs/NATIVE_UNVERIFIED.md') };
+  const op = setT11(reshaped);
+  r.write('docs/STATUS.md', records.replay(before, [op], { ledger: LEDGER }).docs['docs/STATUS.md']);
+  r.write('.claude/records/20261113-120000-0000f9f9.json', records.sidecarOf([op]));
+  r.commit(`Voice: one tap (VO1)\n\n${records.trailersOf([op]).join('\n')}\n${AGENT}\n`);
+  const g = records.gateRange('HEAD~1..HEAD', { cwd: r.dir, loopOnly: true });
+  assert.ok(!g.ok);
+  assert.match(g.results.flatMap((x) => x.problems).join('\n'), /inbox note/);
+});
+
+test('records audit 33: an agent commit is one with a Claude-Session or a Co-Authored-By: Claude trailer', () => {
+  assert.ok(records.isAgent(`Explore: x (EX1)\n\n${AGENT}\n`));
+  assert.ok(records.isAgent('fix x\n\nClaude-Session: https://claude.ai/code/session_abc\n'));
+  assert.ok(records.isAgent('fix x\n\nCo-authored-by: Claude <noreply@anthropic.com>\n'), 'GitHub writes the key in lower case');
+  assert.ok(!records.isAgent('STATUS: the owner clears a section\n'));
+  assert.ok(!records.isAgent('Owner: x\n\nCo-Authored-By: Claudette <c@example.com>\n'), 'a name that only starts with Claude');
+  assert.ok(!records.isAgent('Owner: x\n\nsee the line Claude-Session: in the skill\n'), 'only at a line start');
+  assert.ok(!records.isAgent('Owner: x\n\nClaude-Session:\n'), 'a key with no value');
+});
+
+test('records audit 34: CI replays every agent commit that touches the documents, slices and fixes too; the owner\'s hand edit stays ungated', () => {
+  const r = repo('agents');
+  const base = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.write('docs/STATUS.md', STATUS.replace('| Rides | shipped |', '| Rides | shipped, audited |'));
+  r.commit(`Rides: the slice is done (RI1-RI14)\n\n${AGENT}\n`);
+  const slice = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..HEAD`);
+  assert.equal(slice.status, 1, 'a slice commit with a hand edit fails');
+  // The refusal says how to fix it in one line: the operation, redo, and where the skill says so.
+  const line = slice.stderr.split('\n').find((l) => /no Records-Op trailer/.test(l)) ?? '';
+  assert.match(line, /slice row (add|set)/);
+  assert.match(line, /npm run records -- redo/);
+  assert.match(line, /ship\.md/);
+  r.git('reset', '-q', '--hard', base);
+  r.write('docs/STATUS.md', STATUS.replace('| Rides | shipped |', '| Rides | shipped, audited |'));
+  r.commit('STATUS: the owner marks Rides audited');
+  assert.equal(r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..HEAD`).status, 0, 'the owner\'s own hand edit');
+  // A fix whose second issue went into DEFERRED by hand; then the same through the operation.
+  r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode\n4. A second issue'));
+  r.commit(`fix dark: the first issue\n\n${AGENT}\n`);
+  const fix = r.node('scripts/tend.js', 'commits', '--loop-only', 'HEAD~1..HEAD');
+  assert.equal(fix.status, 1);
+  assert.match(fix.stderr, /deferred item add/);
+  r.git('reset', '-q', '--hard', 'HEAD~1');
+  assert.equal(r.stdin('A second issue\n', 'scripts/records.js', 'deferred', 'item', 'add', 'Quality of life').status, 0);
+  r.commit(`fix dark: the first issue\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  const ok = r.node('scripts/tend.js', 'commits', '--loop-only', 'HEAD~1..HEAD');
+  assert.equal(ok.status, 0, ok.stderr);
+});
+
+test('records audit 35: an in-flight slice branch made before the gate: its old commits and the merge that brings the gate in are history; what it commits after is gated', () => {
+  const r = repo('in-flight', { gate: false });
+  r.git('checkout', '-q', '-b', 'slice');
+  r.write('docs/STATUS.md', STATUS.replace('| Rides | shipped |', '| Rides | shipped, by hand |'));
+  r.commit(`Rides: by hand before the gate (RI1)\n\n${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  copyFileSync(join(ROOT, 'scripts', 'records.js'), join(r.dir, 'scripts', 'records.js'));
+  r.commit(`Records: the gate lands\n\n${AGENT}\n`);
+  const landed = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.write('docs/DEFERRED.md', DEFERRED.replace('3. Dark mode', '3. Dark mode, the owner\'s'));
+  r.commit('Owner: a hand edit on main');
+  r.git('checkout', '-q', 'slice');
+  r.git('merge', '-q', '--no-edit', 'main');
+  r.git('commit', '-q', '--amend', '-m', `Merge main into slice\n\n${AGENT}`);
+  const transition = r.node('scripts/tend.js', 'commits', '--loop-only', `${landed}..slice`);
+  assert.equal(transition.status, 0, transition.stderr);
+  r.write('docs/STATUS.md', r.read('docs/STATUS.md').replace('| Motion (steps, MO1-MO10) | shipped |', '| Motion (steps, MO1-MO10) | shipped, by hand |'));
+  r.commit(`Rides: after the gate (RI2)\n\n${AGENT}\n`);
+  const after = r.node('scripts/tend.js', 'commits', '--loop-only', `${landed}..slice`);
+  assert.equal(after.status, 1);
+  assert.match(after.stderr, /RI2[\s\S]*no Records-Op trailer/);
+  assert.doesNotMatch(after.stderr, /RI1/);
+});
+
+test('records audit 36: an agent merge resolved by hand in the documents fails; redo in the merge writes main\'s side plus the branch\'s operations, and passes', () => {
+  const r = repo('merge-redo');
+  const base = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('checkout', '-q', '-b', 'run');
+  assert.equal(r.stdin('[loop] The branch\'s finding.\n', 'scripts/records.js', 'deferred', 'item', 'add', 'Navigation and routes').status, 0);
+  r.commit(`Threads: a reply (TH1)\n\n${r.node('scripts/records.js', 'trailers').stdout}${AGENT}\n`);
+  r.git('checkout', '-q', 'main');
+  r.write('docs/DEFERRED.md', DEFERRED.replace('main thread.\n', 'main thread.\n- [owner] Main\'s own item.\n'));
+  r.commit('Owner: an item on main');
+  r.git('checkout', '-q', 'run');
+  assert.notEqual(r.git('merge', '-q', '--no-edit', 'main').status, 0, 'the two adds conflict');
+  r.write('docs/DEFERRED.md', DEFERRED.replace('main thread.\n', 'main thread.\n- [loop] The branch\'s finding.\n- [owner] Main\'s own item, reworded.\n'));
+  r.commit(`Merge main into run\n\n${AGENT}\n`);
+  const hand = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..run`);
+  assert.equal(hand.status, 1, 'an agent merge resolved by hand');
+  assert.match(hand.stderr, /merge[\s\S]*redo/);
+  // Done again with redo.
+  r.git('reset', '-q', '--hard', 'HEAD~1');
+  r.git('merge', '-q', '--no-edit', 'main');
+  const redo = r.node('scripts/records.js', 'redo');
+  assert.equal(redo.status, 0, redo.stderr);
+  assert.ok(r.read('docs/DEFERRED.md').includes("main thread.\n- [owner] Main's own item.\n- [loop] The branch's finding.\n"), r.read('docs/DEFERRED.md'));
+  r.commit(`Merge main into run\n\n${AGENT}\n`);
+  const ok = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..run`);
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.equal(r.node('scripts/records.js', 'verify', `${base}..run`).status, 0);
+  // The owner's own merge, resolved by hand with no trailers, in a push with no loop commit: a notice.
+  r.git('checkout', '-q', '-b', 'owner', 'run~1');
+  r.git('merge', '-q', '--no-edit', 'main');
+  r.write('docs/DEFERRED.md', DEFERRED.replace('main thread.\n', 'main thread.\n- [owner] Main\'s own item.\n- The owner\'s words.\n'));
+  r.commit('Merge main, by the owner');
+  assert.ok(records.gateRange('owner~1..owner', { cwd: r.dir, loopOnly: true }).ok);
+});
+
+test('records audit 37: section add puts a "From <skill>" section after "From /tend", newest first; section item ops change its bullets; section remove takes an empty one', () => {
+  const one = records.apply('status', 'section add', STATUS, { section: 'From /fix' }).text;
+  assert.ok(one.includes('  Recommended: its kinds.\n\n### From /fix\n\n### Next evolutions\n'), one.slice(one.indexOf('T14'), one.indexOf('Next evolutions') + 20));
+  const two = records.apply('status', 'section add', one, { section: 'From the journal\'s audit (2026-11-13)', intro: 'What the audit left for a call.' }).text;
+  assert.ok(two.includes("  Recommended: its kinds.\n\n### From the journal's audit (2026-11-13)\n\nWhat the audit left for a call.\n\n### From /fix\n\n### Next evolutions\n"), 'the newer above the older');
+  for (const bad of ['Fixes', 'From /tend', 'From /fix', 'From x\n## y', 'From x ###', ' From x']) assert.throws(() => records.apply('status', 'section add', one, { section: bad }), Error, bad);
+  const item = records.apply('status', 'section item add', one, { section: 'From /fix', body: '**[owner] Process: a review on every screen** (2026-11-13)\n  From: fix gallery-header.' }).text;
+  assert.ok(item.includes('### From /fix\n\n- **[owner] Process: a review on every screen** (2026-11-13)\n  From: fix gallery-header.\n\n### Next evolutions\n'), item.slice(item.indexOf('From /fix'), item.indexOf('Next evolutions') + 16));
+  const noted = records.apply('status', 'section item note', item, { section: '/fix', match: 'Process', body: 'Answered (Nov 13): yes.' }).text;
+  assert.ok(noted.includes('  From: fix gallery-header.\n  Answered (Nov 13): yes.\n'));
+  const gone = records.apply('status', 'section item remove', noted, { section: 'From /fix', match: 'Process' }).text;
+  assert.equal(gone, one);
+  assert.throws(() => records.apply('status', 'section remove', item, { section: 'From /fix' }), /entries|empty/);
+  assert.equal(records.apply('status', 'section remove', gone, { section: 'From /fix' }).text, STATUS, 'add and remove leave every byte');
+  // The real document, as the owner keeps it, takes one.
+  const real = read('docs/STATUS.md');
+  const r = records.apply('status', 'section add', real, { section: 'From /fix' }).text;
+  assert.ok(/### From \/tend\n[\s\S]*\n\n### From \/fix\n\n### Next evolutions\n/.test(r));
+  assert.ok(records.apply('status', 'section item add', r, { section: 'From the journal and note pages', body: '**One more** (Nov 13).' }).text.includes('**One more** (Nov 13).'), 'the owner\'s own "From" sections take bullets too');
+  assert.throws(() => records.apply('status', 'section item add', r, { section: 'From /tend', body: 'x' }), /inbox/, 'From /tend is the inbox\'s');
+});
+
+test('records audit 38: a "From <skill>" section\'s bullets keep the caps, the reasons and the trailers', () => {
+  const sec: Op = { argv: ['section', 'add', 'From /fix', '--intro'], intro: 'What /fix left.' };
+  const fixed: Op = { argv: ['section', 'add', 'From /fix'], intro: 'What /fix left.' };
+  const adds: Op[] = ['a', 'b', 'c'].map((w) => ({ argv: ['section', 'item', 'add', 'From /fix'], body: `**Item ${w}** (Nov 13).` }));
+  assert.deepEqual(problems(DOCS0, [fixed, ...adds]), []);
+  const filed = records.replay(DOCS0, [fixed, ...adds], { ledger: LEDGER }).docs;
+  const removes = ['a', 'b', 'c'].map((w) => ({ argv: ['section', 'item', 'remove', 'From /fix', `Item ${w}`, '--reason', 'answered'] }));
+  assert.deepEqual(problems(DOCS0, [fixed, ...adds, ...removes]), [], 'what the run filed it removes freely');
+  assert.match(problems(filed, removes).join('\n'), /at most two[\s\S]*From \/fix/, 'what it did not file: two a commit');
+  assert.match(problems(filed, [{ argv: ['section', 'item', 'remove', 'From /fix', 'Item a'] }]).join('\n'), /--reason/);
+  assert.match(problems(filed, [{ argv: ['section', 'item', 'set', 'From /fix', 'Item a'], body: '**Item A** (Nov 13).' }]).join('\n'), /--reason/);
+  // The trailer names the section, quoted, and the intro by its hash.
+  const t = records.trailersOf([fixed])[0];
+  assert.match(t, /^Records-Op: section add "From \/fix" --intro sha256:[0-9a-f]{64}$/);
+  assert.deepEqual(records.parseTrailer(t).argv, ['section', 'add', 'From /fix']);
+  assert.throws(() => records.replay(DOCS0, [sec], { ledger: LEDGER }), /intro/, 'the intro is not a word of the command');
+  const empty = records.replay(DOCS0, [fixed], { ledger: LEDGER }).docs;
+  assert.match(problems(empty, [{ argv: ['section', 'remove', 'From /fix'] }]).join('\n'), /--reason/, 'a section the run did not add leaves with a reason');
+  assert.deepEqual(problems(DOCS0, [fixed, { argv: ['section', 'remove', 'From /fix'] }]), []);
+});
+
+test('records audit 39: the skills that write the documents say every agent commit is gated, slices and fixes too', () => {
+  for (const rel of ['ship.md', 'README.md', 'slice/SKILL.md', 'fix/SKILL.md', 'docs-gc/SKILL.md', 'audit/SKILL.md', 'deploy/SKILL.md']) {
+    assert.match(read(`.claude/skills/${rel}`), /every agent commit/i, rel);
+  }
+  const ship = read('.claude/skills/ship.md');
+  assert.match(ship, /section add/);
+  assert.match(ship, /Claude-Session/);
+  assert.match(ship, /redo[^\n]*merge|merge[^\n]*redo/i, 'ship.md says how a merge is resolved');
+  const decision = read('docs/decisions/0156-the-record-documents-change-by-operations.md');
+  assert.match(decision, /inbox note/);
+  assert.match(decision, /section add/);
+  assert.match(decision, /Claude-Session/);
+  assert.doesNotMatch(decision, /Left open for the owner[\s\S]*F9/, 'F9 is decided');
 });
