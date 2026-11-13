@@ -130,10 +130,8 @@ async function run(h) {
     const median = (xs) => [...xs].sort((x, y) => x - y)[Math.floor(xs.length / 2)] ?? 0;
     const longsOver = median(steps.map((st) => st.longs - st.camera.longs));
     const worstOver = median(steps.map((st) => st.worst - st.camera.worst));
-    check(
-      steps.every((st) => st.rendersMid <= 1) && longsOver <= 100 && worstOver <= 17,
-      `SS9: at ${RATE}x CPU a switch renders Explore at most once mid-move and costs what the camera alone does on the same move, give or take that render (median over the camera: long tasks ${longsOver} ms of 100, worst frame ${worstOver} ms of 17; renders mid-move ${say(steps, (st) => st.rendersMid)}; switch/camera long tasks ${say(steps, (st) => `${st.longs}/${st.camera.longs}`)}; worst frames ${say(steps, (st) => `${st.worst}/${st.camera.worst}`)})`,
-    );
+    const likeCamera = steps.every((st) => st.rendersMid <= 1) && longsOver <= 100 && worstOver <= 17;
+    check(likeCamera, `SS9: at ${RATE}x CPU a switch renders Explore at most once mid-move and costs what the camera alone does on the same move, give or take that render (median over the camera: long tasks ${longsOver} ms of 100, worst frame ${worstOver} ms of 17; renders mid-move ${say(steps, (st) => st.rendersMid)}; switch/camera long tasks ${say(steps, (st) => `${st.longs}/${st.camera.longs}`)}; worst frames ${say(steps, (st) => `${st.worst}/${st.camera.worst}`)})`,);
 
     // SS10: a zoom, by the wheel and in code, clears no name that is drawn. In this world only the town's own streets are
     // busy enough to be named, more than a neighborhood's ring from each of them (EC7): the town's card, then its middle.
