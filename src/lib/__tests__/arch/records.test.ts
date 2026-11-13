@@ -1085,7 +1085,7 @@ test('records audit 36: an agent merge resolved by hand in the documents fails; 
   r.commit(`Merge main into run\n\n${AGENT}\n`);
   const ok = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..run`);
   assert.equal(ok.status, 0, ok.stderr);
-  assert.equal(r.node('scripts/records.js', 'verify', `${base}..run`).status, 0);
+  assert.equal(r.node('scripts/records.js', 'verify', 'main..run').status, 0);
   // The owner's own merge, resolved by hand with no trailers, in a push with no loop commit: a notice.
   r.git('checkout', '-q', '-b', 'owner', 'run~1');
   r.git('merge', '-q', '--no-edit', 'main');

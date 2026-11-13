@@ -12,13 +12,19 @@
 //   npm run records -- inbox add [--id T19]                 a T or G entry (its id written T? or G?),
 //                                                           numbered on from the ledger and the document
 //   npm run records -- inbox note <id>                      indented lines appended to an entry
-//   npm run records -- inbox set <id> --reason r            an entry rewritten as the owner reshaped it
+//   npm run records -- inbox set <id> --reason r            an entry rewritten as the owner reshaped it, every
+//                                                           line an earlier inbox note added kept as it stands
 //   npm run records -- inbox remove <id> --reason r
 //   npm run records -- last-tend set                        the "Last tend" body, its heading kept
 //   npm run records -- open add [--end | --after <match>]   a bullet of "Open before the loop", newest first
 //   npm run records -- open note <match> | open set|remove <match> --reason r
 //   npm run records -- inflight add [--end | --after <m>] | inflight set|remove <match>   "In flight" rows
 //   npm run records -- slice row add [--top | --after <m>] | slice row set <match>      "Slices" rows
+//   npm run records -- section add "From <skill>" [--intro <file>]   a "From …" section of "Needs the owner",
+//                                                           right after "From /tend", newest first
+//   npm run records -- section item add "<section>" [--top | --after <m>]   a bullet of a "From …" section
+//   npm run records -- section item note "<section>" <match> | section item set|remove "<section>" <match> --reason r
+//   npm run records -- section remove "<section>" [--reason r]  a "From …" section with no bullet left
 //   npm run records -- deferred|native item add <section> [--new] [--top | --after <match>]
 //                                                           a bullet (--new: a new section at the end,
 //                                                           --intro <file> its one paragraph)
@@ -26,18 +32,23 @@
 //   npm run records -- deferred|native item remove|set <match> --reason r | item retag <match> <tag> --reason r
 //   npm run records -- trailers                             the pending operations' trailers, for the commit
 //   npm run records -- redo                                 the pending operations run again on HEAD's documents
-//                                                           (after taking main's side of a conflict)
+//                                                           (after taking main's side of a conflict); during a
+//                                                           merge, the merged-in side's documents with this
+//                                                           branch's operations since the merge base
 //   npm run records -- verify [<base>..<head> | <rev>]      (npm run check:records) each commit of the range
 //                                                           replayed; with one rev, the commits since its merge
 //                                                           base with HEAD and the working tree against HEAD
 //
 // Bodies come from --file <path> or stdin, so nothing needs shell quoting. <match> is text that occurs in
-// exactly one entry of the operation's scope; an inbox entry the pending operations added is recorded by its
+// exactly one entry of the operation's scope; <section>, a "From …" title or text in exactly one of them. An
+// inbox entry the pending operations added is recorded by its
 // handle (@1 for the first operation's), which redo renumbers with it. Each operation records the entry it
 // acted on, and replay refuses another. A remove, set or retag of an entry the run did not file
 // (filed: added by inbox add, open add or item add earlier in the range) needs --reason, and a commit
 // makes at most two of them per section. A tag moves only toward [owner], [arch] or [kept].
-// Plain Node, no dependencies; scripts/tend.js runs the gate on every loop commit.
+// Plain Node, no dependencies. CI (scripts/tend.js commits --loop-only) runs the gate on every loop commit and
+// every agent commit (a Claude-Session or Co-Authored-By: Claude trailer, the owner's rule of Nov 13);
+// the owner's own hand edits carry neither and are not gated. A refusal ends with its one-line fix.
 
 const fs = require('fs');
 const path = require('path');
@@ -54,8 +65,13 @@ const TAGS = ['loop', 'owner', 'arch', 'phone', 'kept'];
 const RAISED = ['owner', 'arch', 'kept'];
 // Removals and rewrites of entries the run did not file, per section per commit.
 const CAP = 2;
-// The commits the loop makes: the gate's scope in CI.
+// The commits the loop makes.
 const LOOP = /^(tend |Revert "tend )/;
+// An agent's commit (the owner's rule, Nov 13): a message line `Claude-Session: <url>` or
+// `Co-Authored-By: Claude …`, the trailers every session writes. CI replays every agent commit and every
+// loop commit; a commit with neither is the owner's own hand edit, and not gated.
+const AGENT = /^(claude-session:[ \t]*\S|co-authored-by:[ \t]*claude\b)/im;
+const isAgent = (message) => AGENT.test(String(message));
 // The cut-over, by the commit graph, never by a date (a rebase keeps an author date and anyone can set
 // one): a commit is replayed only when its parent already holds this gate (`Records-Op` in its
 // scripts/records.js), so whatever lands on main before the gate does is history however late it
@@ -431,6 +447,40 @@ function highest(doc, letter, ledger) {
 }
 
 const openItems = (doc) => section(doc, OWNER, OPEN).inner.filter((x) => x.kind === 'item');
+
+// A "From <skill>" section of "Needs the owner": what a slice, a fix or an audit leaves for the owner's
+// call (an H3 of its own, as recent slices kept them). "From /tend" is the inbox's, by `inbox` operations.
+const FROM = /^From \S/;
+const fromHeadings = (doc) => doc.blocks.filter((b) => b.kind === 'heading' && b.level === 3 && b.h2 === OWNER && FROM.test(b.title) && b.title !== INBOX);
+/** The "From …" section named by its whole title or by text in exactly one title. */
+function fromSection(doc, name) {
+  if (!name || !String(name).trim()) fail('say which section: its title, "From …"');
+  if (name === INBOX) fail(`"${INBOX}" is the inbox: its entries change by \`inbox add|note|set|remove\``);
+  const hs = fromHeadings(doc);
+  let h = hs.find((b) => b.title === name);
+  if (!h) {
+    const near = hs.filter((b) => b.title.includes(name));
+    if (near.length > 1) fail(`"${name}" is in ${near.length} section titles; give more of the title:\n${near.map((b) => `  - ${b.title}`).join('\n')}`);
+    if (!near.length) fail(`no section "${name}" under "${OWNER}" (its "From …" sections: ${hs.map((b) => `"${b.title}"`).join(', ') || 'none'}); \`section add\` makes one`);
+    h = near[0];
+  }
+  return section(doc, OWNER, h.title);
+}
+const fromKey = (title, text) => `${title}\u0000${norm(text)}`;
+
+/** A section's intro: one paragraph, no block of its own. */
+function introLines(intro) {
+  const il = bodyLines(intro, "section's intro");
+  if (il.some((l) => l.trim() === '')) fail('the intro is one paragraph, with no blank line');
+  if (il.some((l) => starts(l) || SETEXT.test(l))) fail('the intro is a paragraph: no bullet, heading, rule, table, fence or HTML');
+  return il;
+}
+/** A new section's title: one line of text, no carriage return, no #. */
+function checkTitle(name) {
+  if (typeof name !== 'string' || !name.trim()) fail('say which section: its title');
+  if (/\r/.test(name)) fail('a section title holds no carriage return');
+  if (/[\n#]/.test(name) || name !== name.trim()) fail('a section title is one line of text');
+}
 const openKey = (text) => `${OPEN}\u0000${norm(text)}`;
 const itemKey = (b) => `${b.h2}\u0000${norm(b.text)}`;
 /** An item of docs/DEFERRED.md or docs/NATIVE_UNVERIFIED.md: one under an H2. */
@@ -472,15 +522,21 @@ const OPS = {
   },
   'inbox note'(doc, { match, body }) {
     const b = entry(doc, match);
-    const lines = [...b.text.split('\n'), ...noteLines(b, body)];
-    return { target: b, edit: replaceBlock(b, lines), mid: oneItem({ h3: b.h3, id: b.id }, lines.join('\n')), step: { kind: 'note', section: b.h3, key: `id:${b.id}`, newKey: `id:${b.id}` } };
+    const noted = noteLines(b, body);
+    const lines = [...b.text.split('\n'), ...noted];
+    return { target: b, result: { noted }, edit: replaceBlock(b, lines), mid: oneItem({ h3: b.h3, id: b.id }, lines.join('\n')), step: { kind: 'note', section: b.h3, key: `id:${b.id}`, newKey: `id:${b.id}` } };
   },
-  'inbox set'(doc, { match, body }) {
+  'inbox set'(doc, { match, body, noted = [] }) {
     const b = entry(doc, match);
     const lines = asItem(body);
     const m = /^[-*+]\s+\*\*([TG])(\?|\d+)(?=\s|\*\*)/.exec(lines[0]);
     if (!m || m[1] !== b.id[0] || (m[2] !== '?' && m[1] + m[2] !== b.id)) fail(`the new text must start "- **${b.id} …**" (or "- **${b.id[0]}? …**"): an entry keeps its number`);
     lines[0] = lines[0].replace(/^([-*+]\s+\*\*)[TG](\?|\d+)/, `$1${b.id}`);
+    // F9, the owner's call (Nov 13): the answers an \`inbox note\` added stay, word for word and in order.
+    const keep = b.text.split('\n').slice(1).filter((l) => noted.includes(l));
+    let k = 0;
+    for (const l of lines.slice(1)) if (k < keep.length && l === keep[k]) k++;
+    if (k < keep.length) fail(`an inbox set keeps every line an earlier \`inbox note\` added to ${b.id}, unchanged and in order (decision 0156, F9): "${keep[k].trim()}" is missing or changed; put it back as it stands, add to it with \`inbox note\`, or leave the change to the owner`);
     return { target: b,
       edit: replaceBlock(b, lines),
       mid: oneItem({ h3: b.h3, id: b.id }, lines.join('\n')),
@@ -554,13 +610,7 @@ const OPS = {
       if (!create) fail(`no section "${name}"; --new makes it, at the end of the file`);
       if (/\r/.test(name)) fail('a section title holds no carriage return');
       if (/[\n#]/.test(name) || name !== name.trim()) fail('a section title is one line of text');
-      let lead = [];
-      if (intro !== undefined) {
-        const il = bodyLines(intro, "section's intro");
-        if (il.some((l) => l.trim() === '')) fail('the intro is one paragraph, with no blank line');
-        if (il.some((l) => starts(l) || SETEXT.test(l))) fail('the intro is a paragraph: no bullet, heading, rule, table, fence or HTML');
-        lead = [...il, ''];
-      }
+      const lead = intro !== undefined ? [...introLines(intro), ''] : [];
       // A new section goes after the document's last block, never between the owner's.
       let end = doc.lines.length;
       while (end > 0 && doc.lines[end - 1].trim() === '') end--;
@@ -626,6 +676,67 @@ const OPS = {
       mid: oneItem({ h2: b.h2 }, text),
       step: { kind: 'set', section: b.h2, key: itemKey(b), newKey: `${b.h2}\u0000${norm(text)}`, oldTag: itemParts(b.text).tag, newTag: itemParts(text)?.tag ?? null, what: first(b) },
     };
+  },
+  // "From <skill>" sections (the owner's decision 3, Nov 13). A new one goes right after "From /tend",
+  // above the "From …" sections already there (newest first) and before "Next evolutions". Renaming one
+  // stays the owner's edit.
+  'section add'(doc, { section: name, intro }) {
+    checkTitle(name);
+    if (!FROM.test(name)) fail(`a section of "${OWNER}" an operation adds is "From <skill>" ("From /fix", "From the journal's audit (…)"), not "${name}"`);
+    if (name === INBOX) fail(`"${INBOX}" is the inbox's own section`);
+    const owner = doc.blocks.filter((b) => b.kind === 'heading' && b.level === 3 && b.h2 === OWNER);
+    if (owner.some((b) => b.title === name)) fail(`a section "${name}" exists already under "${OWNER}"`);
+    const tend = section(doc, OWNER, INBOX);
+    if (!tend.next || tend.next.level !== 3 || tend.next.h2 !== OWNER) fail(`"${INBOX}" is not followed by a section of "${OWNER}" ("${NEXT}"): the owner's layout moved, so where a new section goes is theirs to say`);
+    const at = tend.next.start;
+    const lead = doc.lines[at - 1]?.trim() === '' ? [] : [''];
+    const il = intro !== undefined ? [...introLines(intro), ''] : [];
+    return {
+      edit: { at, remove: 0, lines: [...lead, `### ${name}`, '', ...il] },
+      mid: (mid) =>
+        mid.length === (intro === undefined ? 1 : 2) &&
+        mid[0].kind === 'heading' && mid[0].level === 3 && mid[0].title === name && mid[0].h2 === OWNER &&
+        (intro === undefined || (mid[1].kind === 'para' && mid[1].h3 === name)),
+      step: { kind: 'file', section: name, newKey: `section:${name}` },
+    };
+  },
+  'section remove'(doc, { section: name }) {
+    const sec = fromSection(doc, name);
+    const title = sec.heading.title;
+    const solid = sec.inner.filter((b) => b.kind !== 'blank');
+    if (solid.some((b) => b.kind !== 'para') || solid.length > 1) fail(`"${title}" still holds entries: a section leaves empty, its bullets first (\`section item remove\`, each with its reason), its one intro paragraph at most with it`);
+    const to = sec.next ? sec.next.start : doc.lines.length;
+    return { target: sec.heading, edit: { at: sec.heading.start, remove: to - sec.heading.start, lines: [] }, mid: nothing, step: { kind: 'remove', section: title, key: `section:${title}`, what: `### ${title}` } };
+  },
+  'section item add'(doc, { section: name, body, after, top }) {
+    const sec = fromSection(doc, name);
+    const title = sec.heading.title;
+    const lines = asItem(body);
+    const at = place(sec, 'item', { top, after });
+    const edit = insert(doc, at, lines);
+    // Into an empty section: a blank line after its heading, as the document keeps them.
+    if (doc.blocks.some((b) => b.kind === 'heading' && b.end === at)) edit.lines.unshift('');
+    return { edit, mid: oneItem({ h3: title, id: undefined }, lines.join('\n')), step: { kind: 'file', section: title, newKey: fromKey(title, lines.join('\n')) } };
+  },
+  'section item note'(doc, { section: name, match, body }) {
+    const sec = fromSection(doc, name);
+    const title = sec.heading.title;
+    const b = only(sec.inner.filter((x) => x.kind === 'item'), match, `entry of "${title}"`);
+    const lines = [...b.text.split('\n'), ...noteLines(b, body)];
+    return { target: b, edit: replaceBlock(b, lines), mid: oneItem({ h3: title, id: undefined }, lines.join('\n')), step: { kind: 'note', section: title, key: fromKey(title, b.text), newKey: fromKey(title, lines.join('\n')) } };
+  },
+  'section item set'(doc, { section: name, match, body }) {
+    const sec = fromSection(doc, name);
+    const title = sec.heading.title;
+    const b = only(sec.inner.filter((x) => x.kind === 'item'), match, `entry of "${title}"`);
+    const lines = asItem(body, { marker: markerOf(b) });
+    return { target: b, edit: replaceBlock(b, lines), mid: oneItem({ h3: title, id: undefined }, lines.join('\n')), step: { kind: 'set', section: title, key: fromKey(title, b.text), newKey: fromKey(title, lines.join('\n')), what: first(b) } };
+  },
+  'section item remove'(doc, { section: name, match }) {
+    const sec = fromSection(doc, name);
+    const title = sec.heading.title;
+    const b = only(sec.inner.filter((x) => x.kind === 'item'), match, `entry of "${title}"`);
+    return { target: b, edit: removeBlock(doc, b), mid: nothing, step: { kind: 'remove', section: title, key: fromKey(title, b.text), what: first(b) } };
   },
   'item tag'(doc, { match, tag }) {
     if (!TAGS.includes(tag)) fail(`a tag is one of ${TAGS.join(', ')}`);
@@ -747,19 +858,24 @@ function command(argv) {
   } else if (group === 'slice') {
     if (rest[0] === 'row') rest = rest.slice(1);
     name = `slice row ${rest.shift() ?? ''}`;
+  } else if (group === 'section') {
+    name = rest[0] === 'item' ? `section item ${rest[1] ?? ''}` : `section ${rest[0] ?? ''}`;
+    rest = rest.slice(rest[0] === 'item' ? 2 : 1);
   } else if (['inbox', 'last-tend', 'open', 'inflight'].includes(group)) {
     name = `${group} ${rest.shift() ?? ''}`;
   } else fail(`no operation "${words.join(' ')}"`);
   if (!OPS[name]) fail(`no operation "${name}"`);
-  if (name === 'item add') args.section = rest.shift();
-  else if (!/ add$|^last-tend set$/.test(name)) args.match = rest.shift();
+  if (name === 'item add' || name.startsWith('section ')) args.section = rest.shift();
+  if (name !== 'item add' && name !== 'section add' && name !== 'section remove' && !/ add$|^last-tend set$/.test(name)) args.match = rest.shift();
   if (name === 'item tag' || name === 'item retag') args.tag = rest.shift();
   if (rest.length) fail(`unexpected words: ${rest.join(' ')} (quote a <match> or <section> with spaces as one argument)`);
   return { kind, name, args };
 }
 
 /** Whether an operation writes a body (and so carries one in its sidecar). */
-const takesBody = (name) => /\b(add|set|note|split)$/.test(name);
+const takesBody = (name) => name !== 'section add' && /\b(add|set|note|split)$/.test(name);
+/** Whether an operation takes --intro <file>: a new section's one paragraph. */
+const takesIntro = (name, args) => name === 'section add' || (name === 'item add' && args.create);
 
 const sha = (text) => `sha256:${crypto.createHash('sha256').update(text, 'utf8').digest('hex')}`;
 /** What an operation acted on, as a hash: an inbox entry's text with its number left out (redo renumbers it). */
@@ -832,10 +948,13 @@ const render = (op) => trailersOf([op])[0].replace(/^Records-Op: /, '').replace(
  * recorded its `target` refuses to act on any other entry. `removedIds`: inbox numbers the range removed,
  * which `inbox add --id` may give out again.
  */
-function replay(docs, ops, { ledger, unlabelled = false, removedIds = [] } = {}) {
+function replay(docs, ops, { ledger, unlabelled = false, removedIds = [], notes: given, anyNumber = false } = {}) {
   const out = { ...docs };
   const led = { lastT: Number(ledger?.lastT) || 0, lastG: Number(ledger?.lastG) || 0 };
-  const removed = new Set(removedIds);
+  // anyNumber: read back what a commit already did (the notes in history, a merge's side), numbers not judged.
+  const removed = anyNumber ? Object.assign(new Set(removedIds), { has: () => true }) : new Set(removedIds);
+  // The lines each inbox entry's notes added, from earlier commits (`given`) and these operations.
+  const notes = new Map([...(given ?? new Map())].map(([id, ls]) => [id, [...ls]]));
   const added = [];
   const steps = [];
   for (const [k, op] of ops.entries()) {
@@ -851,21 +970,22 @@ function replay(docs, ops, { ledger, unlabelled = false, removedIds = [] } = {})
       const { kind, name, args } = command(argv);
       if (takesBody(name) && op.body === undefined) fail('it writes a body and none was recorded');
       if (!takesBody(name) && op.body !== undefined) fail('it takes no body');
-      if (op.intro !== undefined && !(name === 'item add' && args.create)) fail('--intro goes with item add --new');
+      if (op.intro !== undefined && !takesIntro(name, args)) fail('--intro goes with section add, or item add --new');
       const file = FILE_OF[kind];
-      const r = apply(kind, name, out[file] ?? '', { ...args, body: op.body, intro: op.intro, ledger: led, reopen: removed });
+      const r = apply(kind, name, out[file] ?? '', { ...args, body: op.body, intro: op.intro, ledger: led, reopen: removed, noted: notes.get(args.match) ?? [] });
       if (op.target !== undefined && r.step.target !== op.target) fail(`its target changed: the entry "${args.match}" names now is not the one it was recorded against (${op.target.slice(0, 19)}…); the document moved under it, so look again and run it anew`);
       out[file] = r.text;
       if (r.letter) led[`last${r.letter}`] = Math.max(led[`last${r.letter}`], r.num);
       added[k] = r.id;
       if (name === 'inbox remove') removed.add(args.match);
+      if (r.noted) notes.set(args.match, [...(notes.get(args.match) ?? []), ...r.noted]);
       steps.push({ ...r.step, reason: args.reason, label, ...(r.id ? { id: r.id } : {}) });
     } catch (e) {
       if (e instanceof RecordError && !unlabelled) fail(`${label}: ${e.message}`);
       throw e;
     }
   }
-  return { docs: out, steps, ledger: led, removedIds: [...removed] };
+  return { docs: out, steps, ledger: led, removedIds: [...removed], notes };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -953,43 +1073,104 @@ function firstDifference(want, got) {
   return `line ${k + 1} is ${show(b[k])}, the replay gives ${show(a[k])}`;
 }
 
+/** A commit's Records-Op trailer lines, as written. */
+const trailerLines = (message) => String(message).split('\n').filter((l) => /^Records-Op:/.test(l)).map((l) => l.replace(/\s+$/, ''));
+
 /**
- * One commit's problems. `base` and `head` are its parent's and its own documents ({ file: text }),
- * `message` its message, `sidecar` the text of the sidecar it adds (or null), `ledger` the parent's.
+ * The operations a commit declares: { ops } from its sidecar (checked against its trailers) or its
+ * bodiless trailers, or { problem }. `lines` are its trailer lines (none: { ops: [] }).
  */
-function checkCommit({ base, head, message, sidecar, ledger, state }) {
-  const changed = Object.keys(DOCS).filter((f) => (base[f] ?? '') !== (head[f] ?? ''));
-  const lines = String(message).split('\n').filter((l) => /^Records-Op:/.test(l)).map((l) => l.replace(/\s+$/, ''));
-  if (!lines.length) {
-    if (!changed.length) return sidecar === null ? [] : ['adds a sidecar under .claude/records/ but names no Records-Op trailer: add the trailers `npm run records -- trailers` prints'];
-    return [`changes ${changed.join(', ')} with no Records-Op trailer: agents change the record documents only through \`npm run records -- <op>\`, and commit them with the trailers \`npm run records -- trailers\` prints (decision 0156)`];
-  }
-  let ops;
+function declaredOps(lines, sidecar) {
   try {
     const declared = lines.map(parseTrailer);
     if (sidecar === null) {
-      if (declared.some((d) => d.body || d.intro)) return ['its Records-Op trailers name bodies (sha256:…) but the commit adds no sidecar under .claude/records/ to hold them: commit the pending sidecar `npm run records` staged'];
-      ops = declared.map((d) => ({ argv: d.argv }));
+      if (declared.some((d) => d.body || d.intro)) return { problem: 'its Records-Op trailers name bodies (sha256:…) but the commit adds no sidecar under .claude/records/ to hold them: commit the pending sidecar `npm run records` staged' };
+      const ops = declared.map((d) => ({ argv: d.argv }));
       const off = ops.findIndex((o, k) => trailersOf([o])[0] !== lines[k]);
-      if (off >= 0) return [`trailer ${off + 1} ("${lines[off]}") is not as \`npm run records -- trailers\` prints it ("${trailersOf([ops[off]])[0]}"): a trailer is the script's, never written by hand`];
-    } else {
-      ops = readSidecar(sidecar, 'the sidecar');
-      const want = trailersOf(ops);
-      if (want.length !== lines.length) return [`its ${lines.length} Records-Op trailers and the sidecar's ${want.length} operations differ: the trailers are what \`npm run records -- trailers\` prints for the sidecar`];
-      for (const [k, w] of want.entries()) {
-        if (w === lines[k]) continue;
-        const d = declared[k];
-        if (JSON.stringify(d.argv) === JSON.stringify(ops[k].argv)) return [`operation ${k + 1}'s body in the sidecar does not hash to its trailer's (${d.body ?? d.intro ?? 'no sha256'}; the sidecar's is ${(/sha256:[0-9a-f]{64}$/.exec(w) ?? ['none'])[0]}): the body changed after the operation ran`];
-        return [`trailer ${k + 1} ("${lines[k]}") is not the sidecar's operation ${k + 1} ("${w}"): the trailers are what \`npm run records -- trailers\` prints for the sidecar`];
-      }
+      if (off >= 0) return { problem: `trailer ${off + 1} ("${lines[off]}") is not as \`npm run records -- trailers\` prints it ("${trailersOf([ops[off]])[0]}"): a trailer is the script's, never written by hand` };
+      return { ops };
     }
+    const ops = readSidecar(sidecar, 'the sidecar');
+    const want = trailersOf(ops);
+    if (want.length !== lines.length) return { problem: `its ${lines.length} Records-Op trailers and the sidecar's ${want.length} operations differ: the trailers are what \`npm run records -- trailers\` prints for the sidecar` };
+    for (const [k, w] of want.entries()) {
+      if (w === lines[k]) continue;
+      const d = declared[k];
+      if (JSON.stringify(d.argv) === JSON.stringify(ops[k].argv)) return { problem: `operation ${k + 1}'s body in the sidecar does not hash to its trailer's (${d.body ?? d.intro ?? 'no sha256'}; the sidecar's is ${(/sha256:[0-9a-f]{64}$/.exec(w) ?? ['none'])[0]}): the body changed after the operation ran` };
+      return { problem: `trailer ${k + 1} ("${lines[k]}") is not the sidecar's operation ${k + 1} ("${w}"): the trailers are what \`npm run records -- trailers\` prints for the sidecar` };
+    }
+    return { ops };
   } catch (e) {
-    if (e instanceof RecordError) return [e.message];
+    if (e instanceof RecordError) return { problem: e.message };
     throw e;
   }
+}
+
+/**
+ * The operations that make a change from `base` to `head`, by the sections it touched: what a refusal
+ * names so the fix is one line. A part no operation changes is said to be the owner's.
+ */
+function opsFor(base, head) {
+  const out = new Set();
+  for (const f of Object.keys(DOCS)) {
+    const a = base[f] ?? '';
+    const b = head[f] ?? '';
+    if (a === b) continue;
+    if (f !== 'docs/STATUS.md') {
+      out.add(`\`npm run records -- ${DOCS[f]} item add\` (or note, set, remove, tag, retag, split; \`--new\` for a section at the end)`);
+      continue;
+    }
+    const parts = (text) => {
+      const m = new Map();
+      try {
+        for (const x of parse(text.replace(/\r\n/g, '\n')).blocks) {
+          if (x.kind === 'blank') continue;
+          const k = `${x.h2 ?? ''}\u0000${x.h3 ?? ''}`;
+          m.set(k, `${m.get(k) ?? ''}\n${x.text}`);
+        }
+      } catch {
+        m.set('?', text);
+      }
+      return m;
+    };
+    const pa = parts(a);
+    const pb = parts(b);
+    for (const k of new Set([...pa.keys(), ...pb.keys()])) {
+      if (pa.get(k) === pb.get(k)) continue;
+      const [h2, h3] = k.split('\u0000');
+      if (h2 === SLICES) out.add('`npm run records -- slice row add` (or set)');
+      else if (h2 === INFLIGHT) out.add('`npm run records -- inflight add` (or set, remove)');
+      else if (h2 === OWNER && (h3 === INBOX || h3 === NEXT)) out.add('`npm run records -- inbox add` (or note, set, remove)');
+      else if (h2 === OWNER && h3 === LAST) out.add('`npm run records -- last-tend set`');
+      else if (h2 === OWNER && h3 === OPEN) out.add('`npm run records -- open add` (or note, set, remove)');
+      else if (h2 === OWNER && FROM.test(h3)) out.add('`npm run records -- section add "From <skill>"`, then `section item add` (or note, set, remove)');
+      else out.add(`no operation for "${h3 || h2 || 'the top of the file'}" (the owner's part, by hand: leave it, or ask)`);
+    }
+  }
+  return [...out];
+}
+
+/** The one-line fix a refusal ends with. */
+const fixLine = (ops) =>
+  `Fix: make the change with ${ops.length ? ops.join('; ') : '`npm run records -- <op>`'} and commit with the lines \`npm run records -- trailers\` prints (after a rebase or merge conflict: take main's side and \`npm run records -- redo\`); .claude/skills/ship.md, "The record documents"`;
+
+/**
+ * One commit's problems. `base` and `head` are its parent's and its own documents ({ file: text }),
+ * `message` its message, `sidecar` the text of the sidecar it adds (or null), `ledger` the parent's,
+ * `notes` the lines earlier commits' `inbox note`s added, by entry (F9).
+ */
+function checkCommit({ base, head, message, sidecar, ledger, state, notes }) {
+  const changed = Object.keys(DOCS).filter((f) => (base[f] ?? '') !== (head[f] ?? ''));
+  const lines = trailerLines(message);
+  if (!lines.length) {
+    if (!changed.length) return sidecar === null ? [] : ['adds a sidecar under .claude/records/ but names no Records-Op trailer: add the trailers `npm run records -- trailers` prints'];
+    return [`changes ${changed.join(', ')} with no Records-Op trailer: agents change the record documents only through \`npm run records -- <op>\` (decision 0156). ${fixLine(opsFor(base, head))}`];
+  }
+  const d = declaredOps(lines, sidecar);
+  if (d.problem) return [d.problem];
   let r;
   try {
-    r = replay(base, ops, { ledger, removedIds: [...state.removedIds] });
+    r = replay(base, d.ops, { ledger, removedIds: [...state.removedIds], notes });
   } catch (e) {
     if (e instanceof RecordError) return [`its declared operations do not run on the parent's documents: ${e.message}`];
     throw e;
@@ -999,7 +1180,7 @@ function checkCommit({ base, head, message, sidecar, ledger, state }) {
     const want = r.docs[file] ?? '';
     const got = head[file] ?? '';
     if (want === got) continue;
-    problems.push(`${file} does not match its declared operations replayed on the parent: ${firstDifference(want, got)}. Any change but the operations' fails; run the operations with \`npm run records\` (after a conflict, \`npm run records -- redo\`)`);
+    problems.push(`${file} does not match its declared operations replayed on the parent: ${firstDifference(want, got)}. Any change but the operations' fails. ${fixLine(opsFor(r.docs, head))}`);
   }
   problems.push(...judge(r.steps, state));
   return problems;
@@ -1028,13 +1209,87 @@ function ledgerAt(git, rev) {
   }
 }
 const docsAt = (git, rev) => Object.fromEntries(Object.keys(DOCS).map((f) => [f, showIn(git)(rev, f)]));
+const firstParent = (git, sha) => git('rev-list', '--parents', '-n', '1', sha).trim().split(' ')[1] ?? null;
+/** The sidecar a commit adds (its text), or null. */
+function sidecarAdded(git, sha) {
+  const added = git('show', '--name-status', '--format=', '--no-renames', sha).split('\n').filter((l) => /^A\t/.test(l) && l.slice(2).startsWith(`${RECORDS_DIR}/`));
+  return added.length === 1 ? showIn(git)(sha, added[0].slice(2)) : null;
+}
+
+/**
+ * The lines each inbox entry's `inbox note`s added, by entry, in every commit `rev` holds after the
+ * cut-over (F9: an \`inbox set\` keeps them). Each such commit's operations are read back on its parent.
+ */
+function notesAt(git, rev, cutover = CUTOVER) {
+  const hasCutover = tryGit(git, 'cat-file', '-e', `${cutover}^{commit}`) !== null;
+  const shas = (tryGit(git, 'rev-list', '--reverse', '--topo-order', '--no-merges', '-E', '--grep', '^Records-Op: inbox note ', rev, ...(hasCutover ? ['--not', cutover] : [])) ?? '').split('\n').filter(Boolean);
+  let notes = new Map();
+  for (const sha of shas) {
+    const parent = firstParent(git, sha);
+    if (!parent) continue;
+    const d = declaredOps(trailerLines(git('show', '-s', '--format=%B', sha)), sidecarAdded(git, sha));
+    if (d.problem) continue;
+    try {
+      notes = replay(docsAt(git, parent), d.ops, { ledger: ledgerAt(git, parent), unlabelled: true, anyNumber: true, notes }).notes;
+    } catch (e) {
+      if (!(e instanceof RecordError)) throw e;
+    }
+  }
+  return notes;
+}
+
+/**
+ * The operations of a branch's commits `from..to` (merges left out), in order, each commit's handles
+ * renumbered into the whole: what a merge of that branch applies again on the other side's documents.
+ * Refuses a commit that changed the documents without operations: it cannot be replayed.
+ */
+function branchOps(git, from, to) {
+  const ops = [];
+  for (const sha of git('rev-list', '--reverse', '--topo-order', '--no-merges', `${from}..${to}`).split('\n').filter(Boolean)) {
+    const message = git('show', '-s', '--format=%B', sha);
+    const lines = trailerLines(message);
+    if (!lines.length) {
+      const touched = git('show', '--name-only', '--format=', sha).split('\n').filter((f) => DOCS[f]);
+      if (touched.length) fail(`${sha.slice(0, 7)} changed ${touched.join(', ')} with no operations, so the branch's record cannot be run again on the other side`);
+      continue;
+    }
+    const d = declaredOps(lines, sidecarAdded(git, sha));
+    if (d.problem) fail(`${sha.slice(0, 7)}: ${d.problem}`);
+    const off = ops.length;
+    ops.push(...d.ops.map((o) => ({ ...o, argv: o.argv.map((w) => (/^@\d+$/.test(w) ? `@${Number(w.slice(1)) + off}` : w)) })));
+  }
+  return ops;
+}
+
+/**
+ * A merge's documents as its resolution may give them: one side's documents with the other side's
+ * operations since their merge base run again on them (what \`redo\` writes during a merge), each way
+ * round; null where a side cannot be replayed.
+ */
+function mergeReplays(git, parents) {
+  if (parents.length !== 2) return [];
+  const base = tryGit(git, 'merge-base', parents[0], parents[1]);
+  if (!base) return [];
+  const out = [];
+  for (const [branch, onto] of [[parents[0], parents[1]], [parents[1], parents[0]]]) {
+    try {
+      out.push(replay(docsAt(git, onto), branchOps(git, base.trim(), branch), { ledger: ledgerAt(git, onto), unlabelled: true, anyNumber: true }).docs);
+    } catch (e) {
+      if (!(e instanceof RecordError)) throw e;
+    }
+  }
+  return out;
+}
 
 /**
  * The gate over a range (any `git rev-list` spec), oldest first: { results, ok, state }. Each commit
  * after the cut-over that touches the documents or a sidecar, or names a Records-Op trailer, is
- * replayed; with `loopOnly`, only the loop's commits (`tend …`, `Revert "tend …"`). A merge that changes
- * the documents fails when the range holds a loop commit (a loop run rebases; a merge cannot be
- * replayed); otherwise it is noted. A shallow clone's boundary commit is noted and skipped.
+ * replayed; with `loopOnly` (CI), only the loop's commits (`tend …`, `Revert "tend …"`) and every agent
+ * commit (a Claude-Session or Co-Authored-By: Claude trailer): the owner's own commits are not gated.
+ * A merge passes when its documents are what git merges by itself, or one side's with the other side's
+ * operations run again on them (`redo` in a merge); otherwise it fails when it is an agent's commit or
+ * the range holds a loop commit, and is noted when not. A shallow clone's boundary commit is noted and
+ * skipped.
  */
 function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, state = newRangeState() } = {}) {
   const git = gitIn(cwd);
@@ -1084,9 +1339,16 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
         clean = /^[0-9a-f]{40}$/.test(tree) && Object.keys(DOCS).every((f) => showIn(git)(tree, f) === showIn(git)(sha, f));
       }
       if (clean) continue;
-      const why = `a merge whose ${touched.filter((f) => DOCS[f]).join(', ') || touched.join(', ')} ${parents.length > 2 ? 'joins more than two parents' : 'is not what git merges by itself (a hand resolution)'}: it cannot be replayed`;
-      if (anyLoop) res.problems.push(`${why}, so a push that holds loop commits holds none (take main's side and \`npm run records -- redo\`, ship.md)`);
-      else res.notices.push(`${why}; not gated (no loop commit in the range)`);
+      // Or, document by document, one side with the other's operations run again on it (\`redo\` in a merge).
+      const mine = docsAt(git, sha);
+      const alts = mergeReplays(git, parents);
+      if (alts.length && Object.keys(DOCS).every((f) => alts.some((a) => a[f] === mine[f]))) continue;
+      const mergeMessage = git('show', '-s', '--format=%B', sha);
+      const why = `a merge whose ${touched.filter((f) => DOCS[f]).join(', ') || touched.join(', ')} ${parents.length > 2 ? 'joins more than two parents' : "is neither what git merges by itself nor one side with the other's operations run again (a hand resolution)"}: it cannot be replayed`;
+      const fix = "Fix: during the merge run `npm run records -- redo` (main's side of the documents, the branch's operations run again on it) and commit; .claude/skills/ship.md, \"The record documents\"";
+      if (isAgent(mergeMessage)) res.problems.push(`${why}, and it is an agent's commit. ${fix}`);
+      else if (anyLoop) res.problems.push(`${why}, so a push that holds loop commits holds none. ${fix}`);
+      else res.notices.push(`${why}; not gated (no Claude trailer: the owner's merge, and no loop commit in the range)`);
       results.push(res);
       continue;
     }
@@ -1109,9 +1371,13 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
     if (when === 'history') continue;
     const added = sidecars.filter((x) => x.status === 'A');
     const run = () =>
-      checkCommit({ base: docsAt(git, parent), head: docsAt(git, sha), message, sidecar: added.length === 1 ? showIn(git)(sha, added[0].file) : null, ledger: ledgerAt(git, parent), state });
-    if (loopOnly && !LOOP.test(subj)) {
-      // Not the loop's to answer for, but what it filed is the run's, as the CLI reads it.
+      checkCommit({
+        base: docsAt(git, parent), head: docsAt(git, sha), message, sidecar: added.length === 1 ? showIn(git)(sha, added[0].file) : null, ledger: ledgerAt(git, parent), state,
+        // F9: only a commit that sets an inbox entry needs the notes history made.
+        notes: /^Records-Op: inbox set /m.test(message) ? notesAt(git, parent, cutover) : undefined,
+      });
+    if (loopOnly && !LOOP.test(subj) && !isAgent(message)) {
+      // The owner's own commit: not gated; but what it filed is the run's, as the CLI reads it.
       if (/^Records-Op:/m.test(message)) run();
       continue;
     }
@@ -1129,7 +1395,9 @@ function pendingSidecar() {
   const dir = path.join(ROOT, RECORDS_DIR);
   if (!fs.existsSync(dir)) return null;
   const git = gitIn(ROOT);
-  const inHead = new Set((tryGit(git, 'ls-tree', '-r', '--name-only', 'HEAD', '--', `${RECORDS_DIR}/`) ?? '').split('\n').filter(Boolean));
+  const listed = (rev) => (tryGit(git, 'ls-tree', '-r', '--name-only', rev, '--', `${RECORDS_DIR}/`) ?? '').split('\n').filter(Boolean);
+  // During a merge, the other side's committed sidecars are in the tree too: none of them is pending.
+  const inHead = new Set([...listed('HEAD'), ...(tryGit(git, 'rev-parse', '-q', '--verify', 'MERGE_HEAD') ? listed('MERGE_HEAD') : [])]);
   const pending = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => `${RECORDS_DIR}/${f}`).filter((f) => !inHead.has(f));
   if (pending.length > 1) fail(`several pending sidecars (${pending.join(', ')}): one commit holds one; remove the stray one`);
   if (!pending.length) return null;
@@ -1202,7 +1470,8 @@ function runOperation(argv) {
   const state = branchState();
   const pend = pendingSidecar();
   const headDocs = docsAt(gitIn(ROOT), 'HEAD');
-  const r = replay(headDocs, pend?.ops ?? [], { ledger: headLedger(), removedIds: [...state.removedIds] });
+  const notes = name === 'inbox set' ? notesAt(gitIn(ROOT), 'HEAD') : undefined;
+  const r = replay(headDocs, pend?.ops ?? [], { ledger: headLedger(), removedIds: [...state.removedIds], notes });
   const working = workingDocs();
   const off = Object.keys(DOCS).filter((f) => r.docs[f] !== working[f]);
   if (off.length) fail(`${off.join(', ')} differ${off.length === 1 ? 's' : ''} from HEAD plus the pending operations (an edit by hand?): restore with \`git checkout HEAD -- ${off.join(' ')}\` and \`npm run records -- redo\`, then run this operation again`);
@@ -1212,7 +1481,7 @@ function runOperation(argv) {
     if (k >= 0) opArgv[2] = `@${k + 1}`;
   }
   const op = { argv: opArgv, ...(body !== undefined ? { body } : {}), ...(intro !== undefined ? { intro } : {}) };
-  const next = replay(headDocs, [...(pend?.ops ?? []), op], { ledger: headLedger(), unlabelled: true, removedIds: [...state.removedIds] });
+  const next = replay(headDocs, [...(pend?.ops ?? []), op], { ledger: headLedger(), unlabelled: true, removedIds: [...state.removedIds], notes });
   const step = next.steps[next.steps.length - 1];
   if (step.target) op.target = step.target;
   if (step.id) op.number = step.id;
@@ -1235,6 +1504,9 @@ function runOperation(argv) {
  * HEAD is an edit by hand, and refused. A target that changed refuses; an inbox entry renumbers.
  */
 function redo() {
+  const git0 = gitIn(ROOT);
+  const mergeHead = tryGit(git0, 'rev-parse', '-q', '--verify', 'MERGE_HEAD');
+  if (mergeHead) return redoMerge(git0, mergeHead.trim());
   const pend = pendingSidecar();
   if (!pend) fail('nothing pending: no sidecar under .claude/records/ that HEAD lacks (a committed record is not redone: see ship.md)');
   const git = gitIn(ROOT);
@@ -1249,6 +1521,33 @@ function redo() {
   for (const [k, st] of r.steps.entries()) if (pend.ops[k].number && st.id && st.id !== pend.ops[k].number) console.log(`records: ${pend.ops[k].number} is ${st.id} now (main gave out ${pend.ops[k].number} meanwhile)`);
   console.log(`records: ${pend.ops.length} pending operation${pend.ops.length === 1 ? '' : 's'} run again on HEAD's documents (${pend.rel})`);
   return 0;
+}
+
+/**
+ * During a merge (MERGE_HEAD): the merged-in side's documents (main's, in \`git merge origin/main\`) with
+ * this branch's operations since the merge base run again on them, written whatever the conflict left;
+ * the gate accepts the merge as that. Refuses when an operation's entry changed on the other side.
+ */
+function redoMerge(git, mergeHead) {
+  if (pendingSidecar()) fail('a merge carries no operations of its own: commit the pending sidecar\'s operations before merging, or drop them');
+  const base = git('merge-base', 'HEAD', mergeHead).trim();
+  let r;
+  try {
+    r = replay(docsAt(git, mergeHead), branchOps(git, base, 'HEAD'), { ledger: ledgerAt(git, mergeHead), anyNumber: true });
+  } catch (e) {
+    if (e instanceof RecordError) fail(`this branch's operations do not run again on ${mergeHead.slice(0, 7)}'s documents: ${e.message}. Nothing was written; an entry the branch acted on changed on the other side: stop and ask the owner (ship.md)`);
+    throw e;
+  }
+  for (const f of Object.keys(DOCS)) fs.writeFileSync(path.join(ROOT, f), r.docs[f]);
+  tryGit(git, 'add', '--', ...Object.keys(DOCS));
+  let ledgerNote = '';
+  try {
+    bumpLedger(r.ledger);
+  } catch {
+    ledgerNote = `; the ledger does not parse (a conflict?): take ${mergeHead.slice(0, 7)}'s side (\`git checkout MERGE_HEAD -- ${LEDGER_REL}\`) and redo again`;
+  }
+  console.log(`records: the merge's documents are ${mergeHead.slice(0, 7)}'s with this branch's ${r.steps.length} operation${r.steps.length === 1 ? '' : 's'} run again on them${ledgerNote}`);
+  return ledgerNote ? 1 : 0;
 }
 
 function trailers() {
@@ -1331,4 +1630,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { DOCS, TAGS, CAP, CUTOVER, LOOP, LEDGER_REL, RECORDS_DIR, RecordError, parse, transact, apply, command, replay, trailersOf, parseTrailer, sidecarOf, newRangeState, judge, checkCommit, gateRange };
+module.exports = { DOCS, TAGS, CAP, CUTOVER, LOOP, LEDGER_REL, RECORDS_DIR, RecordError, isAgent, parse, transact, apply, command, replay, trailersOf, parseTrailer, sidecarOf, newRangeState, judge, checkCommit, gateRange };

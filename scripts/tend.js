@@ -13,7 +13,9 @@
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
 //                                                       real test and its source, and none touches what
 //                                                       the loop may not (exit 1 otherwise); CI runs
-//                                                       it with --loop-only on every push to main
+//                                                       it with --loop-only on every push to main: these
+//                                                       limits on loop commits, and the record gate
+//                                                       (scripts/records.js) on loop and agent commits
 //
 // The decisions are pure and exported for arch/tend.test.ts; git and the files are read in main().
 // None of this is shown in the app: nothing is a score there (decision 0020).
@@ -395,7 +397,8 @@ function next() {
 
 function commits(argv) {
   const range = argv.find((a) => !a.startsWith('--'));
-  // CI reads a push that may hold anyone's commits: with --loop-only the others are left alone.
+  // CI reads a push that may hold anyone's commits: with --loop-only the loop's limits read loop commits
+  // alone, and the record gate loop and agent commits; the owner's own are left alone.
   const loopOnly = argv.includes('--loop-only');
   if (!range) {
     console.error('usage: node scripts/tend.js commits [--loop-only] <range>, e.g. origin/main..HEAD');
@@ -432,7 +435,7 @@ function commits(argv) {
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
     }
   }
-  // What the record gate found in commits this loop does not read itself: merges, reverts of loop commits.
+  // What the record gate found in commits this loop does not read itself: agent commits, merges, reverts.
   for (const [sha, problems] of recordIssues) {
     for (const p of problems) {
       bad += 1;
