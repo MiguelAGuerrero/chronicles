@@ -1,4 +1,4 @@
-# 0152. The proxy's answers of Nov 11-12, and the owner's confirmation of two
+# 0158. The proxy's answers of Nov 11-12, and the owner's confirmation of two
 
 Date: 2026-11-12 · Status: accepted · Area: process · From: the orchestrated `/tend` session of Nov 11-12 (0157)
 

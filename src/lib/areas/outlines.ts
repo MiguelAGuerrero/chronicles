@@ -2,7 +2,8 @@
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { AREA_REACH_M } from './rules';
-import type { PlaceCandidate, TownOutline } from './types';
+import { bboxOf, inPolygons, polygonsAreaM2, representative, ringAreaM2 } from './shapes';
+import type { HoodOutline, PlaceCandidate, TownOutline } from './types';
 
 /*
  * Town outlines (TO1-TO6), the pure part: which town's border a point is
@@ -25,6 +26,11 @@ export interface OutlinePiece {
   polygons: LngLat[][][];
 }
 
+/** One neighborhood's piece of shape in one tile, as a source hands it over (HB1). */
+export interface HoodPiece extends OutlinePiece {
+  subtype: 'neighborhood' | 'macrohood';
+}
+
 /** Cache (TO12, TB7): what one tile held, so it is never read twice. Keyed `z/x/y`. */
 export interface OutlineTile {
   key: string;
@@ -38,17 +44,22 @@ export interface OutlineTile {
   pieces: OutlinePiece[];
   /** The source's own points for towns, by the id their pieces carry. */
   points: { id: string; at: LngLat }[];
+  /** Neighborhood shapes in the tile (HB1); a tile stored before the decoder that read them has none. */
+  hoods?: HoodPiece[];
   /** Fresh from the decoder only, never stored: ids of the localities it found nested in another (wards), for the reader to remember. */
   nested?: string[];
 }
 
 /**
+ * sub2: neighborhood shapes are cut too (neighborhood boundaries, HB1).
  * The decoder that cut a kept tile (fix ward-subdivision): tiles are stored with it after their
  * release, and one stored without it (an older decoder, which read wards as towns) is read again.
  */
-export const OUTLINE_DECODE = 'sub1';
+export const OUTLINE_DECODE = 'sub2';
 export const stampRelease = (release: string) => `${release}#${OUTLINE_DECODE}`;
-export const tileCurrent = (t: Pick<OutlineTile, 'release'>) => t.release.endsWith(`#${OUTLINE_DECODE}`);
+/** A z10 border tile holds no neighborhood shapes, so one cut by the decoder before them stands (neighborhood boundaries audit 8). */
+export const tileCurrent = (t: Pick<OutlineTile, 'release'> & { z?: number }) =>
+  t.release.endsWith(`#${OUTLINE_DECODE}`) || (t.z === BORDER_ZOOM && t.release.endsWith('#sub1'));
 
 /** The tiles without the pieces and points of localities known to be wards (fix ward-subdivision audit 1). */
 export const withoutNested = (tiles: OutlineTile[], ids: ReadonlySet<string>): OutlineTile[] =>
@@ -62,6 +73,8 @@ export const withoutNested = (tiles: OutlineTile[], ids: ReadonlySet<string>): O
 export interface OutlineSet {
   tiles: ReadonlySet<string>;
   towns: TownOutline[];
+  /** The neighborhood shapes in those tiles, merged by id (HB1). */
+  hoods?: HoodOutline[];
 }
 
 export const outlineTileKey = (x: number, y: number, z: number = OUTLINE_ZOOM) => `${z}/${x}/${y}`;
@@ -84,16 +97,6 @@ export function outlineTilesFor(points: LngLat[], cap = OUTLINE_TILES_MAX, z: nu
   return [...out.values()];
 }
 
-/** Square metres inside a ring, on a flat projection around its first point. */
-function ringAreaM2(ring: LngLat[]): number {
-  if (ring.length < 3) return 0;
-  const kx = 111_320 * Math.cos((ring[0][1] * Math.PI) / 180);
-  const ky = 110_540;
-  let s = 0;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) s += (ring[j][0] * kx) * (ring[i][1] * ky) - (ring[i][0] * kx) * (ring[j][1] * ky);
-  return Math.abs(s) / 2;
-}
-
 /** The towns in these tiles: each town's pieces merged by its id, with its own point where a tile holds it. */
 export function outlineSet(tiles: OutlineTile[]): OutlineSet {
   const towns = new Map<string, TownOutline>();
@@ -114,7 +117,23 @@ export function outlineSet(tiles: OutlineTile[]): OutlineSet {
     }
   }
   for (const town of towns.values()) town.at = points.get(town.id) ?? null;
-  return { tiles: new Set(tiles.map((t) => t.key)), towns: [...towns.values()].filter((t) => t.polygons.length) };
+  // HB1: a neighborhood's pieces merged by id, with a point inside its shape.
+  const hoods = new Map<string, HoodOutline>();
+  for (const t of tiles) {
+    for (const piece of t.hoods ?? []) {
+      const polygons = piece.polygons.filter((rings) => rings[0]?.length);
+      if (!polygons.length) continue;
+      const h = hoods.get(piece.id);
+      if (h) h.polygons.push(...polygons);
+      else hoods.set(piece.id, { id: piece.id, name: piece.name, subtype: piece.subtype, at: [0, 0], polygons: [...polygons], bbox: [0, 0, 0, 0], areaM2: 0 });
+    }
+  }
+  for (const h of hoods.values()) {
+    h.bbox = bboxOf(h.polygons);
+    h.areaM2 = polygonsAreaM2(h.polygons);
+    h.at = representative(h.polygons);
+  }
+  return { tiles: new Set(tiles.map((t) => t.key)), towns: [...towns.values()].filter((t) => t.polygons.length), hoods: [...hoods.values()] };
 }
 
 /** Whether the outlines were read where this point is: only then can they say a town does not hold it. */
@@ -124,21 +143,11 @@ export const coveredBy = (set: OutlineSet | null | undefined, p: LngLat): boolea
   return set.tiles.has(outlineTileKey(x, y));
 };
 
-function inRing(p: LngLat, ring: LngLat[]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i];
-    const [xj, yj] = ring[j];
-    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-
 /** Whether a point is inside a town's outline (any piece, outside its holes). */
 export function inOutline(p: LngLat, t: Pick<TownOutline, 'polygons' | 'bbox'>): boolean {
   const [w, s, e, n] = t.bbox;
   if (p[0] < w || p[0] > e || p[1] < s || p[1] > n) return false;
-  return t.polygons.some((rings) => inRing(p, rings[0]) && !rings.slice(1).some((h) => inRing(p, h)));
+  return inPolygons(p, t.polygons);
 }
 
 /** Where an outline-only town's star goes without its own point: the middle of what was read of it (TO4). */
@@ -159,7 +168,7 @@ export function boxDistanceM(p: LngLat, [w, s, e, n]: TownOutline['bbox']): numb
  * of what was read.
  */
 export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | null | undefined): PlaceCandidate[] {
-  if (!set || !set.towns.length) return candidates;
+  if (!set || (!set.towns.length && !set.hoods?.length)) return candidates;
   const out = candidates.slice();
   for (const t of set.towns) {
     let matched = false;
@@ -167,6 +176,11 @@ export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | nul
       if (c.level !== 'town' || !sameName(c.name, t.name)) return;
       const mine = inOutline(c.at, t) || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= AREA_REACH_M.town);
       if (!mine) return;
+      // Already joined to this outline: joining again changes nothing (neighborhood boundaries audit 2).
+      if (c.outline?.id === t.id) {
+        matched = true;
+        return;
+      }
       // Of two outlines of one name over a point (never seen), the smaller stands.
       if (c.outline && c.outline.areaM2 <= t.areaM2) return;
       out[i] = { ...c, outline: t };
@@ -174,7 +188,38 @@ export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | nul
     });
     if (!matched) out.push({ level: 'town', name: t.name, at: outlineCentre(t), reachM: AREA_REACH_M.town, kind: 'outline', outline: t });
   }
-  return out;
+  return withHoods(out, set);
+}
+
+/**
+ * HB5, HB6: the candidates with neighborhood shapes joined in. A tile's place point and a shape of one name,
+ * the point inside the shape (or beyond the tiles read), are one neighborhood at the point; a shape with no
+ * point is a neighborhood of its own at a point inside it. Where the shapes were read at a point, a point-only
+ * neighborhood lying inside another's shape is dropped: the shape's owner stands.
+ */
+export function withHoods(candidates: PlaceCandidate[], set: OutlineSet | null | undefined): PlaceCandidate[] {
+  const hoods = set?.hoods;
+  if (!set || !hoods?.length) return candidates;
+  const out = candidates.slice();
+  // The smallest shape claims a tile point first, so the join never depends on the order the tiles came in (audit 2).
+  for (const h of [...hoods].sort((x, y) => x.areaM2 - y.areaM2 || x.id.localeCompare(y.id))) {
+    let matched = false;
+    out.forEach((c, i) => {
+      if (c.level !== 'neighborhood') return;
+      // Already joined: to this shape (joining again changes nothing), or to another's.
+      if (c.hoodOutline) {
+        if (c.hoodOutline.id === h.id) matched = true;
+        return;
+      }
+      if (!sameName(c.name, h.name)) return;
+      if (!inOutline(c.at, h) && coveredBy(set, c.at)) return;
+      out[i] = { ...c, hoodOutline: h };
+      matched = true;
+    });
+    if (!matched) out.push({ level: 'neighborhood', name: h.name, at: h.at, reachM: AREA_REACH_M.neighborhood, kind: 'polygon', hoodOutline: h });
+  }
+  const shaped = out.filter((c) => c.level === 'neighborhood' && c.hoodOutline);
+  return out.filter((c) => c.level !== 'neighborhood' || c.hoodOutline || !(coveredBy(set, c.at) && shaped.some((o) => inOutline(c.at, o.hoodOutline!))));
 }
 
 /** The town a point is in, and how it was decided. */
@@ -241,4 +286,4 @@ export const listable = (c: PlaceCandidate, at: LngLat): boolean =>
   c.kind !== 'outline' || !!c.outline?.at || (!!c.outline && inOutline(at, c.outline));
 
 /** Candidates as stored with a read: without their outlines, which the outline cache keeps (TO12). */
-export const withoutOutlines = (cs: PlaceCandidate[]): PlaceCandidate[] => cs.map(({ outline: _o, ...c }) => c);
+export const withoutOutlines = (cs: PlaceCandidate[]): PlaceCandidate[] => cs.map(({ outline: _o, hoodOutline: _h, ...c }) => c);

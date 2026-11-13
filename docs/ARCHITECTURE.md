@@ -192,7 +192,11 @@ Places and areas (v0.5)
   areas/rules.ts             AREA_RULES and the reaches
   areas/tilePlaces.ts the OpenMapTiles place classes (the only file that knows them)
   areas/outlines.ts          town outlines: townAt (the smallest outline holding a point, else points), withOutlines, hoodAllowed, the z12 tiles
-  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points
+  areas/shapes.ts            plane geometry shared by outlines and hoods: ring area, point in polygon, bbox, a point inside a shape
+  areas/hoods.ts             neighborhood boundaries (HB1-HB16): `hoodAt` (the one rule for placing and Explore), `hoodGround`, `hoodExtentFor`, `groundOf`
+  areas/groundDraw.ts        the selected neighborhood's line: one look, no properties (HB10, HB14)
+  areas/useHoodGround.ts     the view hook: the ground from the kept tiles only
+  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points and, at z12, its neighborhood shapes
   areas/outlineRead.ts       createOutlines: outlines read by tile and kept (`outline_tile`); outlineReader.ts is the app's instance
   areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range (z12 to decide, z10 to draw), the places' release
   areas/borders.ts           town borders to draw: bordersFor (tinted, firm, lined; simplified, 40 at most), outlineIdHere, outlineOf

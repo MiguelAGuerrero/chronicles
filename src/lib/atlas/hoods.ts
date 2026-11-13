@@ -1,6 +1,6 @@
 // @layer core
 import { outlineOf } from '../areas/borders';
-import { BORDER_ZOOM, inOutline, outlineTileKey, type OutlineSet } from '../areas/outlines';
+import { BORDER_ZOOM, inOutline, outlineTileKey, withOutlines, type OutlineSet } from '../areas/outlines';
 import type { PlaceCandidate, TownOutline } from '../areas/types';
 import type { LngLat } from '../types';
 
@@ -102,3 +102,13 @@ export function borderReach(town: { name: string; at: LngLat }, set: OutlineSet 
   }
   return [...out.values()];
 }
+
+/**
+ * Neighborhood candidates as placing knows them (audit 1): shapes joined, a name inside another's shape dropped, and a
+ * shape with no tile point added where `keep` says (the page's own ground). With no shapes known, the points as before.
+ */
+export const shapedHoods = (cands: PlaceCandidate[], set: OutlineSet | null | undefined, keep: (c: PlaceCandidate) => boolean): PlaceCandidate[] =>
+  withOutlines(cands, set).filter((c) => c.level !== 'neighborhood' || c.kind !== 'polygon' || keep(c));
+
+/** Whether a neighborhood's shape read is tried again: it failed or fell short, and no shape was found (audit 4). */
+export const shapeUnread = (read: { complete: boolean; tooMany?: boolean } | null, extent: unknown): boolean => !extent && !(read && (read.complete || read.tooMany));

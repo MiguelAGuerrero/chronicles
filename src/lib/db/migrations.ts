@@ -254,4 +254,10 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE capture ADD COLUMN body_format TEXT;
   `,
+  // Neighborhood boundaries (HB1, HB12): the neighborhood shapes a z12 divisions tile held, beside its towns, a cache cleared
+  // with the derived stores. A tile kept before this has '[]' and is read again by the decoder stamp (OUTLINE_DECODE).
+  // IndexedDB keeps the tile whole and needs no version.
+  `
+  ALTER TABLE outline_tile ADD COLUMN hoods TEXT NOT NULL DEFAULT '[]';
+  `,
 ];

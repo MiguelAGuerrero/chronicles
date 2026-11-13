@@ -560,8 +560,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return write(async (t) => {
         for (const r of tiles) {
           await t.runAsync(
-            'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
+            'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points, hoods) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points), JSON.stringify(r.hoods ?? []),
           );
         }
       });
@@ -569,9 +569,13 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     async getOutlineTiles(keys) {
       if (!keys.length) return [];
       const want = [...new Set(keys)].sort();
-      type Row = Omit<OutlineTile, 'pieces' | 'points'> & { pieces: string; points: string };
+      type Row = Omit<OutlineTile, 'pieces' | 'points' | 'hoods'> & { pieces: string; points: string; hoods: string };
       const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM outline_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
-      return rows.map((r) => ({ ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points) }));
+      return rows.map(({ hoods, ...r }) => {
+        const shapes: OutlineTile['hoods'] = JSON.parse(hoods);
+        // A tile kept before the shapes were cut has none, as IndexedDB's has no field (HB12).
+        return { ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points), ...(shapes?.length ? { hoods: shapes } : {}) };
+      });
     },
     putWalkTiles(tiles) {
       if (!tiles.length) return Promise.resolve();

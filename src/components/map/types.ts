@@ -148,6 +148,8 @@ export interface WalkMapProps {
   complexes?: ComplexMap | null;
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;
+  /** A selected neighborhood's own ground, drawn as one line (HB9): the same for every neighborhood, never a fill or a figure (HB10, HB14). */
+  ground?: { polygons: LngLat[][][] } | null;
   /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */
   borders?: BorderView | null;
   /** The Walkability layer (UF9): areas easy on foot tinted green and built around cars warm, under the trace and fog; null or absent draws none. */

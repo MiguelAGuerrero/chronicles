@@ -782,6 +782,17 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
     });
 
+    test('HB12 outline tile: neighborhood shapes are kept with the tile, and a tile stored without them reads back with none', async () => {
+      const db = await fresh();
+      const shaped: OutlineTile = {
+        ...outlineTile('12/5/6', 1),
+        hoods: [{ id: 'h1', name: 'Riverside', subtype: 'neighborhood', polygons: [[[[-75.5, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.5, 40.6]]]] }],
+      };
+      await db.putOutlineTiles([shaped, outlineTile('12/7/8', 1)]);
+      assert.deepEqual((await db.getOutlineTiles(['12/5/6']))[0], shaped);
+      assert.equal((await db.getOutlineTiles(['12/7/8']))[0].hoods, undefined);
+    });
+
     // ---- explore
 
     test('FC7 saveChecklists, listChecklistAreas, checklistItemsIn, listExploreReads: a rebuilt area\'s items are replaced, other areas\' items and orphans stay, the read is recorded', async () => {

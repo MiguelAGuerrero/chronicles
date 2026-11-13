@@ -9,7 +9,7 @@ On Nov 11 the owner asked an orchestrator to run `/tend` again and again through
 conflict with the current feature set. Additions and enhancements do not have to go through me unless those additions
 have implications on the overall architecture of the app." The session answered T7, G4, T9 and T12 that way, but no
 record said the owner had delegated anything, and two decision records written by its runs credited the owner with
-the proxy's yes (0152). The orchestrator is the skill `/tend-orchestrator`.
+the proxy's yes (0158). The orchestrator is the skill `/tend-orchestrator`.
 
 ## Decision
 When the owner types `/tend-orchestrator` and agrees its authority at the start, the orchestrator is the owner's proxy
