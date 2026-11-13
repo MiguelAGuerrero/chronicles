@@ -15,7 +15,7 @@ import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinMark, pinReminded, pinThumb } from '../../lib/pins';
+import { metersPerPixel, pinKey, pinMark, pinReminded, pinThumb } from '../../lib/pins';
 import { useReminded } from '../../lib/useReminded';
 import { drawnFrom, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
@@ -599,8 +599,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             the bell too, so a reminder set or stopped shows at once (RB5). */}
         {pins.map((pin) => (
           <Marker
-            key={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinMark(pin)?.id ?? ''}:${pinReminded(pin, reminded)}`}
-            id={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinMark(pin)?.id ?? ''}:${pinReminded(pin, reminded)}`}
+            key={`${pinKey(pin)}:${pinReminded(pin, reminded)}`}
+            id={`${pinKey(pin)}:${pinReminded(pin, reminded)}`}
             lngLat={pin.lngLat}
             anchor="bottom"
             onPress={props.onPinPress ? () => props.onPinPress?.(pin.captures) : undefined}

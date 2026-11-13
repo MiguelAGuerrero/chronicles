@@ -2,7 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { pinHeadKinds, pinInto, pinKindsWords, pinSpoken, pinsFor, pinThumb, type CapturePin, type WalkClock } from '../../pins';
+import { pinHeadKinds, pinInto, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, type CapturePin, type WalkClock } from '../../pins';
 import type { CaptureKind } from '../../types';
 
 // tend map T14 (the owner's yes, decision 0154; amends QL26, NY10, MR2, RB7): a pin of several moments is drawn with
@@ -96,4 +96,15 @@ test('tend map audit 19: a pin of moments far apart in its walk says no time; th
     pinSpoken(pinOf(cap('a', 'photo', 1), cap('b', 'voice', 2), cap('c', 'text', 3)), { clocks: [W1] }),
     'A photo, a voice memo and a note, one minute in',
   );
+});
+
+// tend map audit 20 (the T14 review's F2): the native Marker was keyed by the pin's first id and its count, so a
+// regroup that kept both (a photo and a note becoming two photos) kept the old fan of kinds on a phone.
+test('tend map audit 20: a pin\'s key changes with its moments, not only with their count', () => {
+  const a = cap('a', 'photo', 1);
+  const k1 = pinKey(pinOf(a, cap('b', 'text', 2)));
+  const k2 = pinKey(pinOf(a, cap('c', 'photo', 3)));
+  assert.notEqual(k1, k2);
+  assert.equal(pinKey(pinOf(a, cap('b', 'text', 2))), k1, 'the same moments, the same key');
+  assert.notEqual(pinKey(pinOf(cap('a', 'photo', 1, { thumb_path: 'walks/w1/a.thumb.jpg' }))), pinKey(pinOf(a)), 'a small copy made since redraws it (QL27)');
 });

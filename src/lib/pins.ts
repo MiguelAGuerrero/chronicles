@@ -218,3 +218,11 @@ export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: reado
   const into = pinInto(pin, o.clocks);
   return into ? `${kinds}, ${into}` : kinds;
 }
+
+/**
+ * What a pin's marker is keyed by on native (tend map audit 20): its moments, its small copy and its note's mark, so a
+ * regroup that keeps the first id and the count (a photo and a note becoming two photos) still redraws its fan.
+ */
+export function pinKey(pin: CapturePin): string {
+  return [pin.id, pin.captures.map((c) => c.id).join(','), pinThumb(pin) ?? '', pinMark(pin)?.id ?? ''].join(':');
+}
