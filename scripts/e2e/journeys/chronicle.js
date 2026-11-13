@@ -399,6 +399,56 @@ async function checks(h) {
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starBack.x - starBefore.x) < 3 && Math.abs(starBack.y - starBefore.y) < 3,
       `the Map section comes back where it was, with its stars (RM2, NV3, NV4, audit 8: ${Math.round(starBack.x)},${Math.round(starBack.y)})`);
 
+    // tend places audit 3: a merged star draws no numeral and says its places and walks in words. On a page of its own
+    // (its camera is its own), the walk is put in a second place 500 m east of Fox Point (cache rows only), the map
+    // zooms out until the two stars merge, and the rows are taken out again.
+    {
+      const merge = await ctx.newPage();
+      merge.on('pageerror', (e) => errors.push(String(e)));
+      await merge.goto(page.url());
+      const seed = (put) => merge.evaluate(({ east, put }) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['area', 'walk_area'], 'readwrite');
+          const a = tx.objectStore('area').getAll();
+          const w = tx.objectStore('walk_area').getAll();
+          w.onsuccess = () => {
+            const fp = a.result.find((x) => x.level === 'neighborhood' && x.name === 'Fox Point');
+            const row = w.result.find((r) => r.area_key === fp.key);
+            const key = `${fp.key}~east`;
+            if (put) {
+              tx.objectStore('area').put({ ...fp, key, name: 'East Point', lon: east[0], lat: east[1] });
+              tx.objectStore('walk_area').put({ ...row, area_key: key, lon: east[0], lat: east[1] });
+            } else {
+              tx.objectStore('walk_area').delete([row.walk_id, key]);
+              tx.objectStore('area').delete(key);
+            }
+          };
+          tx.oncomplete = () => resolve(true);
+        };
+      }), { east: at(6, 0), put });
+      await seed(true);
+      await merge.reload();
+      await h.mapUp(merge);
+      await merge.waitForSelector('[aria-label^="East Point,"]', { timeout: 15000 }).catch(() => {});
+      const canvas = await merge.locator('canvas.maplibregl-canvas').boundingBox();
+      const mergedStar = merge.locator('.maplibregl-marker[aria-label*=" places, "]');
+      // Small steps, each left to settle: the stars follow the zoom at the move's end.
+      // Until they merge, or the map has gone past neighborhoods (Fox Point's own star gone too).
+      const hood = merge.locator('.maplibregl-marker[aria-label^="Fox Point,"]');
+      for (let k = 0; k < 150 && !(await mergedStar.count()) && (await hood.count()); k++) {
+        await merge.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height * 0.35);
+        await merge.mouse.wheel(0, 25);
+        await merge.waitForTimeout(1000);
+      }
+      const merged = await mergedStar.first().evaluate((b) => ({ label: b.getAttribute('aria-label'), text: b.querySelector('[data-testid=star-disc]')?.innerText ?? null }), null, { timeout: 3000 }).catch(() => null);
+      await shot(merge, '09b-home-merged-star');
+      check(!!merged && merged.text !== null && !/\d/.test(merged.text) && /^[A-Z][a-z-]+ places, [a-z-]+ walks?\. Zoom in$/.test(merged.label),
+        `tend places audit 3: a merged star draws no numeral and says its places and walks in words (${JSON.stringify(merged)})`);
+      await seed(false);
+      await merge.close();
+    }
+
     // Reduce motion (M2): the same home with the system setting on. Nothing presses down, the sheet snaps.
     {
       const still = await ctx.newPage();
