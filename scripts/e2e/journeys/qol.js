@@ -101,6 +101,123 @@ function creditsChecks({ check, shot }) {
   };
 }
 
+// tend map audit 22-24 (the T14 review's F4, F5, U1, U2; decision 0154): pins of several of every shape, at 390 and
+// 320 (two photos, three notes, a voice memo and a video, a photo and a note), the same faint as memories, and a bell
+// on each. A walk of its own in a fresh page, so the steps before it change nothing here.
+async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
+  const { navUrl, at, scriptsDir } = h;
+  const go = async (x, y) => {
+    const p = at(x, y);
+    await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    await pg8.waitForTimeout(900);
+  };
+  const take = async (file, saved) => {
+    const [chooser] = await Promise.all([pg8.waitForEvent('filechooser'), pg8.click('[data-testid=cap-photo]')]);
+    await chooser.setFiles(path.join(scriptsDir, 'fixtures', file));
+    await pg8.waitForSelector(`text=${saved}`, { timeout: 20000 }).catch(() => null);
+    await pg8.waitForTimeout(1500);
+  };
+  const note = async (text) => {
+    await pg8.click('[data-testid=cap-note]');
+    await pg8.fill('[data-testid=note-input]', text);
+    await pg8.click('[data-testid=note-done]');
+    await pg8.waitForTimeout(1500);
+  };
+  const voice = async () => {
+    await pg8.click('[data-testid=cap-voice]');
+    await pg8.waitForSelector('[data-testid=voice-save]');
+    await pg8.waitForTimeout(2500);
+    await pg8.click('[data-testid=voice-save]');
+    await pg8.waitForTimeout(1500);
+  };
+  // Every pin of several on the map: its name, its head's colour, its discs' colours and boxes, the bell's box, the
+  // opacity each is seen at (its own times every ancestor's, up to the marker), any digit or video mark.
+  const several = (memory) => pg8.$$eval(memory ? '.maplibregl-map [data-testid=memory-pin][data-ids*=","]' : '.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])', (els) => els.map((el) => {
+    const seen = (n) => { let o = 1; for (let e = n; e && e !== el; e = e.parentElement) o *= Number(getComputedStyle(e).opacity); return o; };
+    const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+    const head = el.querySelector('[data-testid=pin-head]');
+    const discs = [...el.querySelectorAll('[data-testid=pin-kind]')];
+    const bell = el.querySelector('[data-testid=pin-reminder]');
+    return {
+      label: el.getAttribute('aria-label'),
+      head: head && getComputedStyle(head).backgroundColor,
+      headSeen: head && Math.round(seen(head) * 100) / 100,
+      discs: discs.map((d) => ({ bg: getComputedStyle(d).backgroundColor, seen: Math.round(seen(d) * 100) / 100, box: box(d) })),
+      bell: box(bell),
+      digits: /\d/.test(el.textContent || ''),
+      videoMark: !!el.querySelector('[data-testid=pin-video-mark]'),
+      thumb: !!el.querySelector('[data-testid=pin-thumb]'),
+    };
+  }));
+  const MIXED = 'rgb(63, 63, 70)';
+
+  await pg8.goto(navUrl);
+  await pg8.waitForSelector('[data-testid=start]');
+  await pg8.waitForTimeout(1500);
+  await go(-0.5, -0.5);
+  await pg8.click('[data-testid=start]');
+  await pg8.waitForSelector('[data-testid=stop]');
+  for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
+  // Two photos; 140 m on, three notes; 140 m on, a voice memo and a video; 140 m on, a photo and a note, reminded.
+  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg', 'Photo saved here');
+  for (let i = 1; i <= 35; i++) await go(-0.5 + i * 0.04, -0.3);
+  await note('One.');
+  await note('Two.');
+  await note('Three.');
+  for (let i = 1; i <= 35; i++) await go(0.9, -0.3 + i * 0.04);
+  await voice();
+  await take('clip-4s.webm', 'Video saved here');
+  for (let i = 1; i <= 35; i++) await go(0.9 - i * 0.04, 1.1);
+  await take('photo.jpg', 'Photo saved here');
+  await note('Four.');
+  await go(-0.5, 1.14);
+  await pg8.waitForTimeout(2500);
+
+  // tend map audit 22: every pin of several on the neutral head, its two discs in their kinds' colours; one kind twice;
+  // no numeral; and a pin of two videos (or a video and a memo) has no still and no video mark (VS3, VS4 are one moment's).
+  const walkPins = await several(false);
+  const want = [/^Two photos, .+\. Open$/, /^Three notes, .+\. Open$/, /^A voice memo and a video, .+\. Open$/, /^A photo and a note, .+\. Open$/];
+  check(want.every((re) => walkPins.some((p) => re.test(p.label)))
+    && walkPins.length === 4 && walkPins.every((p) => p.head === MIXED && p.discs.length === 2 && p.discs.every((d) => d.bg !== MIXED) && !p.digits && !p.videoMark && !p.thumb),
+    `tend map audit 22: every pin of several is the neutral head with two discs of its kinds, one kind twice, no numeral, no still or video mark (${JSON.stringify(walkPins.map((p) => ({ label: p.label, head: p.head, discs: p.discs.map((d) => d.bg), digits: p.digits, videoMark: p.videoMark, thumb: p.thumb })))})`);
+  await shot(pg8, 'qol-15-pins-several-390');
+  await pg8.setViewportSize({ width: 320, height: 640 });
+  await pg8.waitForTimeout(1500);
+  await shot(pg8, 'qol-15-pins-several-320');
+  await pg8.setViewportSize({ width: 390, height: 844 });
+  await pg8.waitForTimeout(1000);
+
+  // Stop; then a second walk past the first one's pins brings them back as memories.
+  const b = await pg8.locator('[data-testid=stop]').boundingBox();
+  await pg8.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await pg8.mouse.down();
+  await pg8.waitForTimeout(1100);
+  await pg8.mouse.up();
+  await pg8.waitForURL(/replay/, { timeout: 30000 });
+  await pg8.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+  await pg8.click('[data-testid=skip]');
+  await pg8.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+  await pg8.waitForTimeout(1500);
+  await shot(pg8, 'qol-17-pins-several-replay');
+  await pg8.goto(navUrl);
+  await pg8.waitForSelector('[data-testid=start]');
+  await pg8.waitForTimeout(1500);
+  await go(-0.5, -0.5);
+  await pg8.click('[data-testid=start]');
+  await pg8.waitForSelector('[data-testid=stop]');
+  for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
+  for (let i = 1; i <= 20; i++) await go(-0.5 + i * 0.04, -0.3);
+  await pg8.waitForSelector('[data-testid=memory-pin][data-ids*=","]', { timeout: 15000 }).catch(() => null);
+  await pg8.waitForTimeout(1500);
+  await shot(pg8, 'qol-18-memory-several-390');
+  await pg8.setViewportSize({ width: 320, height: 640 });
+  await pg8.waitForTimeout(1500);
+  await shot(pg8, 'qol-18-memory-several-320');
+  await pg8.setViewportSize({ width: 390, height: 844 });
+  await pg8.waitForTimeout(1000);
+}
+
 async function run(h) {
   const { navUrl, exploreUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
     const creditsCheck = creditsChecks(h);
@@ -1233,6 +1350,17 @@ async function run(h) {
         await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
         await c4.close();
       }
+    }
+
+    // tend map audit 22: pins of several, in a walk of their own.
+    {
+      const { c: c8, pg: pg8 } = await freshPage('qol-pins');
+      try {
+        await pinsOfSeveral(h, pg8, c8, { check, shot });
+      } catch (e) {
+        check(false, `tend map audit 22: ${String(e.message).split('\n')[0]}`);
+      }
+      await c8.close();
     }
 }
 

@@ -45,7 +45,8 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   const [drop] = useState(dropNow);
   const n = pin.captures.length;
   const fan = pinHeadKinds(pin);
-  const color = n > 1 ? (pin.kind === 'mixed' ? MIXED : PIN_COLOR[pin.kind]) : PIN_COLOR[pin.kind];
+  // Every pin of several on the neutral head, so its kinds' discs read against it, one kind twice too (tend map audit 22).
+  const color = n > 1 ? MIXED : PIN_COLOR[pin.kind];
   // One photo's small copy, never the full photo (QL26). The ref is resolved once per
   // change of it (useMediaUri's effect keys on it), never per render.
   // One capture's copy or still, the row's or one made since; a pin asks for none itself (VS2).
@@ -61,7 +62,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
     <View style={styles.wrap} pointerEvents="none">
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
       <View style={[styles.pin, faint && styles.faint]}>
-        <View style={[styles.head, { backgroundColor: color }]}>
+        <View testID="pin-head" style={[styles.head, { backgroundColor: color }]}>
           {fan ? (
             fan.map((k, i) => (
               <View key={i} testID="pin-kind" style={[styles.fan, i ? styles.fanFront : styles.fanBack, { backgroundColor: PIN_COLOR[k] }]}>
