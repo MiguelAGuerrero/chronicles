@@ -34,9 +34,10 @@ import type { Pocket } from './pockets';
 /** a9: a park whose name says a playground or the like, with nothing notable in it, is a community park (PC13); curation over presence's classes, so presence's own code is unchanged. */
 /** a10: community parks reads a park's name as presence reads a museum's, past a neighbourhood's "Old Town", and "heritage" keeps no park (tend explore T9); none carried. */
 /** a11: a neighborhood with a real shape is counted across it (neighborhood boundaries, HB11); towns stand as under a10. */
-/** The atlas's own part of a row's code (a11). */
-const ATLAS_OWN = 'a11';
-/** A row's code: the atlas's own (a11) and presence's (PR6), so a reclassification re-reads every row. */
+/** a12: a park with a small outline and nothing notable in or near it is a community park whatever its name (fix community-park, 0163); none carried. */
+/** The atlas's own part of a row's code (a12). */
+const ATLAS_OWN = 'a12';
+/** A row's code: the atlas's own (a12) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
 /**
@@ -46,9 +47,7 @@ export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
  * specs/presence-readers PS9: a9.p1 under a9.p2, now a10.p1 under a10.p2), so a bump of the atlas's own part carries none.
  */
 const CARRIED_PRESENCE = PRESENCE_CARRIED.map((c) => `${ATLAS_OWN}.${c}`);
-/** a10's codes, which a town's rows still stand under (a11 changed neighborhoods only). */
-const A10_CODES = [PRESENCE_CODE, ...PRESENCE_CARRIED].map((c) => `a10.${c}`);
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: [...CARRIED_PRESENCE, ...A10_CODES] };
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: CARRIED_PRESENCE };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */

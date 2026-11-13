@@ -163,19 +163,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   with a walk minimized, then Explore.
   Expect: the section names, the band's Photo, Voice and Note, the recording bar's time and distance and the tab labels are all
   there, wrapping where they must, none cut to a letter or pushed off the screen.
-- **T15 [owner] Chronicle: walked places are accent stars, with a numeral where they merge** (2026-11-12)
-  Area: places (seen on the map's sweep). Seen: `probe-map-attrib-390-chronicle` ("Fox Point" on an orange star),
-  `StarView.tsx` l.40-44 (a merged star draws its count, "3"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best
-  of', rankings of places", and "Celebration: ... accent-coloured wins"; Always, "Counts are words" (steward S3). Decision
-  0019 chose stars where walks were; this quotes the page against it, so it is yours.
-  Recommended (the owner's reshape, Nov 12: "Ink star, no numeral"): a walked place keeps its star (0019), drawn in ink
-  rather than the accent, one size as now; a merged star draws no numeral, and its spoken name says its places and walks
-  in words. /vision on the reshape: aligned (return: where your walks were, at a glance; the Never row "Ratings,
-  reviews, stars, 'best of', rankings of places" is not met by a one-size mark of "walked here", which rates nothing;
-  "accent-coloured wins" and "Counts are words" are met by the ink and the missing numeral). Amends 0019's colour.
-  Otherwise (the sweep's first shape): a plain ink mark with no star glyph; or leave it.
-  **Answered reshape** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
-  0154): still one commit's worth; waits for the next `/tend inbox`, one build per run (T16 was built first).
 - **T18 [phone] The map's text and buttons at the largest text size** (2026-11-12)
   Area: map. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; open a walk with two
@@ -219,6 +206,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   once; the trace's green unchanged; QL2's end ring ("in the walked orange") takes it too. Not built until you pick
   the hue. /vision: aligned (return; restraint in colour), amends QL2's colour word.
   Otherwise: keep the hue but draw the walked streets lighter in the replay only; or leave it.
+  Since `tend places T15` (Nov 13): a walked place's star is ink (`#1d2430`), beside T14's pin of several on its dark neutral head (`#3f3f46`); the two grounds are about 1.5:1, told apart by the star's white glyph and the pin's kind discs and stem, not by hue (the T15 probe's `after-fit-390-close`; the T15 review's F5, no action). A walked hue picked here would not reach the stars, which are ink by your answer.
 - **T23 [phone] The replays at the largest text size** (2026-11-12)
   Area: replay. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; finish a walk
@@ -312,38 +300,46 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T14 yes`** (from `61022751`, rebased on `6b7cd990`, `d5cab8b9` and `7fe7b5c1`; the owner's own
-answer, in person, Nov 12, decision 0154; T15 reshape and T25 yes wait for later inbox runs, one build per run).
-- `tend map T14`: a pin of several moments shows its kinds in its head, the first two taken, fanned (one kind twice),
-  never a numeral; it says them in words with the minutes in, in walked time as the moment's own line does: "A photo
-  and a note, twelve minutes in. Open" (`pinHeadKinds`, `pinKindsWords`, `pinInto`, `pinSpoken`, `lib/pins.ts`). The
-  walk screen, the replay and a day's replay give the map their walks' clocks (`clocks`); a memory pin of several says
-  "Memories: a photo and a note". A pin of one moment is unchanged, a video's still and play mark included (VS3, VS4).
-  Sibling lens: every pin of moments goes through `CapturePinView` and `pinLabel` (the walk screen, the replay, a day,
-  Chronicle's map, memory pins), so all take the shape. Left, not pins: the reminder's "2 memories here", its body,
-  the reminder card and two announcements (filed below); the merged walked-place star's numeral is T15's.
+**Nov 13, `/tend inbox T15 reshape`** (from `cd34f840`, rebased on `f4dd88ff`; the owner's own answer, in person,
+Nov 12, decision 0154: "Ink star, no numeral"; T25 yes waits for the next inbox run, one build per run).
+- `tend places T15`: a walked place keeps its star (decision 0019), a white star on an ink disc, never the accent, one
+  size; a merged star draws no numeral, and its spoken name says its places and walks in words through `lib/quietLines`
+  (`starSpoken`: "Two places, two walks. Zoom in"). Sibling lens: `StarView` is the only view that draws a walked-place
+  star, named through `starLabel` on both maps; Explore's area points, atlas and mini-maps use the accent for selection
+  and links, not for "walked"; the "?" marks are ink but never on Chronicle's map; Explore's merged "?" stars (OP11) are
+  not built. Left, not the star: the place sheet's "1 walk" (filed below).
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend map audit 19`: a pin whose moments lie more than ten walked minutes apart says its kinds alone; three kinds
-  are all named (F1 in part, U3).
-- `tend map audit 20`: the native pin Marker is keyed by its moments (`pinKey`), not their count (F2).
-- `tend map audit 21`: the walk screen gives its walk's clock only while the open walk is that walk (`walkClocks`) (F3).
-- `tend map audit 22`: every pin of several sits on the neutral head (F5, U1).
-- `tend map audit 23`: a memory pin's discs stay solid over its faded head, as its clock does (U2).
-- `tend map audit 24`: a reminded pin of several has its bell clear of its discs (F4).
-The `qol` journey's `pinsOfSeveral` walks its own pins of two photos, three notes, a voice memo and a video, and a
-photo and a note, at 390 and 320, reminded, and again as memories (`qol-15` to `qol-19`).
-Review: 8 accepted (F1 in part, F2, F3, F4, F5 with U1, U2, U3), 2 deferred (U5, U6, `[loop]` low, with the review's
-test finding, in `docs/DEFERRED.md`, Map, walk screen and motion polish), 4 to the owner (F1's span, U4, F6, F7: two
-T entries below), U7 no action (T19 holds the card's counts), 0 rejected. The run stopped once on a rebase conflict
-(an import block and a comment, beside video thumbnails' pin changes); the caller ruled it mechanical, and the video
-pins were checked apart (a pin of two videos has no still and no mark).
-Filed: two `[owner]` entries ("Map: when a pin says its time"; "Reminders say their counts in digits beside pins
-that say words"), the wording of QL26, NY10, MR2 and RB7 under "Open before the loop", one native check.
-Not a sweep: no lens ran and no area changed state. Journeys green on the final base: `qol` (its Explore credits check failed once and passed on a rerun of the same build), `walk`, `memories`; after the T14 commit, also `edit`, `launch` and `videothumbs`. Nothing here has run
-on a phone; the new pin head, its key and its spoken name on native are unverified (`docs/NATIVE_UNVERIFIED.md`).
+- `tend places audit 1`: a selected star keeps its ink disc and white star and gains a 3 pt ink ring outside its white
+  edge (the build had turned it over, white in an ink ring: the one hollow marker, the reverse of "filled is chosen";
+  U1).
+- `tend places audit 2`: the journey reads the star by its testID once its bounce has settled (F1).
+- `tend places audit 3`: the `chronicle` journey merges two places on a page of its own and reads the merged star's
+  words, with no digit (F2).
+- `tend places audit 4`: the source check holds the disc's own style to ink and its one Text to the name (F3).
+- `tend places audit 5`: a lone star says "Fox Point, one walk. Open", as a pin says ". Open" (U3).
+Review: 5 accepted (U1, U3, F1, F2, F3), 5 deferred (U2 and F4 `[owner]`; U4, the merged star under a pin (U5, F5),
+the distance's wrap (U6) `[loop]`; all low, in `docs/DEFERRED.md`, Map, walk screen and motion polish), the wording of
+v0.5-places' "with a count" under "Open before the loop" (F6), F5's look-alike no action: the ink star and T14's pin of
+several are told apart by glyph and stem, their grounds about 1.5:1 (noted on T22). 0 rejected.
+Each check was seen failing first: the unit tests on the code before each fix, the journey's T15 and audit 1 and 3
+checks on main's star code (`E2E_SOFT`).
+Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `chronicle`, `walk`; main's two
+community-park commits landed meanwhile and touch neither (typecheck, lint, `npm test` again on the rebase). Nothing
+here has run on a phone; the ink star, its ring and its words on native are unverified (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **v0.5-places' "merge with a count" after T15** (Nov 13; decision 0154): since `tend places T15` every walked-place
+  star is a white star on an ink disc, one size, and a merged star draws no numeral; its spoken name says its places
+  and walks in words ("Two places, two walks. Zoom in"; a lone star "Fox Point, one walk. Open", `tend places audit
+  5`); a selected star keeps its disc and gains an ink ring outside its white edge (`tend places audit 1`). Amend, in
+  the doc and its mirror (the loop may not edit a spec): `specs/v0.5-places/spec.md` l.109 ("A star is the same size
+  and colour everywhere ... Stars within 44 px merge into one with a count"; the colour is ink now), criterion 13
+  (l.224, "must merge into one star with a count"), its test row (l.269, "`places: stars within 44 px merge with a
+  count`") and H7 (l.306, "They merge within 44 px with a count"). The unit test's name says it too
+  (`src/lib/__tests__/places/places.test.ts` l.84, "stars within 44 px merge into one with a count"; `Star.count` is
+  still the number of places, now only spoken). Decision 0154's "Amends" names 0019 only. No rule line said the
+  accent or the numeral; `.claude/rules/places-and-areas.md` has a "Since `tend places T15`" line under "Stars".
 - **QL26's, NY10's, MR2's and RB7's words after T14** (Nov 13; decision 0154): since `tend map T14` a pin of several
   moments shows its kinds (the first two taken, fanned discs on the neutral head, one kind twice) and never a numeral,
   and says them in words with the minutes in ("A photo and a note, twelve minutes in. Open"; a memory pin "Memories: a

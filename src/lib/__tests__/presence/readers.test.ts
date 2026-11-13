@@ -182,6 +182,13 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
   const T9 = new Set(['heritage park playground']);
   const t9 = (marks: string[]) =>
     marks.map((m) => (m.endsWith('|parks') && T9.has((JSON.parse(m.slice(0, m.lastIndexOf('|'))) as string[])[1]) ? m.replace(/\|parks$/, '|community_parks') : m)).sort();
+  // fix community-park (0163), the second listed change: a park with a small landcover outline and nothing notable in it is a
+  // community park whatever its name. Only rings fed outlines move, and only a `parks` mark into `community_parks`: nothing
+  // else of the ring (steps, other marks, thin) changes. Which parks is the unit tests' (communityParks.test.ts PC17).
+  const smallOnly = (got: string[], want: string[]) => {
+    const was = new Set(want);
+    return got.map((m) => (m.endsWith('|community_parks') && !was.has(m) && was.has(m.replace(/\|community_parks$/, '|parks')) ? m.replace(/\|community_parks$/, '|parks') : m)).sort();
+  };
   const names = golden.names;
   for (const g of golden.archive)
     for (const k of ['plain', 'notable', 'hood'] as const)
@@ -206,7 +213,7 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
       const outlinedMap = placesFromTilePois(o.pois.map(([name, cls, sub, lon, lat]) => pt({ name, class: cls, subclass: sub }, [lon, lat])), d.tiles);
       const ro = ringOf(outlinedMap, arch, a.at, undefined, [], o.landcover as never);
       const go = golden.outlined[i++];
-      assert.deepEqual({ steps: ro.steps, marks: marksOf(ro), thin: ro.thin }, { steps: go.steps, marks: t9(go.marks), thin: go.thin }, `${file} ${a.name}, outlined`);
+      assert.deepEqual({ steps: ro.steps, marks: smallOnly(marksOf(ro), t9(go.marks)), thin: ro.thin }, { steps: go.steps, marks: t9(go.marks), thin: go.thin }, `${file} ${a.name}, outlined`);
       if (file === 'presenceSample.json') lit.push(r.steps);
     }
   }
