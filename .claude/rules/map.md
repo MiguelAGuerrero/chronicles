@@ -203,6 +203,12 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   units)`; imperial picks feet in 1, 2, 5 × 10^n up to 2,000 ft, then miles. `meters`
   stays in metres, so the e2e's `data-m` is always metres. Both maps call `useUnits()`
   and pass it, so the bar redraws on a change.
+- **No scale bar over a blank world** (`tend map T17`, decision 0154): Navigate and Explore pass `hideScaleOnBlank`; with
+  no fix (`walker`) and nothing the base tiles drew in view, the bar is gone (`scaleShown`, `lib/scaleBar.ts`). Trap: an
+  unfiltered `queryRenderedFeatures()` always finds the app's world-wide `veil` polygons, so the web keeps the base
+  style's layer ids at `load`, before `addOverlay`, and queries only their fills (`blankLookLayers`, audit 15); native
+  counts the `omt-query` source's roads, water and places (`drawnFrom`, audit 14). The e2e's fake streets draw at the
+  world's zoom, so its blank world needs a style with no features (`qol`).
 - **A photo's pin shows its small copy** (QL26, QL27): `pinThumb(pin)` (`lib/pins.ts`,
   pure) gives the copy's ref only for a pin of one photo with a `thumb_path` other than
   `THUMB.none`, never `file_path`: a map never decodes full photos. `CapturePinView`
