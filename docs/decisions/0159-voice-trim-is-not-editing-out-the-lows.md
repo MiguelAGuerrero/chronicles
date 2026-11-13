@@ -1,4 +1,4 @@
-# 0156. Trimming a voice memo's dead air is not editing out the lows
+# 0159. Trimming a voice memo's dead air is not editing out the lows
 
 Date: 2026-11-13 · Status: accepted · Area: captures, vision
 
