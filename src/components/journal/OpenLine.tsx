@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type ForwardedRef, type ReactNode } from 'react';
 import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { lineLift } from '../../lib/journal/keyboard';
+import { accessoryRoom, floatsAccessory, lineLift } from '../../lib/journal/keyboard';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { deleteNoteNow } from '../../lib/deletion';
 import { KEPT_AS_YOU_WRITE, LINE_LABELS, NOT_KEPT } from '../../lib/journal/lines';
@@ -456,6 +456,13 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     return hideTabs();
   }, [typing]);
   const lift = lineLift(keyboard, typing ? 0 : below);
+  // An iPhone's browser floats the keyboard's own row (previous, next, a tick) over the page, on whatever sits
+  // just above the keys: the bar keeps that much of itself empty under its controls (fix keyboard-accessory).
+  const [floating] = useState(
+    () => Platform.OS === 'web' && typeof navigator !== 'undefined' && typeof CSS !== 'undefined'
+      && floatsAccessory({ ua: navigator.userAgent, touchPoints: navigator.maxTouchPoints, supports: (q) => CSS.supports(q) }),
+  );
+  const under = accessoryRoom({ keyboard, floating });
   const writing = text.length > 0 || pen.beginning || !!pen.entry;
   const entryOpen = writing || !!openId;
   const showDone = typing || entryOpen;
@@ -563,7 +570,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           {!recording && focused && <SpaceLine />}
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
-        <View style={styles.line} testID="open-line" pointerEvents="auto" onLayout={(e) => props.onHeight?.(Math.round(e.nativeEvent.layout.height))}>
+        <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => props.onHeight?.(Math.round(e.nativeEvent.layout.height))}>
           <View style={styles.row}>
             {inBar ? (
               fieldEl

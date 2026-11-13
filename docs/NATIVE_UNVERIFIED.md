@@ -180,6 +180,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** from an empty line tap Open as a page, then take a photo with the page's camera, write a line and tap Done. **Expect:** the system camera opens from inside the page; the photo is its own entry and is mentioned in the note; the next words typed in the line begin a new entry. (JN25, NP14)
 - [ ] **Do:** open a note of several screens on the sheet. **Expect:** it is cut with "The entry goes on; open it to read the rest", and the sheet scrolls smoothly past it (no web view in the list). (JN27)
 - [ ] **Do:** deny the camera to Chronicles, tap the open line's camera, and tap Settings on the message. **Expect:** iOS opens Chronicles' settings (`Linking.openSettings`). (JN18)
+- [ ] **Do:** on the iPhone that showed the keyboard's own row (previous, next, a tick) floating over the journal's bar, open Memories from the Home Screen app, tap the empty page and type; then the same in Safari. **Expect:** the bar's Open as a page, camera, mic and Done are all visible and tappable above the floating row, with the page's own ground under the row; nothing of the bar is covered. On an iPhone that docks that row to the keyboard, no extra band under the bar. The room is 56 px, read off a screenshot. (fix keyboard-accessory)
 
 ## Quality of life
 

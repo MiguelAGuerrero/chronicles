@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../journal/pen';
 import { OPEN_MS, WALK_ON_M, initial, openId, step } from '../../openMoment';
+import * as keyboardRules from '../../journal/keyboard';
 import { keyboardLift, lineLift } from '../../journal/keyboard';
 import { spareFresh } from '../../journal/target';
 import { refToken } from '../../refs';
@@ -156,4 +157,25 @@ test('fix journal-note-pages audit 4: a save that fails after the line gave its 
   assert.deepEqual(late.state, PEN_START);
   assert.deepEqual(late.effects, []);
   assert.deepEqual(run([{ k: 'saved', body: 'A heron' }]).state, PEN_START);
+});
+
+test('fix keyboard-accessory: the bar clears the keyboard\'s own floating row where the phone draws one over the page', () => {
+  const k = keyboardRules;
+  const modern = (q: string) => q.startsWith('anchor-name');
+  const old = () => false;
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+  // An iPhone whose engine is the one that floats the row (the Home Screen app's agent names no version, so the engine is asked).
+  assert.equal(k.floatsAccessory({ ua: iphone, touchPoints: 5, supports: modern }), true);
+  // An older iPhone docks the row to the keyboard, inside what the keyboard is measured to cover.
+  assert.equal(k.floatsAccessory({ ua: iphone, touchPoints: 5, supports: old }), false);
+  // An iPad asking for the desktop site says Macintosh, with touch; a Mac has no touch; Android and desktop Chrome draw no row.
+  const mac = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
+  assert.equal(k.floatsAccessory({ ua: mac, touchPoints: 5, supports: modern }), true);
+  assert.equal(k.floatsAccessory({ ua: mac, touchPoints: 0, supports: modern }), false);
+  assert.equal(k.floatsAccessory({ ua: 'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36', touchPoints: 5, supports: modern }), false);
+  // Room only while the keyboard is up, and only where the row floats.
+  assert.equal(k.accessoryRoom({ keyboard: 336, floating: true }), k.ACCESSORY_ROOM);
+  assert.equal(k.accessoryRoom({ keyboard: 0, floating: true }), 0);
+  assert.equal(k.accessoryRoom({ keyboard: 336, floating: false }), 0);
+  assert.ok(k.ACCESSORY_ROOM >= 48);
 });
