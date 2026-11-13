@@ -28,6 +28,15 @@ export class RecorderError extends Error {
   }
 }
 
+/** What a screen shows for a start that failed: `tone: 'info'` a refusal of location, said quietly (T26); else a fault. */
+export type StartError = { message: string; openSettings?: boolean; tone?: 'info' | 'error' };
+
+/** A failed start as the screen shows it (tend recording audit 5): a recorder's refusal keeps its tone and Open Settings. */
+export function startErrorFrom(e: unknown): StartError {
+  if (e instanceof RecorderError) return { message: e.message, openSettings: e.openSettings, tone: e.tone };
+  return { message: e instanceof Error ? e.message : String(e), openSettings: false, tone: 'error' };
+}
+
 export interface StartResult {
   /** Recording works, but with a limitation the user should know about. */
   warning?: string;
