@@ -203,6 +203,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
   `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
   the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
+- [loop] A pin of one memory says "Memory: Voice memo" where a pin of several says "Memories: a photo and a note": two tables for one thing (`pinSpoken`, `src/lib/pins.ts`); "Memory: a voice memo" from the same table would match (the T14 review's U5, low; a pin of one moment is not T14's subject)
+- [loop] At 320 px the walk's "Add to this moment" offer, a toast with four controls, lies over the pins it refers to (`after3x-walk-320` in the T14 probe, the same before T14; `.claude/rules/ui-patterns.md`, a control may not float over its content) (the T14 review's U6, low)
+- [loop] No test runs the web's in-place relabel of a pin (`usePinMarkers` in `WalkMap.web.tsx`, the name set again when a walk clock comes or goes after the pin was drawn): every journey's clock arrives with or before the pins (the T14 review's test finding; `tend map audit 21` makes the clock go at Stop, and the walk screen leaves for the replay at once)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 

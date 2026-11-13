@@ -163,18 +163,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   with a walk minimized, then Explore.
   Expect: the section names, the band's Photo, Voice and Note, the recording bar's time and distance and the tab labels are all
   there, wrapping where they must, none cut to a letter or pushed off the screen.
-- **T14 [owner] Map: a pin of several moments is a bare numeral** (2026-11-12)
-  Area: map. Seen: `qol-02-walk`, `qol-03-replay-card` (a dark disc reading "2"; spoken "2 captures here", `CapturePinView.tsx`
-  `pinLabel`). Rests on: VISION.md Always, "Counts are words, in a clause", and "A moment carries its context ... It never
-  appears as a bare thumbnail, filename or count" (steward S2). QL26 shipped "A pin of several captures keeps its count"
-  (Nov 3), so this amends a shipped criterion: yours.
-  Recommended: a pin of several moments shows their kinds in its head (the kinds' icons, up to two, fanned, no numeral),
-  and its spoken name says them in words with the minutes in: "A photo and a note, twelve minutes in. Open". /vision:
-  aligned (honour; "Counts are words"), amends QL26. Whether a pin's name carries the time is put to you separately.
-  Otherwise: keep the disc, say the count in words to a screen reader only ("Two moments here"); or leave it.
-  **Answered yes** by the owner in person (`/tend inbox T16 yes, T17 yes, T14 yes, T15 reshape`, Nov 12; decision
-  0154): the recommended shape, with the time in the spoken name (the question put separately: yes). Waits for the
-  next `/tend inbox`, one build per run (T16 was built first).
 - **T15 [owner] Chronicle: walked places are accent stars, with a numeral where they merge** (2026-11-12)
   Area: places (seen on the map's sweep). Seen: `probe-map-attrib-390-chronicle` ("Fox Point" on an orange star),
   `StarView.tsx` l.40-44 (a merged star draws its count, "3"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best
@@ -267,6 +255,36 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
+- **T28 [owner] Map: when a pin says its time** (2026-11-13)
+  Area: map. Seen: since `tend map T14` a pin of several says its time on the walk screen, the replay and a day's
+  replay ("A photo and a note, twelve minutes in. Open"), while a pin of one moment beside it says "Photo. Open" (the T14
+  review's U4); since `tend map audit 19` a pin whose moments lie more than ten walked minutes apart (a loop's start
+  and end) says its kinds alone, where it said "at the start" for a note taken 58 minutes later (the review's F1); and
+  Chronicle's map, memory pins and the ready screen have no walk clock, so their pins say their kinds alone (`pinInto`,
+  `src/lib/pins.ts`). Rests on: VISION.md Always, "A moment carries its context: place, time, its walk, what came just
+  before"; your answer in 0154, the time in a pin's name.
+  Recommended: a pin of one moment says its minutes too when its walk's clock is known ("Photo, twelve minutes in.
+  Open"); a pin whose moments lie more than ten walked minutes apart says the span ("A photo and a note, from the
+  start to fifty-eight minutes in. Open"); a map with no walk clock says the part of the day of the pin's first moment,
+  as a moment's own line does ("A photo and a note, Tuesday evening. Open"). /vision: aligned (honour: "A moment
+  carries its context"; no count, and the words are the moment's own line's). It amends QL26's, NY10's and RB7's
+  spoken examples again.
+  Otherwise: as built (a pin of several says its time, a pin of one moment does not, a spread pin and a map with no
+  clock say none); or only the span, and nothing more.
+- **T29 [owner] Reminders say their counts in digits beside pins that say words** (2026-11-13)
+  Area: notifications, memories (the T14 sibling lens). Seen: two memories in reach are the reminder "2 memories here"
+  with the body "2 voice memos and a note" (`discovery/recall.ts` l.99 and `kindsOf` l.114, its kinds in a fixed
+  order), on the reminder card (R7, `ReminderCard.tsx`) and in the announcements of the recording bar and the walk
+  screen (`RecordingBar.tsx` l.106, `walk.tsx`); since `tend map T14` the memory pin at that place says "Memories: a
+  photo and a note" (the T14 review's F6), from a second copy of the kinds' words. "What happened here" says
+  "Tuesday evening in Fox Point · 12 min in" (`here/shell.ts` l.50) where a pin says "twelve minutes in" (F7). Rests
+  on: VISION.md Always, "Counts are words, in a clause. Distances and times are fine."
+  Recommended: a reminder of several says "Two memories here", and its body the pin's words from one table
+  (`pinKindsWords`, its kinds in the order taken): "Two voice memos and a note"; the announcements say the same.
+  "What happened here" keeps "12 min in": the page allows times in digits. /vision: aligned (honour; "Counts are
+  words"); F7 is no breach ("Distances and times are fine"), so it is left. It amends v1-discovery R7's example "2
+  memories here".
+  Otherwise: also "twelve minutes in" for "What happened here", one voice with the pins; or leave them.
 
 ### Next evolutions
 
@@ -294,41 +312,51 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T26 yes, T25 yes`** (from `d3fe0f41`, rebased on `e0c32231`; the owner's own answers, in
-person, Nov 13; decision 0162, numbered after Note types took 0161; T26 built, T25 waits for the next inbox run, one build per run).
-- `tend recording T26`: Start, refused, is the quiet notice Locate's refusal is since T17 (the cream banner, its text the
-  dark brown `#6b4500`, no alert, read politely), in Locate's line with its own end, read from `locate/notice.ts`
-  (`START_OFF`): "Location is off for this site. Turn it on in the browser's settings to record a walk." on the web, on
-  the ready screen and in the walk's "Not recording" notice; on a phone the words stay ("Location is turned off for
-  Chronicles. Turn it on in Settings to record a walk."), with Open Settings, quiet too. A refusal travels as
-  `tone: 'info'` on `RecorderError` and the recorder's error status; any other failure stays the red fault, and the chip
-  keeps its red dot. A screen reader hears it as T17's: the ready screen's live region, a new `walk-said` region kept
-  mounted on the walk (web), `announceForAccessibility` on a phone. The `qol` journey's QL19 step pins the new words
-  on the ready screen at 390 and on the walk at 390 and 320, the chip bringing the notice back.
+**Nov 13, `/tend inbox T14 yes`** (from `61022751`, rebased on `6b7cd990`, `d5cab8b9` and `7fe7b5c1`; the owner's own
+answer, in person, Nov 12, decision 0154; T15 reshape and T25 yes wait for later inbox runs, one build per run).
+- `tend map T14`: a pin of several moments shows its kinds in its head, the first two taken, fanned (one kind twice),
+  never a numeral; it says them in words with the minutes in, in walked time as the moment's own line does: "A photo
+  and a note, twelve minutes in. Open" (`pinHeadKinds`, `pinKindsWords`, `pinInto`, `pinSpoken`, `lib/pins.ts`). The
+  walk screen, the replay and a day's replay give the map their walks' clocks (`clocks`); a memory pin of several says
+  "Memories: a photo and a note". A pin of one moment is unchanged, a video's still and play mark included (VS3, VS4).
+  Sibling lens: every pin of moments goes through `CapturePinView` and `pinLabel` (the walk screen, the replay, a day,
+  Chronicle's map, memory pins), so all take the shape. Left, not pins: the reminder's "2 memories here", its body,
+  the reminder card and two announcements (filed below); the merged walked-place star's numeral is T15's.
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend recording audit 1`: a refused Resume is the quiet notice in Start's words, said, never "Could not resume: ..."
-  in red (F1).
-- `tend recording audit 2`: Walk here (and every start) on Explore, refused, is the quiet notice, said through
-  Explore's live region (F2, U1).
-- `tend recording audit 3`: Walk here and Go on Chronicle, refused, are the quiet notice, said through a new
-  `chronicle-said` region (F3, U1).
-- `tend recording audit 4`: a second tap of Not recording with the notice up is said again (F4).
-- `tend recording audit 5`: a failed start's tone is a pure mapping (`startErrorFrom`), unit-tested, in place of T26's
-  source grep (the review's test finding).
-The `qol` journey pictures each at 390 and 320 (`qol-13d` Resume, `qol-13e` Explore, `qol-13f` Chronicle).
-Review: 5 accepted (F1, F2, F3 with U1, F4, the test), 4 deferred (F5 `[loop]` low, a notice that outlives a retry;
-F6 `[loop]` low with a native check, the location task's denial in red; U2 `[owner]` low, the walk's line names no
-reload; U3 noted here, no action: two cream notices stacked, as since T17), 0 rejected; F5, F6 and U2 are in
-`docs/DEFERRED.md`, Quality of life, with one `[loop]` low found in the round: Chronicle's banner lies over the map's
-credits (i).
-Answered and waiting: T25 yes (the bullseye end). QL19 and the map rule's Locate line hold on the web again, noted on
-the open item, whose "ink" now names the notice's colour. Two native checks, the first with a note for the review's fixes.
-Not a sweep: no lens ran and no area changed state. Every covering journey is green (21, `drive` among them). Nothing
-here has run on a phone; the refusal's tone, Open Settings and the announcement on native are unverified
-(`docs/NATIVE_UNVERIFIED.md`).
+- `tend map audit 19`: a pin whose moments lie more than ten walked minutes apart says its kinds alone; three kinds
+  are all named (F1 in part, U3).
+- `tend map audit 20`: the native pin Marker is keyed by its moments (`pinKey`), not their count (F2).
+- `tend map audit 21`: the walk screen gives its walk's clock only while the open walk is that walk (`walkClocks`) (F3).
+- `tend map audit 22`: every pin of several sits on the neutral head (F5, U1).
+- `tend map audit 23`: a memory pin's discs stay solid over its faded head, as its clock does (U2).
+- `tend map audit 24`: a reminded pin of several has its bell clear of its discs (F4).
+The `qol` journey's `pinsOfSeveral` walks its own pins of two photos, three notes, a voice memo and a video, and a
+photo and a note, at 390 and 320, reminded, and again as memories (`qol-15` to `qol-19`).
+Review: 8 accepted (F1 in part, F2, F3, F4, F5 with U1, U2, U3), 2 deferred (U5, U6, `[loop]` low, with the review's
+test finding, in `docs/DEFERRED.md`, Map, walk screen and motion polish), 4 to the owner (F1's span, U4, F6, F7: two
+T entries below), U7 no action (T19 holds the card's counts), 0 rejected. The run stopped once on a rebase conflict
+(an import block and a comment, beside video thumbnails' pin changes); the caller ruled it mechanical, and the video
+pins were checked apart (a pin of two videos has no still and no mark).
+Filed: two `[owner]` entries ("Map: when a pin says its time"; "Reminders say their counts in digits beside pins
+that say words"), the wording of QL26, NY10, MR2 and RB7 under "Open before the loop", one native check.
+Not a sweep: no lens ran and no area changed state. Journeys green on the final base: `qol` (its Explore credits check failed once and passed on a rerun of the same build), `walk`, `memories`; after the T14 commit, also `edit`, `launch` and `videothumbs`. Nothing here has run
+on a phone; the new pin head, its key and its spoken name on native are unverified (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
+- **QL26's, NY10's, MR2's and RB7's words after T14** (Nov 13; decision 0154): since `tend map T14` a pin of several
+  moments shows its kinds (the first two taken, fanned discs on the neutral head, one kind twice) and never a numeral,
+  and says them in words with the minutes in ("A photo and a note, twelve minutes in. Open"; a memory pin "Memories: a
+  photo and a note"; with a bell ", reminder set"); since `tend map audit 19` a pin whose moments lie more than ten
+  walked minutes apart, or one on a map with no walk clock, says its kinds alone. Amend, in the docs and their
+  mirrors (the loop may not edit a spec): QL26 (`specs/quality-of-life/spec.md` l.72, "A pin of several captures keeps
+  its count"; since video thumbnails a pin of one photo or one video shows its copy or still, VS3, VS4, and a pin of
+  several shows neither); NY10 (`specs/note-types/spec.md` l.42 and its record l.58, "a pin of several captures keeps
+  its kind's glyph and its count"); MR2 (`specs/memories-on-revisit/spec.md` l.37, "a group shows its count"); RB7's
+  example (`specs/reminder-bell/spec.md` l.26, "3 captures here, reminder set. Open"). The rule lines that say the old
+  shape, which the loop rewords not: `.claude/rules/captures-and-media.md` (Note types, "a pin of several keeps its
+  count") and `.claude/rules/memories.md` ("Its label is "N memories here""); a "Since `tend map T14`" line under each
+  says what is true, and `.claude/rules/map.md` has the new "A pin of several moments" bullet.
 - **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in
   `specs/quality-of-life/spec.md`) says "Denied location shows the error banner a moment's placement shows"; since
   `tend map T17` a refused location is the quiet notice (the cream banner, its text the dark brown `#6b4500`, no
