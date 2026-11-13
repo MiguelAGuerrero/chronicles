@@ -121,6 +121,11 @@ export interface WalkMapProps {
    * first moment (tend map T28): "A photo and a note, Tuesday evening".
    */
   clocks?: readonly WalkClock[];
+  /**
+   * The moment a pin's part of the day is said from (tend map audit 29): a screen that stays open renews it; without
+   * it, the time the map opened.
+   */
+  now?: number;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Faced[]) => void;
   /** Captures from earlier walks nearby, drawn as faint pins (Memories on revisit, MR1-MR3). */

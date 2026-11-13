@@ -593,7 +593,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View
               accessible
               accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true, pinReminded(pin, reminded), undefined, openedAt)}
+              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true, pinReminded(pin, reminded), undefined, props.now ?? openedAt)}
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} faint reminded={pinReminded(pin, reminded)} />
@@ -615,7 +615,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View
               accessible
               accessibilityRole={props.onPinPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded), props.clocks, openedAt)}
+              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded), props.clocks, props.now ?? openedAt)}
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} reminded={pinReminded(pin, reminded)} />

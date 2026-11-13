@@ -179,6 +179,11 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     has its own comma giving the part before it, and two ends that read alike said once (`dayWhen`, `tend map audit 27`).
   - A map whose `clocks` hold more than one walk (a day's replay of several walks) says every pin's part of the day:
     "ten minutes in" would not say which walk. A day of one walk keeps the minutes or the span (`tend map audit 28`).
+  - A map's `now` prop is what a pin's part of the day is said from; without it, `openedAt`, which stays the drop's
+    clock. The walk screen's one map lives from the ready screen through the walk, so `walk.tsx` passes `pinNow`,
+    renewed on each return to the front and at `nextDayPartBoundary` (`resurface/context.ts`); the web relabels in
+    place (`usePinMarkers`' deps), native re-renders its labels (unverified). Chronicle remounts its map on focus and
+    the replays mount on open, so they need none (`tend map audit 29`).
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

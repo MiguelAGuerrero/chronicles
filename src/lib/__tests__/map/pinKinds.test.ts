@@ -3,6 +3,7 @@ import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { pinHeadKinds, pinInto, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, walkClocks, type CapturePin, type WalkClock } from '../../pins';
+import { nextDayPartBoundary } from '../../resurface/context';
 import type { CaptureKind } from '../../types';
 
 // tend map T14 (the owner's yes, decision 0154; amends QL26, NY10, MR2, RB7): a pin of several moments is drawn with
@@ -226,4 +227,22 @@ test('tend map audit 28: on a map of several walks every pin says its part of th
   assert.equal(pinSpoken(pinOf(e('a', 'photo', 0, 'w1'), e('b', 'text', 3, 'w2')), { clocks, now: NOW }), 'A photo and a note, Tuesday evening');
   // A day of one walk: its minutes, as the walk's own replay says them.
   assert.equal(pinSpoken(pinOf(e('a', 'photo', 0, 'w1')), { clocks: clocks.slice(0, 1), now: NOW }), 'Photo, thirty minutes in');
+});
+
+// tend map audit 29 (the T28 review's auditor 1, ux 3): the walk screen's one map, mounted when the ready screen
+// opened, said every pin's part of the day from that moment on: opened at 23:40, a 19:00 pin still said "this evening"
+// at 00:30, where its viewer said "Yesterday evening". The walk screen renews the pins' `now` on resume and at the next
+// boundary `dayPartLine` turns on: midnight, five, noon, five and nine.
+test('tend map audit 29: the next moment a pin\'s part of the day can change', () => {
+  assert.equal(nextDayPartBoundary(at(13, 23, 40)), at(14, 0));
+  assert.equal(nextDayPartBoundary(at(14, 0)), at(14, 5), 'on a boundary, the next one');
+  assert.equal(nextDayPartBoundary(at(14, 3)), at(14, 5));
+  assert.equal(nextDayPartBoundary(at(14, 9, 15)), at(14, 12));
+  assert.equal(nextDayPartBoundary(at(14, 12, 0) + 1), at(14, 17));
+  assert.equal(nextDayPartBoundary(at(14, 18)), at(14, 21));
+  // Each boundary is where the words change: just before and at it, a 19:00 pin of the 13th reads differently.
+  const pin = pinOf(day('a', 'photo', at(13, 19)));
+  const b = nextDayPartBoundary(at(13, 23, 40));
+  assert.notEqual(pinSpoken(pin, { now: b - 1 }), pinSpoken(pin, { now: b }));
+  assert.equal(pinSpoken(pin, { now: b }), 'Photo, yesterday evening');
 });
