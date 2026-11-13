@@ -57,7 +57,7 @@ jobs:
             else
               cp -R scripts "${gate}/"
             fi
-            TEND_ROOT="${PWD}" node "${gate}/scripts/tend.js" commits --loop-only "${BEFORE}..${GITHUB_SHA}"
+            TEND_ROOT="${PWD}" node "${gate}"/scripts/tend.js commits --loop-only "${BEFORE}..${GITHUB_SHA}"
           fi
         env:
           BEFORE: ${{ github.event.before }}
