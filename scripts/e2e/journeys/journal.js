@@ -280,6 +280,46 @@ async function run(h) {
   check(rest2.tabs === 1 && !!rest2.write && rest2.write.label === 'Write an entry' && rest2.write.w >= 44 && rest2.write.h >= 44 && rest2.status.trim() === '',
     `JN29, JN30: at rest the tabs are back and the bar holds the pen, the camera and the mic (${JSON.stringify(rest2)})`);
 
+  // JN31, JN32: at rest the last entry is on top under its date with the empty page below; a tap on the empty page
+  // grows it into the new entry, and Done brings the page back with that entry on top.
+  const lay = () => pg.evaluate(() => {
+    const vh = window.innerHeight;
+    const page = document.querySelector('[data-testid=journal-page]');
+    const cards = [...page.querySelectorAll('[data-testid=moment-card]')];
+    const r = (e) => { const x = e?.getBoundingClientRect(); return x ? { top: Math.round(x.top), bottom: Math.round(x.bottom), h: Math.round(x.height) } : null; };
+    const heads = [...page.querySelectorAll('[data-testid=day-heading]')].map((e) => ({ ...r(e), text: e.innerText })).filter((h) => h.bottom > 0 && h.top < vh);
+    const blank = document.querySelector('[data-testid=line-write]');
+    const field = document.querySelector('[data-testid=line-input]');
+    const bar = document.querySelector('[data-testid=open-line]');
+    return {
+      vh, pageTop: Math.round(page.getBoundingClientRect().top), head: heads[0] ?? null, last: r(cards[cards.length - 1]), lastText: cards[cards.length - 1]?.innerText ?? '',
+      prev: r(cards[cards.length - 2]), blank: r(blank), field: r(field), bar: r(bar), focused: document.activeElement === field,
+    };
+  });
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(900);
+  const rest3 = await lay();
+  const headBottom = rest3.head ? rest3.head.bottom : 0;
+  check.todo(!!rest3.head && rest3.head.top - rest3.pageTop < 60 && !!rest3.last && rest3.last.top >= headBottom - 2 && rest3.last.top - headBottom < 40
+    && (!rest3.prev || rest3.prev.bottom <= headBottom + 2) && !!rest3.blank && rest3.blank.top >= rest3.last.bottom - 2 && rest3.blank.h >= rest3.vh * 0.3 && rest3.blank.bottom <= rest3.bar.top + 2,
+    `JN31: at rest the last entry is on top under its date, nothing older shows, and the empty page fills the rest above the bar (${JSON.stringify(rest3)})`);
+  await shot(pg, 'journal-18-at-rest-peek');
+  await pg.click('[data-testid=line-write]').catch(() => {});
+  await pg.waitForTimeout(900);
+  const grown = await lay();
+  check.todo(grown.focused && !!grown.field && grown.field.top - (grown.head ? grown.head.bottom : grown.pageTop) < 90 && (!grown.last || grown.last.bottom <= (grown.head ? grown.head.bottom : grown.pageTop) + 2),
+    `JN32: a tap on the empty page grows it into the new entry: the caret is at the top under the date, and the last entry has slid away (${JSON.stringify(grown)})`);
+  await shot(pg, 'journal-19-grown');
+  await pg.keyboard.type('Grown from the empty page.', { delay: 10 });
+  await pg.waitForTimeout(1000);
+  const writing3 = await lay();
+  await done();
+  await pg.waitForTimeout(1000);
+  const after3 = await lay();
+  check.todo(/Grown from the empty page\./.test(after3.lastText) && !!after3.last && !!after3.head && after3.last.top - after3.head.bottom < 40 && !!after3.blank && after3.blank.h >= after3.vh * 0.3
+    && !!writing3.field && writing3.field.top < writing3.vh * 0.45,
+    `JN32: Done brings the page back with the new entry on top and the empty page below (${JSON.stringify({ after3, writingField: writing3.field })})`);
+
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
     const e = document.querySelector(sel);

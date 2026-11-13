@@ -80,6 +80,13 @@ The owner's screenshot of the built line on an iPhone, and their call: it felt l
 29. **JN29** One bar is fixed at the foot. At rest it holds a pen (named "Write an entry": it brings today's foot into view and puts the caret on the page, from anywhere on the sheet), the camera and the mic, each a thumb's target. While writing it holds, in one row, "Kept as you write" (or the failure and Retry), Open as a page (an icon with that name), the camera, the mic and Done; nothing wraps at 320 px.
 30. **JN30** While the field has the keyboard, the tab bar and the recording bar fold away and the bar sits directly on the keyboard: nothing else stands between the entry and the keys. They come back when writing stops, and a walk being recorded goes on recording.
 
+### The page at rest, and the empty page as the pen (added Nov 13, the owner's call)
+
+The owner, on seeing the page pushed to its foot: "have like a peek to show the last entry, but the page is mostly aligned to the top, and when you click on the empty space, it expands out, or rather transitions out to create a moment." Vision: Honour (the empty page is the invitation, with no prompt and no control standing for it), Return (where you left off is the first thing seen); verdict aligned. This amends JN1 (the page rests with its last entry on top, not at the foot), JN11 and JN29 (the empty page is the pen; the bar holds no pen).
+
+31. **JN31** At rest the page is aligned to the top: the day's date, then the most recent entry under it, then the empty page filling the rest of the screen above the bar. Nothing older shows until the page is pulled down, which reads back through the journal with each day's date held at the top as its entries pass. A last entry too long for this shows its end, and the empty page still takes at least a third of the screen.
+32. **JN32** A tap anywhere on the empty page (named "Write an entry") grows it into the new entry: the caret is on the page under the date, the last entry slides up out of view, and the bar sits on the keyboard (JN30). Done brings the page back to rest with the new entry on top. The bar at rest holds only the camera and the mic.
+
 ## Amends
 
 - **Capture from Chronicle** (`specs/capture-from-chronicle/spec.md`): HC6-HC13 and HC15 (the band becomes the open line; "<Kind> kept here" and "saved to your walk" toasts go, since the entry itself appears); HC9's "heads Lately" and HC10's "not shown until the walk stops".
