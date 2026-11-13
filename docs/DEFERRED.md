@@ -34,8 +34,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
-- Finding, fix which-place: a moment with two or more unfound places within 60 m is tagged to none unless made on an exploring walk, where "Which place is this moment about?" asks; the home's loose moments and quiet walks never ask, and a moment cannot be tagged to a place afterwards (Explore, E8)
-- Finding, fix which-place audit 3, 5, 6: a declined "Which place?" is not remembered (a reload asks again); several ambiguous captures in a row ask only about the newest; a capture made before Explore is switched on is never asked; the chip lists three places at most and has no e2e journey
 
 ## Streets and snapping
 
@@ -683,3 +681,4 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **A camera mention's words are "A photo" or "A video"** (note-pages audit 26, in part), not the moment's own context.
 - [loop] **Complexes audit** (0147): `neededTiles` lists the tiles that hold a vertex, so a building longer than a z14 tile with no vertex in a middle tile can lose places there (audit 3). A joined outline draws the tiles' clip edges inside a building cut across tiles; it needs a polygon union (audit 9). A release whose `buildings.pmtiles` is missing falls back to no older release the way the places reader does (audit 6). A row for a building that stops qualifying, or is renamed, is never deleted: only a code bump or a purge clears it (audit 7). A fix's accuracy, the antimeridian and label collisions (audit 12). A seeded complex on Memories' card has no journey step (audit 20). After "See more" the first new row should take a screen reader's focus (audit 21).
 - [owner] **Complexes audit** (0147): the card does not say where the kind switches are (the walk's and Navigate's settings only); a line or link on the card is a navigation choice. A pull of up to nine `buildings` tiles on mobile data without a tap. Whether a store of every area browsed is acceptable derived data (it is cleared by a purge).
+- Tap to capture a place (decision 0155): walks recorded before it read passes at the 8 m default, not the 60 m they were shown with; a place can be armed only from the walk screen's card (the Explore tab's cards and a pin's viewer have no Capture here); an unstamped capture can still find its armed place

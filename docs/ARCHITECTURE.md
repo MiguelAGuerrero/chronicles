@@ -254,7 +254,6 @@ Discovery and Explore (v1)
   atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
   atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Busy names kept near the selection
   explore/settings.ts        what I'm into, range, pocket alert (meta)
-  explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
   explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)
   activity/weights.ts        how much a poi or an Overture place counts toward density: presence's class weight (PR4)

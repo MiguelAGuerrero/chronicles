@@ -47,7 +47,6 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   - `saveSnap` writes nothing for a deleted walk, and takes its counts from
     the capture rows inside its transaction (`countsOf`), as `deleteMoments`
     does. A delete overlapping a snap can't leave a count off.
-  - A loose moment deleted before its fix finds nothing (`findForMoment`).
   - Explore re-reads finds after a delete.
   - Memory cards and "What happened here" skip what waits in Undo.
   - The viewer's Save and Delete share one More (⋯) menu, so its row fits

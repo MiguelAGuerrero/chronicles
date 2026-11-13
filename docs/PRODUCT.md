@@ -266,7 +266,9 @@ recording, and a recording bar brings a minimized walk back.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
   range (60-300 m), a chip when on a busy strip, an optional pocket alert
   (a double-tap once per place, on phones and browsers that can buzz), and a nudge when an area is a dead zone.
-  A capture within 60 m of an unfound place finds it.
+  A place's card offers **Capture here**: the next capture finds that place, and one taken near a place without it finds
+  nothing. A place you pass within a few metres (4-20 m, 8 by default, a setting in the walk's options) is named in the
+  replay as passed without stopping, never counted (decision 0155).
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
   Its pin wears a small bell on every map while the reminder is set.

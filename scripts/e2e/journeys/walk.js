@@ -273,9 +273,11 @@ async function checks(h) {
         check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 0, 'TC1: nothing is found by being near a place');
         await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
         await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
+        await shot(page, '02a-place-card');
         await page.click('[data-testid=mark-capture]');
         await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
         const armedSaid = await page.locator('[data-testid=armed-line]').innerText();
+        await shot(page, '02b-armed');
         check(/The next moment is about Hessian Memorial/.test(armedSaid) && (await page.locator('[data-testid=mark-card]').count()) === 0, `TC3: Capture here closes the card and says whom the next moment is about (${armedSaid.replace(/\n/g, ' ')})`);
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));

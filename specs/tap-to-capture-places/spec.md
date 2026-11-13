@@ -41,4 +41,4 @@ S1 accepted (TC9). S2 accepted (TC3). S3 accepted (TC4). S4 accepted (TC7). Drif
 
 ## Record
 
-(Filled as the slice is built.)
+TC1-TC9 pass (Nov 12): unit `explore/tapToCapture.test.ts` (TC1-TC9); journey `walk` (TC1, TC3, TC4 on the web build). `marks`, `nudge`, `replay`, `days`, `ready`, `tabs`, `drive`, `complexes`, `upgrade`, `capturehome`, `edit`, `gaps`, `headsup`, `hidden`, `layers`, `reload`, `space` and `walkability` pass. SH4 retired; three old tests moved to the 8 m rule (`audit 9`, `RR15`, `R12`). Native: Capture here, the armed line and the pass-by setting have never run on a device (`docs/NATIVE_UNVERIFIED.md`). Decision 0155.
