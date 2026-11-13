@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
 import { bordersGeoJSON } from '../../../components/map/types';
-import { nextFrame } from '../../atlas/atlas';
+import { nextFrame, townPicked } from '../../atlas/atlas';
 import { BORDER_RULES, bordersFor, outlineIdHere, outlineIdsOf, outlineOf, simplifyRing, townFrame, townPlaces } from '../../areas/borders';
 import { outlineTileFrom } from '../../areas/divisionTiles';
 import { BORDER_ZOOM, outlineSet, outlineTileKey, outlineTileOf, type OutlineTile } from '../../areas/outlines';
 import type { TileFeature } from '../../areas/tilePlaces';
-import { distanceM } from '../../geo';
+import { boundsOf, distanceM } from '../../geo';
 import type { LngLat } from '../../types';
 
 // Town borders (TB1-TB9), written from specs/town-borders/spec.md before the code. The real cases
@@ -199,4 +199,26 @@ test('fix explore-fit-area audit 9: a town\'s page with only its own point liste
   const at: LngLat = [-71.4, 41.82];
   const f = nextFrame(null, { page: 'town:paw', build: 'b1', town: null, points: [at], from: null, padM: 1800 })!;
   assert.ok(distanceM([f.bounds[0], at[1]], [f.bounds[2], at[1]]) > 3500, 'about 3.6 km across');
+});
+
+test('fix town-fit: a town selected in the row is framed whole each time, at its own zoom, and once', () => {
+  const cat = { id: 'catasauqua', bounds: [-71.379, 41.822, -71.371, 41.832] as [number, number, number, number] };
+  const CAT: LngLat = [-71.375, 41.827];
+  // Another town selected, its border known: its whole border, and the page's own frame doesn't frame it twice.
+  const c1 = townPicked({ page: 'near', build: 'b1', town: cat, at: CAT, padM: 3000 });
+  assert.deepEqual(c1.bounds, cat.bounds);
+  assert.equal(nextFrame(c1.framed, { page: 'near', build: 'b1', town: cat, points: PTS, from: ME, padM: 150 }), null);
+  // Back to your town, framed at arrival: framed whole again (the owner, Nov 13: it kept the last town's zoom).
+  const p1 = townPicked({ page: 'near', build: 'b1', town: PAW, at: ME, padM: 3000 });
+  assert.deepEqual(p1.bounds, PAW.bounds);
+  // And the other town again: its own border, not the zoom it was left at.
+  assert.deepEqual(townPicked({ page: 'near', build: 'b1', town: cat, at: CAT, padM: 3000 }).bounds, cat.bounds);
+  // A town whose border isn't known yet: its reach around its point, then its whole border once known, even one framed before.
+  const u = townPicked({ page: 'near', build: 'b1', town: null, at: CAT, padM: 3000 });
+  assert.deepEqual(u.bounds, boundsOf([CAT], 3000));
+  assert.deepEqual(nextFrame(u.framed, { page: 'near', build: 'b1', town: cat, points: PTS, from: ME, padM: 150 })?.bounds, cat.bounds);
+  // Unknown, it frames nothing more from the page's areas meanwhile.
+  assert.equal(nextFrame(u.framed, { page: 'near', build: 'b1', town: null, points: PTS, from: ME, padM: 150 }), null);
+  // On a town's page, its own card selected after a neighborhood: the whole town again.
+  assert.deepEqual(townPicked({ page: 'town:paw', build: 'b1', town: PAW, at: ME, padM: 3000 }).bounds, PAW.bounds);
 });

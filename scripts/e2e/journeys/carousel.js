@@ -316,6 +316,17 @@ async function townFramedOnce(h) {
     await pg.waitForTimeout(6000);
     const at2 = await map.getAttribute('data-bounds');
     check((await selTown()) && at1 === at2, `explore-carousel audit 6: a town selected in the row is framed once, not again when its outline arrives (${at1} → ${at2}; ${tiles.join(', ')})`);
+    // fix town-fit (the owner, Nov 13): back to yours and to it again, each town is framed whole each time, at its own
+    // zoom; a town selected a second time kept the zoom the last one left.
+    const z1 = Number(await map.getAttribute('data-zoom'));
+    await pg.keyboard.press('ArrowLeft');
+    await pg.waitForTimeout(3500);
+    const zHome = Number(await map.getAttribute('data-zoom'));
+    await pg.keyboard.press('ArrowRight');
+    await pg.waitForTimeout(3500);
+    const z2 = Number(await map.getAttribute('data-zoom'));
+    check((await selTown()) && Math.abs(z2 - z1) < 0.05 && Math.abs(zHome - z1) > 1,
+      `fix town-fit: a town selected again is framed whole again, at its own zoom (${z1.toFixed(2)} → yours ${zHome.toFixed(2)} → ${z2.toFixed(2)})`);
   } finally {
     snapWorld.serve = false;
     divisions.serve = false;

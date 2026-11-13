@@ -399,6 +399,18 @@ export function nextFrame(
   return box ? { framed: { page: p.page, build: p.build, towns: [] }, bounds: box } : null;
 }
 
+/**
+ * A town selected in the row, by a swipe or a key (fix town-fit, the owner, Nov 13): its whole border when known, else
+ * its reach around its point and its border once known (`nextFrame`, which the returned record leaves only that town
+ * in, so it frames the border once). Every selection frames again: `nextFrame`'s once-per-visit rule kept a town
+ * selected a second time at the zoom the last one left, since its own frame was the same reach for every town.
+ */
+export function townPicked(
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; at: LngLat; padM: number },
+): { framed: PageFramed; bounds: Bounds } {
+  return { framed: { page: p.page, build: p.build, towns: p.town ? [p.town.id] : [] }, bounds: p.town?.bounds ?? boundsOf([p.at], p.padM)! };
+}
+
 /** How far around a town's point its neighborhoods are looked for. */
 export const townReachM = (town: AtlasArea) => Math.min(town.reachM, ATLAS_RULES.townNeighborhoodsM);
 
