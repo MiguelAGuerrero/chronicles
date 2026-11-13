@@ -15,7 +15,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
-import { creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
+import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
 import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
@@ -390,7 +390,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     }
     map.on('load', () => {
       // The base map's own layers, before the app adds its overlay (T17: whether the tiles drew anything).
-      baseLayers.current = map.getStyle().layers.filter((l) => l.type !== 'background').map((l) => l.id);
+      baseLayers.current = blankLookLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[]);
       addOverlay(map);
       setReady(true);
       readyPromise.current!.resolve();

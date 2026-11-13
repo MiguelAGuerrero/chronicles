@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { LOCATION_OFF, locateNotice } from '../../locate/notice';
-import { drawnFrom, scaleShown } from '../../scaleBar';
+import { blankLookLayers, drawnFrom, scaleShown } from '../../scaleBar';
 
 // T17 (the owner's yes, decision 0154): a refused location is a quiet notice in ink, not a fault, and with no fix and
 // nothing drawn the map shows no scale bar over a blank world. Navigate and Explore (Locate).
@@ -42,4 +42,18 @@ test('tend map audit 14: native counts drawn tiles from roads or water, not plac
   assert.equal(drawnFrom({ roads: 0, water: 0, places: 4 }), true);
   // Nothing loaded: a blank world.
   assert.equal(drawnFrom({ roads: 0, water: 0, places: 0 }), false);
+});
+
+test('tend map audit 15: the blank-world look queries only the base fill layers, never buildings', () => {
+  const style = [
+    { id: 'background', type: 'background' },
+    { id: 'water', type: 'fill', 'source-layer': 'water' },
+    { id: 'landcover-wood', type: 'fill', 'source-layer': 'landcover' },
+    { id: 'building', type: 'fill', 'source-layer': 'building' },
+    { id: 'road-primary', type: 'line', 'source-layer': 'transportation' },
+    { id: 'place-city', type: 'symbol', 'source-layer': 'place' },
+  ];
+  assert.deepEqual(blankLookLayers(style), ['water', 'landcover-wood']);
+  // A style of streets alone (the e2e's) is queried whole, never skipped.
+  assert.deepEqual(blankLookLayers([{ id: 'bg', type: 'background' }, { id: 'roads', type: 'line' }]), ['roads']);
 });

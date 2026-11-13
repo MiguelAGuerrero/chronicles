@@ -45,6 +45,17 @@ export function drawnFrom(counts: { roads: number; water: number; places: number
   return counts.roads > 0 || counts.water > 0 || counts.places > 0;
 }
 
+/**
+ * The base layers the web map's blank-world look queries (tend map audit 15): its fills (water, land cover, land use),
+ * which cover any drawn view and are few, never buildings, which number thousands in a city; a style with no fill
+ * (the e2e's streets alone) is queried whole. Background layers draw everywhere and are never counted.
+ */
+export function blankLookLayers(layers: { id: string; type: string; 'source-layer'?: string }[]): string[] {
+  const base = layers.filter((l) => l.type !== 'background');
+  const fills = base.filter((l) => l.type === 'fill' && l['source-layer'] !== 'building');
+  return (fills.length ? fills : base).map((l) => l.id);
+}
+
 /** The longest 1, 2 or 5 × 10^n no more than `max` (in whatever unit `max` is). */
 function longestRound(max: number): number {
   // The decade the maximum falls in, nudged so a length that fits exactly isn't lost to rounding.
