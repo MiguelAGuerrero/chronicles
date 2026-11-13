@@ -141,13 +141,21 @@ async function run(h) {
   await pg.click('[data-testid=viewer-edit]');
   await pg.waitForSelector('[data-testid=edit-tool-trim]', { timeout: 10000 });
   await pg.click('[data-testid=edit-tool-trim]');
-  const startBox = await pg.locator('[data-testid=trim-start]').boundingBox();
-  const endBox = await pg.locator('[data-testid=trim-end]').boundingBox();
-  const span = endBox.x - startBox.x;
-  await pg.mouse.move(startBox.x + startBox.width / 2, startBox.y + startBox.height / 2);
-  await pg.mouse.down();
-  await pg.mouse.move(startBox.x + startBox.width / 2 + span * 0.45, startBox.y + startBox.height / 2, { steps: 8 });
-  await pg.mouse.up();
+  await pg.waitForSelector('[data-testid=trim-start]', { timeout: 10000 });
+  await pg.waitForTimeout(800);
+  // The handles are measured once the editor has laid out; a drag that did not take (the label unchanged) is tried again.
+  const label = () => pg.locator('[data-testid=trim-label]').innerText().catch(() => '');
+  const before = await label();
+  for (let i = 0; i < 3 && (await label()) === before; i++) {
+    const startBox = await pg.locator('[data-testid=trim-start]').boundingBox();
+    const endBox = await pg.locator('[data-testid=trim-end]').boundingBox();
+    const span = endBox.x - startBox.x;
+    await pg.mouse.move(startBox.x + startBox.width / 2, startBox.y + startBox.height / 2);
+    await pg.mouse.down();
+    await pg.mouse.move(startBox.x + startBox.width / 2 + span * 0.45, startBox.y + startBox.height / 2, { steps: 8 });
+    await pg.mouse.up();
+    await pg.waitForTimeout(400);
+  }
   await pg.click('[data-testid=edit-done]');
   // Polled from here: an async predicate in waitForFunction resolves at once with its pending promise.
   let renamed = null;
@@ -156,8 +164,9 @@ async function run(h) {
     if (p && p.thumb_path && p.thumb_path !== made && p.edit && p.edit.trim) renamed = p;
     else await pg.waitForTimeout(500);
   }
+  const after = renamed ?? (await pieceOf(pg, 'vid'));
   const second = renamed ? await colourOf(pg, renamed.thumb_path) : null;
-  check(!!renamed && renamed.edit.trim.start_ms >= 1100 && greenest(second), `VT6: a trim makes a new still from the kept part's start (${renamed?.thumb_path}; ${renamed?.edit?.trim?.start_ms} ms; ${JSON.stringify(second)})`);
+  check(!!renamed && renamed.edit.trim.start_ms >= 1100 && greenest(second), `VT6: a trim makes a new still from the kept part's start (${after?.thumb_path}; ${after?.edit?.trim?.start_ms} ms; ${JSON.stringify(second)})`);
   if (await has('[data-testid=viewer-close]')) await pg.click('[data-testid=viewer-close]');
   await pg.waitForTimeout(600);
 

@@ -20,9 +20,10 @@ export function MomentPicture(props: { capture: Faced; style?: StyleProp<ViewSty
   const { capture } = props;
   const [copyBroken, setCopyBroken] = useState(false);
   const [broken, setBroken] = useState<string | null>(null);
-  // A copy made since this card read its row (VT2), else the row's own.
+  // A copy made since this card read its row (VT2), only while the row has none: a row read later is fresher (an
+  // edit's new still replaces the one made here, whose file it deletes; video-thumbnails ui 1).
   const made = useStore(thumbs.store, (st) => st.made[capture.piece_id]);
-  const row = made ? { ...capture, thumb_path: made } : capture;
+  const row = !capture.thumb_path && made ? { ...capture, thumb_path: made } : capture;
   const ref = capture.kind === 'photo' || capture.kind === 'video' ? thumbShown(row, copyBroken) : null;
   const wants = !made && wantsThumb(capture);
   useEffect(() => {
