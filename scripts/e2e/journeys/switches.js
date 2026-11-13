@@ -65,10 +65,18 @@ async function run(h) {
     // Forward to the end of the row, then back: every step back is a revisit.
     const n = row.length - 1;
     const keys = [...Array(n).fill('ArrowRight'), ...Array(n).fill('ArrowLeft')];
+    // A move's frames and long tasks, from its start to its settle.
+    const measure = (m, x) => pg.evaluate(([a, b]) => {
+      const iv = window.__frames.filter((t) => t >= a && t <= b).map((t, j, f) => (j ? t - f[j - 1] : 0)).slice(1);
+      const longs = window.__longs.filter(([st]) => st >= a && st <= b).map(([, d]) => d);
+      return { worst: Math.round(Math.max(0, ...iv)), longs: Math.round(longs.reduce((y, z) => y + z, 0)), frames: iv.length };
+    }, [m, x]);
+    const centre = async () => (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
     const steps = [];
     for (const [i, key] of keys.entries()) {
       await pg.locator('.maplibregl-canvas').first().focus();
       const busyBefore = await safe(() => map().getAttribute('data-busy'), '');
+      const from = await centre();
       const t0 = await now();
       await pg.keyboard.press(key);
       await pg.waitForTimeout(WAIT);
@@ -78,11 +86,7 @@ async function run(h) {
       const settled = [...ev].reverse().find(([k]) => k === 'mark:settled')?.[1] ?? null;
       const during = (t) => moved != null && settled != null && t > moved && t < settled;
       const count = (k, pred = () => true) => ev.filter(([e, t]) => e === k && pred(t)).length;
-      const timing = await pg.evaluate(([a, m, s]) => {
-        const iv = window.__frames.filter((t) => t >= m && t <= s).map((t, j, f) => (j ? t - f[j - 1] : 0)).slice(1);
-        const longs = window.__longs.filter(([st]) => st >= m && st <= s).map(([, d]) => d);
-        return { worst: Math.round(Math.max(0, ...iv)), longs: Math.round(longs.reduce((x, y) => x + y, 0)), frames: iv.length, a };
-      }, [t0, moved ?? t0, settled ?? t1]);
+      const timing = await measure(moved ?? t0, settled ?? t1);
       steps.push({
         key, to: await selected(), revisit: i >= n,
         busyBefore, busyAfter: await safe(() => map().getAttribute('data-busy'), ''),
@@ -90,8 +94,23 @@ async function run(h) {
         ground: count('hood:ground'), groundMid: count('hood:ground', during),
         strips: count('setData:strips'), pockets: count('setData:pockets'),
         namesMid: count('setData:busy-names', during), namesAfter: count('setData:busy-names', (t) => settled != null && t >= settled), names: count('setData:busy-names'),
-        markers: count('marker:area'), listed: count('busy:list'), ...timing,
+        markers: count('marker:area'), listed: count('busy:list'), rendersMid: count('render:explore', during),
+        ...timing,
       });
+      // SS9's measure, right after it so the machine's load is the same: the same move by the camera alone, the app idle
+      // (back where the switch began, then eased to where it ended by a key, as a switch is).
+      const toAt = await centre();
+      const ease = moved != null && settled != null ? Math.round(settled - moved) : 400;
+      await pg.evaluate(([p]) => window.__zoomTo(p, 14.5), [from]);
+      await pg.waitForTimeout(1500);
+      await pg.evaluate(([p, d]) => { window.__easeNext = [p, d]; }, [toAt, ease]);
+      const c0 = await now();
+      await pg.keyboard.press('F9');
+      await pg.waitForTimeout(WAIT);
+      const cev = await events(c0, await now());
+      const cm = cev.find(([k]) => k === 'mark:moved')?.[1] ?? c0;
+      const cs = [...cev].reverse().find(([k]) => k === 'mark:settled')?.[1] ?? c0 + ease;
+      steps[steps.length - 1].camera = await measure(cm, cs);
     }
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     await shot(pg, 'switches-1-after');
@@ -108,7 +127,13 @@ async function run(h) {
     check(steps.every((s) => s.namesMid === 0 && s.namesAfter === 1), `SS5: no busy names sent mid-move, one send at the settle (mid/after: ${say(steps, (s) => `${s.namesMid}/${s.namesAfter}`)})`);
     check(steps.every((s) => s.markers === 0), `SS6: a switch rebuilds no area marker (${say(steps, (s) => s.markers)})`);
     check(listedAtStart > 0 && steps.every((s) => s.listed === 0), `SS8: a switch lists no remembered areas (at the start ${listedAtStart}; per switch ${say(steps, (s) => s.listed)})`);
-    check.todo(steps.every((s) => s.longs < 100 && s.worst < 100), `SS9: at ${RATE}x CPU a switch's long tasks inside the ease total under 100 ms and its worst frame is under 100 ms (long tasks ${say(steps, (s) => s.longs)}; worst frame ${say(steps, (s) => s.worst)}; forward ${fwd.length}, back ${back.length})`);
+    const median = (xs) => [...xs].sort((x, y) => x - y)[Math.floor(xs.length / 2)] ?? 0;
+    const longsOver = median(steps.map((st) => st.longs - st.camera.longs));
+    const worstOver = median(steps.map((st) => st.worst - st.camera.worst));
+    check(
+      steps.every((st) => st.rendersMid <= 1) && longsOver <= 100 && worstOver <= 17,
+      `SS9: at ${RATE}x CPU a switch renders Explore at most once mid-move and costs what the camera alone does on the same move, give or take that render (median over the camera: long tasks ${longsOver} ms of 100, worst frame ${worstOver} ms of 17; renders mid-move ${say(steps, (st) => st.rendersMid)}; switch/camera long tasks ${say(steps, (st) => `${st.longs}/${st.camera.longs}`)}; worst frames ${say(steps, (st) => `${st.worst}/${st.camera.worst}`)})`,
+    );
 
     // SS10: a zoom, by the wheel and in code, clears no name that is drawn. In this world only the town's own streets are
     // busy enough to be named, more than a neighborhood's ring from each of them (EC7): the town's card, then its middle.

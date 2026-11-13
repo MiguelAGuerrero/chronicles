@@ -29,6 +29,7 @@ And a bug: a switch away during a Busy read marks the area tried, so its lines n
 - **One slice**, spec and tests first, measured before and after in a small-town world turned into a journey.
 - **The names arrive once, when the camera stops**: the old area's leave as the move starts, as today; the destination's are sent once at the settle, with room for the destination's view.
 - **On a town's page the Busy lines stay centred on the town** while its neighborhoods are switched; the names stay only near the selected neighborhood (EC7). Each neighborhood is still read where it is (steward S3, accepted).
+- **SS9 measures against the camera alone** (Nov 13): a switch and the same move with the app idle, side by side in one run. At 4x CPU the camera alone had 0-347 ms of long tasks per round trip from run to run, so a fixed 100 ms could not be met by maplibre itself.
 - **The card, ring and name are not held until the settle** (about 0.4 s behind the camera): not now; re-measure after this slice first.
 
 ## Criteria
@@ -41,7 +42,7 @@ And a bug: a switch away during a Busy read marks the area tried, so its lines n
 6. **SS6** A switch rebuilds only the area markers whose look changed (the one left and the one selected).
 7. **SS7** A Busy read cut short by a switch is read again when its area is selected again.
 8. **SS8** A switch with no Busy read finished since the last does not list the remembered areas from storage again.
-9. **SS9** In the small-town world at 4x CPU, a switch's long tasks inside the camera's ease total under 100 ms, a revisit too, and its worst frame interval is under 100 ms.
+9. **SS9** In the small-town world at 4x CPU, a switch renders Explore at most once during its camera move, and costs what the camera alone does on the same move, give or take that render: over the round trip, the median of a switch's long tasks during its move less the camera alone's is at most 100 ms, and of its worst frame less the camera alone's at most one frame (17 ms). (Amended Nov 13, the owner: the fixed 100 ms could not be met by the camera alone.)
 10. **SS10** A drag, a zoom, or the walk screen's and Navigate's follow camera never clears a Busy name that is drawn (steward S1; DC5).
 
 ## Steward (Nov 13)

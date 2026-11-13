@@ -420,6 +420,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         };
         const w = window as { __zoomTo?: unknown; __busyNamesIn?: unknown; __busyNamePoint?: unknown };
         w.__zoomTo = (at: LngLat, zoom: number) => map.jumpTo({ center: at, zoom });
+        // smooth-switches SS9: the same move with the app idle, the bare camera's cost to measure a switch against. Started by a
+        // key, as a switch is (`__easeNext`, then F9): a move started from a script got almost no frames in headless Chromium.
+        window.addEventListener('keydown', (e) => {
+          const next = (window as { __easeNext?: [LngLat, number] }).__easeNext;
+          if (e.key !== 'F9' || !next) return;
+          map.easeTo({ center: next[0], duration: next[1] });
+        });
         w.__busyNamesIn = (x0: number, y0: number, x1: number, y1: number) => busyIn([canvasXY(x0, y0), canvasXY(x1, y1)]);
         w.__busyNamePoint = () => {
           const r = map.getCanvas().getBoundingClientRect();
