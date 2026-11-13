@@ -57,7 +57,14 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     invisible layer over the names (`busy-names-room`: `text-allow-overlap`
     true, so two pins side by side both keep theirs; DC14, DC17). A name its
     point can't hold slides along its street (`text-variable-anchor` center,
-    left, right with a 2.6 em radial offset). **Trap:** `text-padding` takes
+    left, right with a 2.6 em radial offset) only when it runs near level:
+    maplibre shifts a variable anchor in screen x, never along `text-rotate`,
+    so a turned name has its own layer, centred or left out
+    (`busy-names-turned`, audit 1). Explore's controls (`busyNamesClearOf`) and
+    the canvas's edges are room too, sent again at each `moveend` and resize
+    (web, audit 11). With the layer off nothing is sent, rooms included
+    (audit 8). The walk maps name only within 800 m of you
+    (`busyNamesNear`, DC18), and every map from zoom 13 (`minzoom`). **Trap:** `text-padding` takes
     no data expression: maplibre refuses the layer with a console error (the
     `dense` journey's "no console errors" caught it). The style spec package
     is not a declared dependency, so no unit test can validate a layer.

@@ -298,6 +298,10 @@ Landing (v1.5)
   landing/offPage.ts         createOffPage: a worker per read, else the page; same result either way (DC7, DC8)
   landing/runOffPage(.web).ts the instances: a worker on web (compute.worker.ts), the JS thread with a turn per stage on native
   landing/names.ts           busyNames: one name per strip at its label point, turned along its street (DC1, DC3)
+  landing/workerJobs.ts      the worker's jobs: a read (computeRead) or an atlas ring (atlas/ringCompute.ts, audit 2)
+  atlas/profile.ts           profileFrom: what a ring read keeps, from decoded tiles (core, so the worker runs it)
+  layers/motion.ts           createMotion: whether the map moves, a promise for its settle (DC9, audit 7)
+  complexes/shown.ts         nextShown: the complexes hook's next state, the same object when nothing changes (DC12)
   landing/view.ts            LANDING_CODE, LandingRow / LandingView, staleness
   landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days

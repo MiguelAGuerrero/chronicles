@@ -94,17 +94,20 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
 - **Busy names are the map's text** (decision 0151, `.claude/rules/map.md`): `busyNames` (`landing/names.ts`) gives one per
   strip at its label point, turned along its street (`alongAngle`), and one per unlabelled pocket; `landingView` lists strips
   and labels heaviest first and never carries a weight (L9's test).
-- **A street's name is drawn once** (fix street-label-double, Nov 4): two remembered
-  areas up to 3 km apart can both find one street, each with its own peak.
-  `landingView` keeps one label per name within 300 m (strips and pocket labels
-  alike); the same name further away is another street.
+- **A street's name is drawn once** (fix street-label-double, Nov 4; explore-dense-city audit 4, the owner: once per 300 m):
+  two remembered areas, or two busy stretches in one area, or a pocket named for the street, give one name per name within
+  300 m (the street's own over a pocket's); two pockets of one placeholder name stay two; the same name further away is
+  another stretch. A current area's names come before a stale one's (DC19).
 - **The read runs off the page** (explore-dense-city DC7-DC11, DC13, decision 0151): `readAround` fetches the tiles' bytes
   (`fetchTileBodies`) and hands them, with Overture's and the archive's places, to `computeRead` (`landing/compute.ts`, core:
   one staged generator, so the page's run and the worker's are the same code). `offPage` (`runOffPage.web.ts`) runs it in a
   web worker (`compute.worker.ts`), copying the bytes, never transferring them, so the page can still compute them itself if
   the worker can't start, errors, answers an error or stays silent 60 s (DC8). Native runs it on the JS thread with a turn
   before each tile and stage (`runOffPage.ts`, DC11). Street pieces are stored in batches of `SEGMENT_BATCH` (150), a turn
-  between them, none once the read is cancelled (DC10). At 4x CPU a first read held the page in one 4.4 s task (deriving
+  between them; a read cancelled before its write writes nothing, and a write once started finishes, so no tile is half
+  stored (DC10, audit 5: `wayNear` reads a tile as read once any piece is in it). The atlas's ring reads use the same
+  worker (`atlas/ringCompute.ts`, `profileFrom` in core `atlas/profile.ts`, audit 2); one worker serves job after job,
+  and a cancel ends it without computing on the page (audit 9). At 4x CPU a first read held the page in one 4.4 s task (deriving
   streets 1.7 s, storing them 1.7 s); now in no task over 50 ms after the first drawing of the layer.
 - **Busy areas are information only** (the owner's call, Nov 1): no Start here
   pin, no card, no Walk the loop (L10, L13, L16 retired by explore).
