@@ -55,9 +55,34 @@ async function run(h) {
   await pg.waitForTimeout(900);
   await shot(pg, 'transcript-viewer');
   const words = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').innerText().catch(() => '');
-  const aria = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').getAttribute('aria-label').catch(() => null);
   check(words === 'the bakery before it opens', `TX7: the viewer shows the words as a caption under the memo ("${words}")`);
-  check(!!aria && /Read by your phone/.test(aria), `TX14: the caption is labelled as the phone's reading ("${aria}")`);
+  const label = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript-label]').innerText().catch(() => null);
+  const italic = await pg.locator('[data-testid=capture-viewer] [data-testid=memo-transcript]').evaluate((e) => getComputedStyle(e).fontStyle).catch(() => '');
+  check(label === 'Read by your phone' && italic === 'italic', `TX14, memo-transcripts audit 13: a sighted person is told it is the phone's reading, and the words are set apart ("${label}", ${italic})`);
+  await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
+  // memo-transcripts audit 16: a long transcript wraps in the journal and in the viewer's card without covering the bars.
+  const long = 'we passed the bakery before it opened and the smell of bread was already in the street and then the fox statue by the river came up on the left and we stopped there for a while to look at the light on the water '.repeat(2).trim();
+  await pg.evaluate(([pieceId, text]) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const tx = req.result.transaction('transcript', 'readwrite');
+      tx.objectStore('transcript').put({ capture_id: pieceId, text, lang: 'en-US', from_ms: null, to_ms: null, made_at: 2 });
+      tx.oncomplete = () => resolve(true);
+    };
+  }), [id, long]);
+  await pg.reload();
+  await pg.waitForSelector(entries, { timeout: 20000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  await shot(pg, 'transcript-journal-long');
+  await pg.locator(`${entries} [data-testid=moment-open]`).first().click().catch(() => {});
+  await there('[data-testid=capture-viewer]');
+  await pg.waitForTimeout(900);
+  await shot(pg, 'transcript-viewer-long');
+  const boxes = await pg.evaluate(() => {
+    const r = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom) }; };
+    return { words: r('[data-testid=capture-viewer] [data-testid=memo-transcript]'), close: r('[data-testid=viewer-close]') };
+  });
+  check(!!boxes.words && !!boxes.close && boxes.words.top > boxes.close.bottom, `memo-transcripts audit 16: a long transcript in the viewer stays under the top bar (${JSON.stringify(boxes)})`);
   await c.close();
 }
 

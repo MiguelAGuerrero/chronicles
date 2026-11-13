@@ -12,6 +12,8 @@ import { needsTranscript, spanOf, transcriptCaption, wordsOfRow, type MemoRef, t
 /** A memo to read: its piece's id, stored file, length and edits. */
 export interface MemoToRead extends MemoRef {
   file_path: string | null;
+  /** The moment it belongs to, so a read that finishes after a delete is told apart. */
+  moment_id?: string;
 }
 
 /** One recognition request. `onDevice` is always true: a request that may leave the phone is not made (TX5). */
@@ -25,10 +27,13 @@ export interface RecognizeRequest {
 export interface Engine {
   /** Whether the phone can recognize this locale on the device itself (TX16). */
   supportsOnDevice(lang: string): Promise<boolean>;
-  permission(): Promise<'granted' | 'denied' | 'undetermined'>;
+  /** 'unavailable': this platform has no recognizer (the web): nothing is asked, stored or remembered. */
+  permission(): Promise<'granted' | 'denied' | 'undetermined' | 'unavailable'>;
   requestPermission(): Promise<boolean>;
-  /** The words heard, '' for none. Rejects on an engine error. */
-  recognize(req: RecognizeRequest): Promise<string>;
+  /** The words heard, '' for no speech, null when it ended having heard nothing at all. Rejects on an engine error. */
+  recognize(req: RecognizeRequest): Promise<string | null>;
+  /** Stops the read under way (a recording started). */
+  abort(): void;
 }
 
 /** Cuts a copy of a memo's kept span for the recognizer, and removes it after (TX13). */
@@ -47,6 +52,8 @@ export interface TranscriptPorts {
   lang: () => string;
   meta: { get(key: 'transcript_off'): Promise<string | null>; set(key: 'transcript_off', value: string): Promise<void> };
   clock: { now(): number };
+  /** Whether the memo is still kept: a read that ends after its memo was deleted writes nothing (audit 2). */
+  kept: (memo: MemoToRead) => Promise<boolean>;
 }
 
 type Item = { memo: MemoToRead; kept: boolean };
@@ -57,6 +64,10 @@ export function createTranscripts(p: TranscriptPorts) {
   let off = false;
   let queue: Item[] = [];
   let current: Promise<void> | null = null;
+  let reading = false;
+  let interrupted = false;
+  let wrote = false;
+  const settledListeners = new Set<() => void>();
 
   const load = () =>
     (loaded ??= (async () => {
@@ -67,32 +78,39 @@ export function createTranscripts(p: TranscriptPorts) {
 
   const put = (row: Transcript) => store.set((prev) => new Map(prev).set(row.capture_id, row));
 
-  /** Reads one memo; resolves false when the whole queue should stop (the owner refused). */
-  async function readOne({ memo, kept }: Item): Promise<void> {
+  /** How a read ended: carry on, or stop the queue for a reason that holds for every memo. */
+  type Outcome = 'next' | 'stop' | 'drop-backfill';
+
+  async function readOne({ memo, kept }: Item): Promise<Outcome> {
     const perm = await p.engine.permission();
+    if (perm === 'unavailable') return 'stop';
     if (perm === 'denied') {
       await giveUp();
-      return;
+      return 'stop';
     }
     if (perm === 'undetermined') {
       // Only a memo kept this session, on a quiet moment, may bring up the system's question (TX15).
-      if (!kept) return;
+      if (!kept) return 'drop-backfill';
       if (!(await p.engine.requestPermission())) {
         await giveUp();
-        return;
+        return 'stop';
       }
     }
     const lang = p.lang();
-    if (!(await p.engine.supportsOnDevice(lang))) return;
-    if (!memo.file_path) return;
+    // The same for every memo: a phone that cannot read on the device reads none, and is asked once (audit 7).
+    if (!(await p.engine.supportsOnDevice(lang))) return 'stop';
+    if (!memo.file_path) return 'next';
     const src = await p.files.resolve(memo.file_path);
-    if (!src) return;
+    if (!src) return 'next';
     const span = spanOf(memo);
     let uri = src;
     let cut: string | null = null;
+    reading = true;
     try {
       if (span) uri = cut = await p.cutter.cut(src, span.from_ms, span.to_ms);
       const heard = await p.engine.recognize({ uri, lang, onDevice: true });
+      if (heard === null || interrupted) return 'next';
+      if (!(await p.kept(memo))) return 'next';
       const row: Transcript = {
         capture_id: memo.id,
         text: transcriptCaption(heard) ?? '',
@@ -103,11 +121,14 @@ export function createTranscripts(p: TranscriptPorts) {
       };
       await p.db.setTranscript(row);
       put(row);
+      wrote = true;
     } catch {
       // One memo's failure is its own: it stays unread, and the next one is read (TX4).
     } finally {
+      reading = false;
       if (cut) await p.cutter.remove(cut).catch(() => {});
     }
+    return 'next';
   }
 
   async function giveUp() {
@@ -120,14 +141,29 @@ export function createTranscripts(p: TranscriptPorts) {
     await load();
     while (!off && !p.busy() && queue.length) {
       const item = queue.shift()!;
-      await readOne(item).catch(() => {});
+      interrupted = false;
+      const out = await readOne(item).catch((): Outcome => 'next');
+      if (interrupted) {
+        // A recording began mid-read: the memo goes back, to be read once it is quiet again (audit 6).
+        interrupted = false;
+        queue.unshift(item);
+        break;
+      }
+      if (out === 'stop') queue = [];
+      else if (out === 'drop-backfill') queue = queue.filter((i) => i.kept);
+    }
+    if (wrote) {
+      wrote = false;
+      for (const l of [...settledListeners]) l();
     }
   }
 
-  function kick() {
+  function kick(): Promise<void> {
     if (!current) {
       current = pump().finally(() => {
         current = null;
+        // An item added as the pump finished is read, not left until the next kick (audit 8).
+        if (!off && !p.busy() && queue.length) void kick();
       });
     }
     return current;
@@ -150,6 +186,20 @@ export function createTranscripts(p: TranscriptPorts) {
     backfill: (memos: MemoToRead[]) => add(memos, false),
     /** Something that made it busy ended (a walk, a recording, a playback): carry on (TX15). */
     kick,
+    /** Something made it busy (a recording began): the read under way stops, and its memo waits (audit 6). */
+    interrupt() {
+      if (reading && p.busy()) {
+        interrupted = true;
+        p.engine.abort();
+      }
+    },
+    /** Told once each time the queue goes quiet having stored words, not at every row (audit 5). */
+    onSettled(cb: () => void) {
+      settledListeners.add(cb);
+      return () => {
+        settledListeners.delete(cb);
+      };
+    },
     /** Resolves when nothing is left to read right now. */
     async settled() {
       while (current) await current;

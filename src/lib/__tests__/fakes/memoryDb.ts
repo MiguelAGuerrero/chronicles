@@ -243,6 +243,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       const hit = moments.all().filter((m) => m.pieces.some((p) => gone.has(p.id)));
       if (hit.some((m) => m.pieces.every((p) => gone.has(p.id)))) throw new Error('a moment would be left with no piece');
       for (const m of hit) moments.put({ ...m, pieces: m.pieces.filter((p) => !gone.has(p.id)) });
+      for (const id of ids) transcripts.delete(id);
       for (const w of new Set(hit.map((m) => m.walk_id))) {
         if (w == null) continue;
         const s = summaries.get(w);

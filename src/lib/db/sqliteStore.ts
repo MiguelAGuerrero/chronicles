@@ -196,6 +196,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
           `SELECT DISTINCT c.moment_id, m.walk_id FROM capture c JOIN moment m ON c.moment_id = m.id WHERE c.id IN (${marks})`, ...ids,
         );
         await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
+        await t.runAsync(`DELETE FROM transcript WHERE capture_id IN (${marks})`, ...ids);
         for (const h of hit) {
           if (!(await t.getFirstAsync('SELECT 1 FROM capture WHERE moment_id = ?', h.moment_id))) {
             throw new Error('Deleting every piece of a moment is deleting the moment.'); // rolls the transaction back

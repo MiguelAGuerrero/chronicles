@@ -354,9 +354,10 @@ export const db: Db = {
   },
   async deletePieces(ids) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['moment', 'walk_summary'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'walk_summary', 'transcript'], 'readwrite');
     return atomically(tx, async () => {
       const st = tx.objectStore('moment');
+      for (const id of ids) tx.objectStore('transcript').delete(id);
       const gone = new Set(ids);
       const hit = new Map<string, MomentRecord>();
       for (const id of ids) {

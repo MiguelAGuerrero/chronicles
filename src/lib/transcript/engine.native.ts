@@ -4,21 +4,22 @@
  * (`requiresOnDeviceRecognition`), with no network fallback (TX5). NEVER RUN ON A DEVICE: see
  * docs/NATIVE_UNVERIFIED.md.
  */
+import { Platform } from 'react-native';
 import { ExpoSpeechRecognitionModule as Speech } from 'expo-speech-recognition';
+import { onDeviceReady } from './core';
 import type { Engine } from './shell';
 
 /** A read that has not ended this long after it began is given up, so a stuck recognizer never holds the queue. */
 const READ_LIMIT_MS = 120_000;
 
-const sameLang = (a: string, b: string) => a.toLowerCase().replace('_', '-') === b.toLowerCase().replace('_', '-');
-
 export const engine: Engine = {
   async supportsOnDevice(lang) {
     try {
-      if (!Speech.isRecognitionAvailable() || !Speech.supportsOnDeviceRecognition()) return false;
-      const { locales, installedLocales } = await Speech.getSupportedLocales({});
-      if (installedLocales.length) return installedLocales.some((l) => sameLang(l, lang));
-      return !locales.length || locales.some((l) => sameLang(l, lang));
+      const available = Speech.isRecognitionAvailable();
+      const onDevice = Speech.supportsOnDeviceRecognition();
+      // Only Android lists the packs that are installed; iOS lists the ones it supports, which says nothing here.
+      const installed = Platform.OS === 'android' ? (await Speech.getSupportedLocales({})).installedLocales : [];
+      return onDeviceReady({ os: Platform.OS, version: Number(Platform.Version) || 0, available, onDevice, installed, lang });
     } catch {
       return false;
     }
@@ -30,8 +31,15 @@ export const engine: Engine = {
   async requestPermission() {
     return (await Speech.requestPermissionsAsync()).granted;
   },
+  abort() {
+    try {
+      Speech.abort();
+    } catch {
+      // Already ended.
+    }
+  },
   recognize({ uri, lang }) {
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<string | null>((resolve, reject) => {
       const heard: string[] = [];
       const subs: { remove(): void }[] = [];
       let timer: ReturnType<typeof setTimeout> | null = null;
@@ -45,7 +53,8 @@ export const engine: Engine = {
           if (e.isFinal && e.results[0]) heard.push(e.results[0].transcript);
         }),
         Speech.addListener('error', (e) => done(() => (e.error === 'no-speech' ? resolve('') : reject(new Error(e.message || e.error))))),
-        Speech.addListener('end', () => done(() => resolve(heard.join(' ')))),
+        // An end with no result and no error says nothing was heard at all, which is not "no speech": not recorded.
+        Speech.addListener('end', () => done(() => resolve(heard.length ? heard.join(' ') : null))),
       );
       timer = setTimeout(() => {
         Speech.abort();

@@ -60,3 +60,36 @@ export function needsTranscript<M extends MemoRef>(memos: M[], rows: Transcript[
 export function wordsOfRow(row: Transcript | undefined | null): string | null {
   return transcriptCaption(row?.text);
 }
+
+/** A locale as its language and region: `en_US`, `en-US-u-hc-h12` and `EN-us` all read as `en-us`. */
+const normalLocale = (l: string) => l.toLowerCase().replace(/_/g, '-').replace(/-u-.*$/, '');
+
+/** Whether the phone has a pack for this locale: the same language counts (en-GB reads on an en-US pack). */
+export function localeMatches(installed: string[], lang: string): boolean {
+  const want = normalLocale(lang).split('-')[0];
+  return installed.some((l) => normalLocale(l).split('-')[0] === want);
+}
+
+/** What the phone reported about its recognizer. */
+export interface RecognizerFacts {
+  os: 'ios' | 'android' | string;
+  version: number;
+  available: boolean;
+  /** The recognizer says it can run on the device itself. */
+  onDevice: boolean;
+  /** Android: the locales with a pack installed. iOS reports the supported ones, so it is not read there. */
+  installed: string[];
+  lang: string;
+}
+
+/**
+ * Whether a memo may be read at all: only where the recognizer runs on the device itself for the memo's locale.
+ * iOS asks the default recognizer, which is the device's own locale, the one the memo is read in; Android needs 13
+ * (the on-device service) and an installed pack. Below that the default, possibly cloud, recognizer would answer
+ * (decision 0165, TX5, TX16).
+ */
+export function onDeviceReady(f: RecognizerFacts): boolean {
+  if (!f.available || !f.onDevice) return false;
+  if (f.os === 'android') return f.version >= 33 && localeMatches(f.installed, f.lang);
+  return true;
+}

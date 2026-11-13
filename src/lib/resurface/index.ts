@@ -10,4 +10,5 @@ export const resurface = createResurface(ports, {
   transcript: (c) => (c.kind === 'voice' ? transcripts.words(c.piece_id, { id: c.piece_id, t: c.t, body: c.body, edit: c.edit }) : null),
 });
 // Words that arrive later reach Memories at its next read.
-transcripts.store.subscribe(() => void resurface.refresh());
+// Once the queue is quiet, not at every row, and not when only the stored rows were loaded (audit 5).
+transcripts.onSettled(() => void resurface.refresh());

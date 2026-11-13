@@ -796,6 +796,16 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await t.listTranscripts(), []);
     });
 
+    test('FC7 deletePieces, memo-transcripts audit 1: deleting one voice piece deletes its transcript row, and leaves the others', async () => {
+      const db = await planned();
+      const t = db as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string }[] | void>>;
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addPiece('m1', { id: 'p2', moment_id: 'm1', t: 2, kind: 'voice', file_path: 'x.m4a', body: '4000' });
+      for (const id of ['m1', 'p2']) await t.setTranscript({ capture_id: id, text: id, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
+      await db.deletePieces(['p2']);
+      assert.deepEqual(((await t.listTranscripts()) as { capture_id: string }[]).map((r) => r.capture_id), ['m1']);
+    });
+
     // ---- landing and atlas
 
     test('FC7 putLanding, listLandings: the same key replaces; others stay', async () => {

@@ -52,3 +52,24 @@ test('TX10: words of a row are its caption; none for a missing or empty row', as
   assert.equal(wordsOfRow(row('a', '')), null);
   assert.equal(wordsOfRow(undefined), null);
 });
+
+test('memo-transcripts audit 9: a locale with -u- extensions or an underscore matches its installed pack, and a region falls back to its language', async () => {
+  const { localeMatches } = await core();
+  assert.equal(localeMatches(['en-US'], 'en-US-u-hc-h12'), true);
+  assert.equal(localeMatches(['en_US'], 'en-US'), true);
+  assert.equal(localeMatches(['en-US'], 'en-GB'), true, 'same language, another region: the phone reads it');
+  assert.equal(localeMatches(['fr-FR'], 'en-US'), false);
+  assert.equal(localeMatches([], 'en-US'), false);
+});
+
+test('memo-transcripts audit 11, 12: on-device reading needs the phone to say so for its own locale, and Android 13', async () => {
+  const { onDeviceReady } = await core();
+  const ok = { os: 'ios', version: 17, available: true, onDevice: true, installed: [], lang: 'en-US' };
+  assert.equal(onDeviceReady(ok), true, 'iOS: the recognizer for the device locale says it is on-device');
+  assert.equal(onDeviceReady({ ...ok, onDevice: false }), false);
+  assert.equal(onDeviceReady({ ...ok, available: false }), false);
+  const droid = { os: 'android', version: 33, available: true, onDevice: true, installed: ['en-US'], lang: 'en-US' };
+  assert.equal(onDeviceReady(droid), true);
+  assert.equal(onDeviceReady({ ...droid, version: 32 }), false, 'Android 12 may use the default, cloud recognizer');
+  assert.equal(onDeviceReady({ ...droid, installed: [] }), false, 'no pack installed for the locale');
+});

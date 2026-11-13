@@ -14,7 +14,7 @@ import { newId } from './id';
 import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
-import { transcripts } from './transcript';
+import { rereadTranscript, transcripts } from './transcript';
 import { nowPlaying, RECORDING } from './journal/nowPlaying';
 import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
@@ -529,7 +529,7 @@ export function useCaptures(
     const body = String(Math.round(m.ms));
     const id = await add('voice', m.stamp, kept, body);
     // Its words are read in the background, when the phone can; the memo is already kept and never waits (TX1).
-    if (id) void transcripts.enqueue({ id, t: m.stamp.t, file_path: kept, body, edit: null }).catch(() => {});
+    if (id) void transcripts.enqueue({ id, moment_id: m.stamp.into ?? id, t: m.stamp.t, file_path: kept, body, edit: null }).catch(() => {});
   }
 
   /**
@@ -643,6 +643,8 @@ export function useCaptures(
     await db.updatePiece(c.piece_id, patch);
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, c.piece_id));
     captureBus.patch(walkId, id, patch, self, c.piece_id);
+    // A trim changed or reverted: the memo's words are for another span now, so they are read again (audit 4).
+    if ('edit' in patch) void rereadTranscript(id, c.piece_id).catch(() => {});
   }
 
   /**

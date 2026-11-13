@@ -7,16 +7,18 @@ const load = () => import('../../transcript/shell' as string) as Promise<{ creat
 type Loose = Record<string, (...a: any[]) => any>;
 
 type Req = { uri: string; lang: string; onDevice: true };
-function rig(over: Partial<{ supported: boolean; permission: 'granted' | 'denied' | 'undetermined'; ask: boolean; busy: boolean; say: (r: Req) => string | Error }> = {}) {
-  const state = { supported: true, permission: 'undetermined' as 'granted' | 'denied' | 'undetermined', ask: true, busy: false, ...over };
+function rig(over: Partial<{ supported: boolean; permission: 'granted' | 'denied' | 'undetermined' | 'unavailable'; ask: boolean; busy: boolean; kept: boolean; say: (r: Req) => string | Error | null }> = {}) {
+  const state = { supported: true, permission: 'undetermined' as 'granted' | 'denied' | 'undetermined' | 'unavailable', ask: true, busy: false, kept: true, ...over };
+  const calls = { supports: 0, permission: 0, aborts: 0 };
   const reqs: Req[] = [];
   const asked: number[] = [];
   const cuts: { uri: string; start: number; end: number; out: string }[] = [];
   const removed: string[] = [];
   const say = over.say ?? ((r: Req) => `words of ${r.uri}`);
   const engine = {
-    supportsOnDevice: async (lang: string): Promise<boolean> => lang.length >= 0 && state.supported,
-    permission: async () => state.permission,
+    supportsOnDevice: async (lang: string): Promise<boolean> => { calls.supports++; return lang.length >= 0 && state.supported; },
+    permission: async () => { calls.permission++; return state.permission; },
+    abort: () => { calls.aborts++; },
     requestPermission: async () => { asked.push(1); state.permission = state.ask ? 'granted' : 'denied'; return state.ask; },
     recognize: async (r: Req) => { reqs.push(r); const s = say(r); if (s instanceof Error) throw s; return s; },
   };
@@ -24,7 +26,7 @@ function rig(over: Partial<{ supported: boolean; permission: 'granted' | 'denied
     cut: async (uri: string, start: number, end: number) => { const out = `cut:${uri}:${start}-${end}`; cuts.push({ uri, start, end, out }); return out; },
     remove: async (uri: string) => { removed.push(uri); },
   };
-  return { state, reqs, asked, cuts, removed, engine, cutter };
+  return { state, calls, reqs, asked, cuts, removed, engine, cutter };
 }
 const memo = (id: string, t: number, trim?: { start_ms: number; end_ms: number }) => ({
   id, t, kind: 'voice' as const, file_path: `memo-${id}.m4a`, body: '8000', edit: trim ? { trim } : null,
@@ -37,6 +39,7 @@ async function make(r: ReturnType<typeof rig>) {
     db, engine: r.engine, cutter: r.cutter,
     files: { resolve: async (p: string) => `file:///${p}` },
     busy: () => r.state.busy,
+    kept: async () => r.state.kept,
     lang: () => 'en-US',
     meta: { get: async (k: string) => meta.get(k) ?? null, set: async (k: string, v: string) => { meta.set(k, v); } },
     clock: { now: () => 100 },
@@ -197,4 +200,95 @@ test('TX16: the on-device check is asked for the memo\'s locale before every rea
   await t.backfill([memo('a', 2), memo('b', 1)]);
   await t.settled();
   assert.deepEqual(asked, ['en-US', 'en-US']);
+});
+
+test('memo-transcripts audit 2: a memo deleted during its read leaves no row', async () => {
+  const r = rig({ permission: 'granted' });
+  const inner = r.engine.recognize;
+  r.engine.recognize = async (q) => { r.state.kept = false; return inner(q); };
+  const { t, db } = await make(r);
+  await t.enqueue(memo('a', 1));
+  await t.settled();
+  assert.deepEqual(await db.listTranscripts(), []);
+  assert.equal(t.words('a'), null);
+});
+
+test('memo-transcripts audit 3: an end with no result and no error is not recorded as read', async () => {
+  const r = rig({ permission: 'granted', say: () => null });
+  const { t, db } = await make(r);
+  await t.enqueue(memo('a', 1));
+  await t.settled();
+  assert.deepEqual(await db.listTranscripts(), [], 'an engine that heard nothing at all is not "no speech"');
+});
+
+test('memo-transcripts audit 5: rows written in a run tell the listeners once, when the queue is idle', async () => {
+  const r = rig({ permission: 'granted' });
+  const { t } = await make(r);
+  let told = 0;
+  t.onSettled(() => { told++; });
+  await t.backfill([memo('a', 1), memo('b', 2), memo('c', 3)]);
+  await t.settled();
+  assert.equal(told, 1);
+});
+
+test('memo-transcripts audit 6: a recording starting mid-read aborts the read, and the memo is read again after', async () => {
+  const r = rig({ permission: 'granted' });
+  let release: (() => void) | null = null;
+  const inner = r.engine.recognize;
+  let first = true;
+  r.engine.recognize = (q) => {
+    if (first) { first = false; return new Promise((_, reject) => { release = () => reject(new Error('aborted')); }); }
+    return inner(q);
+  };
+  r.engine.abort = () => { r.calls.aborts++; release?.(); };
+  const { t, db } = await make(r);
+  const reading = t.enqueue(memo('a', 1));
+  await new Promise((x) => setTimeout(x, 5));
+  r.state.busy = true;
+  t.interrupt();
+  await reading;
+  await t.settled();
+  assert.equal(r.calls.aborts, 1);
+  assert.deepEqual(await db.listTranscripts(), [], 'nothing stored from the aborted read');
+  r.state.busy = false;
+  t.kick();
+  await t.settled();
+  assert.deepEqual((await db.listTranscripts()).map((x: { capture_id: string }) => x.capture_id), ['a']);
+});
+
+test('memo-transcripts audit 7: with the engine unavailable, a backlog costs one engine call, not one per memo', async () => {
+  const r = rig({ permission: 'granted', supported: false });
+  const { t } = await make(r);
+  await t.backfill(Array.from({ length: 200 }, (_, i) => memo(`m${i}`, i)));
+  await t.settled();
+  assert.equal(r.calls.supports, 1);
+  const u = rig({ permission: 'undetermined' });
+  const b = await make(u);
+  await b.t.backfill(Array.from({ length: 200 }, (_, i) => memo(`m${i}`, i)));
+  await b.t.settled();
+  assert.equal(u.calls.permission, 1, 'a backfill that may not ask stops at the first memo');
+});
+
+test('memo-transcripts audit 8: an item added as the pump finishes is read', async () => {
+  const r = rig({ permission: 'granted' });
+  const { t } = await make(r);
+  await t.enqueue(memo('a', 1));
+  const second = t.enqueue(memo('b', 2));
+  await second;
+  await t.settled();
+  assert.equal(r.reqs.length, 2);
+});
+
+test('memo-transcripts audit 10: an engine that is not on this platform writes no meta and asks nothing', async () => {
+  const r = rig({ permission: 'unavailable' });
+  const { t, meta } = await make(r);
+  await t.enqueue(memo('a', 1));
+  await t.settled();
+  assert.equal(meta.size, 0);
+  assert.equal(r.asked.length, 0);
+});
+
+test('memo-transcripts audit 10: the web engine says it is unavailable, so nothing is stored, asked or remembered', async () => {
+  const { engine } = await import('../../transcript/engine');
+  assert.equal(await engine.permission(), 'unavailable');
 });

@@ -1,29 +1,27 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { Capture } from '../lib/types';
 import { useTranscript } from '../lib/useTranscript';
 import { theme } from './ui';
 
 /**
  * A voice memo's words, as a caption under it, once the phone has read them (decision 0165, TX7-TX9, TX14). Nothing
- * shows while they are pending, and nothing when there are none. Quieter than a note or a caption the owner wrote,
- * and named for what it is: the phone's reading.
+ * shows while they are pending, and nothing when there are none. Named for what it is, in view and to a screen
+ * reader: a small line says the phone read it, and the words are set apart in italics from a note or a caption the
+ * owner wrote (memo-transcripts audit 13).
  */
-export function MemoTranscript({ piece, light }: { piece: Pick<Capture, 'id' | 't' | 'body' | 'edit'>; light?: boolean }) {
+export function MemoTranscript({ piece }: { piece: Pick<Capture, 'id' | 't' | 'body' | 'edit'> }) {
   const words = useTranscript(piece);
   if (!words) return null;
   return (
-    <Text
-      testID="memo-transcript"
-      selectable
-      accessibilityLabel={`Read by your phone: ${words}`}
-      style={[styles.words, light && styles.light]}
-    >
-      {words}
-    </Text>
+    <View style={styles.block}>
+      <Text testID="memo-transcript-label" style={styles.label}>Read by your phone</Text>
+      <Text testID="memo-transcript" selectable style={styles.words}>{words}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  words: { color: theme.muted, fontSize: 14, lineHeight: 20, marginTop: 8 },
-  light: { color: 'rgba(255,255,255,0.8)' },
+  block: { marginTop: 8 },
+  label: { color: theme.muted, fontSize: 12, lineHeight: 16, letterSpacing: 0.2 },
+  words: { color: theme.muted, fontSize: 14, lineHeight: 20, fontStyle: 'italic', marginTop: 2 },
 });
