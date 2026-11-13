@@ -31,13 +31,13 @@ export function Dots(props: { step: Step; color: string; size?: number }) {
  * A tile's kinds (AT3, atlas round 3): only the kinds present, each an icon
  * with its dots, in the fixed order; all eight are on the area's card.
  */
-export function KindStrip(props: { steps: Steps | null; testID?: string }) {
+export function KindStrip(props: { steps: Steps | null; testID?: string; /** One line, never two: a card's height must not follow its kinds. */ nowrap?: boolean }) {
   const present = ATLAS_ORDER.filter((c) => (props.steps?.[c] ?? 0) > 0);
   if (!props.steps) {
     return <View style={styles.row} testID={props.testID}><View style={styles.placeholder} /></View>;
   }
   return (
-    <View style={styles.row} testID={props.testID} accessible={false} importantForAccessibility="no-hide-descendants">
+    <View style={[styles.row, props.nowrap && styles.nowrap]} testID={props.testID} accessible={false} importantForAccessibility="no-hide-descendants">
       {present.map((c) => (
         <View key={c} style={styles.chip} {...{ dataSet: { kind: c, step: String(props.steps![c]) } }}>
           <Icon name={KIND_ICON_OF[c]} size={18} color={KIND_COLOR[c]} />
@@ -93,6 +93,8 @@ export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, minHeight: 30 },
   placeholder: { height: 30 },
+  // Eight kinds at 22 + 6 apart fit a 320 px phone's card (218 of 224 px).
+  nowrap: { flexWrap: 'nowrap', gap: 6 },
   chip: { alignItems: 'center', gap: 3, minWidth: 22 },
   dots: { flexDirection: 'row', gap: 2, alignItems: 'center' },
   kindRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },

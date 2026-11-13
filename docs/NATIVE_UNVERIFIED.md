@@ -59,6 +59,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with VoiceOver, select a neighborhood on Explore, find the "Waiting in …" line and double-tap it; tap a "?" with a dot under it. **Expect:** the line opens the area's card; no "?" Marker is announced (the annotation itself included); the opacity-0 line is reachable; a tap on a "?" Marker does not also fire the map's press (no card and zoom at once). (whole-towns audits 4, 5)
 - [ ] **Do:** select Allentown on Explore and pinch from its whole-town zoom to 17 and back. **Expect:** dots under zoom 14 with no "?"; from 14 the "?" are only those in view, at most a screen's worth of Markers, panning stays smooth; the split follows the settled zoom (`onRegionDidChange`), never a stale one. (whole-towns audits 3, 6, 14)
 - [ ] **Do:** open the page of a city whose border crosses a z10 tile edge (a large city), on cellular. **Expect:** its neighborhoods past the edge are listed; the border read across both tiles and the up-to-60 z14 reads finish without a crash. (whole-towns audit 1)
+- [ ] **Do:** On a phone, open Explore and swipe the area cards of a town with a busy area and a sparse one. **Expect:** every card is the same height, the row never grows or shrinks as you swipe or select, and a town's card keeps room for its "See its neighborhoods" footer when unselected. (fix carousel-height)
 
 ## Activity density (AD1-AD16)
 

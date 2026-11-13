@@ -79,18 +79,21 @@ export const AtlasTile = memo(function AtlasTile(props: {
                 </>
               ) : null}
             </View>
-            <KindStrip steps={a.profile?.thin ? NO_KINDS : a.profile?.steps ?? null} />
+            <KindStrip nowrap steps={a.profile?.thin ? NO_KINDS : a.profile?.steps ?? null} />
           </View>
         </View>
-        {/* The footer's room is kept on every card: the selected card's footer, or none, never moves the row's height. */}
-        <View style={[styles.footer, !footer && styles.footerEmpty]}>
-          {footer ? (
-            <>
-              <Text style={styles.footerText}>{footer}</Text>
-              <Icon name="chevron-forward" size={16} color={theme.accent} />
-            </>
-          ) : null}
-        </View>
+        {/* A card that can show a footer (a town, a town's head) keeps its room when unselected, so selecting never moves the
+            row's height; a neighborhood never has one and takes no room for it. */}
+        {footer || props.drill || props.wide ? (
+          <View style={[styles.footer, !footer && styles.footerEmpty]}>
+            {footer ? (
+              <>
+                <Text style={styles.footerText}>{footer}</Text>
+                <Icon name="chevron-forward" size={16} color={theme.accent} />
+              </>
+            ) : null}
+          </View>
+        ) : null}
       </Pressable>
     </View>
   );
