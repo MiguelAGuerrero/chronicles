@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { Star } from '../lib/places';
+import { starSpoken } from '../lib/quietLines';
 import { starEnter } from '../lib/enter';
 import { Enter, useOwnEnter } from './Enter';
 import { Icon } from './icons';
@@ -23,9 +24,11 @@ export function namedStars(stars: Star[]): Set<string> {
 }
 
 /**
- * A place walked, on the home map: a star, or for places merged at this
- * zoom, their count beside a small star (so it never reads as a group of
- * capture pins). The selected one is ringed; the busiest carry their name.
+ * A place walked, on the home map: a white star on an ink disc (tend places
+ * T15, decision 0154: ink, never the accent), the same for places merged at
+ * this zoom, which draw no numeral (their spoken name says how many, in words).
+ * The selected one turns over, an ink star on white in an ink ring; the busiest
+ * carry their name.
  */
 const ownStar = (prev: boolean, next: boolean) => starEnter(prev, next);
 
@@ -35,14 +38,7 @@ export function StarView({ star, selected, named, enter }: { star: Star; selecte
   const kind = enter === undefined ? own.kind : enter;
   const head = (
     <View style={[styles.star, selected && styles.selected]}>
-        {star.count > 1 ? (
-          <View style={styles.merged}>
-            <Icon name="star" size={11} color="#ffffff" />
-            <Text style={styles.count}>{star.count}</Text>
-          </View>
-        ) : (
-          <Icon name="star" size={18} color="#ffffff" />
-        )}
+      <Icon name="star" size={18} color={selected ? theme.ink : '#ffffff'} />
     </View>
   );
   return (
@@ -63,10 +59,8 @@ export function StarView({ star, selected, named, enter }: { star: Star; selecte
   );
 }
 
-export function starLabel(star: Star): string {
-  const walks = `${star.walkIds.length} ${star.walkIds.length === 1 ? 'walk' : 'walks'}`;
-  return star.count > 1 ? `${star.count} places, ${walks}, zoom in` : `${star.label}, ${walks}`;
-}
+/** Its spoken name, the counts in words (`starSpoken`, tend places T15). */
+export const starLabel = starSpoken;
 
 const styles = StyleSheet.create({
   // The star's own box is what the marker centers on; the name hangs below it.
@@ -75,7 +69,7 @@ const styles = StyleSheet.create({
     width: STAR_SIZE,
     height: STAR_SIZE,
     borderRadius: STAR_SIZE / 2,
-    backgroundColor: theme.accent,
+    backgroundColor: theme.ink,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -86,9 +80,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 3,
   },
-  selected: { borderWidth: 3, borderColor: theme.ink },
-  merged: { flexDirection: 'row', alignItems: 'center', gap: 1 },
-  count: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
+  // On an ink disc an ink ring would not show: the selected star turns over, white in an ink ring (tend places T15).
+  selected: { backgroundColor: '#ffffff', borderWidth: 3, borderColor: theme.ink },
   // Centered under the star, wider than it. maxWidth too: on the web a one-line
   // Text is otherwise held to its parent's width, the 36 px star.
   name: {

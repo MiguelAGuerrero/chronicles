@@ -81,6 +81,19 @@ async function checks(h) {
     await shot(page, '08-home-star');
     check(true, 'the walk is a star on the home map');
     check((await page.locator('[data-testid=enter-bounce]').count()) === 0, 'no star settles before one is selected');
+    // tend places T15 (decision 0154, "Ink star, no numeral"): the star is a white star on ink, never the accent, says
+    // its walks in words, and shows no digit; selected, it turns over to an ink star on white in an ink ring.
+    const starLook = () => page.evaluate(() => {
+      const b = document.querySelector('[aria-label^="Fox Point,"]');
+      const disc = [...(b?.querySelectorAll('div') ?? [])].find((e) => Math.round(e.getBoundingClientRect().width) === 36 && getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)');
+      const cs = disc && getComputedStyle(disc);
+      const glyph = [...(disc?.querySelectorAll('*') ?? [])].find((e) => !e.childElementCount && e.textContent);
+      return { label: b?.getAttribute('aria-label'), bg: cs?.backgroundColor, ring: cs?.borderTopColor, ringW: cs?.borderTopWidth, glyph: glyph && getComputedStyle(glyph).color, text: disc?.innerText ?? '' };
+    });
+    const ink = 'rgb(29, 36, 48)';
+    const rest = await starLook();
+    check(rest.label === 'Fox Point, one walk' && rest.bg === ink && rest.ring === 'rgb(255, 255, 255)' && rest.glyph === 'rgb(255, 255, 255)' && !/\d/.test(rest.text),
+      `tend places T15: a walked place is a star in ink, not the accent, and says its walks in words (${JSON.stringify(rest)})`);
     // A star lists its place's walks in the sheet, with the place's parents (H6).
     await page.click('[aria-label^="Fox Point,"]');
     await page.waitForSelector('[data-testid=place-title]');
@@ -88,6 +101,9 @@ async function checks(h) {
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
+    const chosen = await starLook();
+    check(chosen.bg === 'rgb(255, 255, 255)' && chosen.ring === ink && chosen.ringW === '3px' && chosen.glyph === ink,
+      `tend places T15: a selected star turns over, white in an ink ring, so it reads on the ink (${JSON.stringify(chosen)})`);
     // Back to the map. A mouse drag on the sheet's header settles at a step, never halfway (audit).
     await page.click('[data-testid=sheet-map]');
     await page.waitForTimeout(400);

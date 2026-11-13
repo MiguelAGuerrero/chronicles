@@ -5,6 +5,8 @@
  * walks list keeps distance and time but counts no new streets. Pure.
  */
 import { formatCaptures, formatDistance, formatDuration } from './format';
+import type { Star } from './places';
+import { numberWord } from './resurface/lines';
 
 /** "your first time down Elm Street", or "3 streets new to you"; null when none were new. */
 export function newStreetsLine(names: string[]): string | null {
@@ -42,4 +44,17 @@ export function emptyPeek(walkOpen: boolean): { line: string; navigate: boolean 
   return walkOpen
     ? { line: 'This walk is starred here when it ends', navigate: false }
     : { line: 'Walk somewhere and it is starred here', navigate: true };
+}
+
+const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const walksWord = (n: number) => `${numberWord(n)} ${n === 1 ? 'walk' : 'walks'}`;
+
+/**
+ * A walked place's star as a screen reader says it (tend places T15, decision 0154: the star draws no numeral): one
+ * place by its name and its walks in words, "Fox Point, two walks"; places merged at this zoom by how many, in words,
+ * and what a tap does, "Three places, two walks. Zoom in", as a pin of several says its kinds before its "Open".
+ */
+export function starSpoken(star: Pick<Star, 'label' | 'walkIds' | 'count'>): string {
+  const walks = walksWord(star.walkIds.length);
+  return star.count > 1 ? `${capFirst(numberWord(star.count))} places, ${walks}. Zoom in` : `${star.label}, ${walks}`;
 }
