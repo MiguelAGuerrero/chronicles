@@ -146,7 +146,8 @@ async function run(h) {
     await pg.keyboard.press('ArrowLeft');
     await pg.waitForTimeout(2500);
     const switchRenders = (await perf('render:explore')) - r0;
-    check((await selected()) !== from && switchRenders <= 2, `DC12: a switch from ${from} to ${await selected()} renders Explore ${switchRenders} times (at most 2)`);
+    // At most twice (the selection, the camera's settle), plus once for the new area's own line (its ground, decision 0152).
+    check((await selected()) !== from && switchRenders <= 3, `DC12: a switch from ${from} to ${await selected()} renders Explore ${switchRenders} times (at most 2, and 1 for the area's line)`);
     // A card is selected by scrolling the row to it (the carousel selects what stops in the middle), else by a tap.
     const selectCard = async (name) => {
       const tile = pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`).first();

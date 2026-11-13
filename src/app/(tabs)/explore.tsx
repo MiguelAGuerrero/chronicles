@@ -200,6 +200,14 @@ export default function Explore() {
   // The settled camera and the map's size, for the split of the selected area's places (whole-towns audits 3, 6).
   const [cam, setCam] = useState<{ center: LngLat; zoom: number } | null>(null);
   const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
+  // explore-dense-city DC12: a layout that reports the same size sets nothing (a new object of the same size renders).
+  const mapSizeNow = useRef(mapSize);
+  const onMapLayout = useCallback((width: number, height: number) => {
+    const was = mapSizeNow.current;
+    if (was && was.width === width && was.height === height) return;
+    mapSizeNow.current = { width, height };
+    setMapSize(mapSizeNow.current);
+  }, []);
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
@@ -575,7 +583,7 @@ export default function Explore() {
   // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.
   const slots = exploreSlots({ spot: !!spot, town: !!town, free });
   const mapPane = (
-    <View style={styles.map} onLayout={(e) => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
+    <View style={styles.map} onLayout={(e) => onMapLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
       {focused && !plan && (
         <WalkMap
