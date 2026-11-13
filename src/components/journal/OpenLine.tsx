@@ -164,7 +164,12 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const pending = useRef<{ timer: ReturnType<typeof setTimeout>; save: Extract<PenEffect, { k: 'save' }> } | null>(null);
   const send = useRef<(e: PenEvent) => void>(() => {});
   const input = useRef<ComponentRef<typeof TextInput>>(null);
-  const [typing, setTyping] = useState(false);
+  const [typingRaw, setTyping] = useState(false);
+  // The field is drawn in the bar or on the page; when it moves from one to the other while it has the keyboard it
+  // is a new field, and no blur is told (audit 41). Typing is only ever in the slot it began in.
+  const [typedInBar, setTypedInBar] = useState(props.inBar);
+  if (typingRaw && typedInBar !== props.inBar) setTyping(false);
+  const typing = typingRaw && typedInBar === props.inBar;
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
     if (blurTimer.current) clearTimeout(blurTimer.current);
@@ -456,6 +461,13 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     return hideTabs();
   }, [typing]);
   const lift = lineLift(keyboard, typing ? 0 : below);
+  // The sheet pads its foot by the bar and by how far the keyboard lifted it (audit 40): the line being written
+  // is above both.
+  const [barH, setBarH] = useState(LINE_REST_H);
+  const { onHeight } = props;
+  useEffect(() => {
+    onHeight?.(barH + lift);
+  }, [onHeight, barH, lift]);
   // An iPhone's browser floats the keyboard's own row (previous, next, a tick) over the page, on whatever sits
   // just above the keys: the bar keeps that much of itself empty under its controls (fix keyboard-accessory).
   const [floating] = useState(
@@ -497,9 +509,10 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   // The field (JN28). On the page it is the last line of today's page, as wide as the column, in the owner's serif,
   // with no box: the words are written where they will stay. Where no page shows, it sits in the bar.
   const fieldEl = (
-    <View key="field" style={inBar ? styles.fieldInBar : styles.fieldOnPage}>
-      {/* Room for the dateline that arrives with the first character, so the line being written does not jump. */}
-      {!inBar && !entryOpen && <View style={styles.datelineRoom} />}
+    <View key="field" style={inBar ? styles.fieldInBar : styles.fieldOnPage} pointerEvents="box-none">
+      {/* Room for the dateline that arrives with the first character, so the line being written does not jump.
+          A tap on it is a tap on the empty page beneath (audit 45). */}
+      {!inBar && !entryOpen && <View style={styles.datelineRoom} pointerEvents="none" />}
       <View>
         {/* A still mark where writing begins: the page says "here" without a hint or a prompt (JN10). */}
         {!typing && text.length === 0 && <View style={styles.mark} pointerEvents="none" />}
@@ -517,6 +530,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           onContentSizeChange={(e) => setFieldH(Math.max(FIELD_MIN, Math.ceil(e.nativeEvent.contentSize.height)))}
           onFocus={() => {
             if (blurTimer.current) clearTimeout(blurTimer.current);
+            setTypedInBar(inBar);
             setTyping(true);
             onFoot();
           }}
@@ -570,7 +584,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           {!recording && focused && <SpaceLine />}
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
-        <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => props.onHeight?.(Math.round(e.nativeEvent.layout.height))}>
+        <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height))}>
           <View style={styles.row}>
             {inBar ? (
               fieldEl
@@ -589,7 +603,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               </Pressable>
             ) : active && !recording ? (
               // The line opens into the note's page (JN25): for a long entry, or one with a shape.
-              <IconButton testID="line-page" icon="document-text-outline" label="Open as a page" onPress={openPage} disabled={pen.beginning} />
+              <IconButton testID="line-page" icon="expand-outline" label="Open as a page" onPress={openPage} disabled={pen.beginning} />
             ) : null}
             <IconButton testID="band-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
             {recording ? (

@@ -713,6 +713,11 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The first character's place can be lost to a reload** within its first seconds, as noted above; the audit added no fix.
 - **The line and the page, deferred** (`specs/chronicle-journal/spec.md`, the `/fix` review): a new page opened from the line reads a fix as the pencil does, on a walk with a stale fix too, and one left empty has read a location for nothing (5); a list inside a quote reads as the quote's lines on the sheet (8); a walk ending while a page is up closes the page, its words kept (10); the page's words are sans where the sheet's are serif (ui 3).
 - **Note pages' serializer** (found by the same review, on `main` before it): a URL or word with `_` or `*` gains a backslash each time the page saves it, and a hard-broken line that looks like a heading rule or a table row reopens as a heading or as an empty page (`src/lib/notePage/schema.ts`, `toBody`). In `docs/STATUS.md` for the owner.
+- **Recording a voice note from a thread at 320 px leaves the field about 20 px, and a failed save in a thread shows Retry with no "Not kept yet"** (audit 46): the bar's row holds the field, the timer, Discard, the camera, stop and Done in 304 px; with the field in the bar the status is never drawn. Fix: the timer row replaces the field while recording there, and the status is drawn above the row.
+- **Deleting the entry the page opened on rearranges the stack, and Undo does not put it back** (audit 47): `anchorOf` falls to the last entry, so the entries written since slide away. Fix: remember the anchor's time and fall to the first entry after it.
+- **The line being written sits about 22 px lower under its dateline than a kept entry's words** (ui U8): the field's own padding and the entry's foot stand between them, so the words rise that much on Done. Fix: give the field a kept entry's offset, checked against a photo as the entry's last piece.
+- **No picture of the bar's failed save ("Not kept yet", Retry) at 320 px** (ui U9): the status has about 120 px there. Add a `shot()` at 390 and 320 and see whether it fits.
+- **The page's slide waits a hard-coded 450 ms** (`SETTLE_MS` in `JournalPage`, audit 49's second half): a timing outside `lib/motionTokens`. The animated scroll itself now respects reduce motion.
 
 ## Explore in a dense city (decision 0156)
 

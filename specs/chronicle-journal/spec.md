@@ -82,7 +82,7 @@ The owner's screenshot of the built line on an iPhone, and their call: it felt l
 
 ### The page at rest, and the empty page as the pen (added Nov 13, the owner's call)
 
-The owner, on seeing the page pushed to its foot: "have like a peek to show the last entry, but the page is mostly aligned to the top, and when you click on the empty space, it expands out, or rather transitions out to create a moment." Vision: Honour (the empty page is the invitation, with no prompt and no control standing for it), Return (where you left off is the first thing seen); verdict aligned. This amends JN1 (the page rests with its last entry on top, not at the foot), JN11 and JN29 (the empty page is the pen; the bar holds no pen).
+The owner, on seeing the page pushed to its foot: "have like a peek to show the last entry, but the page is mostly aligned to the top, and when you click on the empty space, it expands out, or rather transitions out to create a moment." Vision: Honour (the empty page is where writing begins, with no prompt and no control standing for it), Return (where you left off is the first thing seen); verdict aligned. This amends JN1 (the page rests with its last entry on top, not at the foot), JN11 and JN29 (the empty page is the pen; the bar holds no pen).
 
 31. **JN31** At rest the page is aligned to the top: the day's date, then the most recent entry under it, then the empty page filling the rest of the screen above the bar. Nothing older shows until the page is pulled down, which reads back through the journal with each day's date held at the top as its entries pass. A last entry too long for this shows its end, and the empty page still takes at least a third of the screen.
 32. **JN32** A tap anywhere on the empty page (named "Write an entry") puts the caret on the page, directly under the last entry, and the bar sits on the keyboard (JN30). The bar at rest holds only the camera and the mic. (Amended by JN33 the same day: the last entry no longer slides away, and Done no longer rearranges the page.)
@@ -209,3 +209,35 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **Checked:** typecheck, lint, `npm test`; the journeys named in the commit.
 - **Not yet seen on the phone:** the slide as the stack grows with the keyboard up.
 - **`check:test-first`:** JN31 reports its todo and its real test in one commit, as JN26 did: its journey todo at `b56811f` was written across lines, which the line-based reader takes for a real check. JN32 and JN33 read as tested first.
+
+## Audit of JN28-JN33 (Nov 13)
+
+Report-only passes by the auditor (40-49), the steward (S1-S3) and the UX reviewer (U1-U10), triaged. 23 findings: 10 fixed, 4 deferred, 6 to the owner (three questions; S1, U1 and audit 44's order are one, S2 and U7 another), 3 rejected. Regression tests are named `chronicle-journal audit N`: a unit test in `src/lib/__tests__/journal/rest.test.ts` (48) and checks in the `journal` journey (40, 42, 43, 44, 45), committed as todos first.
+
+- audit 40: The sheet does not know the keyboard, so the line being written sits behind it: accept. The bar reports its height and its lift together, and the sheet pads its foot by both.
+- audit 41: Tabs stay folded when the focused field moves from the bar to the page: accept. Typing belongs to the slot it began in. No automated test: the path needs an entry to close by time while the field is focused in a thread; covered by typecheck and the phone check.
+- audit 42: The anchor outlives the sitting: accept. Coming back to Memories is a new sitting.
+- audit 43: A reader scrolled back is pulled to the foot when the keyboard goes: accept.
+- audit 44: A screen reader reaches the field last, and twice: the double name, accept (the tappable page is not said); the order, to the owner with S1.
+- audit 45: A dead band directly under the last entry: accept. The tappable page lies under the whole empty page.
+- audit 46: Recording from a thread at 320 px: defer.
+- audit 47: Deleting the anchor rearranges the page: defer.
+- audit 48: The sticky height is the oldest drawn day's: accept (`stickyDay`).
+- audit 49: The slide ignores reduce motion: accept; the hard-coded settle time is deferred with it.
+- steward 1: Scrolled back, the pen is no longer one tap: to the owner (it reverses part of their call on the bar).
+- steward 2: The typewriter cuts the top entry out of its context: to the owner (how the slide should settle).
+- steward 3: The spec calls the empty page "the invitation": accept, reworded.
+- ux 1: As S1.
+- ux 2: The still mark is the only sign of where to write: reject, the owner's call (decision 0155, JN10); it rests on S1's answer.
+- ux 3: A toolbar and the tab bar show together at rest: to the owner (the bars, as ui 1).
+- ux 4: Open as a page is an ambiguous document icon: accept, an expand glyph.
+- ux 5: Camera and mic change position between rest and writing: to the owner.
+- ux 6: The bar at rest reads as a blank band: reject as its own finding; settled by S1 or U3.
+- ux 7: The held date has no edge; a More shows through it: the More, accept (the date is above the entries passing under it); the edge, to the owner with S2.
+- ux 8: The line being written sits 22 px lower than a kept entry: defer.
+- ux 9: The bar's failed save is not pictured at 320 px: defer.
+- ux 10: Nothing at rest says there is a journal above: reject, the owner's call (JN31); Contents is in view.
+
+- **Journeys:** `journal` ran four times while the checks were made to pass (three stopped at an older check that read the spoken name off the tappable page); the others named by `check:affected` once.
+- **Native:** none of it has run on a device; three checks added to `docs/NATIVE_UNVERIFIED.md`.
+

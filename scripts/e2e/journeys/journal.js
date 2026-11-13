@@ -123,7 +123,9 @@ async function run(h) {
     out.labels = ['line-write', 'band-photo', 'band-voice'].map((id) => {
       const e = document.querySelector(`[data-testid=${id}]`);
       const r = e?.getBoundingClientRect();
-      return { id, label: e?.getAttribute('aria-label'), w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0, x: r ? Math.round(r.x) : -1 };
+      // The empty page takes the finger; the field on it carries the spoken name, once (audit 44).
+      const named = id === 'line-write' ? document.querySelector('[data-testid=line-input]') : e;
+      return { id, label: named?.getAttribute('aria-label'), w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0, x: r ? Math.round(r.x) : -1 };
     });
     return out;
   }, { sel: line, accent: ACCENT });
@@ -276,11 +278,11 @@ async function run(h) {
   await pg.waitForTimeout(900);
   const rest2 = await pg.evaluate(() => ({
     tabs: [...document.querySelectorAll('[data-testid=tab-bar-wrap]')].filter((e) => e.getBoundingClientRect().height > 1).length,
-    write: (() => { const e = document.querySelector('[data-testid=line-write]'); const r = e?.getBoundingClientRect(); return e ? { label: e.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height) } : null; })(),
+    write: (() => { const e = document.querySelector('[data-testid=line-write]'); const r = e?.getBoundingClientRect(); return e ? { label: document.querySelector('[data-testid=line-input]')?.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height) } : null; })(),
     status: document.querySelector('[data-testid=line-status]')?.innerText ?? '',
   }));
   check(rest2.tabs === 1 && !!rest2.write && rest2.write.label === 'Write an entry' && rest2.write.w >= 44 && rest2.write.h >= 44 && rest2.status.trim() === '',
-    `JN29, JN30: at rest the tabs are back and the bar holds the camera and the mic, the camera and the mic (${JSON.stringify(rest2)})`);
+    `JN29, JN30: at rest the tabs are back and the bar holds the camera and the mic (${JSON.stringify(rest2)})`);
 
   // JN31, JN32: at rest the last entry is on top under its date with the empty page below; a tap on the empty page
   // grows it into the new entry, and Done brings the page back with that entry on top.
@@ -346,7 +348,7 @@ async function run(h) {
   await kb(336);
   await pg.waitForTimeout(700);
   const up40 = await lay();
-  check.todo(up40.focused && !!up40.field && up40.bar.bottom <= up40.vh - 336 + 2 && up40.field.bottom <= up40.bar.top + 2 && up40.field.top > (up40.head ? up40.head.bottom : 0),
+  check(up40.focused && !!up40.field && up40.bar.bottom <= up40.vh - 336 + 2 && up40.field.bottom <= up40.bar.top + 2 && up40.field.top > (up40.head ? up40.head.bottom : 0),
     `chronicle-journal audit 40: with a keyboard up and a full stack, the field is above the bar (${JSON.stringify(up40)})`);
   // audit 43: a reader who scrolled back while writing is left there when the keyboard goes.
   const back43 = await pg.evaluate(() => { const el = document.querySelector('[data-testid=journal-page]'); el.scrollTop = Math.max(0, el.scrollTop - 260); return el.scrollTop; });
@@ -355,17 +357,17 @@ async function run(h) {
   await pg.evaluate(() => document.activeElement?.blur?.());
   await pg.waitForTimeout(1100);
   const after43 = await pg.evaluate(() => document.querySelector('[data-testid=journal-page]').scrollTop);
-  check.todo(Math.abs(after43 - back43) <= 4, `chronicle-journal audit 43: blur while scrolled back leaves the reader where they were (${back43} -> ${after43})`);
+  check(Math.abs(after43 - back43) <= 4, `chronicle-journal audit 43: blur while scrolled back leaves the reader where they were (${back43} -> ${after43})`);
   await pg.evaluate(() => { const el = document.querySelector('[data-testid=journal-page]'); el.scrollTop = el.scrollHeight; });
   await pg.waitForTimeout(600);
   // audit 45: the page directly under the last entry takes the tap.
   const under45 = await lay();
   await pg.mouse.click(60, under45.last.bottom + 20);
   await pg.waitForTimeout(600);
-  check.todo((await lay()).focused, `chronicle-journal audit 45: a tap 20 px under the last entry focuses the field (${JSON.stringify(under45.last)})`);
+  check((await lay()).focused, `chronicle-journal audit 45: a tap 20 px under the last entry focuses the field (${JSON.stringify(under45.last)})`);
   // audit 44: one thing is named Write an entry to a screen reader, not the field and the page both.
   const named44 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=journal-page] [aria-label="Write an entry"]')].filter((e) => !e.closest('[aria-hidden=true]')).length);
-  check.todo(named44 === 1, `chronicle-journal audit 44: one control on the page is named Write an entry (${named44})`);
+  check(named44 === 1, `chronicle-journal audit 44: one control on the page is named Write an entry (${named44})`);
   await pg.evaluate(() => document.activeElement?.blur?.());
   await pg.waitForTimeout(900);
   // audit 42: coming back to Memories opens on the last entry, not on the stack of the sitting before.
@@ -374,7 +376,7 @@ async function run(h) {
   await pg.click('[data-testid=tab-chronicle]');
   await pg.waitForTimeout(1500);
   const again42 = await lay();
-  check.todo(!!again42.head && !!again42.last && again42.last.top - again42.head.bottom < 40 && again42.last.top >= again42.head.bottom - 2 && (!again42.prev || again42.prev.bottom <= again42.head.bottom + 2),
+  check(!!again42.head && !!again42.last && again42.last.top - again42.head.bottom < 40 && again42.last.top >= again42.head.bottom - 2 && (!again42.prev || again42.prev.bottom <= again42.head.bottom + 2),
     `chronicle-journal audit 42: coming back to Memories opens on the last entry (${JSON.stringify(again42)})`);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
