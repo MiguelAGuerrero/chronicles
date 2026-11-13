@@ -173,7 +173,7 @@ export function useReady(props: {
   // A loose moment changed elsewhere (edited from the moment row's Edit offer): its pin shows it (media-editing audit 2).
   useEffect(() => {
     const owner = {};
-    return captureBus.subscribe(LOOSE_MOMENTS, owner, () => {}, (id, patch) => setMoments((prev) => applyPatch(prev, id, patch)));
+    return captureBus.subscribe(LOOSE_MOMENTS, owner, () => {}, (id, patch, pieceId) => setMoments((prev) => applyPatch(prev, id, patch, pieceId)));
   }, []);
 
   // The chevron and Back (NR4): the raised bar lowers first. Mid-memo the chevron still closes, and the
@@ -325,7 +325,7 @@ export function useReady(props: {
         remind
         onSaveEdit={async (c, patch) => {
           await captureEdits.save(c, patch);
-          setMoments((prev) => applyPatch(prev, c.id, patch));
+          setMoments((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
         onSaveNote={async (c, body) => {
           await ready.saveNote(c.piece_id, body);

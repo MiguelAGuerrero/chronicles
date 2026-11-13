@@ -558,3 +558,12 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 ## The tab labels' line height (fix tab-label-clip, Nov 12)
 
 - [ ] **Do:** on an iPhone, look at the bottom tabs in portrait, then in landscape. **Expect:** the stems of the p in Explore and the g in Navigate are whole, and the bar is 62 pt above the home indicator (`tabBarLabelStyle` lineHeight 14, 24 when wider than tall; seen only in desktop Chromium).
+
+## Voice trim (VT1-VT12, Nov 12)
+
+- [ ] **Do:** on a phone, record a memo of about a minute, open it, tap Edit, drag the end handle back by ten seconds, tap Play kept part, then Done. **Expect:** the preview plays and stops within a fraction of a second of the end handle (the player reports every 100 ms); the viewer says "Trimmed · 0:50 of 1:00" and its clock reads against 0:50; Play starts at the start handle, and again after the end starts it over (VT1-VT6, VT12)
+- [ ] **Do:** on a phone, drag the start handle in, Done, open the memo and tap Play. **Expect:** it starts at the start handle, not at 0, with no audible lead-in from the cut part (`expo-audio` `seekTo` before `play`; VT3, VT6)
+- [ ] **Do:** on a phone, trim a memo, then replay the walk it belongs to. **Expect:** the memo's bubble plays only the kept part and the replay moves on at its end handle, not at the file's end (VT7)
+- [ ] **Do:** on a phone, play a trimmed memo to its end handle, then tap Play again straight away, several times. **Expect:** it starts at the start handle and keeps playing every time; it never stops at once on the old end position (`voiceReachedEnd`; audit 2, VT6)
+- [ ] **Do:** on a phone, open a trimmed memo's replay (a walk with a memo and a photo in one moment), and trim the memo from the viewer over it. **Expect:** the replay carries on after the viewer closes, the photo keeps its own edit, and the memo plays its new kept part (the bus's piece patch, `useAudioPlayer`'s `updateInterval` change; audit 1, 5, VT7)
+

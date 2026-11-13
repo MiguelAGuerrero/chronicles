@@ -14,7 +14,7 @@ export function createCaptureEdits(p: Pick<Ports, 'db'>) {
     async save(c: Pick<Faced, 'id' | 'walk_id' | 'piece_id'>, patch: CapturePatch): Promise<void> {
       // The edit is the piece's own; the bus names the moment the screens show.
       await p.db.updatePiece(c.piece_id, patch);
-      captureBus.patch(c.walk_id, c.id, patch, null);
+      captureBus.patch(c.walk_id, c.id, patch, null, c.piece_id);
     },
   };
 }
