@@ -333,6 +333,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const [picking, setPicking] = useState<number | null>(null);
   // The bar as the row of eight (NY19), for one pick. The next character puts the bar back (NY20).
   const [typeAsk, setTypeAsk] = useState<TypeAsk | null>(null);
+  // The type of the note in the line, as last asked about or picked: the page it opens into begins with it (NY26).
+  const [lineType, setLineType] = useState<{ piece: string; type: NoteType | null } | null>(null);
   // They belong to the note being written, on the screen in front: when that entry closes (Done, two minutes, a
   // capture, the page) or Memories is no longer in front, they go (note-types audit 56).
   if (typeAsk && (pen.entry?.pieceId !== typeAsk.piece || focused === false)) setTypeAsk(null);
@@ -524,6 +526,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   useImperativeHandle(props.handle, () => ({
     pickType: (ask: TypeAsk) => {
       setTypeAsk((was) => (was && was.piece === ask.piece ? null : ask));
+      setLineType({ piece: ask.piece, type: noteTypeOf(ask.type) });
       // The caret stays on the page: the tap on the slot took it from the field.
       input.current?.focus();
     },
@@ -624,7 +627,9 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
                     accessibilityLabel={t.name}
                     accessibilityState={{ checked: on }}
                     onPress={() => {
-                      asking.onPick(pickType(asking.type, t.id));
+                      const next = pickType(asking.type, t.id);
+                      asking.onPick(next);
+                      setLineType({ piece: asking.piece, type: next });
                       setTypeAsk(null);
                       input.current?.focus();
                     }}
@@ -719,6 +724,14 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             bodyFormat={null}
             head={noteHead({ t: page.entry.t, now: pageNow, time: timeOf(page.entry.t), context: null, placing: false, draft: null, placed: page.entry.placed, onWalk: walking })}
             self={page.entry.momentId}
+            // The page's Type tool, on the note the line was writing (NY26).
+            type={lineType?.piece === page.entry.pieceId ? lineType.type : null}
+            onType={async (t) => {
+              const e = page.entry!;
+              setLineType({ piece: e.pieceId, type: t });
+              await cap.setNote({ id: e.momentId, piece_id: e.pieceId }, '', t, true).catch(() => {});
+              changed.current();
+            }}
             onClose={closePage}
             onCamera={pageCamera}
             store={{

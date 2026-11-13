@@ -193,3 +193,4 @@ The owner: "I don't see any place to put a note type on the notes or pages at al
 
 26. **NY26** The slot says what it is in a word: "Type" beside its tag while none is chosen, the type's name beside its glyph once one is, in ink. The page the journal's line opens into carries the page's Type tool with the note's type as chosen, and choosing or clearing there is kept on that note.
 
+Built the same evening, test first (the `journal` journey's NY26 check); the fault was found by opening the live build in a phone-sized browser. Native: not run on a device.

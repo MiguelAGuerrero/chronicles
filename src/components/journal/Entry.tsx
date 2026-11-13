@@ -88,7 +88,9 @@ export function Entry(props: {
             onPress={() => props.onType?.(written)}
             style={[styles.type, props.typeOpen && styles.typeOpen]}
           >
-            <Icon name={(mark?.glyph ?? 'pricetag-outline') as IconName} size={18} color={mark || props.typeOpen ? theme.ink : theme.muted} />
+            {/* In ink, with its word (NY26): a bare grey tag was not found on the owner's phone. */}
+            <Icon name={(mark?.glyph ?? 'pricetag-outline') as IconName} size={16} color={theme.ink} />
+            <Text style={styles.typeWord} numberOfLines={1}>{mark?.name ?? 'Type'}</Text>
           </Pressable>
         ) : null}
         <Pressable testID="moment-more" accessibilityRole="button" accessibilityLabel="More about this moment" onPress={props.onMore} style={styles.more}>
@@ -222,7 +224,8 @@ const styles = StyleSheet.create({
   plate: { gap: 8 },
   picture: { height: 200, width: '100%' },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  type: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  type: { flexDirection: 'row', gap: 5, minWidth: 44, height: 44, paddingHorizontal: 10, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  typeWord: { color: theme.ink, fontSize: 13, fontWeight: '600' },
   typeOpen: { backgroundColor: '#ebe7df' },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
 });
