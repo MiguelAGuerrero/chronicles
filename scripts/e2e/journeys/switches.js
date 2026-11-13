@@ -114,6 +114,16 @@ async function run(h) {
     }
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     await shot(pg, 'switches-1-after');
+    // smooth-switches ui 1: the row keeps its tallest height, but a card is never stretched past the tallest card now in the
+    // row: the spare room is the row's ground, not an empty card. The card with the least room left under its content has
+    // little.
+    const spare = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((t) => {
+      const r = t.getBoundingClientRect();
+      if (!r.width) return null;
+      const bottom = Math.max(...[...t.querySelectorAll('*')].map((e) => e.getBoundingClientRect()).filter((b) => b.height > 0 && b.height < r.height - 4).map((b) => b.bottom));
+      return Math.round(r.bottom - bottom);
+    }).filter((x) => x != null));
+    check(spare.length > 0 && Math.min(...spare) <= 24, `smooth-switches ui 1: no card is stretched past the tallest card now in the row (room under each card's content: ${spare.join(', ')} px)`);
     const back = steps.filter((s) => s.revisit);
     const fwd = steps.filter((s) => !s.revisit);
     const say = (list, f) => list.map((s) => `${s.to}:${f(s)}`).join(' ');
