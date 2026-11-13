@@ -329,6 +329,9 @@ Not a sweep: no lens ran and no area changed state. The review (one round of the
   Locate's old line. So `.claude/rules/map.md`'s "Denied says what the recorder's start says" (the Locate line) is no
   longer true on the web until the inbox entry "Walk: Start refused still reads as a fault" is answered; the loop
   rewords no rule line.
+  QL5 is amended too (the T17 review's F2): it says "Every map shows a scale bar in its bottom-left corner"; since
+  `tend map T17` Navigate and Explore show none with no fix and no tiles drawn. Amend QL5 beside QL11, in the doc and
+  the mirror, so a sweep does not read the hidden bar as a regression; decision 0154's header names neither.
 - **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
   `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
   agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A
