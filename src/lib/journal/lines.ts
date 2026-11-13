@@ -76,6 +76,8 @@ export function entrySpoken(kind: CaptureKind, words: string | null, line: strin
 
 /** The open line's names for a screen reader (JN10). */
 export const LINE_LABELS = { write: 'Write an entry', photo: 'Add a photo or video', voice: 'Record a voice note' };
+/** The empty line's hint, in the app's muted voice; it replaced the still mark (JN10, amended Nov 13). */
+export const LINE_PLACEHOLDER = 'What’s on your mind?';
 /** Said above the keyboard while an entry is being written (JN13). */
 export const KEPT_AS_YOU_WRITE = 'Kept as you write';
 /** Said in its place when a save failed (JN13). */
