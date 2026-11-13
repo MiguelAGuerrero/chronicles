@@ -511,7 +511,7 @@ recording, and a recording bar brings a minimized walk back.
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings) | Shipped on web (native unverified) |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
-| Note types (one of eight ink marks on a note, chosen in the note editor: question, emphasis, idea, happy, neutral, sad, like, dislike; shown on the viewer's card, a single note's pin and a thread's bubble; never counted, filtered or inferred) | Built 2026-11-12 (web verified by the e2e `qol`, `threads`, `responses`; native unverified) |
+| Note types (one of eight ink marks on a note, chosen on the note's page (its Type tool): question, emphasis, idea, happy, neutral, sad, like, dislike; shown above the viewer's page, a single note's pin and a thread's bubble; never counted, filtered or inferred) | Built 2026-11-12 (web verified by the e2e `qol`, `threads`, `responses`; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |

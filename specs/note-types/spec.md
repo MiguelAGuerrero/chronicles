@@ -24,7 +24,7 @@ Open: none (answered Nov 12, see Decisions).
 - **The thread screen's note bubbles carry the mark** (Nov 12).
 - **One type per note**, so a pin has one mark and nothing needs a rule for which shows.
 - **Notes only**, set in the note editor (writing a note in the viewer's Respond or editing one); capture stays one tap. Photos, videos and memos keep their own glyphs.
-- **A nullable `note_type` on the capture record** (truth, kept by piece): SQLite migration 25 (the 25th entry of `MIGRATIONS`) and IndexedDB VERSION 20; a note made before reads as no type.
+- **A nullable `note_type` on the capture record** (truth, kept by piece): SQLite migration 27 (the 27th entry of `MIGRATIONS`, after note pages' `body_format` and the neighborhood boundaries' `hoods`) and IndexedDB VERSION 20; a note made before reads as no type.
 
 ## Acceptance criteria
 
@@ -35,8 +35,8 @@ The set (`NOTE_TYPES`, in `src/lib/noteType.ts`), in this fixed order, which the
 3. **NY3** A note's mark is its type's glyph when it has one, and the generic note glyph when it has none; a photo, video or memo never takes a type's glyph.
 4. **NY4** A note keeps its type through the database on both stores: set, changed, cleared, and a note kept before this slice reads as no type.
 5. **NY5** The type is stored on the note's own piece, so one note in a stacked moment can be a question while its neighbour has none.
-6. **NY6** The note editor offers the types in one labelled "Type" control (a menu of the eight and "No type", its current choice shown as glyph and name); choosing one changes nothing else about the note.
-7. **NY7** Saving an edited note stores its text and its type together; a failed save puts both back in the viewer, as the text is put back today (QL25).
+6. **NY6** The page of a note being edited offers the types in one labelled "Type" tool in its bar (a menu of the eight and "No type" above the bar; the tool shows the current choice's glyph and says its name); choosing one keeps it at once and changes nothing else about the note.
+7. **NY7** A note saved with a type stores its text and its type together; a type chosen on the page is kept at once by itself, leaving the words and their format as kept; a failed save puts the type back in the viewer.
 8. **NY8** A note saved with a type left as it was, or with none chosen, is unchanged by the editor: capture takes no extra tap, and the composers that exist today (the capture band, the stack's note, the walk's note) make a note with no type.
 9. **NY9** The viewer's note card shows the type's glyph and its spoken name above the note's text; a note with no type shows neither.
 10. **NY10** A pin of exactly one note with a type wears the type's glyph in place of the generic note glyph, and says it ("Note, idea"); a pin of several captures keeps its kind's glyph and its count; any picture drawn for a note falls back to the type's glyph.
@@ -113,4 +113,18 @@ The auditor, the steward and the `ux-reviewer` ran again, told what the first ro
 25. The keyboard hides the menu (`ux-reviewer`): **reject**, fixed in the first audit (9, the card scrolls); closing the keyboard when the menu opens would lose the caret.
 
 Journeys run after the fixes (all green): `qol`, `threads`, `responses`, `resurface`, `stacks`, `upgrade`, `replay`, `days`, `chronicle`, `walk`, `edit`, `tabs`, once each (`qol` also once before the fix, red). Typecheck, lint and `npm test` pass.
+
+
+
+### Merge with note pages (Nov 13, 2026)
+
+Before deploying, `main` was 213 commits ahead, among them note pages (decision 0151), which replaced the note editor
+with a full-screen page that saves as it is written. The slice was merged onto it and reconciled: the Type menu moved to
+a **Type tool in the page's bar** (`NotePage`, `NoteTypeMenu`; shown for an edit only, never for a new note's page or
+Respond's: NY15); `notePatch(body, type, typeOnly)` carries `body_format` beside `note_type`, and a type chosen on its own
+never rewrites the words or marks an older note as Markdown; the note's mark sits above the viewer's page; the migration
+became 27 and the decision 0161 (main's 0149 is the bar's Edit offer); the bus's piece id (voice trim) carries a note's
+piece. The resurfaced card (deleted on main by the journal) took its audit-16 change with it. The slice's journeys were
+re-pointed at the page (`note-input`, `note-done`, the Type tool in place of the Type row; `note-types ui 1` now asks that
+the tool shows pressed, and audit 9 that the menu and the bar stay in view at 320 x 520).
 
