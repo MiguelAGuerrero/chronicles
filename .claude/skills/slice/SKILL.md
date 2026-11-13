@@ -122,7 +122,8 @@ records` operation (decision 0156, `.claude/skills/ship.md`, "The record documen
 is gated, a slice's as much as the loop's: CI replays each commit that carries your `Claude-Session:` or
 `Co-Authored-By: Claude` trailer and fails one that changes the documents by hand. What the slice leaves
 for the owner's call goes in a "From <skill>" section (`section add`, then `section item add`). When
-merging `origin/main` conflicts in the documents, `npm run records -- redo` during the merge.
+merging `origin/main` conflicts in the documents, `npm run records -- redo` during the merge (it takes
+`main`'s side), then the slice's entries filed again in a commit of their own.
 
 ## 5. Tests first
 

@@ -148,7 +148,11 @@ findings in the report.
 `.claude/skills/ship.md`, "Publish to main", from `fix/<short-name>`, without
 asking again: the rebase, the one fast-forward push, the Pages run, the live
 check of the fix's visible effect, and on a red run one fix-forward at most,
-else the revert and a diagnosis on `fix/<short-name>-retry`.
+else the revert and a diagnosis on `fix/<short-name>-retry`. Before the push,
+`node scripts/tend.js commits --loop-only origin/main..HEAD` passes: every agent
+commit is replayed by the record gate, and a commit from before it that was
+rebased onto it is refused by name if it hand-edits the documents (ship.md,
+"The record documents", says how to mend it).
 
 ## 9. Clean up the worktree
 

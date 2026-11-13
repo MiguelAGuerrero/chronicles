@@ -20,11 +20,12 @@
 //   npm run records -- open note <match> | open set|remove <match> --reason r
 //   npm run records -- inflight add [--end | --after <m>] | inflight set|remove <match>   "In flight" rows
 //   npm run records -- slice row add [--top | --after <m>] | slice row set <match>      "Slices" rows
+//   npm run records -- slice row remove <match>             only a row this range added (a fix-forward)
 //   npm run records -- section add "From <skill>" [--intro <file>]   a "From …" section of "Needs the owner",
 //                                                           right after "From /tend", newest first
 //   npm run records -- section item add "<section>" [--top | --after <m>]   a bullet of a "From …" section
 //   npm run records -- section item note "<section>" <match> | section item set|remove "<section>" <match> --reason r
-//   npm run records -- section remove "<section>" [--reason r]  a "From …" section with no bullet left
+//   npm run records -- section remove "<section>" [--reason r]  a "From …" section with nothing under it
 //   npm run records -- deferred|native item add <section> [--new] [--top | --after <match>]
 //                                                           a bullet (--new: a new section at the end,
 //                                                           --intro <file> its one paragraph)
@@ -32,9 +33,10 @@
 //   npm run records -- deferred|native item remove|set <match> --reason r | item retag <match> <tag> --reason r
 //   npm run records -- trailers                             the pending operations' trailers, for the commit
 //   npm run records -- redo                                 the pending operations run again on HEAD's documents
-//                                                           (after taking main's side of a conflict); during a
-//                                                           merge, the merged-in side's documents with this
-//                                                           branch's operations since the merge base
+//                                                           (after taking main's side of a rebase conflict);
+//                                                           during a merge, main's side of the documents, and
+//                                                           the branch's record commits to file again after it;
+//                                                           with nothing pending, the commits that hand-edit
 //   npm run records -- verify [<base>..<head> | <rev>]      (npm run check:records) each commit of the range
 //                                                           replayed; with one rev, the commits since its merge
 //                                                           base with HEAD and the working tree against HEAD

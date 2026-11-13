@@ -98,13 +98,18 @@ needs quoting; never edit these files with Edit, Write or sed.
   and report (`/tend` section 10). Never amend a record commit: an amend after a further operation
   carries two sidecars, and the gate fails it.
 - **On a merge conflict** in them (`git merge origin/main` into a slice or fix branch), run `npm run
-  records -- redo` during the merge: it writes `main`'s documents with this branch's operations since
-  the merge base run again on them, whatever the conflict left, and stages them; commit the merge with
-  your trailers. The gate accepts a merge's documents as git's own merge or as `redo`'s; a merge you
-  resolve by hand in them fails. When `redo` refuses (an entry the branch acted on changed on `main`),
-  stop and ask the owner. A branch made before the gate landed resolves the one merge that brings the
-  gate in by hand, as before (that merge is history; `redo` says so); every commit after it is gated. A
-  loop run never merges `main` into its branch; it rebases.
+  records -- redo` during the merge: it writes `main`'s side of the three documents, exactly, whatever
+  the conflict left, stages them, and lists this branch's record commits since the merge base. Commit
+  the merge with your trailers, then file the branch's entries again with `npm run records` in a commit
+  of its own. The gate accepts a merge's documents only as git's clean merge or as `main`'s side (the
+  second parent's); any other resolution fails, with or without trailers when the push holds an agent
+  commit. This holds for a branch made before the gate too: its merge of the gated `main` is judged the
+  same. A loop run never merges `main` into its branch; it rebases.
+- **A commit from before the gate, rebased onto it**, is gated like any other: if it edited the
+  documents by hand, CI refuses it by name. Drop the edit from that commit (`git checkout <sha>^ --
+  <document>` and amend it when it is the last commit, or split it out) and make it again with `npm
+  run records` in a commit of its own; `npm run records -- redo` with nothing pending names such
+  commits. A branch made before the gate is better merged with `main` than rebased.
 
 ## Review
 
@@ -138,7 +143,10 @@ with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
 2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
-   then continue. On a conflict, stop and keep the branch.
+   then continue. On a conflict, stop and keep the branch. The checks include `node scripts/tend.js
+   commits --loop-only origin/main..HEAD`, what CI runs: a commit of the branch made before the record
+   gate landed and hand-editing the documents is refused there by name, with how to mend it ("The
+   record documents").
 3. `main` is checked out elsewhere, so publish with `git push origin <branch>:main` (a fast-forward; no
    force, no history rewrite, no empty commits), once.
 4. Watch the Pages run with the GitHub MCP tools until it completes (`/deploy` section 3).
@@ -160,6 +168,11 @@ What to revert:
   finding filed as `[owner]` with the log's cause, "Last tend" saying what was reverted, the area `rough`.
 - **A slice:** all of it as one unit, its record included (`git revert --no-commit <base>..<tip>`), so
   the spec, the feature map and the proposal's entry go back together and the docs check stays green.
+
+A revert commit's message keeps git's `This reverts commit <sha>.` line, one for each commit it
+reverts, and your trailers: the record gate accepts it when its documents are exactly those commits'
+undone and their sidecars deleted, nothing else. A fix-forward that takes a slice's row back out uses
+`npm run records -- slice row remove <match>`, which undoes only a row the same range added.
 
 After a revert, diagnose: reproduce the failure locally with the job's own command, name the cause,
 and put a corrected change on `<branch>-retry` with the failing check passing. Push that branch, not
