@@ -85,7 +85,13 @@ The owner's screenshot of the built line on an iPhone, and their call: it felt l
 The owner, on seeing the page pushed to its foot: "have like a peek to show the last entry, but the page is mostly aligned to the top, and when you click on the empty space, it expands out, or rather transitions out to create a moment." Vision: Honour (the empty page is the invitation, with no prompt and no control standing for it), Return (where you left off is the first thing seen); verdict aligned. This amends JN1 (the page rests with its last entry on top, not at the foot), JN11 and JN29 (the empty page is the pen; the bar holds no pen).
 
 31. **JN31** At rest the page is aligned to the top: the day's date, then the most recent entry under it, then the empty page filling the rest of the screen above the bar. Nothing older shows until the page is pulled down, which reads back through the journal with each day's date held at the top as its entries pass. A last entry too long for this shows its end, and the empty page still takes at least a third of the screen.
-32. **JN32** A tap anywhere on the empty page (named "Write an entry") grows it into the new entry: the caret is on the page under the date, the last entry slides up out of view, and the bar sits on the keyboard (JN30). Done brings the page back to rest with the new entry on top. The bar at rest holds only the camera and the mic.
+32. **JN32** A tap anywhere on the empty page (named "Write an entry") puts the caret on the page, directly under the last entry, and the bar sits on the keyboard (JN30). The bar at rest holds only the camera and the mic. (Amended by JN33 the same day: the last entry no longer slides away, and Done no longer rearranges the page.)
+
+### The day's entries stack (added Nov 13, the owner's call)
+
+The owner, after the grown page hid everything but the line being written: "keep it like a stack where the page just grows per entry and moment, and it just slides up almost like a typewriter"; and, on what it is for, "once you start writing, you don't feel like it's just writing and no multimedia. It's just growing entries throughout the day." The resting state of JN31 stays as how the page opens. Adjacent practice (typewriter scrolling in iA Writer, Ulysses and Typora; the append view asked of Day One) is in the record. Vision: Honour and Return, as JN31; verdict aligned.
+
+33. **JN33** The page opens as JN31 says, on the entry you left off at. From there the entries of the sitting stack beneath it in the order made, words, photos and voice notes alike, and stay in view while the next is written: nothing slides away when writing begins, and Done moves nothing. When the stack has filled two thirds of the page, it slides up as it grows, and the line being written holds its place a third of the way up from the bar.
 
 ## Amends
 

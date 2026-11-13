@@ -1,7 +1,8 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BLANK_MIN, blankHeight, peekStart } from '../../journal/rest';
+import * as rs from '../../journal/rest';
+import { BLANK_MIN, blankHeight } from '../../journal/rest';
 
 test('JN31: at rest the empty page fills what the date and the last entry leave above the bar', () => {
   // A 700 px sheet, a 77 px bar pad, a 66 px date held on top, a 120 px entry.
@@ -18,20 +19,27 @@ test('JN31: a last entry too long for its share shows its end, and the empty pag
   assert.equal(blankHeight({ view: 200, foot: 77, sticky: 66, peek: 2000, writing: false }), BLANK_MIN);
 });
 
-test('JN32: writing, the empty page grows to the whole screen under the date; the entry being written keeps its place above the caret', () => {
-  assert.equal(blankHeight({ view: 500, foot: 77, sticky: 66, peek: 0, writing: true }), 500 - 77 - 66);
-  assert.equal(blankHeight({ view: 500, foot: 77, sticky: 66, peek: 44, writing: true }), 500 - 77 - 66 - 44);
-  // A photo and a long dateline above the caret never push the line being written off the screen.
-  assert.ok(blankHeight({ view: 500, foot: 77, sticky: 66, peek: 900, writing: true }) >= 140);
+test('JN33: the entries of the sitting stack under the one the page opened on, and the line holds a third of the way up', { todo: 'test first' }, () => {
+  const rest = rs as unknown as { blankHeight: (o: { view: number; foot: number; sticky: number; peek: number }) => number };
+  // Three entries since the page opened: all of them are above the empty page, whether or not the field has the keyboard.
+  assert.equal(rest.blankHeight({ view: 700, foot: 77, sticky: 66, peek: 300 }), 700 - 77 - 66 - 300);
+  // A stack longer than two thirds of the room slides up: the empty page, and the line at its top, keep a third.
+  const room = 500 - 77 - 66;
+  const h = rest.blankHeight({ view: 500, foot: 77, sticky: 66, peek: 2000 });
+  assert.ok(Math.abs(h - Math.max(BLANK_MIN, Math.round(room / 3))) <= 1, `${h}`);
 });
 
-test('JN32: the peek is the last entry at rest and while it is being written, and nothing before the first character', () => {
-  const rows = ['day', 'entry', 'day', 'slip', 'entry', 'entry'] as const;
-  assert.equal(peekStart(rows, false, false), 5);
-  assert.equal(peekStart(rows, true, true), 5);
-  assert.equal(peekStart(rows, true, false), 6);
-  // The last entry is from an earlier day: writing begins under today's date.
-  assert.equal(peekStart(['day', 'entry', 'day'], true, false), 2);
-  assert.equal(peekStart(['day', 'entry', 'day'], false, false), 1);
-  assert.equal(peekStart(['day'], false, false), 1);
+test('JN33: the peek begins with the entry the page opened on, until it is gone', { todo: 'test first' }, () => {
+  const rest = rs as unknown as { peekStart: (rows: { k: string; key: string }[], anchor: string | null) => number; anchorOf: (rows: { k: string; key: string }[], anchor: string | null) => string | null };
+  const rows = [{ k: 'day', key: 'd1' }, { k: 'entry', key: 'a' }, { k: 'day', key: 'd2' }, { k: 'slip', key: 's' }, { k: 'entry', key: 'b' }, { k: 'entry', key: 'c' }];
+  // Opened on b; c was written since.
+  assert.equal(rest.peekStart(rows, 'b'), 4);
+  assert.equal(rest.anchorOf(rows, 'b'), 'b');
+  // No anchor yet, or the anchor was deleted: the last entry.
+  assert.equal(rest.anchorOf(rows, null), 'c');
+  assert.equal(rest.anchorOf(rows, 'gone'), 'c');
+  assert.equal(rest.peekStart(rows, 'c'), 5);
+  // Nothing kept: nothing peeks.
+  assert.equal(rest.anchorOf([{ k: 'day', key: 'd' }], null), null);
+  assert.equal(rest.peekStart([{ k: 'day', key: 'd' }], null), 1);
 });

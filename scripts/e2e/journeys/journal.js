@@ -299,8 +299,10 @@ async function run(h) {
       prev: r(cards[cards.length - 2]), blank: r(blank), field: r(field), bar: r(bar), focused: document.activeElement === field,
     };
   });
-  await pg.evaluate(() => document.activeElement?.blur?.());
-  await pg.waitForTimeout(900);
+  // The page opens on the entry left off at: read it afresh.
+  await pg.reload();
+  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForTimeout(1500);
   const rest3 = await lay();
   const headBottom = rest3.head ? rest3.head.bottom : 0;
   check(!!rest3.head && rest3.head.top - rest3.pageTop < 60 && !!rest3.last && rest3.last.top >= headBottom - 2 && rest3.last.top - headBottom < 40
@@ -310,18 +312,38 @@ async function run(h) {
   await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000 }).catch(() => {});
   await pg.waitForTimeout(900);
   const grown = await lay();
-  check(grown.focused && !!grown.field && grown.field.top - (grown.head ? grown.head.bottom : grown.pageTop) < 90 && (!grown.last || grown.last.bottom <= (grown.head ? grown.head.bottom : grown.pageTop) + 2),
-    `JN32: a tap on the empty page grows it into the new entry: the caret is at the top under the date, and the last entry has slid away (${JSON.stringify(grown)})`);
-  await shot(pg, 'journal-19-grown');
-  await pg.keyboard.type('Grown from the empty page.', { delay: 10 });
+  check(grown.focused && !!grown.field && !!grown.last, `JN32: a tap on the empty page puts the caret on the page (${JSON.stringify(grown)})`);
+  check.todo(grown.focused && !!grown.last && Math.abs(grown.last.top - rest3.last.top) <= 2 && !!grown.field && grown.field.top >= grown.last.bottom - 2 && grown.field.top - grown.last.bottom < 80,
+    `JN33: nothing slides away when writing begins: the last entry keeps its place and the caret is under it (${JSON.stringify({ rest: rest3.last, grown })})`);
+  await shot(pg, 'journal-19-writing-under-the-last');
+  await pg.keyboard.type('Stacked under the last.', { delay: 10 });
   await pg.waitForTimeout(1000);
-  const writing3 = await lay();
   await done();
   await pg.waitForTimeout(1000);
   const after3 = await lay();
-  check(/Grown from the empty page\./.test(after3.lastText) && !!after3.last && !!after3.head && after3.last.top - after3.head.bottom < 40 && !!after3.blank && after3.blank.h >= after3.vh * 0.3
-    && !!writing3.field && writing3.field.top < writing3.vh * 0.45,
-    `JN32: Done brings the page back with the new entry on top and the empty page below (${JSON.stringify({ after3, writingField: writing3.field })})`);
+  check.todo(/Stacked under the last\./.test(after3.lastText) && !!after3.prev && Math.abs(after3.prev.top - rest3.last.top) <= 2 && after3.last.top >= after3.prev.bottom - 2 && !!after3.blank && after3.blank.top >= after3.last.bottom - 2,
+    `JN33: Done moves nothing: the new entry is under the one before, and the empty page under it (${JSON.stringify({ after3 })})`);
+  // Enough entries to fill the page: the stack slides up and the line holds its place.
+  const tops = [];
+  for (let i = 0; i < 5; i++) {
+    await toLine();
+    await pg.keyboard.type(`Stack ${i + 1}, a line long enough to run over onto a second line of the page.`, { delay: 4 });
+    await pg.waitForTimeout(700);
+    tops.push((await lay()).field?.top ?? -1);
+    await done();
+    await pg.waitForTimeout(700);
+  }
+  await toLine();
+  await pg.waitForTimeout(700);
+  const tw = await lay();
+  const roomTw = tw.bar.top - (tw.head ? tw.head.bottom : tw.pageTop);
+  const lineUp = tw.bar.top - (tw.field ? tw.field.top : 0);
+  check.todo(tw.focused && !!tw.head && tw.head.top - tw.pageTop < 60 && lineUp > roomTw * 0.22 && lineUp < roomTw * 0.5 && !!tw.last && tw.last.bottom <= tw.field.top + 2
+    && Math.abs(tops[4] - tops[3]) <= 30,
+    `JN33: a full page slides up as it grows and the line holds a third of the way up from the bar (${JSON.stringify({ tw, tops, roomTw, lineUp })})`);
+  await shot(pg, 'journal-20-typewriter');
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(900);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
