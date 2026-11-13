@@ -159,6 +159,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
 - A caption dragged near the bottom of a portrait photo sits behind the viewer's Respond row while the viewer is open (fix respond-bottom audit 5); the saved photo and the replay's card are not affected
 - On Android with edge-to-edge, the reported keyboard height leaves out the navigation bar beneath it, so Respond's Cancel and Keep reply may sit partly under the keyboard (fix respond-bottom audit 7): waits on a device run (NATIVE_UNVERIFIED), since whether the keyboard events reach the Modal's field at all is unknown
+- The journal's in-line voice note is not a focus target apart from its entry's open button for a screen reader on a phone, because it sits inside it; the viewer still plays the note. The fix splits the entry's open target, a navigation call for the owner (journal voice audit 2)
+- The viewer's player says "voice memo" where the journal's says "voice note": one noun for both (journal voice audit 16, opinion)
+- The journal's in-line voice note shows its pause glyph while the file is still resolving, before anything plays: a brief busy state would be honest (journal voice audit 19, opinion)
 
 ## Deletion
 

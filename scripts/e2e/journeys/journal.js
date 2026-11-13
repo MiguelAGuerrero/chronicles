@@ -414,6 +414,12 @@ async function run(h) {
   const pauseNow = await memoRow.locator('[data-testid=entry-voice-play]').getAttribute('aria-label').catch(() => '');
   check(hasPlay && hasBar && !viewerOpened,
     `journal voice note: it plays in line, with a play button and a progress bar, and pressing play does not open the viewer (${JSON.stringify({ hasPlay, hasBar, viewerOpened, label: pauseNow })})`);
+  const memoBox = await memoRow.evaluate((r) => {
+    const box = (sel) => { const b = r.querySelector(sel)?.getBoundingClientRect(); return b ? { w: Math.round(b.width), h: Math.round(b.height) } : null; };
+    return { play: box('[data-testid=entry-voice-play]'), role: r.querySelector('[data-testid=entry-voice-bar]')?.getAttribute('role'), clock: r.querySelector('[data-testid=entry-voice-time]')?.textContent ?? '' };
+  }).catch(() => null);
+  check(!!memoBox && !!memoBox.play && memoBox.play.w >= 48 && memoBox.play.h >= 48 && memoBox.role === 'progressbar' && / \/ /.test(memoBox.clock),
+    `journal voice audit 13, 14, 16: the play control is 48 pt, the bar is a progress bar, and the clock reads "a / b" while it plays (${JSON.stringify(memoBox)})`);
   await shot(pg, 'journal-20-voice-note-playing');
   // Pause it so the next steps run in silence.
   if (/Pause/.test(pauseNow || '')) await memoRow.locator('[data-testid=entry-voice-play]').click().catch(() => {});

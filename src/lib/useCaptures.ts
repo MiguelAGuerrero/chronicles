@@ -14,6 +14,7 @@ import { newId } from './id';
 import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
+import { nowPlaying, RECORDING } from './journal/nowPlaying';
 import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
@@ -465,6 +466,8 @@ export function useCaptures(
             setError({ message: accessOff('Microphone'), openSettings: true });
             return false;
           }
+          // Nothing plays over a recording: a voice note playing on the journal's page lets go of the sound.
+          nowPlaying.claim(RECORDING);
           // Keeps recording with the phone locked and in a pocket.
           await setAudioMode({ allowsRecording: true, playsInSilentMode: true, allowsBackgroundRecording: true });
           await voice.prepareToRecordAsync();
