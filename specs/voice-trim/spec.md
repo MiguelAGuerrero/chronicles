@@ -76,5 +76,5 @@ Found by the steward (Nov 12), accepted
 11. The whole-memo trim bar is a full accent bar: reject (the video's shared bar; taste, recorded as a question for the owner below).
 12. The viewer says "Trimmed" but cards say the kept length: reject, VT10 chose it knowingly.
 
-For the owner: (a) does "The lows stay in" stand as the reading that a reversible trim of a recording's dead air is not editing out the lows? (b) the trim bar's yellow full-width fill in the "whole memo kept" state, shared with the video editor: neutral until a handle moves, or as it is? (c) should a transcript, when built, read the kept part only (recorded in `docs/DEFERRED.md`)?
+For the owner: (a) answered Nov 13, yes: an accidental tail is unnecessary, so a reversible trim is not editing out the lows (decision 0155); (b) the trim bar's yellow full-width fill in the "whole memo kept" state, shared with the video editor: neutral until a handle moves, or as it is? (c) should a transcript, when built, read the kept part only (recorded in `docs/DEFERRED.md`)?
 

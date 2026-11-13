@@ -140,3 +140,4 @@ same argument is not had twice.
 | 0131 | A moment's responses in a sheet over the viewer: plain entries in words, no count, no unread (reshaped at the gate, Nov 11) |
 | 0139 | Media: bare tiles; the day header says where |
 | 0147 | Complexes: information only; the street kept; a viewing never fetches (reshaped at the gate, Nov 11) |
+| 0155 | A reversible trim of a memo's accidental dead air is not editing out the lows |
