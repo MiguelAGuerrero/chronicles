@@ -30,7 +30,7 @@ import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -144,9 +144,11 @@ function addOverlay(map: MapLibreMap) {
   // the layer sits in the stack is set by busyNamesOver (DC16); added on top here.
   map.addSource('busy-names', { type: 'geojson', data: empty });
   const names = busyNameLayers();
-  map.addLayer({ id: 'busy-names', type: 'symbol', source: 'busy-names', filter: names.filter, layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
+  map.addLayer({ id: 'busy-names', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.filter, layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
+  // A turned name, centred or left out, never slid across its street (audit 1).
+  map.addLayer({ id: 'busy-names-turned', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.turned.filter, layout: names.turned.layout, paint: names.turned.paint } as unknown as SymbolLayerSpecification);
   // The room the selected area's name and each "?" pin keep (DC14, DC17): above the names, so it is placed first.
-  map.addLayer({ id: 'busy-names-room', type: 'symbol', source: 'busy-names', filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
+  map.addLayer({ id: 'busy-names-room', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
 }
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
@@ -332,7 +334,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
         // Explore in a dense city (DC5, DC6, DC14, DC15): the e2e moves the newest map in code and asks which busy names are
         // drawn, where; names the map placed, never the reserved room (DC14).
-        const BUSY = ['busy-names'];
+        const BUSY = ['busy-names', 'busy-names-turned'];
         const busyIn = (box?: [[number, number], [number, number]]) =>
           [...new Set((box ? map.queryRenderedFeatures(box, { layers: BUSY }) : map.queryRenderedFeatures({ layers: BUSY }))
             .filter((f) => !f.properties?.reserve).map((f) => String(f.properties?.name)))];
@@ -586,6 +588,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       if (b === namesBearing || !map.getLayer('busy-names')) return;
       namesBearing = b;
       map.setLayoutProperty('busy-names', 'text-rotate', busyNameRotate(b) as never);
+      map.setLayoutProperty('busy-names-turned', 'text-rotate', busyNameRotate(b) as never);
     };
     map.on('rotateend', uprightNames);
     map.on('moveend', uprightNames);
@@ -618,6 +621,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       clearTimeout(pressTimer);
       clearTimeout(holdTimer);
       dropSwipe();
+      // audit 7: a map taken down mid-move fires no moveend; whatever waits for its settle goes on.
+      onMoveState.current?.(false);
       map.remove();
       mapRef.current = null;
     };
@@ -711,15 +716,64 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     reserveRef.current = props.busyNamesReserve;
   });
+  // DC18: the walk maps' names near you, re-sent only when you move about 100 m.
+  const nearRef = useRef(props.busyNamesNear);
+  const nearKey = props.busyNamesNear ? `${props.busyNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.busyNamesNear.m}` : '';
+  const clearOfRef = useRef(props.busyNamesClearOf);
+  const landingRef = useRef(props.landing);
   useEffect(() => {
-    if (!ready) return;
-    const names = busyNamesGeoJSON(props.landing, reserveRef.current ?? null, pinsRef.current);
-    setData('busy-names', names);
-    // The e2e reads what the map was given (only when it is measuring): each name and where it goes.
-    if ((window as { __perf?: unknown }).__perf && container.current) {
-      container.current.dataset.busyGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
-    }
-  }, [ready, props.landing, reserveKey, pinsKey]);
+    nearRef.current = props.busyNamesNear;
+    clearOfRef.current = props.busyNamesClearOf;
+    landingRef.current = props.landing;
+  });
+  // audit 11: the screen's controls over the map, and the map's edge, as room cells where the map now stands. Read from
+  // the page each time the map settles (a control never moves with the map); none while the Busy layer is off.
+  const roomOnScreen = (map: MapLibreMap): LngLat[] => {
+    const canvas = map.getCanvas().getBoundingClientRect();
+    const rects: { x: number; y: number; w: number; h: number }[] = [
+      { x: 0, y: 0, w: canvas.width, h: 0 }, { x: 0, y: canvas.height, w: canvas.width, h: 0 },
+      { x: 0, y: 0, w: 0, h: canvas.height }, { x: canvas.width, y: 0, w: 0, h: canvas.height },
+    ];
+    for (const id of clearOfRef.current ?? [])
+      for (const el of document.querySelectorAll(`[data-testid="${id}"]`)) {
+        const r = el.getBoundingClientRect();
+        if (!r.width || r.right < canvas.left || r.left > canvas.right || r.bottom < canvas.top || r.top > canvas.bottom) continue;
+        rects.push({ x: r.left - canvas.left, y: r.top - canvas.top, w: r.width, h: r.height });
+      }
+    return rects.flatMap((r) => roomCells(r)).map(([x, y]) => {
+      const c = map.unproject([x, y]);
+      return [c.lng, c.lat] as LngLat;
+    });
+  };
+  const sendNames = useRef<() => void>(() => {});
+  useEffect(() => {
+    sendNames.current = () => {
+      const map = mapRef.current;
+      if (!map || !map.getSource('busy-names')) return;
+      const landing = landingRef.current;
+      const names = busyNamesGeoJSON(landing, reserveRef.current ?? null, pinsRef.current, nearRef.current ?? null, landing ? roomOnScreen(map) : []);
+      setData('busy-names', names);
+      // The e2e reads what the map was given (only when it is measuring): each name and where it goes.
+      if ((window as { __perf?: unknown }).__perf && container.current) {
+        container.current.dataset.busyGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
+      }
+    };
+  });
+  useEffect(() => {
+    if (ready) sendNames.current();
+  }, [ready, props.landing, reserveKey, pinsKey, nearKey]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    // The rooms follow the map: once it settles, and when the screen changes size.
+    const again = () => { if (landingRef.current) sendNames.current(); };
+    map.on('moveend', again);
+    map.on('resize', again);
+    return () => {
+      map.off('moveend', again);
+      map.off('resize', again);
+    };
+  }, [ready]);
   // DC16: over every layer on Explore, so its names are placed before the base map's; elsewhere under the base map's labels
   // (placed after them, so a road keeps its own name) and so under the trace and the route.
   const namesOver = !!props.busyNamesOver;
@@ -729,6 +783,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const firstSymbol = (map.getStyle().layers as { type: string; id: string }[]).find((l) => l.type === 'symbol' && !l.id.startsWith('busy-names'))?.id;
     const below = namesOver ? undefined : firstSymbol ?? 'alternates-edge';
     map.moveLayer('busy-names', below);
+    map.moveLayer('busy-names-turned', below);
     map.moveLayer('busy-names-room', below);
     container.current?.setAttribute('data-busy-over', namesOver ? '1' : '0');
   }, [ready, namesOver]);

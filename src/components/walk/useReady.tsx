@@ -1,4 +1,5 @@
 import type { Faced } from '../../lib/moment';
+import { namesNearYou } from '../map/types';
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -198,6 +199,8 @@ export function useReady(props: {
   const mapProps = {
     walkability: wk.draw,
     landing: busy.view,
+    // DC18: names only near you.
+    busyNamesNear: namesNearYou(fix),
     /** A tap on the map closes the Layers panel (ML4). */
     onPress: () => layers.closePanel(),
     trace: NONE,

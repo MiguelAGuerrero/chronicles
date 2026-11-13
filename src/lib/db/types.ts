@@ -109,8 +109,8 @@ export interface Db {
 
   /** Caches street segments derived outside a snap (streets around the walker). */
   /**
-   * Caches street pieces. Written in batches of `SEGMENT_BATCH`, the page drawing between them; once `shouldStop` says so,
-   * no further batch is written (DC10).
+   * Caches street pieces. Written in batches of `SEGMENT_BATCH`, the page drawing between them (DC10). If `shouldStop`
+   * says so before the write starts, nothing is written; a write once started finishes, so no tile is half stored (audit 5).
    */
   putSegments(segments: StreetSegment[], shouldStop?: () => boolean): Promise<void>;
 

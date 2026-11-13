@@ -581,22 +581,17 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
     });
 
-    test('DC10 putSegments: written in batches; once told to stop, no further batch is written', async () => {
+    test('DC10 putSegments: written in batches; a caller stopped before the write starts writes nothing', async () => {
       const db = await fresh();
       const many = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => segment(`${prefix}${i}`));
       await db.putSegments(many('a', SEGMENT_BATCH * 2 + 10));
       assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10, 'every batch written');
-      const db2 = await fresh();
-      let asked = 0;
-      // Told to stop after the first batch is written: the rest are never written.
-      await db2.putSegments(many('b', SEGMENT_BATCH * 2 + 10), () => ++asked > 1);
-      assert.equal((await db2.getSegmentsIn(box)).length, SEGMENT_BATCH);
       const db3 = await fresh();
       await db3.putSegments(many('c', 10), () => true);
       assert.equal((await db3.getSegmentsIn(box)).length, 0, 'stopped before the first batch: nothing written');
     });
 
-    test('explore-dense-city audit 5 putSegments: a write once started finishes, so no tile is left half stored', { todo: 'test first' }, async () => {
+    test('explore-dense-city audit 5 putSegments: a write once started finishes, so no tile is left half stored', async () => {
       const db = await fresh();
       const many = Array.from({ length: SEGMENT_BATCH * 2 + 10 }, (_, i) => segment(`s${i}`));
       let asked = 0;

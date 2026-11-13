@@ -8,7 +8,7 @@ import type { Complex } from '../../complexes/types';
 
 const c = { id: 'arcade', name: 'The Arcade' } as unknown as Complex;
 
-test('explore-dense-city audit 10: an empty read of the area shown clears it; an empty read of another area renders nothing', { todo: 'test first' }, () => {
+test('explore-dense-city audit 10: an empty read of the area shown clears it; an empty read of another area renders nothing', () => {
   const shownA: ShownComplexes = { key: 'A', complexes: [c], partial: true };
   // A read again, now in full and with none: the card must stop showing the old ones.
   assert.deepEqual(nextShown(shownA, 'A', { complexes: [], partial: false }), { key: 'A', complexes: [], partial: false });

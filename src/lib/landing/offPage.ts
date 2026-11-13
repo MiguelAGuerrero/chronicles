@@ -1,5 +1,8 @@
 // @layer shell
+import type { AtlasProfile } from '../atlas/atlas';
+import { computeRingPaced, type RingInput } from '../atlas/ringCompute';
 import { computeReadPaced, type ComputeInput, type ComputeOutput } from './compute';
+import type { WorkerJob } from './workerJobs';
 
 /** The smallest Worker the off-page runner needs, so a test can hand it a fake. */
 export interface WorkerLike {
@@ -26,45 +29,76 @@ export interface OffPagePorts {
  * can't be made (none on this platform, or its file gone after a deploy), errors, answers an error or stays silent past
  * `timeoutMs` leaves the read to the page, which gives the same result (the same `computeRead`).
  */
-export function createOffPage(p: OffPagePorts, timeoutMs = 60000): { run(input: ComputeInput, shouldStop?: () => boolean): Promise<ComputeOutput> } {
-  const onPage = (input: ComputeInput) => computeReadPaced(input, p.pause);
-  const offPage = (input: ComputeInput, w: WorkerLike) =>
-    new Promise<ComputeOutput | null>((resolve) => {
+export function createOffPage(p: OffPagePorts, timeoutMs = 60000): {
+  run(input: ComputeInput, shouldStop?: () => boolean): Promise<ComputeOutput>;
+  ring(input: RingInput, shouldStop?: () => boolean): Promise<AtlasProfile>;
+} {
+  const POLL_MS = 250;
+  const cancelled = () => new Error('Read cancelled');
+  // One worker serves job after job (audit 2: starting one per ring cost 1-2 s before Explore's first pins): a job that
+  // ends well hands it back; one that fails, times out or is cancelled ends it, and the next job makes a new one.
+  let idle: WorkerLike | null = null;
+  const offPage = <O>(job: WorkerJob, w: WorkerLike, stopped: () => boolean) =>
+    new Promise<O | 'failed' | 'stopped'>((resolve) => {
       let done = false;
-      const end = (out: ComputeOutput | null) => {
+      let poll: unknown = null;
+      const end = (out: O | 'failed' | 'stopped') => {
         if (done) return;
         done = true;
         p.clearTimeout(timer);
+        if (poll != null) p.clearTimeout(poll);
         w.onmessage = null;
         w.onerror = null;
-        w.terminate();
+        if (out === 'failed' || out === 'stopped' || idle) w.terminate();
+        else idle = w;
         resolve(out);
       };
-      const timer = p.setTimeout(() => end(null), timeoutMs);
-      w.onmessage = (e) => {
-        const reply = e.data as { ok?: boolean; out?: ComputeOutput } | null;
-        end(reply?.ok && reply.out ? reply.out : null);
+      const timer = p.setTimeout(() => end(stopped() ? 'stopped' : 'failed'), timeoutMs);
+      // audit 9: a read cancelled while its worker runs ends the worker; nothing falls back to the page.
+      const look = () => {
+        poll = null;
+        if (stopped()) return end('stopped');
+        if (!done) poll = p.setTimeout(look, POLL_MS);
       };
-      w.onerror = () => end(null);
+      poll = p.setTimeout(look, POLL_MS);
+      w.onmessage = (e) => {
+        const reply = e.data as { ok?: boolean; out?: O } | null;
+        end(stopped() ? 'stopped' : reply?.ok && reply.out ? reply.out : 'failed');
+      };
+      w.onerror = () => end(stopped() ? 'stopped' : 'failed');
       try {
-        w.postMessage(input);
+        w.postMessage(job);
       } catch {
-        end(null);
+        end('failed');
       }
     });
-  return {
-    async run(input) {
-      let w: WorkerLike | null = null;
+  const runJob = async <I, O>(job: WorkerJob, input: I, paced: (input: I, pause: () => Promise<void>) => Promise<O>, shouldStop?: () => boolean): Promise<O> => {
+    const stopped = () => shouldStop?.() ?? false;
+    if (stopped()) throw cancelled();
+    // On the page, each turn between stages looks again: a cancelled read stops there.
+    const onPage = () => paced(input, async () => {
+      await p.pause();
+      if (stopped()) throw cancelled();
+    });
+    let w: WorkerLike | null = idle;
+    idle = null;
+    if (!w) {
       try {
         w = p.makeWorker?.() ?? null;
       } catch {
         w = null;
       }
-      if (!w) return onPage(input);
-      const out = await offPage(input, w);
-      if (!out) return onPage(input);
-      p.onWorker?.();
-      return out;
-    },
+    }
+    if (!w) return onPage();
+    const out = await offPage<O>(job, w, stopped);
+    if (out === 'stopped' || stopped()) throw cancelled();
+    if (out === 'failed') return onPage();
+    p.onWorker?.();
+    return out;
+  };
+  return {
+    run: (input, shouldStop) => runJob({ job: 'read', input }, input, computeReadPaced, shouldStop),
+    // explore-dense-city audit 2: an atlas ring's profile, off the page as a read is.
+    ring: (input, shouldStop) => runJob({ job: 'ring', input }, input, computeRingPaced, shouldStop),
   };
 }

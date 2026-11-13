@@ -133,24 +133,30 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
     for (const s of r.analysis.strips) {
       const strip = { lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale };
       heavy.set(strip, s.weight);
-      place(v.strips, drawn, strip, i, stale);
+      place(v.strips, drawn, strip, i, stale, true);
     }
   }
-  // DC4: heaviest first, by the weight the analysis measured; only the order says so, never a number.
-  const byWeight = (a: object, b: object) => (heavy.get(b) ?? 0) - (heavy.get(a) ?? 0);
+  // DC4, DC19: a current area's before a stale one's, then heaviest first, by the weight the analysis measured; only the
+  // order says so, never a number.
+  const byWeight = (a: { stale?: boolean }, b: { stale?: boolean }) => Number(!!a.stale) - Number(!!b.stale) || (heavy.get(b) ?? 0) - (heavy.get(a) ?? 0);
   v.strips.sort(byWeight);
   v.labels.sort(byWeight);
   return v;
 }
 
-/** Two remembered areas may cover the same street; its name is drawn once, not once per area (fix street-label-double). */
+/**
+ * Two remembered areas may cover the same street, and one area may find two busy stretches of it: its name is drawn once
+ * within this distance (fix street-label-double; explore-dense-city audit 4, the owner: once per 300 m).
+ */
 const SAME_LABEL_M = 300;
 interface Named { name: string; at: LngLat }
 interface Drawn extends Named { row: number; stale: boolean; list: Named[]; item: Named }
 
 /** Adds a label unless another row already names it nearby (strip or pocket); a current row's label replaces a stale row's. */
-function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number, stale: boolean) {
-  const dup = drawn.find((d) => d.row !== row && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);
+function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number, stale: boolean, street = false) {
+  // A street's name once whether one area or two found it (explore-dense-city audit 4): an area's strips come heaviest
+  // first, so the first placed keeps it. A pocket's name stays per area (two "A busy pocket"s are two pockets).
+  const dup = drawn.find((d) => (street || d.row !== row) && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);
   if (dup) {
     if (!dup.stale || stale) return;
     dup.list.splice(dup.list.indexOf(dup.item), 1);

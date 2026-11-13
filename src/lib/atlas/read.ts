@@ -1,30 +1,25 @@
 // @layer shell
-import type { CollectedFeatures } from '../../components/map/types';
 import { readOverture } from '../activity/overture';
-import { activityFromTilePois, mergeSources, type ActivityPoint } from '../activity/points';
 import { outlineOf } from '../areas/borders';
 import { outlines } from '../areas/outlineReader';
 import { listable, withOutlines } from '../areas/outlines';
-import type { PlaceCandidate, TownOutline } from '../areas/types';
+import type { PlaceCandidate } from '../areas/types';
 import { hamletsFromTiles, placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
-import { fetchTiles } from '../discovery/tileFetch';
-import { placesFromTilePois, transitFromTilePois } from '../discovery/tilePois';
+import { fetchTileBodies, fetchTiles } from '../discovery/tileFetch';
 import { exploreBusy } from '../explore/exploreRun';
 import { boundsOf, distanceM } from '../geo';
-import { analyzeArea, LANDING_RULES } from '../landing/analyze';
-import { deriveSegments } from '../streets';
-import { tilesIn } from '../tileMath';
+import { TILE_ZOOM, tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, keptProfile, newRows, withNear, ringOf, sketchOf, SKETCH,
-  type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead, type Within,
+  ATLAS_CODE, ATLAS_RULES, keptProfile, newRows, withNear, SKETCH,
+  type AtlasArea, type AtlasLevel, type NearRead,
 } from './atlas';
-import { extentTiles, inExtent } from './extent';
+import { extentTiles } from './extent';
 import { borderReach, isWard, listingBy, townHoods } from './hoods';
-import { findPockets, type Pocket } from './pockets';
 import { placesArchive } from '../discovery/archive';
-import type { ArchiveRead } from '../discovery/archive/shell';
+import { type Extent } from './profile';
+import { offPage } from '../landing/runOffPage';
 
 /*
  * The atlas's reads (AT1, AT5, AT14): the tiles are fetched and decoded in
@@ -116,68 +111,7 @@ export function readNear(
   });
 }
 
-/** A town's whole outline, and whether the read took all its tiles (TP1-TP3). */
-export interface Extent {
-  outline: Pick<TownOutline, 'polygons' | 'bbox'>;
-  partial: boolean;
-}
-
-/**
- * What one read keeps (AT4, AT6, AT7, AD14), from decoded tiles and Overture's places for the same
- * tiles (null without them, AD7). Pure apart from its inputs. The bars stay OpenStreetMap's (AD2), and the
- * findable kinds count only markable places (AG1). With an `extent` (a town's whole outline, TP1) the bars
- * and marks count across it, its pockets of activity are found (TP4) and its picture is drawn around the
- * busiest; without one, the 800 m ring around the point.
- */
-export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null, extent: Extent | null = null, archive: ArchiveRead = null, finds: { key: string; name: string; at: LngLat }[] = []) {
-  const segments = deriveSegments(feats.roads, feats.names, build);
-  const places = placesFromTilePois(feats.pois, build);
-  const within: Within = extent ? (p) => inExtent(p, extent.outline) : (p) => distanceM(p, at) <= ATLAS_RULES.ringM;
-  // PW10: the map's places and the archive's (the owner's edits are already in it); thin from the map's alone.
-  const counted = ringOf(places, archive?.places ?? null, at, within, finds, feats.landcover);
-  const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
-  const towns = placesFromTiles(feats.places);
-  const transit = transitFromTilePois(feats.pois);
-  // The analysis reads the landing radius around its centre: the segments near it are all it needs.
-  const analyze = (centre: LngLat) =>
-    analyzeArea({
-      centre, points, towns, transit,
-      segments: extent ? segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, centre) <= LANDING_RULES.radiusM + 300))) : segments,
-    });
-  // TP4: a graded town's pockets, each named for the busiest street through it.
-  const pockets: Pocket[] = extent ? findPockets(points.filter((p) => within(p.at))) : [];
-  let first: ReturnType<typeof analyze> | null = null;
-  const stripsAt: { name: string; peak: LngLat }[] = [];
-  const named = pockets.map((pocket, i) => {
-    const a = analyze(pocket.at);
-    if (i === 0) first = a;
-    const near = a.strips.find((s) => distanceM(s.peak, pocket.at) <= 800 && within(s.peak));
-    if (near) stripsAt.push({ name: near.name, peak: near.peak });
-    return { ...pocket, name: near?.name ?? null };
-  });
-  const view = named[0]?.at ?? at;
-  const analysis = first ?? analyze(at);
-  const strips = extent ? stripsAt : analysis.strips.filter((s) => within(s.peak)).map((s) => ({ name: s.name, peak: s.peak }));
-  // What the frame can show: a little past the ring's corners.
-  const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
-  const profile: AtlasProfile = {
-    steps: counted.steps,
-    thin: counted.thin,
-    strips: [...new Set(strips.map((s) => s.name))],
-    stripAt: strips[0]?.peak ?? (named[0]?.at ?? null),
-    marks: counted.marks,
-    sketch: sketchOf({
-      centre: view,
-      segments: segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, view) <= frameM))),
-      graded: analysis.graded,
-      parks: places.filter((p) => p.category === 'parks').map((p) => p.at),
-    }),
-    overture: overture?.release ?? null,
-    archive: archive?.version ?? null,
-    ...(extent ? { extent: 'outline' as const, partial: extent.partial, pockets: named, ...(named[0] ? { sketchAt: view } : {}) } : { extent: 'ring' as const }),
-  };
-  return { profile, cache: { segments, places } };
-}
+export { profileFrom, type Extent } from './profile';
 
 /** AT5: reads one area's ring, keeps its profile, and caches its streets and places like any read. */
 export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<AtlasArea | null> {
@@ -209,19 +143,22 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     }
     // Overture's places for the same tiles (AD3); without them the ring is measured from the map's alone (AD7).
     // And the places archive's (PW10); without it the findable kinds are counted from the map's places (PW3).
-    const [f, overture, archive] = await Promise.all([
-      fetchTiles(url, tiles, undefined, shouldStop).catch(() => null),
+    const [bodies, overture, archive] = await Promise.all([
+      fetchTileBodies(url, tiles, undefined, shouldStop).catch(() => null),
       readOverture(tiles, shouldStop),
       placesArchive.read(tiles, area.at, shouldStop).catch(() => null),
     ]);
     // Audit 1: a found place keeps its find's key, so the atlas shows it found.
     const finds = archive ? await db.listFinds().catch(() => []) : [];
     if (shouldStop()) return null;
-    if (!f) return failed();
+    if (!bodies) return failed();
     try {
       // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
-      // rewritten into the shared caches, so the write queue stays free for the walk.
-      const { profile } = profileFrom(area.at, f, area.build, overture, extent, archive, finds);
+      // rewritten into the shared caches, so the write queue stays free for the walk. The profile is computed off the
+      // page on the web, as a Busy read is (explore-dense-city audit 2: it held the page 600-700 ms a ring). Once the tiles
+      // are in, the profile is computed and kept whatever stops the loop's step, as when it was computed in one turn: the
+      // atlas loop restarts its step on any change, and a ring stopped mid-compute was never read at all.
+      const profile = await offPage.ring({ bodies, tiles, zoom: TILE_ZOOM, build: area.build, at: area.at, overture, extent, archive, finds });
       if (outlineRetry) profile.outlineRetry = true;
       // read_at moves on either way, so a ring Overture didn't answer for waits before asking again.
       const row: AtlasArea = { ...area, profile: keptProfile(area.profile, profile), read_at: Date.now(), failed_at: null };

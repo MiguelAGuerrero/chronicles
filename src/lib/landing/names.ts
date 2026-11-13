@@ -23,6 +23,8 @@ export function alongAngle(lines: LngLat[][], at: LngLat): number {
   let bestD = Infinity;
   for (const l of lines)
     for (let i = 1; i < l.length; i++) {
+      // A piece of no length has no direction (explore-dense-city audit 12).
+      if (l[i - 1][0] === l[i][0] && l[i - 1][1] === l[i][1]) continue;
       const d = pointSegmentDist(at, l[i - 1], l[i]);
       if (d < bestD) [best, bestD] = [[l[i - 1], l[i]], d];
     }

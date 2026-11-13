@@ -17,7 +17,7 @@ const analysis = (strips: ReturnType<typeof strip>[]): AreaAnalysis => ({
 });
 const row = (centre: LngLat, a: AreaAnalysis, build = 'b1'): LandingRow => ({ key: landingKey(centre), centre, analysis: a, build, rules: LANDING_VERSION, analyzed_at: 1 });
 
-test('explore-dense-city audit 4: two busy stretches of one street within 300 m in one area carry one name; farther apart, one each', { todo: 'test first' }, () => {
+test('explore-dense-city audit 4: two busy stretches of one street within 300 m in one area carry one name; farther apart, one each', () => {
   // 23 Street busy at x 0-200 and again at x 470-670 (peaks 470 m apart, the nearer ends 270 m): one area read both.
   const near = landingView([row(O, analysis([strip('23 Street', 0, 0, 20), strip('23 Street', 270, 0, 12)]))], 'b1');
   assert.equal(busyNames(near).filter((n) => n.name === '23 Street').length, 1);
@@ -27,7 +27,7 @@ test('explore-dense-city audit 4: two busy stretches of one street within 300 m 
   assert.deepEqual(busyNames(near)[0].at, strip('23 Street', 0, 0, 20).peak);
 });
 
-test('explore-dense-city audit 12: a zero-length piece never decides a name\'s turn', { todo: 'test first' }, () => {
+test('explore-dense-city audit 12: a zero-length piece never decides a name\'s turn', () => {
   const at = m(0, 150);
   // A north-south street whose first piece is its label point given twice: the zero-length piece comes first.
   assert.equal(alongAngle([[at, at, m(0, 300)]], at), -90);
@@ -35,7 +35,7 @@ test('explore-dense-city audit 12: a zero-length piece never decides a name\'s t
   assert.equal(alongAngle([[at, at]], at), 0, 'nothing but a point: level');
 });
 
-test('DC19: where names compete, a current area\'s names come before a stale area\'s, the heavier first within each', { todo: 'test first' }, () => {
+test('DC19: where names compete, a current area\'s names come before a stale area\'s, the heavier first within each', () => {
   const stale = row(m(3000, 0), analysis([strip('Old Heavy Street', 3000, 0, 50)]), 'b0');
   const current = row(O, analysis([strip('Light Street', 0, 0, 5), strip('Heavy Street', 0, 100, 30)]));
   const names = busyNames(landingView([stale, current], 'b1'));

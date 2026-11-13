@@ -351,9 +351,10 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     },
 
     async putSegments(segments, shouldStop) {
-      // DC10: one queued write per batch, so other writes can go between them; none once the caller says stop.
+      // DC10: one queued write per batch, so other writes can go between them. A caller stopped before the write starts
+      // writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
+      if (shouldStop?.()) return;
       for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
-        if (shouldStop?.()) return;
         const batch = segments.slice(i, i + SEGMENT_BATCH);
         await write(async (t) => {
           const seg = await t.prepareAsync(

@@ -19,7 +19,7 @@ const view: LandingView = {
   ],
 };
 
-test('explore-dense-city audit 1: only a near-level name may slide off its point; a turned one stays centred on its street', { todo: 'test first' }, () => {
+test('explore-dense-city audit 1: only a near-level name may slide off its point; a turned one stays centred on its street', () => {
   const l = busyNameLayers() as unknown as { layout: Record<string, unknown>; filter: unknown[]; turned: { layout: Record<string, unknown>; filter: unknown[] } };
   assert.deepEqual(l.layout['text-variable-anchor'], ['center', 'left', 'right']);
   assert.equal(l.turned.layout['text-variable-anchor'], undefined, 'a turned name never slides: maplibre would shift it across the street');
@@ -30,17 +30,17 @@ test('explore-dense-city audit 1: only a near-level name may slide off its point
   assert.ok(JSON.stringify(l.turned.filter).includes('angle'));
 });
 
-test('explore-dense-city audit 6: off Explore, native puts the busy lines and then the names under the base labels, names over lines', { todo: 'test first' }, () => {
+test('explore-dense-city audit 6: off Explore, native puts the busy lines and then the names under the base labels, names over lines', () => {
   assert.deepEqual(busyLayerOrder(false), { lines: BASE_FIRST_LABEL, names: BASE_FIRST_LABEL });
   assert.deepEqual(busyLayerOrder(true), { lines: BASE_FIRST_LABEL, names: undefined }, 'on Explore the names go over everything');
 });
 
-test('explore-dense-city audit 8: with the Busy layer off, no names and no rooms: nothing hides a base label', { todo: 'test first' }, () => {
+test('explore-dense-city audit 8: with the Busy layer off, no names and no rooms: nothing hides a base label', () => {
   const off = busyNamesGeoJSON(null, { name: 'Mount Hill', at: at(0, 0) }, [at(10, 10)]);
   assert.deepEqual(off.features, []);
 });
 
-test('explore-dense-city audit 11: a control\'s rectangle is covered by room points no more than 40 px apart, inside it', { todo: 'test first' }, () => {
+test('explore-dense-city audit 11: a control\'s rectangle is covered by room points no more than 40 px apart, inside it', () => {
   const rect = { x: 10, y: 20, w: 140, h: 60 };
   const cells = roomCells(rect);
   assert.ok(cells.length >= 4);
@@ -51,14 +51,14 @@ test('explore-dense-city audit 11: a control\'s rectangle is covered by room poi
       assert.ok(cells.some(([cx, cy]) => Math.abs(cx - x) <= 20 && Math.abs(cy - y) <= 20), `${x},${y} uncovered`);
 });
 
-test('explore-dense-city audit 13: the font fixture ships its licence and copyright', { todo: 'test first' }, () => {
+test('explore-dense-city audit 13: the font fixture ships its licence and copyright', () => {
   const dir = path.join(__dirname, '..', '..', '..', '..', 'scripts', 'e2e', 'fixtures', 'fonts');
   const ofl = fs.readFileSync(path.join(dir, 'OFL.txt'), 'utf8');
   assert.match(ofl, /SIL OPEN FONT LICENSE Version 1\.1/);
   assert.match(ofl, /Copyright .*Noto/);
 });
 
-test('DC18: off Explore, names only within 800 m of you; the lines are untouched', { todo: 'test first' }, () => {
+test('DC18: off Explore, names only within 800 m of you; the lines are untouched', () => {
   const near = busyNamesGeoJSON(view, null, [], { at: at(0, 0), m: 800 });
   assert.deepEqual(near.features.map((f) => f.properties?.name).sort(), ['Level Street', 'Upright Avenue']);
   assert.equal(busyNamesGeoJSON(view).features.length, 3, 'Explore passes no limit here (EC7 has its own)');

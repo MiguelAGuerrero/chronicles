@@ -17,6 +17,7 @@ import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
 import { LayersControl } from '../../components/LayersControl';
 import { layerNotes } from '../../lib/layers/notes';
+import { createMotion } from '../../lib/layers/motion';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
@@ -70,6 +71,8 @@ const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const BUSY_NAMES_ZOOM = 13;
+/** audit 11: Explore's controls over the map, whose room no busy name takes. */
+const NAMES_CLEAR_OF = ['atlas-title-card', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
@@ -328,15 +331,10 @@ export default function Explore() {
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the busy read waits for a settle.
-  const motion = useRef({ moving: false, waiting: [] as (() => void)[] });
-  const onMoveState = useCallback((moving: boolean) => {
-    motion.current.moving = moving;
-    if (!moving) for (const wake of motion.current.waiting.splice(0)) wake();
-  }, []);
-  const stillness = useCallback(() => ({
-    moving: motion.current.moving,
-    settled: () => new Promise<void>((resolve) => { motion.current.waiting.push(resolve); }),
-  }), []);
+  // A map taken down mid-move reports still (audit 7), so a read waiting for its settle goes on.
+  const [motion] = useState(createMotion);
+  const onMoveState = useCallback((moving: boolean) => motion.set(moving), [motion]);
+  const stillness = useCallback(() => ({ moving: motion.moving, settled: () => motion.settled() }), [motion]);
   const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
@@ -593,6 +591,7 @@ export default function Explore() {
           landing={busyView}
           busyNamesOver
           busyNamesReserve={busyReserve}
+          busyNamesClearOf={NAMES_CLEAR_OF}
           onMoveState={onMoveState}
           onLongPress={(at) => {
             if (looking) return;

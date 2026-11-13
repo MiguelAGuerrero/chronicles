@@ -1,4 +1,5 @@
 // @layer view
+import { nextShown } from './shown';
 import { useEffect, useRef, useState } from 'react';
 import { ensureOvertureRelease } from '../activity/overture';
 import type { LngLat } from '../types';
@@ -56,10 +57,8 @@ export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; 
         return;
       }
       failedAt.current = null;
-      // explore-dense-city DC12: an area with none to show changes nothing on screen (another key already reads as none),
-      // so it sets no state and renders nothing; one with complexes is new to show and renders once.
-      if (!r.complexes.length && !r.partial) return;
-      setState({ key, complexes: r.complexes, partial: r.partial });
+      // explore-dense-city DC12, audit 10: the same state when nothing on screen changes, so React renders nothing.
+      setState((prev) => nextShown(prev, key, r));
     })();
     return () => {
       live = false;

@@ -539,9 +539,10 @@ export const db: Db = {
   },
 
   async putSegments(segments, shouldStop) {
-    // DC10: one transaction per batch, a turn for the page between them, and none once the caller says stop.
+    // DC10: one transaction per batch, a turn for the page between them. A caller that has stopped before the write
+    // starts writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
+    if (shouldStop?.()) return;
     for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
-      if (shouldStop?.()) return;
       if (i) await new Promise((resolve) => setTimeout(resolve, 0));
       const tx = (await conn()).transaction('street_segment', 'readwrite');
       const st = tx.objectStore('street_segment');

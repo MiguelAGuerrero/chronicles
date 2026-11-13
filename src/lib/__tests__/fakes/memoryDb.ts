@@ -370,8 +370,8 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
 
     async putSegments(ss, shouldStop) {
+      if (shouldStop?.()) return;
       for (let i = 0; i < ss.length; i += SEGMENT_BATCH) {
-        if (shouldStop?.()) return;
         for (const x of ss.slice(i, i + SEGMENT_BATCH)) segments.put({ ...x, tile: segmentTile(x) });
       }
     },

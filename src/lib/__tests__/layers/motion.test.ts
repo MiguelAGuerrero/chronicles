@@ -5,7 +5,7 @@ import { createMotion } from '../../layers/motion';
 
 // explore-dense-city audit 7, written before the fix.
 
-test('explore-dense-city audit 7: a map taken down mid-ease does not leave the busy read waiting', { todo: 'test first' }, async () => {
+test('explore-dense-city audit 7: a map taken down mid-ease does not leave the busy read waiting', async () => {
   const motion = createMotion();
   motion.set(true);
   let woke = 0;

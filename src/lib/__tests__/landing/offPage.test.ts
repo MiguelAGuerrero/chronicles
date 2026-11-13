@@ -1,7 +1,11 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { computeRead, handleComputeMessage, type ComputeInput } from '../../landing/compute';
+import { computeRead, type ComputeInput } from '../../landing/compute';
+import { handleWorkerMessage } from '../../landing/workerJobs';
+import { profileFrom } from '../../atlas/profile';
+import type { RingInput } from '../../atlas/ringCompute';
+import { decodeTile } from '../../discovery/tileDecode';
 import { createOffPage, type OffPagePorts, type WorkerLike } from '../../landing/offPage';
 import { tileAt } from '../../tileMath';
 import type { LngLat } from '../../types';
@@ -39,7 +43,7 @@ function ports(makeWorker: OffPagePorts['makeWorker']) {
 const echo = (): WorkerLike => {
   const w: WorkerLike = {
     onmessage: null, onerror: null, terminate() {},
-    postMessage(data) { queueMicrotask(() => w.onmessage?.({ data: structuredClone(handleComputeMessage(structuredClone(data))) })); },
+    postMessage(data) { queueMicrotask(() => w.onmessage?.({ data: structuredClone(handleWorkerMessage(structuredClone(data))) })); },
   };
   return w;
 };
@@ -73,7 +77,7 @@ test('DC8: a worker that can\'t start, errors, answers an error or stays silent 
   assert.ok(ended, 'the silent worker is ended');
 });
 
-test('explore-dense-city audit 9: a cancelled read ends its worker and never computes on the page', { todo: 'test first' }, async () => {
+test('explore-dense-city audit 9: a cancelled read ends its worker and never computes on the page', async () => {
   let ended = false;
   let paused = 0;
   const silent = (): WorkerLike => ({ onmessage: null, onerror: null, terminate() { ended = true; }, postMessage() {} });
@@ -92,4 +96,37 @@ test('explore-dense-city audit 9: a cancelled read ends its worker and never com
   let made = 0;
   await assert.rejects(createOffPage(ports(() => { made++; return silent(); }).p).run(input(), () => true), /cancelled/i);
   assert.equal(made, 0);
+});
+
+test('explore-dense-city audit 2: an atlas ring computed off the page gives profileFrom\'s profile, and on the page too', async () => {
+  const ringInput = (): RingInput => {
+    const i = input();
+    return { bodies: i.bodies, tiles: i.tiles, zoom: 14, build: 'b1', at: O, overture: null, extent: null, archive: null, finds: [] };
+  };
+  const feats = decodeTile(new Uint8Array(ringInput().bodies[0]), 14, t.x, t.y);
+  const want = profileFrom(O, feats, 'b1', null, null, null, []).profile;
+  const f = ports(echo);
+  assert.deepEqual(await createOffPage(f.p).ring(ringInput()), want);
+  assert.equal(f.workers(), 1, 'off the page');
+  assert.deepEqual(await createOffPage(ports(null).p).ring(ringInput()), want, 'no worker: the page computes the same');
+});
+
+test('explore-dense-city audit 2: one worker serves read after read; a failed or cancelled one is ended and the next gets a new one', async () => {
+  let made = 0;
+  let ended = 0;
+  const counting = (): WorkerLike => {
+    made++;
+    const w = echo();
+    const end = w.terminate;
+    w.terminate = () => { ended++; end.call(w); };
+    return w;
+  };
+  const f = ports(counting);
+  const off = createOffPage(f.p);
+  await off.run(input());
+  await off.run(input());
+  assert.equal(made, 1, 'the second read reuses the first one\'s worker');
+  assert.equal(ended, 0);
+  await assert.rejects(off.run(input(), () => true), /cancelled/i);
+  assert.equal(made, 1, 'cancelled before it starts: no worker asked');
 });
