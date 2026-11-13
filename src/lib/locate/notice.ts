@@ -6,12 +6,12 @@ export interface LocateError {
   message: string;
   /** A phone's Settings hold the permission: the banner offers Open Settings. */
   openSettings?: boolean;
-  /** `info`: a quiet notice in ink, for a choice the person made; `error`: a fault. */
+  /** `info`: a quiet notice (the cream banner, its words in dark amber), for a choice the person made; `error`: a fault. */
   tone: 'info' | 'error';
 }
 
 /**
- * Location refused, said as a quiet notice in ink, not a fault (T17, decision 0154): the person turned it off, and
+ * Location refused, said as a quiet notice, not a fault (T17, decision 0154): the person turned it off, and
  * the notice says where to turn it back on. A browser keeps the permission per site; a phone keeps it in Settings,
  * which the banner opens. The phone's line is the recorder's start's, with Locate's own end.
  */
@@ -19,6 +19,20 @@ export const LOCATION_OFF = {
   web: 'Location is off for this site. Turn it on in the browser’s settings to see where you are.',
   native: 'Location is turned off for Chronicles. Turn it on in Settings to find your position.',
 } as const;
+
+/**
+ * Start refused (T26, decision 0162): Locate's line with the recorder's own end, said as quietly, in the notice on the
+ * ready screen and in the walk's "Not recording" notice. A phone's Settings hold the permission, which the notice opens.
+ */
+export const START_OFF = {
+  web: 'Location is off for this site. Turn it on in the browser’s settings to record a walk.',
+  native: 'Location is turned off for Chronicles. Turn it on in Settings to record a walk.',
+} as const;
+
+/** What the recorder's start says when location is refused: a quiet notice, with Open Settings on a phone. */
+export function startOffNotice(platform: 'web' | 'native'): LocateError {
+  return platform === 'web' ? { message: START_OFF.web, tone: 'info' } : { message: START_OFF.native, openSettings: true, tone: 'info' };
+}
 
 /**
  * The banner for a Locate tap that found nothing (QL11): refused is the quiet notice above, with Open Settings where

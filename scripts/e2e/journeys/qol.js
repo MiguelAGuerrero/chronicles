@@ -1011,30 +1011,37 @@ async function run(h) {
     // tend map T17 (decision 0154): a refused location is a quiet notice in ink, never the red fault, in the owner's words,
     // every word of it on screen; and with no fix and no tiles drawn, no scale bar over the blank world ("2,000 km").
     const T17_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to see where you are.';
+    // tend recording T26 (decision 0162): Start's refusal, Locate's line with its own end.
+    const T26_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to record a walk.';
+    const saidIn = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), id);
+    // The quiet notice holding `words`, read from the page: its role and live region, its colours, and each line of its
+    // words from the browser's own line boxes (getClientRects), none cut.
+    const readNotice = (page, words) => page.evaluate((words) => {
+      const shown = (el) => !el.closest('[aria-hidden=true]') && el.getBoundingClientRect().width > 0;
+      const banner = [...document.querySelectorAll('[data-testid=lift-in]')].filter(shown).find((b) => b.innerText.includes(words));
+      const bars = [...document.querySelectorAll('[data-testid=scale-bar]')].filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.innerText);
+      if (!banner) return { banner: null, bars, texts: [...document.querySelectorAll('[data-testid=lift-in]')].map((b) => b.innerText) };
+      const text = [...banner.querySelectorAll('div')].find((d) => d.innerText.trim() === words && !d.querySelector('div'));
+      const box = banner.getBoundingClientRect();
+      // Each line of the words, from the browser's own line boxes: none cut by the banner or the screen's edge.
+      const range = document.createRange();
+      if (text) range.selectNodeContents(text);
+      const lines = text ? [...range.getClientRects()].filter((q) => q.width > 0) : [];
+      const cut = lines.filter((q) => q.left < box.left - 0.5 || q.right > box.right + 0.5 || q.top < box.top - 0.5 || q.bottom > box.bottom + 0.5 || q.right > window.innerWidth || q.left < 0);
+      const textColor = text ? getComputedStyle(text).color : null;
+      return {
+        banner: { role: banner.getAttribute('role'), live: banner.getAttribute('aria-live'), bg: getComputedStyle(banner).backgroundColor, color: textColor },
+        lines: lines.length,
+        cut: cut.length,
+        bars,
+      };
+    }, words);
+    const isQuiet = (b) => !!b && b.role !== 'alert' && b.live === 'polite' && b.bg === 'rgb(255, 247, 230)' && b.color !== 'rgb(180, 35, 24)';
     const deniedNotice = async (page, where, { blank }) => {
-      const seen = await page.evaluate((words) => {
-        const shown = (el) => !el.closest('[aria-hidden=true]') && el.getBoundingClientRect().width > 0;
-        const banner = [...document.querySelectorAll('[data-testid=lift-in]')].filter(shown).find((b) => b.innerText.includes(words));
-        const bars = [...document.querySelectorAll('[data-testid=scale-bar]')].filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.innerText);
-        if (!banner) return { banner: null, bars, texts: [...document.querySelectorAll('[data-testid=lift-in]')].map((b) => b.innerText) };
-        const text = [...banner.querySelectorAll('div')].find((d) => d.innerText.trim() === words && !d.querySelector('div'));
-        const box = banner.getBoundingClientRect();
-        // Each line of the words, from the browser's own line boxes: none cut by the banner or the screen's edge.
-        const range = document.createRange();
-        if (text) range.selectNodeContents(text);
-        const lines = text ? [...range.getClientRects()].filter((q) => q.width > 0) : [];
-        const cut = lines.filter((q) => q.left < box.left - 0.5 || q.right > box.right + 0.5 || q.top < box.top - 0.5 || q.bottom > box.bottom + 0.5 || q.right > window.innerWidth || q.left < 0);
-        const textColor = text ? getComputedStyle(text).color : null;
-        return {
-          banner: { role: banner.getAttribute('role'), live: banner.getAttribute('aria-live'), bg: getComputedStyle(banner).backgroundColor, color: textColor },
-          lines: lines.length,
-          cut: cut.length,
-          bars,
-        };
-      }, T17_WORDS);
+      const seen = await readNotice(page, T17_WORDS);
       const b = seen.banner;
-      // The error banner is #fdecea with the danger red's text; the quiet notice is the app's notice, ink on cream (#fff7e6).
-      check(!!b && b.role !== 'alert' && b.live === 'polite' && b.bg === 'rgb(255, 247, 230)' && b.color !== 'rgb(180, 35, 24)' && seen.lines >= 1 && seen.cut === 0,
+      // The error banner is #fdecea with the danger red's text; the quiet notice is the app's notice, dark amber on cream (#fff7e6).
+      check(isQuiet(b) && seen.lines >= 1 && seen.cut === 0,
         `tend map T17: ${where}, Locate refused says "${T17_WORDS}" as a quiet notice, not an alert in red, every line whole (${JSON.stringify(seen)})`);
       if (blank) check(seen.bars.length === 0, `tend map T17: ${where}, with no fix and no tiles drawn, no scale bar over a blank world (${JSON.stringify(seen.bars)})`);
       else check(seen.bars.length === 1, `tend map T17: ${where}, with no fix but the tiles drawn, the scale bar stays (${JSON.stringify(seen.bars)})`);
@@ -1064,27 +1071,55 @@ async function run(h) {
         await pg2.waitForTimeout(300);
       }
       await pg2.waitForTimeout(800);
+      // tend recording T26 (decision 0162): Start refused says Locate's line with its own end, quietly, in the same slot,
+      // and the polite region kept on screen says it to a screen reader (as tend map audit 12).
       await pg2.click('[data-testid=start]');
-      const chip = pg2.locator('[data-testid=status-chip]');
-      await chip.waitFor({ timeout: 20000 }).catch(() => {});
-      const onWalk = /\/walk$/.test(new URL(pg2.url()).pathname);
-      if (onWalk && (await chip.count())) {
-        const noticeText = 'Location permission was denied';
-        const notice = () => pg2.locator('[data-testid=lift-in]', { hasText: noticeText });
-        const first = (await notice().count()) > 0;
-        const dismiss = pg2.locator('[data-testid=banner-dismiss]');
-        if (await dismiss.count()) await dismiss.first().click();
-        await pg2.waitForTimeout(400);
-        const gone = (await notice().count()) === 0;
-        await chip.first().click();
-        await pg2.waitForTimeout(600);
-        check((await chip.first().getAttribute('role')) === 'button' && (await chip.first().getAttribute('aria-label')) === 'Not recording. Why?' && first && gone && (await notice().count()) === 1,
-          `qol QL19: denied, the Not recording chip is a button whose tap brings the notice back (first ${first}, dismissed ${gone}, back ${await notice().count()})`);
-      } else {
-        const banner = await pg2.locator('[data-testid=lift-in]').allInnerTexts();
-        check(banner.some((t) => /Location permission was denied/.test(t)), `qol QL19: denied, Start explains where to allow location (walk opened: ${onWalk}; ${JSON.stringify(banner)})`);
-      }
+      await pg2.waitForTimeout(3000);
+      const startSeen = await readNotice(pg2, T26_WORDS);
+      const startSaid = await saidIn(pg2, 'ready-said');
+      await shot(pg2, 'qol-13b-start-denied');
+      check(isQuiet(startSeen.banner) && startSeen.lines >= 1 && startSeen.cut === 0 && startSaid.length === 1 && startSaid[0].text === T26_WORDS
+        && (await pg2.getByText(/Location permission was denied/).count()) === 0,
+        `tend recording T26: Navigate at 390, Start refused says "${T26_WORDS}" as a quiet notice, not an alert in red, every line whole, and the live region says it (${JSON.stringify({ ...startSeen, said: startSaid })})`);
       await c2.close();
+    }
+
+    // QL19 and tend recording T26: a walk whose location is refused once it is open (permission taken back, the page
+    // reloaded) shows the "Not recording" chip, a button whose tap brings the recorder's quiet notice back after a
+    // dismissal, in Start's words; the walk's live region says it. At 390 and 320.
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      const { c: c5, pg: pg5 } = await freshPage(`qol-denied-walk-${w}`);
+      await pg5.setViewportSize({ width: w, height: hgt });
+      await pg5.goto(navUrl);
+      await pg5.waitForSelector('[data-testid=start]');
+      await pg5.waitForTimeout(1500);
+      await pg5.click('[data-testid=start]');
+      await pg5.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg5.waitForTimeout(1500);
+      await c5.clearPermissions();
+      await pg5.reload();
+      const chip = pg5.locator('[data-testid=status-chip]');
+      await chip.waitFor({ timeout: 20000 }).catch(() => {});
+      await pg5.waitForTimeout(1500);
+      const notice = () => pg5.locator('[data-testid=lift-in]', { hasText: T26_WORDS });
+      const firstSeen = await readNotice(pg5, T26_WORDS);
+      const firstSaid = await saidIn(pg5, 'walk-said');
+      await shot(pg5, `qol-13c-walk-not-recording-${w}`);
+      const dismiss = pg5.locator('[data-testid=banner-dismiss]');
+      if (await dismiss.count()) await dismiss.first().click();
+      await pg5.waitForTimeout(400);
+      const gone = (await notice().count()) === 0;
+      const goneSaid = await saidIn(pg5, 'walk-said');
+      if (await chip.count()) await chip.first().click();
+      await pg5.waitForTimeout(600);
+      const back = await notice().count();
+      const backSaid = await saidIn(pg5, 'walk-said');
+      check((await chip.count()) === 1 && (await chip.first().getAttribute('role')) === 'button' && (await chip.first().getAttribute('aria-label')) === 'Not recording. Why?' && !!firstSeen.banner && gone && back === 1,
+        `qol QL19: ${w}, denied, the Not recording chip is a button whose tap brings the notice back (first ${!!firstSeen.banner}, dismissed ${gone}, back ${back})`);
+      check(isQuiet(firstSeen.banner) && firstSeen.lines >= 1 && firstSeen.cut === 0
+        && firstSaid.length === 1 && firstSaid[0].live === 'polite' && firstSaid[0].text === T26_WORDS && goneSaid[0]?.text === '' && backSaid[0]?.text === T26_WORDS,
+        `tend recording T26: the walk at ${w}, Not recording says "${T26_WORDS}" quietly, every line whole, and the live region says it each time it shows (${JSON.stringify({ ...firstSeen, said: [firstSaid, goneSaid, backSaid] })})`);
+      await c5.close();
     }
 
     // tend map T17: Locate refused on Navigate and Explore, at 390 and 320, with no tiles drawn (the tile host's style

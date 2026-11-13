@@ -149,6 +149,8 @@ type Notice = {
   forPause?: number;
   /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
   maps?: { at: LngLat; label: string };
+  /** A quiet refusal (T26): no alert, so the walk's live region says it to a screen reader. */
+  said?: boolean;
 };
 
 
@@ -336,7 +338,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }
         if (raisedError.current === s.message) return;
         raisedError.current = s.message;
-        setNotice({ message: s.message, tone: 'error', openSettings: s.openSettings, sticky: true });
+        // Location refused is a quiet notice (T26), said as Navigate's is (tend map audit 12): the live region below on
+        // web, the call on a phone.
+        const quiet = s.tone === 'info';
+        setNotice({ message: s.message, tone: s.tone ?? 'error', openSettings: s.openSettings, sticky: true, said: quiet });
+        if (quiet) AccessibilityInfo.announceForAccessibility(s.message);
       }),
     [],
   );
@@ -1243,6 +1249,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
       )}
 
+      {/* T26, as tend map audit 12: kept mounted, so a quiet refusal on the walk is read as its words arrive. */}
+      {Platform.OS === 'web' ? <Text testID="walk-said" accessibilityLiveRegion="polite" style={styles.said}>{walk && notice?.said ? notice.message : ''}</Text> : null}
       {!walk ? (
         <>
           {ready.overlay}
@@ -1357,7 +1365,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onPress={() => {
               if (status.kind !== 'error') return;
               raisedError.current = status.message;
-              setNotice({ message: status.message, tone: 'error', openSettings: status.openSettings, sticky: true });
+              const quiet = status.tone === 'info';
+              setNotice({ message: status.message, tone: status.tone ?? 'error', openSettings: status.openSettings, sticky: true, said: quiet });
+              if (quiet) AccessibilityInfo.announceForAccessibility(status.message);
             }}
             style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
           >
@@ -1894,6 +1904,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
 type PressableRef = ComponentRef<typeof Pressable>;
 
 const styles = StyleSheet.create({
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screen: { flex: 1, backgroundColor: theme.bg },
   top: { position: 'absolute', left: GUTTER, right: GUTTER, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
   chip: {

@@ -12,12 +12,18 @@ export type RecorderStatus =
   | { kind: 'recording' }
   /** Recording, but no position has arrived yet (indoors, cold start). */
   | { kind: 'waiting' }
-  /** Recording has stopped against the user's intent. */
-  | { kind: 'error'; message: string; openSettings?: boolean };
+  /**
+   * Recording has stopped against the user's intent. `tone: 'info'` when location is refused, a choice the person
+   * made, so the walk's notice is quiet rather than a fault (T26).
+   */
+  | { kind: 'error'; message: string; openSettings?: boolean; tone?: 'info' | 'error' };
 
-/** A start that cannot go ahead; `openSettings` means only the system settings can fix it. */
+/**
+ * A start that cannot go ahead; `openSettings` means only the system settings can fix it; `tone: 'info'` that the
+ * person refused location, said as a quiet notice (T26), not a fault.
+ */
 export class RecorderError extends Error {
-  constructor(message: string, readonly openSettings = false) {
+  constructor(message: string, readonly openSettings = false, readonly tone: 'info' | 'error' = 'error') {
     super(message);
   }
 }

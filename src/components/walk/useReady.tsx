@@ -70,7 +70,7 @@ export function useReady(props: {
   const at = useStackLayout();
   const { height: screenH } = useWindowDimensions();
   const walkStart = useStartWalk();
-  // A Locate refusal carries its own tone (T17: a quiet notice in ink); a moment's failure is an error.
+  // A refusal of location carries its own tone, Locate's (T17) and Start's (T26): a quiet notice; a moment's failure is an error.
   // What the screen says to a screen reader without moving focus (tend map audit 12); `n` makes a repeat a change.
   const [said, setSaid] = useState({ text: '', n: 0 });
   const [momentError, setMomentError] = useState<{ message: string; openSettings?: boolean; tone?: 'info' | 'error' } | null>(null);
@@ -155,6 +155,14 @@ export function useReady(props: {
     if (placedMoments([c]).length) setMoments((prev) => upsertMoment(prev, c));
   }, []);
   const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setMomentError(e), []);
+  // tend map audit 12: a quiet notice is no alert, so a screen reader hears it through a hidden live region kept mounted
+  // on web (react-native-web's announceForAccessibility does nothing) and the call on a phone. Locate's refusal and
+  // Start's (T26) both.
+  const sayQuiet = (e: { message: string; tone?: 'info' | 'error' }) => {
+    if (e.tone !== 'info') return;
+    setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+    AccessibilityInfo.announceForAccessibility(e.message);
+  };
   // Locate me (QL9-QL12): a fresh fix on a tap, framed 250 m around; nothing tracks after.
   const { busy: locating, locate } = useLocate({
     onFix: (p) => {
@@ -165,12 +173,7 @@ export function useReady(props: {
     },
     onError: (e) => {
       setMomentError(e);
-      // tend map audit 12: the quiet notice is no alert, so a screen reader hears the refusal through a hidden live region
-      // kept mounted on web (react-native-web's announceForAccessibility does nothing) and the call on a phone.
-      if (e.tone === 'info') {
-        setSaid((s) => ({ text: e.message, n: s.n + 1 }));
-        AccessibilityInfo.announceForAccessibility(e.message);
-      }
+      sayQuiet(e);
     },
   });
 
@@ -178,7 +181,8 @@ export function useReady(props: {
     if (memoOn) return;
     setUp(false);
     props.onStarting();
-    const params = await walkStart.start(dest, mode, { inPlace: true });
+    // Start refused says so as Locate's refusal does (T26): quietly, and to a screen reader.
+    const params = await walkStart.start(dest, mode, { inPlace: true, onError: sayQuiet });
     props.onStarted(params);
   };
   // A loose moment changed elsewhere (edited from the moment row's Edit offer): its pin shows it (media-editing audit 2).
@@ -270,7 +274,7 @@ export function useReady(props: {
         </View>
         {error && (
           <Banner
-            tone={walkStart.error ? 'error' : (momentError?.tone ?? 'error')}
+            tone={error.tone ?? 'error'}
             onDismiss={() => {
               walkStart.setError(null);
               setMomentError(null);
