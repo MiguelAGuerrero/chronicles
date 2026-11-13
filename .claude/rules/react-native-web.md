@@ -75,3 +75,6 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   asked for the same missing file. The route files were about 350 KB of about 4 MB. Don't turn it back on, or add an
   `import()` that the export splits into its own file, unless the deploy keeps the previous build's files. An open
   page then runs its old code until it is reloaded. `tabs/oneBundle.test.ts` reads the resolved config.
+  **The one exception is the read's web worker** (`compute-<hash>.js`, `landing/compute.worker.ts`; the owner's call,
+  Nov 13, decision 0160): an open page that can't load it after a deploy computes the read on the page itself
+  (`offPage`'s fallback, explore-dense-city DC8). The deploy's "one bundle" step allows it and nothing else.

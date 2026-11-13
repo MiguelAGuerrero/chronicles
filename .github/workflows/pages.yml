@@ -84,11 +84,14 @@ jobs:
           CHRONICLES_BASE_URL: /chronicles
       # fix stale-chunk audit 1: one JS file. A deploy replaces every file, so a page left open across it
       # loses any file it hasn't loaded yet: a split route or import() showed "Loading module ... failed".
-      - name: The web export is one bundle
+      # One exception, the owner's call of Nov 13 (decision 0160): the busy and ring reads' web worker
+      # (compute-*.js). A page that can't load it after a deploy computes the read itself (explore-dense-city DC8).
+      - name: The web export is one bundle, and the read's worker
         run: |
-          n=$(find dist/_expo/static/js/web -name '*.js' | wc -l)
-          if [ "$n" -ne 1 ]; then
-            echo "::error::the web export wrote $n JS files; an open page loses all but the one it loaded to the next deploy (fix stale-chunk)"
+          n=$(find dist/_expo/static/js/web -name '*.js' ! -name 'compute-*.js' | wc -l)
+          w=$(find dist/_expo/static/js/web -name 'compute-*.js' | wc -l)
+          if [ "$n" -ne 1 ] || [ "$w" -gt 1 ]; then
+            echo "::error::the web export wrote $n JS files besides the read's worker ($w of it); an open page loses all but the one it loaded to the next deploy (fix stale-chunk)"
             find dist/_expo/static/js/web -name '*.js'
             exit 1
           fi

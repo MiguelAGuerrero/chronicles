@@ -30,3 +30,8 @@ The owner's calls, Nov 12:
 `specs/explore-dense-city` (DC1-DC16). No storage change, no migration. The worker is a separate file with a hash, like
 the route chunks fix stale-chunk removed: the page-side fallback (DC8) is what keeps a page left open across a deploy
 working. Native's symbol layer and yields are unverified on a device.
+
+## Amended (Nov 13, at the deploy)
+The deploy's guard from fix stale-chunk allowed one JS file, and the worker is a second (`compute-<hash>.js`). The
+owner's call: allow exactly that file, since a page that can't load it after a deploy runs the read on the page (DC8).
+The guard (`.github/workflows/pages.yml`) and `.claude/rules/react-native-web.md` say so.
