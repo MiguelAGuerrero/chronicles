@@ -90,6 +90,24 @@ async function run(h) {
   const stopped = await pg.evaluate(() => [...document.querySelectorAll('audio')].every((a) => a.paused));
   const again = await pg.locator('[aria-label="Play voice memo"]').count();
   check(stopped && again === 1, 'VT6: a trimmed memo stops at the kept part’s end and offers Play again');
+  // voice-trim audit 2: Play after the end starts the kept part again and keeps playing.
+  await pg.click('[aria-label="Play voice memo"]').catch(() => {});
+  await pg.waitForTimeout(700);
+  const replaying = await pg.evaluate(() => [...document.querySelectorAll('audio')].some((a) => !a.paused));
+  check.todo(replaying, 'voice-trim audit 2: Play after a trimmed memo has ended plays it again, from the start');
+  await pg.waitForTimeout(3000);
+
+  // voice-trim audit 10: the editor reopens on the saved trim with the whole length beside it, Revert on, Close writes nothing.
+  await pg.click('[data-testid=viewer-edit]').catch(() => {});
+  await pg.waitForSelector('[data-testid=media-editor]', { timeout: 5000 }).catch(() => {});
+  const reopened = await pg.locator('[data-testid=trim-label]').innerText().catch(() => '');
+  const whole2 = await pg.locator('[data-testid=trim-whole]').innerText().catch(() => '');
+  const revertOn = await pg.locator('[data-testid=edit-revert]').getAttribute('aria-disabled').catch(() => 'true');
+  await pg.click('[data-testid=edit-close]').catch(() => {});
+  await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+  const kept = await voiceRow();
+  check.todo(reopened === `0:00 – 0:0${Math.round(row.edit.trim.end_ms / 1000)}` && /^of 0:0[3-9]$/.test(whole2) && revertOn !== 'true' && kept?.edit?.trim?.end_ms === row?.edit?.trim?.end_ms,
+    `voice-trim audit 10: the editor reopens on the saved trim ("${reopened}", "${whole2}"), Revert on, Close writes nothing`);
   await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
 
   // VT10: the card says the kept length.

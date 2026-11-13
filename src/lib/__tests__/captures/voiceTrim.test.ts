@@ -4,7 +4,9 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { emptyEdit, trimLabel } from '../../mediaEdit';
-import { memoLengthMs, memoWords, trimmedLine, voiceClock, voiceSpan, voiceState } from '../../voiceTrim';
+import { applyPatch, captureBus } from '../../captureBus';
+import { facedAt, type Faced } from '../../moment';
+import { memoLengthMs, memoLengthText, memoWords, trimmedLine, voiceClock, voiceReachedEnd, voiceSpan, voiceState, wholeMs } from '../../voiceTrim';
 
 // Voice trim (VT6, VT8, VT10, VT11, VT12), written from the criteria before the code.
 
@@ -84,4 +86,49 @@ test('voice-trim ui 6: a long memo\u2019s lengths and kept times stay one line o
     assert.ok(line && !/NaN|undefined|\n/.test(line), String(line));
     assert.ok(!/NaN|\n/.test(trimLabel(1000, ms - 1000)));
   }
+});
+
+// The audit (Nov 13): the findings' regression tests, written before their fixes.
+const PHOTO_EDIT = { ...emptyEdit(), rotate: 90 as const };
+const twoPieces = () => ({
+  id: 'm1', piece_id: 'm1', kind: 'photo', edit: PHOTO_EDIT,
+  pieces: [{ id: 'm1', kind: 'photo', edit: PHOTO_EDIT }, { id: 'p2', kind: 'voice', body: '58000', edit: null }],
+}) as unknown as Faced;
+
+test('voice-trim audit 1: an edit on a moment\u2019s second piece leaves the face alone and lands on that piece', { todo: 'test first' }, () => {
+  const patch = { edit: trimmed(2000, 41_000) };
+  const after = applyPatch([twoPieces()], 'm1', patch, 'p2');
+  assert.deepEqual(after[0].edit, PHOTO_EDIT, 'the photo keeps its own edit');
+  assert.deepEqual(after[0].pieces[1].edit, patch.edit, 'the memo piece holds its trim');
+  assert.deepEqual(facedAt(after[0], 'p2').edit, patch.edit, 'the viewer reads the memo with its trim');
+  assert.deepEqual(applyPatch([twoPieces()], 'm1', patch)[0].edit, patch.edit, 'with no piece named, the face is patched as before');
+});
+
+test('voice-trim audit 1: the bus tells a listener which piece changed', { todo: 'test first' }, () => {
+  const heard: unknown[] = [];
+  const off = captureBus.subscribe('w1', {}, () => {}, (id, _patch, pieceId) => heard.push([id, pieceId]));
+  captureBus.patch('w1', 'm1', { edit: trimmed(2000, 41_000) }, null, 'p2');
+  off();
+  assert.deepEqual(heard, [['m1', 'p2']]);
+});
+
+test('voice-trim audit 2: a press at the end, until the position has left it, is not the end again', { todo: 'test first' }, () => {
+  const span = voiceSpan({ start_ms: 2000, end_ms: 41_000 }, 58_000);
+  assert.equal(voiceReachedEnd(41, span, false), true);
+  assert.equal(voiceReachedEnd(41, span, true), false, 'a stale position right after the press');
+  assert.equal(voiceReachedEnd(20, span, false), false);
+});
+
+test('voice-trim audit 3, 4: the whole length is the stored one, else the file\u2019s', { todo: 'test first' }, () => {
+  assert.equal(wholeMs('4000', 3800), 4000);
+  assert.equal(wholeMs('', 3800), 3800);
+  assert.equal(wholeMs('0', 3800), 3800);
+  assert.equal(wholeMs(null, 0), 0);
+});
+
+test('voice-trim audit 9: a memo with no length says no time anywhere', { todo: 'test first' }, () => {
+  assert.equal(memoLengthText({ body: '' }), null);
+  assert.equal(memoLengthText({ body: '0', edit: trimmed(0, 1000) }), null);
+  assert.equal(memoLengthText({ body: '58000', edit: trimmed(2000, 41_000) }), '0:39');
+  assert.equal(memoLengthText({ body: '58000' }), '0:58');
 });

@@ -56,3 +56,8 @@ export function trimmedLine(m: Memo): string | null {
   // vision-ok: two times of one memo (kept, whole), never a tally of places, streets or finds
   return `Trimmed · ${formatElapsed(memoLengthMs(m))} of ${formatElapsed(whole)}`;
 }
+
+// Stubs for the audit's tests first; the fixes follow.
+export const voiceReachedEnd = (_posS: number, _span: VoiceSpan, _restarting: boolean): boolean => todo();
+export const wholeMs = (_bodyMs: string | null | undefined, _fileMs: number): number => todo();
+export const memoLengthText = (_m: Memo): string | null => todo();
