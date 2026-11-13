@@ -48,3 +48,15 @@ test('tend places audit 1: a selected star keeps its ink disc and white star, an
   assert.match(ring, /width: STAR_SIZE \+ 2 \* RING/, ring);
   assert.match(view, /const RING = 3;/, 'a 3 pt ring');
 });
+
+// tend places audit 4 (the review's F3): the source checks above let an orange from another token, a colour moved to
+// another style, or a count drawn as `{String(star.count)}` through. The disc's own style is ink, and the star's only
+// text is its name.
+test('tend places audit 4: the disc\'s own style is ink, and the only text a star draws is its name', () => {
+  const disc = /\n  star: \{([\s\S]*?)\n  \},/.exec(view)?.[1] ?? '';
+  assert.match(disc, /backgroundColor: theme\.ink,/, disc);
+  assert.equal((view.match(/backgroundColor:/g) ?? []).length, 2, 'two grounds only: the disc and the selected ring, both ink');
+  assert.equal((view.match(/backgroundColor: theme\.ink/g) ?? []).length, 2, 'both ink');
+  const texts = [...view.matchAll(/<Text\b[^>]*>([\s\S]*?)<\/Text>/g)].map((m) => m[1].trim());
+  assert.deepEqual(texts, ['{star.label}'], 'one Text, the name');
+});
