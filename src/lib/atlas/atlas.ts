@@ -373,7 +373,8 @@ export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: Outli
 }
 
 /** What a visit to a page has framed (AT9, TB11): its page and build, and the towns whose whole border it framed. */
-export type PageFramed = { page: string; build: string | null; towns: string[] };
+/** `awaiting`: the key of a town picked in the row before its border was known, framed whole when it arrives while still selected (fix town-fit audit 2). */
+export type PageFramed = { page: string; build: string | null; towns: string[]; awaiting?: string };
 
 /**
  * What a visit to a page of the atlas frames next (AT9, TB11; fix explore-fit-area, Nov 4): its
@@ -387,12 +388,14 @@ export type PageFramed = { page: string; build: string | null; towns: string[] }
  */
 export function nextFrame(
   last: PageFramed | null,
-  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null; padM: number },
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null; padM: number; lit?: string | null },
 ): { framed: PageFramed; bounds: Bounds } | null {
   const same = !!last && last.page === p.page && last.build === p.build;
   if (p.town) {
-    if (same && last.towns.includes(p.town.id)) return null;
-    return { framed: { page: p.page, build: p.build, towns: [...(same ? last.towns : []), p.town.id] }, bounds: p.town.bounds };
+    const waited = same && last.awaiting != null && last.awaiting === p.lit;
+    if (same && last.towns.includes(p.town.id) && !waited) return null;
+    const kept = same ? last.towns.filter((t) => t !== p.town!.id) : [];
+    return { framed: { page: p.page, build: p.build, towns: [...kept, p.town.id] }, bounds: p.town.bounds };
   }
   if (same || !p.points.length) return null;
   const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, p.padM);
@@ -404,15 +407,17 @@ export function nextFrame(
  * its reach around its point and its border once known (`nextFrame`). Every selection frames again: `nextFrame`'s
  * once-a-visit rule kept a town selected a second time at the zoom the last one left, its own frame being the same
  * reach for every town. The visit's record gains the town, never loses one, so a town framed in it still isn't framed
- * again unasked (Locate back into yours, audit 1).
+ * again unasked (Locate back into yours, audit 1). The outline set a pick reads holds only the z10 tiles under you and
+ * the last selection, so a town in another tile waits for its border by its key (`awaiting`, audit 2).
  */
 export function townPicked(
   last: PageFramed | null,
-  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; at: LngLat; padM: number },
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; key: string; at: LngLat; padM: number },
 ): { framed: PageFramed; bounds: Bounds } {
   const kept = last && last.page === p.page && last.build === p.build ? last.towns : [];
-  const towns = p.town && !kept.includes(p.town.id) ? [...kept, p.town.id] : kept;
-  return { framed: { page: p.page, build: p.build, towns }, bounds: p.town?.bounds ?? boundsOf([p.at], p.padM)! };
+  if (!p.town) return { framed: { page: p.page, build: p.build, towns: kept, awaiting: p.key }, bounds: boundsOf([p.at], p.padM)! };
+  const towns = kept.includes(p.town.id) ? kept : [...kept, p.town.id];
+  return { framed: { page: p.page, build: p.build, towns }, bounds: p.town.bounds };
 }
 
 /** How far around a town's point its neighborhoods are looked for. */

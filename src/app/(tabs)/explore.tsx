@@ -433,11 +433,11 @@ export default function Explore() {
     const page = framePage;
     // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
     const padM = townSeen ? townReachM(townSeen) * 0.6 : 150;
-    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM });
+    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM, lit: litKey });
     if (!next) return;
     framed.current = next.framed;
     setFit((f) => ({ bounds: next.bounds, key: f.key + 1 }));
-  }, [townSeen, framePage, fresh.build, townBox, points, from]);
+  }, [townSeen, framePage, fresh.build, townBox, points, from, litKey]);
 
   const lookHere = async (at: LngLat) => {
     const started = startLook(look.current);
@@ -505,7 +505,7 @@ export default function Explore() {
       // Its whole border when known, each time it is selected (fix town-fit); the page's frame then leaves it be.
       const { drawn: set, page, build } = pickFrom.current;
       const border = townFrame(set, outlineOf({ name: l.area.name, at: l.area.at }, set)?.id);
-      const pick = townPicked(framed.current, { page, build, town: border, at: l.area.at, padM: townReachM(l.area) * 0.6 });
+      const pick = townPicked(framed.current, { page, build, town: border, key: l.area.key, at: l.area.at, padM: townReachM(l.area) * 0.6 });
       framed.current = pick.framed;
       setFit((f) => ({ bounds: pick.bounds, key: f.key + 1 }));
     } else mapRef.current?.showPoint(l.area.at, mapPad);
