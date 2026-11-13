@@ -248,7 +248,7 @@ const FEATURES = [
       'src/components/VideoMark.tsx',
     ],
     journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails', 'memo-transcripts'],
   },
   {
     name: 'chronicle',
@@ -459,6 +459,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'memo-transcripts': { branch: 'claude/amazing-shannon-5jejnz', since: '2026-11-13' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
