@@ -315,8 +315,10 @@ recording, and a recording bar brings a minimized walk back.
     in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
-  - **The open line** at the foot, fixed while the page scrolls and first for a screen reader: a field, the camera and
-    the mic, with no hint text. Writing is the capture: the first character begins an entry with its time and one fix,
+  - **Writing on the page**: the words are typed on the page itself, as its last line, in your serif, with no box and
+    no hint text. One bar is fixed at the foot: a pen, the camera and the mic; while you write it holds "Kept as you
+    write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
+    the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
     are one entry; Done ends it, as do two minutes without a piece. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the

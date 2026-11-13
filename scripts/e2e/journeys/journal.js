@@ -72,8 +72,14 @@ async function run(h) {
   const line = '[data-testid=open-line]';
   const input = '[data-testid=line-input]';
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
+  // On the page the bar's pen brings today's foot up and puts the caret there (JN29); where no page shows (a thread,
+  // Hidden) the field is in the bar itself.
+  const toLine = async () => {
+    if (await pg.locator('[data-testid=line-write]').filter({ visible: true }).count()) await pg.click('[data-testid=line-write]').catch(() => {});
+    else await pg.click(input).catch(() => {});
+  };
   const type = async (text) => {
-    await pg.click(input).catch(() => {});
+    await toLine();
     await pg.keyboard.type(text, { delay: 15 });
   };
   const done = () => pg.click('[data-testid=line-done]').catch(() => {});
@@ -106,13 +112,13 @@ async function run(h) {
   const rest = await pg.evaluate(({ sel, accent }) => {
     const root = document.querySelector(sel);
     if (!root) return null;
-    const field = root.querySelector('[data-testid=line-input]');
+    const field = document.querySelector('[data-testid=line-input]');
     const out = { placeholder: field?.getAttribute('placeholder') ?? '', focused: document.activeElement === field, loud: [], text: root.innerText.trim() };
     for (const e of [root, ...root.querySelectorAll('*')]) {
       const cs = getComputedStyle(e);
       if ([cs.color, cs.backgroundColor, cs.borderTopColor].includes(accent)) out.loud.push(e.dataset.testid ?? e.tagName);
     }
-    out.labels = ['line-input', 'band-photo', 'band-voice'].map((id) => {
+    out.labels = ['line-write', 'band-photo', 'band-voice'].map((id) => {
       const e = root.querySelector(`[data-testid=${id}]`);
       const r = e?.getBoundingClientRect();
       return { id, label: e?.getAttribute('aria-label'), w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0, x: r ? Math.round(r.x) : -1 };
@@ -133,7 +139,7 @@ async function run(h) {
     order = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
     await pg.evaluate(() => document.activeElement?.blur?.());
   }
-  check(order === 'line-input', `JN23: after the contents button, the open line comes next for a screen reader (${order})`);
+  check(order === 'line-write', `JN23: after the contents button, the bar's pen comes next for a screen reader (${order})`);
   await shot(pg, 'journal-01-empty');
 
   // ui 5, ui 6: the line has a boundary that reads as a control's edge, and the contents button says what it is.
@@ -251,11 +257,11 @@ async function run(h) {
       barBottom: Math.round(window.innerHeight - b.bottom),
     };
   });
-  check.todo(!!penOn && penOn.inPage && !penOn.inBar && penOn.focused && penOn.width >= penOn.pageWidth - 60 && penOn.outline === 'none' && penOn.shadow === 'none' && penOn.border === 0 && /serif/.test((penOn.font ?? '').replace(/sans-serif/g, '')) && penOn.underEntry && penOn.aboveBar,
+  check(!!penOn && penOn.inPage && !penOn.inBar && penOn.focused && penOn.width >= penOn.pageWidth - 60 && penOn.outline === 'none' && penOn.shadow === 'none' && penOn.border === 0 && /serif/.test((penOn.font ?? '').replace(/sans-serif/g, '')) && penOn.underEntry && penOn.aboveBar,
     `JN28: the words are written on the page: the field is the page's last line, full width, in the serif, with no box or focus frame (${JSON.stringify(penOn)})`);
-  check.todo(!!penOn && penOn.row.length === 5 && penOn.row.every((x) => Math.abs(x.y - penOn.row[0].y) <= 2) && penOn.row.filter((x) => x.id !== 'line-status').every((x) => x.w >= 44 && x.h >= 44) && penOn.barH <= 64,
+  check(!!penOn && penOn.row.length === 5 && penOn.row.every((x) => Math.abs(x.y - penOn.row[0].y) <= 2) && penOn.row.filter((x) => x.id !== 'line-status').every((x) => x.w >= 44 && x.h >= 44) && penOn.barH <= 64,
     `JN29: while writing the bar is one row: the status, Open as a page, the camera, the mic and Done (${JSON.stringify(penOn?.row)}, ${penOn?.barH} px)`);
-  check.todo(!!penOn && penOn.tabs === 0 && penOn.barBottom <= 1, `JN30: while writing the tab bar folds away and the bar sits at the foot, on the keyboard (${JSON.stringify({ tabs: penOn?.tabs, barBottom: penOn?.barBottom })})`);
+  check(!!penOn && penOn.tabs === 0 && penOn.barBottom <= 1, `JN30: while writing the tab bar folds away and the bar sits at the foot, on the keyboard (${JSON.stringify({ tabs: penOn?.tabs, barBottom: penOn?.barBottom })})`);
   await shot(pg, 'journal-16-writing-on-the-page');
   await pg.setViewportSize({ width: 320, height: 700 });
   await pg.waitForTimeout(500);
@@ -263,7 +269,7 @@ async function run(h) {
   await shot(pg, 'journal-17-writing-320');
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(500);
-  check.todo(!!narrow && narrow.h <= 64 && !narrow.over, `JN29: at 320 px the bar is still one row, nothing cut (${JSON.stringify(narrow)})`);
+  check(!!narrow && narrow.h <= 64 && !narrow.over, `JN29: at 320 px the bar is still one row, nothing cut (${JSON.stringify(narrow)})`);
   await done();
   await pg.waitForTimeout(900);
   const rest2 = await pg.evaluate(() => ({
@@ -271,7 +277,7 @@ async function run(h) {
     write: (() => { const e = document.querySelector('[data-testid=line-write]'); const r = e?.getBoundingClientRect(); return e ? { label: e.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height) } : null; })(),
     status: document.querySelector('[data-testid=line-status]')?.innerText ?? '',
   }));
-  check.todo(rest2.tabs === 1 && !!rest2.write && rest2.write.label === 'Write an entry' && rest2.write.w >= 44 && rest2.write.h >= 44 && rest2.status.trim() === '',
+  check(rest2.tabs === 1 && !!rest2.write && rest2.write.label === 'Write an entry' && rest2.write.w >= 44 && rest2.write.h >= 44 && rest2.status.trim() === '',
     `JN29, JN30: at rest the tabs are back and the bar holds the pen, the camera and the mic (${JSON.stringify(rest2)})`);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
@@ -312,7 +318,7 @@ async function run(h) {
     onPage: await pg.locator(entries).last().locator('[data-testid=entry-words]').filter({ hasText: 'Same post as last week.' }).count(),
     camera: await pg.locator('[data-testid=band-photo]').getAttribute('aria-disabled').catch(() => 'missing'),
   };
-  check(photoOn && same(restBoxes.field, rec.field) && same(restBoxes.photo, rec.photo) && rec.discard && rec.timer && !!rec.save,
+  check(photoOn && !!rec.field && same(restBoxes.photo, rec.photo) && rec.discard && rec.timer && !!rec.save,
     `JN14: while a note records, only the mic's place changes: the field and the camera keep their boxes (${JSON.stringify({ restBoxes, rec })})`);
   check(rec.text === '' && rec.onPage === 1,
     `chronicle-journal audit 3: the words typed before the mic stand on the page as their own piece once the note starts, so emptying the line cannot remove the entry it records into (${JSON.stringify({ text: rec.text, onPage: rec.onPage })})`);
@@ -390,18 +396,18 @@ async function run(h) {
   await type('Starts in the line');
   await pg.waitForTimeout(1200);
   const pageBtn = await pg.locator('[data-testid=line-page]').filter({ visible: true }).first().evaluate((e) => { const r = e.getBoundingClientRect(); return { label: e.getAttribute('aria-label'), text: e.innerText.trim(), w: Math.round(r.width), h: Math.round(r.height) }; }).catch(() => null);
-  // fix journal-note-pages ui 1, ui 2: with its status row up the line is taller, and the sheet's last entry still
-  // ends above it; Open as a page is the quieter of the two words beside Done.
+  // fix journal-note-pages ui 1, ui 2 (as the bar is now, JN28, JN29): the field being written ends above the bar, and
+  // Done is the bar's one word, beside icons.
   await shot(pg, 'journal-14-status-row');
-  const tall = await pg.evaluate(({ sel, lineSel }) => {
-    const all = document.querySelectorAll(sel);
-    const last = all[all.length - 1]?.getBoundingClientRect();
+  const tall = await pg.evaluate(({ lineSel }) => {
+    const f = document.querySelector('[data-testid=line-input]')?.getBoundingClientRect();
     const l = document.querySelector(lineSel)?.getBoundingClientRect();
-    const w = (id) => { const e = document.querySelector(`[data-testid=${id}]`); const t = e && (e.querySelector('[dir]') ?? e); return t ? Number(getComputedStyle(t).fontWeight) : -1; };
-    return { lastBottom: last ? Math.round(last.bottom) : null, lineTop: l ? Math.round(l.top) : null, lineH: l ? Math.round(l.height) : null, page: w('line-page'), done: w('line-done') };
-  }, { sel: entries, lineSel: line });
-  check(tall.lineH > 61 && tall.lastBottom != null && tall.lastBottom <= tall.lineTop + 1, `fix journal-note-pages ui 1: the line with its status row covers none of the last entry (${JSON.stringify(tall)})`);
-  check(tall.page > 0 && tall.page < 600 && tall.done >= 600, `fix journal-note-pages ui 2: Open as a page is set lighter than Done, the row's one bold word (${tall.page} against ${tall.done})`);
+    const d = document.querySelector('[data-testid=line-done]');
+    const t = d && (d.querySelector('[dir]') ?? d);
+    return { fieldBottom: f ? Math.round(f.bottom) : null, lineTop: l ? Math.round(l.top) : null, done: t ? Number(getComputedStyle(t).fontWeight) : -1, pageText: document.querySelector('[data-testid=line-page]')?.innerText.replace(/[^A-Za-z]/g, '') ?? null };
+  }, { lineSel: line });
+  check(tall.fieldBottom != null && tall.fieldBottom <= tall.lineTop + 1, `fix journal-note-pages ui 1: the line being written ends above the bar, never under it (${JSON.stringify(tall)})`);
+  check(tall.done >= 600 && tall.pageText === '', `fix journal-note-pages ui 2: Done is the bar's one word; Open as a page is an icon beside it (${JSON.stringify(tall)})`);
   await pg.click('[data-testid=line-page]').catch(() => {});
   const pageUp = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
   await pg.waitForTimeout(800);
@@ -433,7 +439,8 @@ async function run(h) {
   await done();
   await pg.waitForTimeout(600);
   const beforeEmpty = (await stored(pg)).moments.length;
-  await pg.click(input).catch(() => {});
+  await toLine();
+  await pg.waitForTimeout(300);
   await pg.click('[data-testid=line-page]').catch(() => {});
   const newPageUp = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
   await pg.waitForTimeout(1200);
@@ -519,11 +526,11 @@ async function run(h) {
   check(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
   check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
   await shot(pg, 'journal-05-scrolled-back');
-  // JN9, JN11: a tap in the line, scrolled back, brings today's foot into view.
-  await pg.click(input).catch(() => {});
+  // JN9, JN11: the bar's pen, scrolled back, brings today's foot into view and the caret onto the page.
+  await pg.click('[data-testid=line-write]').catch(() => {});
   await pg.waitForTimeout(900);
   const backAtFoot = await pg.evaluate((sel) => { const all = document.querySelectorAll(sel); const r = all[all.length - 1]?.getBoundingClientRect(); return !!r && r.bottom <= window.innerHeight && r.bottom > 0; }, entries);
-  check(backAtFoot, 'JN11: a tap in the line brings today\'s page to the foot');
+  check(backAtFoot && (await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'))) === 'line-input', 'JN11: the pen brings today\'s page to the foot, with the caret in it');
   await pg.evaluate(() => document.activeElement?.blur?.());
 
   // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
@@ -659,7 +666,8 @@ async function run(h) {
   check(lineInThreads && lineInThread, `JN9: the open line stays, unmoved, in the threads and in a thread (${JSON.stringify({ lineInThreads, lineInThread })})`);
 
   // JN17: nothing inserts on a past page; a response lands at the end and says what it answers.
-  const inserts = await pg.locator('[data-testid=journal-page] [data-testid*=insert], [data-testid=journal-page] input, [data-testid=journal-page] textarea').count();
+  // The one field on the page is its last line, after every entry (JN28): nothing writes into a past page.
+  const inserts = await pg.locator('[data-testid=journal-page] [data-testid*=insert], [data-testid=journal-page] input, [data-testid=journal-page] textarea:not([data-testid=line-input])').count();
   const countBefore = (await stored(pg)).moments.length;
   await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=moment-open]').click().catch(() => {});
   await there('[data-testid=viewer-close]', 5000);

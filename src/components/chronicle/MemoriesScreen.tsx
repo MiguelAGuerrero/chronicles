@@ -1,6 +1,6 @@
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { JOURNAL_PAGE, journalMoments, journalPage } from '../../lib/journal/page';
 import type { MomentState } from '../../lib/useCaptures';
@@ -409,27 +409,8 @@ export function MemoriesScreen() {
       </ScrollView>
     );
   } else {
-    body = (
-      <JournalPage
-        ref={pageRef}
-        rows={page.rows}
-        more={page.more}
-        now={now}
-        onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
-        footPad={lineH + 16}
-        notice={failedNotice}
-        entry={entry}
-        slip={pick ? (
-          <Slip
-            pick={pick}
-            context={state.context[pick.moment.id]}
-            now={now}
-            onOpen={() => open(pick.moment)}
-            onMore={() => { setMenuFromSlip(true); setMenuFor(pick.moment.id); }}
-          />
-        ) : null}
-      />
-    );
+    // The journal's page: drawn below, where the open line hands it the field to write in (JN28).
+    body = null;
   }
 
   if (hiddenOpen && state.status === 'ready') {
@@ -451,10 +432,27 @@ export function MemoriesScreen() {
   }
 
   const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
-  const bandLayer = (
-    <View key="line" style={styles.bandLayer} pointerEvents="box-none">
-      <OpenLine focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast} />
-    </View>
+  const journal = (field: ReactNode) => (
+    <JournalPage
+      ref={pageRef}
+      rows={page.rows}
+      more={page.more}
+      now={now}
+      onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
+      footPad={lineH + 16}
+      notice={failedNotice}
+      entry={entry}
+      field={field}
+      slip={pick ? (
+        <Slip
+          pick={pick}
+          context={state.context[pick.moment.id]}
+          now={now}
+          onOpen={() => open(pick.moment)}
+          onMore={() => { setMenuFromSlip(true); setMenuFor(pick.moment.id); }}
+        />
+      ) : null}
+    />
   );
 
   return (
@@ -468,8 +466,11 @@ export function MemoriesScreen() {
       )}
       {/* First after the options button, so a screen reader reaches the band before the feed (HC8); drawn at the foot.
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
-      {/* Keyed, so the line is the same line when it moves after the screen: a walk of its state survives (audit 10). */}
-      {subScreen ? [<View key="body" style={styles.body}>{body}</View>, bandLayer] : [bandLayer, <View key="body" style={styles.body}>{body}</View>]}
+      {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
+          screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
+      <OpenLine inBar={body != null} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
+        {(field) => body ?? journal(field)}
+      </OpenLine>
       <MemoriesMenu
         open={menuOpen}
         off={state.prefs.off}
@@ -581,9 +582,7 @@ export function MemoriesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  bandLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2 },
   scroll: { flex: 1 },
-  body: { flex: 1 },
   pad: { paddingHorizontal: 16, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   threads: { gap: 22 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, alignSelf: 'flex-start', paddingRight: 12 },

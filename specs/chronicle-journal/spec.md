@@ -173,3 +173,10 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **Seen once, not reproduced:** the `journal` journey's "the entry that was on screen stays on screen" check failed in two of five runs while the journey was being changed and passed in the rest; it holds the page's position by adding the height that arrived, on the web. If it recurs, that is where to look.
 - **Native:** none of this has run on a device.
 
+## Writing on the page: record (Nov 13, branch `fix/write-on-the-page`)
+
+- **Why:** the owner's screenshot of the built line on an iPhone. The field was a small box with a black focus frame, the recording bar, the tab bar and a blank band stood between it and the keyboard, and it read as a chat box. The frame was the app's `:focus-visible` ring overriding the field's own style.
+- **Built:** JN28-JN30, tests first at `f7a45c4`. The field is the page's last line; the foot is one bar; the tab bar and the recording bar fold away while writing. JN9, JN10, JN13, JN23 and JN25 are read with these: the bar is what is fixed at the foot, the pen is its first control for a screen reader, and Open as a page is an icon in it.
+- **Checked:** typecheck, lint, `npm test`; the `journal` journey (74 checks), `notepage` and `capturehome`.
+- **Not yet seen on the phone:** whether the bar sits directly on the keyboard in the Home Screen app and in Safari, and whether the pen raises the keyboard in one tap. Both are the owner's to try (`docs/NATIVE_UNVERIFIED.md`).
+

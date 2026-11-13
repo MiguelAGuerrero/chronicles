@@ -10,6 +10,7 @@ import { captureTarget } from '../../lib/journal/target';
 import type { Faced } from '../../lib/moment';
 import { momentPill } from '../../lib/momentPill';
 import { feedback } from '../../lib/motion';
+import { hideTabs } from '../../lib/tabsHidden';
 import { NOTE_MAX } from '../../lib/noteEdit';
 import { editRefs, type EditorRef, fromEditor, insertRef, typedAt } from '../../lib/refs';
 import { space } from '../../lib/space';
@@ -67,6 +68,10 @@ type LineProps = {
   onSeen?: () => void;
   /** The line's own height, as it changes (its status row comes and goes): the sheet pads its foot by it (ui 1). */
   onHeight?: (h: number) => void;
+  /** No page is shown (a thread, the threads, Hidden): the field sits in the bar. On the page it is the page's last line (JN28). */
+  inBar: boolean;
+  /** The screen's body, given the field to draw as its last line (null when the field is in the bar). */
+  children: (field: ReactNode) => ReactNode;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
   above?: ReactNode;
 };
@@ -437,10 +442,17 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
   const wrap = useRef<ComponentRef<typeof View>>(null);
   const [below, setBelow] = useState(0);
   const measure = () => {
-    if (keyboard > 0) return;
+    // Only at rest: while writing the bars under the line are folded away, and that is not its resting place.
+    if (keyboard > 0 || typing) return;
     wrap.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => setBelow(Math.max(0, Math.round(windowH - (y + h)))));
   };
-  const lift = lineLift(keyboard, below);
+  // While the field has the keyboard, the tab bar and the recording bar fold away (JN30): nothing stands between
+  // the entry and the keys, and the bar sits on the keyboard itself.
+  useEffect(() => {
+    if (!typing) return;
+    return hideTabs();
+  }, [typing]);
+  const lift = lineLift(keyboard, typing ? 0 : below);
   const writing = text.length > 0 || pen.beginning || !!pen.entry;
   const entryOpen = writing || !!openId;
   const showDone = typing || entryOpen;
@@ -464,105 +476,133 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
     </View>
   );
 
-  return (
-    <View ref={wrap} onLayout={measure} style={[styles.wrap, { bottom: lift }]} pointerEvents="box-none" testID="open-line-wrap">
-      {/* Messages sit above the line, in one column, so nothing covers it or each other (JN18). */}
-      <View style={styles.above} pointerEvents="box-none">
-        {props.above}
-        {errorPill}
-        {editOffer.offer && !recording && (
-          <EditOfferPill
-            offer={editOffer.offer}
-            where="moment"
-            onEdit={() => {
-              const id = editOffer.offer?.id;
-              setEditing(cap.captures.find((c) => c.id === id) ?? null);
-              editOffer.clear();
-            }}
-          />
-        )}
-        {toast && (
-          <View style={styles.pill} accessibilityLiveRegion="polite" testID="band-toast">
-            <Text style={styles.pillText}>{toast}</Text>
-          </View>
-        )}
-        {cap.discarded && !recording && retryPill('band-voice-undo', 'Voice note discarded', () => cap.undoDiscard(), 'Undo')}
-        {cap.unsaved && retryPill('band-voice-retry', 'Voice note not saved', () => cap.retrySave())}
-        {cap.held.length > 0 && retryPill('held-captures', heldLabel(cap.held), () => cap.retryHeld())}
-        {!recording && focused && <SpaceLine />}
+  const { inBar } = props;
+  const write = () => {
+    // In the tap itself, so a phone raises its keyboard; then today's foot comes into view.
+    input.current?.focus();
+    onFoot();
+  };
+  // The field (JN28). On the page it is the last line of today's page, as wide as the column, in the owner's serif,
+  // with no box: the words are written where they will stay. Where no page shows, it sits in the bar.
+  const fieldEl = (
+    <View key="field" style={inBar ? styles.fieldInBar : styles.fieldOnPage}>
+      {/* Room for the dateline that arrives with the first character, so the line being written does not jump. */}
+      {!inBar && !entryOpen && <View style={styles.datelineRoom} />}
+      <View>
+        {/* A still mark where writing begins: the page says "here" without a hint or a prompt (JN10). */}
+        {!typing && text.length === 0 && <View style={styles.mark} pointerEvents="none" />}
+        <TextInput
+          ref={input}
+          testID="line-input"
+          multiline
+          value={text}
+          onChangeText={onChangeText}
+          selection={selection}
+          editable={!props.disabled}
+          accessibilityLabel={LINE_LABELS.write}
+          maxLength={NOTE_MAX}
+          rows={1}
+          onContentSizeChange={(e) => setFieldH(Math.max(FIELD_MIN, Math.ceil(e.nativeEvent.contentSize.height)))}
+          onFocus={() => {
+            if (blurTimer.current) clearTimeout(blurTimer.current);
+            setTyping(true);
+            onFoot();
+          }}
+          onBlur={() => {
+            if (blurTimer.current) clearTimeout(blurTimer.current);
+            blurTimer.current = setTimeout(() => setTyping(false), BLUR_HOLD_MS);
+          }}
+          style={[styles.field, { height: text.length ? (inBar ? Math.min(FIELD_MAX, fieldH) : fieldH) : FIELD_MIN }]}
+        />
       </View>
-      {/* The whole strip is the line's: a tap between its controls never lands on an entry scrolled beneath. */}
-      <View style={styles.line} testID="open-line" pointerEvents="auto" onLayout={(e) => props.onHeight?.(Math.round(e.nativeEvent.layout.height))}>
-        {(status || recording || typing) && (
-          <View style={styles.statusRow}>
-            {recording ? (
-              <>
-                <View testID="band-voice-timer" style={styles.timer} accessible accessibilityLabel="Recording voice note">
-                  <View style={styles.recDot} />
-                  <Ticking style={styles.timerText} text={(t) => formatElapsed(t - cap.voiceStartedAt!)} />
-                </View>
-                <Pressable testID="band-voice-discard" accessibilityRole="button" accessibilityLabel="Discard voice note" accessibilityHint="Throws this recording away. You can undo for a few seconds." onPress={() => cap.discardVoice()} style={styles.textBtn}>
-                  <Text style={styles.textBtnText}>Discard</Text>
-                </Pressable>
-              </>
+    </View>
+  );
+  const active = typing || writing;
+  const timer = (
+    <View testID="band-voice-timer" style={styles.timer} accessible accessibilityLabel="Recording voice note">
+      <View style={styles.recDot} />
+      <Ticking style={styles.timerText} text={(t) => formatElapsed(t - cap.voiceStartedAt!)} />
+    </View>
+  );
+  const discard = (
+    <Pressable testID="band-voice-discard" accessibilityRole="button" accessibilityLabel="Discard voice note" accessibilityHint="Throws this recording away. You can undo for a few seconds." onPress={() => cap.discardVoice()} style={styles.textBtn}>
+      <Text style={styles.textBtnText}>Discard</Text>
+    </Pressable>
+  );
+  const bar = (
+    <View key="line" style={styles.layer} pointerEvents="box-none">
+      <View ref={wrap} onLayout={measure} style={[styles.wrap, { bottom: lift }]} pointerEvents="box-none" testID="open-line-wrap">
+        {/* Messages sit above the bar, in one column, so nothing covers it or each other (JN18). */}
+        <View style={styles.above} pointerEvents="box-none">
+          {props.above}
+          {errorPill}
+          {editOffer.offer && !recording && (
+            <EditOfferPill
+              offer={editOffer.offer}
+              where="moment"
+              onEdit={() => {
+                const id = editOffer.offer?.id;
+                setEditing(cap.captures.find((c) => c.id === id) ?? null);
+                editOffer.clear();
+              }}
+            />
+          )}
+          {toast && (
+            <View style={styles.pill} accessibilityLiveRegion="polite" testID="band-toast">
+              <Text style={styles.pillText}>{toast}</Text>
+            </View>
+          )}
+          {cap.discarded && !recording && retryPill('band-voice-undo', 'Voice note discarded', () => cap.undoDiscard(), 'Undo')}
+          {cap.unsaved && retryPill('band-voice-retry', 'Voice note not saved', () => cap.retrySave())}
+          {cap.held.length > 0 && retryPill('held-captures', heldLabel(cap.held), () => cap.retryHeld())}
+          {!recording && focused && <SpaceLine />}
+        </View>
+        {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
+        <View style={styles.line} testID="open-line" pointerEvents="auto" onLayout={(e) => props.onHeight?.(Math.round(e.nativeEvent.layout.height))}>
+          <View style={styles.row}>
+            {inBar ? (
+              fieldEl
+            ) : recording ? (
+              <View style={styles.lead}>{timer}{discard}</View>
+            ) : active || pen.failed ? (
+              <Text style={styles.status} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
             ) : (
-              <>
-                <Text style={styles.status} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
-                {pen.failed ? (
-                  <Pressable testID="line-retry" accessibilityRole="button" onPress={() => send.current({ k: 'retry' })} style={styles.textBtn}>
-                    <Text style={styles.textBtnText}>Retry</Text>
-                  </Pressable>
-                ) : (
-                  // The line opens into the note's page (JN25): for a long entry, or one with a shape.
-                  <Pressable testID="line-page" accessibilityRole="button" accessibilityLabel="Open as a page" accessibilityState={{ disabled: pen.beginning }} disabled={pen.beginning} onPress={openPage} style={styles.textBtn}>
-                    <Text style={styles.pageBtnText}>Open as a page</Text>
-                  </Pressable>
-                )}
-              </>
+              // At rest: the pen. From anywhere on the sheet it brings today's foot up and puts the caret on the page.
+              <View style={styles.lead}>
+                <IconButton testID="line-write" icon="create-outline" label={LINE_LABELS.write} onPress={write} disabled={props.disabled} />
+              </View>
+            )}
+            {inBar && recording ? <>{timer}{discard}</> : null}
+            {pen.failed ? (
+              <Pressable testID="line-retry" accessibilityRole="button" onPress={() => send.current({ k: 'retry' })} style={styles.textBtn}>
+                <Text style={styles.textBtnText}>Retry</Text>
+              </Pressable>
+            ) : active && !recording ? (
+              // The line opens into the note's page (JN25): for a long entry, or one with a shape.
+              <IconButton testID="line-page" icon="document-text-outline" label="Open as a page" onPress={openPage} disabled={pen.beginning} />
+            ) : null}
+            <IconButton testID="band-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
+            {recording ? (
+              <IconButton testID="band-voice-save" icon="stop" label="Stop and save voice note" onPress={() => void saveVoice()} busy={cap.busy === 'voice'} voice />
+            ) : (
+              <IconButton testID="band-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={voice} busy={cap.busy === 'voice'} disabled={props.disabled} />
+            )}
+            {showDone && (
+              <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
+                <Text style={styles.doneText}>Done</Text>
+              </Pressable>
             )}
           </View>
-        )}
-        <View style={styles.row}>
-          <View style={styles.fieldWrap}>
-            {/* A still mark where writing begins: the line says "here" without a hint or a prompt (JN10). */}
-            {!typing && text.length === 0 && <View style={styles.mark} pointerEvents="none" />}
-            <TextInput
-              ref={input}
-              testID="line-input"
-              multiline
-              value={text}
-              onChangeText={onChangeText}
-              selection={selection}
-              editable={!props.disabled}
-              accessibilityLabel={LINE_LABELS.write}
-              maxLength={NOTE_MAX}
-              rows={1}
-              onContentSizeChange={(e) => setFieldH(Math.min(FIELD_MAX, Math.max(FIELD_MIN, Math.ceil(e.nativeEvent.contentSize.height))))}
-              onFocus={() => {
-                if (blurTimer.current) clearTimeout(blurTimer.current);
-                setTyping(true);
-                onFoot();
-              }}
-              onBlur={() => {
-                if (blurTimer.current) clearTimeout(blurTimer.current);
-                blurTimer.current = setTimeout(() => setTyping(false), BLUR_HOLD_MS);
-              }}
-              style={[styles.field, { height: text.length ? fieldH : FIELD_MIN }]}
-            />
-          </View>
-          <IconButton testID="band-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
-          {recording ? (
-            <IconButton testID="band-voice-save" icon="stop" label="Stop and save voice note" onPress={() => void saveVoice()} busy={cap.busy === 'voice'} voice />
-          ) : (
-            <IconButton testID="band-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={voice} busy={cap.busy === 'voice'} disabled={props.disabled} />
-          )}
-          {showDone && (
-            <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
-              <Text style={styles.doneText}>Done</Text>
-            </Pressable>
-          )}
         </View>
       </View>
+    </View>
+  );
+  // Keyed, so the bar and the screen keep their state when their order changes: the bar comes first for a screen
+  // reader on the page, and after a thread's or Hidden's own Back.
+  const body = <View key="body" style={styles.body}>{props.children(inBar ? null : fieldEl)}</View>;
+  return (
+    <>
+      {inBar ? [body, bar] : [bar, body]}
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
           <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
@@ -600,7 +640,7 @@ function Line(props: LineProps & { walk: { id: string; here: LngLat | null; last
         <Mention self={pen.entry?.momentId ?? null} onPick={pick} onClose={() => { setPicking(null); input.current?.focus(); }} />
       )}
       {editing && <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => setEditing(null)} onSave={(patch) => cap.setEdit(editing, patch)} />}
-    </View>
+    </>
   );
 }
 
@@ -633,29 +673,32 @@ function IconButton(props: { testID: string; icon: IconName; label: string; onPr
 }
 
 const styles = StyleSheet.create({
+  layer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2 },
+  body: { flex: 1 },
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   above: { paddingHorizontal: 16, paddingBottom: 10, gap: 8, alignItems: 'center' },
   // An edge that reads as a control's boundary (3:1 on the ground): shape says "write here", with no hint (ui 5).
-  line: { backgroundColor: theme.bg, borderTopWidth: 1, borderTopColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, paddingHorizontal: 12, width: '100%', maxWidth: 616, alignSelf: 'center' },
-  status: { color: theme.muted, fontSize: 13 },
-  row: { flexDirection: 'row', alignItems: 'flex-end', width: '100%', maxWidth: 616, alignSelf: 'center' },
-  fieldWrap: { flex: 1, minHeight: 44, justifyContent: 'center', paddingLeft: 12 },
-  mark: { position: 'absolute', left: 12, top: 9, width: 2, height: 26, backgroundColor: theme.ink },
+  line: { backgroundColor: theme.bg, borderTopWidth: 1, borderTopColor: theme.edge, paddingHorizontal: 8, paddingVertical: 8 },
+  status: { flex: 1, color: theme.muted, fontSize: 13, paddingLeft: 8 },
+  lead: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 44, width: '100%', maxWidth: 624, alignSelf: 'center' },
+  // On the page: the column's own width, no box (JN28). In the bar: what the row leaves.
+  fieldOnPage: { width: '100%' },
+  fieldInBar: { flex: 1, minHeight: 44, justifyContent: 'center', paddingLeft: 8 },
+  datelineRoom: { height: 58 },
+  mark: { position: 'absolute', left: 0, top: 9, width: 2, height: 26, backgroundColor: theme.ink },
   // 16 px or more, or iOS Safari zooms the page on focus; no outline: the mark and the caret say where.
   field: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 26, paddingVertical: 9, paddingHorizontal: 0, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   iconVoice: { backgroundColor: '#6b21a8' },
   dim: { opacity: 0.5 },
-  done: { minWidth: 44, height: 44, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  done: { minWidth: 44, height: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
   timerText: { color: theme.ink, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   textBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   textBtnText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
-  // The quieter of the two words beside Done (ui 2).
-  pageBtnText: { color: theme.ink, fontSize: 15, fontWeight: '400' },
   pill: { width: '100%', maxWidth: 480, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.ink, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14, minHeight: 48 },
   pillText: { color: theme.bg, fontSize: 14, flex: 1 },
   pillBtn: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },

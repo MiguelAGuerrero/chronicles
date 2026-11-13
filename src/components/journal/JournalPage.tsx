@@ -24,6 +24,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   footPad: number;
   slip: ReactNode;
   entry: (m: MomentView) => ReactNode;
+  /** The open line's field: the last line of today's page, where the words are written (JN28). */
+  field?: ReactNode;
   /** Said under today's date when the page could not be read. */
   notice?: ReactNode;
 }>(function JournalPage(props, ref) {
@@ -107,6 +109,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
         if (r.k === 'slip') return <View key={r.key}>{props.slip}</View>;
         return <View key={r.key}>{props.entry(r.m)}</View>;
       })}
+      {props.field}
     </ScrollView>
   );
 });
