@@ -121,15 +121,23 @@ export function videoFrame(uri: string, atSec: number, max: number): Promise<{ s
       else resolve({ source: still, release: () => URL.revokeObjectURL(still) });
     }
     v.onerror = () => finish(new Error('unreadable'));
-    v.onloadeddata = () => {
-      v.pause();
+    const seekTo = () => {
       const end = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : atSec;
       const at = Math.max(0, Math.min(atSec, Math.max(0, end - 0.05)));
-      if (Math.abs(v.currentTime - at) < 0.01 && at === 0) draw();
-      else {
-        v.onseeked = draw;
-        v.currentTime = at;
-      }
+      if (at === 0 && v.currentTime === 0) return draw();
+      v.onseeked = draw;
+      v.currentTime = at;
+    };
+    v.onloadeddata = () => {
+      v.pause();
+      if (atSec === 0 || Number.isFinite(v.duration)) return seekTo();
+      // A MediaRecorder WebM has no duration in its header, and a seek into it may never land: a seek far past the end
+      // makes the browser find the length first (the edit journey's trap), then the real seek follows.
+      v.onseeked = () => {
+        v.onseeked = null;
+        seekTo();
+      };
+      v.currentTime = 1e101;
     };
     function draw() {
       const w = v.videoWidth;
