@@ -1,7 +1,8 @@
-import { forwardRef, useImperativeHandle, useRef, type ComponentRef, type ReactNode } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { dayHeading } from '../../lib/journal/lines';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { LINE_LABELS, dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
+import { anchorOf, blankHeight, peekStart } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
 import { theme } from '../ui';
 
@@ -9,21 +10,38 @@ export type JournalPageHandle = { toFoot: (animated?: boolean) => void };
 
 /** Older entries are asked for this near the top of what is drawn. */
 const NEAR_TOP = 240;
+/** How long the sheet's end is held while the empty page grows or comes back (the bars fold in about this long). */
+const SETTLE_MS = 450;
+/** A day's date before it has been measured. */
+const DATE_H = 66;
 
 /**
- * The journal's sheet (chronicle journal JN1, JN2): the rows in book order, opening at the foot. Reaching the top
- * asks for older entries, and what was on screen stays where it was as they are added above. A plain ScrollView:
- * a page is a few dozen entries, and an inverted list flips the wheel on the web.
+ * The journal's sheet (chronicle journal JN1, JN2, JN31-JN33): the rows in book order, each day's date held at the
+ * top while its entries pass, and after them the empty page, where the next entry is written.
+ *
+ * It rests at its end. The empty page is as tall as it takes for that end to show the entry the page opened on under
+ * its date and nothing older (`lib/journal/rest`), so the page reads as aligned to the top with where you left off
+ * in view. A tap on the empty page gives the field the keyboard, under the last entry. Entries made since the page
+ * opened stack beneath it and stay in view; once they fill two thirds of the room the sheet slides up as it grows
+ * and the line being written holds its place, as paper in a typewriter. Pulling down reads back; reaching the top asks for older
+ * entries, and what was on screen stays where it was as they are added above. A plain ScrollView: a page is a few
+ * dozen entries, and an inverted list flips the wheel on the web.
  */
 export const JournalPage = forwardRef<JournalPageHandle, {
   rows: JournalRow[];
   more: boolean;
   now: number;
   onMore: () => void;
-  /** Room at the foot for the open line. */
+  /** Room at the foot for the bar. */
   footPad: number;
   slip: ReactNode;
   entry: (m: MomentView) => ReactNode;
+  /** The field: the first line of the empty page, where the words are written (JN28). */
+  field?: ReactNode;
+  /** A tap on the empty page: the field takes the keyboard (JN32). */
+  onWrite?: () => void;
+  /** The field has the keyboard. */
+  writing?: boolean;
   /** Said under today's date when the page could not be read. */
   notice?: ReactNode;
 }>(function JournalPage(props, ref) {
@@ -44,11 +62,46 @@ export const JournalPage = forwardRef<JournalPageHandle, {
       scroll.current?.scrollToEnd({ animated });
     },
   }));
+
+  // The empty page's height (JN31, JN32), from the sheet's own height and the heights of the rows in the peek.
+  const [view, setView] = useState(0);
+  const [heights, setHeights] = useState<Record<string, number>>({});
+  const measured = (key: string, h: number) => setHeights((prev) => (prev[key] === h ? prev : { ...prev, [key]: h }));
+  const writing = !!props.writing;
+  // The entry the page opened on (JN33): the peek begins with it, and every entry made since stacks beneath it.
+  const [opened0, setOpened0] = useState<string | null>(null);
+  const anchor = anchorOf(props.rows, opened0);
+  if (anchor !== opened0) setOpened0(anchor);
+  const from = peekStart(props.rows, anchor);
+  const peek = props.rows.slice(from).reduce((sum, r) => sum + (heights[r.key] ?? 0), 0);
+  const dateRow = props.rows.find((r) => r.k === 'day');
+  const dateH = (dateRow && heights[dateRow.key]) || DATE_H;
+  // A peek that begins with a date brings its own; otherwise the day's date is held above it.
+  const sticky = props.rows[from]?.k === 'day' ? 0 : dateH;
+  const blank = view > 0 ? blankHeight({ view, foot: props.footPad, sticky, peek }) : 0;
+  // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
+  // changes the sheet's length while the reader is at its end just keeps the end in view.
+  const moving = useRef(false);
+  // The keyboard coming and going changes the sheet's height and its length in several steps (the bars fold, the
+  // empty page resizes). The reader is at the end before and must be at the end after, whatever a scroll event in between
+  // says: the end is held for a moment, and the sheet is taken there once more when it has settled.
+  const hold = useRef(false);
+  useEffect(() => {
+    moving.current = true;
+    hold.current = true;
+    pinned.current = true;
+    const t = setTimeout(() => {
+      hold.current = false;
+      scroll.current?.scrollToEnd({ animated: false });
+    }, SETTLE_MS);
+    return () => clearTimeout(t);
+  }, [writing]);
+
   const { more, onMore } = props;
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     at.current = { y: contentOffset.y, height: contentSize.height, view: layoutMeasurement.height };
-    pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
+    if (!hold.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
     if (pinned.current) opened.current = true;
     if (opened.current && contentOffset.y < NEAR_TOP && contentSize.height > layoutMeasurement.height && more && !adding.current) {
       adding.current = true;
@@ -56,65 +109,76 @@ export const JournalPage = forwardRef<JournalPageHandle, {
       onMore();
     }
   };
+  const toEnd = () => {
+    const animated = moving.current;
+    moving.current = false;
+    scroll.current?.scrollToEnd({ animated });
+  };
   const onContentSizeChange = (_w: number, h: number) => {
     const before = at.current.height;
     at.current.height = h;
     if (adding.current && count === askedAt.current) {
-      if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
+      if (pinned.current) toEnd();
       return;
     }
     if (adding.current) {
       adding.current = false;
-      // A reader at the foot stays there (a short page that asked for more, a page read again after it failed: ui 8).
-      if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
+      // A reader at the foot stays there (a page read again after it failed: ui 8).
+      if (pinned.current) toEnd();
       // Entries were added above: the ones on screen keep their place. Native holds it itself (below).
       else if (Platform.OS === 'web' && before > 0 && h > before) scroll.current?.scrollTo({ y: at.current.y + (h - before), animated: false });
       return;
     }
-    if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
-    // A page shorter than the screen never scrolls, so it never reaches "the top": older entries are asked for here.
-    if (more && at.current.view > 0 && h <= at.current.view) {
-      adding.current = true;
-      askedAt.current = count;
-      onMore();
-    }
+    if (pinned.current) toEnd();
   };
+  // Each day's date is held at the top while its entries pass (JN31).
+  const dates = props.rows.flatMap((r, i) => (r.k === 'day' ? [i] : []));
   return (
     <ScrollView
       ref={scroll}
       testID="journal-page"
       style={styles.scroll}
       contentContainerStyle={[styles.page, { paddingBottom: props.footPad }]}
+      stickyHeaderIndices={dates}
       onScroll={onScroll}
       scrollEventThrottle={32}
       onContentSizeChange={onContentSizeChange}
       onLayout={(e) => {
-        at.current.view = e.nativeEvent.layout.height;
+        const h = Math.round(e.nativeEvent.layout.height);
+        at.current.view = h;
+        setView(h);
         if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
       }}
       maintainVisibleContentPosition={Platform.OS === 'web' ? undefined : { minIndexForVisible: 0 }}
       keyboardShouldPersistTaps="handled"
     >
       {props.rows.map((r) => {
+        const onLayout = (e: { nativeEvent: { layout: { height: number } } }) => measured(r.key, Math.round(e.nativeEvent.layout.height));
         if (r.k === 'day') {
           return (
-            <View key={r.key} style={styles.day}>
+            <View key={r.key} style={styles.day} onLayout={onLayout}>
               <Text style={styles.heading} accessibilityRole="header" testID="day-heading">{dayHeading(r.t, props.now)}</Text>
               {r.today ? props.notice : null}
             </View>
           );
         }
-        if (r.k === 'slip') return <View key={r.key}>{props.slip}</View>;
-        return <View key={r.key}>{props.entry(r.m)}</View>;
+        if (r.k === 'slip') return <View key={r.key} onLayout={onLayout}>{props.slip}</View>;
+        return <View key={r.key} onLayout={onLayout}>{props.entry(r.m)}</View>;
       })}
+      {/* The empty page (JN31, JN32): the field is its first line, and the rest of it is one place to tap. */}
+      <View key="blank" style={{ minHeight: blank }} testID="empty-page">
+        {props.field}
+        <Pressable testID="line-write" accessibilityRole="button" accessibilityLabel={LINE_LABELS.write} onPress={props.onWrite} style={styles.tap} />
+      </View>
     </ScrollView>
   );
 });
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  // The foot is the page's start: a short page sits low, above the open line.
-  page: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 24, paddingTop: 8, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  day: { paddingTop: 28, gap: 10 },
+  page: { flexGrow: 1, paddingHorizontal: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  // Its own ground: entries pass under the date held at the top.
+  day: { paddingTop: 28, paddingBottom: 10, gap: 10, backgroundColor: theme.bg },
   heading: { color: theme.ink, fontSize: 22, lineHeight: 28, fontWeight: '600' },
+  tap: { flexGrow: 1, minHeight: 44 },
 });
