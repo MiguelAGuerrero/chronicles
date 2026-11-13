@@ -261,24 +261,9 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   (return: the walk's end reads at a glance mid-replay; restraint kept, no new colour), amends QL2 again.
   Otherwise: the walker carries its heading cone through the replay as on the live walk, so the dot differs in shape
   instead; or leave it (the motion tells them apart while it plays).
-- **T26 [owner] Walk: Start refused still reads as a fault, in other words than Locate's** (2026-11-13)
-  Area: recording (Start on Navigate; the walk's "Not recording" notice). Seen: `src/lib/recorder/index.web.ts` l.102, the
-  `qol` and `ready` journeys' QL19 checks: Start, refused, says "Location permission was denied. Allow location for this
-  site in the browser settings, then try again." in the red error banner; since `tend map T17` Locate says "Location is
-  off for this site. Turn it on in the browser's settings to see where you are." as a quiet notice. Rests on: decision
-  0154, which took T17's words for the recorder's start's (they never were: the web recorder's line was Locate's old
-  one); `.claude/rules/map.md`, "Denied says what the recorder's start says"; VISION.md Always, "Restraint in motion,
-  colour and copy". New copy on Start, so yours.
-  Recommended: the recorder's web start reads its line from `locate/notice.ts`, beside Locate's, with its own end:
-  "Location is off for this site. Turn it on in the browser's settings to record a walk.", in the quiet notice on the
-  ready screen and in the walk's "Not recording" notice; on a phone the words stay ("Location is turned off for
-  Chronicles. Turn it on in Settings to record a walk.", with Open Settings), quiet too. /vision: aligned (honour;
-  restraint, as T17).
-  Otherwise: T17's line word for word on Start too ("... to see where you are."); or the words alone, left red; or leave it.
-  Corrected (the T17 review's F5, U2): the QL19 checks that pin Start's words are the `qol` journey's alone (`ready` has
-  none). And since `tend map T17` the web shows the two refusals on one screen in different tones and words: Locate's
-  cream notice, then, a moment later in the same slot, Start's red alert; on `main` before it they were the same red and
-  the same words. The split is this build's, which weighs how soon you answer.
+  **Answered yes** by the owner in person (`/tend inbox T26 yes, T25 yes`, Nov 13; decision 0162): the recommended
+  bullseye end, the start and the dot unchanged, no hue of its own. Waits for the next `/tend inbox`, one build per run
+  (T26 was built first).
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
@@ -341,7 +326,8 @@ has run on a phone; the notice, its announcement and the scale bar's tile read a
 
 - **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in
   `specs/quality-of-life/spec.md`) says "Denied location shows the error banner a moment's placement shows"; since
-  `tend map T17` a refused location is the quiet notice (the cream banner, ink, no alert), "Location is off for this site.
+  `tend map T17` a refused location is the quiet notice (the cream banner, its text the dark brown `#6b4500`, no
+  alert), "Location is off for this site.
   Turn it on in the browser's settings to see where you are." on the web, and with no fix and no tiles drawn Navigate and
   Explore show no scale bar. Amend QL11 to say so, in the doc and the mirror; the loop may not edit a spec. Decision 0154
   calls T17's words "the words the recorder's start uses", which they never were: the web recorder's start says "Location
@@ -352,6 +338,11 @@ has run on a phone; the notice, its announcement and the scale bar's tile read a
   QL5 is amended too (the T17 review's F2): it says "Every map shows a scale bar in its bottom-left corner"; since
   `tend map T17` Navigate and Explore show none with no fix and no tiles drawn. Amend QL5 beside QL11, in the doc and
   the mirror, so a sweep does not read the hidden bar as a regression; decision 0154's header names neither.
+  True again on the web since `tend recording T26` (the owner's yes, Nov 13; decision 0162): Start, refused, reads its
+  line from `locate/notice.ts` beside Locate's, "Location is off for this site. Turn it on in the browser's settings to
+  record a walk.", as the same quiet notice on the ready screen and in the walk's "Not recording" notice. So QL19 and
+  the map rule's "Denied says what the recorder's start says" hold on the web again, the two lines sharing their
+  beginning and each its own end. QL11's and QL5's wording still wait for your edit.
 - **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
   `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
   agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A
