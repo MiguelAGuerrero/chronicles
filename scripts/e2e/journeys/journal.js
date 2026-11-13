@@ -76,10 +76,10 @@ async function run(h) {
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
   // On the page the bar's pen brings today's foot up and puts the caret there (JN29); where no page shows (a thread,
   // Hidden) the field is in the bar itself.
-  // A pill above the bar (room left, the edit offer) can sit over the middle of the empty page: tap its first lines.
+  // The caret goes on the page by a tap on the field, the empty page's first line. Not a forced tap on the empty
+  // page: that lands on whatever is still over it (a sheet fading out, a pill) and the words are typed nowhere.
   const toLine = async () => {
-    if (await pg.locator('[data-testid=line-write]').filter({ visible: true }).count()) await pg.click('[data-testid=line-write]', { position: { x: 40, y: 16 }, timeout: 5000, force: true }).catch(() => {});
-    else await pg.click(input).catch(() => {});
+    await pg.click(input, { timeout: 8000 }).catch(() => {});
   };
   const type = async (text) => {
     await toLine();
