@@ -723,16 +723,30 @@ export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollec
 }
 
 /**
- * The start and end markers' paint, one `ends` circle layer on both maps (QL1, QL2; tend map T16): shape tells
- * them apart, not colour alone (WCAG 2.2, 1.4.1). The start is hollow, a white disc ringed in the trace's green;
- * the end is solid, a disc filled in the walked colour with a white ring. No new hue: the end takes the walked
- * streets' colour (T22, a walked colour apart from the accent, is open).
+ * The start and end markers' paint, the `ends` circle layer on both maps (QL1, QL2; tend map T16): shape tells
+ * them apart, not colour alone (WCAG 2.2, 1.4.1). The start is hollow, a white disc ringed in the trace's green.
+ * The end is a bullseye (tend map T25, decision 0162), so it differs in shape from the walker's solid dot too: here
+ * its walked centre and white band, drawn over `ENDS_RING_PAINT`'s walked outer ring. One width across, 22 px, the
+ * start's and the end's. No new hue: the end takes the walked streets' colour (T22, a walked colour apart from the
+ * accent, is open).
  */
 export const ENDS_PAINT = {
   'circle-color': ['match', ['get', 'kind'], 'start', '#ffffff', COLORS.walked],
-  'circle-radius': 7,
-  'circle-stroke-width': 4,
+  'circle-radius': ['match', ['get', 'kind'], 'start', 7, 3.5],
+  'circle-stroke-width': ['match', ['get', 'kind'], 'start', 4, 2.5],
   'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, '#ffffff'],
+} satisfies NonNullable<CircleLayerSpecification['paint']>;
+
+/**
+ * The end's walked outer ring (tend map T25): a second circle layer on the `ends` source, for the end alone, drawn
+ * before `ENDS_PAINT`'s, which lays the centre and its white band over it. A thin white edge keeps the ring off the
+ * walked streets and the trace it stands on.
+ */
+export const ENDS_RING_PAINT = {
+  'circle-color': COLORS.walked,
+  'circle-radius': 9.5,
+  'circle-stroke-width': 1.5,
+  'circle-stroke-color': '#ffffff',
 } satisfies NonNullable<CircleLayerSpecification['paint']>;
 
 /**

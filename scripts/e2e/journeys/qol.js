@@ -344,10 +344,11 @@ async function run(h) {
 
     // What is drawn around a point of the map (QL3): green pixels (the trace's colour) and the middle one,
     // read from a screenshot of the composited page, decoded in the page.
-    const pixelsAround = async (p, r = 14) => {
+    // `radial`: for each radius in CSS px from the point, the four pixels right, left, below and above it (tend map T25).
+    const pixelsAround = async (p, r = 14, radii = []) => {
       const [x, y] = await pg.evaluate((q) => window.__project(q), p);
       const png = await pg.screenshot({ clip: { x: x - r, y: y - r, width: 2 * r, height: 2 * r } });
-      return pg.evaluate(async (b64) => {
+      return pg.evaluate(async ([b64, r, radii]) => {
         const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
         const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
         const cv = new OffscreenCanvas(bmp.width, bmp.height);
@@ -358,8 +359,14 @@ async function run(h) {
         let green = 0;
         for (let i = 0; i < d.length; i += 4) if (near(i, [0x15, 0x80, 0x3d], 90)) green++;
         const c = ((bmp.height >> 1) * bmp.width + (bmp.width >> 1)) * 4;
-        return { green, white: near(c, [255, 255, 255], 24), centre: [d[c], d[c + 1], d[c + 2]] };
-      }, png.toString('base64'));
+        const k = bmp.width / (2 * r);
+        const px = (dx, dy) => {
+          const i = ((Math.round(bmp.height / 2 + dy * k) * bmp.width) + Math.round(bmp.width / 2 + dx * k)) * 4;
+          return [d[i], d[i + 1], d[i + 2]];
+        };
+        const radial = radii.map((q) => [px(q, 0), px(-q, 0), px(0, q), px(0, -q)]);
+        return { green, white: near(c, [255, 255, 255], 24), centre: [d[c], d[c + 1], d[c + 2]], radial };
+      }, [png.toString('base64'), r, radii]);
     };
 
     // A real two-finger turn (tend map 1): two touches swung 90° about a point in the map's top third, sent through
@@ -762,7 +769,8 @@ async function run(h) {
         const hiddenNow = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => m.style.visibility === 'hidden').length);
         const thrown = await markersHidden(async () => { throw new Error('a read that fails'); }).then(() => false, () => true);
         const left = await hiddenNow();
-        const [pxStart, pxEnd] = await markersHidden(async () => [await pixelsAround(startAt), await pixelsAround(endAt)]);
+        // tend map T25: the end read across, 4 to 9 px out from its point.
+        const [pxStart, pxEnd] = await markersHidden(async () => [await pixelsAround(startAt), await pixelsAround(endAt, 14, [4, 5, 6, 7, 8, 9])]);
         const leftAfter = await hiddenNow();
         check(thrown && left === 0 && leftAfter === 0,
           `tend map audit 8: after the ends read every marker is visible again, a failed read too (hidden after a throw ${left}, after the read ${leftAfter})`);
@@ -770,6 +778,16 @@ async function run(h) {
         const nearWalked = (c) => Math.abs(c[0] - walked[0]) + Math.abs(c[1] - walked[1]) + Math.abs(c[2] - walked[2]) <= 60;
         check(pxStart.white && !pxEnd.white && nearWalked(pxEnd.centre),
           `tend map T16: the start is hollow (white middle) and the end solid in the walked colour (start ${JSON.stringify(pxStart.centre)}, end ${JSON.stringify(pxEnd.centre)})`);
+        // tend map T25 (the owner's yes, Nov 13; decision 0162): the end is a bullseye, so it differs in shape from the
+        // walker's solid dot as well as from the hollow start: in each of the four directions from the walked centre, a
+        // white band 4 to 6 px out and a walked ring 7 to 9 px out (a pixel's slack for where the point falls). The dot
+        // is one navy disc to 9 px, with no band.
+        const isWhite = (c) => Math.abs(c[0] - 255) + Math.abs(c[1] - 255) + Math.abs(c[2] - 255) <= 60;
+        const dirs = [0, 1, 2, 3].map((k) => pxEnd.radial.map((at) => at[k]));
+        const bandWhite = dirs.filter((d) => d.slice(0, 3).some(isWhite)).length;
+        const ringWalked = dirs.filter((d) => d.slice(3).some(nearWalked)).length;
+        check(nearWalked(pxEnd.centre) && bandWhite === 4 && ringWalked === 4,
+          `tend map T25: the end is a bullseye, a walked centre, a white band and a walked outer ring (centre ${JSON.stringify(pxEnd.centre)}, band white ${bandWhite}/4, ring walked ${ringWalked}/4; right, left, below, above from 4 to 9 px ${JSON.stringify(dirs)})`);
       }
       const s6 = await scaleBar();
       // The card: the outermost painted box around Name it.

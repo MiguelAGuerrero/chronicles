@@ -186,6 +186,11 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     ringed in the trace's green), the end solid (filled in `COLORS.walked`, a white ring). One paint for both
     maps, `ENDS_PAINT` (`map/types.ts`). The `qol` journey reads both middles on the replay with the pins and the
     walker hidden: they are DOM markers standing over the end.
+  - Since `tend map T25` (decision 0162) the end is a bullseye, so it differs in shape from the walker's solid dot
+    too: a walked outer ring (`ENDS_RING_PAINT`, a second circle layer `ends-ring` on the `ends` source, filtered to
+    the end and drawn first, with a thin white edge), then its walked centre and white band (`ENDS_PAINT`'s end
+    branch). The start and the dot are unchanged; the end is the start's width, 22 px. Both layers take the
+    trace's opacity. The `qol` journey reads the end across, at its band (5 px out) and its ring (8 px out).
 - **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
   longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
   latitude), in the bottom-left corner, as a sibling of the map inside the
