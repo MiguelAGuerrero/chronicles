@@ -323,6 +323,12 @@ no area changed state. Nothing here has run on a phone; the `ends` layer is draw
 
 ### Open before the loop
 
+- **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
+  `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
+  agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A
+  session that was in flight merges `origin/main` (on a conflict in these three, `npm run records -- redo` takes
+  main's side, and the session files its entries again after the merge); a hand edit it commits after that, or one
+  made before and rebased on, is refused by name with its fix (`.claude/skills/ship.md`, "The record documents").
 - **QL2's wording after T16** (Nov 12; decision 0154): the quality-of-life doc (mirrored in
   `specs/quality-of-life/spec.md`) says the end marker is "a white disc with a thick ring in the walked orange"; since
   `tend map T16` it is solid, a disc filled in the walked colour with a white ring, the start still hollow. Amend QL2 to

@@ -303,7 +303,7 @@ recording, and a recording bar brings a minimized walk back.
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
 - **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
   remembered reads the area once, in the background on the web and only once the map has stopped moving, so moving between neighborhoods stays
-  smooth in a dense city (decision 0156). Its street names are the map's own text: one per street within 300 m, at its busiest point, turned along it, never over
+  smooth in a dense city (decision 0159). Its street names are the map's own text: one per street within 300 m, at its busiest point, turned along it, never over
   another name, a "?" pin, the selected area's name or one of Explore's buttons; where they crowd, the heavier streets (a
   current area's first) keep theirs and zooming in brings the rest. On Explore they take the room first; on the walk screen
   and Navigate the map's own street names do, the trace draws over them, and only those within 800 m of you are named.

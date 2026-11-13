@@ -1,4 +1,4 @@
-# 0156. Explore in a dense city: busy names drawn by the map, the read off the page
+# 0159. Explore in a dense city: busy names drawn by the map, the read off the page
 
 Date: 2026-11-12 · Status: accepted · Area: explore, map, landing
 
