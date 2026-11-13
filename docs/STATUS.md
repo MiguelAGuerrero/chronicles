@@ -294,32 +294,37 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T17 yes, T14 yes, T15 reshape`** (from `df1aefb0`, rebased on `d792f3b5`; the owner's own
-answers, in person, Nov 12; decision 0154; T17 built, T14 and T15 wait for the next inbox run, one build per run).
-- `tend map T17`: Locate refused, on Navigate and Explore, is the app's quiet notice (the cream banner, its text the
-  dark brown `#6b4500`, no alert, read politely), not the red error: "Location is off for this site. Turn it on in the
-  browser's settings to see where you are."; on a phone the words stay ("Location is turned off for Chronicles. Turn it
-  on in Settings to find your position."), with Open Settings. The words live once, in `locate/notice.ts`. With no fix
-  and no tiles drawn, the two screens show no scale bar over the blank world; with the tiles drawn, or a fix, it stays.
-  The `qol` journey pictures the refusal on both screens at 390 and 320 px over an empty world, and keeps the bar where
-  the fake streets draw.
+**Nov 13, `/tend inbox T26 yes, T25 yes`** (from `d3fe0f41`, rebased on `e0c32231`; the owner's own answers, in
+person, Nov 13; decision 0162, numbered after Note types took 0161; T26 built, T25 waits for the next inbox run, one build per run).
+- `tend recording T26`: Start, refused, is the quiet notice Locate's refusal is since T17 (the cream banner, its text the
+  dark brown `#6b4500`, no alert, read politely), in Locate's line with its own end, read from `locate/notice.ts`
+  (`START_OFF`): "Location is off for this site. Turn it on in the browser's settings to record a walk." on the web, on
+  the ready screen and in the walk's "Not recording" notice; on a phone the words stay ("Location is turned off for
+  Chronicles. Turn it on in Settings to record a walk."), with Open Settings, quiet too. A refusal travels as
+  `tone: 'info'` on `RecorderError` and the recorder's error status; any other failure stays the red fault, and the chip
+  keeps its red dot. A screen reader hears it as T17's: the ready screen's live region, a new `walk-said` region kept
+  mounted on the walk (web), `announceForAccessibility` on a phone. The `qol` journey's QL19 step pins the new words
+  on the ready screen at 390 and on the walk at 390 and 320, the chip bringing the notice back.
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend map audit 12`: the refusal is said to a screen reader through a polite live region kept on screen (Navigate's
-  own `ready-said`, Explore's DN12 one), and on a phone by `announceForAccessibility` (F1 with U1).
-- `tend map audit 13`: the open item names QL5 ("Every map shows a scale bar") beside QL11 as amended (F2).
-- `tend map audit 14`: native counts roads, water or places as drawn, not places alone (`drawnFrom`) (F3).
-- `tend map audit 15`: the web's look queries only the base fill layers, never buildings (`blankLookLayers`) (F4).
-- `tend map audit 16`: T26's evidence names `qol` alone and says T17 split the two refusals on one screen (F5, U2).
-- `tend map audit 17`: the map rule notes the hidden bar and the veil trap (F6).
-- `tend map audit 18`: the notice's test lives with the moments feature that owns `locate/` (F7).
-Review: 8 accepted (F1-F7, U1 with F1), 4 deferred to `docs/DEFERRED.md`, Quality of life (U3 `[loop]` low, the (i)
-where the bar was; U4-U6 `[owner]` low, copy), 0 rejected; U2 is yours through T26.
-Found on the way: T17's words were never the recorder's start's (decision 0154 says they were): Start, refused, still
-says "Location permission was denied. ..." in red. Filed as T26 `[owner]`; QL11's and QL5's wording and the map rule's
-Locate line in "Open before the loop". One native check, with a note.
-Answered and waiting: T14 yes (kinds, no numeral, the time in the spoken name), T15 reshaped to "Ink star, no numeral".
-Not a sweep: no lens ran and no area changed state. The `drive` journey fails here and on `main` alike. Nothing here
-has run on a phone; the notice, its announcement and the scale bar's tile read are native too
+- `tend recording audit 1`: a refused Resume is the quiet notice in Start's words, said, never "Could not resume: ..."
+  in red (F1).
+- `tend recording audit 2`: Walk here (and every start) on Explore, refused, is the quiet notice, said through
+  Explore's live region (F2, U1).
+- `tend recording audit 3`: Walk here and Go on Chronicle, refused, are the quiet notice, said through a new
+  `chronicle-said` region (F3, U1).
+- `tend recording audit 4`: a second tap of Not recording with the notice up is said again (F4).
+- `tend recording audit 5`: a failed start's tone is a pure mapping (`startErrorFrom`), unit-tested, in place of T26's
+  source grep (the review's test finding).
+The `qol` journey pictures each at 390 and 320 (`qol-13d` Resume, `qol-13e` Explore, `qol-13f` Chronicle).
+Review: 5 accepted (F1, F2, F3 with U1, F4, the test), 4 deferred (F5 `[loop]` low, a notice that outlives a retry;
+F6 `[loop]` low with a native check, the location task's denial in red; U2 `[owner]` low, the walk's line names no
+reload; U3 noted here, no action: two cream notices stacked, as since T17), 0 rejected; F5, F6 and U2 are in
+`docs/DEFERRED.md`, Quality of life, with one `[loop]` low found in the round: Chronicle's banner lies over the map's
+credits (i).
+Answered and waiting: T25 yes (the bullseye end). QL19 and the map rule's Locate line hold on the web again, noted on
+the open item, whose "ink" now names the notice's colour. Two native checks, the first with a note for the review's fixes.
+Not a sweep: no lens ran and no area changed state. Every covering journey is green (21, `drive` among them). Nothing
+here has run on a phone; the refusal's tone, Open Settings and the announcement on native are unverified
 (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
