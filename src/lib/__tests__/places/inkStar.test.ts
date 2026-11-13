@@ -15,8 +15,8 @@ const star = (label: string, walks: number, count = 1): Star => ({
 });
 
 test('tend places T15: a star says its walks in words, a merged one its places too, and no digit', () => {
-  assert.equal(starSpoken(star('Fox Point', 1)), 'Fox Point, one walk');
-  assert.equal(starSpoken(star('Fox Point', 2)), 'Fox Point, two walks');
+  assert.equal(starSpoken(star('Fox Point', 1)), 'Fox Point, one walk. Open');
+  assert.equal(starSpoken(star('Fox Point', 2)), 'Fox Point, two walks. Open');
   assert.equal(starSpoken(star('Fox Point', 2, 2)), 'Two places, two walks. Zoom in');
   assert.equal(starSpoken(star('Fox Point', 1, 3)), 'Three places, one walk. Zoom in');
   assert.equal(starSpoken(star('Fox Point', 75, 61)), 'Many places, many walks. Zoom in');
@@ -59,4 +59,12 @@ test('tend places audit 4: the disc\'s own style is ink, and the only text a sta
   assert.equal((view.match(/backgroundColor: theme\.ink/g) ?? []).length, 2, 'both ink');
   const texts = [...view.matchAll(/<Text\b[^>]*>([\s\S]*?)<\/Text>/g)].map((m) => m[1].trim());
   assert.deepEqual(texts, ['{star.label}'], 'one Text, the name');
+});
+
+// tend places audit 5 (the UX review's U3): a lone star said no action, where a pin says ". Open" and a merged star
+// ". Zoom in"; a tap on it opens its walks in the sheet.
+test('tend places audit 5: a lone star says ". Open" after its walks, as a pin does; a merged one still "Zoom in"', () => {
+  assert.equal(starSpoken(star('Fox Point', 1)), 'Fox Point, one walk. Open');
+  assert.equal(starSpoken(star('Elsewhere in Providence', 3)), 'Elsewhere in Providence, three walks. Open');
+  assert.equal(starSpoken(star('Fox Point', 2, 2)), 'Two places, two walks. Zoom in');
 });

@@ -51,10 +51,11 @@ const walksWord = (n: number) => `${numberWord(n)} ${n === 1 ? 'walk' : 'walks'}
 
 /**
  * A walked place's star as a screen reader says it (tend places T15, decision 0154: the star draws no numeral): one
- * place by its name and its walks in words, "Fox Point, two walks"; places merged at this zoom by how many, in words,
- * and what a tap does, "Three places, two walks. Zoom in", as a pin of several says its kinds before its "Open".
+ * place by its name and its walks in words, then what a tap does, "Fox Point, two walks. Open" (tend places audit 5);
+ * places merged at this zoom by how many, in words, "Three places, two walks. Zoom in", as a pin says its kinds
+ * before its "Open".
  */
 export function starSpoken(star: Pick<Star, 'label' | 'walkIds' | 'count'>): string {
   const walks = walksWord(star.walkIds.length);
-  return star.count > 1 ? `${capFirst(numberWord(star.count))} places, ${walks}. Zoom in` : `${star.label}, ${walks}`;
+  return star.count > 1 ? `${capFirst(numberWord(star.count))} places, ${walks}. Zoom in` : `${star.label}, ${walks}. Open`;
 }

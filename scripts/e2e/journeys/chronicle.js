@@ -82,7 +82,7 @@ async function checks(h) {
     check(true, 'the walk is a star on the home map');
     check((await page.locator('[data-testid=enter-bounce]').count()) === 0, 'no star settles before one is selected');
     // tend places T15 (decision 0154, "Ink star, no numeral"): the star is a white star on ink, never the accent, says
-    // its walks in words, and shows no digit; selected, it keeps its disc and gains an ink ring outside its white edge
+    // its walks in words and ". Open" (tend places audit 5), and shows no digit; selected, it keeps its disc and gains an ink ring outside its white edge
     // (tend places audit 1).
     const starLook = () => page.evaluate(() => {
       const b = document.querySelector('[aria-label^="Fox Point,"]');
@@ -96,7 +96,7 @@ async function checks(h) {
     });
     const ink = 'rgb(29, 36, 48)';
     const rest = await starLook();
-    check(rest.label === 'Fox Point, one walk' && rest.bg === ink && rest.ring === 'rgb(255, 255, 255)' && rest.glyph === 'rgb(255, 255, 255)' && !/\d/.test(rest.text),
+    check(rest.label === 'Fox Point, one walk. Open' && rest.bg === ink && rest.ring === 'rgb(255, 255, 255)' && rest.glyph === 'rgb(255, 255, 255)' && !/\d/.test(rest.text),
       `tend places T15: a walked place is a star in ink, not the accent, and says its walks in words (${JSON.stringify(rest)})`);
     // A star lists its place's walks in the sheet, with the place's parents (H6).
     await page.click('[aria-label^="Fox Point,"]');
