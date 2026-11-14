@@ -61,9 +61,8 @@ async function run(h) {
   // On Memories a page opens from the journal's open line (chronicle journal JN25, decision 0155): a tap in the line,
   // then Open as a page. The pencil that opened it in one tap went with the band; the line itself is the one tap.
   const openPage = async () => {
-    // The caret goes on the page by a tap on the field, the empty page's first line (JN32); then Open as a page.
-    // Not a forced click on the empty page: that lands on whatever is still over it (a page fading out) and types nowhere.
-    await pg.click('[data-testid=line-input]');
+    // The composer (JN47, JN51): the toolbar's field opens it; Open as a page is in its tools.
+    await pg.click('[data-testid=bar-compose]');
     await pg.click('[data-testid=line-page]');
   };
   const before = (await stored(pg)).length;
@@ -434,7 +433,7 @@ async function run(h) {
     };
   }), re.source).catch(() => null);
   await pg.goto(url);
-  await pg.waitForSelector('[data-testid=line-input]', { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=bar-compose]', { timeout: 30000 });
   await pg.waitForTimeout(1200);
   await openPage();
   await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });

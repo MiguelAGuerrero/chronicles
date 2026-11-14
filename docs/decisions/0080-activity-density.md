@@ -29,4 +29,4 @@ The owner's calls, Nov 3:
 
 ## Amended
 
-- Amended by `specs/storefronts` (Nov 14, 2026): storefronts are presence's own reading: density weights only storefront classes (parks, monuments, art, views, curiosities, listed structures and cemeteries weigh nothing), and the concept is named storefronts everywhere (SF10, SF13; decision 0178).
+- Amended by `specs/storefronts` (Nov 14, 2026): storefronts are presence's own reading: density weights only storefront classes (parks, monuments, art, views, curiosities, listed structures and cemeteries weigh nothing), and the concept is named storefronts everywhere (SF10, SF13; decision 0180).

@@ -1,4 +1,4 @@
-# 0178. Storefronts: only places you walk into, and the code says storefronts too
+# 0180. Storefronts: only places you walk into, and the code says storefronts too
 
 Date: 2026-11-14 · Status: accepted · Area: explore, layers, landing, presence, scenic routes · Amends: decisions 0080 (density weights), 0127 (the leaning and the card's list), 0140 (storefronts is presence's)
 

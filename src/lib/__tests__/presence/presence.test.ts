@@ -23,7 +23,7 @@ const CHANGED: Record<string, Omit<Row, 'cls' | 'sub'>> = {
 };
 
 /**
- * specs/storefronts SF10 (decision 0178): these classes are places to find, never storefronts, so a pair of them now weighs
+ * specs/storefronts SF10 (decision 0180): these classes are places to find, never storefronts, so a pair of them now weighs
  * nothing toward density; its category, kind and marks are what they were. The classification itself did not change.
  */
 const NOT_STOREFRONT = new Set(['park', 'reserve', 'green_amenity', 'open_space', 'monument', 'memorial_site', 'artwork', 'viewpoint', 'curiosity', 'structure', 'burial_ground']);

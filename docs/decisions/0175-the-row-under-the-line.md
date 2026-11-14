@@ -1,6 +1,6 @@
 # 0175. The camera and the mic sit under the open line
 
-Date: 2026-11-14 · Status: accepted · Area: memories · Amends: JN29, JN32, chronicle-journal audit 51; an exception to ui-patterns T7
+Date: 2026-11-14 · Status: superseded by 0178 · Area: memories · Amends: JN29, JN32, chronicle-journal audit 51; an exception to ui-patterns T7
 
 ## Context
 The journal's open line says "What’s on your mind?" (0171), but the camera and the mic were in a bar at the foot of the

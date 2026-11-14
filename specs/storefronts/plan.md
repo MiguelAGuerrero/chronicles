@@ -18,7 +18,7 @@ The owner said go straight through (Nov 14): this plan is the record, not a stop
 
 **Names (SF13)**: `layers/busy.ts` → `layers/storefronts.ts`, `useBusyLayer` → `useStorefrontsLayer`, `landing/names.ts`'s `busyNames` → `storefrontNames`, the map's `busy-names*` layers → `storefront-names*`, the `busyNames*` props, carousel helpers, layer notes, scenic signals (`storefronts`, `StorefrontLine`, `SCENIC.storefrontM`), the analysis's `busyMinM`, test ids (`atlas-storefronts`, `atlas-storefront`, `atlas-storefront-walk`, `layer-*-storefronts`), the web map's e2e hooks (`data-storefronts*`, `__storefrontNamesIn`, `__storefrontNamePoint`) and perf counters (`storefronts:list|read|worker`, `storefront-names:clear`). Tests and journeys follow; `scripts/perf-*.js` read the new counters. Test files `busyRead`, `busyNames*` are renamed.
 
-**Docs (SF14)**: a line "Amended by specs/storefronts (SF…)" in decisions 0080 and 0127 and in the shipped specs that pin the old words: activity-density, explore-carousel, free-look, scenic-routes, complexes, v1.5-landing, explore-dense-city, town-presence, explore-atlas, map-layers. Decision 0178 records the owner's two calls. `.claude/rules` lines naming the old identifiers follow.
+**Docs (SF14)**: a line "Amended by specs/storefronts (SF…)" in decisions 0080 and 0127 and in the shipped specs that pin the old words: activity-density, explore-carousel, free-look, scenic-routes, complexes, v1.5-landing, explore-dense-city, town-presence, explore-atlas, map-layers. Decision 0180 records the owner's two calls. `.claude/rules` lines naming the old identifiers follow.
 
 ## Data
 

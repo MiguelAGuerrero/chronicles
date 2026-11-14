@@ -120,7 +120,7 @@ recording, and a recording bar brings a minimized walk back.
   - Walk to, which starts you on a street of its storefronts.
 - A long press on the small map still offers **What's here?** and
   **Walk here**. There are no counts of places on this tab.
-- **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0178):
+- **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0180):
   shops, food, drink, services, offices and the like count; parks, monuments, public art, views, curiosities and
   cemeteries don't. From
   OpenStreetMap and Overture Maps Places, measured along each street and
@@ -302,7 +302,7 @@ recording, and a recording bar brings a minimized walk back.
   built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
-- **Storefronts** (decision 0178; it was "Busy streets", which promised traffic the data can't see) is the graded magenta shading of streets lined with places you walk into, now on request on any walk. Turning it on where nothing is
+- **Storefronts** (decision 0180; it was "Busy streets", which promised traffic the data can't see) is the graded magenta shading of streets lined with places you walk into, now on request on any walk. Turning it on where nothing is
   remembered reads the area once, in the background on the web and only once the map has stopped moving, so moving between neighborhoods stays
   smooth in a dense city (decision 0160). Its street names are the map's own text: one per street within 300 m, at its densest point, turned along it, never over
   another name, a "?" pin, the selected area's name or one of Explore's buttons; where they crowd, the heavier streets (a
@@ -329,18 +329,18 @@ recording, and a recording bar brings a minimized walk back.
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
-    down to the tab bar. Pull down to read back; each day's date holds at the top while its entries pass.
-  - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
-    the page itself, in your serif, with no box and one muted placeholder ("What’s on your mind?"), a "+" in ink in the
-    margin before it and the camera and the mic in a row directly under it (decision 0175, the composer row). The day's entries stack: each new one, words, photo
+    down to the toolbar. Pull down to read back; each day's date holds at the top while its entries pass.
+  - **A toolbar at the foot** (decisions 0178, 0179): above the tab bar, wherever the page is scrolled, a soft grey
+    field "What’s on your mind?", then the camera and the mic; while an entry is open, Done after the field.
+  - **The composer** (decision 0179): tap the field or the empty page and a sheet rises over the journal, from a dimmed
+    edge to the keyboard: "New entry" and Done at its top, room to type in your serif, the camera, the mic and Open as
+    a page at its foot. What you type is kept as you type; Done, a tap on the dimmed edge or Back closes it, and the entry
+    is on the page. The page is for reading. The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
-    the line being written holding its place, as paper in a typewriter. At rest nothing sits above the tab bar; a bar
-    comes up only when the row is out of view (pulled down: a pen, the camera and the mic), and while you write it holds "Kept as you
-    write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
-    the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
+    the newest at the end. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
-    are one entry; Done ends it (in the row, after a photo with no keyboard up), as do two minutes without a piece. A
-    voice note records where it was begun: from the row, Stop takes the mic's place there. Any entry can carry **reactions** by choice (decision 0176): the face with a small plus at the end of the entry being written opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the bar, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline. They are never asked for. Typing **@** references another moment, drawn on
+    are one entry; Done ends it, as do two minutes without a piece. A voice note records in the toolbar, Stop in the
+    mic's place. Any entry can carry **reactions** by choice (decision 0176): the face with a small plus by the composer's title (or at the end of the entry being written) opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the composer's tools, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline. They are never asked for. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
     walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
     is today's date and the empty page.
@@ -528,7 +528,7 @@ recording, and a recording bar brings a minimized walk back.
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, storefronts) | Shipped on web (native unverified) |
-| Storefronts ("busy" becomes storefronts everywhere, nearest first; only places you walk into count; SF1-SF14, decision 0178) | Built (web verified by the e2e; native unverified) |
+| Storefronts ("busy" becomes storefronts everywhere, nearest first; only places you walk into count; SF1-SF14, decision 0180) | Built (web verified by the e2e; native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video and voice-memo trim, all saved out (a memo is never saved out) | Shipped on web (native unverified; the video module never compiled) |
 | Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |

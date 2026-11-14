@@ -5,7 +5,7 @@ import { osmWeight, overtureWeight } from '../../activity/weights';
 import { ATLAS_CODE } from '../../atlas/atlas';
 import { LANDING_VERSION, rulesCurrent } from '../../landing/view';
 
-// specs/storefronts: storefronts is presence's own reading (decision 0140); only places you walk into weigh (0178).
+// specs/storefronts: storefronts is presence's own reading (decision 0140); only places you walk into weigh (0180).
 
 const NOT_STOREFRONTS = ['park', 'reserve', 'green_amenity', 'open_space', 'monument', 'memorial_site', 'artwork', 'viewpoint', 'curiosity', 'structure', 'burial_ground'] as const;
 const STOREFRONTS = ['shop', 'boutique', 'eatery', 'food_counter', 'drink', 'venue', 'museum', 'arts_centre', 'theatre', 'cinema_hall', 'heritage', 'attraction', 'community', 'civic_hall', 'worship', 'service', 'health', 'lodging', 'civic', 'sport', 'office', 'vehicle'] as const;
@@ -30,7 +30,7 @@ test('SF10: presence says which classes are storefronts; only a storefront weigh
   assert.equal(osmWeight('pharmacy', 'pharmacy'), 0.5, 'a pharmacy, as before');
   assert.equal(overtureWeight(['food_and_drink', 'restaurant']), 1, 'an Overture restaurant, as before');
   assert.equal(overtureWeight(['services_and_business']), 0.25, 'an office, as before');
-  // A complex's shopping word keeps the old weight: a mall's art is still its own (decision 0178).
+  // A complex's shopping word keeps the old weight: a mall's art is still its own (decision 0180).
   assert.equal(presence.densityWeight(['artwork']), 1);
 });
 

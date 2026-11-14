@@ -14,7 +14,7 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
 /**
  * The version of the vocabulary and its tables: part of the atlas's and the landing's cache codes (PR6). Bump on any change here.
  * p2: the archive, names and landcover read here (specs/presence-readers); nothing derived changed, so p1 rows are carried (PS9).
- * p3: only storefronts weigh toward density (specs/storefronts SF10, decision 0178); a weight changed, so nothing is carried (SF11).
+ * p3: only storefronts weigh toward density (specs/storefronts SF10, decision 0180); a weight changed, so nothing is carried (SF11).
  */
 export const PRESENCE_CODE = 'p3';
 
@@ -32,7 +32,7 @@ const QUARTER = 0.25;
 /**
  * The vocabulary. `weight` is how much the class counts (AD1: full for a place to go, half for everyday services and civic
  * places, a quarter for offices and vehicles); `storefront` is whether it is a place you walk into, the only classes that
- * weigh toward a street's storefronts (specs/storefronts SF10, decision 0178: parks, monuments, art, views, curiosities,
+ * weigh toward a street's storefronts (specs/storefronts SF10, decision 0180: parks, monuments, art, views, curiosities,
  * listed structures and cemeteries are places to find, never storefronts); `category` and `kind` are what it is to marks
  * and bars, where it is one of the tab's kinds.
  */
@@ -315,7 +315,7 @@ export function storefrontWeight(classes: readonly PresenceClass[]): number {
   return classes.reduce((w, c) => (isStorefront(c) ? Math.max(w, CLASSES[c].weight) : w), 0);
 }
 
-/** PR4: the greatest weight of a feature's classes, storefront or not: a complex's shopping word reads it (decision 0178). */
+/** PR4: the greatest weight of a feature's classes, storefront or not: a complex's shopping word reads it (decision 0180). */
 export function densityWeight(classes: readonly PresenceClass[]): number {
   return classes.reduce((w, c) => Math.max(w, CLASSES[c].weight), 0);
 }

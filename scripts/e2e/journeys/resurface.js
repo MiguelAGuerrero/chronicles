@@ -213,7 +213,8 @@ async function contextRun(h) {
   await tabTo(empty.pg, 'chronicle', 'memories');
   const emptyOk = await attempt(async () => {
     await empty.pg.waitForSelector('[data-testid=day-heading]', { timeout: 15000 });
-    const said = await empty.pg.locator('[data-testid=memories]').innerText();
+    // The page itself: the toolbar's one hint, "What’s on your mind?", is the only question allowed (0171, 0178).
+    const said = await empty.pg.locator('[data-testid=journal-page]').innerText();
     return (await empty.pg.locator('[data-testid=day-heading]').count()) === 1 && !/walk somewhere|nothing kept/i.test(said) && !/\?/.test(said);
   });
   check(emptyOk, 'MC14: the empty journal is today\'s date and the open line, and gives no instruction (JN2)');
@@ -362,7 +363,7 @@ async function run(h) {
   await empty.pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(empty.pg, 'chronicle', 'memories');
   check(await empty.pg.waitForSelector('[data-testid=day-heading]', { timeout: 15000 }).then(() => true, () => false)
-    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=line-input]').count()) === 1
+    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=bar-compose]').count()) === 1
     && (await empty.pg.locator('[data-testid=resurfaced]').count()) === 0 && (await empty.pg.locator('[data-testid=moment-card]').count()) === 0,
     'RM4: with nothing kept, today\'s date and the open line, and no slip or entry (amended by JN2)');
   await empty.c.close();

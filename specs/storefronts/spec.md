@@ -1,4 +1,4 @@
-<!-- Repo first: from the owner's proposal G2 (docs/STATUS.md, "Next evolutions"), answered yes Nov 14 in conversation; decisions 0140, 0178. Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). -->
+<!-- Repo first: from the owner's proposal G2 (docs/STATUS.md, "Next evolutions"), answered yes Nov 14 in conversation; decisions 0140, 0180. Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). -->
 
 # Storefronts: "busy" becomes storefronts, listed nearest first
 
@@ -10,7 +10,7 @@ Idea: "busy" implies traffic, which depends on the time of day, and doesn't nece
 Verb: earn (Explore before: the word stops promising people what the data cannot see)
 Touches: VISION.md Never, "Popularity, trending, foot traffic, other people's activity" (nearest fit "Presence of places from open data": storefronts is what is there, never who is); Never, "rankings of places" (nearest first, never busiest first; nothing counts storefronts); decisions 0034 (information only), 0080 (amended), 0127 (amended), 0109 (the sources stay Overture and OpenStreetMap), 0140 (storefronts is presence's).
 Verdict: aligned
-Shape: as filed in G2, with the owner's two calls of Nov 14 (decision 0178): storefronts count only places you walk into, and the code says storefronts too.
+Shape: as filed in G2, with the owner's two calls of Nov 14 (decision 0180): storefronts count only places you walk into, and the code says storefronts too.
 Criteria: SF1-SF15.
 Open: none.
 
@@ -22,8 +22,8 @@ The map layer, the area card, What's good here?, the walk's help line and the ro
 
 - **The word is "Storefronts", nearest first, everywhere the concept shows** (the owner, Nov 11, T4 reshaped into G2).
 - **Full G2** (the owner, Nov 14).
-- **Storefronts count only places you walk into** (the owner, Nov 14, decision 0178): parks and green, monuments and memorials, public art, viewpoints, curiosities, listed structures and cemeteries weigh nothing toward storefronts. Shops, food, drink, venues, museums and theatres, everyday services, health, civic places, lodging, sport, offices and vehicle services weigh as before. A complex's "shopping" word keeps reading the old weight (`densityWeight`), since a mall's art is still its own.
-- **The code says storefronts too** (the owner, Nov 14, decision 0178): the layer's id, the leaning's value, hooks, modules, test ids and perf counters. A choice saved under the old word is read as the new one.
+- **Storefronts count only places you walk into** (the owner, Nov 14, decision 0180): parks and green, monuments and memorials, public art, viewpoints, curiosities, listed structures and cemeteries weigh nothing toward storefronts. Shops, food, drink, venues, museums and theatres, everyday services, health, civic places, lodging, sport, offices and vehicle services weigh as before. A complex's "shopping" word keeps reading the old weight (`densityWeight`), since a mall's art is still its own.
+- **The code says storefronts too** (the owner, Nov 14, decision 0180): the layer's id, the leaning's value, hooks, modules, test ids and perf counters. A choice saved under the old word is read as the new one.
 - **Go straight through** (the owner, Nov 14): no stop at the plan.
 - **"What's good here?" becomes "What's here?"** (the owner, Nov 14, after the steward's S3: "Go with what's here, that's better for me"; SF15).
 - Defaults taken in the slice, for the owner to overrule: the card's two sections ("Busy areas", "Busy streets") become one list, "Storefronts", so two sections never share a name and a dense far street never sits above a near one (steward S2); offices stay storefronts, as the owner's list of what stops counting left them; the route leaning's label "Streets with life" becomes "Storefronts"; Walk to still starts at the street with the most storefronts (AT8; only its words change), and a tile still shows that street.
