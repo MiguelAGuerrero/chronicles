@@ -40,6 +40,23 @@ export function whenLine(t: number, now: number): string {
   return years <= 1 ? `${month} last year` : `${month}, ${numberWord(years)} years ago`;
 }
 
+/**
+ * How long ago, alone, for a moment past a week: "last week", "three weeks ago", "last month", "five months ago", "last
+ * year", "two years ago"; no month and no part of the day (tend map 11, decision 0172, the owner's "The span alone").
+ * Months and years are counted by the calendar, as `whenLine` counts its years.
+ */
+export function agoLine(t: number, now: number): string {
+  const d = daysAgo(t, now);
+  if (d < 14) return 'last week';
+  if (d < 35) return `${numberWord(Math.floor(d / 7))} weeks ago`;
+  const a = new Date(t);
+  const b = new Date(now);
+  const months = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+  if (months < 12) return months <= 1 ? 'last month' : `${numberWord(months)} months ago`;
+  const years = b.getFullYear() - a.getFullYear();
+  return years <= 1 ? 'last year' : `${numberWord(years)} years ago`;
+}
+
 /** The label over the resurfaced card: why this moment, now (RM6). */
 export function labelFor(reason: Reason, t: number, now: number): string {
   switch (reason.kind) {

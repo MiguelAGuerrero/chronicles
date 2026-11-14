@@ -3,7 +3,7 @@ import type { Faced } from './moment';
 import { distanceM, pausedMs, type PauseSpan } from './geo';
 import { ordered, type ReactionInfo, type ReactionSet } from './reactions/core';
 import { dayPartLine, JUST_AFTER_MS, minutesInLine } from './resurface/context';
-import { numberWord } from './resurface/lines';
+import { agoLine, daysAgo, numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
 
@@ -240,16 +240,25 @@ function dayOf(t: number): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
+/** The small hours (before five) belong to the evening before, as `dayPartLine` reckons them. */
+const eveningOf = (t: number) => (new Date(t).getHours() < 5 ? t - 5 * 3_600_000 : t);
+
 /**
- * When a pin no walk clock holds was taken (tend map T28): its first moment's part of the day; when its moments fall on
- * different days, the span of their days (tend map audit 27, the owner's answer to ux 1): "from three weeks ago to
- * Tuesday evening", an end whose line carries its own comma ("three weeks ago, afternoon") giving the part before it.
+ * A moment's when on a pin: within a week its part of the day, "Tuesday evening"; past a week the span alone, "two
+ * years ago", no month and no part of the day (tend map 11, decision 0172, the owner's "The span alone").
+ */
+const momentWhen = (t: number, now: number) => (daysAgo(eveningOf(t), now) >= 7 ? agoLine(eveningOf(t), now) : afterComma(dayPartLine(t, now)));
+
+/**
+ * When a pin no walk clock holds was taken (tend map T28): its first moment's part of the day, past a week how long
+ * ago alone (tend map 11); when its moments fall on different days, the span of their days (tend map audit 27, the
+ * owner's answer to ux 1): "from two years ago to Tuesday evening".
  */
 function dayWhen(pin: CapturePin, now: number): string {
   const first = pin.captures[0].t;
   const last = pin.captures[pin.captures.length - 1].t;
-  if (dayOf(first) === dayOf(last)) return afterComma(dayPartLine(first, now));
-  const end = (t: number) => afterComma(dayPartLine(t, now).replace(/, [^,]+$/, ''));
+  if (dayOf(first) === dayOf(last)) return momentWhen(first, now);
+  const end = (t: number) => momentWhen(t, now);
   // Two days whose ends read alike ("three weeks ago") are said once.
   return end(first) === end(last) ? end(first) : `from ${end(first)} to ${end(last)}`;
 }

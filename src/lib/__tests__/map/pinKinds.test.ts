@@ -179,7 +179,8 @@ test('tend map T28: with no walk clock, the part of the day of the pin\'s first 
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(11, 23))), { now: NOW }), 'Photo, Wednesday night');
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(11, 1, 30))), { now: NOW }), 'Photo, late Tuesday night');
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(13, 2))), { now: NOW }), 'Photo, late last night');
-  assert.equal(pinSpoken(pinOf(day('a', 'photo', new Date(2026, 9, 20, 15).getTime())), { now: NOW }), 'Photo, three weeks ago, afternoon');
+  // Past a week the span alone, since tend map 11.
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', new Date(2026, 9, 20, 15).getTime())), { now: NOW }), 'Photo, three weeks ago');
   // The first moment's part, though a later one is in another.
   assert.equal(pinSpoken(pinOf(evening('a', 'photo'), day('b', 'text', at(10, 22))), { now: NOW }), 'A photo and a note, Tuesday evening');
   // A pin no one walk's clock holds: a day of two walks, or a moment outside a walk.
@@ -208,7 +209,8 @@ test('tend map audit 27: a pin whose moments fall on different days says the spa
   assert.equal(pinSpoken(pinOf(tue, day('c', 'photo', at(12, 9))), { now: NOW }), 'A note and a photo, from Tuesday evening to yesterday morning');
   assert.equal(
     pinSpoken(pinOf(day('a', 'photo', new Date(2024, 2, 4, 19).getTime()), day('b', 'photo', new Date(2026, 9, 20, 15).getTime())), { now: NOW }),
-    'Two photos, from March, two years ago to three weeks ago',
+    // The span alone at each end past a week, since tend map 11.
+    'Two photos, from two years ago to three weeks ago',
   );
   // Two days whose ends read alike ("three weeks ago"): said once, never "from three weeks ago to three weeks ago".
   assert.equal(pinSpoken(pinOf(old, day('c', 'photo', new Date(2026, 9, 21, 15).getTime())), { now: NOW }), 'Two photos, three weeks ago');
@@ -262,4 +264,24 @@ test('tend map audit 30: the span is said in the minutes it names, and its unit 
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0), cap('b', 'text', 58)), { clocks: [W1] }), 'A photo and a note, from the start to fifty-eight minutes in');
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 60)), { clocks: [W1] }), 'A photo and a note, from twelve minutes to one hour in');
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 65), cap('b', 'text', 130)), { clocks: [W1] }), 'A photo and a note, from one hour and five minutes to two hours and ten minutes in');
+});
+
+// tend map 11 (decision 0172, O16, the owner's "The span alone"): a pin of moments past a week says how long ago alone,
+// "a photo and a note, two years ago": no month and no part of the day. Within a week it keeps the part of the day.
+test('tend map 11: a pin of moments past a week says the span alone, no month and no part of the day', () => {
+  const twoYears = new Date(2024, 2, 4, 19).getTime();
+  const pair = pinOf(day('a', 'photo', twoYears), day('b', 'text', twoYears + 5 * MIN));
+  assert.equal(pinSpoken(pair, { now: NOW }), 'A photo and a note, two years ago');
+  assert.equal(pinSpoken(pair, { memory: true, now: NOW }), 'Memories: a photo and a note, two years ago');
+  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2025, 7, 1, 9).getTime())), { now: NOW }), 'Note, last year');
+  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2026, 5, 10, 9).getTime())), { now: NOW }), 'Note, five months ago');
+  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2026, 9, 1, 9).getTime())), { now: NOW }), 'Note, last month');
+  // A week to a fortnight: "last week", the small hours too (they belong to the evening before).
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', at(5, 18))), { now: NOW }), 'Photo, last week');
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', at(4, 1, 30))), { now: NOW }), 'Photo, last week');
+  // Within a week, the part of the day as before.
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', at(7, 18))), { now: NOW }), 'Photo, Saturday evening');
+  // A span with one old end: that end alone.
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', twoYears), day('b', 'text', at(10, 19))), { now: NOW }), 'A photo and a note, from two years ago to Tuesday evening');
+  for (const p of [pair]) assert.doesNotMatch(pinSpoken(p, { now: NOW }), /\d|March|evening/);
 });

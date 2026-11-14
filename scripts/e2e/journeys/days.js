@@ -285,6 +285,46 @@ async function checks(h) {
       check(await p2.waitForSelector('[data-testid=done]', { timeout: 90000 }).then(() => true, () => false), 'a walk in the timeline opens its own replay, as before (M8, M17)');
       await ctx2.close();
     }
+
+    // tend map 11 (decision 0172, O16, "The span alone"): a pin of moments from two years ago says how long ago alone,
+    // "Two notes, two years ago. Open": no month, no part of the day. Seeded in a browser of its own, so no old day
+    // joins the days list above.
+    {
+      const ctx3 = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['geolocation'], geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 } });
+      await metricRegion(ctx3);
+      await ctx3.route('https://tiles.openfreemap.org/**', tileRoute);
+      await ctx3.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
+      ctx3.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
+      const p3 = await ctx3.newPage();
+      p3.on('pageerror', (e) => errors.push(`old pin: ${e}`));
+      p3.on('console', (m) => m.type() === 'error' && errors.push(`old pin: ${m.text()}`));
+      await p3.goto(navUrl);
+      await p3.waitForSelector('[data-testid=moment-note]');
+      const then = new Date(new Date().getFullYear() - 2, 2, 4, 19).getTime();
+      const spot = [start[0] + 0.3 * dLon, start[1]];
+      await p3.evaluate(([t, lon, lat]) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction('moment', 'readwrite');
+          [['old-a', 'Bought plums at the corner.', 0], ['old-b', 'The bells rang at seven.', 1]].forEach(([id, body, k]) => {
+            const at = t + k * 300000;
+            tx.objectStore('moment').put({ id, walk_id: null, t: at, lat: lat + k * 0.000005, lon, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, kind: 'text', file_path: null, body, t: at, caption: null, caption_y: null }] });
+          });
+          tx.oncomplete = () => resolve(true);
+        };
+      }), [then, spot[0], spot[1]]);
+      await p3.reload();
+      const oldPin = '.maplibregl-map [aria-label^="Two notes, "][aria-label$=". Open"]';
+      const up = await p3.waitForSelector(oldPin, { timeout: 20000 }).then(() => true, () => false);
+      for (const w of [390, 320]) {
+        await p3.setViewportSize({ width: w, height: 844 });
+        await p3.waitForTimeout(1200);
+        const name = await p3.locator(oldPin).first().getAttribute('aria-label').catch(() => null);
+        check(up && name === 'Two notes, two years ago. Open', `tend map 11: at ${w} px an old pin says how long ago alone, no month and no part of the day (${name})`);
+        await shot(p3, `days-o16-old-pin-${w}`);
+      }
+      await ctx3.close();
+    }
 }
 
 async function run(h) {
