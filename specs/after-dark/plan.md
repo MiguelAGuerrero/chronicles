@@ -1,4 +1,4 @@
-# Plan: After dark (DK1-DK16)
+# Plan: After dark (DK1-DK17)
 
 You review this before any code. The architecture is settled by your answers of Nov 14: Overpass per tile, our own opening-hours reader, local sunset on the device, and a layer of its own. Everything marked **default** below is my choice, and you can overrule it.
 
@@ -10,17 +10,17 @@ You review this before any code. The architecture is settled by your answers of 
 |---|---|---|
 | `sun.ts` | core | Sunrise and sunset for a position and a day (the NOAA solar equations, about 60 lines, no library). `readingAt(at, now)` gives the time to judge (now after dark, sunset + 1 h in daylight) and the panel's words: "Open now", "Open after sunset", "No dark tonight" (DK5, DK6). |
 | `hours.ts` | core | `parseHours(text)` reads the forms in DK7 into rules; `openAt(rules, weekday, minute)` gives open, closed or unknown. Anything outside DK7's forms is unknown. The local weekday and minute are arguments, so core reads no clock or timezone. |
-| `overpass.ts` | core | The one query and its parser (DK8): `way["highway"]["lit"]` with its geometry, and shops plus amenities in an eating, drinking and late-service list (restaurant, cafe, bar, pub, fast_food, ice_cream, nightclub, cinema, theatre, pharmacy, fuel) that carry `opening_hours`, as centre points. It keeps the raw `lit` and `opening_hours` text and the way's name. |
+| `overpass.ts` | core | The one query and its parser (DK8): `way["highway"]["lit"]` with its geometry, and shops plus amenities in an eating, drinking and late-service list (restaurant, cafe, bar, pub, fast_food, ice_cream, nightclub, cinema, theatre (pharmacy and fuel dropped by default, steward question 1)) that carry `opening_hours`, as centre points. It keeps the raw `lit` and `opening_hours` text and the way's name. |
 | `types.ts` | core | `DarkTile` (the kept facts: ways and places, raw tags) and `DarkSource`. |
 | `reader.ts` | shell | The device's cache first, then one request at a time, a 20 s deadline, 2 min before a failed tile is asked again, and a tile older than 30 days read again (DK9, DK14). Same shape as `walk/reader.ts`, tested over `fakePorts()`. |
 | `draw.ts` | core | `darkDraw(tiles, reading)`: the lit ways as lines and the open places as points, with a `key` that changes only when the picture does (DK3, DK4, DK15). |
 | `useAfterDark.ts` | view | Reads the tiles within 1.5 km of the map's centre while the layer is on and nothing while it is off (DK13). A one-minute tick re-judges the reading time, and the map is sent data only when `key` changes (DK15). |
 | `darkApp.ts` | shell (instance) | The app's reader over the shared Overpass gate and `net.fetch`. |
 
-**One Overpass gate for both layers (DK8).** Walkability's cap and back-off live inside `createOverpassSource` today, so a second source would get a second cap. They move into one `overpassGate` (`src/lib/net/overpassGate.ts`, a shell over the clock) that both sources take: one streak, one pause, one count of 60 a day. Walkability's behaviour is unchanged, and its existing cap and back-off tests (`walkNetwork`, `walkSourceChain`) are the guard. **Default:** when the gate is closed, walkability's fallback waits exactly as before, and an after-dark tile is simply not asked.
+**One Overpass gate for both layers (DK8).** Walkability's cap and back-off live inside `createOverpassSource` today, so a second source would get a second cap. They move into one `overpassGate` (`src/lib/net/overpassGate.ts`, a shell over the clock) that both sources take: one streak, one pause, one count of 60 a day. Walkability's behaviour is unchanged, and its existing cap and back-off tests (`walkNetwork`, `walkSourceChain`) are the guard. **Default:** after-dark reads stop at 40 of the 60 a day, so walkability's fallback always has 20 (DK8, steward S10). When the gate is paused, neither asks, as walkability does today.
 
 **The heads-up (DK10)**: `walk/ahead.ts` and `walk/useRouteWarning.ts`.
-- `carStretches`' matching of the route to ways becomes a helper that takes a test for which ways count. Car stretches use the street band, as now; unlit stretches use `lit=no` from the after-dark tiles. A `Stretch` gains the kind `unlit`, and `warningLine` says "Next: no street lights on <street>".
+- `carStretches`' matching of the route to ways becomes a helper that takes a test for which ways count. Car stretches use the street band, as now; unlit stretches use `lit=no` from the after-dark tiles. A `Stretch` gains the kind `unlit`. `warningLine` says "Next: <street> is mapped as unlit". Unlit stretches less than 200 m apart merge into one. The walk screen's line shows the moon for `unlit` in place of today's hard-coded car icon (`walk.tsx:1486`; DK10, steward S2, S3, S6).
 - **Default:** `useRouteWarning` takes both switches and whether it is dark. Walkability's stretches are added while Walkability is on, unlit ones while After dark is on and it is dark at the walker. `mergeStretches` already lets a road's line win over an overlapping area's, and the unlit kind sits below both, so one line shows at a time. With After dark on and Walkability off, only unlit lines are said and no walkability tile is read.
 
 **The layer (DK1, DK5, DK11, DK12)**: `src/lib/layers/`.
@@ -72,12 +72,13 @@ New test folder `src/lib/__tests__/after-dark/`, new e2e journey `dark` (a fake 
 | DK8 | `overpass.test.ts` "DK8: the query holds the tile's bounds and only the two tag sets"; `gate.test.ts` "DK8: one cap and one back-off across both sources; walkability waits no longer than before" |
 | DK9 | `reader.test.ts` (`fakePorts()`) "DK9: a kept tile is used until 30 days old, then read again; raw tags kept; open never stored"; `dbContract` "DK9: dark tiles put, got and cleared with the derived stores" |
 | DK10 | `ahead.test.ts` (walkability folder, beside the car cases) "DK10: an unlit stretch of 100 m or more is said 200 m ahead, once, kept 15 s; walkability's line wins when both are due; only after dark"; e2e `dark` "DK10: the line shows on a navigated route along an unlit way after sunset, the route unchanged" |
-| DK11 | `layers.test.ts` "DK11: no number and no safety word in the layer's words or the heads-up" (beside ML6's check) |
+| DK11 | `words.test.ts` "DK11: no number, comparison, safety or grade word in the registry entry, `layerNotes`' dark lines, `sun.ts`'s reading words and the heads-up template with a fixed street name" |
 | DK12 | e2e `dark` "DK12: the legend in Navigate's start settings shows Lit streets and Open after dark with their tips and the note" |
 | DK13 | `reader.test.ts` "DK13: nothing is asked or read while off"; e2e `dark` "DK13: no Overpass request for after dark while the layer is off" |
 | DK14 | `reader.test.ts` "DK14: a busy or failed source draws no guess, keeps what was kept, waits two minutes"; e2e `dark` "DK14: Overpass refusing shows Not available now" |
 | DK15 | `draw.test.ts` "DK15: the key changes only when the picture does, a closing crossed included"; e2e `dark` "DK15: no resend while reading the next tiles" |
 | DK16 | e2e `dark` "DK16: Chronicle's map and the replay draw no after-dark data" |
+| DK17 | `routeIsolation.test.ts` "DK17: no route module (walkPlanner, kindWalk, scenic, routing, nav) imports dark/, and the planner's stretches are never unlit", reading the import graph as `layers.test.ts` does |
 
 ## Deferred, and why
 
@@ -113,6 +114,24 @@ Each goes into `docs/NATIVE_UNVERIFIED.md` as a Do/Expect item with its ids.
 - no sound or vibration on the heads-up;
 - no legend over the map (Nov 5's call).
 
-## Steward
+## Steward (Nov 14): 10 findings, 9 accepted, 1 accepted in part
 
-(filled in below once the steward has read the spec and this plan)
+| Id | Finding | Triage |
+|---|---|---|
+| S1 high | Lit lines at town zoom merge into a "safe zone" glow, and Explore never shows the caveat | **In part.** Accepted: one fixed width, no halo, blur, fill or area (DK3), and "Only what is mapped" on the panel line on every screen (DK1, DK5). Rejected: drawing only from z15. Explore's neighbourhood view sits near z14.5 (smooth-switches), so the layer would vanish where you plan. A 3 px line at 45% doesn't blend into a fill. The UI review checks that from the pictures |
+| S2 medium | The heads-up line wears the car icon | Accepted into DK10: the moon, never a car, caution or warning glyph |
+| S3 medium | A map switch turns on alerts nobody mentioned, and they repeat on a patchy route | Accepted: a legend row says so (DK12), and stretches less than 200 m apart merge (DK10) |
+| S4 medium | Nothing stops lit data from steering routes | Accepted as DK17, with an import test |
+| S5 medium | DK11 can't be tested as written and has gaps | Accepted: street names exempt and the template tested with a fixed name; the word list widened; the tooltips written out in DK12; every source of words named in the test |
+| S6 low | The heads-up states a tag as fact | Accepted: "Next: <street> is mapped as unlit" |
+| S7 low | The Verb line says "comfortable" | Accepted: "where streets are mapped as lit and what is open" |
+| S8 low | Open marks are wrong in another timezone | Accepted into DK4: past 90 minutes of solar offset from the device, no marks, and "Hours read only near you". The device offset is an argument, so core reads no timezone. The far-town lookup stays deferred |
+| S9 low | Clustered marks could show a count | Accepted into DK4: no clustering, no label, a tap does nothing |
+| S10 low | DK8 contradicts itself under one cap | Accepted: after-dark stops at 40 of 60 (DK8) |
+
+**The steward's questions, put to you:**
+1. **Pharmacy and fuel** in the open-mark list read as a list of safe havens. **Default:** drop them, and keep food, drink and culture (restaurant, cafe, bar, pub, fast food, ice cream, nightclub, cinema, theatre).
+2. **Tapping a ring** does nothing (DK4). **Default:** keep it that way. A mark that opened a place would make it a kind of find.
+3. **Privacy:** on a live walk, the tile requests trace your route to Overpass at the scale of a 2 km square, as walkability's fallback already does. **Default:** accept it, as 0093 did.
+4. **Ring or found mark:** checked from the pictures in the UI review.
+5. **Twilight:** **default** sunset, as you chose; civil twilight would start "dark" about 30 minutes later.
