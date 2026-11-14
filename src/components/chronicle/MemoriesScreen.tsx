@@ -79,6 +79,8 @@ export function MemoriesScreen() {
   const pageRef = useRef<JournalPageHandle>(null);
   const [threadTerm, setThreadTerm] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  // More was opened from the sign on an entry's row: the eight at once (NY27).
+  const [typeOnly, setTypeOnly] = useState(false);
   // The owner's threads (OT9-OT14): the one open, a moment's menu inside it, and the delete's confirm.
   const [ownId, setOwnId] = useState<string | null>(null);
   const [ownMenuFor, setOwnMenuFor] = useState<string | null>(null);
@@ -323,9 +325,10 @@ export function MemoriesScreen() {
         onOpen={() => open(m)}
         onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
         onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
-        onMore={() => { setMenuFromSlip(false); setMenuFor(m.id); }}
+        onMore={() => { setMenuFromSlip(false); setTypeOnly(false); setMenuFor(m.id); }}
         onType={(piece) => lineRef.current?.pickType({ piece: piece.id, type: piece.note_type, onPick: (t) => void resurface.saveNote({ ...c, piece_id: piece.id }, '', t, true).catch(() => {}) })}
         typeOpen={typeOpen}
+        onReact={dayKey(m.t) === dayKey(now) ? () => { setMenuFromSlip(false); setTypeOnly(true); setMenuFor(m.id); } : undefined}
         onOpenRef={open}
       />
     );
@@ -373,7 +376,7 @@ export function MemoriesScreen() {
           onBack={() => setThreadTerm(null)}
           onOpen={open}
           onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
-          onMore={(m) => { setMenuFromSlip(false); setMenuFor(m.id); }}
+          onMore={(m) => { setMenuFromSlip(false); setTypeOnly(false); setMenuFor(m.id); }}
           onKeep={() => {
             // A tap copies the Chronicle's thread into one of the owner's; the Chronicle's own is untouched (OT19).
             // No name is kept for the owner: the Chronicle's is only offered in the name field (audit 13). One tap, one thread (audit 12).
@@ -463,7 +466,7 @@ export function MemoriesScreen() {
           context={state.context[pick.moment.id]}
           now={now}
           onOpen={() => open(pick.moment)}
-          onMore={() => { setMenuFromSlip(true); setMenuFor(pick.moment.id); }}
+          onMore={() => { setMenuFromSlip(true); setTypeOnly(false); setMenuFor(pick.moment.id); }}
         />
       ) : null}
     />
@@ -508,6 +511,7 @@ export function MemoriesScreen() {
       />
       <MemoryMenu
         open={!!menuMoment}
+        onlyType={typeOnly}
         type={menuNote && menuMoment ? { chosen: noteTypeOf(menuNote.note_type), onChoose: (t) => { const m = menuMoment; setMenuFor(null); void resurface.saveNote({ ...m.capture, piece_id: menuNote.id }, '', t, true).catch(() => {}); } } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {

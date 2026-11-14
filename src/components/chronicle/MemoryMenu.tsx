@@ -6,7 +6,7 @@ import { Modal } from '../Modal';
 import { theme } from '../ui';
 
 /** A moment's More menu (RM20): bring it up less, never bring it back, or open it. */
-export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Given when the moment has a note (NY23). */ type?: { chosen: NoteType | null; onChoose: (t: NoteType | null) => void }; onLess: () => void; onHide: () => void; onOpen: () => void; /** Given for the resurfaced slip (chronicle journal JN20). */ onRelive?: () => void; onAnother?: () => void; /** Given for a placed moment (chronicle journal JN6, ui 3). */ onMap?: () => void }) {
+export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Given when the moment has a note (NY23). */ type?: { chosen: NoteType | null; onChoose: (t: NoteType | null) => void }; /** Open on the eight, with nothing else (NY27). */ onlyType?: boolean; onLess: () => void; onHide: () => void; onOpen: () => void; /** Given for the resurfaced slip (chronicle journal JN20). */ onRelive?: () => void; onAnother?: () => void; /** Given for a placed moment (chronicle journal JN6, ui 3). */ onMap?: () => void }) {
   const item = (testID: string, label: string, hint: string, fn: () => void) => (
     <Pressable testID={testID} accessibilityRole="button" onPress={fn} style={styles.item}>
       <Text style={styles.label}>{label}</Text>
@@ -16,6 +16,8 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
   // Type (NY23): the eight and No type, in this same sheet; never a second Modal.
   const [typing, setTyping] = useState(false);
   const type = props.type;
+  // Opened from the sign on an entry's row (NY27): the eight at once.
+  const grid = (typing || !!props.onlyType) && !!type;
   // Closed by anything (an item, the host), it opens on its list again (note-types audit 63).
   if (!props.open && typing) setTyping(false);
   const close = () => {
@@ -27,7 +29,7 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
       <View style={styles.back}>
         <Pressable style={StyleSheet.absoluteFill} onPress={close} accessible={false} />
         <View style={styles.sheet} testID="memory-menu" accessibilityViewIsModal>
-          {typing && type ? (
+          {grid && type ? (
             <>
             <Text style={styles.heading} accessibilityRole="header">Type</Text>
             <NoteTypeMenu
@@ -39,7 +41,7 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
             />
             </>
           ) : null}
-          {typing && type ? null : (
+          {grid ? null : (
             <>
           {!typing && type ? item('menu-type', 'Type', 'A mark for why you wrote this note', () => setTyping(true)) : null}
           {props.onRelive && item('resurfaced-relive', 'Relive it', 'Replays the walk or the day it came from', props.onRelive)}

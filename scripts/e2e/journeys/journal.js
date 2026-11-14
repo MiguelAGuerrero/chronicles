@@ -495,13 +495,8 @@ async function run(h) {
   await pg.click('[data-testid=note-type-item-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1200);
   const kept27 = await typeOfNote(/^Stack 5/);
-  await pg.evaluate(() => { document.querySelector('[data-testid=journal-page]').scrollTop = 0; });
-  await pg.waitForTimeout(900);
-  const old27 = await pg.locator('[data-testid=journal-page] [data-testid=entry-react]').filter({ visible: true }).count();
-  await pg.evaluate(() => { const el = document.querySelector('[data-testid=journal-page]'); el.scrollTop = el.scrollHeight; });
-  await pg.waitForTimeout(900);
-  check.todo(rows27.today >= 2 && rows27.lastHas && sheet27.items === 9 && sheet27.other === 0 && kept27 === 'like' && old27 === 0,
-    `NY27: a note kept today offers the sign on its row and one tap opens the eight; an earlier day's entry offers none (${JSON.stringify({ rows27, sheet27, kept27, old27 })})`);
+  check(rows27.today >= 2 && rows27.lastHas && sheet27.items === 9 && sheet27.other === 0 && kept27 === 'like',
+    `NY27: a note kept today offers the sign on its row, and one tap opens the eight by themselves (${JSON.stringify({ rows27, sheet27, kept27 })})`);
   // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
   const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
   await lastMore().click();
@@ -810,6 +805,9 @@ async function run(h) {
   check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
   await shot(pg, 'journal-05-scrolled-back');
   const marks54 = await pg.locator('[data-testid=journal-page] [data-testid=note-type-mark]').count();
+  // NY27: scrolled back among earlier days, no entry offers the sign on its row.
+  const old27 = await pg.evaluate(() => { const c = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')].filter((x) => /A quiet note from a walk/.test(x.innerText)); return { olds: c.length, withSign: c.filter((x) => x.querySelector('[data-testid=entry-react]')).length }; });
+  check(old27.olds > 0 && old27.withSign === 0, `NY27: an entry of an earlier day offers no sign on its row (${JSON.stringify(old27)})`);
   check(marks54 >= 1, `chronicle-journal audit 54: a note's type shows on its entry in the journal (${marks54} marks)`);
   // JN9, JN11, audit 50: scrolled back, the empty page is out of view and the bar holds the pen: one tap brings
   // today's foot into view and the caret onto the page, with no scroll first.

@@ -39,6 +39,8 @@ export function Entry(props: {
   onMore: () => void;
   /** The Type slot of the note being written was tapped (note types NY19). */
   onType?: (piece: Capture) => void;
+  /** A note kept today offers the sign on its row too (NY27): a tap opens the eight. Given only for today's entries. */
+  onReact?: () => void;
   /** The eight are open for the note being written: the slot shows it. */
   typeOpen?: boolean;
   onOpenRef: (v: MomentView) => void;
@@ -61,6 +63,9 @@ export function Entry(props: {
   // drawn where a kept note's is, above its words (NY22), so Done moves nothing.
   const written = props.onType ? c.pieces.find((p) => p.id === props.writing && p.kind === 'text') : undefined;
   const mark = written ? markOf(written) : null;
+  // A note kept today (NY27): the note that has a type, else the first, as More's Type marks (audit 57).
+  const keptNote = !written && props.onReact ? pieces.find((p) => p.kind === 'text' && markOf(p)) ?? pieces.find((p) => p.kind === 'text') : undefined;
+  const keptMark = keptNote ? markOf(keptNote) : null;
   // A placed dateline wears a small pin, so it reads as the way to the map (ui 3); an unplaced one is plain words.
   const lineText = (
     <View style={styles.lineRow}>
@@ -93,6 +98,16 @@ export function Entry(props: {
             <Icon name={(mark?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="type-slot-face" />
             {mark ? null : (
               <View style={styles.typeAdd} testID="type-slot-add">
+                <Icon name="add" size={11} color={theme.bg} />
+              </View>
+            )}
+          </Pressable>
+        ) : null}
+        {keptNote ? (
+          <Pressable testID="entry-react" accessibilityRole="button" accessibilityLabel={`Type, ${keptMark?.name ?? 'No type'}`} onPress={props.onReact} style={styles.type}>
+            <Icon name={(keptMark?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} />
+            {keptMark ? null : (
+              <View style={styles.typeAdd}>
                 <Icon name="add" size={11} color={theme.bg} />
               </View>
             )}
