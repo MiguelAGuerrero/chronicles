@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "open a moment with a photo and a note, open the note by its piece, set Type to Question",
+        "--reason",
+        "note types became reactions (decision 0176); a stacked moment's reactions are the moment's, checked by RX5 and RX28-RX31"
+      ],
+      "target": "sha256:4cbf9a6582f28899a781c09b521a4f02ad0ff7a7132de93e5928e10a3f18282c"
+    }
+  ]
+}

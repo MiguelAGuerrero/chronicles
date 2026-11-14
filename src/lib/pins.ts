@@ -1,7 +1,7 @@
 // @layer core
 import type { Faced } from './moment';
 import { distanceM, pausedMs, type PauseSpan } from './geo';
-import { markOf, type NoteTypeInfo } from './noteType';
+import { ordered, type ReactionInfo, type ReactionSet } from './reactions/core';
 import { dayPartLine, JUST_AFTER_MS, minutesInLine } from './resurface/context';
 import { numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
@@ -130,15 +130,14 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
  * video's file: while the copy is being made, or for one that won't decode, the
  * pin keeps its icon, so a map never decodes full media. A pin of several shows its kinds (`pinHeadKinds`, tend map T14).
  */
-/** A pin of exactly one note with a type wears that type's mark (NY10); a pin of several shows its kinds (tend map T14). */
-export function pinMark(pin: CapturePin): NoteTypeInfo | null {
-  return pin.captures.length === 1 ? markOf(pin.captures[0]) : null;
-}
-
-/** What a screen reader hears of a single typed note's pin: "Note, idea" (NY10, NY11); null when the pin wears no mark. */
-export function pinNoteLabel(pin: CapturePin): string | null {
-  const m = pinMark(pin);
-  return m ? `Note, ${m.name.toLowerCase()}` : null;
+/**
+ * The reactions a pin wears as bubbles (RX17, RX19): a pin of exactly one moment, its reactions in the families' order;
+ * a pin of several, none. The head is never one of them (RX18).
+ */
+export function pinReactions(pin: Pick<CapturePin, 'captures'>, sets: ReadonlyMap<string, ReactionSet>): ReactionInfo[] {
+  if (pin.captures.length !== 1) return [];
+  const set = sets.get(pin.captures[0].id);
+  return set ? ordered(set) : [];
 }
 
 export function pinThumb(pin: CapturePin): string | null {
@@ -266,11 +265,13 @@ export const KIND_NAME: Readonly<Record<CaptureKind, string>> = { photo: 'Photo'
  * in", "Memories: a photo and a note, Tuesday evening". A memory pin's moments are of other walks, so it always says
  * the part of the day.
  */
-export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: readonly WalkClock[]; now?: number }): string {
-  const kinds = pin.captures.length === 1 ? KIND_NAME[pin.captures[0].kind] : pinKindsWords(pin);
+export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: readonly WalkClock[]; now?: number; reactions?: readonly ReactionInfo[] }): string {
+  // One moment's reactions are said after its kind, as its bubbles are drawn (RX21): "Photo, happy, idea".
+  const one = pin.captures.length === 1 ? [KIND_NAME[pin.captures[0].kind], ...(o.reactions ?? []).map((r) => r.name.toLowerCase())].join(', ') : null;
+  const kinds = one ?? pinKindsWords(pin);
   const what = o.memory
     ? pin.captures.length === 1 ? `Memory: ${kinds}` : `Memories: ${lower(kinds)}`
-    : pin.captures.length === 1 ? pinNoteLabel(pin) ?? kinds : kinds;
+    : kinds;
   const when = pinWhen(pin, o.memory ? undefined : o.clocks, o.now);
   return when ? `${what}, ${when}` : what;
 }
@@ -280,7 +281,7 @@ export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: reado
  * regroup that keeps the first id and the count (a photo and a note becoming two photos) still redraws its fan.
  */
 export function pinKey(pin: CapturePin): string {
-  return [pin.id, pin.captures.map((c) => c.id).join(','), pinThumb(pin) ?? '', pinMark(pin)?.id ?? ''].join(':');
+  return [pin.id, pin.captures.map((c) => c.id).join(','), pinThumb(pin) ?? ''].join(':');
 }
 
 /**

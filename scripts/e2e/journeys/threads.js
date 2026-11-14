@@ -250,7 +250,7 @@ async function run(h) {
   await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
   await pg.fill('[data-testid=note-input]', 'half a thought');
-  check((await pg.locator('[data-testid=note-type-row]').count()) === 0, 'NY15: a note written in Respond offers no Type: it is made with none, and Edit sets one');
+  check((await pg.locator('[data-testid=note-reaction-tool]').count()) === 0, 'RX13: a note written in Respond offers no Reaction tool: a response has none until the owner gives it one');
   // fix respond-bottom audit 3, on the note editor: a keyboard 300 px tall (the visual viewport shrinks) leaves Save in view.
   const kbTop = await pg.evaluate(() => {
     const vv = window.visualViewport;
@@ -275,23 +275,18 @@ async function run(h) {
   check(!(await has('[data-testid=note-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=viewer-respond]')), 'owner-threads audit 9: Back closes the note being written, leaves the viewer open and Respond ready');
   await closeViewer();
 
-  // NY17: a note's bubble in the thread wears its type's mark and spoken name; one with no type is as before.
+  // RX16 (reactions): a note's bubble shows its moment's reactions, glyph and name, after its words; a moment with none shows nothing.
   await openInThread('pier');
-  await pg.waitForSelector('[data-testid=viewer-edit-note]');
-  await pg.click('[data-testid=viewer-edit-note]');
-  await pg.click('[data-testid=note-type-row]').catch(() => null);
-  await pg.click('[data-testid=note-type-item-question]').catch(() => null);
-  await pg.click('[data-testid=note-done]');
+  await pg.click('[data-testid=viewer-more]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=viewer-reaction]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-happy]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-question]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
+  await pg.click('[data-testid=reaction-done]').catch(() => {});
   await closeViewer();
-  const typedMark = pg.locator(`${bubble('looked strong at the pier')} [data-testid=note-type-mark]`);
-  const plain = await pg.locator(`${bubble('And a third')} [data-testid=note-type-mark]`).count();
-  check((await typedMark.count()) === 1 && (await typedMark.first().getAttribute('aria-label')) === 'Question' && plain === 0,
-    'NY17: a note\'s bubble in the thread shows its type\'s mark and spoken name, and a note with none shows nothing');
-  // note-types audit 3: the plain bubble's group already says the type, so the mark inside it is not said again.
-  const markHidden = await pg.locator(`${bubble('looked strong at the pier')} [data-testid=note-type-mark]`).first().evaluate((el) => !!el.closest('[aria-hidden=true]') || el.getAttribute('aria-hidden') === 'true').catch(() => false);
-  check(markHidden, 'note-types audit 3: a plain bubble says its type once: the mark inside the group is hidden from a screen reader');
-  await shot(pg, '71-threads-note-type');
+  const marks16 = await pg.locator(`${bubble('looked strong at the pier')} [data-testid=reaction-marks] [data-testid=reaction-name]`).allInnerTexts().catch(() => []);
+  const plain16 = await pg.locator(`${bubble('And a third')} [data-testid=reaction-marks]`).count();
+  check(marks16.join() === 'Happy,Question' && plain16 === 0, `RX16: a bubble shows its moment's reactions after its words; one with none shows nothing (${JSON.stringify({ marks16, plain16 })})`);
 
   // OT8: Remove from this thread keeps the moment.
   await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]:has-text("And a third") [data-testid=moment-more]').click();
@@ -307,7 +302,7 @@ async function run(h) {
   }
   await closePill();
   db = await stored(pg);
-  check(db.members.length === 3 && db.captures.some((x) => x.pieces[0].body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');
+  check(db.members.length === 3 && db.captures.some((x) => x.pieces[0].body === 'And a third, on the bridge.'), `OT8: Remove from this thread keeps the moment kept (${db.members.length} members, ${db.captures.some((x) => x.pieces[0].body === 'And a third, on the bridge.')})`);
 
   // OT20, OT23: the thread's name appears nowhere but its own places.
   await pg.click('[data-testid=own-thread-back]');

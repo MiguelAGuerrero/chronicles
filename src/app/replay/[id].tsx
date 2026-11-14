@@ -538,9 +538,9 @@ export default function Replay() {
           await captureEdits.save(c, patch);
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch, c.piece_id) });
         }}
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
@@ -553,9 +553,9 @@ export default function Replay() {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);

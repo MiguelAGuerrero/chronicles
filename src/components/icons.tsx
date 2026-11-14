@@ -1,6 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
-import { markOf } from '../lib/noteType';
 import type { CaptureKind } from '../lib/types';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -24,11 +23,7 @@ export const KIND_LABEL: Record<CaptureKind, string> = {
   text: 'Note',
 };
 
-/**
- * The glyph a capture wears where its kind's icon is drawn (NY3, NY10): a note's type glyph when it has one, else its
- * kind's icon. Only a note takes a type's glyph.
- */
-export function captureIcon(c: { kind: CaptureKind; note_type?: string | null }): IconName {
-  const m = markOf(c);
-  return m ? (m.glyph as IconName) : KIND_ICON[c.kind];
+/** The glyph a capture wears where its kind's icon is drawn: always its kind's (RX18); a reaction is never the head. */
+export function captureIcon(c: { kind: CaptureKind }): IconName {
+  return KIND_ICON[c.kind];
 }

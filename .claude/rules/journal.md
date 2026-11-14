@@ -71,7 +71,7 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 - **Done's place is kept in the bar** (audit 51): an unseen, untappable Done of the same width. Its rule that the camera and the mic never move is reversed by decision 0175: they move from the row to the keyboard bar while typing (JN36).
 - **The held date has an edge** (audit 52): four bands of the page's ground under it, none fainter than a fifth. A fainter band is drawn a shade off the ground it lies on and shows as a line under every date.
 - **Writing on a walk, the bar keeps the recording's mark** (audit 53): the recording bar is folded with the tabs.
-- **An entry draws its note's type** (audit 54, `NoteMark`): the journal replaced the moment card, which drew it. The Type tool is on the note's page only.
+- **An entry draws its reactions** under its dateline (`ReactionMarks`, RX14), any kind (`.claude/rules/reactions.md`); the journal replaced the moment card, which drew a note's type (audit 54).
 
 ## A voice note plays in line (the owner, Nov 13; journal voice audit 1-19)
 

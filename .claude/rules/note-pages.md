@@ -2,12 +2,11 @@
 paths:
   - "src/lib/notePage/**"
   - "src/components/notePage/**"
-  - "src/lib/{noteEdit,noteType,noteTypeChoice,refs}.ts"
-  - "src/components/NoteMark.tsx"
+  - "src/lib/{noteEdit,refs}.ts"
   - "src/lib/__tests__/notes/**"
-  - "src/lib/__tests__/captures/{noteSave,noteType,noteTypeReaders,noteTypeScan}.test.ts"
+  - "src/lib/__tests__/captures/noteSave.test.ts"
 ---
-# Captures: a note is a page, and its type
+# Captures: a note is a page
 
 - **A note is a page** (note pages NP1-NP14, decision 0151; it replaced the note card and `NoteEditor`). The pencil (Navigate's
   `MomentBar`, the walk's `walk.tsx`, Memories' open line through Open as a page, `journal/OpenLine`), Respond → Note (`ReplyDock`) and Add to this moment open
@@ -37,6 +36,4 @@ paths:
   - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
     `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
     (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.
-- **Note types** (NY1-NY17, decision 0161): `Capture.note_type` (SQLite migration 27, IndexedDB 20; raw as stored, read through `noteTypeOf`, so an unknown value is no type) is the owner's mark on a note: one of eight ink glyphs in `lib/noteType` (fixed order, spoken names). The note's page offers a Type tool in its bar only for an edit (`NotePage` given `type` and `onType`; never a new note's page or Respond's), opening `NoteTypeMenu`; a choice is kept at once through `onSaveNote(c, body, type, typeOnly)`. `notePatch(body, type, typeOnly)` (`lib/noteEdit`) is the one write: text and type together, or, `typeOnly`, the type alone (the body and its `body_format` stay as kept). Every `onSaveNote` call passes it on (`noteTypeScan.test` fails a call site that takes two arguments). `NoteMark` draws the glyph and name above the viewer's note and in the owner-thread bubble; `captureIcon` and `pinMark` put it on a pin of exactly one note (a pin of several keeps its count). Never count, sort, filter, search or infer a type, and never read one for a place (NY12, NY13): `noteTypeReaders.test` lists the files that may mention a type; a new reader goes through `/vision` and then onto that list.
-  - Since `tend map T14` a pin of several shows its kinds fanned and says them in words, never its count (`map.md`, "A pin of several moments").
-  - **A note save names its piece** (note-types audit 1, 12, 13): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).
+- **A note save names its piece** (note-types audit 1, 12, 13; a moment's reactions are their own records, decision 0176): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. `notePatch(body)` is a note's one write: its body and `body_format: 'md'`, nothing else.

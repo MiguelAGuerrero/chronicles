@@ -19,6 +19,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 
 | Slice (spec tab) | Status | Evidence (last related commit on main) | Spec | Audited |
 |---|---|---|---|---|
+| Reactions (note types became reactions on any moment, at most one per family: Feeling, Taste, Thought; the face with a plus on the entry being written and today's entries, More's Reaction, the viewer's More and a note page's Reaction tool; marks under a dateline, the viewer's info line, a card and a bubble; ink bubbles across a single moment's pin; the journal's contents → Reactions → a lens per reaction, oldest first, no count; RX1-RX36, decision 0176) | built and audited 2026-11-14, deployed to main 2026-11-14 (`28a6339`, Pages run 271; the owner's task done on the live build), test-first (36 of 36): unit tests, typecheck, lint, docs and vision checks; e2e `reactions` (new), `journal`, `notepage`, `qol`, `threads`, `responses`, `upgrade`; cold find and UI review triaged (`reactions ui 1-5`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reactions/spec.md` | yes (22 findings: 15 fixed, 4 deferred, 1 rejected, 1 merged, 1 for the owner; tests `reactions audit 1-6, 8-10, 13, 16-18, 20, 21`) |
 | Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool, and since Nov 13 by choice at capture: a slot in the corner of the journal's entry being written that opens the eight, named, above the bar; Type in an entry's More; the Type tool on a new note's page; on the viewer's note, the single-note pin and the thread bubble; NY1-NY27, decisions 0161, 0168) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected; NY18-NY25 with the journal's bar, 26 findings: 21 fixed, 3 deferred, 2 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |
 | Explorer App Concept (v0: record, capture, replay, storage; round 3) | shipped | `7cf5ab1` 2026-10-31 round 3; `565b244` 2026-10-31 | `specs/concept/spec.md` | yes (two audit rounds `7936f48`, `ce6dd26`; round-3 audit `712fdf8`) |
 | Explore in a dense city (busy names drawn by the map with collision, one per street within 300 m, none under a "?" pin or a control; on the walk maps only within 800 m of you; the Busy read and the atlas's ring reads in a web worker, the Busy read after the map settles; fewer renders per switch; DC1-DC19, decision 0160; the owner's Baltimore report, Nov 12) | shipped 2026-11-13 (web verified by the e2e `dense` on the /chronicles build; native unverified); a first read's longest task 3.3-3.8 s to 0.2 s at 4x CPU, the first Busy switch-on 600-700 ms to 90-170 ms; switches between read areas unchanged in Chromium; first "?" pins about 1 s later | branch `claude/trusting-cannon-f5wdhg`, merged 2026-11-13 | `specs/explore-dense-city/spec.md` | yes (19 findings: 12 fixed, 1 rejected, 3 deferred, 6 folded in) |
@@ -145,6 +146,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **The dateline's tap lands on a cluster** (audit 19): the Map frames 150 m around the moment, but entries made at one spot share a pin with a count. Recommended: arrive with that moment's preview open.
 - **JN19 on your phone**: the line above a real keyboard, in Safari and the Home Screen app, is the first thing to try (`docs/NATIVE_UNVERIFIED.md`).
 - **(Nov 13) A note's reaction: its word** (decision 0168; the first cold find): the journal's sign is a face with a plus, but the page's tool, More and the spoken names still say "Type", which a cold reader took for typing or typeface. Yours: "Reaction" everywhere, or keep "Type". (Answered the same evening: the sign on today's entries only, NY27; ink glyphs, not colour emoji.)
+  Answered Nov 14 (decision 0176): "Reaction" everywhere, with the families Feeling, Taste and Thought; built in the reactions slice.
 
 ### From /tend
 
@@ -248,6 +250,17 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   recommended shape: the memory preview "and two more here"; the walks row's captures T19's clause, built with T19
   since they share `formatCaptures`; a delete's confirm "Its trace, three moments and twelve streets walked go." and
   "Two photos and a voice memo go." Waits for the next `/tend inbox`, one build per run (T29 was built first).
+
+### From /slice reactions
+
+What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).
+
+- **The sign once a moment has a reaction** (UI review U3): today it turns into the first reaction's glyph, so a plain smiling face can mean "no reaction yet" or "Happy", and the reaction is also spelled out under the dateline. Recommended: keep the face with a plus as the sign always and let the line under the dateline say what is chosen. It changes RX9, RX12 and decision 0168's "marked, the type's own glyph".
+  Answered Nov 14 (decision 0177): always the face with a plus; a follow-up slice after the deploy.
+- **"Contents" as the way to the lenses** (the cold find, RX2): "Gather all my ideas" was found, but late: "Contents" reads as a book's table of contents, and Threads was tried first. Recommended: keep Contents (your call in 0176) and rename its spoken name and line only if the owner sees the same on a phone; the alternative is a reaction under a moment opening its lens, which you declined.
+  Answered Nov 14 (decision 0177): Contents stays, and a reaction under a moment becomes a second way in.
+- **Gathering a reaction's moments was found late** (the audit's cold find, high, reactions audit 22): "Gather all my ideas" was placed only through Contents → Reactions, and called borderline not found ("Contents" reads as a table of contents, and an Idea is never seen as a reaction from the journal). Recommended: a reaction under an entry or in the viewer opens its lens (a second way in, beside Contents), which you set aside on Nov 14; or keep Contents and look on a phone first.
+  Answered Nov 14 (decision 0177): a reaction under a moment opens its lens, beside Contents; a follow-up slice after the deploy.
 
 ### From /slice: the row under the line
 
