@@ -237,7 +237,7 @@ async function checks(h) {
       check((await page.locator('[data-testid=atlas-town-head]').count()) === 0 && (await page.locator(`[data-testid=atlas-tile][data-name="${homeName}"][data-selected="1"]`).count()) === 1,
         'AT2: back returns to the towns, the one you left still selected');
     }
-    // What's good here (v1.5): a long press on the small map, then a read of the area around the city
+    // What's here (v1.5): a long press on the small map, then a read of the area around the city
     // nearby, finds Thayer Street's strip, as information (L1, L2, L5, L7, L9, NV15).
     {
       const press = async () => {
@@ -269,6 +269,8 @@ async function checks(h) {
         check(sp && map && sp.y >= map.y - 1 && sp.y + sp.height <= map.y + map.height + 1, 'atlas round 3: the long press’s choices sit over the map');
         check((await page.locator('[data-testid=atlas-press-hint]').count()) === 0, 'atlas round 3: the press hint goes once the long press is used');
       }
+      const lookWords = await page.locator('[data-testid=look-here]').innerText().catch(() => '');
+      check(/^What’s here\?$/.test(lookWords.trim()), `SF15: the long press offers "What’s here?" (${JSON.stringify(lookWords)})`);
       await page.click('[data-testid=look-here]');
       await page.click('[data-testid=look-cancel]');
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;

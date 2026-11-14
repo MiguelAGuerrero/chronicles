@@ -6,9 +6,9 @@ paths:
 ---
 # Landing
 
-What's good here (`lib/landing`): reading an area, finding storefront strips and pockets, drawing hotspots, and the on-walk chip and dead-zone pill. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+What's here (`lib/landing`): reading an area, finding storefront strips and pockets, drawing hotspots, and the on-walk chip and dead-zone pill. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-- **What's good here** (a home long press from z10): `landing/read.ts` reads
+- **What's here** (a home long press from z10): `landing/read.ts` reads
   the area with the tile decoder, with no camera moves, on both platforms.
   - A z11 read finds the towns, and the nearest town or city within 1.5 km
     becomes the centre (never a village, and never one so far that the press

@@ -118,7 +118,7 @@ recording, and a recording bar brings a minimized walk back.
   - what you found;
   - the areas next door;
   - Walk to, which starts you on a street of its storefronts.
-- A long press on the small map still offers **What's good here?** and
+- A long press on the small map still offers **What's here?** and
   **Walk here**. There are no counts of places on this tab.
 - **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0178):
   shops, food, drink, services, offices and the like count; parks, monuments, public art, views, curiosities and

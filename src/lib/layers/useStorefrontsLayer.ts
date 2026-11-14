@@ -17,7 +17,7 @@ const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
 
 /**
  * Storefront streets as a layer (ML8, ML9): the remembered areas near `centre`, drawn when `on`, on any walk. With none within
- * 1.5 km they are read once (the same read What's good here does); a failure says nothing and waits for a toggle or a
+ * 1.5 km they are read once (the same read What's here does); a failure says nothing and waits for a toggle or a
  * move of about 1 km. Nothing is listed or read while off. `reload` lists again after another read (an exploring walk's).
  */
 /**
@@ -68,7 +68,7 @@ export function useStorefrontsLayer(
     let started = false;
     void (async () => {
       // SS8: listed when the layer comes on and after a read or a reload, never for a switch alone; and where nothing
-      // remembered covers the centre, since another read (What's good here, an exploring walk) may have since.
+      // remembered covers the centre, since another read (What's here, an exploring walk) may have since.
       let list = rowsNow.current;
       const v = version.current;
       if (needsListing({ listed: listed.current, version: v }) || (!!centre && needsStorefrontsRead(list, centre))) {

@@ -19,6 +19,7 @@ The owner's calls, Nov 14:
 3. **The code says storefronts too** (over the recommended "copy only"): the layer's id, the leaning's value, modules,
    hooks, props, test ids, map layer ids and perf counters. A choice saved under `busy` is read as `storefronts`.
 4. **Straight through**, with no stop at the plan.
+5. **"What's good here?" becomes "What's here?"** (the steward's S3, first filed for the owner since G2 kept the title): "Go with what's here, that's better for me." The long press says what is here, never whether it is good (SF15).
 
 ## Consequences
 - `PRESENCE_CODE` p3 with nothing carried, `ATLAS_CODE` a13.p3: every remembered area and atlas row is read again.
@@ -26,4 +27,4 @@ The owner's calls, Nov 14:
 - The meta values `map_layers` and `route_leanings`, and a navigation in progress (`nav`), are JSON read through
   `decodeLayers` and `leaningsIn`, which map the old word; no schema change, and the next save writes the new word.
 - Spec: `specs/storefronts/spec.md` (SF1-SF14). Walk to's start and a tile's street are still the densest strip (AT8),
-  never said; the steward's "What's here?" for What's good here? is filed, not built.
+  never said.

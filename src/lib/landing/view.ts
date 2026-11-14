@@ -173,7 +173,7 @@ function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number,
 /**
  * A current area (this build, these rules) centred within 1 km of a scan
  * covers it: the sweep shows that one rather than reading again, so it never
- * replaces a "What's good here" area or refetches its tiles (audit).
+ * replaces a "What's here" area or refetches its tiles (audit).
  */
 export function sweepCovered(rows: LandingRow[], at: LngLat, build: string, release: string | null = null): LandingRow | null {
   let best: LandingRow | null = null;

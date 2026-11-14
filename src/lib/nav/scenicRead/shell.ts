@@ -27,7 +27,7 @@ export interface ScenicIo {
 
 /**
  * The read behind a scenic route (SR13, SR9): the z14 tiles of the corridor between the two ends
- * from the tile host, and Overture's places for the same tiles, as "What's good here?" reads them.
+ * from the tile host, and Overture's places for the same tiles, as "What's here?" reads them.
  * Its streets and places join today's caches, tagged with the build; the green, the sights and the
  * graded storefront streets are made from it and never kept. Any failure, or a Cancel, gives null.
  */

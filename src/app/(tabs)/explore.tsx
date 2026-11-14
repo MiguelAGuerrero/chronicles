@@ -9,7 +9,7 @@ import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
-import { cancelLook, endLook, IDLE, isLive, runLook, startLook, type Look } from '../../lib/atlas/look';
+import { cancelLook, endLook, IDLE, isLive, LOOK_LABEL, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
@@ -95,7 +95,7 @@ const fmt = (m: number) => formatDistance(m);
  * One is always selected, highlighted on the map and the only one named there. The selected town's card
  * opens its page, the selected neighborhood's its card, a sheet that keeps the map in sight. Rings are
  * read by themselves while the tab is open. A long press on the map offers
- * What's good here and Walk here, over the map. It never tracks you: it reads
+ * What's here and Walk here, over the map. It never tracks you: it reads
  * one fix as the app opens (it is the first tab, NV2), then moves with your last
  * fix, or a Locate tap.
  */
@@ -746,7 +746,7 @@ export default function Explore() {
         <View style={styles.spot} testID="atlas-spot">
           <Button
             testID="look-here"
-            label="What's good here?"
+            label={LOOK_LABEL}
             disabled={looking}
             style={styles.spotBtn}
             onPress={() => {

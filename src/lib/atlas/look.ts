@@ -2,7 +2,7 @@
 import type { AreaAnalysis } from '../landing/analyze';
 import type { LngLat } from '../types';
 /**
- * Explore's "What's good here?" (tend explore 2): one look at a time, each with its own token, so a cancelled look stays
+ * Explore's "What's here?" (tend explore 2): one look at a time, each with its own token, so a cancelled look stays
  * stopped when a newer one starts: its read ends, its line is never shown, and its end never clears the newer one.
  */
 export type Look = { seq: number; live: number | null };
@@ -30,6 +30,9 @@ export interface LookIo {
   tileBuild: () => Promise<string | null>;
   remember: (centre: LngLat, analysis: AreaAnalysis, build: string, overture: string | null) => Promise<unknown>;
 }
+/** SF15 (the owner, Nov 14): the long press's action; it says what is here, never whether it is good. */
+export const LOOK_LABEL = 'What’s here?';
+
 /** SF5: what a density read says, before the street or pocket. */
 export const STOREFRONTS_GATHER = 'Where storefronts gather';
 

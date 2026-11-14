@@ -78,7 +78,7 @@ test('SF5: What\'s good here? says where storefronts gather, never "Busiest area
   assert.deepEqual(end, { kind: 'line', message: 'Where storefronts gather: Thayer Street. A best guess from the map.' });
 });
 
-test('SF15: the long press\'s action is titled "What\'s here?", never "What\'s good here?"', { todo: 'test first' }, async () => {
-  const look = (await import('../../atlas/look')) as unknown as { LOOK_LABEL?: string };
+test('SF15: the long press\'s action is titled "What\'s here?", never "What\'s good here?"', async () => {
+  const look = await import('../../atlas/look');
   assert.equal(look.LOOK_LABEL, 'What’s here?');
 });

@@ -36,7 +36,7 @@ export type { ExploreResult } from './exploreQueue';
  * One explore read (E2): the z14 tiles of the 1.5 km around `centre`, decoded
  * in code with no camera moves, plus a z11 read for the towns. That one read
  * builds the checklists of the areas it saw whole and, as information, the
- * storefront streets (remembered like "What's good here"). Never two at once. A
+ * storefront streets (remembered like "What's here"). Never two at once. A
  * failed or cancelled read stores nothing (E5). One at a time through `queue` (`exploreQueue.ts`): a read asked for
  * while one runs shares it only for the same centre; another centre waits for it, then reads its own (tend explore 15).
  */

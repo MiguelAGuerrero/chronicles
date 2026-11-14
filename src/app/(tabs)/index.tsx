@@ -68,7 +68,7 @@ const allCaptures = () => db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(fac
 /**
  * Chronicle (NV11-NV13): review. Stars where you have walked, a sheet that
  * peeks with a summary and lists walks and days, and the replays. Start,
- * Explore, What's good here and quick capture live on the other tabs. It reads
+ * Explore, What's here and quick capture live on the other tabs. It reads
  * only walks, summaries, Area, WalkArea and capture rows; placing old walks
  * (which reads their traces) lives in lib/backlog.
  */

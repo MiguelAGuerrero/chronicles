@@ -7,7 +7,7 @@ import type { LngLat } from '../types';
 
 /*
  * Storefront streets as a layer (ML8, ML9): what is remembered, and the one read that fills a blank. The same read and the
- * same remembered areas What's good here and an exploring walk use; nothing here is new data.
+ * same remembered areas What's here and an exploring walk use; nothing here is new data.
  */
 
 /** The remembered areas read under the current rules. */
@@ -16,7 +16,7 @@ export async function rememberedAreas(): Promise<LandingRow[]> {
   return rows.filter((r) => rulesCurrent(r.rules));
 }
 
-/** ML9: reads the area around `at` as What's good here does and remembers it; false when it could not be read. */
+/** ML9: reads the area around `at` as What's here does and remembers it; false when it could not be read. */
 export async function readStorefrontsAround(at: LngLat, shouldStop: () => boolean): Promise<boolean> {
   const read = await readArea(at, shouldStop);
   if (!read.ok) return false;
