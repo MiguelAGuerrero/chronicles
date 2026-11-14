@@ -369,8 +369,9 @@ export function AtlasCard(props: {
         {/* The card's main step stays in sight (atlas round 3): never at the end of a scroll. */}
         <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]} testID="atlas-footer">
           {props.here ? (
-            // A status, not a link (tend explore 10, decision 0172): in ink, the page's heading staying the town.
-            <Text style={[styles.hereLine, styles.you]}>You’re in {area.name}</Text>
+            // A status, not a link (tend explore 10, decision 0172): in ink, the page's heading staying the town; in regular weight,
+            // so it never looks like a text button (tend explore audit 17).
+            <Text style={[styles.hereLine, styles.you, styles.hereStatus]}>You’re in {area.name}</Text>
           ) : asking ? (
             // DW2: Walk now starts as Walk to always did; When I get there keeps the place for Navigate's Start (DW3).
             <>
@@ -533,6 +534,7 @@ const styles = StyleSheet.create({
   askClose: { alignSelf: 'center', minWidth: 44, minHeight: 44, paddingHorizontal: 16 },
   // One line per choice, each the footer's width: a wrapping column would size them to their words.
   askStack: { flexDirection: 'column', flexWrap: 'nowrap' },
+  hereStatus: { fontWeight: '400' },
   askRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   askBtn: { flexGrow: 1, flexBasis: 140 },
   hereLine: { color: COLORS.route, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },

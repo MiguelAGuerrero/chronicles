@@ -517,11 +517,12 @@ async function cardFooter(h) {
       // tend explore 10 (O10): "You're in Fox Point" is a status line in ink, never link-coloured; the page's heading stays the town.
       const here = await pg.evaluate(() => {
         const e = [...document.querySelectorAll('[data-testid=atlas-card] div')].find((d) => d.childElementCount === 0 && /^You’re in /.test(d.textContent));
-        return e ? { text: e.textContent, color: getComputedStyle(e).color, link: !!e.closest('a,[role=link],[role=button]') } : null;
+        return e ? { text: e.textContent, color: getComputedStyle(e).color, weight: getComputedStyle(e).fontWeight, link: !!e.closest('a,[role=link],[role=button]') } : null;
       });
       const heading = await pg.locator('[data-testid=explore-area]').innerText().catch(() => '');
-      check(here && here.text === 'You’re in Fox Point' && here.color === 'rgb(29, 36, 48)' && !here.link && heading === 'Providence',
-        `tend explore 10: at ${w}, the card's "You're in Fox Point" is a status line in ink, not link-coloured, and the heading stays the town (${JSON.stringify({ ...here, heading })})`);
+      // tend explore audit 17: in regular weight, so the status line never looks like a text button.
+      check(here && here.text === 'You’re in Fox Point' && here.color === 'rgb(29, 36, 48)' && here.weight === '400' && !here.link && heading === 'Providence',
+        `tend explore 10, tend explore audit 17: at ${w}, the card's "You're in Fox Point" is a status line in ink and regular weight, not link-coloured, and the heading stays the town (${JSON.stringify({ ...here, heading })})`);
       await shot(pg, `carousel-here-card-${w}`);
     } finally {
       await c.close();
