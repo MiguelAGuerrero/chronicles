@@ -277,7 +277,7 @@ const FEATURES = [
     rule: 'reactions',
     source: ['src/lib/reactions/**', 'src/components/reactions/**', 'src/lib/pins.ts'],
     journeys: ['reactions'],
-    specs: ['reactions'],
+    specs: ['reactions', 'reaction-links'],
   },
   {
     name: 'journal',
