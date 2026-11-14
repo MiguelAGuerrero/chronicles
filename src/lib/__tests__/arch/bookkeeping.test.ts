@@ -663,9 +663,9 @@ function units(text: string) {
   flush();
   return out;
 }
-const PLACES = /in the worktree|in your worktree|in the run's worktree|<main-tools>|<main-scripts>/;
+const PLACES = /\bin\s+(the|your|the\s+run's)\s+worktree|<main-tools>|<main-scripts>/i;
 
-test('bookkeeping audit 5: every skill names where its bookkeeping command runs, and each place holds the script', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 5: every skill names where its bookkeeping command runs, and each place holds the script', () => {
   const skills = ['.claude/skills/tend/SKILL.md', '.claude/skills/slice/SKILL.md', '.claude/skills/audit/SKILL.md', '.claude/skills/ship.md', '.claude/skills/tend-orchestrator/SKILL.md', '.claude/skills/tend-orchestrator/briefs.md'];
   const unplaced: string[] = [];
   const named = new Set<string>();

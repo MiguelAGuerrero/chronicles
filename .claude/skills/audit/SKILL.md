@@ -71,7 +71,10 @@ auditor's, numbered on after them.
 ## 3. Triage
 
 For each finding, write one line in the spec's "Audit" record:
-`N. <title>: accept | defer | reject, <reason>`.
+`N. <title>: accept | defer | reject, <reason>`. N is the audit number, and you, the triager, give it
+alone: on from `npm run book:next-audit -- <slice>` in the worktree (every number in `main`, the
+branch and the working tree, files and commit messages), one per finding in the order triaged. The
+reviewers' own numbering is theirs and never becomes an audit number.
 
 - **Accept**: a real failure the slice should handle now.
 - **Defer**: real, but out of this slice; add it to `docs/DEFERRED.md` with
@@ -85,8 +88,7 @@ For each finding, write one line in the spec's "Audit" record:
 
 For each accepted finding, in order:
 
-1. Write the regression test, named `<slice> audit N`, N on from main's highest
-   (`npm run book:next-audit -- <slice>`; two reviewers never number apart) (`test('rides audit 3:
+1. Write the regression test, named `<slice> audit N`, N from step 3 (`test('rides audit 3:
    ...')` in the slice's folder under `src/lib/__tests__/`, or a `step('tabs audit 5 ...')`
    check in its journey under `scripts/e2e/journeys/`). Run it; it fails.
 2. Fix it. Run it; it passes.

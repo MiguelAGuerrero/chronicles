@@ -40,8 +40,9 @@ Before editing, or as soon as it shows, the work stops when it needs any of:
   change (the AGENTS.md "ask before architectural decisions");
 - a change to derivation rules (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`);
 - anything that sends data off the device, or a new host;
-- more than the caller's size: about 8 files for a fix or a loop finding; for a slice built from a
-  proposal, anything its approved criteria do not name.
+- more than the caller's size: about 8 source files for a fix or a loop finding (`src/` and `scripts/`;
+  tests, journeys and record documents do not count: `npm run book:files -- HEAD --max-src 8` in the
+  worktree); for a slice built from a proposal, anything its approved criteria do not name.
 
 Who hears of it depends on who was typed:
 
@@ -130,7 +131,8 @@ fix still gets its screens looked at.
 
 Triage each finding accept, defer or reject with a reason (as `/audit` does). An accepted one gets a
 regression test before its fix, named for the caller (`fix <name> audit N`, `tend <scope> audit N`,
-`<slug> audit N`), N from `npm run book:next-audit -- "<prefix>"`. An architectural finding is a hard stop.
+`<slug> audit N`), N from `npm run book:next-audit -- "<prefix>"` in the worktree, given by whoever triages,
+never by a reviewer. An architectural finding is a hard stop.
 
 Each round is: review, fix what was accepted, run the caller's checks again. Stop at the caller's
 round limit or at the first round with no new accepted finding. With accepted findings still open at
@@ -146,11 +148,13 @@ with the checks the calling skill names.
    then continue. On a conflict, stop and keep the branch. The checks include `node scripts/tend.js
    commits --loop-only origin/main..HEAD`, what CI runs: a commit of the branch made before the record
    gate landed and hand-editing the documents is refused there by name, with how to mend it ("The
-   record documents"). A decision record of the branch: `npm run book:next-decision -- --check <NNNN>
-   <file>` now, after this fetch; if main took the number, renumber the file, its title, the README row
-   and what cites it, and check again.
+   record documents"). A decision record of the branch, in the worktree: `npm run book:next-decision --
+   --check <NNNN> <file>` now, after this fetch; if main took the number, renumber the file, its title,
+   the README row and what cites it, and check again.
 3. `main` is checked out elsewhere, so publish with `git push origin <branch>:main` (a fast-forward; no
-   force, no history rewrite, no empty commits), once.
+   force, no history rewrite, no empty commits), once. Refused as not a fast-forward (`main` moved since
+   step 2): fetch, rebase, the caller's checks, `npm run book:next-decision -- --check` in the worktree
+   again, then push.
 4. Watch the Pages run with the GitHub MCP tools until it completes (`/deploy` section 3).
 5. Green: load https://miguelaguerrero.github.io/chronicles/ (Playwright is installed) and check the
    visible effect. If the page cannot be reached from the session, say the live check was not done.
@@ -185,6 +189,10 @@ and put a corrected change on `<branch>-retry` with the failing check passing. P
 Every run ends here, whatever happened. Remove only the worktree and branches this run created.
 
 1. Look first: `git -C <worktree> status --short` and `git -C <worktree> log --oneline origin/main..HEAD`.
+   After a publish, while the worktree is there, in the worktree: `npm run book:landed -- <base>..<pushed
+   sha> --live https://miguelaguerrero.github.io/chronicles/` (every commit of the run on `main`, and the
+   live entry bundle against the worktree's `dist/` when it is a Pages export; it cannot see Pages,
+   which stays with the GitHub tools).
 2. Anything unpushed or uncommitted that is worth keeping: save it as a patch
    (`git -C <worktree> diff HEAD > <scratchpad>/<name>.patch`, plus `git format-patch` for commits)
    before removing, and name the patch in the report. Never remove a worktree holding work that is
@@ -202,11 +210,17 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
 | Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
 | Nothing pushed by choice | delete after the patch is saved | none |
 
-5. `git worktree prune`, then confirm nothing of this run remains: after a publish, `npm run
-   book:landed -- <base>..<pushed sha> --branch <branch> --live https://miguelaguerrero.github.io/chronicles/`
-   (every commit on `main`, no worktree or local branch left, the live entry bundle; it cannot see Pages,
-   which stays with the GitHub tools); otherwise `git worktree list` and `git branch --list '<family>/*'`.
-   If a removal failed, say what is left and its path.
+5. `git worktree prune`, then confirm nothing of this run remains. The worktree is gone and the primary
+   checkout may predate the script, so read `main`'s scripts into `<main-scripts>` (a scratchpad folder;
+   they need only node, git and curl, no `node_modules`), then check the branch from there:
+
+   ```bash
+   mkdir -p <main-scripts> && git -C <primary> archive origin/main scripts | tar -x -C <main-scripts>
+   TEND_ROOT=<primary> node <main-scripts>/scripts/bookkeeping.js landed --branch <branch>
+   ```
+
+   It fails while a worktree under `.claude/worktrees/` or a local branch is left for `<branch>`. If a
+   removal failed, say what is left and its path.
 
 ## The result block
 

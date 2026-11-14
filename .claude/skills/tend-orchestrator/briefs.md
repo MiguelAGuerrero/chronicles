@@ -22,7 +22,8 @@ section 7 name (`slice/<slug>-parked`, `<branch>-retry`, a review branch).
 [Inbox: <entry> as STATUS holds it: "<title>". Say it back as main holds it, then build its
 recommended shape: <the shape>. One build per run: <later yeses> wait, noted.]
 [Sweep: `/tend` with no area; run `node scripts/tend.js next` yourself.]
-Tripwires: <"more than ~8 files, a dependency or a change elsewhere: stop and file it" |
+Tripwires: <"more than about 8 source files (tests, journeys and record documents apart; in your
+worktree, `npm run book:files -- HEAD --max-src 8`), a dependency or a change elsewhere: stop and file it" |
 "any golden or differential result beyond <list> moves: stop and tell me">.
 
 Review handoff. You have no Agent tool and never review your own work in place of a reviewer.
@@ -50,12 +51,16 @@ commit's trailers and fails any other change.
 Known constraints (do not rediscover them): <from the notes, e.g.
 - read FORBIDDEN in scripts/tend.js before editing anything outside src/ and the journeys;
 - check:tend wants a named test for any src/ change, comments included;
-- audit numbers: `npm run book:next-audit -- "tend <area>"` (main's highest, ranges read), never by hand;
-- a decision record: `npm run book:next-decision -- --check <NNNN> <file>` after the last fetch;
-- the size tripwire: `npm run book:files -- HEAD --max-src 8` before each commit (its own files,
-  untracked counted); `npm run book:files` for the run's whole change;
-- DEFERRED and inbox matches: `npm run book:items -- deferred|inbox|open`, never shortened by hand;
-- your review prompts: `npm run book:review-paths -- <prompt>...` before handing back;
+- the bookkeeping commands run in your worktree (cut from origin/main, it holds the script):
+- audit numbers, in your worktree: `npm run book:next-audit -- "tend <area>"`, never by hand; you number,
+  the reviewers do not;
+- a decision record, in your worktree: `npm run book:next-decision -- --check <NNNN> <file>` after the
+  last fetch, and again after a refused push;
+- the size tripwire, in your worktree: `npm run book:files -- HEAD --max-src 8` before each commit (its
+  source files, untracked counted); `npm run book:files` for the run's whole change;
+- DEFERRED and inbox matches, in your worktree: `npm run book:items -- deferred|inbox|open` (your own
+  copy once an operation changed it), pasted from its `shell:` line, never shortened by hand;
+- your review prompts, in your worktree: `npm run book:review-paths -- <prompt>...` before handing back;
 - the largest text size cannot be pictured on web: a [phone] entry;
 - the balance reads <reading>: <no G entry | …>;
 - grep a rule line before citing it as a Source;
@@ -76,8 +81,8 @@ the worktree's `node_modules/.bin/tsx`. Playwright: NODE_PATH=$(npm root -g). Pa
 mcp__github__actions_list and mcp__github__actions_get with ToolSearch; report a run that has not
 started 30 minutes after the push as unconfirmed. Clean up as ship.md "Clean up" says.
 
-Return, concisely: 1. the Report and the result block; 2. the commits on main, Pages and the live
-check; 3. every entry filed, in full; 4. new skill friction, facts only, editing no skill.
+Return, concisely: 1. the Report and the result block; 2. the commits on main, the head sha you
+pushed, Pages and the live check; 3. every entry filed, in full; 4. new skill friction, facts only, editing no skill.
 ```
 
 ## The reviewer relay

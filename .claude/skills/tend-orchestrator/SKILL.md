@@ -50,8 +50,17 @@ ruling and its reason; **each proxy answer** (entry, date, the `/vision` verdict
 mistake of your own; the new friction each run reports. A `reviews/` folder beside it holds every
 review prompt and saved report, named `<run branch>-<pause>-<agent>`.
 
+**Your tools worktree, `<main-tools>`** (`SCRATCH/main-tools`). You sit in the primary checkout, which may
+be behind `main` and lack `scripts/bookkeeping.js`: never run the bookkeeping commands there. Once, before
+the first run: `git -C <primary> worktree add --detach <main-tools> origin/main`. Before each use:
+`git -C <main-tools> fetch -q origin main && git -C <main-tools> checkout -q --detach origin/main`. Never
+commit there. The script needs only node, git and curl: no `npm ci`, no `node_modules`. Call it as
+`node <main-tools>/scripts/bookkeeping.js <command>`; at the close, `git -C <primary> worktree remove
+<main-tools>`.
+
 Before the first run, from `origin/main` (`git fetch origin main`): the inbox, "Next evolutions" and
-"In flight" in `docs/STATUS.md`; the ledger. Write nothing to the primary checkout. List the remote
+"In flight" in `docs/STATUS.md`; the ledger. Write nothing to the primary checkout (git's record of
+`<main-tools>` aside). List the remote
 `tend/*` and `slice/*` branches: a `-parked` branch an open entry names is live state; the rest are
 dead runs' leftovers, reported, never removed by you.
 
@@ -67,8 +76,8 @@ dead runs' leftovers, reported, never removed by you.
    a recommendation), every class 0157 keeps for the owner, and whatever `/vision` did not clear.
    One AskUserQuestion, the entry's recommended shape first, four entries at most, asked after the
    next independent run has been launched so the owner's time to answer is not idle time. Read the
-   entries with `npm run book:items -- inbox` (and `open`, `deferred --tag owner`): number, tag and
-   title as `main` holds them.
+   entries with `node <main-tools>/scripts/bookkeeping.js items inbox` (and `open`, `deferred --tag
+   owner`): number, tag and title as `main` holds them.
 3. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
    `next` names none, the run is `/tend evolve` (`/tend`'s table), which files and builds nothing.
 4. **Stop** by section 0's rule.
@@ -106,8 +115,9 @@ prompt the run wrote. The pauses are:
 At the diff pause a screen change gets the `ux-reviewer` (0145), every reviewer gets the pictures
 (the auditor too: `ship.md` "Review"), and **a screen the proxy said yes to gets the `steward`** (0157).
 
-1. **Check the paths** a prompt names: `npm run book:review-paths -- <prompt>...` (every absolute
-   path, spaces and `:12` references read); fix each one it names missing before forwarding.
+1. **Check the paths** a prompt names: `node <main-tools>/scripts/bookkeeping.js review-paths
+   <prompt>...` (every absolute path, spaces, `:12` references and `<placeholders>` read); fix each one
+   it names missing before forwarding.
 2. **Spawn every reviewer of the pause in one message**, in the background, each with the relay text
    from `briefs.md`.
 3. **Save each report** to `reviews/<run branch>-<pause>-<agent>.md` as it arrives: each finding in
@@ -174,10 +184,12 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
 
 ## 7. When a run completes
 
-1. Verify, after a fetch: `npm run book:landed -- <base>..origin/main --branch <run branch> --live
-   https://miguelaguerrero.github.io/chronicles/` (the commits on `main`, no worktree or local branch
-   left, the live bundle); Pages with the GitHub tools. Take commit hashes from `origin/main`, not the
-   run's report (a rebase or amend renames them).
+1. Verify, after refreshing `<main-tools>`: `node <main-tools>/scripts/bookkeeping.js landed
+   <base>..<pushed sha> --branch <run branch> --live https://miguelaguerrero.github.io/chronicles/`, the
+   head the run reports as pushed (a range ending at `origin/main` holds whatever landed and is refused):
+   the run's commits on `main`, no worktree or local branch left, the live bundle (compared with nothing:
+   `<main-tools>` has no export). Pages with the GitHub tools. Take commit hashes from `origin/main`, not
+   the run's report (a rebase or amend renames them).
 2. Update the notes.
 3. Tell the owner in a few lines: what landed and its Pages run, what you answered (as the proxy) and
    why, what needs them, with the one action named. An item that blocks the loop and waits only on
