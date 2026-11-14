@@ -6,6 +6,7 @@ import type { Units } from './units';
 import type { LngLat, StreetSegment, Walk } from './types';
 import { streetAt } from './resurface/context';
 import { numberWord } from './resurface/lines';
+import { pinHint } from './replay';
 
 /**
  * Moments and days (the concept doc's "Moments and days" tab). A capture is a
@@ -190,6 +191,8 @@ export function dayCard(day: Day, now: number, distanceByWalk: Map<string, numbe
     title: label === 'Today' || label === 'Yesterday' ? `${label} · ${weekday}` : weekday,
     line: dayLine(caps.length, placed.map((c) => momentPlace(c, c.walk_id ? walks?.get(c.walk_id) : null)), dayArea(day)),
     walked: metres > 0 ? `${formatDistance(metres, units)} walked` : null,
+    // No pin, no hint (tend replay audit 11).
+    hint: pinHint(caps),
   };
 }
 

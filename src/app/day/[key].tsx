@@ -358,8 +358,8 @@ export default function DayReplay() {
             <Text style={styles.cardTitle} accessibilityRole="header">{card.title}</Text>
             {card.line ? <Text testID="day-card-line" style={styles.cardLine}>{card.line}</Text> : null}
             {card.walked ? <Text style={styles.cardMuted}>{card.walked}</Text> : null}
-            {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint. */}
-            {card.line ? <Text style={styles.cardMuted}>Tap a pin to open it</Text> : null}
+            {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint (audit 11). */}
+            {card.hint ? <Text style={styles.cardMuted}>{card.hint}</Text> : null}
             <View style={styles.row}>
               <Button
                 testID="day-again"

@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, FOG_MS } from '../../lib/replay';
+import { backFrom, beatWords, FOG_MS, pinHint } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -651,8 +651,9 @@ export default function Replay() {
                 {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
                 {passed ? <Text testID="card-low" style={styles.cardMuted}>{passed}</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
-                {/* The one hint, the card's last line before its buttons, as on the day's card (tend replay T19, audit 10). */}
-                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>Tap a pin to open it</Text> : null}
+                {/* The one hint, the card's last line before its buttons, as on the day's card (tend replay T19, audit 10);
+                    no pin, no hint (audit 11). */}
+                {pinHint(pinned) ? <Text style={styles.cardMuted}>{pinHint(pinned)}</Text> : null}
                 <View style={styles.row}>
                   <Button
                     variant="secondary"

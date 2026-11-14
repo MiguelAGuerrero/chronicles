@@ -8,6 +8,7 @@ import { buildDays, dayCard, dayLine, momentPlace, type WalkPlaces } from '../..
 import { formatCaptures } from '../../format';
 import { kindsClause, pinKindsWords } from '../../pins';
 import { walkRowMeta, walkRowSpoken } from '../../quietLines';
+import { pinHint } from '../../replay';
 import type { StreetSegment, Walk } from '../../types';
 
 const at = (d: number, h: number, m = 0) => new Date(2026, 10, d, h, m).getTime();
@@ -77,4 +78,17 @@ test('tend replay T19: the day card is wired to its walks\' places and its area,
   const [loose] = buildDays([], [cap('a', at(3, 9), null)]);
   assert.equal(dayCard(loose, at(20, 9), new Map()).line, 'One moment');
   assert.doesNotMatch(dayCard(mixed, at(20, 9), new Map([['w', 2100]]), undefined, places).line ?? '', /\d/);
+});
+
+test('tend replay audit 11: no pin, no hint, on either card', () => {
+  const placed = cap('a', at(3, 10, 10), 'w');
+  const nowhere = cap('b', at(3, 10, 20), null, null, null);
+  assert.equal(pinHint([placed, nowhere]), 'Tap a pin to open it');
+  assert.equal(pinHint([nowhere]), null);
+  assert.equal(pinHint([]), null);
+  // The day's card carries it from its model, so a day of placeless moments gives no hint.
+  const [placeless] = buildDays([], [nowhere]);
+  assert.equal(dayCard(placeless, at(20, 9), new Map()).hint, null);
+  const [one] = buildDays([], [cap('c', at(3, 9), null)]);
+  assert.equal(dayCard(one, at(20, 9), new Map()).hint, 'Tap a pin to open it');
 });
