@@ -294,7 +294,7 @@ Walkability (WK1-WK23, UF1-UF20)
   walk/layer.ts              drawFor, routeSegments, tilesAround
   walk/summary.ts            cellWords and countCells: an area said in words from its cells (the card's line)
   walk/bandWords.ts          each band's words and badge
-  walk/ahead.ts              carStretches, alongRoute, aheadStep, warningLine
+  walk/ahead.ts              carStretches over stretchesWhere, alongRoute, aheadStep, warningLine (car, area and unlit)
   walk/aheadWatch.ts         the heads-up's shell and Store
   walk/overtureSegments.ts   Overture's `segment` schema (the only file that knows it)
   walk/overpass.ts           Overpass's query and answer (the only file that knows it)
@@ -303,6 +303,16 @@ Walkability (WK1-WK23, UF1-UF20)
   walk/reader.ts             createWalkReader: the device's cache, one request at a time, deadlines (`walk_tile`)
   walk/switch.ts             the layer's switch (meta `walk_layer`)
   walk/useWalkability.ts, walk/useRouteWarning.ts  the hooks the maps and the walk screen call
+After dark (DK1-DK17, decision 0181)
+  dark/sun.ts                sunrise and sunset on the device (the sunrise equation), isDark, readingAt and its words
+  dark/hours.ts              opening_hours in its common forms; anything else unknown, never open
+  dark/overpass.ts           the after-dark query and answer (the only file that knows them); litOf; the open kinds read from presence
+  dark/draw.ts               the lit lines and the open points, with a key; hoursReadHere
+  dark/ahead.ts              unlitStretches, withUnlit, headsUp (the heads-up's after-dark half)
+  dark/types.ts              DarkWay, DarkPlace, DarkTile, DarkSource
+  dark/source.ts, dark/reader.ts  the network factory and createDarkReader (`dark_tile`, kept 30 days); dark/darkApp.ts the app's instance
+  dark/useAfterDark.ts       the hook the three maps call
+  net/overpassGate.ts        the one Overpass gate: one back-off and one daily count for walkability's fallback and after dark (dark at most 40 of 60)
 Kind walk (decisions 0101, 0102)
   kindWalk/                  the kind walk: suggest.ts and plan.ts pick routes for a kind, density.ts, words.ts (core); prefs.ts, settings.ts (shells); app.ts the instance; useKindWalk.ts the view
 Landing (v1.5)

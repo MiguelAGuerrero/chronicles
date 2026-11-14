@@ -819,3 +819,12 @@ What the reactions slice left out (`specs/reactions`, decision 0176).
 - [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
 - [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.
 - [loop] **Reactions** (reactions audit 7, 11, 12, 15): a failed reaction write outside the viewer is silent (the journal's sign, More, a new page; as note-types audit 59); `keep` writes a row per family with no transaction, so a failure part-way keeps half a set; held reactions are dropped if a new page unmounts while its first save is in flight; on a video's pin the bubbles clear the play mark but sit mostly off the head (three cannot both touch the head and clear the mark: a design call).
+
+## After dark (DK1-DK17, decision 0181)
+
+- [loop] **After dark** (plan): a place in another time zone is judged on the device's clock; the marks are left out past 45 minutes of solar time from you (`hoursReadHere`), never corrected. A time zone lookup by position is a data source of its own.
+- [loop] **After dark** (DK7): public holidays, seasonal hours and `sunset`-based hours read as unknown, never guessed; a holiday calendar is country data.
+- [owner] **After dark** (decision 0181): the chronicles-data archive as the source of lit ways and hours, if Overpass's load or the 40-a-day share gets in the way.
+- [owner] **After dark** (plan): words on the area card ("lit along its main streets") were left out: a line from mapped coverage risks reading as a grade.
+- [owner] **After dark** (plan): how much of the owner's towns is tagged `lit` and `opening_hours` was not measured (Overpass and taginfo are blocked from the cloud session); the first run on a phone tells whether the layer shows enough.
+- [owner] **After dark** (UI review U3, U4): Explore has no key for the amber line and the ring (the panel holds switches and status lines, Nov 5); swatches inline in the switch's line under its name would key them there. The ring beside a find and a "?" was never pictured on one map; if they share the hollow-circle family, change the ring's shape.

@@ -1,0 +1,105 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone, turn on After dark from the Layers button on Explore in a town after sunset, then open Navigate and start a walk. **Expect:** amber lines along streets OpenStreetMap marks as lit and small ink rings at places open now draw on all three maps (MapLibre RN `LineLayer` and `CircleLayer` of the `dark` source), with no halo, cluster or label (DK1, DK3, DK4)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [ ] **Do:** upgrade from a build with reactions to this one, then turn on After dark. **Expect:** the app opens (SQLite migration 30 makes `dark_tile`), the layer reads its tiles once, and after a restart draws them from the device with no Overpass request (DK9)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [ ] **Do:** on a phone on cellular, turn on After dark in a new town. **Expect:** Overpass answers through `net.fetch` with the request naming the app; with the network off the panel says \"Not available now\" and nothing is drawn (DK8, DK14)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [ ] **Do:** after sunset, with After dark on, navigate along a street mapped as unlit (`lit=no`). **Expect:** a quiet line with a moon, \"Next: <street> is mapped as unlit\", 200 m before it, once, with no sound or vibration; the route is unchanged (DK10)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [ ] **Do:** on a phone set to another time zone than the town on the map, open After dark on Explore. **Expect:** no open rings, and the line under the switch says \"Hours read only near you\" (DK4)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)",
+        "--new"
+      ],
+      "body": "- [loop] **After dark** (plan): a place in another time zone is judged on the device's clock; the marks are left out past 45 minutes of solar time from you (`hoursReadHere`), never corrected. A time zone lookup by position is a data source of its own.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [loop] **After dark** (DK7): public holidays, seasonal hours and `sunset`-based hours read as unknown, never guessed; a holiday calendar is country data.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [owner] **After dark** (decision 0181): the chronicles-data archive as the source of lit ways and hours, if Overpass's load or the 40-a-day share gets in the way.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [owner] **After dark** (plan): words on the area card (\"lit along its main streets\") were left out: a line from mapped coverage risks reading as a grade.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [owner] **After dark** (plan): how much of the owner's towns is tagged `lit` and `opening_hours` was not measured (Overpass and taginfo are blocked from the cloud session); the first run on a phone tells whether the layer shows enough.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [owner] **After dark** (UI review U3, U4): Explore has no key for the amber line and the ring (the panel holds switches and status lines, Nov 5); swatches inline in the switch's line under its name would key them there. The ring beside a find and a \"?\" was never pictured on one map; if they share the hollow-circle family, change the ring's shape.\n"
+    }
+  ]
+}

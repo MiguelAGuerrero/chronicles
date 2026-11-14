@@ -295,8 +295,8 @@ recording, and a recording bar brings a minimized walk back.
 
 #### Map layers and walkability (before and during)
 
-- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts and Town
-  borders. Each draws something over the base map and shows its own legend while on. All three start off, so a fresh map is clear; the button is outlined, and its glyph
+- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts, Town
+  borders and After dark. Each draws something over the base map and shows its own legend while on. All four start off, so a fresh map is clear; the button is outlined, and its glyph
   and a firmer edge say a layer is on. One setting for every map, kept across launches.
 - **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
   built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
@@ -312,6 +312,13 @@ recording, and a recording bar brings a minimized walk back.
   neighborhood's outline comes back at once, and the names leave as the map starts moving and come back once when it stops.
 - An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
   "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
+- **After dark** (decision 0181; the vision gate's reshaping of a safety idea: no crime data, no grade) draws, from OpenStreetMap's tags read by tile
+  through Overpass and kept on the device, an amber line along each street mapped as lit and a small ink ring at each place to eat, drink or
+  see a show, or shop, whose mapped hours say it is open: now after local sunset, or an hour after tonight's sunset by day. The switch reads
+  "Lit streets and open places"; its line under it says "Open now" or "Open after sunset", then "Only what is mapped". Nothing is drawn as
+  dark, and no place is named or counted. Sunset is worked out on the device. No route reads it.
+- While navigating after sunset with After dark on, a quiet line with a moon says "Next: <street> is mapped as unlit" 200 m before 100 m or
+  more of streets tagged unlit, once; walkability's line wins when both are due; it never changes the route.
 - While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
   as the route enters one, 200 m ahead, once, with no sound; it never changes the route.
 
