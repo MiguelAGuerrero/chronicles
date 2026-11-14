@@ -11,8 +11,10 @@ export interface MarkPin {
   at: [number, number];
   /** Within 60 m once: the category icon and the name show (E7). */
   revealed: boolean;
-  /** Found by a capture (E8): the icon with a check, at any distance. */
+  /** Found by a capture (E8): the icon, at any distance, with the glyph of the moment that found it. */
   found?: boolean;
+  /** The glyph of the kept moment that found it (decision 0172, O26: never a tick); none until it is known. */
+  foundGlyph?: IconName;
   /** On the way, beyond your range (E22): a faint "?". */
   faint?: boolean;
   /** Its name would be written over another's (lib/markNames): the pin shows without it. */
@@ -56,9 +58,9 @@ function MarkBody({ pin }: { pin: MarkPin }) {
     <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
       <View style={[styles.head, pin.found && styles.headFound]}>
         {shown ? <Icon name={pin.icon} size={pin.found ? 13 : 18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
-        {pin.found && (
-          <View style={styles.check}>
-            <Icon name="checkmark" size={11} color={FOUND_COLOR} />
+        {pin.found && pin.foundGlyph && (
+          <View style={styles.badge} testID={`found-kind-${pin.foundGlyph}`}>
+            <Icon name={pin.foundGlyph} size={11} color={FOUND_COLOR} />
           </View>
         )}
       </View>
@@ -79,7 +81,8 @@ export function markLabel(pin: MarkPin): string {
 }
 
 /** What changes a pin's look, for re-rendering a marker only when it changes. */
-export const markKey = (pin: MarkPin) => `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}`;
+export const markKey = (pin: MarkPin) =>
+  `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}${pin.foundGlyph ?? ''}`;
 
 /** Found places: the trace's green family, so a find reads as walked, not as a capture. */
 export const FOUND_COLOR = '#1f7a4d';
@@ -110,7 +113,8 @@ const styles = StyleSheet.create({
   // A find's ring grows from the head (M12).
   ringAt: { top: 0, left: 1, width: 34, height: 34, borderRadius: 9 },
   ringFound: { left: 1, width: 24, height: 24, borderRadius: 7 },
-  check: {
+  // The kept moment's glyph on a white disc at the head's corner, where a tick was (O26).
+  badge: {
     position: 'absolute', right: -6, top: -6, width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',
   },

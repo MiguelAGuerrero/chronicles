@@ -310,6 +310,30 @@ async function checks(h) {
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        // tend walk-screen 9 (decision 0172, O26): the found place's pin wears the kept moment's own glyph, here the video's,
+        // where it wore a tick (a checklist's "done"); its spoken name is as before. Pictured close at 390 and 320.
+        const foundPin = page.locator('[aria-label="Found: Hessian Memorial, History"]');
+        const glyphs = async () => foundPin.first().evaluate((e) => [...e.querySelectorAll('[data-testid^=found-kind-]')].map((g) => g.getAttribute('data-testid'))).catch(() => null);
+        const closeUp = async (name) => {
+          const b = await foundPin.first().boundingBox();
+          const vw = page.viewportSize();
+          if (b && process.env.E2E_SHOTS) {
+            const x = Math.max(0, b.x - 70);
+            const y = Math.max(0, b.y - 50);
+            await page.screenshot({ path: path.join(process.env.E2E_SHOTS, `${name}.png`), clip: { x, y, width: Math.min(180, vw.width - x), height: Math.min(140, vw.height - y) } });
+          }
+          await shot(page, `${name}-screen`);
+        };
+        const kinds390 = await glyphs();
+        await closeUp('03h-found-pin-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(800);
+        const kinds320 = await glyphs();
+        await closeUp('03h-found-pin-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(800);
+        check(JSON.stringify(kinds390) === '["found-kind-videocam"]' && JSON.stringify(kinds320) === '["found-kind-videocam"]',
+          `tend walk-screen 9: the found place's pin shows the video's glyph, the moment that found it, in place of a tick, and is still said "Found: Hessian Memorial, History" (${JSON.stringify({ kinds390, kinds320 })})`);
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
         check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
