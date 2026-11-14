@@ -16,7 +16,7 @@ async function run(h) {
   }, want, { timeout }).catch(() => {});
   const panelLine = async (pg) => {
     if (!(await pg.locator('[data-testid=layers-panel]').count())) await pg.click('[data-testid=layers]').catch(() => {});
-    const t = await pg.locator('[data-testid=layer-note-dark]').innerText({ timeout: 5000 }).catch(() => '');
+    const t = await pg.locator('[data-testid=layer-status-dark]').innerText({ timeout: 5000 }).catch(() => '');
     await pg.click('[data-testid=layers]').catch(() => {});
     return t.trim();
   };
@@ -33,7 +33,7 @@ async function run(h) {
   await pg.click('[data-testid=layers]');
   const row = pg.locator('[data-testid=layer-dark]');
   const rowText = (await row.innerText({ timeout: 5000 }).catch(() => '')).trim();
-  const moon = await pg.locator('[data-testid=layer-dark] [data-testid=layer-icon-moon-outline]').count().catch(() => 0);
+  const moon = await pg.locator('[data-testid=layer-dark-icon]').count().catch(() => 0);
   check.todo(/After dark/.test(rowText) && moon === 1 && (await row.getAttribute('aria-checked').catch(() => null)) === 'false', `DK1: the panel lists After dark with a moon, off (${JSON.stringify(rowText)})`);
   // DK2: what a cold eye has to go on: the Layers button in view, and the row's word in ink, not a test id. The cold find
   // itself is the ux-reviewer's, from the pictures (decision 0167; the spec's record).

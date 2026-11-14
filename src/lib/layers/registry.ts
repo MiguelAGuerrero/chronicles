@@ -8,7 +8,7 @@ import { bandWhy } from '../walk/bandWords';
  */
 
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
-export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line';
+export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'lit' | 'open';
 
 export interface LegendRow {
   key: string;
@@ -16,9 +16,11 @@ export interface LegendRow {
   text: string;
   /** What it means, in a tooltip; a clause with no number (specs/walkability WK22, WK23). */
   tip?: string;
-  swatch: SwatchKey;
+  swatch?: SwatchKey;
   /** A walkability band whose icon (the pedestrian, with its badge) stands beside the swatch. */
   band?: 'foot' | 'car';
+  /** An Ionicons name drawn in place of a swatch, for a row that is not drawn on the map (after dark's heads-up, DK12). */
+  icon?: string;
 }
 
 export interface LayerDef {
@@ -60,5 +62,18 @@ export const LAYERS: readonly LayerDef[] = [
       { key: 'yours', text: 'Your town', swatch: 'border-tint' },
       { key: 'nearby', text: 'Nearby towns', swatch: 'border-line' },
     ],
+  },
+  {
+    // After dark (specs/after-dark DK1, DK12): what is mapped, never a grade (DK11).
+    id: 'dark',
+    name: 'After dark',
+    icon: 'moon-outline',
+    defaultOn: false,
+    legend: [
+      { key: 'lit', text: 'Lit streets', swatch: 'lit', tip: 'Lit streets: streets OpenStreetMap marks as having street lights.' },
+      { key: 'open', text: 'Open after dark', swatch: 'open', tip: 'Open after dark: places whose hours, as mapped, say they are open at the time above.' },
+      { key: 'dark-route', text: 'On a route after dark', icon: 'moon-outline', tip: 'On a route after dark: a line before a street mapped as unlit.' },
+    ],
+    note: 'From OpenStreetMap. Only what is mapped: a street with no lighting mapped may still be lit.',
   },
 ];

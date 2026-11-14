@@ -31,7 +31,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, DARK_STYLE, darkGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -70,6 +70,13 @@ function addOverlay(map: MapLibreMap) {
   for (const band of ['foot', 'car'] as const)
     map.addLayer({ id: `walk-${band}`, type: 'fill', source: 'walkability', filter: ['==', ['get', 'band'], band],
       paint: { 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false } }, firstSymbol);
+  // After dark (DK3, DK4), over the walkability tint and under the hotspots, fog and trace: lit ways as one plain line each, open
+  // places as small ink rings. No clustering, no labels.
+  map.addSource('dark', { type: 'geojson', data: empty, tolerance: 1 });
+  map.addLayer({ id: 'dark-lit', type: 'line', source: 'dark', filter: ['==', ['get', 'role'], 'lit'], layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': DARK_STYLE.lit.color, 'line-width': DARK_STYLE.lit.width, 'line-opacity': DARK_STYLE.lit.opacity } }, firstSymbol);
+  map.addLayer({ id: 'dark-open', type: 'circle', source: 'dark', filter: ['==', ['get', 'role'], 'open'],
+    paint: { 'circle-radius': DARK_STYLE.open.radius, 'circle-color': DARK_STYLE.open.fill, 'circle-stroke-color': DARK_STYLE.open.stroke, 'circle-stroke-width': DARK_STYLE.open.strokeWidth } }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
@@ -975,6 +982,23 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // The e2e reads what is drawn.
     container.current?.setAttribute('data-walk', walkRef.current ? `foot:${walkRef.current.foot.length}|car:${walkRef.current.car.length}` : '');
   }, [ready, walkKey]);
+  // After dark (DK15): sent again only when the picture changes; the e2e reads what is drawn and how many times it was sent.
+  const darkKey = props.afterDark?.key ?? '';
+  const darkRef = useRef(props.afterDark);
+  const darkSets = useRef(0);
+  useEffect(() => {
+    darkRef.current = props.afterDark;
+  }, [props.afterDark]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('dark', darkGeoJSON(darkRef.current));
+    if (darkRef.current) darkSets.current++;
+    const el = container.current;
+    if (!el) return;
+    if (darkRef.current) el.setAttribute('data-dark', `lit:${darkRef.current.lit.length}|open:${darkRef.current.open.length}`);
+    else el.removeAttribute('data-dark');
+    el.setAttribute('data-dark-sets', String(darkSets.current));
+  }, [ready, darkKey]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));
   }, [ready, glideOn, props.walker, props.walkerHeading, view]);

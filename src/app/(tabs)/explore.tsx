@@ -24,6 +24,7 @@ import { busyHold } from '../../lib/layers/state';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
+import { useAfterDark } from '../../lib/dark/useAfterDark';
 import { WalkMap } from '../../components/map/WalkMap';
 import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
 import type { CategoryId } from '../../lib/discovery/types';
@@ -394,6 +395,8 @@ export default function Explore() {
   const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
+  // After dark (DK1-DK5): around the same centre; `you` says whether its hours can be read on this phone's clock.
+  const dk = useAfterDark(layersAt, !!layers.on.dark, you);
   // SS4: on a town's page the Busy areas within its reach stay drawn while its neighborhoods are switched.
   const hoodsAtKey = townSeen ? shown.filter((l) => l.area.level === 'neighborhood').map((l) => l.area.at.join(',')).join('|') : '';
   const hold = useMemo(
@@ -674,6 +677,7 @@ export default function Explore() {
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
+          afterDark={dk.draw}
           landing={busyView}
           busyNamesOver
           busyNamesReserve={busyReserve}
@@ -812,7 +816,7 @@ export default function Explore() {
         <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
       ) : null}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, dark: dk.status, darkWords: dk.words })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
       {focused && !plan && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}

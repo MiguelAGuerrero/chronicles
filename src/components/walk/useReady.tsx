@@ -35,6 +35,7 @@ import { layerNotes } from '../../lib/layers/notes';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
+import { useAfterDark } from '../../lib/dark/useAfterDark';
 import { BAR_H, CAP, raisedHeight, useStackLayout } from './layout';
 import { ReadyBar } from './ReadyBar';
 
@@ -213,10 +214,12 @@ export function useReady(props: {
   // Map layers (ML3-ML9): around you, one setting for every map.
   const layers = useLayers();
   const wk = useWalkability(fix, !!layers.on.walkability);
+  const dk = useAfterDark(fix, !!layers.on.dark, fix);
   const busy = useBusyLayer(fix, !!layers.on.busy);
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
     walkability: wk.draw,
+    afterDark: dk.draw,
     landing: busy.view,
     // DC18: names only near you.
     busyNamesNear: namesNearYou(fix),
@@ -294,7 +297,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, dark: dk.status, darkWords: dk.words })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 

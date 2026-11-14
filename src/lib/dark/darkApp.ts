@@ -12,4 +12,5 @@ import { createDarkSource } from './source';
  */
 const source = createDarkSource({ fetch: ((u: RequestInfo | URL, init?: RequestInit) => net.fetch(String(u), init)) as typeof fetch, gate: overpassGate, now: () => Date.now() });
 
-export const darkReader = createDarkReader(ports, source);
+/** The app's after-dark reader; an object, so a view reaches it as `darkApp.reader`. */
+export const darkApp = { reader: createDarkReader(ports, source) };

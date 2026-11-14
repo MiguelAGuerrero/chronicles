@@ -1,6 +1,7 @@
 import type { Faced } from '../../lib/moment';
 import type { BorderView } from '../../lib/areas/borders';
 import type { WalkTint } from '../../lib/walk/tint';
+import type { DarkDraw } from '../../lib/dark/draw';
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
@@ -190,6 +191,8 @@ export interface WalkMapProps {
   borders?: BorderView | null;
   /** The Walkability layer (UF9): areas easy on foot tinted green and built around cars warm, under the trace and fog; null or absent draws none. */
   walkability?: WalkTint | null;
+  /** After dark (DK3, DK4): lines along ways mapped as lit and bare points at places open after dark; null or absent draws none. */
+  afterDark?: DarkDraw | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
@@ -700,6 +703,28 @@ export function walkabilityGeoJSON(t: WalkTint | null | undefined): GeoJSON.Feat
   if (!t) return { type: 'FeatureCollection', features: [] };
   const f = (band: 'foot' | 'car', rings: LngLat[][]): GeoJSON.Feature[] => rings.map((r) => ({ type: 'Feature', properties: { band }, geometry: { type: 'Polygon', coordinates: [r] } }));
   return { type: 'FeatureCollection', features: [...f('foot', t.foot), ...f('car', t.car)] };
+}
+
+/**
+ * After dark (DK3, DK4; the plan's defaults): a lit way is a pale warm line of one width, no halo, blur or fill, warm because it
+ * says light and no other layer is yellow; a place open after dark is a small ring in the map's ink with a white middle, quieter
+ * than a "?" and never a kind's colour, so it never reads as a find. Neither clusters or carries a label.
+ */
+export const DARK_STYLE = {
+  lit: { color: '#e9c46a', width: 3, opacity: 0.45 },
+  open: { radius: 4, stroke: '#2b2b2b', strokeWidth: 1.5, fill: '#ffffff' },
+} as const;
+
+/** DK3, DK4: the lit lines and the open points, each with its role only: no name, kind or count goes to the map. */
+export function darkGeoJSON(d: DarkDraw | null | undefined): GeoJSON.FeatureCollection {
+  if (!d) return { type: 'FeatureCollection', features: [] };
+  return {
+    type: 'FeatureCollection',
+    features: [
+      ...d.lit.map((line): GeoJSON.Feature => ({ type: 'Feature', properties: { role: 'lit' }, geometry: { type: 'LineString', coordinates: line } })),
+      ...d.open.map((at): GeoJSON.Feature => ({ type: 'Feature', properties: { role: 'open' }, geometry: { type: 'Point', coordinates: at } })),
+    ],
+  };
 }
 
 /** A place still to find drawn as a dot (WT14): where it is and its kind's colour, nothing else. */

@@ -5,7 +5,7 @@ import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { LAYERS, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
-import { BORDER, HOTSPOT, WALK_STYLE } from './map/types';
+import { BORDER, DARK_STYLE, HOTSPOT, WALK_STYLE } from './map/types';
 import { SwitchRow } from './SwitchRow';
 import { Tooltip } from './Tooltip';
 import { theme } from './ui';
@@ -18,6 +18,8 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
+  lit: { color: DARK_STYLE.lit.color, opacity: DARK_STYLE.lit.opacity },
+  open: { color: DARK_STYLE.open.stroke, opacity: 1, outline: true },
 };
 
 const BUTTON = 44;
@@ -39,7 +41,8 @@ function Legend(props: { row: LegendRow }) {
   const { row } = props;
   const content = (
     <>
-      <Swatch swatch={row.swatch} testID={`layer-swatch-${row.key}`} />
+      {row.icon ? <Icon name={row.icon as IconName} size={20} color={theme.ink} testID={`layer-icon-${row.key}`} /> : null}
+      {row.swatch ? <Swatch swatch={row.swatch} testID={`layer-swatch-${row.key}`} /> : null}
       {row.band ? <WalkBandIcon band={row.band} size={22} /> : null}
       <Text style={styles.label}>{row.text}</Text>
     </>

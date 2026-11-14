@@ -30,7 +30,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, DARK_STYLE, darkGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -216,6 +216,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const walkKey = props.walkability?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const walkability = useMemo(() => walkabilityGeoJSON(props.walkability), [walkKey]);
+  // After dark (DK15): rebuilt only when the picture changes.
+  const darkKey = props.afterDark?.key ?? '';
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const afterDark = useMemo(() => darkGeoJSON(props.afterDark), [darkKey]);
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
@@ -469,6 +473,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <Layer key={band} id={`walk-${band}`} type="fill" filter={['==', ['get', 'band'], band]}
               paint={{ 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false }} />
           ))}
+        </GeoJSONSource>
+        {/* After dark (DK3, DK4): lit ways as plain lines, open places as small ink rings; no clustering, no labels (unverified on a device). */}
+        <GeoJSONSource id="dark" data={afterDark}>
+          <Layer id="dark-lit" type="line" filter={['==', ['get', 'role'], 'lit']} layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{ 'line-color': DARK_STYLE.lit.color, 'line-width': DARK_STYLE.lit.width, 'line-opacity': DARK_STYLE.lit.opacity }} />
+          <Layer id="dark-open" type="circle" filter={['==', ['get', 'role'], 'open']}
+            paint={{ 'circle-radius': DARK_STYLE.open.radius, 'circle-color': DARK_STYLE.open.fill, 'circle-stroke-color': DARK_STYLE.open.stroke, 'circle-stroke-width': DARK_STYLE.open.strokeWidth }} />
         </GeoJSONSource>
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <GeoJSONSource id="pockets" data={pockets}>

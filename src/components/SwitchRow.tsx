@@ -32,7 +32,7 @@ export function SwitchRow(props: {
       onPress={() => !props.disabled && props.onChange(!props.value)}
       style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled, !!props.indent && { marginLeft: props.indent * 28 }]}
     >
-      {props.icon && <Icon name={props.icon} size={20} color={theme.ink} />}
+      {props.icon && <Icon name={props.icon} size={20} color={theme.ink} testID={props.testID ? `${props.testID}-icon` : undefined} />}
       <View style={styles.rowText} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <Text style={styles.rowLabel}>{props.label}</Text>
         {props.note ? <Text style={styles.sub}>{props.note}</Text> : null}

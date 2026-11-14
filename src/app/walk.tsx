@@ -83,6 +83,7 @@ import { useBusyLayer } from '../lib/layers/useBusyLayer';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
+import { useAfterDark } from '../lib/dark/useAfterDark';
 import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
@@ -713,6 +714,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
+  const dk = useAfterDark(live.here, !!layers.on.dark, live.here);
   const busy = useBusyLayer(live.here, !!layers.on.busy);
   // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the busy streets' shading and the rest
   // come back as it closes (fix preview-clutter).
@@ -726,10 +728,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
     landing: busy.view,
     borders: layers.on.borders ? borders : null,
     walkability: wk.draw,
+    afterDark: dk.draw,
     veil: showUnwalked,
     fogEmphasis: showUnwalked,
   });
-  const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
+  const ahead = useRouteWarning(navigation.nav?.route.path ?? null, live.here, { walk: !!layers.on.walkability, dark: !!layers.on.dark });
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
   // on an exploring walk (E1, E9), and a capture finds a place on any walk.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
@@ -1480,11 +1483,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
             }}
           />
         )}
-        {aheadLine && navigation.nav && !recordingVoice && (
+        {ahead && navigation.nav && !recordingVoice && (
           // Quiet (WK15): no sound, no haptic, nothing to press, and it never touches the route (WK16).
           <View testID="walk-ahead" pointerEvents="none" style={styles.ahead} accessibilityLiveRegion="polite">
-            <WalkBandIcon band="car" size={20} />
-            <Text style={styles.aheadText}>{aheadLine}</Text>
+            {/* After dark's line wears the layer's moon, never a car or a warning glyph (DK10, steward S2). */}
+            {ahead.kind === 'unlit' ? <Icon name="moon-outline" size={20} color={theme.ink} testID="walk-ahead-moon" /> : <WalkBandIcon band="car" size={20} />}
+            <Text style={styles.aheadText}>{ahead.line}</Text>
           </View>
         )}
         {editOffer.offer && !recordingVoice && !spot && !openMark && !options && !memory && (
@@ -1712,7 +1716,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, dark: dk.status, darkWords: dk.words })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
