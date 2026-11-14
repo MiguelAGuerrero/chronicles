@@ -71,6 +71,7 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
     const newest = points.reduce((t, p) => Math.max(t, p.t), 0);
     tail.points = [...tail.points, ...points].filter((p) => p.t > newest - TAIL_MS);
     const inBatch = new Set(points.map((p) => p.t));
+    // readTrace: the last two minutes only, for the reminders; no gap is filled that recently, and motion isn't read in the background (still spells)
     const accepted = keptFixes(readTrace(tail.points, walk.started_at, pauses))
       .filter((p) => inBatch.has(p.t))
       .map((p) => [p.lon, p.lat] as LngLat);

@@ -25,6 +25,12 @@ const { findClones, duplicatedLines, tokenize } = require('./clones');
 const { buildGraph } = require('./graph');
 const { patterns, testsWithoutAssertions } = require('./patterns');
 const { coChange } = require('./history');
+const limits = require('./limits');
+const baselineOps = require('./baseline');
+
+const BASELINE = 'scripts/quality.baseline.json';
+/** Lines as an editor counts them: a final newline ends the last line, it doesn't start another. */
+const lineCount = (source) => (source.endsWith('\n') ? source.split('\n').length - 1 : source.split('\n').length);
 
 const ROOT = path.join(__dirname, '..', '..');
 const toPosix = (p) => p.split(path.sep).join('/');
@@ -210,14 +216,14 @@ function collect(root = ROOT, { minTokens, types = false } = {}) {
     const layer = layerOf(rel, libRel);
     const { sf, functions } = analyzeFunctions(rel, source, { resolveImport: importResolver(root, rel, libRel) });
     for (const f of functions) fnRecords.push({ file: rel, layer, ...f });
-    const pureOutsideCore = layer === 'core' ? [] : functions.filter((f) => f.pure && f.lines >= 3);
+    const pureOutsideCore = layer === 'core' ? [] : functions.filter((f) => f.pure && f.lines >= 5);
     const components = functions.filter((f) => f.component);
     const fanOut = graph.valueEdges.get(rel)?.size || 0;
     const ch = history.files.get(rel);
     files[rel] = {
       layer,
       features: featureNames(rel),
-      lines: source.split('\n').length,
+      lines: lineCount(source),
       code: codeLines(source),
       functions: functions.length,
       topLevelFunctions: functions.filter((f) => f.topLevel).length,
@@ -283,6 +289,15 @@ function collect(root = ROOT, { minTokens, types = false } = {}) {
   // Shells that reach a singleton (db, ports, recorder, notifier) instead of
   // taking it in a factory (SH5): only a module mock could test them.
   const SINGLETON = /^(db|ports|recorder|notifier)$/;
+  // src/lib reaching into the views by value (a type is fine): the dependency runs the wrong way.
+  const libImportsViews = [];
+  for (const f of prod.filter((x) => x.startsWith('src/lib/'))) {
+    for (const imp of graph.mods.get(f)?.imports || []) {
+      if (imp.typeOnly || !imp.spec.startsWith('.')) continue;
+      const targets = layers.resolveAll(path.join(root, f), imp.spec).map((t) => toPosix(path.relative(root, t)));
+      if (targets.some((t) => /^src\/(components|app)\//.test(t))) libImportsViews.push({ file: f, spec: imp.spec, line: imp.line || 1 });
+    }
+  }
   const shellsOnSingletons = prod
     .filter((f) => files[f].layer === 'shell' && !/^\/\/ @instance/m.test(sources.get(f)))
     .map((f) => ({ file: f, imports: (graph.mods.get(f)?.imports || []).filter((i) => !i.typeOnly && Array.isArray(i.names)).flatMap((i) => i.names.filter((n) => SINGLETON.test(n))) }))
@@ -361,6 +376,7 @@ function collect(root = ROOT, { minTokens, types = false } = {}) {
     coupling,
     floating,
     testsWithoutAssertions: unasserted,
+    libImportsViews,
     packages: Object.fromEntries([...graph.packages].map(([k, v]) => [k, [...v].sort()])),
   };
 }
@@ -460,17 +476,123 @@ function summary(facts, { only = null, n = 15 } = {}) {
   return L.join('\n');
 }
 
-if (require.main === module) {
-  const args = process.argv.slice(2);
-  const opt = (name) => {
-    const i = args.indexOf(name);
-    return i >= 0 ? args[i + 1] : null;
-  };
-  const facts = collect(ROOT, { types: args.includes('--types') });
-  const json = opt('--json');
-  if (json) fs.writeFileSync(json, JSON.stringify(facts, null, 1));
-  const only = opt('--files') ? new Set(opt('--files').split(',').map((s) => s.trim()).filter(Boolean)) : null;
-  process.stdout.write(summary(facts, { only, n: Number(opt('--top')) || 15 }) + '\n');
+// --- the scope and the queue (CQ13) -----------------------------------------
+
+/** The files a slice touched, and the other source files of their features; or one feature's files. */
+function scopeFiles(root, facts, { feature = null } = {}) {
+  const all = Object.keys(facts.files);
+  const names = (rel) => features.featuresOf(rel).map((f) => f.name);
+  if (feature) return all.filter((f) => names(f).includes(feature)).sort();
+  const { changedFiles, changedPaths } = require('../affected');
+  const r = changedFiles(root);
+  const changed = r.all ? all : changedPaths(r.changes).filter((p) => facts.files[p]);
+  const touched = new Set(changed.flatMap(names));
+  return all.filter((f) => changed.includes(f) || names(f).some((n) => touched.has(n))).sort();
 }
 
-module.exports = { collect, summary, srcFiles, codeLines, smells };
+/**
+ * The catalog moves found in `files`, ranked by the file's commits times its branches (where change
+ * is frequent and code is tangled, a move pays most), then path, then line. Moves still waiting on
+ * their slice (limits.WAITING) are left out.
+ */
+function queue(facts, files) {
+  const inScope = new Set(files);
+  const items = [];
+  for (const v of limits.violations(facts)) {
+    if (!inScope.has(v.file) || limits.WAITING[v.move]) continue;
+    items.push({ move: v.move, file: v.file, line: v.line, evidence: `${v.name ? `${v.name}: ` : ''}${v.what}${v.limit != null ? ` ${v.value} (limit ${v.limit})` : v.value > 1 ? `: ${v.value}` : ''}` });
+  }
+  for (const f of facts.functions) {
+    if (inScope.has(f.file) && f.hoistable && (f.layer === 'component' || f.layer === 'route' || f.layer === 'view') && f.lines >= 5 && f.captures && f.captures.length === 0) {
+      items.push({ move: 'R3', file: f.file, line: f.line, evidence: `${f.name}: a ${f.lines}-line closure that captures nothing` });
+    }
+  }
+  for (const c of facts.patterns.setterClusters) {
+    if (inScope.has(c.file)) items.push({ move: 'R11', file: c.file, line: c.line, evidence: `${c.component}: ${c.setters.join(', ')} always set together` });
+  }
+  const score = (f) => (facts.files[f]?.commits || 0) * (facts.files[f]?.complexity || 0);
+  return items.sort((a, b) => score(b.file) - score(a.file) || a.file.localeCompare(b.file) || a.line - b.line || a.move.localeCompare(b.move));
+}
+
+// --- the command line --------------------------------------------------------
+
+function readBaseline(root) {
+  const p = path.join(root, BASELINE);
+  return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+}
+function writeBaseline(root, b) {
+  fs.writeFileSync(path.join(root, BASELINE), `${JSON.stringify(b, null, 1)}\n`);
+}
+function report(title, lines) {
+  if (!lines.length) return '';
+  return `${title} (${lines.length}):\n${lines.map((l) => `  ${l}`).join('\n')}\n`;
+}
+
+/** check | --baseline | --tighten | --scope [feature]; returns the exit code. */
+function main(args, root = ROOT) {
+  const opt = (name) => {
+    const i = args.indexOf(name);
+    return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : null;
+  };
+  const writing = args.includes('--baseline') || args.includes('--tighten');
+  const facts = collect(root, { types: args.includes('--types') || writing });
+  const v = limits.violations(facts);
+  const skip = limits.unmeasured(facts);
+  const json = opt('--json');
+  if (json) fs.writeFileSync(json, JSON.stringify(facts, null, 1));
+  if (args.includes('--baseline')) {
+    if (readBaseline(root)) {
+      console.error(`${BASELINE} exists: it is written once. Lower it with --tighten; never by hand.`);
+      return 1;
+    }
+    writeBaseline(root, baselineOps.build(v));
+    console.log(`${BASELINE}: ${v.length} entries recorded.`);
+    return 0;
+  }
+  const gated = args.includes('check') || args.includes('--scope') || args.includes('--tighten');
+  if (!gated) {
+    const only = opt('--files') ? new Set(opt('--files').split(',').map((x) => x.trim()).filter(Boolean)) : null;
+    process.stdout.write(summary(facts, { only, n: Number(opt('--top')) || 15 }) + '\n');
+    return 0;
+  }
+  const base = readBaseline(root);
+  if (!base) {
+    console.error(`No ${BASELINE}: run npm run quality -- --baseline once.`);
+    return 1;
+  }
+  if (args.includes('--tighten')) {
+    const t = baselineOps.tighten(v, base, skip);
+    if (!t.baseline) {
+      console.error(report('Not tightened: these got worse or are new, and a baseline never takes them in', t.refused));
+      return 1;
+    }
+    const dropped = Object.keys(base).length - Object.keys(t.baseline).length;
+    writeBaseline(root, t.baseline);
+    console.log(`${BASELINE}: tightened (${dropped} entries gone, values lowered where the code got better).`);
+    return 0;
+  }
+  if (args.includes('check') || args.includes('--scope')) {
+    let scope = null;
+    if (args.includes('--scope')) scope = new Set(scopeFiles(root, facts, { feature: opt('--scope') }));
+    const inScope = (x) => !scope || scope.has(x.file);
+    const sub = scope ? Object.fromEntries(Object.entries(base).filter(([id]) => scope.has(id.slice(id.indexOf(':') + 1).split('#')[0]))) : base;
+    const r = baselineOps.compare(v.filter(inScope), sub, skip);
+    const out = report('New code past a limit', r.added) + report('Worse than recorded', r.worse) + report('Better than recorded (tighten)', r.stale);
+    if (out) console.log(out.trimEnd());
+    else console.log(`check:quality: ok (${scope ? `${scope.size} files in scope, ` : ''}${Object.keys(base).length} recorded${skip.length ? `; without --types, ${skip.join(', ')} not measured` : ''}).`);
+    if (scope) {
+      const items = queue(facts, [...scope]);
+      const n = Number(opt('--top')) || 15;
+      console.log(`\nThe queue (${items.length}, by commits × branches):`);
+      for (const it of items.slice(0, n)) console.log(`  ${it.move}  ${it.file}:${it.line}  ${it.evidence}`);
+      const waiting = Object.entries(limits.WAITING).map(([m, why]) => `${m} waits on ${why}`).join('; ');
+      if (waiting) console.log(`  (${waiting})`);
+    }
+    return r.added.length || r.worse.length || r.stale.length ? 1 : 0;
+  }
+  return 0;
+}
+
+if (require.main === module) process.exitCode = main(process.argv.slice(2));
+
+module.exports = { collect, summary, srcFiles, codeLines, smells, violations: limits.violations, scopeFiles, queue, main, lineCount };

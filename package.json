@@ -98,6 +98,8 @@
     "e2e:baseline": "node scripts/e2e-baseline.js",
     "check:e2e": "node scripts/affected.js e2e",
     "quality": "node scripts/quality",
+    "check:quality": "node scripts/quality check --types",
+    "check:refactor": "node scripts/refactor-commits.js",
     "places:coverage": "tsx scripts/places-coverage.ts"
   },
   "private": true

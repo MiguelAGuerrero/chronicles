@@ -74,6 +74,10 @@ jobs:
       - run: npm run check:docs
       # The vision's mechanical half: score words, tallies, hosts, dependencies, spec verdicts (decision 0094).
       - run: npm run check:vision
+      # Code quality (specs/code-quality): nothing recorded got worse, new code within the limits, and a
+      # refactor commit changes no existing test (CQ12, CQ14).
+      - run: npm run check:quality
+      - run: npm run check:refactor -- --ci
       - run: npm run typecheck
       - run: npm test
       # Lint holds the import boundaries and the functional core's layers (FC3, FC5).

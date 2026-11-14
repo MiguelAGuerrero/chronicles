@@ -12,7 +12,7 @@ after(cleanup);
 type Finding = { commit: string; subject: string; file: string; line: number; text: string };
 const load = createRequire(__filename);
 
-test('CQ14 a refactor commit may add to a test, never change one', { todo: 'test first' }, () => {
+test('CQ14 a refactor commit may add to a test, never change one', () => {
   const { check } = load(join(ROOT, 'scripts', 'refactor-commits.js')) as { check(root: string, range: string): Finding[] };
   const T = 'src/lib/__tests__/x/a.test.ts';
   const root = tree({ [T]: `test('one', () => {\n  assert.equal(f(), 1);\n});\n` });

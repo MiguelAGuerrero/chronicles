@@ -14,7 +14,7 @@ const fn = (f: Facts, file: string, name: string) => {
 };
 const listed = (f: Facts, key: string, file: string) => (f.patterns[key] || []).filter((x) => x.file === file);
 
-test('CQ2 lines, branches, nesting, parameters, hooks and props have known answers', { todo: 'test first' }, () => {
+test('CQ2 lines, branches, nesting, parameters, hooks and props have known answers', () => {
   const root = tree({
     'src/lib/shape.ts': `// @layer core
 export function f(a: number, b: number, c: number) {
@@ -52,7 +52,7 @@ export function Narrow({ a, b, c, d, e, f, g, h, i, j }: Record<string, number>)
   assert.deepEqual(listed(facts, 'wideProps', 'src/components/Wide.tsx').map((x) => [x.component, x.props]), [['Wide', 11]]);
 });
 
-test('CQ3 purity and the layer findings: each with a look-alike that passes', { todo: 'test first' }, () => {
+test('CQ3 purity and the layer findings: each with a look-alike that passes', () => {
   const root = tree({
     'src/lib/db/index.ts': `// @layer adapter
 export const db = { get: async () => 1 };
@@ -153,7 +153,7 @@ ${body(4, 'n')}
   assert.deepEqual(facts.libImportsViews.map((x) => `${x.file} ${x.spec}`), ['src/lib/leans.ts ../components/View'], 'a type-only import is fine');
 });
 
-test('CQ4 swallowed errors and floating promises: each with a look-alike that passes', { todo: 'test first' }, () => {
+test('CQ4 swallowed errors and floating promises: each with a look-alike that passes', () => {
   const root = tree({
     'src/lib/errs.ts': `// @layer shell
 async function work() {
@@ -186,7 +186,7 @@ export async function run() {
   assert.equal(facts.files['src/lib/errs.ts'].floatingPromises, 1, 'only the bare work(): void, await, catch and then(a, b) handle it');
 });
 
-test('CQ5 the React findings: each with a look-alike that passes', { todo: 'test first' }, () => {
+test('CQ5 the React findings: each with a look-alike that passes', () => {
   const root = tree({
     'src/components/R.tsx': `import { Platform } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
@@ -243,7 +243,7 @@ export function useStore<T, U>(_s: T, f: (s: { a: number }) => U): U {
   assert.equal(facts.files[R].hexColors, 2, '#ffffff and the rgba; #notacolour is not a colour');
 });
 
-test('CQ6 cycles, unused exports, dead modules, copies and change coupling', { todo: 'test first' }, () => {
+test('CQ6 cycles, unused exports, dead modules, copies and change coupling', () => {
   const copy = (name: string, v: string) => `export function ${name}(${v}: number[]) {
   let total = 0;
   for (const item of ${v}) {
@@ -282,7 +282,7 @@ test('CQ6 cycles, unused exports, dead modules, copies and change coupling', { t
   assert.deepEqual(facts.coupling.pairs.map((p) => [p.a, p.b, p.commits]), [['src/lib/nav/far.ts', 'src/lib/rides.ts', 7]], 'the first commit and six more, with no import between them');
 });
 
-test('CQ7 readTrace without context, with withFilled, and with a written reason', { todo: 'test first' }, () => {
+test('CQ7 readTrace without context, with withFilled, and with a written reason', () => {
   const root = tree({
     'src/lib/rides.ts': `// @layer core
 export function readTrace(p: number[], s: number | null, pauses: number[] = [], stills: number[] = [], fills: number[] = []) {

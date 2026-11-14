@@ -68,6 +68,18 @@ function patterns(sf, layer) {
   };
   const core = layer === 'core';
   const text = sf.getFullText();
+  // A .web or .native file is the platform split itself: Platform.OS there is not a branch to split.
+  const platformFile = /\.(web|native|ios|android)\.[jt]sx?$/.test(sf.fileName);
+  const srcLines = text.split('\n');
+  /** The line before `line` (1-based), skipping blanks, says why a context call is short. */
+  const saysWhy = (line, call) => {
+    for (let i = line - 2; i >= 0; i--) {
+      const t = srcLines[i].trim();
+      if (!t) continue;
+      return t.startsWith(`// ${call}:`) && t.length > call.length + 5;
+    }
+    return false;
+  };
   out.hookDepSuppressions = (text.match(/eslint-disable[-a-z]* react-hooks\/exhaustive-deps/g) || []).length;
 
   // Parameters of every function, for "mutates its input".
@@ -103,7 +115,7 @@ function patterns(sf, layer) {
         // readTrace, then withFilled(plain, fills) in the same function: the gaps
         // have to be read from the plain trace before its fills are known.
         if (missing.includes('fills') && fillsAppliedNearby(n)) missing = missing.filter((m) => m !== 'fills');
-        if (missing.length) out.contextCalls.push({ line: lineOf(sf, n), call: callee.text, missing });
+        if (missing.length && !saysWhy(lineOf(sf, n), callee.text)) out.contextCalls.push({ line: lineOf(sf, n), call: callee.text, missing });
       }
       if (name === 'useStore' && n.arguments.length >= 2 && isFn(n.arguments[1])) {
         let body = n.arguments[1].body;
@@ -126,7 +138,7 @@ function patterns(sf, layer) {
       if (owner) out.paramMutation.push({ line: lineOf(sf, n), fn: enclosingFnName(n), param: r, exported: exportedFn(owner) });
     }
     if (ts.isCatchClause(n) && n.block.statements.length === 0) out.silentCatch.push({ line: lineOf(sf, n), kind: 'catch {}' });
-    if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Platform' && n.name.text === 'OS') out.platformBranches.push(lineOf(sf, n));
+    if (!platformFile && ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Platform' && n.name.text === 'OS') out.platformBranches.push(lineOf(sf, n));
     if (ts.isStringLiteralLike(n) && /^#[0-9a-fA-F]{3,8}$|^rgba?\(/.test(n.text)) out.hexColors++;
     ts.forEachChild(n, (c) => visit(c, nextDepth));
   };

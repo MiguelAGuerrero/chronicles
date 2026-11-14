@@ -391,6 +391,12 @@ function layersStep() {
   return { ok: problems.length === 0, output: problems.length ? `Layer check (FC1, FC2, FC4):\n${problems.join('\n')}` : 'Layers: ok' };
 }
 
+/** The code-quality gate (specs/code-quality, CQ12): nothing recorded got worse, no new code past a limit. */
+function qualityStep() {
+  const r = sh('npm', ['run', '-s', 'check:quality']);
+  return { ok: r.ok, output: r.ok ? r.output.split('\n')[0] : `Code quality (npm run check:quality):\n${r.output}` };
+}
+
 function testsStep(changed, all) {
   const r = all ? { all: true, why: 'no main branch to compare with', tests: [], skipped: 0 } : affectedTests(ROOT, changed);
   console.log(describeTests(r));
@@ -527,7 +533,7 @@ async function main(cmd) {
     const plan = all ? ['layers', 'tests'] : hookPlan(changed);
     steps = plan.map((p) => (p === 'layers' ? step('layers', layersStep) : step('tests', () => testsStep(changed, all))));
   } else if (cmd === 'check') {
-    steps = [step('layers', layersStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
+    steps = [step('layers', layersStep), step('quality', qualityStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
   } else if (cmd === 'e2e') {
     const { real, comment } = splitComment(ROOT, base, changed);
     console.log(e2eHint(real, all, greenStatus(ROOT), comment));

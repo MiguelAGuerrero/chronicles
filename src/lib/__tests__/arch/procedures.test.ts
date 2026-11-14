@@ -125,5 +125,5 @@ test('CQ15 /refactor sits after green and before /docs-gc in /slice, in /tend\'s
   assert.match(read('.claude/skills/tend/SKILL.md'), /\/refactor/);
   assert.match(read('.claude/skills/README.md'), /\| `\/refactor` \|/);
   const rules = read('.claude/rules/refactoring.md');
-  for (let k = 1; k <= 16; k++) assert.match(rules, new RegExp(`\\*\\*R${k}\\b`), `the catalog holds R${k}`);
+  for (let k = 1; k <= 21; k++) assert.match(rules, new RegExp(`\\*\\*R${k}\\b`), `the catalog holds R${k}`);
 });
