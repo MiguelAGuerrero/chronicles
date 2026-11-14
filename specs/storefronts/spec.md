@@ -48,7 +48,7 @@ The map layer, the area card, What's good here?, the walk's help line and the ro
 
 ## Record
 
-Built Nov 14, test-first by history (15 of 15, `check:test-first`), on `claude/wonderful-mendel-jfw77q`; not merged or deployed; not audited (decision 0074).
+Built Nov 14, test-first by history (15 of 15, `check:test-first`), on `claude/wonderful-mendel-jfw77q`; deployed Nov 14 (`f51df3d`, Pages run 276), the three tasks done on the live build at Fox Point; not audited (decision 0074).
 
 - **Passed:** SF1-SF14 (unit tests in `layers/`, `presence/`, `navigation/`, `explore/`, `landing/`); typecheck, lint, `npm test`, `check:docs`, `check:vision`, `check:records`. E2E: `layers`, `switches`, `dense`, `carousel`, `walk` pass; `atlas` passes whole (159 checks, SF2, SF5, SF15 among them; AT9, a recorded flake on main, `scripts/e2e/flaky.json`, failed in three runs, and a failed check ends a journey, so one run went on past it with `E2E_SOFT=1` and passed it too); `scenic` passes but for "fix preview-clutter audit 1", which fails 3 of 3 on main (83d509eb, `e2e:baseline`), and stops the journey there on main too, so its later checks (SR1 all off, SR10) did not run. Reached and not run: the 20 other journeys `check:affected` names, which hold no check on the change (`docs/TESTING.md`, "Choosing the journeys").
 - **Steward:** S1, S2, S4 accepted into SF8, SF2, SF1; S3 filed for the owner, who took it the same day (SF15, "What's here?").
