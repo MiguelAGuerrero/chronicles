@@ -67,7 +67,7 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 
 ## The owner's answers to the second audit (audit 50-54, Nov 13)
 
-- **The toolbar always holds the pen** (JN41, decision 0176; audit 50's pen only when pulled back is gone with `onAway`).
+- **The toolbar's field opens the composer from anywhere on the sheet** (JN41, JN47; decisions 0176, 0177): audit 50's pen is gone.
 - **Done's place is kept in the bar** (audit 51): an unseen, untappable Done of the same width. Its rule that the camera and the mic never move is reversed by decision 0175: they move from the row to the keyboard bar while typing (JN36).
 - **The held date has an edge** (audit 52): four bands of the page's ground under it, none fainter than a fifth. A fainter band is drawn a shade off the ground it lies on and shows as a line under every date.
 - **Writing on a walk, the bar keeps the recording's mark** (audit 53): the recording bar is folded with the tabs.

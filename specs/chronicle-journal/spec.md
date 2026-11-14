@@ -260,6 +260,13 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **UI review** (8 findings, none high): ux 7, the camera's and mic's targets touch, accepted as `chronicle-journal ui 11` (12 pt between them); ux 1 and 2 (the "+" here, a pen in the bar; a "+" beside media reads as Add) and ux 3 (a recording's order in the row and the bar) to the owner (`docs/STATUS.md`); ux 4 (the top entry's sign under the held date's edge, from audit 52) deferred; ux 5 (the bar with the tab bar, audit 50), ux 6 (icons and Done in one bar, JN29) and ux 8 (the caret, a device check) rejected as before this slice.
 - **Journeys:** `journal` (117 checks) ran nine times while the old checks were amended one failure at a time and the two bugs above were fixed; `capturehome` and `resurface` twice (amended), `threads` and `notepage` once. Native unverified: one check added to `docs/NATIVE_UNVERIFIED.md`.
 
+## The toolbar and the composer: record (Nov 14, branch `claude/chronicles-action-button-layout-x4cg4k`)
+
+- **Why:** the owner, on the row under the line: "this doesn't look good … the interface doesn't seem standard"; then a toolbar (0176), and "the what's on your mind entry should also pop out to expand out to be a note entry so that there's room to type" (0177). Each chosen from mock-ups of the real app.
+- **Built:** JN41, JN43-JN51, tests first at `2aaead2` (JN41-JN46) and `b0a6f5d` (JN47-JN51; not run before the code, the composer did not exist). JN28-JN30, JN32-JN40 and JN42 retired. The steward's findings on the toolbar folded into its criteria; the note types' Type sign and the eight moved into the composer (0167: every page a note is written on carries the Type tool); the walk's mark into its header (audit 53).
+- **`check:test-first`:** JN41 reports its todo and its real test in one commit: its journey todo at `2aaead2` was written across lines, which the line-based reader takes for a real check (as JN31's was).
+- **Journeys:** `journal` ran eleven times while its steps moved from the page to the composer (one failure at a time: the field's waits, JN14, JN2, JN4, JN10, JN25, JN51's focus after a discard, audit 50, 53, 56, 60), then green with 103 checks; `capturehome`, `notepage`, `resurface` and `threads` once each.
+
 ## Audit of JN34-JN40, the row under the line (Nov 14)
 
 Report-only passes by the auditor, the steward and the UX reviewer, after a cold find (all six tasks placed; "stop and keep a voice note" with doubt), triaged. 18 findings: 10 fixed, 3 deferred, 5 rejected. Regression tests are named `chronicle-journal audit N`: unit tests in `src/lib/__tests__/journal/bar.test.ts` (62, 63, 70) and checks in the `journal` journey (61, 64, 65, 68, 69, 77), committed as todos first at `25f0e48`.

@@ -329,14 +329,14 @@ recording, and a recording bar brings a minimized walk back.
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
     down to the toolbar. Pull down to read back; each day's date holds at the top while its entries pass.
-  - **A toolbar at the foot** (decision 0176): above the tab bar, wherever the page is scrolled, a soft grey field
-    "What’s on your mind?", then a pen, the camera and the mic; while an entry is open, Done takes the pen's place.
-  - **Writing on the page**: tap the field, the pen or the empty page and the caret is there, under the last entry; the
-    words are typed on the page itself, in your serif, with no box. The day's entries stack: each new one, words, photo
+  - **A toolbar at the foot** (decisions 0176, 0177): above the tab bar, wherever the page is scrolled, a soft grey
+    field "What’s on your mind?", then the camera and the mic; while an entry is open, Done after the field.
+  - **The composer** (decision 0177): tap the field or the empty page and a sheet rises over the journal, from a dimmed
+    edge to the keyboard: "New entry" and Done at its top, room to type in your serif, the camera, the mic and Open as
+    a page at its foot. What you type is kept as you type; Done, a tap on the dimmed edge or Back closes it, and the entry
+    is on the page. The page is for reading. The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
-    the line being written holding its place, as paper in a typewriter. While you write the toolbar holds "Kept as you
-    write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
-    the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
+    the newest at the end. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
     are one entry; Done ends it, as do two minutes without a piece. A voice note records in the toolbar, Stop in the
     mic's place. A note can carry a **type** by choice: a face with a small plus in the corner of the entry being written opens

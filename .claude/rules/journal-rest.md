@@ -20,8 +20,17 @@ paths:
 
 ## A toolbar at the foot (JN41-JN46, decision 0176, Nov 14; it replaced the row under the line, decision 0175)
 
-- **One toolbar, always drawn** (`open-line`): at rest a grey field (`bar-compose`, a button spoken "What’s on your mind?", the app's sans at 15 px, `theme.line` ground), the pen (`bar-write`, or Done in its place while an entry is open), the camera and the mic; while typing or after a failed save, JN29's writing row. The page's field has no placeholder (`inBar` keeps it in a thread). A tap on the field or the pen focuses the page's field: words are never typed in the toolbar on the page (JN28).
-- **The row under the line is gone** (JN34-JN40 retired, `scripts/features.js` `RETIRED`): no "+", no `line-row`, no `controlsAt`, no `onOpen`/`onAway`. Its audit's lessons that still hold: `footRoom` (`lib/journal/bar.ts`) is `max(barH, aboveH)` plus the iPhone accessory room and the lift while typing, `barH` measured without the accessory room (audit 62, 63); the pen stays while a voice note records and no Done shows mid-note (audit 64, 65).
+- **One toolbar, always drawn** (`open-line`): at rest a grey field (`bar-compose`, a button spoken "What’s on your mind?", the app's sans at 15 px, `theme.line` ground) that opens the composer (below), Done after it while an entry is open (JN44), the camera and the mic. The pen is gone (0177). In a thread the field is in the bar as before (`inBar`).
+- **The row under the line is gone** (JN34-JN40 retired, `scripts/features.js` `RETIRED`): no "+", no `line-row`, no `controlsAt`, no `onOpen`/`onAway`. Its audit's lessons that still hold: `footRoom` (`lib/journal/bar.ts`) is `max(barH, aboveH)` plus the iPhone accessory room and the lift while typing, `barH` measured without the accessory room (audit 62, 63); no Done shows mid-note (audit 65).
 - **Done's unseen place in a recording begun from the writing row** (`recTyping`): the writing row ends in Done, so without it the camera moves as the note starts (JN14). A recording begun at rest has no trailing slot, so Stop lands where the mic was (JN45).
 - **The delete's `UndoToast` stays in the line's column** (`above`), where its height pads the sheet's foot (audit 67's remount trap is deferred).
 - **"bar" is a presence tag**: a string `'bar'` anywhere in `src` fails `presence-readers audit 1`.
+
+## The composer (JN47-JN51, decision 0177, Nov 14)
+
+- **On the page an entry is written in the composer, never on the page.** `OpenLine`'s `composing` opens a transparent `components/Modal` (`composer`, its sheet `composer-sheet`, from a dimmed edge to the keyboard): "New entry", the walk's mark (audit 53), the Type sign (`type-slot`, asked through `onTypeIn`) and Done at its top; the field; the eight (`type-row`) above its tools; `band-photo`, `band-voice` (`band-voice-save` with the timer and Discard while it records), `line-page` and `line-status` at its foot. The field (`fieldEl`) is drawn only there (and in the bar where no page shows): `JournalPage` gets `field: null`.
+- **The composer owns the line's control names while it is open**: the toolbar draws an empty row behind it, so `band-photo`, `line-done` and the rest are never two. A test that clicks them works in either state.
+- **Done, the dimmed edge and Back all run `done()` and close**: what is typed is already kept (JN13), so closing loses nothing. Closing ends the entry, so "an entry left open" now comes only from a capture made from the toolbar (JN44).
+- **Open as a page closes the composer first** (iOS shows no Modal over a Modal), then `openPage()` carries the words.
+- **While it is open the page's Type sign for the entry is hidden** (`MemoriesScreen` passes `writing={composing ? null : writing}`), so the composer's is the only one.
+- **A test types in the composer through `toLine()`** (the toolbar's field, then the field) and closes it with `done()`; a step after a discarded voice note taps the field again (the focus left it).
