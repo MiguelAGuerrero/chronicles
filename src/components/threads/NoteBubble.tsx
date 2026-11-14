@@ -6,7 +6,8 @@ import { fromLine } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
 import { contextText, momentSpoken } from '../chronicle/MomentCard';
 import { Icon } from '../icons';
-import { NoteMark } from '../NoteMark';
+import { useReactions } from '../../lib/reactions/useReactions';
+import { ReactionMarks } from '../reactions/ReactionMarks';
 import { theme } from '../ui';
 import { NoteText } from './NoteText';
 
@@ -28,16 +29,18 @@ export function NoteBubble(props: {
   const body = m.capture.body ?? '';
   // Only a note that mentions a moment reads the moment pool (audit 1): a thread of plain notes reads nothing more.
   const mentions = refIds(body).length > 0;
+  const reacted = useReactions(m.id);
   return (
     <View testID="note-bubble">
       <View style={styles.foot}>
         <View style={styles.lines}>
           {/* A plain note and its time are one named group, said as a card says itself, the time once (audit 2, 7, 9);
               a note with a mention leaves each mention its own button. */}
-          <View role={mentions ? undefined : 'group'} accessible={!mentions} accessibilityLabel={mentions ? undefined : momentSpoken(m, props.now)} style={styles.said}>
+          <View role={mentions ? undefined : 'group'} accessible={!mentions} accessibilityLabel={mentions ? undefined : momentSpoken(m, props.now, undefined, reacted)} style={styles.said}>
             <View style={styles.bubble}>
-              <NoteMark capture={m.capture} quiet={!mentions} />
               {mentions ? <NoteText body={body} format={m.capture.body_format} style={styles.text} onOpen={props.onOpenRef} /> : <Text style={styles.text}>{plainNote(body, m.capture.body_format)}</Text>}
+              {/* Its reactions after its words (RX16); a plain bubble's group already says them (note-types audit 3). */}
+              <ReactionMarks set={reacted} quiet={!mentions} style={styles.reactions} />
             </View>
             <Text style={[styles.meta, styles.when]} numberOfLines={2} testID="moment-context">{contextText(undefined, m, props.now)}</Text>
           </View>
@@ -56,6 +59,7 @@ export function NoteBubble(props: {
 }
 
 const styles = StyleSheet.create({
+  reactions: { paddingTop: 6 },
   // The plain surface with no border, unlike the buttons above it, and never an accent fill (restraint); the squarer
   // corner points back up the thread.
   bubble: { maxWidth: '92%', alignSelf: 'flex-start', backgroundColor: theme.surface, borderRadius: 18, borderTopLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 10 },

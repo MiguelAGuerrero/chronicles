@@ -1,0 +1,37 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "open a moment with a photo and a note, open the note by its piece, set Type to Question",
+        "--reason",
+        "note types became reactions (decision 0172); a stacked moment's reactions are the moment's, checked by RX5 and RX28-RX31"
+      ],
+      "target": "sha256:4cbf9a6582f28899a781c09b521a4f02ad0ff7a7132de93e5928e10a3f18282c"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "(0161, audit 2)",
+        "--reason",
+        "reactions (0172): a pin's reactions are not in its web marker key; a change redraws the same element (RX21, the reactions journey)"
+      ],
+      "target": "sha256:d3bbdbd15a530a51761f0d70eb14ea913b188655c7548d13a3bc2a8aa0858e81"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "(0161, audit 22)",
+        "--reason",
+        "carried to the Reactions section as RX34's 200% item (decision 0172)"
+      ],
+      "target": "sha256:cf7081f87203e4b02f3fbbb3507239a616fa86895abb0a9ef15dbd8b29323ba3"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From /slice reactions",
+        "The sign once a moment has a reaction"
+      ],
+      "body": "  Answered Nov 14 (decision 0173): always the face with a plus; a follow-up slice after the deploy.\n",
+      "target": "sha256:cc425c13f49f797634ee702f9338df404bdc4838836d36143b5f5f535eacf2d6"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From /slice reactions",
+        "Gathering a reaction"
+      ],
+      "body": "  Answered Nov 14 (decision 0173): a reaction under a moment opens its lens, beside Contents; a follow-up slice after the deploy.\n",
+      "target": "sha256:1417549c2a1d7cbbdc7aa84fc848e9785790c886c7b31ab83d6d3c083ac59ef2"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From /slice reactions",
+        "Contents\" as the way to the lenses"
+      ],
+      "body": "  Answered Nov 14 (decision 0173): Contents stays, and a reaction under a moment becomes a second way in.\n",
+      "target": "sha256:ee24cf8d20d5ca1f10f66a91ebbc254e77ece9c5aebaaf32466f8de16207c088"
+    }
+  ]
+}

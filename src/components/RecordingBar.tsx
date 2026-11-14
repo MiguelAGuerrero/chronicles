@@ -12,6 +12,7 @@ import { stopWalk } from '../lib/session';
 import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
+import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
 import { barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, recordingLine, type BarOffer } from '../lib/recordingBar';
 import { captureBus } from '../lib/captureBus';
@@ -34,8 +35,6 @@ const RETURN_WAIT_MS = 5000;
 
 /** How long a word from the bar (a photo kept, a refusal) stands in for its line. */
 const SAID_MS = 3000;
-/** A reminder fired while minimized stays on the bar this long (as the walk's card, R7). */
-const REMINDER_MS = 30_000;
 
 /**
  * The recording bar (NV9): while a walk is open and minimized, just above the
@@ -116,7 +115,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   );
   useEffect(() => {
     if (!reminder) return;
-    const t = setTimeout(() => setReminder(null), REMINDER_MS);
+    const t = setTimeout(() => setReminder(null), MOTION.reminder);
     return () => clearTimeout(t);
   }, [reminder]);
 

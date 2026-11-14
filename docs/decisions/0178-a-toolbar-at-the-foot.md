@@ -1,4 +1,4 @@
-# 0176. The journal's capture is a toolbar at the foot
+# 0178. The journal's capture is a toolbar at the foot
 
 Date: 2026-11-14 · Status: accepted · Area: memories · Replaces: decision 0175 (the row under the line); an exception to ui-patterns T8
 

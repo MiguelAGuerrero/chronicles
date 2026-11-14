@@ -1,4 +1,4 @@
-# 0177. An entry is written in a composer sheet, not on the page
+# 0179. An entry is written in a composer sheet, not on the page
 
 Date: 2026-11-14 · Status: accepted · Area: memories · Amends: 0176 (the pen goes); retires writing on the page (JN28-JN30, JN32, JN33)
 

@@ -8,10 +8,9 @@ import { fits, roomOfCount } from '../../lib/notePage/room';
 import type { BodyFormat } from '../../lib/notePage/schema';
 import { refLabel } from '../../lib/threads/lines';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
-import { focusOn } from '../../lib/focus';
-import { markOf, noteTypeOf, type NoteType } from '../../lib/noteType';
+import { signLabel, signOf, type ReactionId, type ReactionSet } from '../../lib/reactions/core';
 import { Icon, type IconName } from '../icons';
-import { NoteTypeMenu } from './NoteTypeMenu';
+import { ReactionPanel } from '../reactions/ReactionPanel';
 import { MomentPicker } from '../threads/MomentPicker';
 import { useMomentPool } from '../threads/useMomentPool';
 import { theme } from '../ui';
@@ -159,10 +158,11 @@ export const NotePage = forwardRef<NotePageHandle, {
   /** The moment the page belongs to, so @ never mentions it. */
   self: string | null;
   onCamera?: () => Promise<{ id: string; label: string } | null>;
-  /** The note's type as stored: with it the page offers the Type tool (NY6, decision 0161); a note being written new has none to offer (NY15). */
-  type?: string | null;
-  /** A type chosen on the page, kept at once, beside the words (NY7); null is "No type". */
-  onType?: (type: NoteType | null) => void;
+  /**
+   * The moment's reactions and a tap on one (RX12, RX13): with it the page offers the Reaction tool in its bar, where
+   * the Type tool was. A response's page has none (RX13).
+   */
+  reaction?: { set: ReactionSet; onPick: (id: ReactionId) => void };
 }>(function NotePage(props, ref) {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -172,8 +172,6 @@ export const NotePage = forwardRef<NotePageHandle, {
   const [panel, setPanel] = useState(false);
   const [picking, setPicking] = useState(false);
   const [typePanel, setTypePanel] = useState(false);
-  const [chosen, setChosen] = useState<NoteType | null>(() => noteTypeOf(props.type));
-  const typeTool = useRef<ComponentRef<typeof Pressable>>(null);
   const [past, setPast] = useState(false);
   const [shown, setShown] = useState('');
   const [count, setCount] = useState(0);
@@ -246,18 +244,10 @@ export const NotePage = forwardRef<NotePageHandle, {
           ))}
         </View>
       )}
-      {typePanel && (
-        <NoteTypeMenu
-          chosen={chosen}
-          onChoose={(t) => {
-            setChosen(t);
-            setTypePanel(false);
-            props.onType?.(t);
-            // The entry that held focus is gone: focus returns to the tool that opened the menu (note-types audit 21).
-            setTimeout(() => focusOn(typeTool), 0);
-          }}
-        />
-      )}
+      {typePanel && props.reaction ? (
+        // A choice keeps the panel open, so a second family is one more tap (RX5); the tool closes it.
+        <ReactionPanel set={props.reaction.set} onPick={props.reaction.onPick} />
+      ) : null}
       <View style={[styles.bar, { paddingBottom: (keyboard && Platform.OS !== 'ios' ? 0 : insets.bottom) + 6, marginBottom: bottom }]} testID="note-bar" accessibilityRole="toolbar">
         <Tool testID="note-format" label="Format" caption="Format" on={panel} onPress={() => { setTypePanel(false); setPanel((p) => !p); }}>
           <Text style={styles.glyph}>Aa</Text>
@@ -265,9 +255,9 @@ export const NotePage = forwardRef<NotePageHandle, {
         <Tool testID="note-mention" label="Mention a moment" caption="Mention" onPress={() => setPicking(true)}>
           <Text style={styles.glyph}>@</Text>
         </Tool>
-        {props.type !== undefined && props.onType ? (
-          <Tool testID="note-type-row" ref={typeTool} label={`Type, ${markOf({ kind: 'text', note_type: chosen })?.name ?? 'No type'}`} caption="Type" on={typePanel} onPress={() => { setPanel(false); setTypePanel((o) => !o); }}>
-            <Icon name={(markOf({ kind: 'text', note_type: chosen })?.glyph ?? 'pricetag-outline') as IconName} size={22} color={theme.ink} />
+        {props.reaction ? (
+          <Tool testID="note-reaction-tool" label={signLabel(props.reaction.set)} caption="Reaction" on={typePanel} onPress={() => { setPanel(false); setTypePanel((o) => !o); }}>
+            <Icon name={(signOf(props.reaction.set)?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} />
           </Tool>
         ) : null}
         {camera ? (

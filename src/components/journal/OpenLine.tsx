@@ -6,8 +6,10 @@ import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { deleteNoteNow } from '../../lib/deletion';
 import { KEPT_AS_YOU_WRITE, LINE_LABELS, LINE_PLACEHOLDER, NOT_KEPT } from '../../lib/journal/lines';
 import { noteHead } from '../../lib/notePage/head';
-import { NOTE_TYPES, noteTypeOf, type NoteType } from '../../lib/noteType';
-import { pickType } from '../../lib/noteTypeChoice';
+import { reactions } from '../../lib/reactions';
+import { useReactions } from '../../lib/reactions/useReactions';
+import { ReactionPanel } from '../reactions/ReactionPanel';
+import { ReactionSign } from '../reactions/ReactionSign';
 import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../lib/journal/pen';
 import { captureTarget } from '../../lib/journal/target';
 import type { Faced } from '../../lib/moment';
@@ -50,9 +52,9 @@ const FIELD_MIN = 44;
 const FIELD_MAX = 132;
 
 /** What the page asks of the line: a tap on the empty page gives the field the keyboard (JN32). */
-/** `pickType`: the bar becomes the row of eight for one pick (note types NY19); asked again, it goes back. */
-export type TypeAsk = { piece: string; type: string | null | undefined; onPick: (t: NoteType | null) => void };
-export type OpenLineHandle = { write: () => void; pickType: (ask: TypeAsk) => void };
+/** `react`: the reactions open above the bar for the entry being written (RX6); asked again, they close. */
+export type ReactAsk = { moment: string };
+export type OpenLineHandle = { write: () => void; react: (ask: ReactAsk) => void };
 
 type LineProps = {
   /** Memories is in front and nothing is open over it: leaving, or opening something, saves a note being recorded (JN14). */
@@ -80,8 +82,6 @@ type LineProps = {
   onTypeOpen?: (open: boolean) => void;
   /** The composer opened or closed (JN47): the page hides the Type sign of the entry being written while it is open. */
   onComposing?: (open: boolean) => void;
-  /** The composer's Type sign (NY26, JN47): the screen asks for the eight on the entry being written. */
-  onTypeIn?: (e: { momentId: string; pieceId: string; type: NoteType | null }) => void;
   /** The screen's body, given the field and what the page needs to grow round it (null when the field is in the bar). */
   children: (page: { field: ReactNode; writing: boolean; entryOpen: boolean } | null) => ReactNode;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
@@ -334,14 +334,15 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
 
   // Writing: a reference reads as "@" and its words and goes whole (RF3); what is stored puts its token back.
   const [picking, setPicking] = useState<number | null>(null);
-  // The bar as the row of eight (NY19), for one pick. The next character puts the bar back (NY20).
-  const [typeAsk, setTypeAsk] = useState<TypeAsk | null>(null);
-  // The type of the note in the line, as last asked about or picked: the page it opens into begins with it (NY26).
-  const [lineType, setLineType] = useState<{ piece: string; type: NoteType | null } | null>(null);
-  // They belong to the note being written, on the screen in front: when that entry closes (Done, two minutes, a
-  // capture, the page) or Memories is no longer in front, they go (note-types audit 56).
-  if (typeAsk && (pen.entry?.pieceId !== typeAsk.piece || focused === false)) setTypeAsk(null);
-  const asking = typeAsk && pen.entry?.pieceId === typeAsk.piece && focused !== false ? typeAsk : null;
+  // The reactions above the bar (RX6), for the entry being written; a choice keeps them (RX7), the next character
+  // puts them away. They belong to the entry on the screen in front: when it closes (Done, two minutes, a capture,
+  // the page) or Memories is no longer in front, they go (note-types audit 56).
+  const [typeAsk, setTypeAsk] = useState<ReactAsk | null>(null);
+  if (typeAsk && (pen.entry?.momentId !== typeAsk.moment || focused === false)) setTypeAsk(null);
+  const asking = typeAsk && pen.entry?.momentId === typeAsk.moment && focused !== false ? typeAsk : null;
+  const askingSet = useReactions(asking?.moment);
+  // The entry being written, for the composer's sign.
+  const entrySet = useReactions(pen.entry?.momentId);
   const typeOpen = !!asking;
   const { onTypeOpen } = props;
   useEffect(() => {
@@ -370,6 +371,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   // The line opens into a page (JN25): on the entry being written, with its words already there, or a new page from an
   // empty line. The page is the note's own editor (decision 0151); what it writes is that same entry's.
   const [page, setPage] = useState<{ key: number; into: string | null; entry: { momentId: string; pieceId: string; body: string; t: number; placed: boolean } | null } | null>(null);
+  const pageSet = useReactions(page?.entry?.momentId);
   const pageRef = useRef<NotePageHandle>(null);
   const [pageNow] = useState(() => Date.now());
   const openPage = () => {
@@ -543,9 +545,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const { inBar } = props;
   // A tap on the empty page: the field takes the keyboard in the tap itself, so a phone raises it.
   useImperativeHandle(props.handle, () => ({
-    pickType: (ask: TypeAsk) => {
-      setTypeAsk((was) => (was && was.piece === ask.piece ? null : ask));
-      setLineType({ piece: ask.piece, type: noteTypeOf(ask.type) });
+    react: (ask: ReactAsk) => {
+      setTypeAsk((was) => (was && was.moment === ask.moment ? null : ask));
       // The caret stays on the page: the tap on the slot took it from the field.
       input.current?.focus();
     },
@@ -600,33 +601,16 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     </View>
   );
   // The eight (NY19, NY25): above the toolbar's row, or above the composer's tools while it is open.
+  // The reactions (RX6, RX7): above the toolbar's row, or above the composer's tools while it is open. A choice leaves
+  // them open for another family; the caret stays in the field.
   const typeRow = asking ? (
-            // The eight, named, just above the bar (NY19, NY25): two rows of four. The bar below keeps its places.
-            <View style={styles.types} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
-              {NOTE_TYPES.map((t) => {
-                const on = noteTypeOf(asking.type) === t.id;
-                return (
-                  <Pressable
-                    key={t.id}
-                    testID={`type-pick-${t.id}`}
-                    accessibilityRole="radio"
-                    accessibilityLabel={t.name}
-                    accessibilityState={{ checked: on }}
-                    onPress={() => {
-                      const next = pickType(asking.type, t.id);
-                      asking.onPick(next);
-                      setLineType({ piece: asking.piece, type: next });
-                      setTypeAsk(null);
-                      input.current?.focus();
-                    }}
-                    style={[styles.pick, on && styles.pickOn]}
-                  >
-                    <Icon name={t.glyph as IconName} size={20} color={theme.ink} />
-                    <Text style={[styles.pickName, on && styles.pickNameOn]} numberOfLines={1}>{t.name}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+    <ReactionPanel
+      set={askingSet}
+      onPick={(id) => {
+        void reactions.choose(asking.moment, id).catch(() => {});
+        input.current?.focus();
+      }}
+    />
   ) : null;
   const doneBtn = (
     <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
@@ -738,22 +722,11 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               {walk ? <View style={[styles.walkDot, styles.sheetWalkDot]} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
               <Text style={styles.sheetTitle} accessibilityRole="header">{walk ? 'New entry, on a walk' : 'New entry'}</Text>
               <View style={styles.rowFill} />
-              {pen.entry && props.onTypeIn ? (() => {
-                const e = pen.entry;
-                const t = lineType?.piece === e.pieceId ? lineType.type : null;
-                const info = NOTE_TYPES.find((x) => x.id === t);
-                // Every page a note is written on carries the Type tool (0167): the composer's, by its title (NY26).
-                return (
-                  <Pressable testID="type-slot" accessibilityRole="button" accessibilityLabel={`Type, ${info?.name ?? 'No type'}`} aria-expanded={!!asking} onPress={() => props.onTypeIn?.({ momentId: e.momentId, pieceId: e.pieceId, type: t })} style={styles.sheetType}>
-                    <Icon name={(info?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="type-slot-face" />
-                    {info ? null : (
-                      <View style={styles.sheetTypeAdd} testID="type-slot-add">
-                        <Icon name="add" size={11} color={theme.bg} />
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })() : null}
+              {/* The entry's reaction sign (RX6): every surface a note is written on carries it (0167); it opens the
+                  reactions above the composer's tools. */}
+              {pen.entry ? (
+                <ReactionSign testID="reaction-slot" set={entrySet} open={!!asking} onPress={() => { const m = pen.entry?.momentId; if (m) setTypeAsk((was) => (was && was.moment === m ? null : { moment: m })); }} />
+              ) : null}
               <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={() => { void done(); setComposing(false); }} style={styles.done}>
                 <Text style={styles.doneText}>Done</Text>
               </Pressable>
@@ -788,7 +761,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       </Modal>
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
-          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} typed onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
+          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} reactable onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
         )}
         {page?.entry && (
           <NotePage
@@ -799,14 +772,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             bodyFormat={null}
             head={noteHead({ t: page.entry.t, now: pageNow, time: timeOf(page.entry.t), context: null, placing: false, draft: null, placed: page.entry.placed, onWalk: walking })}
             self={page.entry.momentId}
-            // The page's Type tool, on the note the line was writing (NY26).
-            type={lineType?.piece === page.entry.pieceId ? lineType.type : null}
-            onType={async (t) => {
-              const e = page.entry!;
-              setLineType({ piece: e.pieceId, type: t });
-              await cap.setNote({ id: e.momentId, piece_id: e.pieceId }, '', t, true).catch(() => {});
-              changed.current();
-            }}
+            // The page's Reaction tool, on the moment the line was writing (RX12).
+            reaction={{ set: pageSet, onPick: (id) => void reactions.choose(page.entry!.momentId, id).catch(() => {}) }}
             onClose={closePage}
             onCamera={pageCamera}
             store={{
@@ -885,8 +852,6 @@ const styles = StyleSheet.create({
   sheetBack: { flex: 1, justifyContent: 'flex-end', paddingTop: 44, backgroundColor: 'rgba(20,24,32,0.35)' },
   sheet: { flex: 1, backgroundColor: theme.bg, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
   rowFill: { flexGrow: 1 },
-  sheetType: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  sheetTypeAdd: { position: 'absolute', right: 6, top: 6, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   sheetWalkDot: { marginLeft: 0, marginRight: 8 },
   sheetStatus: { flex: 1, color: theme.muted, fontSize: 13, textAlign: 'right' },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, borderBottomWidth: 1, borderBottomColor: theme.line },
@@ -901,13 +866,6 @@ const styles = StyleSheet.create({
   done: { minWidth: 44, height: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
-  // The eight above the bar's row: two rows of four, each the glyph over its name (NY19, NY25).
-  types: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', maxWidth: 624, alignSelf: 'center', paddingBottom: 4 },
-  pick: { width: '25%', minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  // The chosen one: a tint, an ink rule under it and a heavier name, never colour alone.
-  pickOn: { backgroundColor: '#ebe7df', borderBottomColor: theme.ink },
-  pickName: { color: theme.ink, fontSize: 12 },
-  pickNameOn: { fontWeight: '700' },
   walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: -4 },
   unseen: { opacity: 0 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
