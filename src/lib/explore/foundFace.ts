@@ -8,14 +8,16 @@ export interface FoundFace {
 
 /**
  * The face each found place's pin wears (decision 0172, O26): the kind of the moment that found it (a camera, a
- * note…), never a tick, which reads as a checklist's "done". `moments` are those known, by id; a find whose moment is
- * not known (yet) has no face, never a guess.
+ * note…), never a tick, which reads as a checklist's "done". `live` are the walk's own moments, as they are now;
+ * `read` copies read from the store for the others. The walk's own copy wins over one read earlier (tend walk-screen
+ * audit 8). A find whose moment is not known (yet) has no face, never a guess.
  */
 export function foundFaces(
   finds: readonly { key: string; capture_id: string }[],
-  moments: readonly { id: string; kind: CaptureKind }[],
+  live: readonly { id: string; kind: CaptureKind }[],
+  read: readonly { id: string; kind: CaptureKind }[],
 ): Map<string, FoundFace> {
-  const byId = new Map(moments.map((m) => [m.id, m]));
+  const byId = new Map([...read, ...live].map((m) => [m.id, m]));
   const out = new Map<string, FoundFace>();
   for (const f of finds) {
     const m = byId.get(f.capture_id);

@@ -20,13 +20,25 @@ test('tend walk-screen 9: each found place wears the face of the moment that fou
     { id: 'm1', kind: 'video' },
     { id: 'm2', kind: 'text' },
     { id: 'other', kind: 'photo' },
-  ]);
+  ], []);
   assert.deepEqual([...faces], [
     ['memorial', { kind: 'video' }],
     ['park', { kind: 'text' }],
   ]);
   // A moment not known (yet): no face, never a guess.
   assert.equal(faces.has('statue'), false);
+});
+
+test("tend walk-screen audit 8: a find's glyph follows the walk's own moment over a copy read earlier", () => {
+  // A copy read while the moment was hidden (its delete waiting in the Undo window, or a reload's captures late), then
+  // the moment changed on the walk (undone, a photo added: its face is the photo now). The walk's own copy wins.
+  const read = [{ id: 'm1', kind: 'text' as const }];
+  const live = [{ id: 'm1', kind: 'photo' as const }];
+  assert.deepEqual(foundFaces(finds, live, read).get('memorial'), { kind: 'photo' });
+  // Read only: the copy read is used.
+  assert.deepEqual(foundFaces(finds, [], read).get('memorial'), { kind: 'text' });
+  // And the walk hands its own captures as the live ones.
+  assert.match(readFileSync(join(__dirname, '../../explore/useExplore.ts'), 'utf8'), /foundFaces\(finds, opts\.captures, elsewhere\)/);
 });
 
 test("tend walk-screen 9: the moments still to read are the shown finds' not known and not asked for already", () => {

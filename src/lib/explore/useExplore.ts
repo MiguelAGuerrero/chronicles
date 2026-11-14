@@ -292,7 +292,7 @@ export function useExplore(opts: {
       alive = false;
     };
   }, [finds, shownFound, opts.captures, elsewhere]);
-  const faces = useMemo(() => foundFaces(finds, [...opts.captures, ...elsewhere]), [finds, opts.captures, elsewhere]);
+  const faces = useMemo(() => foundFaces(finds, opts.captures, elsewhere), [finds, opts.captures, elsewhere]);
 
   const pins = useMemo<MarkPin[]>(() => {
     const pin = (item: ChecklistItem, o: Partial<MarkPin>): MarkPin => {
