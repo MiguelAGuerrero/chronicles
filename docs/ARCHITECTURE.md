@@ -331,7 +331,7 @@ Captures and media
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
   notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
-  transcript/                memo transcripts (decision 0166): core (needsTranscript, isStale, spanOf), shell (the queue, one memo at a time), engine and cutter adapters (`.native` over expo-speech-recognition and the local module's `exportTrimmedAudio`), the `transcript` cache table
+  transcript/                memo transcripts (decision 0169): core (needsTranscript, isStale, spanOf), shell (the queue, one memo at a time), engine and cutter adapters (`.native` over expo-speech-recognition and the local module's `exportTrimmedAudio`), the `transcript` cache table
   useTranscript.ts           a memo's words for the caption (view); `components/MemoTranscript.tsx` draws it
   voiceTrim.ts               a voice memo's kept part (core, VT6-VT12): span, clock, state, the length and "Trimmed" words
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize

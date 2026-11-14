@@ -103,7 +103,7 @@ export const META = {
   places_archive_manifest: { owner: 'discovery', codec: text },
   places_archive_checked_at: { owner: 'discovery', codec: number },
   street_code: { owner: 'tiles', codec: text },
-  /** Memo transcripts: set once the owner refused speech recognition, so it is never asked again (TX6, decision 0166). */
+  /** Memo transcripts: set once the owner refused speech recognition, so it is never asked again (TX6, decision 0169). */
   transcript_off: { owner: 'transcript', codec: text },
   // Navigation (lib/nav/store, lib/startPlan): where the open walk, or the drawer, is heading.
   nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>(isNav) },

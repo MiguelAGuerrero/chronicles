@@ -362,7 +362,7 @@ recording, and a recording bar brings a minimized walk back.
     thread. No rank or count is shown.
   - **Show less like this** and **Not this one** (on the ... of the slip and
     of every entry) change what is brought back, never what is kept; both have Undo.
-  - Memos show here and join threads once the phone has read their words (memo transcripts, decision 0166): in the background, on the device only, a caption "Read by your phone" under the voice note in the viewer and on the journal page; a trimmed memo is read from a copy of its kept part; none on the web.
+  - Memos show here and join threads once the phone has read their words (memo transcripts, decision 0169): in the background, on the device only, a caption "Read by your phone" under the voice note in the viewer and on the journal page; a trimmed memo is read from a copy of its kept part; none on the web.
 - **Media** (decision 0139), Chronicle's fifth section: every photo, video and voice memo piece kept, in an
   edge-to-edge grid of square tiles with hairline gaps, newest on top, as a photo gallery. A tile is bare (a photo's
   small copy; a video's still under its play mark and length; a memo's glyph and its length) and the context is the header of its day, pinned while its

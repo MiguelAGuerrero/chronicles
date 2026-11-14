@@ -1,6 +1,6 @@
 // @layer adapter
 /**
- * The in-memory copy of a trimmed memo's kept part (decision 0166): the local native module writes it to the cache
+ * The in-memory copy of a trimmed memo's kept part (decision 0169): the local native module writes it to the cache
  * directory, the recognizer reads it, and `remove` deletes it. It is never kept beside the memo. NEVER RUN ON A DEVICE.
  */
 import { File, Paths } from 'expo-file-system';

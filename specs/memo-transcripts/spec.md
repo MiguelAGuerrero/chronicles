@@ -60,12 +60,12 @@ Found by the steward (Nov 13), accepted
 
 ## Not in this slice
 
-- Editing or hiding a transcript's words (the owner chose not to, decision 0166).
+- Editing or hiding a transcript's words (the owner chose not to, decision 0169).
 - A transcript in a language other than the phone's locale: left unread.
 - Editing a transcript, and showing it in the replay's bubble.
 - Several languages, and Android below 13 (no on-device file recognition).
 
-## Owner's calls (Nov 13, decision 0166)
+## Owner's calls (Nov 13, decision 0169)
 
 - A trimmed memo is read from an in-memory copy of its kept part (TX13).
 - A wrong or private word is part of the memo: no edit or hide; the provenance label is agreed (TX14).

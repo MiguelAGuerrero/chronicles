@@ -57,7 +57,7 @@ The whole engine adapter, the permission flow and the on-device locale pack on b
 
 ## Steward's findings (Nov 13), triaged
 
-- **S1** (a transcript reads the whole file) accepted as TX13, the owner's way (decision 0166): a trimmed memo is read from an in-memory copy of its kept span. That is a new native method `exportTrimmedAudio({ source, output, start_ms, end_ms })` in the local module `chronicles-video-edit` (iOS `AVAssetExportSession` with a `timeRange`; Android `MediaExtractor` and `MediaMuxer`), writing to the cache directory, deleted after the read; `voiceSpan` gives the span. No word timestamps are kept.
+- **S1** (a transcript reads the whole file) accepted as TX13, the owner's way (decision 0169): a trimmed memo is read from an in-memory copy of its kept span. That is a new native method `exportTrimmedAudio({ source, output, start_ms, end_ms })` in the local module `chronicles-video-edit` (iOS `AVAssetExportSession` with a `timeRange`; Android `MediaExtractor` and `MediaMuxer`), writing to the cache directory, deleted after the read; `voiceSpan` gives the span. No word timestamps are kept.
 - **S2** (machine words shown as heard) accepted as TX14; no snippet on a search hit.
 - **S3** (prompt and backfill interrupting capture) accepted as TX15; the shell reads `nowPlaying`, the walk's recording state and `memoGate` through ports, and asks for permission only from the first memo kept in the session on a quiet moment.
 - **S4** (on-device asserted by a flag) accepted as TX16.
