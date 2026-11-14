@@ -12,14 +12,15 @@ import { theme } from './ui';
 import { WalkBandIcon } from './WalkBandIcon';
 
 /** The legend swatch of each row: the colour the map draws it in, at the map's own strength over the map's own ground (layers audit 11). */
-const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: boolean }> = {
+const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: boolean; shape?: 'line' | 'ring'; edge?: string }> = {
   foot: { color: WALK_STYLE.foot.color, opacity: WALK_STYLE.foot.opacity },
   car: { color: WALK_STYLE.car.color, opacity: WALK_STYLE.car.opacity },
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
-  lit: { color: DARK_STYLE.lit.color, opacity: DARK_STYLE.lit.opacity },
-  open: { color: DARK_STYLE.open.stroke, opacity: 1, outline: true },
+  // after-dark ui 4: drawn as the map draws them, a line and a ring.
+  lit: { color: DARK_STYLE.lit.color, opacity: DARK_STYLE.lit.opacity, shape: 'line' },
+  open: { color: DARK_STYLE.open.fill, opacity: 1, shape: 'ring', edge: DARK_STYLE.open.stroke },
 };
 
 const BUTTON = 44;
@@ -30,6 +31,14 @@ const BESIDE = BUTTON + 8;
 
 function Swatch(props: { swatch: SwatchKey; testID: string }) {
   const sw = SWATCH[props.swatch];
+  if (sw.shape === 'line') return <View testID={props.testID} style={[styles.swatchLine, { backgroundColor: sw.color, opacity: sw.opacity }]} />;
+  if (sw.shape === 'ring') {
+    return (
+      <View style={styles.swatchSlot}>
+        <View testID={props.testID} style={[styles.swatchRing, { backgroundColor: sw.color, borderColor: sw.edge }]} />
+      </View>
+    );
+  }
   return (
     <View testID={props.testID} style={[styles.swatch, sw.outline && { borderColor: sw.color }]}>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: sw.color, opacity: sw.opacity }]} />
@@ -187,6 +196,9 @@ const styles = StyleSheet.create({
   key: { gap: 8 },
   keyTitle: { color: theme.ink, fontSize: 14, fontWeight: '600', paddingHorizontal: 16, paddingTop: 4 },
   plainRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  swatchLine: { width: 20, height: 3, borderRadius: 1.5 },
+  swatchSlot: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
+  swatchRing: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
   swatch: { width: 20, height: 20, borderRadius: 4, overflow: 'hidden', backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.line },
   label: { color: theme.ink, fontSize: 14, flexShrink: 1 },
   note: { color: theme.muted, fontSize: 12, lineHeight: 16 },

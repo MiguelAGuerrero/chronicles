@@ -91,7 +91,7 @@ async function run(h) {
     const box = (id) => { const e = document.querySelector(`[data-testid=${id}]`); if (!e) return null; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return { w: r.width, h: r.height, radius: parseFloat(cs.borderTopLeftRadius) }; };
     return { lit: box('layer-swatch-lit'), open: box('layer-swatch-open') };
   });
-  check.todo(!!sw.lit && sw.lit.h <= 4 && sw.lit.w >= 16 && !!sw.open && sw.open.radius >= sw.open.w / 2 - 0.5, `after-dark ui 4: the legend's swatches are drawn as the map draws them, a line and a ring (${JSON.stringify(sw)})`);
+  check(!!sw.lit && sw.lit.h <= 4 && sw.lit.w >= 16 && !!sw.open && sw.open.radius >= sw.open.w / 2 - 0.5, `after-dark ui 4: the legend's swatches are drawn as the map draws them, a line and a ring (${JSON.stringify(sw)})`);
   await c.close();
 
   // DK14: Overpass refusing: no guess, and the panel says so.
