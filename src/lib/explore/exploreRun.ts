@@ -13,7 +13,8 @@ import { sweepCovered } from '../landing/view';
 import { ensureTileBuild } from '../tiles';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
-import { archiveStale, buildChecklists, EXPLORE_RULES, readJoin, readKey, type ChecklistArea, type ExploreRead } from './explore';
+import { archiveStale, buildChecklists, EXPLORE_RULES, readKey, type ExploreRead } from './explore';
+import { createReadQueue, type ExploreResult } from './exploreQueue';
 
 /** The tile build, checked at most every 10 min: never a TileJSON fetch per fix (audit 1, 6). */
 const BUILD_MS = 10 * 60_000;
@@ -29,25 +30,18 @@ export async function exploreBuild(): Promise<string> {
 const TOWNS_ZOOM = 11;
 const TOWNS_M = 3000;
 
-export type ExploreResult = { ok: true; areas: ChecklistArea[] } | { ok: false };
-
-let running: Promise<ExploreResult> | null = null;
-let runningAt: LngLat | null = null;
+export type { ExploreResult } from './exploreQueue';
 
 /**
  * One explore read (E2): the z14 tiles of the 1.5 km around `centre`, decoded
  * in code with no camera moves, plus a z11 read for the towns. That one read
  * builds the checklists of the areas it saw whole and, as information, the
  * busy streets (remembered like "What's good here"). Never two at once. A
- * failed or cancelled read stores nothing (E5). A read asked for while one runs shares it only for the same centre;
- * another centre waits for it, then reads its own (`readJoin`, tend explore 15).
+ * failed or cancelled read stores nothing (E5). One at a time through `queue` (`exploreQueue.ts`): a read asked for
+ * while one runs shares it only for the same centre; another centre waits for it, then reads its own (tend explore 15).
  */
-export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldStop: () => boolean = () => false): Promise<ExploreResult> {
-  const join = readJoin(running ? runningAt : null, centre);
-  if (running && join === 'join') return running;
-  if (running && join === 'wait') return running.then(() => exploreRead(centre, opts, shouldStop));
-  runningAt = centre;
-  running = (async (): Promise<ExploreResult> => {
+function readOnce(centre: LngLat, opts: { remember: boolean }, shouldStop: () => boolean): Promise<ExploreResult> {
+  return (async (): Promise<ExploreResult> => {
     try {
       const build = await exploreBuild();
       const url = await db.getMeta('tile_url');
@@ -89,16 +83,18 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       return { ok: true, areas: built.areas };
     } catch {
       return { ok: false };
-    } finally {
-      running = null;
-      runningAt = null;
     }
   })();
-  return running;
 }
 
+const queue = createReadQueue(readOnce);
+export const exploreRead = (centre: LngLat, opts: { remember: boolean }, shouldStop: () => boolean = () => false) => queue.read(centre, opts, shouldStop);
 /** Whether an explore read is running now. */
-export const exploreBusy = () => running != null;
+export const exploreBusy = queue.running;
+/** Whether a read runs, or one is on its way (tend explore audit 11): a capture with nothing in reach waits meanwhile. */
+export const explorePending = queue.pending;
+/** Holds the queue while a caller decides where to read, so `explorePending` is true from its start (tend explore audit 11). */
+export const exploreHold = queue.hold;
 
 /** The bounds a walk's items are read in: the read's reach around where you are. */
 export const itemBounds = (at: LngLat) => boundsOf([at], EXPLORE_RULES.readM)!;

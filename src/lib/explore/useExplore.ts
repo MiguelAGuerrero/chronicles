@@ -27,7 +27,7 @@ import {
   type ExploreRead,
 } from './explore';
 import { placesArchive } from '../discovery/archive';
-import { exploreBuild, exploreBusy, exploreRead, itemBounds } from './exploreRun';
+import { exploreBuild, exploreBusy, exploreHold, explorePending, exploreRead, itemBounds } from './exploreRun';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
 /** Items are read again around you after this much walking. */
@@ -135,21 +135,26 @@ export function useExplore(opts: {
   const sweptAt = useRef<LngLat[]>([]);
   const maybeRead = useCallback(async (fix: LngLat) => {
     if (exploreBusy() || !retryAllowed(failed.current, fix, Date.now())) return;
-    const build = await exploreBuild();
-    if (build === 'unknown') return;
-    const k = known.current ?? (await loadKnown());
-    const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-    // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
-    await placesArchive.refresh();
-    let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-    if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
-      const rows = await db.listLandings().catch(() => []);
-      // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
-      if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
-    }
-    if (!centre) return;
-    if (latest.current.exploring) sweptAt.current.push(centre);
-    if (await readAt(centre)) await loadItems(fix);
+    // tend explore audit 11: held from here, so a capture made while the read is still being decided waits for it; let go
+    // before the read's items load, so the capture is looked at again with them.
+    const read = await exploreHold(async () => {
+      const build = await exploreBuild();
+      if (build === 'unknown') return false;
+      const k = known.current ?? (await loadKnown());
+      const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
+      // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
+      await placesArchive.refresh();
+      let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
+      if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
+        const rows = await db.listLandings().catch(() => []);
+        // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
+        if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
+      }
+      if (!centre) return false;
+      if (latest.current.exploring) sweptAt.current.push(centre);
+      return readAt(centre);
+    });
+    if (read) await loadItems(fix);
   }, [loadKnown, loadItems, readAt]);
 
   const { here, exploring } = opts;
@@ -180,16 +185,19 @@ export function useExplore(opts: {
       return () => clearTimeout(t);
     }
     let alive = true;
+    // tend explore audit 11: the route's reads hold the queue while they are decided, as `maybeRead`'s do, until its items load.
     (async () => {
-      for (const p of routeProbes(routePath)) {
-        if (!alive || !retryAllowed(failed.current, p, Date.now())) break;
-        const build = await exploreBuild();
-        if (build === 'unknown') break;
-        const k = known.current ?? (await loadKnown());
-        const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-        const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-        if (centre && !(await readAt(centre))) break;
-      }
+      await exploreHold(async () => {
+        for (const p of routeProbes(routePath)) {
+          if (!alive || !retryAllowed(failed.current, p, Date.now())) break;
+          const build = await exploreBuild();
+          if (build === 'unknown') break;
+          const k = known.current ?? (await loadKnown());
+          const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
+          const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
+          if (centre && !(await readAt(centre))) break;
+        }
+      });
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);
       const got = box ? await db.checklistItemsIn(box).catch(() => []) : [];
       if (alive && mounted.current) setRouteItems(got);
@@ -234,8 +242,8 @@ export function useExplore(opts: {
     if (!found) return;
     const fresh = opts.captures.filter((c) => !handled.current.has(c.id) && c.lat != null && c.lon != null);
     if (!walkId || !fresh.length || !items.length) return;
-    // tend explore 14: a capture with nothing in reach waits while a read runs; its read's items look at it again.
-    const { handled: done, finds } = capturesToFind({ captures: fresh.map((c) => ({ id: c.id, at: [c.lon!, c.lat!] as LngLat })), items: [...items, ...routeItems], taken: found, reading: exploreBusy() });
+    // tend explore 14, audit 11: a capture with nothing in reach waits while a read runs or is on its way; its read's items look at it again.
+    const { handled: done, finds } = capturesToFind({ captures: fresh.map((c) => ({ id: c.id, at: [c.lon!, c.lat!] as LngLat })), items: [...items, ...routeItems], taken: found, reading: explorePending() });
     for (const id of done) handled.current.add(id);
     (async () => {
       for (const f of finds) {
