@@ -45,3 +45,17 @@ What still holds from 0161 and the page:
   reshaped | descriptors in fixed families, chosen by the owner; gathered in Chronicle's lenses as moments in context;
   never counted, never said of a place (0172)"; and, as 0161 proposed, under Never "A feed, followers, likes …" the
   nearest fit "a mark on your own moment, shown to no one".
+
+## Addendum, Nov 14 (pins)
+The owner: moments with annotations are "reflected on their pins as little bubbles on the corner", as a pin already
+carries its reminder bell. The owner's calls, the same day:
+- **Bubbles in a row from the pin's bottom-left corner**, in the families' fixed order (feeling, reaction, intent),
+  clear of the bell and the clock at the top and the video mark at the bottom right.
+- **Drawn as the bell is** (RB1): a small solid ink disc with a white glyph and a white edge, the clock's size. One
+  badge language; the descriptors are told apart by shape and spoken name, never colour (NY11 stands).
+- **A pin of one moment only.** A pin that groups several moments wears no bubbles; its name does not list them.
+- **The head always shows the kind** (note, photo, memo, video); an annotation is only ever a bubble. This amends
+  NY10, whose single note's pin wore its type's glyph as its head.
+- The pin's spoken name says each annotation after the kind, in the families' order ("Photo, happy, idea, twelve
+  minutes in. Open"); the exact wording is the slice's.
+- Every map that draws capture pins draws the bubbles (as RB6); Explore draws none, as 0161's addendum holds.
