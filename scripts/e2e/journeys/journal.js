@@ -395,7 +395,7 @@ async function run(h) {
   await pg.waitForTimeout(700);
   await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(400);
-  await pg.click('[data-testid=menu-cancel]');
+  await pg.click('[data-testid=reaction-done]');
   await pg.waitForTimeout(700);
   await lastMore().click();
   await pg.waitForTimeout(700);

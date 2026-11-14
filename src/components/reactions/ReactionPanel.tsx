@@ -8,8 +8,9 @@ const ROWS = familyRows();
 /**
  * The reactions (RX6, RX10-RX12, RX34, RX36; decision 0172): three rows under the words Feeling, Taste and Thought,
  * each reaction a glyph over its name. A tap chooses it, replacing its family's, or clears it if it was the one; the
- * panel stays, so a second family is one more tap. In ink only: a chosen one is shown by weight, an ink rule under it
- * and its spoken state, never a fill or a second colour. Drawn where it is asked for (above the journal's bar, in a sheet,
+ * panel stays, so a second family is one more tap. In ink only: a chosen one is shown by weight, a check beside its name
+ * and its spoken state, never a fill, a rule like a tab's or a second colour (reactions ui 3). Every row has three
+ * columns, so the families line up (reactions ui 5). Drawn where it is asked for (above the journal's bar, in a sheet,
  * above a page's bar); never a Modal of its own.
  */
 export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId) => void; testID?: string }) {
@@ -33,7 +34,10 @@ export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId
                   style={({ pressed }) => [styles.pick, on && styles.pickOn, pressed && styles.pressed]}
                 >
                   <Icon name={r.glyph as IconName} size={22} color={theme.ink} testID={`reaction-glyph-${r.id}`} />
-                  <Text style={[styles.name, on && styles.nameOn]} numberOfLines={1} testID="reaction-name">{r.name}</Text>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.name, on && styles.nameOn]} numberOfLines={1} testID="reaction-name">{r.name}</Text>
+                    {on ? <Icon name="checkmark" size={13} color={theme.ink} testID="reaction-check" /> : null}
+                  </View>
                 </Pressable>
               );
             })}
@@ -49,8 +53,9 @@ const styles = StyleSheet.create({
   family: { gap: 0 },
   familyName: { fontSize: 12, color: theme.muted, paddingHorizontal: 6, paddingTop: 4 },
   row: { flexDirection: 'row' },
-  pick: { flex: 1, minHeight: 52, minWidth: 44, alignItems: 'center', justifyContent: 'center', gap: 2, borderBottomWidth: 2, borderBottomColor: 'transparent', paddingHorizontal: 2 },
-  pickOn: { borderBottomColor: theme.ink },
+  pick: { width: '33.333%', minHeight: 52, minWidth: 44, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2 },
+  pickOn: {},
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   pressed: { opacity: 0.6 },
   name: { color: theme.ink, fontSize: 12 },
   nameOn: { fontWeight: '700' },

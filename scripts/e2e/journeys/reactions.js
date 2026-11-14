@@ -119,7 +119,7 @@ async function run(h) {
     const on = [...document.querySelectorAll('[data-testid=memory-menu] [data-testid^=reaction-pick-][aria-checked=true]')];
     return on.map((e) => ({ check: !!e.querySelector('[data-testid=reaction-check]'), rule: getComputedStyle(e).borderBottomWidth }));
   });
-  check.todo(ui3.length === 2 && ui3.every((x) => x.check && (x.rule === '0px' || x.rule === '')), `reactions ui 3: a chosen reaction has a check, and no rule under it (${JSON.stringify(ui3)})`);
+  check(ui3.length === 2 && ui3.every((x) => x.check && (x.rule === '0px' || x.rule === '')), `reactions ui 3: a chosen reaction has a check, and no rule under it (${JSON.stringify(ui3)})`);
   // reactions ui 4: the sheet's way out is one word in ink at its top right, as the viewer's.
   const ui4 = await pg.evaluate(() => {
     const d = document.querySelector('[data-testid=memory-menu] [data-testid=reaction-done]');
@@ -129,13 +129,13 @@ async function run(h) {
     const t = [...d.querySelectorAll('*')].find((x) => x.children.length === 0 && x.textContent.trim()) ?? d;
     return { word: d.innerText.trim(), ink: getComputedStyle(t).color, right: Math.round(sheet.right - r.right), top: Math.round(r.top - sheet.top) };
   });
-  check.todo(!!ui4 && ui4.word === 'Done' && ui4.ink === INK && ui4.right < 40 && ui4.top < 60, `reactions ui 4: the reactions sheet closes by Done, in ink, at its top right (${JSON.stringify(ui4)})`);
+  check(!!ui4 && ui4.word === 'Done' && ui4.ink === INK && ui4.right < 40 && ui4.top < 60, `reactions ui 4: the reactions sheet closes by Done, in ink, at its top right (${JSON.stringify(ui4)})`);
   // reactions ui 5: the three rows share three columns, Taste's two in the first two.
   const ui5 = await pg.evaluate(() => {
     const x = (id) => Math.round(document.querySelector(`[data-testid=memory-menu] [data-testid=reaction-pick-${id}]`)?.getBoundingClientRect().left ?? -1);
     return { happy: x('happy'), like: x('like'), question: x('question'), neutral: x('neutral'), dislike: x('dislike'), emphasis: x('emphasis') };
   });
-  check.todo(ui5.happy === ui5.like && ui5.like === ui5.question && ui5.neutral === ui5.dislike && ui5.dislike === ui5.emphasis, `reactions ui 5: Like and Dislike sit in the first two of the three columns (${JSON.stringify(ui5)})`);
+  check(ui5.happy === ui5.like && ui5.like === ui5.question && ui5.neutral === ui5.dislike && ui5.dislike === ui5.emphasis, `reactions ui 5: Like and Dislike sit in the first two of the three columns (${JSON.stringify(ui5)})`);
   await pg.click('[data-testid=reaction-done]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const kept10 = await reactionsOf(pg, 'rx-plain');

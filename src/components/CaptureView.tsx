@@ -969,7 +969,7 @@ export function CaptureViewer(props: {
           <View style={[styles.reactSheet, { paddingBottom: insets.bottom + 12 }]} testID="viewer-reactions">
             <View style={styles.reactHead}>
               <Text style={styles.reactTitle} accessibilityRole="header">Reaction</Text>
-              <Pressable testID="viewer-reaction-done" accessibilityRole="button" onPress={() => setReactingTo(null)} style={styles.reactDone}>
+              <Pressable testID="reaction-done" accessibilityRole="button" onPress={() => setReactingTo(null)} style={styles.reactDone}>
                 <Text style={styles.reactDoneText}>Done</Text>
               </Pressable>
             </View>

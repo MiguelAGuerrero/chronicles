@@ -31,7 +31,13 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** The 
         <View style={styles.sheet} testID="memory-menu" accessibilityViewIsModal>
           {grid && type ? (
             <>
-            <Text style={styles.heading} accessibilityRole="header">Reaction</Text>
+            <View style={styles.headRow}>
+              <Text style={styles.heading} accessibilityRole="header">Reaction</Text>
+              {/* One way out, in ink, at the top right, as the viewer's (reactions ui 4). */}
+              <Pressable testID="reaction-done" accessibilityRole="button" onPress={close} style={styles.done}>
+                <Text style={styles.doneText}>Done</Text>
+              </Pressable>
+            </View>
             <ReactionPanel set={type.set} onPick={type.onPick} />
             </>
           ) : null}
@@ -46,9 +52,11 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** The 
           {item('menu-open', 'Open the moment', 'Full screen, with its own menu', props.onOpen)}
             </>
           )}
-          <Pressable testID="menu-cancel" accessibilityRole="button" onPress={close} style={styles.item}>
-            <Text style={[styles.label, { color: theme.muted }]}>{grid ? 'Done' : 'Cancel'}</Text>
-          </Pressable>
+          {grid ? null : (
+            <Pressable testID="menu-cancel" accessibilityRole="button" onPress={close} style={styles.item}>
+              <Text style={[styles.label, { color: theme.muted }]}>Cancel</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </Modal>
@@ -62,4 +70,7 @@ const styles = StyleSheet.create({
   label: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   heading: { color: theme.ink, fontSize: 16, fontWeight: '600', paddingHorizontal: 12, paddingVertical: 10 },
   hint: { color: theme.muted, fontSize: 13 },
+  headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  done: { minHeight: 44, minWidth: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
 });
