@@ -484,7 +484,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'errors-handled': { branch: 'claude/serene-sagan-ig8te6', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

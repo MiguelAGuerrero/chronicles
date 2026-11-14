@@ -170,6 +170,10 @@ Recording and traces
   traceEnds.ts               where a walk began and ended
   gpsLog.ts                  the raw readings as text for Share GPS log
   shareLog/                  sharing that text: the share sheet, or a copy on the web (`lib/shareLog`: shell.ts, share.ts, index.ts)
+  diagnostics/               every caught error, handled by its kind (0179, EH1-EH14): core.ts (scrub, the shared text, what is kept, the failed-save line), sink.ts (report, caught, fallback, failedSave, saved: anything may import it), shell.ts (writes to the store, keeps in memory what it can't), index.ts (the instance, loaded by index.js), header(.native).ts
+  parse.ts                   errors as values in core: tryJson, tryUrl
+  playerControls.ts          seek, play and pause for every memo player (core)
+  streetMidpoint.ts          a street piece's middle, for the live fog (core)
   unitsStore/                the km or miles setting in meta `units` (`lib/unitsStore`: shell.ts, index.ts)
   lastFix.ts                 the last fix Navigate read, in memory
 Streets, snapping, fog
@@ -390,7 +394,7 @@ Session, screens and small helpers
   perfCount.ts               opt-in counters when window.__perf is set
   id.ts                      newId
   types.ts                   the data model (below)
-  db/                        the Db contract (types.ts), SQLite (sqliteStore.ts, the factory; index.native.ts, the app's instance; migrations.ts), IndexedDB (index.web.ts), row mappers (placeRow, exploreRow), DERIVED_STORES / KEPT_STORES (stores.ts)
+  db/                        the Db contract (types.ts), SQLite (sqliteStore.ts, the factory; index.native.ts, the app's instance; migrations.ts), IndexedDB (index.web.ts), row mappers (placeRow, exploreRow), DERIVED_STORES / KEPT_STORES (stores.ts); the logs beside the data (sqliteLogs.ts, idbLogs.ts: transcripts and the diagnostics log), noteTypesStep.ts (IndexedDB v22's step), setClause.ts
 Layers (functional core, imperative shell)
   ports/                     Ports (types.ts: db, recorder, notifier, clock, newId) and the real instance (index.ts), the composition root a view hands a shell
   store.ts, useStore.ts      a shell's state (createStore) and a view's slice of it (useSyncExternalStore)

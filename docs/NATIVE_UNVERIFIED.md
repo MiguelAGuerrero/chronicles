@@ -31,6 +31,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** upgrade from a build before migration 15, open Explore's atlas, then force-quit and reopen it in airplane mode. **Expect:** the app opens; the atlas lists the areas near you with their tiles, and after the relaunch offline they show from the `atlas_area` cache (IndexedDB v13). (AT12)
 - [ ] **Do:** upgrade from a build before migration 17 with photos and videos kept, then edit one photo (a crop and a filter), tap Done and force-quit. **Expect:** the app opens; old photos and videos read back as their originals with no error (`capture.edit` null, JSON through `serializeEdit`/`parseEdit` on every capture read); the edited photo shows its edits in the viewer and the replay after the relaunch (no IndexedDB bump; Media editing). (ME21)
 - [ ] **Do:** upgrade from a build before migration 19, turn walkability on over Explore's map, then force-quit and reopen it in airplane mode over the same streets. **Expect:** the app opens; the layer draws, and after the relaunch offline it draws again from the `walk_tile` cache, ways as JSON (IndexedDB v16). (WK2)
+- [ ] **Do:** upgrade from a build before migration 30 with walks kept, then open Navigate, pull the bar up and tap Share diagnostics. **Expect:** the app opens, the walks read back, and the share sheet offers a text headed "Chronicles <version> · ios <version>" (or android), with no device model (EH3a, EH5)
 
 ## Map layers and markers (MapLibre RN v11)
 
@@ -652,3 +653,10 @@ What the reactions slice wrote and has not run on a phone (`specs/reactions`, de
 - [ ] **Do:** on a phone, react to a photo from the viewer's More, then open Chronicle's Map and the walk screen near it. **Expect:** the photo's pin keeps its picture and wears a row of small ink bubbles from its bottom-left (Happy, Like, Idea), faint on a memory pin, and a change made from the viewer shows on the pin when it closes (RX17-RX21; the Marker is keyed by its reactions)
 - [ ] **Do:** on a phone, react to a moment from the viewer opened from its pin on the walk screen, close the viewer, then turn on VoiceOver or TalkBack and move to that pin. **Expect:** the pin shows its new bubbles, and focus is where it was: on native the Marker is keyed by its reactions, so a change rebuilds it; and the bubbles at the head's left (from x -8, -20 on a video) are not clipped by the Marker's view on Android (reactions audit, native list)
 - [ ] **Do:** on a phone, open an entry's More, then Reaction, choose two reactions and tap Done; open a note's page with the keyboard up and open its Reaction tool. **Expect:** the reactions take the native sheet (one Modal) with Done at its top right; on the page the rows sit above the keyboard over the editor's web view, and a choice never moves the caret or the words (RX10, RX12)
+
+## Diagnostics
+
+Every caught error is handled by its kind and kept in a log on the device (decision 0179, specs/errors-handled). Nothing here has run on a phone.
+
+- [ ] **Do:** with the phone nearly full, change Distances in the walk settings. **Expect:** one line beside the capture buttons, "A setting wasn’t saved: the phone is full.", with Retry; it never covers the capture buttons, and Retry after freeing room clears it (EH7, EH13, EH14)
+- [ ] **Do:** play a voice memo in the viewer, then in a day replay and in the media editor. **Expect:** play, pause and seek work as before (`lib/playerControls`, moved out of each screen)

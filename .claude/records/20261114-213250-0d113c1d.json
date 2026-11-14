@@ -1,0 +1,33 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Migrations"
+      ],
+      "body": "- [ ] **Do:** upgrade from a build before migration 30 with walks kept, then open Navigate, pull the bar up and tap Share diagnostics. **Expect:** the app opens, the walks read back, and the share sheet offers a text headed \"Chronicles <version> · ios <version>\" (or android), with no device model (EH3a, EH5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Diagnostics",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** with the phone nearly full, change Distances in the walk settings. **Expect:** one line beside the capture buttons, \"A setting wasn’t saved: the phone is full.\", with Retry; it never covers the capture buttons, and Retry after freeing room clears it (EH7, EH13, EH14)\n",
+      "intro": "Every caught error is handled by its kind and kept in a log on the device (decision 0179, specs/errors-handled). Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Diagnostics"
+      ],
+      "body": "- [ ] **Do:** play a voice memo in the viewer, then in a day replay and in the media editor. **Expect:** play, pause and seek work as before (`lib/playerControls`, moved out of each screen)\n"
+    }
+  ]
+}
