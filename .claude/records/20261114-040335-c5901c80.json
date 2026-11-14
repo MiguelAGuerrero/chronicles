@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, with a journal whose last entry is from yesterday (so today's date sits under it) and several placed entries from walks, force-quit and open Memories; then scroll back a little. **Expect:** nothing moves as the entries' places appear; today's date, inside the last box, scrolls with the page on native (it is not held there, unlike the dates above). Never run on a device: the peek and the empty page in one box (`restBox`), `maintainVisibleContentPosition` with the box as the last child. (fix entry-jitter 2)\n"
+    }
+  ]
+}

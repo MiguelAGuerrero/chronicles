@@ -1157,6 +1157,65 @@ async function run(h) {
   check(/^From /.test(from) && replay && /(At the start| in)\b/.test(dl), `JN7: an entry from a finished walk says how far in it was made and links to its walk's replay (${JSON.stringify({ from, dl, replay })})`);
 
   await c.close();
+  await placesLoading(h);
+}
+
+// fix entry-jitter 2 (the owner's phone, Nov 14): a voice note at the foot jittered up and down on launch until its
+// place was read. Every entry's place is read after the page opens, and an entry that grew pushed the one in view down
+// on a browser with no scroll anchoring (iOS Safari), until the sheet was taken back to its end after the frame. The
+// streets are on the device, so the places arrive at once, one by one; Chromium's anchoring is turned off.
+async function placesLoading(h) {
+  const { c, pg } = await h.freshPage('journal-places', { permissions: ['geolocation', 'microphone'] });
+  const [lon, lat] = [-71.4, 41.82];
+  await pg.goto(h.url);
+  await pg.waitForSelector('[data-testid=memories]', { timeout: 30000 });
+  await pg.waitForTimeout(1500);
+  await pg.evaluate(({ lon, lat }) => new Promise((resolve, reject) => {
+    // A street long enough to wrap a dateline at 390 px, in the tiles `getSegmentsIn` reads around the entries.
+    const name = 'Wickenden Street by the old harbour steps where the ferry used to land on Sundays in summer';
+    const segs = ['4942,6092', '4942,6093'].map((tile, i) => ({ id: `jit-seg${i}`, name, kind_detail: 'residential', length_m: 400, geometry: [[[lon - 0.003, lat], [lon + 0.003, lat]]], build: 'x', tile }));
+    const now = Date.now();
+    const mk = (id, t, kind, body) => ({ id, walk_id: null, t, lat: lat + 0.00002, lon, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind, file_path: kind === 'voice' ? `memo-${id}` : null, body, lat: lat + 0.00002, lon }] });
+    const rows = Array.from({ length: 10 }, (_, i) => mk(`jit${i}`, now - (i + 1) * 0.4 * 86400000, 'text', `A note from around town, number ${i}.`));
+    rows.push(mk('jit-voice', now - 60000, 'voice', '42000'));
+    const req = indexedDB.open('chronicles');
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['moment', 'street_segment'], 'readwrite');
+      for (const r of rows) tx.objectStore('moment').put(r);
+      for (const g of segs) tx.objectStore('street_segment').put(g);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    };
+  }), { lon, lat });
+  await c.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '* { overflow-anchor: none !important; }';
+      document.head.appendChild(st);
+    });
+    window.__seen = [];
+    const t0 = performance.now();
+    const tick = () => {
+      const root = document.querySelector('[data-testid=journal-page]');
+      const cards = root ? [...root.querySelectorAll('[data-testid=moment-card]')] : [];
+      const last = cards[cards.length - 1];
+      if (last && Number(getComputedStyle(root).opacity) > 0) {
+        window.__seen.push({ top: Math.round(last.getBoundingClientRect().top), line: last.querySelector('[data-testid=entry-dateline]')?.textContent ?? '' });
+      }
+      if (performance.now() - t0 < 8000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  await pg.reload();
+  await pg.waitForSelector('[data-testid=journal-page] [data-testid=moment-card]', { timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(4000);
+  const seen = await pg.evaluate(() => window.__seen ?? []);
+  const tops = [...new Set(seen.map((x) => x.top))];
+  const placed = seen.some((x) => x.line.includes('Wickenden Street'));
+  h.check(seen.length > 3 && placed && tops.length === 1,
+    `fix entry-jitter 2: as the places are read on launch the voice note at the foot stays where it rests, its own place included (${JSON.stringify({ tops, placed, frames: seen.length })})`);
+  await c.close();
 }
 
 module.exports = {
