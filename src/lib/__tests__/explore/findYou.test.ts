@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { findYou, type PermissionSeen } from '../../atlas/findYou';
+import { BLOCKED_LINE, findYou, type PermissionSeen } from '../../atlas/findYou';
 
 // tend explore 8 (decision 0172, O6 and O20): with no fix, Explore showed Locate at the map's edge and Find me in the
 // empty card, the same crosshair twice; after a refusal Find me stayed under the notice, a button that could only be
@@ -52,4 +52,12 @@ test('tend explore audit 8: refused while a tap may still ask ("prompt", "unknow
 test('tend explore audit 8: never blocked without a refusal, or with areas in the row', () => {
   assert.equal(findYou({ cardEmpty: true, refused: null, permission: seen('denied') }).blocked, false);
   assert.deepEqual(findYou({ cardEmpty: false, refused: 0, permission: seen('denied') }), { findMe: false, edgeLocate: true, blocked: false });
+});
+
+// tend explore audit 9 (ux 2; the owner, in person, Nov 14, during the review: "Say where to turn it on"): while location
+// is blocked the empty card's line is the refusal's own sentence. A phone has no browser: its line names Settings, as the
+// phone's own notice does.
+test('tend explore audit 9: the blocked card says where to turn location on, in the owner\'s words on the web', () => {
+  assert.equal(BLOCKED_LINE.web, 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.');
+  assert.equal(BLOCKED_LINE.native, 'Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.');
 });

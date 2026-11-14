@@ -8,7 +8,7 @@ import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
-import { findYou, type PermissionSeen } from '../../lib/atlas/findYou';
+import { BLOCKED_LINE, findYou, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
@@ -858,6 +858,11 @@ export default function Explore() {
               />
             )}
           />
+        ) : !from && finding.blocked ? (
+          // tend explore audit 9: blocked, the card says where to turn location on, muted, with no crosshair and no button.
+          <View style={styles.empty} testID="atlas-empty">
+            <Text style={styles.emptyText}>{BLOCKED_LINE[Platform.OS === 'web' ? 'web' : 'native']}</Text>
+          </View>
         ) : !from ? (
           <View style={styles.empty} testID="atlas-empty">
             <Icon name="locate-outline" size={22} color={theme.muted} />

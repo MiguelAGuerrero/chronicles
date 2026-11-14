@@ -24,3 +24,13 @@ export function findYou(p: { cardEmpty: boolean; refused: number | null; permiss
   const blocked = p.cardEmpty && p.refused != null && p.permission.state === 'denied';
   return { findMe, edgeLocate: !findMe && !blocked, blocked };
 }
+
+/**
+ * The empty card's line while location is blocked (tend explore audit 9; the owner, in person, Nov 14, during the review:
+ * "Say where to turn it on"), muted, with no crosshair. The web's is the owner's sentence; a phone has no browser, so its
+ * line names Settings, as the phone's own refusal notice does (`LOCATION_OFF.native`, `locate/notice.ts`).
+ */
+export const BLOCKED_LINE = {
+  web: 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.',
+  native: 'Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.',
+} as const;

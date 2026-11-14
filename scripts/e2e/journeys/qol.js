@@ -1196,6 +1196,8 @@ async function run(h) {
     // tend map T17 (decision 0154): a refused location is a quiet notice in ink, never the red fault, in the owner's words,
     // every word of it on screen; and with no fix and no tiles drawn, no scale bar over the blank world ("2,000 km").
     const T17_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to see where you are.';
+    // tend explore audit 9: the empty card's line while location is blocked (the owner, in person, Nov 14).
+    const BLOCKED_WORDS = 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.';
     // tend recording T26 (decision 0162): Start's refusal, Locate's line with its own end.
     const T26_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to record a walk.';
     // The region's text as written, the zero-width space a repeat adds kept (tend recording audit 4).
@@ -1429,6 +1431,18 @@ async function run(h) {
           // tend explore audit 8: while the permission reads "denied" the edge Locate could only be refused again, so it goes too.
           check(refused.findMe === 0 && refused.edge === 0 && notice >= 1,
             `tend explore 8, tend explore audit 8: Explore at ${w}, after a refusal, location blocked, no Find me and no edge Locate, only the notice that says where to turn location on (${JSON.stringify({ ...refused, notice })})`);
+          // tend explore audit 9 (the owner, in person, Nov 14, during the review: "Say where to turn it on"): while location is
+          // blocked the empty card's line is the refusal's own sentence, muted, with no crosshair glyph.
+          const card = await pg4.evaluate(() => {
+            const e = document.querySelector('[data-testid=atlas-empty]');
+            if (!e) return null;
+            const leaf = [...e.querySelectorAll('div')].filter((d) => d.childElementCount === 0 && d.textContent.trim());
+            const text = leaf.map((d) => d.textContent).join(' | ');
+            const line = leaf.find((d) => /Location is off/.test(d.textContent));
+            return { text, color: line ? getComputedStyle(line).color : null, glyphs: leaf.filter((d) => /[\uE000-\uF8FF]/.test(d.textContent)).length };
+          });
+          check(card && card.text === BLOCKED_WORDS && card.color === 'rgb(89, 98, 115)' && card.glyphs === 0,
+            `tend explore audit 9: Explore at ${w}, while location is blocked the card says where to turn it on, muted, with no crosshair (${JSON.stringify(card)})`);
           await c4.grantPermissions(['geolocation']);
           await pg4.waitForTimeout(1500);
           const allowed = await ways();
