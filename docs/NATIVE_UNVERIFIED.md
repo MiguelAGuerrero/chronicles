@@ -274,6 +274,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** long press the small map above the grid. **Expect:** the small map's long press runs as on the big map, and the ring layer draws at the small map's height. (AT9)
 - [ ] **Do:** drag the atlas card by its handle between its two heights; then open the atlas on a tablet. **Expect:** the atlas card's drag (responder props on the handle) follows the finger and settles at one of its two heights; on a tablet it is a side panel. (AT8)
 - [ ] **Do:** look at the small map with areas near you. **Expect:** the area points are MapLibre RN Markers (anchor top, offset) on the small map, each on its area's spot. (AT9)
+- [ ] **Do:** with location never asked, open Explore with no fix; tap Find me and decline; then turn location on for Chronicles in Settings and come back to the app. **Expect:** before the tap the empty card offers Find me and the map's edge has no Locate; after the refusal the quiet notice with Open Settings shows, Find me is gone and the edge Locate is back; back from Settings with location on, Find me returns and the edge Locate steps aside: `watchLocatePermission` (`locate/permission.native.ts`) reads `getForegroundPermissionsAsync` again on each return to the front (`tend explore 8`, decision 0172, O6 and O20).
 
 ## Navigate, ready
 
