@@ -2,6 +2,8 @@
 import type { Faced } from '../moment';
 import { THUMB } from '../thumbPlan';
 import type { Capture, CaptureKind, WalkSummary } from '../types';
+import { kindsClause } from '../pins';
+import { numberWord } from '../resurface/lines';
 
 /**
  * Clearing walks and moments (D1-D11, the concept doc's "Clearing walks and
@@ -89,7 +91,8 @@ export function sizeText(bytes: number): string {
   return `Frees about ${shown} ${unit}.`;
 }
 
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** A count in words, as the reminders and pins say one (tend deletion T30, decision 0170): "three moments". */
+const count = (n: number, one: string, many: string) => `${numberWord(n)} ${n === 1 ? one : many}`;
 
 function joinAnd(parts: string[]): string {
   if (parts.length <= 1) return parts.join('');
@@ -104,7 +107,7 @@ export interface ConfirmText {
   confirm: string;
 }
 
-/** D4: what deleting a walk takes. */
+/** D4: what deleting a walk takes, its counts in words: "Its trace, three moments and twelve streets walked go." (tend deletion T30). */
 export function walkDeleteText(o: { moments: number; streets: number; bytes: number }): ConfirmText {
   const parts = ['Its trace'];
   if (o.moments) parts.push(count(o.moments, 'moment', 'moments'));
@@ -113,14 +116,10 @@ export function walkDeleteText(o: { moments: number; streets: number; bytes: num
   return { title: 'Delete this walk?', body: withSize(body, o.bytes), confirm: 'Delete walk' };
 }
 
-/** D4: what removing a walk's media takes, and what stays. */
+/** D4: what removing a walk's media takes, and what stays: its kinds in the pins' words, "Two photos and a voice memo go." (tend deletion T30). */
 export function mediaRemoveText(o: { photos: number; videos: number; voices: number; bytes: number }): ConfirmText {
-  const parts: string[] = [];
-  if (o.photos) parts.push(count(o.photos, 'photo', 'photos'));
-  if (o.videos) parts.push(count(o.videos, 'video', 'videos'));
-  if (o.voices) parts.push(count(o.voices, 'voice memo', 'voice memos'));
   const n = o.photos + o.videos + o.voices;
-  const body = `${joinAnd(parts)} ${n === 1 ? 'goes' : 'go'}. The walk, its notes and its streets stay.`;
+  const body = `${kindsClause([['photo', o.photos], ['video', o.videos], ['voice', o.voices]])} ${n === 1 ? 'goes' : 'go'}. The walk, its notes and its streets stay.`;
   return { title: 'Remove photos, videos and memos?', body: withSize(body, o.bytes), confirm: 'Remove' };
 }
 
