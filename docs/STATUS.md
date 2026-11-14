@@ -420,15 +420,6 @@ a phone.
   a walk open and none finished, the line is 'This walk is starred here when it ends'" (as criterion 25's); and
   `.claude/rules/tabs-and-home.md` lines 123-125 state U7 in the present tense (a "Since T10" line under them says
   what is true). The loop edits no decision record, no spec and no rule line already there.
-- **Community parks' wording after T9** (Nov 12; the T9 review's F4, F5): `specs/presence-readers/spec.md` line 26 (the
-  read-past "stays only in the step that makes a museum historic"), line 30 and PS3 (parkKind asks `notableName`), and
-  `specs/community-parks/spec.md` PC2 (lists "Heritage" as a keeping word; any `notable.json` word keeps a park). Since
-  `tend explore T9` and `audit 1`, community parks reads presence's `notableName` past a neighbourhood's "Old
-  Town/City/Quarter/Village" or "old and new" only just before a community word, and "heritage" keeps no park. Amend PS3,
-  the Decisions line and PC2 to say so (and PS8: one listed change, Heritage Park Playground); the loop may not edit a spec.
-  `.claude/rules/explore-and-discovery.md` lines 22 and 253 name `a9.p2` and the a9 carry (now `a10.p2`, carrying `a10.p1`),
-  line 196 names `notableName` without the read-past: reword them in the split of that file (its [loop] item in
-  `docs/DEFERRED.md`, "Explore and discovery"); the loop may not reword a rule line and the file has no room for one.
 - **SB3's wording after T6** (Nov 11): `specs/section-bar/spec.md` SB3 says "the bar's Walks still does not, as
   before"; since T6 (decision 0141) it zooms out as the sheet's does. Amend SB3 to "the walks list's zoom-out (0054),
   by either Walks, from the sheet at rest, and once as the map mounts on Walks" and point it to `tend chronicle T6`
