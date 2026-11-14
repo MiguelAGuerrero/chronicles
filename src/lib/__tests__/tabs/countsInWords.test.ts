@@ -3,6 +3,7 @@
 // O18 as tend tabs 11).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { dayCounts, daySpoken, type Day } from '../../days';
 import { formatCaptures } from '../../format';
 import { moreFor, placeSheetLine, starSpoken, timelineWalkLine, timelineWalkSpoken, walkRowMeta } from '../../quietLines';
 
@@ -41,4 +42,17 @@ test('tend tabs audit 23: the walks row\'s clause starts lowercase after its dot
 test('tend tabs audit 24: a day\'s walk line keeps its count on its noun\'s line', () => {
   assert.equal(timelineWalkLine('145 m', 1), 'Walk · 145 m · one moment');
   assert.equal(timelineWalkLine('1.2 km', 23), 'Walk · 1.2 km · twenty-three moments');
+});
+
+// Chronicle's Days say their counts in words, as the timeline under them does (tend tabs T32, the owner's yes, Nov 14).
+test('tend tabs T32: a day says its moments and walks in words, on its row, its header and to a screen reader', () => {
+  const day = (moments: number, walks: number): Day => ({ key: '2026-11-14', entries: [], moments, walks });
+  assert.equal(dayCounts(day(3, 1)), 'Three moments · one walk');
+  assert.equal(dayCounts(day(1, 0)), 'One moment');
+  assert.equal(dayCounts(day(12, 2)), 'Twelve moments · two walks');
+  // A day whose walk kept nothing says no count of moments, never "zero moments" (as tend tabs audit 22 does).
+  assert.equal(dayCounts(day(0, 1)), 'One walk');
+  // Spoken: plain spaces, the clauses after the day's name lowercase, as the walks row is said.
+  assert.equal(daySpoken('Today', day(3, 1)), 'Today, three moments, one walk');
+  assert.equal(daySpoken('Sat, Nov 7', day(0, 2)), 'Sat, Nov 7, two walks');
 });

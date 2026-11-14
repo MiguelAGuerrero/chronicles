@@ -12,7 +12,7 @@ import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
 import { emptyPeek, moreFor, placeSheetLine, timelineWalkLine, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
-import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
+import { dayCounts, dayLabel, daySpoken, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
 import type { Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
@@ -285,7 +285,8 @@ export function HomeSheet(props: {
           {day ? (
             <View style={styles.headerText}>
               <Text testID="day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{dayLabel(day.key, nowT)}</Text>
-              <Text style={styles.meta} numberOfLines={1}>{dayCounts(day)}</Text>
+              {/* In words since tend tabs T32, so it may take two lines, as the place's line does. */}
+              <Text testID="day-meta" style={styles.meta} numberOfLines={2}>{dayCounts(day)}</Text>
             </View>
           ) : place ? (
             <View style={styles.headerText}>
@@ -402,12 +403,12 @@ export function HomeSheet(props: {
                   key={d.key}
                   testID="day-row"
                   accessibilityRole="button"
-                  accessibilityLabel={`${dayLabel(d.key, nowT)}, ${dayCounts(d)}`}
+                  accessibilityLabel={daySpoken(dayLabel(d.key, nowT), d)}
                   onPress={() => props.onMode({ kind: 'day', key: d.key })}
                   style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
                 >
                   <Text style={styles.rowTitle}>{dayLabel(d.key, nowT)}</Text>
-                  <Text style={styles.rowMeta}>{dayCounts(d)}</Text>
+                  <Text testID="day-row-meta" style={styles.rowMeta}>{dayCounts(d)}</Text>
                 </Pressable>
               ))
             : day

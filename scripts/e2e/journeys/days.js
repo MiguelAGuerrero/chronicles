@@ -88,7 +88,7 @@ async function checks(h) {
       await p2.click('[data-testid=section-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const dayRow = await p2.locator('[data-testid=day-row]').first().innerText();
-      check(/^Today/.test(dayRow) && /1 moment\b/.test(dayRow), `the days list starts with today and its moment (${dayRow.replace(/\n/g, ' · ')})`);
+      check(/^Today/.test(dayRow) && /\bOne[ \u00a0]moment\b/.test(dayRow), `the days list starts with today and its moment (${dayRow.replace(/\n/g, ' · ')})`);
       await p2.click('[data-testid=sheet-map]');
 
       // A walk with a note of its own, in the same day (M3).
@@ -145,7 +145,7 @@ async function checks(h) {
       await p2.click('[data-testid=sheet-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const early = await p2.locator('[data-testid=day-row]').first().innerText();
-      check(/3 moments\b/.test(early), `a moment shows in its day at once, before its fix is settled (audit 2: ${early.replace(/\n/g, ' · ')})`);
+      check(/\bThree[ \u00a0]moments\b/.test(early), `a moment shows in its day at once, before its fix is settled (audit 2: ${early.replace(/\n/g, ' · ')})`);
       await p2.click('[data-testid=sheet-map]');
       // Leaving Navigate closes its screen, so the moment's "No location" toast is checked in the ready
       // scenario (NR13), where the screen stays up; here the stored row settles without a place.
@@ -159,8 +159,41 @@ async function checks(h) {
       // The day's timeline: moment, walk, moment, in time order; the walk is one row (M8).
       await h.mapUp(p2);
       await p2.click('[data-testid=sheet-days]');
+      // tend tabs T32 (the owner's yes, Nov 14): the days list and a day's header say their counts in words, "Three moments
+      // · one walk", as the timeline under them does, and the row's spoken name says them too; whole at 390 and 320 px.
+      await p2.waitForSelector('[data-testid=day-row]');
+      const metaOf32 = (sel) => p2.evaluate((q) => {
+        const e = document.querySelector(q);
+        if (!e) return null;
+        const r = e.getBoundingClientRect();
+        return { text: e.textContent.replace(/\u00a0/g, ' '), right: Math.round(r.right), cut: e.scrollWidth > e.clientWidth + 1, name: e.closest('[data-testid=day-row]')?.getAttribute('aria-label') ?? null };
+      }, sel);
+      for (const w of [390, 320]) {
+        await p2.setViewportSize({ width: w, height: 844 });
+        await p2.waitForTimeout(600);
+        const row = await metaOf32('[data-testid=day-row-meta]');
+        check(row && row.text === 'Three moments · one walk' && row.right <= w && !row.cut && /^Today, three moments, one walk$/.test(row.name ?? ''),
+          `tend tabs T32: at ${w} px the days list says "Three moments · one walk", and its row is named in words (${JSON.stringify(row)})`);
+        await shot(p2, `days-t32-list-${w}`);
+      }
       await p2.click('[data-testid=day-row]');
       await p2.waitForSelector('[data-testid=day-title]');
+      // Whole at 390 and 375 px, on two lines where it needs them. At 320 px the header's text has about 88 px beside
+      // Days and Map, and its line was cut before this change too ("3 mom…"): logged and pictured, filed apart.
+      for (const w of [320, 375, 390]) {
+        await p2.setViewportSize({ width: w, height: 844 });
+        await p2.waitForTimeout(600);
+        const head = await p2.evaluate(() => {
+          const e = document.querySelector('[data-testid=day-meta]');
+          if (!e) return null;
+          const r = e.getBoundingClientRect();
+          return { text: e.textContent.replace(/\u00a0/g, ' '), right: Math.round(r.right), cut: e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1 };
+        });
+        if (w === 320) console.log(`note: at 320 px a day's header line: ${JSON.stringify(head)}`);
+        else check(head && head.text === 'Three moments · one walk' && head.right <= w && !head.cut,
+          `tend tabs T32: at ${w} px a day's header says "Three moments · one walk", whole (${JSON.stringify(head)})`);
+        await shot(p2, `days-t32-header-${w}`);
+      }
       const order = await p2.locator('[data-testid=timeline-moment], [data-testid=timeline-walk]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
       check(order.join(',') === 'timeline-moment,timeline-walk,timeline-moment', `the day lists its moments and walk in time order (${order.join(', ')})`);
       check(/\bone[ \u00a0]moment\b/.test(await p2.locator('[data-testid=timeline-walk]').innerText()), 'the walk is one row with its moment count, in words (M8, tend tabs 11)');

@@ -101,13 +101,25 @@ export function dayLabel(key: string, now: number): string {
   return new Date(dayStart(key)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** A day's counts in words, "three moments", "one walk"; a day whose walk kept nothing says no count of moments. */
+function countWords(day: Day, space: string): string[] {
+  const said = (n: number, one: string, many: string) => `${numberWord(n)}${space}${n === 1 ? one : many}`;
+  return [day.moments > 0 ? said(day.moments, 'moment', 'moments') : null, day.walks > 0 ? said(day.walks, 'walk', 'walks') : null]
+    .filter((x): x is string => !!x);
+}
 
-/** "3 moments · 1 walk" for the days list (M7). */
+/**
+ * "Three moments · one walk" for the days list and a day's header (M7), in words as the timeline under them says its
+ * own (tend tabs T32, the owner's yes, Nov 14); each count kept on its noun's line. A day whose walk kept nothing
+ * says "One walk", never "zero moments" (as tend tabs audit 22).
+ */
 export function dayCounts(day: Day): string {
-  const parts = [plural(day.moments, 'moment', 'moments')];
-  if (day.walks) parts.push(plural(day.walks, 'walk', 'walks'));
-  return parts.join(' · ');
+  return capWord(countWords(day, '\u00a0').join(' · '));
+}
+
+/** A day's row as a screen reader says it: "Today, three moments, one walk" (tend tabs T32), plain spaces. */
+export function daySpoken(label: string, day: Day): string {
+  return [label, ...countWords(day, ' ')].join(', ');
 }
 
 /** Every moment of a day, loose or in a walk, in time order. */
