@@ -54,6 +54,7 @@ import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } fr
 import { MemoryPreview } from '../components/MemoryPreview';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { feedback } from '../lib/motion';
+import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
@@ -115,7 +116,6 @@ function midpointOf(s: StreetSegment): LngLat {
 }
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
-const NOTICE_MS = 6000;
 /** The screen's own clock: weak GPS (20 s) and the pause reminder (10 min) need no finer. */
 const SLOW_TICK_MS = 5000;
 
@@ -139,8 +139,7 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
 /** The walk that has had its dead-zone nudge (L15): once a walk. */
 const NUDGED_KEY = 'deadzone_walk';
 
-/** A reminder's card goes after this long, or this far walked on. */
-const REMINDER_MS = 30_000;
+/** A reminder's card goes after `MOTION.reminder`, or this far walked on. */
 const REMINDER_AWAY_M = 100;
 
 type Notice = {
@@ -454,12 +453,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   useEffect(() => {
     if (!rawNotice || rawNotice.sticky) return;
-    const t = setTimeout(() => setNotice(null), NOTICE_MS);
+    const t = setTimeout(() => setNotice(null), MOTION.walkNotice);
     return () => clearTimeout(t);
   }, [rawNotice]);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 1500);
+    const t = setTimeout(() => setToast(null), MOTION.walkToast);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -630,7 +629,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [arrived, setArrived] = useState<string | null>(null);
   useEffect(() => {
     if (!arrived) return;
-    const t = setTimeout(() => setArrived(null), 4000);
+    const t = setTimeout(() => setArrived(null), MOTION.arrival);
     return () => clearTimeout(t);
   }, [arrived]);
   const navigation = useNavigation({
@@ -859,7 +858,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (!reminder) return;
     const walkedOn = reminder.at && live.here && distanceM(reminder.at, live.here) > REMINDER_AWAY_M;
-    const t = setTimeout(() => setReminder(null), walkedOn ? 0 : Math.max(0, reminder.shownAt + REMINDER_MS - Date.now()));
+    const t = setTimeout(() => setReminder(null), walkedOn ? 0 : Math.max(0, reminder.shownAt + MOTION.reminder - Date.now()));
     return () => clearTimeout(t);
   }, [reminder, live.here]);
   // A tapped reminder notification opens its captures, playing (R4).
@@ -965,7 +964,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       db.setMeta(NUDGED_KEY, walk.id).catch(() => {});
       AccessibilityInfo.announceForAccessibility(nudge!.text);
     }
-    const t = setTimeout(() => setNudge(null), 20_000);
+    const t = setTimeout(() => setNudge(null), MOTION.deadZoneNudge);
     return () => clearTimeout(t);
   }, [nudgeShown, walk, nudge]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
@@ -1126,7 +1125,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     if (Platform.OS === 'web') window.addEventListener('beforeunload', warn);
     // Focus moves to Save, which replaced the mic the person just tapped.
-    const t = setTimeout(() => focusOn(saveRef), 300);
+    const t = setTimeout(() => focusOn(saveRef), MOTION.saveFocus);
     return () => {
       sub.remove();
       clearTimeout(t);

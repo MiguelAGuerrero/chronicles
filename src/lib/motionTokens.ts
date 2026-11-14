@@ -23,6 +23,20 @@ export const MOTION = {
   tip: 4000,
   /** Explore's toast stays this long, then goes by itself ("Zoom in to look closer"; decision 0172, O7; tend explore audit 14). */
   exploreToast: 3000,
+  /** The walk screen's toast stays this long ("Hold to stop the walk"; decision 0172, O23). */
+  walkToast: 1500,
+  /** The walk screen's arrival line ("You've arrived") stays this long (O23). */
+  arrival: 4000,
+  /** The walk screen's dead-zone nudge (L15) stays this long, once seen (O23). */
+  deadZoneNudge: 20_000,
+  /** Focus moves to Save this long after the mic turns into it, mid-memo (O23). */
+  saveFocus: 300,
+  /** A walk's notice that is not sticky ("Walk started · recording") stays this long (O23). */
+  walkNotice: 6000,
+  /** A reminder fired on a walk stays this long, on the walk's card and on the recording bar (R7; O23). */
+  reminder: 30_000,
+  /** The moment bar's toast on the ready screen ("Too short, not kept") stays this long (O23). */
+  momentToast: 4000,
   /** The one spring: settles without a visible bounce. */
   spring: { damping: 28, stiffness: 240, mass: 1 },
 } as const;

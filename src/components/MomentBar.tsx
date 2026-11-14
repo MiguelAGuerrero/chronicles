@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { momentToast } from '../lib/captureBand';
 import { feedback } from '../lib/motion';
+import { MOTION } from '../lib/motionTokens';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
 import { space } from '../lib/space';
@@ -101,7 +102,7 @@ export function CaptureRow(props: {
   useEffect(() => {
     if (!toast) return;
     AccessibilityInfo.announceForAccessibility(toast);
-    const t = setTimeout(() => setToast(null), 4000);
+    const t = setTimeout(() => setToast(null), MOTION.momentToast);
     return () => clearTimeout(t);
   }, [toast, setToast]);
   // Android's back does nothing mid-memo, and the web warns before closing: leaving would cut it short.
