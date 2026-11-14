@@ -49,7 +49,7 @@ async function run(h) {
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   const db = await version(pg);
-  check(db.v === 20 && db.stores.includes('moment') && !db.stores.includes('capture'), `MT9: the app opened a version-17 database and upgraded it (${JSON.stringify(db)})`);
+  check(db.v === 21 && db.stores.includes('moment') && !db.stores.includes('capture'), `MT9: the app opened a version-17 database and upgraded it (${JSON.stringify(db)})`);
 
   await tabTo(pg, 'chronicle', 'memories');
   await toThreads(pg);
