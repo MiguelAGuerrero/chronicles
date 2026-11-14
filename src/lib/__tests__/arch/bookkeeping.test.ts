@@ -64,7 +64,7 @@ const json = (r: { stdout: string }) => JSON.parse(r.stdout) as Record<string, u
 // ---------------------------------------------------------------------------------------------------
 // next-decision
 
-test('bookkeeping: next-decision is the highest number in docs/decisions plus one, padded as the files are', { todo: 'the commands come next' }, () => {
+test('bookkeeping: next-decision is the highest number in docs/decisions plus one, padded as the files are', () => {
   const names = ['README.md', '0001-replay-five-beats.md', '0173-rule-files.md', '0042-x.md', 'notes.txt'];
   const s = book.decisionState(names);
   assert.equal(s.next, '0174');
@@ -75,7 +75,7 @@ test('bookkeeping: next-decision is the highest number in docs/decisions plus on
   assert.deepEqual(book.decisionState(['0007-a.md', '0007-b.md', '0006-c.md']).duplicates, [{ number: '0007', files: ['0007-a.md', '0007-b.md'] }]);
 });
 
-test('bookkeeping: next-decision --check fails on a number main gave another file, on a gap and on a file numbered otherwise', { todo: 'the commands come next' }, () => {
+test('bookkeeping: next-decision --check fails on a number main gave another file, on a gap and on a file numbered otherwise', () => {
   const main = ['0172-a.md', '0173-b.md'];
   assert.equal(book.checkDecision(main, '0174', 'docs/decisions/0174-mine.md').ok, true);
   assert.equal(book.checkDecision(main, '174', '0174-mine.md').ok, true, 'the number read as a number');
@@ -90,7 +90,7 @@ test('bookkeeping: next-decision --check fails on a number main gave another fil
   assert.equal(book.checkDecision(main, 'x74').ok, false);
 });
 
-test('bookkeeping: next-decision reads origin/main, not HEAD or the working tree, and --check catches a number main took meanwhile', { todo: 'the commands come next' }, () => {
+test('bookkeeping: next-decision reads origin/main, not HEAD or the working tree, and --check catches a number main took meanwhile', () => {
   const r = repo('decisions');
   r.write('docs/decisions/0001-a.md', '# 0001\n');
   r.write('docs/decisions/0002-b.md', '# 0002\n');
@@ -106,6 +106,7 @@ test('bookkeeping: next-decision reads origin/main, not HEAD or the working tree
   assert.match(plain.stdout, /0002-b\.md/);
   assert.equal(json(r.run('next-decision', '--json')).next, '0003');
   assert.equal(r.run('next-decision', '--check', '0003', 'docs/decisions/0003-mine.md').status, 0);
+  rmSync(join(r.dir, 'docs/decisions/0004-loose.md'));
   // Another session publishes 0003 first.
   r.git('checkout', '-q', '-b', 'other', base);
   r.write('docs/decisions/0003-theirs.md', '# 0003\n');
@@ -125,7 +126,7 @@ test('bookkeeping: next-decision reads origin/main, not HEAD or the working tree
 // ---------------------------------------------------------------------------------------------------
 // next-audit
 
-test('bookkeeping: next-audit reads "<prefix> audit N" in single numbers, ranges and lists, and no other prefix', { todo: 'the commands come next' }, () => {
+test('bookkeeping: next-audit reads "<prefix> audit N" in single numbers, ranges and lists, and no other prefix', () => {
   const src = (text: string) => ({ where: 'commit', text });
   const subjects = [
     'tend map audit 12: the pin',
@@ -149,7 +150,7 @@ test('bookkeeping: next-audit reads "<prefix> audit N" in single numbers, ranges
   assert.deepEqual(book.auditNumbers('rides', []), { highest: null, next: 1, hits: [] });
 });
 
-test('bookkeeping: next-audit searches origin/main\'s subjects and the tests under src and the journeys, nothing else', { todo: 'the commands come next' }, () => {
+test('bookkeeping: next-audit searches origin/main\'s subjects and the tests under src and the journeys, nothing else', () => {
   const r = repo('audits');
   r.commit('rides audit 2: a subject');
   r.write('src/lib/__tests__/rides/rides.test.ts', "test('rides audit 7: the ride', () => {});\n");
@@ -176,7 +177,7 @@ test('bookkeeping: next-audit searches origin/main\'s subjects and the tests und
 // ---------------------------------------------------------------------------------------------------
 // files
 
-test('bookkeeping: files groups a path as src, tests, journeys, docs and records, skills and scripts, or other', { todo: 'the commands come next' }, () => {
+test('bookkeeping: files groups a path as src, tests, journeys, docs and records, skills and scripts, or other', () => {
   const cases: Record<string, string> = {
     'src/lib/rides.ts': 'src',
     'src/app/walk.tsx': 'src',
@@ -205,7 +206,7 @@ test('bookkeeping: files groups a path as src, tests, journeys, docs and records
   for (const [p, g] of Object.entries(cases)) assert.equal(book.groupOf(p), g, p);
 });
 
-test('bookkeeping: files counts committed, staged, unstaged, deleted and untracked changes against the merge base, and --max-src trips', { todo: 'the commands come next' }, () => {
+test('bookkeeping: files counts committed, staged, unstaged, deleted and untracked changes against the merge base, and --max-src trips', () => {
   const r = repo('files');
   r.write('.gitignore', 'ignored/\n');
   r.write('src/lib/a.ts', 'export const a = 1;\n');
@@ -253,14 +254,15 @@ test('bookkeeping: files counts committed, staged, unstaged, deleted and untrack
 // ---------------------------------------------------------------------------------------------------
 // landed
 
-test('bookkeeping: the entry bundle is read from an Expo web export\'s page', { todo: 'the commands come next' }, () => {
+test('bookkeeping: the entry bundle is read from an Expo web export\'s page', () => {
   const page = '<html><head><script src="/chronicles/_expo/static/js/web/entry-0a1b2c3d4e5f.js" defer></script></head></html>';
   assert.equal(book.entryBundle(page), 'entry-0a1b2c3d4e5f.js');
   assert.equal(book.entryBundle('<script src="/_expo/static/js/web/entry-ff.js"></script>'), 'entry-ff.js');
-  assert.equal(book.entryBundle('<html>no bundle</html>'), null);
+  assert.equal(book.entryBundle('<script src="/chronicles/_expo/static/js/web/index-09f4522cbdd3b261.js" defer></script>'), 'index-09f4522cbdd3b261.js', 'as SDK 58 names it');
+  assert.equal(book.entryBundle('<link href="/_expo/static/js/web/x.js"><html>no bundle</html>'), null);
 });
 
-test('bookkeeping: landed checks the range is on origin/main, the branch and its worktree are gone, and the live bundle against dist/', { todo: 'the commands come next' }, () => {
+test('bookkeeping: landed checks the range is on origin/main, the branch and its worktree are gone, and the live bundle against dist/', () => {
   const r = repo('landed');
   const base = r.git('rev-parse', 'HEAD').trim();
   r.git('checkout', '-q', '-b', 'tooling/x');
@@ -289,7 +291,7 @@ test('bookkeeping: landed checks the range is on origin/main, the branch and its
   // A commit not on main, under another hash or not at all.
   r.git('checkout', '-q', '-b', 'rebased', base);
   r.write('a.txt', '1\n');
-  r.commit('one');
+  r.commit('one, replayed');
   r.write('b.txt', 'only here\n');
   const stray = r.commit('three');
   r.git('checkout', '-q', 'main');
@@ -321,7 +323,7 @@ test('bookkeeping: landed checks the range is on origin/main, the branch and its
 // ---------------------------------------------------------------------------------------------------
 // review-paths
 
-test('bookkeeping: review-paths reads the absolute paths of a prompt, and nothing that is a URL, a route or a skill', { todo: 'the commands come next' }, () => {
+test('bookkeeping: review-paths reads the absolute paths of a prompt, and nothing that is a URL, a route or a skill', () => {
   const roots = new Set(['workspace', 'tmp']);
   const isRoot = (s: string) => roots.has(s);
   const text = [
@@ -340,7 +342,7 @@ test('bookkeeping: review-paths reads the absolute paths of a prompt, and nothin
   ]);
 });
 
-test('bookkeeping: review-paths names each missing path and a missing prompt, and passes a prompt whose paths exist', { todo: 'the commands come next' }, () => {
+test('bookkeeping: review-paths names each missing path and a missing prompt, and passes a prompt whose paths exist', () => {
   const r = repo('prompts');
   const dir = join(tmp, 'prompts-scratch', 'a dir');
   mkdirSync(join(dir, 'shots'), { recursive: true });
@@ -376,7 +378,7 @@ Intro paragraph.
 - The busy ring
 - [loop] Swatches: three walked swatches.
   Since Nov 12: one more.
-- [kept] Swatches: three walked swatches.
+- [loop] Swatches: three walked swatches.
   Since Nov 13: a different note.
 
 ## Captures, media and export
@@ -384,6 +386,7 @@ Intro paragraph.
 ### Video
 
 - [ ] [phone] A long video plays on the phone.
+- [arch] Export, a GPX file.
 - [arch] Export, a GPX file.
 `;
 
@@ -426,28 +429,30 @@ function accepted(kind: 'deferred' | 'inbox' | 'open', text: string, it: Item) {
   return start === it.line - 1;
 }
 
-test('bookkeeping: items lists DEFERRED\'s items with their section, tag, first line and the shortest match records.js accepts', { todo: 'the commands come next' }, () => {
+test('bookkeeping: items lists DEFERRED\'s items with their section, tag, first line and the shortest match records.js accepts', () => {
   const items = book.listItems('deferred', DEFERRED);
   assert.deepEqual(items.map((i) => [i.section, i.tag, i.match]), [
     ['Explore and discovery', 'loop', 'The busy ring draws'],
     ['Explore and discovery', 'owner', 'The busy ring flickers'],
-    ['Explore and discovery', null, null],
+    ['Explore and discovery', null, '- The busy'],
     ['Explore and discovery', 'loop', 'Nov 12'],
-    ['Explore and discovery', 'kept', 'Nov 13'],
+    ['Explore and discovery', 'loop', 'Nov 13'],
     ['Captures, media and export › Video', 'phone', 'A long'],
-    ['Captures, media and export › Video', 'arch', 'Export'],
+    ['Captures, media and export › Video', 'arch', null],
+    ['Captures, media and export › Video', 'arch', null],
   ]);
   assert.equal(items[0].first, 'The busy ring draws twice when the map settles.');
-  assert.deepEqual(items.map((i) => i.line), [7, 8, 9, 10, 12, 19, 20]);
+  assert.deepEqual(items.map((i) => i.line), [7, 8, 9, 10, 12, 19, 20, 21]);
   for (const it of items.filter((i) => i.match)) assert.ok(accepted('deferred', DEFERRED, it), `records.js names "${it.first}" by "${it.match}"`);
-  // "The busy ring" is in three items: records.js refuses it, so it has no match.
+  // "The busy ring" is in three items, so its own item is named with its marker; twins have no match at all.
   assert.throws(() => records.apply('deferred', 'item note', DEFERRED, { match: 'The busy ring', body: 'x' }), /is in 3 items/);
-  assert.deepEqual(book.listItems('deferred', DEFERRED, { tag: 'loop' }).map((i) => i.match), ['The busy ring draws', 'Nov 12']);
+  assert.throws(() => records.apply('deferred', 'item note', DEFERRED, { match: 'Export, a GPX file.', body: 'x' }), /is in 2 items/);
+  assert.deepEqual(book.listItems('deferred', DEFERRED, { tag: 'loop' }).map((i) => i.match), ['The busy ring draws', 'Nov 12', 'Nov 13']);
   assert.deepEqual(book.listItems('deferred', DEFERRED, { tag: 'none' }).map((i) => i.first), ['The busy ring']);
-  assert.deepEqual(book.listItems('deferred', DEFERRED, { section: 'video' }).map((i) => i.tag), ['phone', 'arch']);
+  assert.deepEqual(book.listItems('deferred', DEFERRED, { section: 'video' }).map((i) => i.tag), ['phone', 'arch', 'arch']);
 });
 
-test('bookkeeping: items lists the inbox by number and the items open before the loop by match', { todo: 'the commands come next' }, () => {
+test('bookkeeping: items lists the inbox by number and the items open before the loop by match', () => {
   const inbox = book.listItems('inbox', STATUS);
   assert.deepEqual(inbox.map((i) => [i.section, i.tag, i.match]), [
     ['From /tend', 'owner', 'T21'],
@@ -462,21 +467,22 @@ test('bookkeeping: items lists the inbox by number and the items open before the
   for (const it of inbox) assert.ok(accepted('inbox', STATUS, it), it.first);
 });
 
-test('bookkeeping: items reads origin/main by default, the working tree with --worktree, and fails when an item has no match', { todo: 'the commands come next' }, () => {
+test('bookkeeping: items reads origin/main by default, the working tree with --worktree, and fails when an item has no match', () => {
   const r = repo('items');
   r.write('docs/DEFERRED.md', DEFERRED);
   r.write('docs/STATUS.md', STATUS);
   r.commit('records');
   r.publish();
-  r.write('docs/DEFERRED.md', DEFERRED.replace('- The busy ring\n', '- [loop] A later item.\n'));
+  r.write('docs/DEFERRED.md', DEFERRED.replace('- [arch] Export, a GPX file.\n- [arch] Export, a GPX file.\n', '- [arch] Export, a GPX file.\n- [loop] A later item.\n'));
   const main = r.run('items', 'deferred');
-  assert.equal(main.status, 1, 'origin/main holds an item no match names');
-  assert.match(main.stderr, /The busy ring/);
+  assert.equal(main.status, 1, 'origin/main holds twin items no match names');
+  assert.match(main.stderr, /"Export, a GPX file\." \(line 20\)/);
   assert.match(main.stdout, /^## Explore and discovery$/m);
   assert.match(main.stdout, /match: "The busy ring draws"/);
   const tree = r.run('items', 'deferred', '--worktree');
   assert.equal(tree.status, 0, tree.stderr);
   assert.match(tree.stdout, /match: "A later"/);
+  assert.match(tree.stdout, /match: "Export"/);
   const j = json(r.run('items', 'inbox', '--tag', 'owner', '--json')) as { items: Item[] };
   assert.deepEqual(j.items.map((i) => i.match), ['T21']);
   assert.equal(r.run('items', 'open').status, 0);
@@ -487,7 +493,7 @@ test('bookkeeping: items reads origin/main by default, the working tree with --w
 // ---------------------------------------------------------------------------------------------------
 // The commands' names, where the procedures use them.
 
-test('bookkeeping: package.json runs the commands, tend.js passes them on, and the skills name them where they did the work by hand', { todo: 'the commands come next' }, () => {
+test('bookkeeping: package.json runs the commands, tend.js passes them on, and the skills name them where they did the work by hand', { todo: 'the skills come next' }, () => {
   const pkg = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
   for (const s of ['next-decision', 'next-audit', 'files', 'landed', 'review-paths', 'items']) assert.equal(pkg.scripts[`book:${s}`], `node scripts/bookkeeping.js ${s}`, s);
   const via = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'next-audit', 'tend nothing-ever'], { cwd: ROOT, encoding: 'utf8' });

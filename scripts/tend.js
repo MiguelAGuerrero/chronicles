@@ -16,6 +16,9 @@
 //                                                       it with --loop-only on every push to main: these
 //                                                       limits on loop commits, and the record gate
 //                                                       (scripts/records.js) on loop and agent commits
+//   node scripts/tend.js next-decision | next-audit | files | landed | review-paths | items
+//                                                       the bookkeeping commands (decision 0174), run
+//                                                       by scripts/bookkeeping.js, whose header says each
 //
 // The decisions are pure and exported for arch/tend.test.ts; git and the files are read in main().
 // None of this is shown in the app: nothing is a score there (decision 0020).
@@ -456,8 +459,9 @@ if (require.main === module) {
   else if (cmd === 'next') next();
   else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
+  else if (require('./bookkeeping').COMMANDS[cmd]) process.exitCode = require('./bookkeeping').main([cmd, ...argv]);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range>');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
     process.exit(2);
   }
 }

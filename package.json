@@ -89,6 +89,12 @@
     "check:records": "node scripts/records.js verify",
     "tend:balance": "node scripts/tend.js balance",
     "tend:log": "node scripts/tend.js log",
+    "book:next-decision": "node scripts/bookkeeping.js next-decision",
+    "book:next-audit": "node scripts/bookkeeping.js next-audit",
+    "book:files": "node scripts/bookkeeping.js files",
+    "book:landed": "node scripts/bookkeeping.js landed",
+    "book:review-paths": "node scripts/bookkeeping.js review-paths",
+    "book:items": "node scripts/bookkeeping.js items",
     "e2e:baseline": "node scripts/e2e-baseline.js",
     "check:e2e": "node scripts/affected.js e2e",
     "places:coverage": "tsx scripts/places-coverage.ts"
