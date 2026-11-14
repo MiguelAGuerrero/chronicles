@@ -18,6 +18,68 @@ async function checks(h) {
         && (await page.locator('text=Nothing was kept on this day.').count()) === 0,
         `HC5: a launch on ${stale.split('/')[0]} opens Chronicle at / (${page.url()})`);
     }
+    // tend replay T20 (decision 0165): reached from inside the app, a walk not found, a day with nothing kept and a
+    // screen that threw keep their words, and the way back names where it goes: "Back to Chronicle", to / (decision
+    // 0112), whole on one line and on screen at 390 and 320 px. The throw is one failed read of the walks.
+    {
+      const inApp = (p) => page.evaluate((to) => { window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')); }, `${BASE}/${p}`);
+      const backBox = () => page.evaluate(() => {
+        const b = [...document.querySelectorAll('[role=button]')].find((e) => e.getAttribute('aria-label') === 'Back to Chronicle' && e.offsetParent);
+        if (!b) return null;
+        const r = b.getBoundingClientRect();
+        const t = [...b.querySelectorAll('*')].find((e) => e.textContent === 'Back to Chronicle' && !e.children.length);
+        const tr = t?.getBoundingClientRect();
+        const lh = t ? parseFloat(getComputedStyle(t).lineHeight) || parseFloat(getComputedStyle(t).fontSize) * 1.2 : 0;
+        return {
+          said: b.getAttribute('aria-label'), shown: t?.textContent ?? null, h: Math.round(r.height),
+          oneLine: !!(tr && tr.height < lh * 1.6), whole: !!(t && t.scrollWidth <= t.clientWidth + 1 && tr.left >= r.left - 1 && tr.right <= r.right + 1),
+          onScreen: r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight, wide: document.documentElement.scrollWidth <= window.innerWidth,
+        };
+      });
+      const fine = (m) => !!(m && m.said === 'Back to Chronicle' && m.shown === 'Back to Chronicle' && m.h >= 44 && m.oneLine && m.whole && m.onScreen && m.wide);
+      const deadEnds = [
+        ['replay', 'replay/no-such-walk', 'text=This walk could not be found.'],
+        ['day', 'day/1999-01-01', 'text=Nothing was kept on this day.'],
+        ['error', 'day/2000-01-01', '[data-testid=screen-error]'],
+      ];
+      for (const [name, p, sign] of deadEnds) {
+        await page.goto(url);
+        await page.waitForSelector('[data-testid=memories]', { timeout: 15000 }).catch(() => {});
+        // One read of the walks fails, the next ones read again: the day screen's load throws into its ErrorBoundary.
+        if (name === 'error') await page.evaluate(() => {
+          const real = IDBObjectStore.prototype.getAll;
+          IDBObjectStore.prototype.getAll = function (...a) {
+            if (this.name !== 'walk') return real.apply(this, a);
+            IDBObjectStore.prototype.getAll = real;
+            throw new Error('tend replay T20: one read of the walks failed');
+          };
+        });
+        await inApp(p);
+        await page.waitForSelector(sign, { timeout: 15000 }).catch(() => {});
+        const shown = (await page.locator(sign).count()) === 1;
+        const at390 = await backBox();
+        await h.shot(page, `t20-${name}-390`);
+        let at320 = null;
+        try {
+          await page.setViewportSize({ width: 320, height: 700 });
+          await page.waitForTimeout(400);
+          at320 = await backBox();
+          await h.shot(page, `t20-${name}-320`);
+        } finally {
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.waitForTimeout(400);
+        }
+        await page.getByRole('button', { name: 'Back to Chronicle', exact: true }).click({ timeout: 5000 }).catch(() => {});
+        await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
+        await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]', { timeout: 15000 }).catch(() => {});
+        const home = new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
+          && (await page.locator(sign).count()) === 0;
+        check(shown && fine(at390) && fine(at320) && home,
+          `tend replay T20: ${p} reached from inside the app keeps its words, and its way back reads and is said "Back to Chronicle", whole on one line at 390 and 320 px, and opens Chronicle at / (${JSON.stringify({ shown, at390, at320, home, url: page.url() })})`);
+      }
+      // The failed read is the step's own doing, and the boundary logs it: not the app's console error.
+      for (let i = h.errors.length - 1; i >= 0; i--) if (/tend replay T20: one read of the walks failed/.test(h.errors[i])) h.errors.splice(i, 1);
+    }
     await page.goto(`${url}explore`);
     await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 15000 }).catch(() => {});
     check(new URL(page.url()).pathname === `${BASE}/explore` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1

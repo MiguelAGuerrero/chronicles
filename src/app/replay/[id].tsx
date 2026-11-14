@@ -419,7 +419,7 @@ export default function Replay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>This walk could not be found.</Text>
-            <Button label="Back to walks" onPress={() => router.dismissTo('/')} />
+            <Button label="Back to Chronicle" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your walk…</Text>

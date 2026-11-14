@@ -244,7 +244,7 @@ export default function DayReplay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>Nothing was kept on this day.</Text>
-            <Button label="Back to the map" onPress={() => router.dismissTo('/')} />
+            <Button label="Back to Chronicle" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your day…</Text>
