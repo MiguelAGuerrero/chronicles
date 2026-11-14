@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [loop] **Reactions** (reactions audit 7, 11, 12, 15): a failed reaction write outside the viewer is silent (the journal's sign, More, a new page; as note-types audit 59); `keep` writes a row per family with no transaction, so a failure part-way keeps half a set; held reactions are dropped if a new page unmounts while its first save is in flight; on a video's pin the bubbles clear the play mark but sit mostly off the head (three cannot both touch the head and clear the mark: a design call).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [ ] **Do:** on a phone, react to a moment from the viewer opened from its pin on the walk screen, close the viewer, then turn on VoiceOver or TalkBack and move to that pin. **Expect:** the pin shows its new bubbles, and focus is where it was: on native the Marker is keyed by its reactions, so a change rebuilds it; and the bubbles at the head's left (from x -8, -20 on a video) are not clipped by the Marker's view on Android (reactions audit, native list)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open an entry's More, then Reaction, choose two reactions and tap Done; open a note's page with the keyboard up and open its Reaction tool. **Expect:** the reactions take the native sheet (one Modal) with Done at its top right; on the page the rows sit above the keyboard over the editor's web view, and a choice never moves the caret or the words (RX10, RX12)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reactions"
+      ],
+      "body": "- **Gathering a reaction's moments was found late** (the audit's cold find, high, reactions audit 22): \"Gather all my ideas\" was placed only through Contents → Reactions, and called borderline not found (\"Contents\" reads as a table of contents, and an Idea is never seen as a reaction from the journal). Recommended: a reaction under an entry or in the viewer opens its lens (a second way in, beside Contents), which you set aside on Nov 14; or keep Contents and look on a phone first.\n"
+    }
+  ]
+}

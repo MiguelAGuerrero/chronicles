@@ -257,6 +257,7 @@ What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).
 
 - **The sign once a moment has a reaction** (UI review U3): today it turns into the first reaction's glyph, so a plain smiling face can mean "no reaction yet" or "Happy", and the reaction is also spelled out under the dateline. Recommended: keep the face with a plus as the sign always and let the line under the dateline say what is chosen. It changes RX9, RX12 and decision 0168's "marked, the type's own glyph".
 - **"Contents" as the way to the lenses** (the cold find, RX2): "Gather all my ideas" was found, but late: "Contents" reads as a book's table of contents, and Threads was tried first. Recommended: keep Contents (your call in 0172) and rename its spoken name and line only if the owner sees the same on a phone; the alternative is a reaction under a moment opening its lens, which you declined.
+- **Gathering a reaction's moments was found late** (the audit's cold find, high, reactions audit 22): "Gather all my ideas" was placed only through Contents → Reactions, and called borderline not found ("Contents" reads as a table of contents, and an Idea is never seen as a reaction from the journal). Recommended: a reaction under an entry or in the viewer opens its lens (a second way in, beside Contents), which you set aside on Nov 14; or keep Contents and look on a phone first.
 
 ### Next evolutions
 

@@ -51,6 +51,8 @@ moment is drawn that a reaction could join:
 | A note's page (`NotePage`, from Edit, the viewer and the journal's line) | the Type tool (NY6, NY26) | the Reaction tool, setting the moment's (RX12) |
 | A new note's page (`NewNotePage`: walk, ready screen, journal) | the Type tool, held until kept (NY24) | the Reaction tool, held until kept (RX13) |
 | Respond's page, in `ResponsesSheet` and the thread screens | none until kept (NY15) | none until kept (RX13) |
+| The planner's note page (`PlannerCapture`, on a walk) | none | the Reaction tool, as the walk's (reactions audit 16) |
+| More on a Chronicle thread's moment and a lens's moment (`MemoryMenu`) | none | Reaction, as on an entry; never on the slip's More (reactions audit 17) |
 | Thread bubbles (`NoteBubble`, `OwnThreadScreen`) | the mark (NY17) | the moment's reactions (RX16) |
 | `chronicle/MomentCard` (the Chronicle's and the owner's thread screens, the new lens) | its spoken name only | glyphs and names after the words (RX16) |
 | The replay's cards and step-through (`ceremony/Cards.tsx`, `StepThrough`, `Grid`, `Pile`) | none | none: the ceremony is the content's, five beats in restraint (steward 3) |
@@ -178,3 +180,37 @@ Thirteen pictures read by the `ux-reviewer` against the plan's goal-to-control l
 - U7 (the open line under the lenses): reject; it stays in every contents screen (HC7 carried), as Threads and Hidden.
 - U8 (More at the foot of a lens card): defer; it is `MomentCard`'s, shared with the thread screens.
 - U9 (faces alike at pin size): defer to a phone (opinion).
+
+## Audit (Nov 14, 2026)
+
+The cold find again on the fixed pictures, then the auditor (A1-A15 and two hosts), the steward (S10-S13) and the UX
+review of the slice (U1-U9, triaged above). 22 findings: 15 fixed, 4 deferred, 1 rejected, 1 merged, 1 for the owner.
+Tests `reactions audit 1-6, 8-10, 13, 16-18, 20, 21` (unit and source checks in `reactions/audit.test.ts`,
+`readers.test.ts`, `captures/bundle.test.ts`; audit 3 also in the `reactions` journey), each failing before its fix.
+
+1. Two quick taps compute from the same old set; the screen and the store disagree (A1): **accept**. Writes queue, each from the set the one before left.
+2. A page that joins an open moment shows "none" and overwrites what it never showed (A2): **accept**. It shows and changes that moment's reactions.
+3. The held date's edge lies over the sign's plus (A3, the cold find's "clipped"): **accept**. The plus at the face's lower right.
+4. Reactions and a lens are not sub-screens: Contents stays up, and Threads from it loses to Reactions (A4): **accept**.
+5. A moment in the Undo window stays in its lens and its More does nothing (A5): **accept**. Lenses and the list leave out hidden ids.
+6. A failed reactions read hides the journal for three seconds and is never read again (A6; the steward's S11): **accept**. A failed read answers; the next load reads again.
+7. Failed writes are silent outside the viewer (A7): **defer**, as note-types audit 59 deferred saying a failed type save.
+8. The viewer's reaction panel outlives Close, and Back closes the viewer under it (A8): **accept**.
+9. The lens's viewer has no Edit and reads nothing again on close (A9): **accept**.
+10. A lens card links to the replay of a walk still recording (A10): **accept**. `closedWalks`.
+11. `keep` writes a row per family with no transaction (A11): **defer**; a batch write is a new `Db` method.
+12. Held reactions are dropped when a page unmounts mid-save (A12): **defer**; the page cannot unmount before its first save resolves in normal use.
+13. A web bundle still carries a piece's old `note_type` (A13): **accept**.
+14. qol-06 shows Taste in two halves (A14): **reject**; the picture predates `reactions ui 5`, the rerun shows three columns.
+15. On a video's pin the bubbles sit off the head (A15): **defer**; three bubbles that clear the play mark cannot all touch the head, and another corner holds the bell, the clock or the stack. A design call.
+16. The planner's note page has no Reaction tool, a host the spec did not name (auditor, hosts): **accept**.
+17. The slip's More offers Reaction (auditor, hosts): **accept**; the thread's and the lens's More keep it (named in the Surfaces table).
+18. The replay's step-through draws and speaks reactions (S10, a breach): **accept**. `CaptureContent reactions={false}`.
+19. The writing line waits for the reactions read (S11): merged into 6.
+20. Explore's and the planner's maps read the reactions table (S12): **accept**. `useReactionSets(enabled)`.
+21. RX36's test missed the bubbles and the lens screens (S13): **accept** as a guard (it passed on first run).
+22. "Gather all my ideas" found only through Contents, borderline not found (the cold find, high): **the owner's**, a navigation call; in `docs/STATUS.md`.
+
+The steward's silent question (a lens card's More teaches the resurfacer, Less like this and Not this one) is kept: it is
+the owner's own act, not the app weighting by reaction (RX30).
+
