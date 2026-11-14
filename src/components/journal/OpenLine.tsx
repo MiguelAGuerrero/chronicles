@@ -669,7 +669,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
         <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height) - under)}>
           {composing ? null : typeRow}
-          <View style={styles.row}>
+          {/* While the composer is open its controls are the only ones (the same names): the toolbar keeps its height, empty. */}
+          {composing ? <View style={styles.row} /> : <View style={styles.row}>
             {inBar ? (
               <>
                 {/* In a thread too, the recording's mark stays while the tabs are folded (audit 62). */}
@@ -715,7 +716,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             {/* Done at the end of the writing row (JN29); at rest it is in the pen's place (JN44); while a note records none
                 shows (audit 65), but one begun from the writing row keeps its unseen place, so the camera stays (JN14). */}
             {inBar || typing || pen.failed ? (showDone && !recording ? doneBtn : doneRoom) : recording && recTyping ? doneRoom : null}
-          </View>
+          </View>}
         </View>
       </View>
     </View>
@@ -751,7 +752,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
                   </Pressable>
                 );
               })() : null}
-              <Pressable testID="sheet-done" accessibilityRole="button" accessibilityLabel="Done" onPress={() => { void done(); setComposing(false); }} style={styles.done}>
+              <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={() => { void done(); setComposing(false); }} style={styles.done}>
                 <Text style={styles.doneText}>Done</Text>
               </Pressable>
             </View>
@@ -760,20 +761,20 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             </Pressable>
             {typeRow}
             <View style={styles.sheetTools}>
-              <IconButton testID="sheet-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
+              <IconButton testID="band-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
               {recording ? (
-                <IconButton testID="sheet-voice-save" icon="stop" label="Stop and save voice note" onPress={() => void saveVoice()} busy={cap.busy === 'voice'} voice />
+                <IconButton testID="band-voice-save" icon="stop" label="Stop and save voice note" onPress={() => void saveVoice()} busy={cap.busy === 'voice'} voice />
               ) : (
-                <IconButton testID="sheet-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={voice} busy={cap.busy === 'voice'} disabled={props.disabled} />
+                <IconButton testID="band-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={voice} busy={cap.busy === 'voice'} disabled={props.disabled} />
               )}
               {recording ? <View style={styles.lead}>{timer}{discard}</View> : (
                 <>
                   {/* A long entry, or one with a shape, becomes the note's page (JN51): the composer closes first, since iOS
                       shows no Modal over a Modal. */}
-                  <IconButton testID="sheet-page" icon="expand-outline" label="Open as a page" onPress={() => { setComposing(false); void openPage(); }} disabled={pen.beginning} />
-                  <Text style={styles.sheetStatus} numberOfLines={1} testID="sheet-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
+                  <IconButton testID="line-page" icon="expand-outline" label="Open as a page" onPress={() => { setComposing(false); void openPage(); }} disabled={pen.beginning} />
+                  <Text style={styles.sheetStatus} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
                   {pen.failed ? (
-                    <Pressable testID="sheet-retry" accessibilityRole="button" onPress={() => send.current({ k: 'retry' })} style={styles.textBtn}>
+                    <Pressable testID="line-retry" accessibilityRole="button" onPress={() => send.current({ k: 'retry' })} style={styles.textBtn}>
                       <Text style={styles.textBtnText}>Retry</Text>
                     </Pressable>
                   ) : null}

@@ -252,9 +252,9 @@ Approved from a mock-up of the real app ("Build it"), with: the sheet to the key
 or Back, Open as a page in its tools.
 
 - `src/components/journal/OpenLine.tsx`: `composing` state; the field is drawn only in the composer (`composer`, a
-  transparent `components/Modal` sliding up, filling the room above the keyboard): "New entry" and Done (`sheet-done`)
-  at its top, the status (`sheet-status`), the field, and `sheet-photo`, `sheet-voice` (`sheet-voice-save` while it
-  records, with the timer and Discard), `sheet-page` at its foot. `bar-compose` and the page's `write()` open it; Done,
+  transparent `components/Modal` sliding up, filling the room above the keyboard): "New entry" and Done (`line-done`)
+  at its top, the status (`line-status`), the field, and `band-photo`, `band-voice` (`band-voice-save` while it
+  records, with the timer and Discard), `line-page` at its foot. `bar-compose` and the page's `write()` open it; Done,
   the scrim and `onRequestClose` run `done()` and close. The toolbar loses the pen. In a thread the field stays in the
   bar as before.
 - `src/components/journal/JournalPage.tsx`: no field on the page (`field` is null there).

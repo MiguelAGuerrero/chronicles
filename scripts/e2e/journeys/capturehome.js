@@ -78,7 +78,7 @@ async function run(h) {
   await pg.waitForTimeout(600);
   await pg.keyboard.type('A note before the walk.', { delay: 10 });
   await pg.waitForTimeout(1200);
-  await pg.click('[data-testid=sheet-done]').catch(() => {});
+  await pg.click('[data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(1500);
 
   // HC10, HC7, HC15: with a walk minimized, the band files into the walk, sits above the recording bar,
@@ -144,7 +144,7 @@ async function run(h) {
   await pg.waitForTimeout(600);
   await pg.keyboard.type('Kept on the walk, from Memories.', { delay: 10 });
   await pg.waitForTimeout(1200);
-  await pg.click('[data-testid=sheet-done]').catch(() => {});
+  await pg.click('[data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(800);
   for (let i = 6; i < 10; i++) await step(i);
   const db = await stored(pg);

@@ -63,7 +63,7 @@ async function run(h) {
   const openPage = async () => {
     // The composer (JN47, JN51): the toolbar's field opens it; Open as a page is in its tools.
     await pg.click('[data-testid=bar-compose]');
-    await pg.click('[data-testid=sheet-page]');
+    await pg.click('[data-testid=line-page]');
   };
   const before = (await stored(pg)).length;
 

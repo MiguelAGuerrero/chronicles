@@ -88,7 +88,7 @@ async function run(h) {
     await pg.keyboard.type(text, { delay: 15 });
   };
   const done = async () => {
-    if ((await pg.locator('[data-testid=composer]').count()) > 0) await pg.click('[data-testid=sheet-done]').catch(() => {});
+    if ((await pg.locator('[data-testid=composer]').count()) > 0) await pg.click('[data-testid=line-done]').catch(() => {});
     else await pg.click('[data-testid=line-done]').catch(() => {});
   };
   const scrollTo = (where) => pg.evaluate((w) => {
@@ -189,8 +189,8 @@ async function run(h) {
     const req = indexedDB.open('chronicles');
     req.onsuccess = () => { const g = req.result.transaction('moment').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''))); };
   }), null, { timeout: 6000 }).then(() => true, () => false);
-  const status = (await pg.locator('[data-testid=sheet-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
-  check(begun && status === 'Kept as you write' && (await shown('[data-testid=sheet-done]')),
+  const status = (await pg.locator('[data-testid=line-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
+  check(begun && status === 'Kept as you write' && (await shown('[data-testid=line-done]')),
     `JN13 (with JN48): what is typed is stored with no Save, and the composer says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
   await pg.keyboard.type(' on the old pier.', { delay: 15 });
   await pg.waitForTimeout(1500);
@@ -232,7 +232,7 @@ async function run(h) {
   await pg.keyboard.press('Backspace');
   await pg.keyboard.type('Quick again.', { delay: 5 });
   await pg.waitForTimeout(1500);
-  const quickStatus = (await pg.locator('[data-testid=sheet-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
+  const quickStatus = (await pg.locator('[data-testid=line-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
   await done();
   await pg.waitForTimeout(800);
   const afterQuick = (await stored(pg)).moments;
@@ -268,7 +268,7 @@ async function run(h) {
   });
   // The page opens on the entry left off at: read it afresh.
   await pg.reload();
-  await pg.waitForSelector(input, { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=bar-compose]', { timeout: 30000 });
   await pg.waitForTimeout(1500);
   const rest3 = await lay();
   const headBottom = rest3.head ? rest3.head.bottom : 0;
@@ -352,7 +352,7 @@ async function run(h) {
   check(kept22.last === 'Question' && kept22.prev == null && kept22.slot === 0 && marked22 === 'Question', `NY22: a typed note shows its glyph and name above its words, while it is written and once kept; one with none shows nothing (${JSON.stringify({ kept22, marked22 })})`);
   await shot(pg, 'journal-24-type-on-entry');
   await pg.reload();
-  await pg.waitForSelector(input, { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=bar-compose]', { timeout: 30000 });
   await pg.waitForTimeout(1500);
   const again21 = { stored: await typeOfNote(/bakery shut/), shown: await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=note-type-mark]').getAttribute('aria-label').catch(() => null) };
   check(again21.stored === 'question' && again21.shown === 'Question', `NY21: the type is kept at once and is there when the app is opened again (${JSON.stringify(again21)})`);
@@ -479,12 +479,13 @@ async function run(h) {
   const photoOn = await pg.waitForFunction((sel) => { const all = document.querySelectorAll(sel); const last = all[all.length - 1]; return !!last && !!last.querySelector('[data-testid=entry-piece-photo]'); }, entries, { timeout: 15000 }).then(() => true, () => false);
   await type('Same post as last week.');
   await pg.waitForTimeout(1500);
+  // In the composer (JN50): its camera and mic, Stop in the mic's place.
   const restBoxes = { field: await box(pg, input), photo: await box(pg, '[data-testid=band-photo]'), voice: await box(pg, '[data-testid=band-voice]') };
   await pg.click('[data-testid=band-voice]').catch(() => {});
   await there('[data-testid=band-voice-save]', 8000);
   const rec = {
     field: await box(pg, input), photo: await box(pg, '[data-testid=band-photo]'), save: await box(pg, '[data-testid=band-voice-save]'),
-    discard: await shown('[data-testid=band-voice-discard]'), timer: await shown('[data-testid=band-voice-timer]'), text: await pg.locator(input).inputValue().catch(() => null),
+    discard: await shown('[data-testid=composer] [data-testid=band-voice-discard]'), timer: await shown('[data-testid=composer] [data-testid=band-voice-timer]'), text: await pg.locator(input).inputValue().catch(() => null),
     onPage: await pg.locator(entries).last().locator('[data-testid=entry-words]').filter({ hasText: 'Same post as last week.' }).count(),
     camera: await pg.locator('[data-testid=band-photo]').getAttribute('aria-disabled').catch(() => 'missing'),
   };
@@ -840,10 +841,10 @@ async function run(h) {
     const sheet = c?.querySelector('[data-testid=composer-sheet]')?.getBoundingClientRect();
     return {
       open: !!c, sheet: sheet ? { y: Math.round(sheet.y), h: Math.round(sheet.height) } : null, vh: window.innerHeight,
-      title: c ? (c.innerText.match(/New entry/) ? 'New entry' : null) : null, done: r('[data-testid=sheet-done]'),
+      title: c ? (c.innerText.match(/New entry/) ? 'New entry' : null) : null, done: r('[data-testid=line-done]'),
       focused: !!c && c.contains(document.activeElement) && document.activeElement?.getAttribute('data-testid') === 'line-input',
-      photo: r('[data-testid=sheet-photo]'), voice: r('[data-testid=sheet-voice]'), page: r('[data-testid=sheet-page]'),
-      status: c?.querySelector('[data-testid=sheet-status]')?.innerText.trim() ?? null,
+      photo: r('[data-testid=band-photo]'), voice: r('[data-testid=band-voice]'), page: r('[data-testid=line-page]'),
+      status: c?.querySelector('[data-testid=line-status]')?.innerText.trim() ?? null,
     };
   });
   await pg.click('[data-testid=bar-compose]').catch(() => {});
@@ -857,7 +858,7 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   const typed48 = { status: (await sheetState()).status, kept: (await stored(pg)).moments.some((m) => m.pieces.some((p) => p.body === 'Written in the composer.')) };
   await shot(pg, 'journal-48-composer-writing');
-  await pg.click('[data-testid=sheet-done]').catch(() => {});
+  await pg.click('[data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(1500);
   const closed48 = { open: (await sheetState()).open, last: await pg.locator(entries).last().innerText().catch(() => '') };
   // A tap outside keeps and closes too.
@@ -878,10 +879,10 @@ async function run(h) {
   check(field49 === 0 && tap49.open && tap49.focused, `JN49: the page has no field; a tap on the empty page opens the composer (${JSON.stringify({ field49, open: tap49.open, focused: tap49.focused })})`);
   // JN50: a voice note from the composer records there, Stop in the mic's place, the camera still working.
   const mic50 = tap49.voice;
-  await pg.click('[data-testid=sheet-voice]').catch(() => {});
-  await pg.waitForSelector('[data-testid=sheet-voice-save]', { timeout: 8000 }).catch(() => {});
+  await pg.click('[data-testid=band-voice]').catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
   await pg.waitForTimeout(1200);
-  const rec50 = { stop: await box(pg, '[data-testid=composer] [data-testid=sheet-voice-save]'), camOff: await pg.locator('[data-testid=sheet-photo]').getAttribute('aria-disabled').catch(() => 'missing') };
+  const rec50 = { stop: await box(pg, '[data-testid=composer] [data-testid=band-voice-save]'), camOff: await pg.locator('[data-testid=band-photo]').getAttribute('aria-disabled').catch(() => 'missing') };
   await shot(pg, 'journal-50-composer-recording');
   check(!!mic50 && !!rec50.stop && rec50.stop.x === mic50.x && rec50.camOff !== 'true', `JN50: a voice note records in the composer, Stop where the mic was, the camera still working (${JSON.stringify({ mic50, rec50 })})`);
   await pg.click('[data-testid=composer] [data-testid=band-voice-discard]').catch(() => {});
@@ -889,7 +890,7 @@ async function run(h) {
   // JN51: Open as a page carries the words to the note's page; closing it returns to the journal.
   await pg.keyboard.type('Long enough for a page.', { delay: 10 });
   await pg.waitForTimeout(1000);
-  await pg.click('[data-testid=sheet-page]').catch(() => {});
+  await pg.click('[data-testid=line-page]').catch(() => {});
   const page51 = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
   await pg.waitForTimeout(800);
   const carried51 = (await pg.locator('[data-testid=note-page] [data-testid=note-input]').innerText().catch(() => '')).trim();
@@ -1163,7 +1164,7 @@ async function run(h) {
     await pg.waitForTimeout(1000);
   }
   await tabTo(pg, 'chronicle', 'memories');
-  await there(input, 8000);
+  await there('[data-testid=bar-compose]', 8000);
   const walk = await h.openWalk(pg);
   await pg.evaluate(() => { window.__geo.reads = 0; });
   await type('Written on the walk.');
