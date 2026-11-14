@@ -5,6 +5,8 @@
 
 # Map layers (ML)
 
+> Amended by `specs/storefronts` (Nov 14, 2026): the layer "Busy streets" is "Storefronts", id `storefronts`, a choice saved under `busy` kept (SF1, SF12).
+
 A **layer** puts some graphics on the base map: a tint, a line, a border. The map shows none that the person has not asked for, except the
 one that orients them. One button on the map opens a small panel of layers, each a switch. Three layers to begin: **Walkability**,
 **Busy streets** and **Town borders**. More can join later without changing the panel.

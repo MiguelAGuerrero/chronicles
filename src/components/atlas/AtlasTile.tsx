@@ -16,7 +16,7 @@ const fmt = (m: number) => formatDistance(m);
 /**
  * One area as a card of the row (AT3, AT5, AT13, AT16, EC15; decision 0124). Reading order:
  * the name, what it's like in words, one quiet line of how far and your
- * familiarity, its busiest street, then the kinds it has as icons with dots. No
+ * familiarity, its densest storefront street, then the kinds it has as icons with dots. No
  * picture: the area's own card has it. A town's card (`drill`) says it opens the
  * town's neighborhoods, in a footer that looks like a way in; the card heading a
  * town's page (`wide`) says it opens what's there. The selected card says what a
@@ -74,8 +74,8 @@ export const AtlasTile = memo(function AtlasTile(props: {
             <View style={styles.meta}>
               {a.profile?.strips[0] ? (
                 <>
-                  <View style={styles.busyLine} />
-                  <Text style={styles.busy} numberOfLines={1}>{a.profile.strips[0]}</Text>
+                  <View style={styles.storefrontLine} />
+                  <Text style={styles.storefront} numberOfLines={1}>{a.profile.strips[0]}</Text>
                 </>
               ) : null}
             </View>
@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 12, color: theme.muted, lineHeight: 16 },
   here: { color: COLORS.route, fontWeight: '700' },
   known: { color: COLORS.trace, fontWeight: '600' },
-  busyLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
-  busy: { fontSize: 12, fontWeight: '600', color: HOTSPOT_INK, flexShrink: 1 },
+  storefrontLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
+  storefront: { fontSize: 12, fontWeight: '600', color: HOTSPOT_INK, flexShrink: 1 },
   footer: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44, paddingHorizontal: 10,
     borderTopWidth: 1, borderTopColor: theme.line,

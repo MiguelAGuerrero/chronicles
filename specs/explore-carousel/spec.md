@@ -2,6 +2,8 @@
 
 # Explore carousel: most of the screen is the map, the areas are a row of cards
 
+> Amended by `specs/storefronts` (Nov 14, 2026): the Busy layer and its names are the Storefronts layer and storefront names (SF1, SF13).
+
 Nov 10, 2026 · @Miguel Guerrero
 
 ## Vision

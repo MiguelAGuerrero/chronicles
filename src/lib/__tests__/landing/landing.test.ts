@@ -55,7 +55,7 @@ test('landing: the rules live in LANDING_RULES; the main-street list is data (L3
   assert.equal(LANDING_RULES.kernelM, 120);
   assert.equal(LANDING_RULES.frontageM, 40);
   assert.equal(LANDING_RULES.floor, 2);
-  assert.equal(LANDING_RULES.busyMinM, 120);
+  assert.equal(LANDING_RULES.storefrontMinM, 120);
   assert.equal(LANDING_RULES.maxGapM, 80);
   assert.equal(LANDING_RULES.minSpanM, 200);
   assert.ok(MAIN_STREET_NAMES.includes('Main') && MAIN_STREET_NAMES.includes('Broad') && MAIN_STREET_NAMES.includes('Market'));
@@ -92,7 +92,7 @@ test('landing: a lone café, a corner bodega and a three-shop corner are not str
 });
 
 test('landing: a gap of two blocks breaks a run (L5, as AD13 has it)', () => {
-  // 150 m of shops, a 200 m gap, 150 m more: two busy streets of one name, never one across the gap.
+  // 150 m of shops, a 200 m gap, 150 m more: two storefront streets of one name, never one across the gap.
   const r = run({ points: [...alongThayer(0, 150), ...alongThayer(350, 500)] });
   assert.equal(r.strips.filter((s) => s.name === 'Thayer Street').length, 2);
   for (const st of r.strips) assert.ok(st.lengthM < 330, `${Math.round(st.lengthM)} m`);
@@ -100,7 +100,7 @@ test('landing: a gap of two blocks breaks a run (L5, as AD13 has it)', () => {
 
 /**
  * A crossing of four differently named streets, a few shops along each arm: too short on any one street to be a
- * busy street (AD13), together a pocket.
+ * storefront street (AD13), together a pocket.
  */
 function crossing(x: number, y: number) {
   const names = ['North Arm', 'East Arm', 'South Arm', 'West Arm'];
@@ -112,7 +112,7 @@ function crossing(x: number, y: number) {
 }
 
 test('landing: many strips and pockets, no cap; a pocket with no strip takes its neighbourhood (L4, L5, as AD13 has it)', () => {
-  // Thayer's busy street, a second on Avenue 500, and a crossing near Fox Point with shops on every arm.
+  // Thayer's storefront street, a second on Avenue 500, and a crossing near Fox Point with shops on every arm.
   const avenue = Array.from({ length: 11 }, (_, i) => place(`Ave ${i}`, 'shops', m(500 + (i % 2 ? 8 : -8), -288 + i * 25)));
   const x = crossing(-1000, 900);
   const towns: PlaceCandidate[] = [{ level: 'neighborhood', name: 'Fox Point', at: m(-950, 950), reachM: 1000 }];
@@ -126,12 +126,12 @@ test('landing: many strips and pockets, no cap; a pocket with no strip takes its
   for (let i = 1; i < r.pockets.length; i++) assert.ok(r.pockets[i - 1].weight >= r.pockets[i].weight);
 });
 
-test('landing: a pocket with neither strip nor neighbourhood is "A busy pocket" (L4)', () => {
+test('landing: a pocket with neither strip nor neighbourhood is "A pocket of storefronts" (L4, SF6)', () => {
   const x = crossing(-1000, 900);
-  assert.deepEqual(run({ points: x.points, segments: [...grid(), ...x.segments] }).pockets.map((p) => p.name), ['A busy pocket']);
+  assert.deepEqual(run({ points: x.points, segments: [...grid(), ...x.segments] }).pockets.map((p) => p.name), ['A pocket of storefronts']);
 });
 
-test('SF6: a pocket of storefronts with neither street nor neighbourhood is "A pocket of storefronts"', { todo: 'test first' }, () => {
+test('SF6: a pocket of storefronts with neither street nor neighbourhood is "A pocket of storefronts"', () => {
   const x = crossing(-1000, 900);
   const r = run({ points: x.points, segments: [...grid(), ...x.segments] });
   assert.deepEqual(r.pockets.map((p) => p.name), ['A pocket of storefronts']);
@@ -242,7 +242,7 @@ test('landing: a street that bends, loops or repeats its name keeps its strips (
 });
 
 test('landing: a strip without a pocket is still the place to start (audit 2)', () => {
-  // A shop every 25 m for 150 m: a busy street, too short for a pocket.
+  // A shop every 25 m for 150 m: a storefront street, too short for a pocket.
   const shops = Array.from({ length: 7 }, (_, i) => place(`S${i}`, 'shops', m(i % 2 ? 8 : -8, 12 + i * 25)));
   const roads = [...grid(), ...street('Broad Street', [-600, 550], [600, 550], 'primary'), ...street('Market Street', [550, -600], [550, 600], 'secondary')];
   const r = run({ points: shops, segments: roads });

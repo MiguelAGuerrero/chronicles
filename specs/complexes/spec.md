@@ -3,6 +3,8 @@
 
 # Complexes (CX)
 
+> Amended by `specs/storefronts` (Nov 14, 2026): "busy" is now storefronts (SF13); a complex's shopping word still reads `densityWeight` (decision 0178).
+
 On a walk at Strawberry Square in Harrisburg, nothing on the map named it. It is not an attraction (so not a mark,
 and shops are never marks), and it is not a street (so not a Busy area), yet it is a named place a walker would
 notice because it holds so much. A **complex** is a named, bounded place made of other places: a mall, a shopping

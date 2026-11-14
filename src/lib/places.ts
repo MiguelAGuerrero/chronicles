@@ -137,7 +137,7 @@ export function starsFor(index: PlacesIndex, level: AreaLevel, zoom: number, lat
     const id = ELSEWHERE + parent;
     base.push({ id, label: `Elsewhere in ${index.areas.get(parent)!.name}`, at: e.at, walkIds: [...e.walkIds], count: 1, keys: [id], points: [e.at] });
   }
-  // The busiest place leads its group; ties by name, so the grouping is stable.
+  // The densest place leads its group; ties by name, so the grouping is stable.
   base.sort((x, y) => y.walkIds.length - x.walkIds.length || x.label.localeCompare(y.label));
   const radius = metersPerPixel(zoom, lat) * PIN_GROUP_PX;
   const stars: Star[] = [];

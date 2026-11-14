@@ -30,22 +30,22 @@ export const SCENIC = {
   maxM: 5000,
   /** A corridor of more z14 tiles than this is not read (about 5 km across at 45° north). */
   maxTiles: 40,
-  /** Green and busy: a route must gain this many metres of what it leans on (SR6). */
+  /** Green and storefronts: a route must gain this many metres of what it leans on (SR6). */
   minGainM: 100,
   /** Sights: a route must pass this many more places (SR6). */
   minSights: 1,
   /** A place is passed within this of the route (SR6). */
   sightM: 40,
-  /** A busy street counts within this of the route. */
-  busyM: 15,
+  /** A storefront street counts within this of the route. */
+  storefrontM: 15,
   /** The share of length two routes must share to be one row (SR7), or to be like Direct. */
   sameShare: 0.8,
   directShare: 0.9,
   /** Within this, a route's point lies on another route. */
   sharedM: 15,
-  /** A park, or a busy street, is named once the route runs this long in it or along it (SR4). */
+  /** A park, or a storefront street, is named once the route runs this long in it or along it (SR4). */
   greenRunM: 30,
-  busyRunM: 50,
+  storefrontRunM: 50,
   /** How strongly an appealing metre is discounted: each is tried, the best within the detour wins. */
   strengths: [0.4, 0.6, 0.85] as readonly number[],
   /** Routes and edges are sampled this often. */

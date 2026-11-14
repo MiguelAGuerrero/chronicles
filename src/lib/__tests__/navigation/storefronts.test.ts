@@ -9,16 +9,16 @@ import { fakePorts } from '../fakes';
 
 // specs/storefronts: the route leaning says storefronts (SF8), and a leaning saved under the old word holds (SF12).
 
-test('SF8: the leaning is Storefronts, and a route leaning on it is titled "Along storefronts"', { todo: 'test first' }, () => {
+test('SF8: the leaning is Storefronts, and a route leaning on it is titled "Along storefronts"', () => {
   assert.ok((scenic.LEANINGS as readonly string[]).includes('storefronts'));
   const words = (scenic as unknown as { LEANING_WORDS: Record<string, { label: string; note: string }> }).LEANING_WORDS;
   assert.equal(words.storefronts.label, 'Storefronts');
   assert.equal(words.storefronts.note, 'Along streets of shops and cafés, the high street');
-  const o = { leanings: ['storefronts'], route: { coords: [], distanceM: 1000, durationS: 700, steps: [] }, passes: { parks: [], streets: [], places: [], finds: 0 } } as unknown as RouteOption;
+  const o = { leanings: ['storefronts'], route: { coords: [], distanceM: 1000, durationS: 700, steps: [] }, passes: { parks: [], streets: [], found: [], unfound: 0 } } as unknown as RouteOption;
   assert.equal(scenic.rowWords(o, 'km').title, 'Along storefronts');
 });
 
-test('SF12: a leaning saved as busy is read as storefronts, on or off', { todo: 'test first' }, async () => {
+test('SF12: a leaning saved as busy is read as storefronts, on or off', async () => {
   const on = fakePorts();
   await on.db.setMeta(ROUTE_LEANINGS_KEY, JSON.stringify(['green', 'busy']));
   const a = createRouteLeanings(on);
@@ -31,7 +31,7 @@ test('SF12: a leaning saved as busy is read as storefronts, on or off', { todo: 
   assert.deepEqual(b.store.get(), ['green', 'sights'], 'saved off, still off');
 });
 
-test('SF12: a navigation in progress that leaned on busy streets leans on storefronts after a reload', { todo: 'test first' }, async () => {
+test('SF12: a navigation in progress that leaned on busy streets leans on storefronts after a reload', async () => {
   const p = fakePorts();
   const dest = { at: [-71.4, 41.812], label: 'Fox Point', kind: 'place', leanings: ['busy'] } as unknown as Waypoint;
   await createNavStore(p).saveNav('w1', dest);

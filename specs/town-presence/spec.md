@@ -5,6 +5,8 @@
 
 # Town presence (TP)
 
+> Amended by `specs/storefronts` (Nov 14, 2026): "Busy areas", busiest first, is the card's one "Storefronts" list, nearest you first (SF2, SF3).
+
 Whitehall's card said "none" for every kind. Its label point is an administrative spot in a quiet part of the
 township, and a town's bars counted only the places within 800 m of that point. MacArthur Road's shops and the
 Lehigh Valley Mall are 1 to 4 km away. This slice grades a town across its whole outline and finds the pockets

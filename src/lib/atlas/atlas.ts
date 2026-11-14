@@ -132,9 +132,11 @@ export interface Sketch {
 /** What a full ring read leaves (cache). */
 export interface AtlasProfile {
   steps: Steps;
-  /** Busy streets, busiest first. */
+  /** Storefront streets, the densest first (its order is never shown: the card lists them nearest first, SF3). */
   strips: string[];
-  /** The busiest strip's peak, where Walk to goes (AT8). */
+  /** SF3: each street's point, beside `strips` (absent on a profile from before a13). */
+  stripPeaks?: LngLat[];
+  /** The densest strip's peak, where Walk to goes (AT8). */
   stripAt: LngLat | null;
   marks: AtlasMark[];
   sketch: Sketch;
@@ -148,11 +150,11 @@ export interface AtlasProfile {
   extent?: 'outline' | 'ring' | 'shape';
   /** TP3: the outline needed more tiles than a read takes, so this covers part of the town. */
   partial?: boolean;
-  /** TP4: the town's pockets of activity, busiest first. */
+  /** TP4: the town's pockets of activity, densest first. */
   pockets?: Pocket[];
   /** TP12: the town's outline could not be read, so this is the ring for now: read again after the retry wait. */
   outlineRetry?: boolean;
-  /** TP2: where the picture is drawn around: the busiest pocket for a graded town (absent: the area's point). */
+  /** TP2: where the picture is drawn around: the densest pocket for a graded town (absent: the area's point). */
   sketchAt?: LngLat;
 }
 
@@ -613,7 +615,7 @@ export function nextDoor(area: AtlasArea, rows: AtlasArea[], build: string | nul
 }
 
 /**
- * AT8: Walk to an area: it is named for the area, and starts you at its busiest
+ * AT8: Walk to an area: it is named for the area, and starts you at its densest
  * street (`via`) when it has one, else at its point (atlas round 3).
  */
 export function walkTarget(area: AtlasArea): { at: LngLat; label: string; via: string | null } {
@@ -658,7 +660,7 @@ export const MARKS_EXPLAINED: readonly string[] = [
 ];
 
 /** The line a town counted across its whole outline says in place of the ring's (TP8). */
-const WHOLE_TOWN_LINE = 'A town is counted across its whole outline, and a neighborhood within about a ten-minute walk of its point, so the same marks mean the same anywhere. Where a town is busiest is listed apart.';
+const WHOLE_TOWN_LINE = 'A town is counted across its whole outline, and a neighborhood within about a ten-minute walk of its point, so the same marks mean the same anywhere. Where its storefronts gather is listed apart.';
 
 /** HB11: the line a neighborhood counted across its own shape says in place of the ring's. */
 const SHAPE_LINE = 'A neighborhood is counted across the ground drawn around it where the map has one, and within about a ten-minute walk of its point where it has not.';
@@ -671,11 +673,27 @@ export const marksExplained = (p: Pick<AtlasProfile, 'extent'> | null | undefine
 export const kindsHeading = (level: AtlasLevel, p: Pick<AtlasProfile, 'extent'> | null | undefined): string =>
   level === 'town' && p?.extent !== 'outline' ? 'What’s here · around its centre' : 'What’s here';
 
-/** TP7: the busy areas of a town, busiest first, each a street with where Walk to goes; a pocket no street runs through is not listed (the owner, Nov 4: a busy area is a street, never a place); two pockets on one street list it once, at the busier; none for a neighborhood or a ring-graded town. */
-export const busyAreas = (a: AtlasArea): { label: string; at: LngLat }[] =>
-  a.level === 'town' && a.profile?.extent === 'outline'
-    ? (a.profile.pockets ?? []).flatMap((p, i, all) => (p.name && all.findIndex((q) => q.name === p.name) === i ? [{ label: p.name, at: p.at }] : []))
-    : [];
+/**
+ * SF2, SF3: an area's storefront streets, one list: a graded town's pockets named for a street (TP7: a pocket no street runs
+ * through is not listed; the owner, Nov 4) and the profile's strips, each street once, nearest `from` first (with no fix,
+ * the area's point), ties by name; never by how many storefronts. `at` is where Walk to goes; null for a strip of a profile
+ * from before a13, which kept no point (listed last, by name).
+ */
+export function storefrontsOf(a: AtlasArea, from: LngLat | null): { label: string; at: LngLat | null }[] {
+  const p = a.profile;
+  if (!p) return [];
+  const seen = new Map<string, LngLat | null>();
+  if (a.level === 'town' && p.extent === 'outline') for (const k of p.pockets ?? []) if (k.name && !seen.has(k.name)) seen.set(k.name, k.at);
+  p.strips.forEach((name, i) => {
+    if (seen.get(name) == null) seen.set(name, p.stripPeaks?.[i] ?? null);
+  });
+  const origin = from ?? a.at;
+  const d = (at: LngLat | null) => (at ? distanceM(origin, at) : Infinity);
+  return [...seen].map(([label, at]) => ({ label, at })).sort((x, y) => d(x.at) - d(y.at) || (x.label < y.label ? -1 : x.label > y.label ? 1 : 0));
+}
+
+/** SF4: Walk to's line under the footer: the street it starts you on, with no superlative. */
+export const walkViaLine = (via: string): string => `Starts you on ${via}`;
 
 /** AT13: one sentence a screen reader says for a tile; how far and the walked count are its only numbers (AT11). */
 export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => string): string {
@@ -685,7 +703,7 @@ export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => strin
   if (a.profile.thin) return head;
   const part = a.profile.partial ? ' Covers part of the town.' : '';
   const kinds = ATLAS_ORDER.filter((c) => a.profile!.steps[c]).map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`);
-  return [head, kinds.length ? `${kinds.join(', ')}.` : 'Quiet: little of any kind.', a.profile.strips[0] ? `Busy along ${a.profile.strips[0]}.` : '', part.trim()]
+  return [head, kinds.length ? `${kinds.join(', ')}.` : 'Quiet: little of any kind.', a.profile.strips[0] ? `Storefronts along ${a.profile.strips[0]}.` : '', part.trim()]
     .filter(Boolean).join(' ');
 }
 

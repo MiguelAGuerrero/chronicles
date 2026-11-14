@@ -71,16 +71,16 @@ export interface LandingView {
   pockets: { hull: LngLat[]; name: string; stale: boolean }[];
   /** Heaviest first across every area, so a heavier street's name is placed first (DC4); the weights stay out of the view (L9). */
   strips: { lines: LngLat[][]; name: string; at: LngLat; stale: boolean }[];
-  /** Graded stretches to draw (AD12): every grade, named or not by a busy street. */
+  /** Graded stretches to draw (AD12): every grade, named or not by a storefront street. */
   graded: { lines: LngLat[][]; grade: 1 | 2 | 3; stale: boolean }[];
-  /** Names of pockets with no strip of their own (a neighbourhood, "A busy pocket"), at their centre (L9). */
+  /** Names of pockets with no strip of their own (a neighbourhood, "A pocket of storefronts"), at their centre (L9). */
   labels: { name: string; at: LngLat; stale?: boolean }[];
 }
 
 /** A strip's name keeps at least this far from its area's Start here pin, so the two never stack (audit). */
 const LABEL_CLEAR_M = 80;
 
-/** Where a strip's name goes: its busiest point, unless the pin is there; then the line's point furthest along from it. */
+/** Where a strip's name goes: its peak, unless the pin is there; then the line's point furthest along from it. */
 function labelAt(lines: LngLat[][], peak: LngLat, pin: LngLat | null): LngLat {
   if (!pin || distanceM(peak, pin) >= LABEL_CLEAR_M) return peak;
   let best = peak;
@@ -91,7 +91,7 @@ function labelAt(lines: LngLat[][], peak: LngLat, pin: LngLat | null): LngLat {
         const t = k / 4;
         const p: LngLat = [line[i - 1][0] + (line[i][0] - line[i - 1][0]) * t, line[i - 1][1] + (line[i][1] - line[i - 1][1]) * t];
         const d = distanceM(p, pin);
-        // The nearest point that is clear of the pin: close to the busy part, not at the far end.
+        // The nearest point that is clear of the pin: close to the dense part, not at the far end.
         if (d >= LABEL_CLEAR_M && (bestD < LABEL_CLEAR_M || d < bestD)) [best, bestD] = [p, d];
       }
   return best;
@@ -109,7 +109,7 @@ export const predatesStreetFix = (r: LandingRow) => Number(/^l(\d+):/.exec(r.rul
  * What the map draws for remembered areas (L9): shapes and names only, never
  * a score or rank; stale ones dimmed. Information only: no Start here pin
  * (retired by explore), though a strip's name still keeps clear of where the
- * pin was, its busiest point.
+ * pin was, its peak.
  */
 export function landingView(rows: LandingRow[], build: string | null, release: string | null = null): LandingView {
   const v: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
@@ -118,7 +118,7 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
   for (const [i, r] of rows.entries()) {
     if (predatesStreetFix(r)) continue;
     const stale = build != null && isStale(r, build, release);
-    // Areas analyzed before grades draw their busy streets as medium, until analyzed again.
+    // Areas analyzed before grades draw their storefront streets as medium, until analyzed again.
     if (r.analysis.graded) for (const g of r.analysis.graded) v.graded.push({ lines: g.lines, grade: g.grade, stale });
     else for (const s of r.analysis.strips) v.graded.push({ lines: s.lines, grade: 2, stale });
     const pin = r.analysis.landing?.at ?? null;
@@ -145,7 +145,7 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
 }
 
 /**
- * Two remembered areas may cover the same street, and one area may find two busy stretches of it: its name is drawn once
+ * Two remembered areas may cover the same street, and one area may find two storefront stretches of it: its name is drawn once
  * within this distance (fix street-label-double; explore-dense-city audit 4, the owner: once per 300 m).
  */
 const SAME_LABEL_M = 300;
@@ -156,7 +156,7 @@ interface Drawn extends Named { row: number; stale: boolean; street: boolean; li
  * Adds a name unless one of that name is already drawn nearby, from any area; a current row's name replaces a stale
  * row's. Within one area (explore-dense-city audit 4): a street's stretches carry one name (its strips come heaviest first,
  * so the first placed keeps it), and a pocket named for a street gives way to that street's own name, which sits on it;
- * two pockets of one name ("A busy pocket") stay two.
+ * two pockets of one name ("A pocket of storefronts") stay two.
  */
 function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number, stale: boolean, street = false) {
   const dup = drawn.find((d) => (street || d.street || d.row !== row) && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);

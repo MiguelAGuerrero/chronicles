@@ -61,7 +61,7 @@ export function useExplore(opts: {
   /** The range being previewed in settings, so the marks follow the slider (audit, UI). */
   previewRangeM?: number | null;
   onFound: (item: ChecklistItem) => void;
-  /** A read remembered new busy streets. */
+  /** A read remembered new storefront streets. */
   onAreas: () => void;
 }) {
   const [settings, setSettings] = useState<ExploreSettings>(DEFAULT_SETTINGS);
@@ -138,7 +138,7 @@ export function useExplore(opts: {
   const failed = useRef<{ at: LngLat; t: number } | null>(null);
   const checkedAt = useRef<LngLat | null>(null);
   const readAt = useCallback(async (centre: LngLat, stop: () => boolean = () => false): Promise<boolean> => {
-    // Busy streets only on an exploring walk (the owner's call); checklists on every walk.
+    // Storefront streets only on an exploring walk (the owner's call); checklists on every walk.
     const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current || stop());
     if (!mounted.current) return false;
     if (!r.ok) {
@@ -151,7 +151,7 @@ export function useExplore(opts: {
     latest.current.onAreas();
     return true;
   }, [loadKnown]);
-  // Areas a quiet walk read without busy streets: read again once on an exploring walk, never in a loop.
+  // Areas a quiet walk read without storefront streets: read again once on an exploring walk, never in a loop.
   const sweptAt = useRef<LngLat[]>([]);
   const maybeRead = useCallback(async (fix: LngLat) => {
     if (exploreBusy() || !retryAllowed(failed.current, fix, Date.now())) return;
@@ -188,7 +188,7 @@ export function useExplore(opts: {
     maybeRead(here).catch(() => {});
   }, [here, riding, opts.walkId, loadItems, maybeRead]);
 
-  // Switched to exploring: check at once, so busy streets a quiet read skipped come in now, not 25 m on.
+  // Switched to exploring: check at once, so storefront streets a quiet read skipped come in now, not 25 m on.
   useEffect(() => {
     const at = latest.current.here;
     if (!exploring || !at || latest.current.riding) return;

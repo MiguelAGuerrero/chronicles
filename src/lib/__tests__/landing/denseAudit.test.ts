@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { AreaAnalysis } from '../../landing/analyze';
-import { alongAngle, busyNames } from '../../landing/names';
+import { alongAngle, storefrontNames } from '../../landing/names';
 import { LANDING_VERSION, landingKey, landingView, type LandingRow } from '../../landing/view';
 import type { LngLat } from '../../types';
 
@@ -12,19 +12,19 @@ const O: LngLat = [-76.615, 39.29];
 const m = (x: number, y: number): LngLat => [O[0] + x / 86000, O[1] + y / 111320];
 const strip = (name: string, x0: number, y: number, weight: number) => ({ name, lengthM: 200, weight, lines: [[m(x0, y), m(x0 + 200, y)]], peak: m(x0 + 100, y) });
 const analysis = (strips: ReturnType<typeof strip>[]): AreaAnalysis => ({
-  basis: 'density', reason: 'Busiest area', pockets: [], strips,
+  basis: 'density', reason: 'Where storefronts gather', pockets: [], strips,
   graded: strips.map((s) => ({ name: s.name, grade: 3 as const, lines: s.lines })), landing: null,
 });
 const row = (centre: LngLat, a: AreaAnalysis, build = 'b1'): LandingRow => ({ key: landingKey(centre), centre, analysis: a, build, rules: LANDING_VERSION, analyzed_at: 1 });
 
 test('explore-dense-city audit 4: two busy stretches of one street within 300 m in one area carry one name; farther apart, one each', () => {
-  // 23 Street busy at x 0-200 and again at x 470-670 (peaks 470 m apart, the nearer ends 270 m): one area read both.
+  // 23 Street storefront at x 0-200 and again at x 470-670 (peaks 470 m apart, the nearer ends 270 m): one area read both.
   const near = landingView([row(O, analysis([strip('23 Street', 0, 0, 20), strip('23 Street', 270, 0, 12)]))], 'b1');
-  assert.equal(busyNames(near).filter((n) => n.name === '23 Street').length, 1);
+  assert.equal(storefrontNames(near).filter((n) => n.name === '23 Street').length, 1);
   const far = landingView([row(O, analysis([strip('23 Street', 0, 0, 20), strip('23 Street', 900, 0, 12)]))], 'b1');
-  assert.equal(busyNames(far).filter((n) => n.name === '23 Street').length, 2, 'past 300 m, another stretch of the street');
+  assert.equal(storefrontNames(far).filter((n) => n.name === '23 Street').length, 2, 'past 300 m, another stretch of the street');
   // The heavier stretch keeps the name.
-  assert.deepEqual(busyNames(near)[0].at, strip('23 Street', 0, 0, 20).peak);
+  assert.deepEqual(storefrontNames(near)[0].at, strip('23 Street', 0, 0, 20).peak);
 });
 
 test('explore-dense-city audit 12: a zero-length piece never decides a name\'s turn', () => {
@@ -38,14 +38,14 @@ test('explore-dense-city audit 12: a zero-length piece never decides a name\'s t
 test('DC19: where names compete, a current area\'s names come before a stale area\'s, the heavier first within each', () => {
   const stale = row(m(3000, 0), analysis([strip('Old Heavy Street', 3000, 0, 50)]), 'b0');
   const current = row(O, analysis([strip('Light Street', 0, 0, 5), strip('Heavy Street', 0, 100, 30)]));
-  const names = busyNames(landingView([stale, current], 'b1'));
+  const names = storefrontNames(landingView([stale, current], 'b1'));
   assert.deepEqual(names.map((n) => n.name), ['Heavy Street', 'Light Street', 'Old Heavy Street']);
 });
 
 test('explore-dense-city audit 4: a pocket named for a street and that street\'s own name, in one area, are one name, the street\'s', () => {
   const a = analysis([strip('24 Avenue', 0, 0, 20)]);
   a.pockets = [{ name: '24 Avenue', weight: 9, spanM: 250, centre: m(150, 120), hull: [m(100, 80), m(200, 80), m(150, 160)], strips: [] }];
-  const names = busyNames(landingView([row(O, a)], 'b1'));
+  const names = storefrontNames(landingView([row(O, a)], 'b1'));
   assert.equal(names.filter((n) => n.name === '24 Avenue').length, 1);
   assert.deepEqual(names.find((n) => n.name === '24 Avenue')?.at, strip('24 Avenue', 0, 0, 20).peak, 'on the street, not at the pocket\'s middle');
 });

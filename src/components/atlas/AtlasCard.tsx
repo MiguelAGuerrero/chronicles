@@ -14,12 +14,12 @@ import { focusOn } from '../../lib/focus';
 import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
-import { ATLAS_RULES } from '../../lib/atlas/atlas';
+import { ATLAS_RULES, walkViaLine } from '../../lib/atlas/atlas';
 import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
 import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
-import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
+import { COLORS, HOTSPOT } from '../map/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
@@ -46,7 +46,7 @@ type Pan = ReturnType<typeof PanResponder.create>;
 
 /**
  * An area's card (AT8, atlas round 3): the larger picture, the eight kinds in
- * words and dots, how the marks work, busy streets, what is waiting (kinds
+ * words and dots, how the marks work, storefront streets, what is waiting (kinds
  * only, AT7), what you found, the areas next door, and Walk to, always in
  * sight in a footer. On a phone it is a full-screen drawer over the tabs, which
  * fold away while it is open; on a wide screen a panel beside the map. ✕, Back
@@ -71,8 +71,8 @@ export function AtlasCard(props: {
   you: LngLat | null;
   nextDoor: { area: AtlasArea; distanceM: number }[];
   walkTo: { at: LngLat; label: string; via: string | null } | null;
-  /** TP7: a graded town's busy areas, busiest first; `walkable` is whether navigation will route from where you are. */
-  busyAreas: { label: string; at: LngLat; walkable: boolean }[];
+  /** SF2, SF3: the area's storefront streets, nearest you first (`storefrontsOf`); `walkable` is whether navigation will route from where you are. */
+  storefronts: { label: string; at: LngLat | null; walkable: boolean }[];
   /** CX4: this area's complexes (the nearest few, then "See more" for the rest), or null; `walkable` is whether navigation will route from where you are. */
   complexSection?: (expanded: boolean) => { title: string; rows: { id: string; name: string; word: string; at: LngLat; label: string; walkable: boolean }[]; more: boolean } | null;
   starting: boolean;
@@ -253,21 +253,27 @@ export function AtlasCard(props: {
           {/* TP3: a town wider than one read takes says it covers part of it. */}
           {p?.partial && <Text style={styles.muted} testID="atlas-partial">Covers part of the town: the middle of it, around its point.</Text>}
 
-          {/* TP7: where a town is busy, apart from its kinds: each busy street once, busiest first, with Walk to. */}
-          {props.busyAreas.length > 0 && (
+          {/* SF2, SF3: the area's storefront streets, one list, nearest you first, each with Walk to where it can be walked to. */}
+          {props.storefronts.length > 0 && (
             <View style={styles.sec}>
-              <Text style={styles.secTitle} accessibilityRole="header">Busy areas</Text>
-              <View testID="atlas-busy-areas">
-                {props.busyAreas.map((b, i) => (
-                  <View key={`${b.label}-${i}`} style={styles.pocket} testID="atlas-busy-area">
-                    <Text style={styles.pocketName}>{b.label}</Text>
-                    {b.walkable ? (
-                      <Pressable testID="atlas-busy-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(b.at, b.label, () => props.onWalkAt(b.at, b.label))} style={styles.pocketWalk}>
-                        <Text style={styles.howText}>Walk to</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ))}
+              <Text style={styles.secTitle} accessibilityRole="header">Storefronts</Text>
+              <View testID="atlas-storefronts">
+                {props.storefronts.map((b) => {
+                  const at = b.at;
+                  return (
+                    <View key={b.label} style={styles.pocket} testID="atlas-storefront">
+                      <View style={styles.storefrontName}>
+                        <View style={styles.storefrontLine} />
+                        <Text style={styles.pocketName}>{b.label}</Text>
+                      </View>
+                      {b.walkable && at ? (
+                        <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.pocketWalk}>
+                          <Text style={styles.howText}>Walk to</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  );
+                })}
               </View>
             </View>
           )}
@@ -302,20 +308,6 @@ export function AtlasCard(props: {
               </View>
             );
           })()}
-
-          {p && p.strips.length > 0 && (
-            <View style={styles.sec}>
-              <Text style={styles.secTitle} accessibilityRole="header">Busy streets</Text>
-              <View style={styles.chips} testID="atlas-streets">
-                {p.strips.map((s) => (
-                  <View key={s} style={styles.busy}>
-                    <View style={styles.busyLine} />
-                    <Text style={styles.busyText}>{s}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
 
           {props.waiting.length > 0 && (
             <View style={styles.sec}>
@@ -404,7 +396,7 @@ export function AtlasCard(props: {
           ) : props.walkTo ? (
             <>
               <Button testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
-              {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">Starts you at {props.walkTo.via}, its busiest street</Text> : null}
+              {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">{walkViaLine(props.walkTo.via)}</Text> : null}
             </>
           ) : (
             <Text style={[styles.muted, styles.hereLine]}>Too far to walk from here</Text>
@@ -519,9 +511,8 @@ const styles = StyleSheet.create({
   complexText: { flexShrink: 1, flex: 1 },
   pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
   pocketWalk: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },
-  busy: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(214,38,140,0.12)', borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 },
-  busyLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
-  busyText: { fontSize: 13, fontWeight: '600', color: HOTSPOT_INK },
+  storefrontName: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  storefrontLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
   q: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.6, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   qMark: { position: 'absolute', top: -4, right: -4, fontSize: 11, fontWeight: '800', color: theme.ink, backgroundColor: theme.surface, borderRadius: 8, paddingHorizontal: 3, overflow: 'hidden' },
   found: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },

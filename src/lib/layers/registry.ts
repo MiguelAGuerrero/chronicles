@@ -45,11 +45,11 @@ export const LAYERS: readonly LayerDef[] = [
     note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",
   },
   {
-    id: 'busy',
-    name: 'Busy streets',
+    id: 'storefronts',
+    name: 'Storefronts',
     icon: 'storefront-outline',
     defaultOn: false,
-    legend: [{ key: 'places', text: 'Busy with places', swatch: 'hotspot', tip: 'Busy with places: streets with many shops, food and services along them.' }],
+    legend: [{ key: 'places', text: 'Storefronts', swatch: 'hotspot', tip: 'Streets lined with shops, food, drink, services and offices you walk into.' }],
   },
   {
     id: 'borders',

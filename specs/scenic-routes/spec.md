@@ -2,6 +2,8 @@
 
 # Scenic routes: the interesting way to where you're going
 
+> Amended by `specs/storefronts` (Nov 14, 2026): the leaning "Streets with life" / "Along busy streets" is "Storefronts" / "Along storefronts", and a route names its streets in the order passed (SF8).
+
 Nov 4, 2026 · @Miguel Guerrero
 
 Today every route is the shortest way. The concept's first principle is "the interesting way, not only the fastest" (decision 0020), and suggested routes were put off to their own slice on Nov 1 (decision 0022). This slice adds them. When you pick a destination, the app offers the direct route and up to three scenic ones, each leaning toward one thing: green, sights, or streets with life. You see them side by side, as Apple and Google Maps show alternatives, and tap the one to walk.

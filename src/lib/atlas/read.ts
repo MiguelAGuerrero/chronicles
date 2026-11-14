@@ -182,7 +182,7 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     try {
       // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
       // rewritten into the shared caches, so the write queue stays free for the walk. The profile is computed off the
-      // page on the web, as a Busy read is (explore-dense-city audit 2: it held the page 600-700 ms a ring). Once the tiles
+      // page on the web, as a Storefronts read is (explore-dense-city audit 2: it held the page 600-700 ms a ring). Once the tiles
       // are in, the profile is computed and kept whatever stops the loop's step, as when it was computed in one turn: the
       // atlas loop restarts its step on any change, and a ring stopped mid-compute was never read at all.
       const ring = await offPage.ring({ bodies, tiles, zoom: TILE_ZOOM, build: area.build, at: area.at, overture, extent, share, archive, finds });

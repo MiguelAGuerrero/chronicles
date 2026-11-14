@@ -3,7 +3,7 @@ import test from 'node:test';
 import { exploreSlots, SCALE_H, SCALE_LEFT } from '../../atlas/overlaySlots';
 
 // tend explore 1: Explore's notice (a hint, "Looking around…", a town's note) and the Towns back pill sat over the map's
-// scale bar at the bottom left, hiding its first line ("100 m" printed over "Busiest area: Thayer Street"). The slots
+// scale bar at the bottom left, hiding its first line ("100 m" printed over "Densest area: Thayer Street"). The slots
 // are measured from the map's bottom: the scale bar clears the back pill, and the overlay clears the scale bar.
 
 const SPOT_BOTTOM = 86; // 10 + the long press's choices (68) + 8

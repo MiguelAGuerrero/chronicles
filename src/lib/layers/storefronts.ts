@@ -6,7 +6,7 @@ import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
 
 /*
- * Busy streets as a layer (ML8, ML9): what is remembered, and the one read that fills a blank. The same read and the
+ * Storefront streets as a layer (ML8, ML9): what is remembered, and the one read that fills a blank. The same read and the
  * same remembered areas What's good here and an exploring walk use; nothing here is new data.
  */
 
@@ -17,7 +17,7 @@ export async function rememberedAreas(): Promise<LandingRow[]> {
 }
 
 /** ML9: reads the area around `at` as What's good here does and remembers it; false when it could not be read. */
-export async function readBusyAround(at: LngLat, shouldStop: () => boolean): Promise<boolean> {
+export async function readStorefrontsAround(at: LngLat, shouldStop: () => boolean): Promise<boolean> {
   const read = await readArea(at, shouldStop);
   if (!read.ok) return false;
   const build = await ensureTileBuild().catch(() => 'unknown');

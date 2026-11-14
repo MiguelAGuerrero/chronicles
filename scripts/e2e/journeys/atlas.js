@@ -95,6 +95,14 @@ async function checks(h) {
       await tileOf(pickName).click();
       if (!(await page.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await tileOf(pickName).click();
       await page.waitForSelector('[data-testid=atlas-card]');
+      {
+        // specs/storefronts SF2, SF4, SF9: the card says storefronts, one list, and Walk to starts you on a street with no superlative.
+        const text = await page.locator('[data-testid=atlas-card]').innerText();
+        const list = page.locator('[data-testid=atlas-storefronts]');
+        const via = await page.locator('[data-testid=atlas-walk-via]').innerText().catch(() => null);
+        check(!/\bbus(y|iest)\b/i.test(text) && (await list.count()) <= 1 && (!(await list.count()) || /(^|\n)Storefronts\n/.test(text)) && (via == null || /^Starts you on \S/.test(via)),
+          `SF2, SF4, SF9: ${pickName}'s card says Storefronts, one list (${await list.locator('[data-testid=atlas-storefront]').count()} streets), never busy; Walk to's line ${JSON.stringify(via)}`);
+      }
       await page.keyboard.press('Escape');
       await page.waitForTimeout(1500);
       const canvas = await page.locator('canvas.maplibregl-canvas').boundingBox();
@@ -273,7 +281,7 @@ async function checks(h) {
       await page.click('[data-testid=look-here]');
       const said = await page.waitForSelector('text=/A best guess from the map|Couldn’t read the map here/', { timeout: 30000 }).then((e) => e.innerText(), () => 'nothing');
       await shot(page, '11c-landing');
-      check(/Busiest area: Thayer Street/.test(said), `what’s good here finds the strip, named (${said})`);
+      check(/Where storefronts gather: Thayer Street/.test(said), `what’s good here finds the strip, named (${said})`);
       const first = await rows();
       check(first.some((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street')), 'the area is remembered, Thayer Street among its strips');
       {
@@ -299,7 +307,7 @@ async function checks(h) {
       // Again: the same area is replaced, not added (L12).
       await press();
       await page.click('[data-testid=look-here]');
-      await page.waitForSelector('text=/Busiest area/', { timeout: 30000 });
+      await page.waitForSelector('text=/Where storefronts gather/', { timeout: 30000 });
       check((await rows()).length === first.length, 'looking again replaces the area');
       // Reloaded on the tab, the atlas comes back from storage at once (AT12), offline of the map's reads (NV5).
       await page.reload();

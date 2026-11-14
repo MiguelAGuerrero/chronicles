@@ -26,3 +26,7 @@ The owner's calls, Nov 3:
 - **Marks and bars unchanged:** marks, finds and the atlas's presence bars stay on OpenStreetMap.
 - **Amended by 0140** (Nov 11): the density table is presence's (`src/lib/presence`), one classification read by density and marks alike; the weights did not change.
 - **Supersedes:** the v1.5 landing rules for strips and pockets (L4, L5) once built.
+
+## Amended
+
+- Amended by `specs/storefronts` (Nov 14, 2026): storefronts are presence's own reading: density weights only storefront classes (parks, monuments, art, views, curiosities, listed structures and cemeteries weigh nothing), and the concept is named storefronts everywhere (SF10, SF13; decision 0178).

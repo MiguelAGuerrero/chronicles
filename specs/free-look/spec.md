@@ -2,6 +2,8 @@
 
 # Free look: pan the Explore map, then load the areas around its centre
 
+> Amended by `specs/storefronts` (Nov 14, 2026): the Busy layer it reads is the Storefronts layer (SF1, SF13).
+
 Nov 11, 2026 · @Miguel Guerrero
 
 ## Vision

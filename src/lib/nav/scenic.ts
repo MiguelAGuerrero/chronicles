@@ -12,17 +12,32 @@ export { SCENIC };
 
 /**
  * Scenic routes (specs/scenic-routes, SR2-SR12): beside the direct route, one route per leaning
- * switched on, each at most SCENIC.detour longer. Green and busy streets are found by a search
+ * switched on, each at most SCENIC.detour longer. Green and storefront streets are found by a search
  * where an appealing metre costs less, tried at a few strengths, the one that gains most within
  * the detour kept; sights by stopping on the way at the places that add the most for the least
  * extra walk. Pure: the streets and the signals are given.
  */
 
-export type Leaning = 'green' | 'sights' | 'busy';
-export const LEANINGS: readonly Leaning[] = ['green', 'sights', 'busy'];
+export type Leaning = 'green' | 'sights' | 'storefronts';
+export const LEANINGS: readonly Leaning[] = ['green', 'sights', 'storefronts'];
+
+/** SF8: each leaning's switch, in words (the walk settings' Scenic routes); its icon is the view's. */
+export const LEANING_WORDS: Record<Leaning, { label: string; note: string }> = {
+  green: { label: 'Green', note: 'Through parks, gardens and woods' },
+  sights: { label: 'Sights', note: 'Past places worth seeing, of the kinds you’re into' },
+  storefronts: { label: 'Storefronts', note: 'Along streets of shops and cafés, the high street' },
+};
+
+/** SF12: a leaning saved before specs/storefronts, under the old word. */
+const SAVED_AS: Readonly<Record<string, Leaning>> = { busy: 'storefronts' };
 export const isLeaning = (v: unknown): v is Leaning => typeof v === 'string' && (LEANINGS as readonly string[]).includes(v);
 /** Known leanings, in leaning order, once each. */
-export const leaningsIn = (v: unknown): Leaning[] => (Array.isArray(v) ? LEANINGS.filter((l) => v.includes(l)) : []);
+/** The known leanings in a saved value, in leaning order; one saved under its old word reads as its new one (SF12). */
+export const leaningsIn = (v: unknown): Leaning[] => {
+  if (!Array.isArray(v)) return [];
+  const read = new Set(v.map((x) => (typeof x === 'string' && Object.prototype.hasOwnProperty.call(SAVED_AS, x) ? SAVED_AS[x] : x)));
+  return LEANINGS.filter((l) => read.has(l));
+};
 
 /** What a route passes, as the row will say it (SR4). */
 export interface Passes {
@@ -93,12 +108,12 @@ const sightsPassed = (path: LngLat[], signals: Signals): number[] => {
 };
 
 const greenM = (path: LngLat[], probe: Probe) => samplesAlong(path).reduce((m, [p, w]) => m + (probe.green(p) ? w : 0), 0);
-const busyM = (path: LngLat[], probe: Probe) => samplesAlong(path).reduce((m, [p, w]) => m + ((probe.busy(p)?.grade ?? 0) / 3) * w, 0);
+const storefrontMetres = (path: LngLat[], probe: Probe) => samplesAlong(path).reduce((m, [p, w]) => m + ((probe.storefront(p)?.grade ?? 0) / 3) * w, 0);
 
-/** How much of what each leaning wants a path has (SR6): metres of green, graded metres of busy street, places passed. */
+/** How much of what each leaning wants a path has (SR6): metres of green, graded metres of storefront street, places passed. */
 export const measure = {
   green: (path: LngLat[], signals: Signals) => (path.length ? greenM(path, probeOf(signals, path[0])) : 0),
-  busy: (path: LngLat[], signals: Signals) => (path.length ? busyM(path, probeOf(signals, path[0])) : 0),
+  storefronts: (path: LngLat[], signals: Signals) => (path.length ? storefrontMetres(path, probeOf(signals, path[0])) : 0),
   sights: (path: LngLat[], signals: Signals) => sightsPassed(path, signals).length,
 };
 
@@ -127,15 +142,15 @@ interface Context {
   hint?: RouteHint;
 }
 
-/** An edge's appeal for a leaning, 0 to 1: its share inside green, or its grade of busy street. */
-function appealOf(ctx: Context, leaning: 'green' | 'busy'): EdgeCost {
+/** An edge's appeal for a leaning, 0 to 1: its share inside green, or its grade of storefront street. */
+function appealOf(ctx: Context, leaning: 'green' | 'storefronts'): EdgeCost {
   const cache = new Map<string, number>();
   return (a, b, m, key) => {
     let v = key != null ? cache.get(key) : undefined;
     if (v === undefined) {
       const s = samplesAlong([a, b]);
       const total = s.reduce((x, [, w]) => x + w, 0) || 1;
-      v = s.reduce((x, [p, w]) => x + w * (leaning === 'green' ? (ctx.probe.green(p) ? 1 : 0) : (ctx.probe.busy(p)?.grade ?? 0) / 3), 0) / total;
+      v = s.reduce((x, [p, w]) => x + w * (leaning === 'green' ? (ctx.probe.green(p) ? 1 : 0) : (ctx.probe.storefront(p)?.grade ?? 0) / 3), 0) / total;
       if (key != null) cache.set(key, v);
     }
     return v;
@@ -147,7 +162,7 @@ function bestFor(ctx: Context, leaning: Leaning, from: LngLat, to: LngLat, direc
   const budget = direct.lengthM * (1 + SCENIC.detour) + 1e-6;
   const id = `scenic:${leaning}`;
   if (leaning === 'sights') return viaSights(ctx, from, to, direct, budget, id);
-  const score = (path: LngLat[]) => (leaning === 'green' ? greenM(path, ctx.probe) : busyM(path, ctx.probe));
+  const score = (path: LngLat[]) => (leaning === 'green' ? greenM(path, ctx.probe) : storefrontMetres(path, ctx.probe));
   const base = score(direct.path);
   const appeal = appealOf(ctx, leaning);
   let best: { route: Route; gain: number } | null = null;
@@ -254,15 +269,15 @@ function passesOf(path: LngLat[], leanings: Leaning[], ctx: Context): Passes {
       } else out.parks.push({ name: null, kind: g.kind });
     }
   }
-  if (leanings.includes('busy')) {
-    const along = new Map<string, { m: number; grade: number }>();
+  if (leanings.includes('storefronts')) {
+    const along = new Map<string, { m: number }>();
     for (const [p, w] of samplesAlong(path)) {
-      const b = ctx.probe.busy(p);
+      const b = ctx.probe.storefront(p);
       if (!b?.name) continue;
-      const v = along.get(b.name) ?? { m: 0, grade: 0 };
-      along.set(b.name, { m: v.m + w, grade: Math.max(v.grade, b.grade) });
+      along.set(b.name, { m: (along.get(b.name)?.m ?? 0) + w });
     }
-    out.streets = [...along].filter(([, v]) => v.m >= SCENIC.busyRunM).sort((a, b) => b[1].grade - a[1].grade || b[1].m - a[1].m).map(([n]) => n);
+    // SF8 (steward S1): in the order you pass them, never by how many storefronts.
+    out.streets = [...along].filter(([, v]) => v.m >= SCENIC.storefrontRunM).map(([n]) => n);
   }
   if (leanings.includes('sights')) {
     for (const i of sightsPassed(path, ctx.signals)) {
@@ -321,7 +336,7 @@ export function scenicRouteSource(streets: StreetSource, signals: Signals, leani
   };
 }
 
-const TITLES: Record<Leaning, string> = { green: 'Through green', sights: 'Past the sights', busy: 'Along busy streets' };
+const TITLES: Record<Leaning, string> = { green: 'Through green', sights: 'Past the sights', storefronts: 'Along storefronts' };
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 const both = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0]);
 
