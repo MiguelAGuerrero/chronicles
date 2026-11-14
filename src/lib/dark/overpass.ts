@@ -1,5 +1,6 @@
 // @layer core
 import type { LngLat } from '../types';
+import { CLASSES, OSM_RULES, type PresenceClass } from '../presence/presence';
 import { OVERPASS_TIMEOUT_S } from '../walk/overpass';
 import type { DarkPlace, DarkWay } from './types';
 
@@ -9,8 +10,16 @@ import type { DarkPlace, DarkWay } from './types';
  * Pharmacies and fuel are left out (the plan's default, steward question 1: they read as a list of havens).
  */
 
-/** Kinds of `amenity` whose hours are worth knowing after dark. */
-export const OPEN_AMENITIES = ['restaurant', 'cafe', 'bar', 'pub', 'fast_food', 'ice_cream', 'nightclub', 'cinema', 'theatre'] as const;
+/** Presence's classes whose hours are worth knowing after dark: eating, drinking and a show (one classification, decision 0140). */
+const OPEN_CLASSES: readonly PresenceClass[] = [
+  'eatery', 'food_counter', 'drink', 'cinema_hall',
+  ...(Object.keys(CLASSES) as PresenceClass[]).filter((c) => CLASSES[c].kind === 'theatres'),
+];
+
+/** The OpenStreetMap values presence reads as those classes, asked of Overpass as `amenity` (DK8); never a table of our own. */
+export const OPEN_AMENITIES: readonly string[] = [
+  ...new Set(OSM_RULES.filter((r) => OPEN_CLASSES.includes(r.class)).flatMap((r) => (r.subs === '*' ? [r.cls] : [...r.subs]))),
+].sort();
 
 /** Bumped when the query or the parser changes, so every kept tile is read again (DK9). */
 export const DARK_CODE = 'd1';
@@ -58,7 +67,7 @@ export function darkFromOverpass(json: unknown): { ways: DarkWay[]; places: Dark
       const line: LngLat[] = e.geometry.map((g) => [g.lon, g.lat]);
       ways.push({ id, lit: t.lit, ...(t.name ? { name: t.name } : {}), line });
       seen.add(id);
-    } else if (t.opening_hours && (t.shop || (OPEN_AMENITIES as readonly string[]).includes(t.amenity))) {
+    } else if (t.opening_hours && (t.shop || OPEN_AMENITIES.includes(t.amenity))) {
       const p = e.type === 'node' ? (e.lat !== undefined && e.lon !== undefined ? { lat: e.lat, lon: e.lon } : null) : e.center ?? null;
       if (!p) continue;
       places.push({ id, at: [p.lon, p.lat], hours: t.opening_hours });
