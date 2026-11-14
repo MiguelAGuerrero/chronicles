@@ -96,3 +96,15 @@ test('RX32: the bundle keeps a moment\'s reactions with it, and none for a momen
   assert.deepEqual(byId.felt.reactions, { feeling: 'happy', thought: 'idea' });
   assert.equal(byId.plain.reactions ?? null, null);
 });
+
+test('reactions audit 13: the bundle carries no note_type: the reactions of a moment are its set alone', { todo: 'test first' }, async () => {
+  const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
+  await p.db.createWalk(walk);
+  const m = momentOf(cap('old', null));
+  (m.pieces[0] as unknown as Record<string, unknown>).note_type = 'idea';
+  await p.db.addMoment(m);
+  const io = memoryIO({});
+  await createBundleWriter(p).writeWalkBundle('w1', io);
+  const json = JSON.parse(strFromU8(unzipSync(io.bytes())['walk.json']));
+  assert.equal('note_type' in json.moments[0].pieces[0], false);
+});

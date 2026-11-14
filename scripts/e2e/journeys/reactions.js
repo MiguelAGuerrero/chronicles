@@ -91,6 +91,15 @@ async function run(h) {
   const marks14 = await photoEntry().locator('[data-testid=reaction-marks] [data-testid=reaction-name]').allInnerTexts().catch(() => []);
   check(marked9 === 'Reaction, Happy' && marks14.join() === 'Happy',
     `RX9, RX14: marked, the sign is the first reaction's glyph; the entry spells its reactions under the dateline (${JSON.stringify({ marked9, marks14 })})`);
+  // reactions audit 3 (the cold find): nothing lies over the sign's plus (the held date's edge bands washed it out).
+  const ui3a = await pg.evaluate(() => {
+    const add = [...document.querySelectorAll('[data-testid=reaction-sign-add]')][0];
+    if (!add) return null;
+    const r = add.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { top: !!hit && add.contains(hit) };
+  });
+  check.todo(!!ui3a && ui3a.top, `reactions audit 3: nothing lies over the sign's plus (${JSON.stringify(ui3a)})`);
   // reactions ui 2 (the cold find): the sign's plus reads as ink, not a faint grey badge: an ink disc of 16 px or more.
   const ui2 = await pg.evaluate(() => {
     const add = document.querySelector('[data-testid=reaction-sign-add]');

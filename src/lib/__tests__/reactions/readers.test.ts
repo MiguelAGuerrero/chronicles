@@ -74,3 +74,14 @@ test('RX36: every reaction glyph is drawn in the one ink colour, and the chosen 
     assert.doesNotMatch(src, /accent|tint|backgroundColor:\s*theme\.(accent|wash)/, `${f}: no accent or tint`);
   }
 });
+
+test('reactions audit 21: the bubbles on a pin and the lens screens are in ink too (RX36)', { todo: 'test first' }, () => {
+  for (const f of ['components/reactions/LensScreen.tsx', 'components/reactions/ReactionsScreen.tsx']) {
+    const glyphs = [...readFileSync(join(SRC, f), 'utf8').matchAll(/<Icon name=\{[^}]*glyph[^}]*\}[^>]*color=\{([^}]+)\}/g)].map((m) => m[1].trim());
+    assert.ok(glyphs.length > 0, `${f} draws a reaction's glyph`);
+    assert.deepEqual(glyphs.filter((c) => c !== 'theme.ink'), [], `${f}: the reaction's glyph in ink`);
+  }
+  const pin = readFileSync(join(SRC, 'components/CapturePinView.tsx'), 'utf8');
+  assert.match(pin, /reaction: \{[^}]*backgroundColor: theme\.ink/);
+  assert.match(pin, /<Icon name=\{r\.glyph as IconName\} size=\{\d+\} color="#ffffff"/);
+});
