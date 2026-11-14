@@ -1404,13 +1404,37 @@ async function run(h) {
         const saidId = screen === 'Navigate' ? 'ready-said' : 'atlas-snap-said';
         const said = () => pg4.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), saidId);
         const saidBefore = await said();
-        await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
+        // tend explore 8 (decision 0172, O6): with no fix Explore's empty card offers Find me, and the edge Locate steps aside.
+        const ways = async () => ({
+          findMe: await pg4.locator('[data-testid=atlas-locate]').filter({ visible: true }).count(),
+          edge: await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').count(),
+        });
+        const waysBefore = screen === 'Explore' ? await ways() : null;
+        if (waysBefore) {
+          check(waysBefore.findMe === 1 && waysBefore.edge === 0,
+            `tend explore 8: Explore at ${w}, with no fix, one way to find you: Find me in the card and no Locate at the map's edge (${JSON.stringify(waysBefore)})`);
+        }
+        await pg4.locator(screen === 'Explore' ? '[data-testid=atlas-locate]' : 'xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
         await pg4.waitForTimeout(2500);
         const saidAfter = await said();
         check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
           `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
         await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
         await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
+        if (screen === 'Explore') {
+          // tend explore 8 (O20): after the refusal Find me waits, its notice saying where to turn location on; the edge
+          // Locate is the one way meanwhile. Once the permission changes (the site allowed), Find me is back, the edge's gone.
+          const refused = await ways();
+          const notice = await pg4.getByText(T17_WORDS).count();
+          check(refused.findMe === 0 && refused.edge === 1 && notice >= 1,
+            `tend explore 8: Explore at ${w}, after a refusal no Find me under the notice that says where to turn location on; the edge Locate stays (${JSON.stringify({ ...refused, notice })})`);
+          await c4.grantPermissions(['geolocation']);
+          await pg4.waitForTimeout(1500);
+          const allowed = await ways();
+          check(allowed.findMe === 1 && allowed.edge === 0,
+            `tend explore 8: Explore at ${w}, once the permission changes Find me comes back and the edge Locate steps aside (${JSON.stringify(allowed)})`);
+          await shot(pg4, `qol-14-explore-allowed-${w}`);
+        }
         await c4.close();
       }
     }
@@ -1540,6 +1564,9 @@ module.exports = {
     'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,noteType,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/unitsStore/**',
     'src/lib/nav/eta.ts',
+    // tend explore 8: Explore's one way to find you, before and after a refusal.
+    'src/lib/atlas/findYou.ts',
+    'src/lib/locate/permission*.ts',
   ],
   run,
 };

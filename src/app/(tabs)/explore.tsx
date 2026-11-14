@@ -8,6 +8,7 @@ import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
+import { findYou, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
@@ -50,6 +51,7 @@ import { boundsOf, distanceM as metresBetween, type Bounds } from '../../lib/geo
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
+import { watchLocatePermission } from '../../lib/locate/permission';
 import { useReducedMotion } from '../../lib/motion';
 import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
@@ -224,6 +226,18 @@ export default function Explore() {
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
+  // tend explore 8 (decision 0172, O6, O20): the location permission as it changes, and the count of its changes when a
+  // Locate tap was refused; Find me waits until it changes from that.
+  const [permission, setPermission] = useState<PermissionSeen | null>(null);
+  const [refused, setRefused] = useState<number | null>(null);
+  const permissionNow = useRef(permission);
+  useEffect(() => {
+    permissionNow.current = permission;
+  }, [permission]);
+  useEffect(
+    () => watchLocatePermission((state) => setPermission((p) => (!p ? { state, changes: 0 } : p.state === state ? p : { state, changes: p.changes + 1 }))),
+    [],
+  );
   // tend explore 2: each look has its own token, so a cancelled one never speaks for a newer one.
   const look = useRef<Look>(IDLE);
   const [screen, setScreen] = useState({ w: width, h: height });
@@ -244,6 +258,7 @@ export default function Explore() {
       setYou(at);
       setLooked(null);
       setStale(false);
+      setRefused(null);
       fixSeen.current = Date.now();
       // Locate is a way back to you: leave a town's page, drop the reader's pick (so the row's first, your own
       // town, is selected again) and close anything open over the map.
@@ -257,6 +272,8 @@ export default function Explore() {
     onError: (e) => {
       setLocError(e);
       sayQuiet(e);
+      // A refusal is the quiet notice (`locateNotice`'s only `info`), which says where to turn location on.
+      if (e.tone === 'info') setRefused(permissionNow.current?.changes ?? 0);
     },
   });
   // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
@@ -585,6 +602,8 @@ export default function Explore() {
 
   // Never after a failed read: that is no claim about the map (the row then holds the town's card, as before).
   const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
+  // One way to find you (tend explore 8): the empty card's Find me, else the edge Locate.
+  const finding = findYou({ cardEmpty: !noteText && !shown.length && !from, refused, permission: permission ?? { state: 'unknown', changes: 0 } });
   const overlay = error ? (
     <Banner
       // Location refused, by Locate (T17) or by Walk here (tend recording audit 2), is the quiet notice; anything else a fault.
@@ -786,9 +805,9 @@ export default function Explore() {
             <Icon name="close" size={22} color={theme.ink} />
           </Pressable>
         </View>
-      ) : (
+      ) : finding.edgeLocate ? (
         <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
-      )}
+      ) : null}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
       {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={locateRef} />}
@@ -848,7 +867,7 @@ export default function Explore() {
           <View style={styles.empty} testID="atlas-empty">
             <Icon name="locate-outline" size={22} color={theme.muted} />
             <Text style={styles.emptyText}>Find where you are to see the areas around you.</Text>
-            <Button testID="atlas-locate" label="Find me" variant="secondary" onPress={locate} busy={locating} busyLabel="Finding you…" />
+            {finding.findMe ? <Button testID="atlas-locate" label="Find me" variant="secondary" onPress={locate} busy={locating} busyLabel="Finding you…" /> : null}
           </View>
         ) : (
           <View style={styles.empty} testID="atlas-empty">
