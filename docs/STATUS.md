@@ -221,32 +221,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
-- **T31 [owner] Replay: the walk's card still says digits beside its clauses: streets walked, new streets, more finds** (2026-11-14)
-  Area: replay (the walk's card and the fog beat). Seen: the walk's card line reads "559 m · 50 min · 1 street walked,
-  your first time down Transit Street" (picture `rr-card-320` of the T19 review; `src/app/replay/[id].tsx`, the
-  `card-line`, `s.streets_walked`), and past two names `newStreetsLine` (`lib/quietLines.ts`) says "3 streets new to
-  you", on the card and as the fog beat's headline; the card's finds read "Found A · B · C and 2 more" (`foundList`,
-  `lib/explore/explore.ts` l.514, `card-finds`; the review's auditor 2). All sit beside "Two photos, a video, a voice
-  memo and a note" since `tend replay T19`. Rests on: VISION.md Always, "Counts are words, in a clause. Distances and
-  times are fine."; T19 and T30's sibling lens. It changes the fog beat's headline too, which is replay copy outside
-  the cards, so yours (the review's steward 8).
-  Recommended: in words through `numberWord`, one voice with the card's other clauses: "559 m · 50 min · one street
-  walked, your first time down Transit Street", "three streets new to you" on the card and "Three streets new to you"
-  as the fog beat's headline, and "Found A · B · C and two more". /vision: aligned (honour; "Counts are words, in a
-  clause"); it amends the replay rule's example ("3 streets new to you", `.claude/rules/replay.md`, "The card").
-  Otherwise: naming over counting, as `newStreetsLine` already does for one or two: the card names up to two new
-  streets and says "a few streets new to you" past two, with no count of streets walked (a count of streets walked
-  leans toward coverage, VISION.md Never); or leave it.
-- **T32 [owner] Chronicle's Days say their counts in digits above the timeline's words** (2026-11-14)
-  Area: tabs (Chronicle's Days). Seen: a days list row and a day's header read "3 moments · 1 walk" (`dayCounts`,
-  `lib/days.ts`, M7's "N moments · M walks"; `HomeSheet.tsx` l.288 and l.410, and the row's spoken name l.405), right
-  above the timeline's "Walk · 145 m · one moment" since `tend tabs 11`: two voices for one count on one screen
-  (picture `after2/21-day-timeline.png` of the T19 review). Rests on: VISION.md Always, "Counts are words, in a
-  clause."; T19 and T30's sibling lens (decision 0172 ended 0052's carve-out for the place sheet and a day's walk row,
-  not for the days list).
-  Recommended: in words through `numberWord`, "Three moments · one walk", on the row, the header and the row's spoken
-  name. /vision: aligned (return; "Counts are words"); it amends M7's example (`specs/moments-and-days/spec.md` l.33).
-  Otherwise: leave it (a list's meta line keeps its digits, as 0052 carved out).
 
 ### From /slice reaction-links
 
