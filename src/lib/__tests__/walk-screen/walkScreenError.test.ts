@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { walkErrorLine } from '../../readyNav';
 
 // tend walk-screen 6 (decision 0172, O35, the owner's answer to "The walk screen's error mid-walk"): an error on the
 // walk screen mid-walk said "Your walk is saved." beside "Back to Chronicle", which can read as the walk ended. The
@@ -21,9 +22,22 @@ const bodyOf = (name: string) => {
 
 test('tend walk-screen 6: the walk screen\'s error says "Your walk is still recording.", and its way back is unchanged', () => {
   assert.equal(boundaryOf('walk.tsx'), 'WalkScreenError');
-  assert.deepEqual(bodyOf('WalkScreenError'), { exit: 'dismiss', body: 'Your walk is still recording.' });
-  assert.match(screenError, /<Text style=\{styles\.body\}>\{body\}<\/Text>/, 'the body is the one each screen passes');
+  assert.match(screenError, /export function WalkScreenError\(props: ErrorBoundaryProps\) \{\s*const line = walkErrorLine\(useOpenWalkInfo\(\)\);\s*return <ErrorScreen \{\.\.\.props\} exit="dismiss" body=\{line\} \/>;/);
+  assert.match(screenError, /\{body != null && <Text style=\{styles\.body\}>\{body\}<\/Text>\}/, 'the body is the one each screen passes, or none');
   assert.match(screenError, /body = 'Your walk is saved\.'/, 'and "Your walk is saved." where none is passed');
+});
+
+// tend walk-screen audit 5 (the review's auditor 3 and ux 2): the walk route is also Navigate with no walk open and a
+// paused walk, where "Your walk is still recording." was untrue. The line follows the keeper's open walk and pauses:
+// recording, the owner's words; paused, "Your walk is saved." as before; no walk open, no walk line.
+test('tend walk-screen audit 5: the walk route\'s error line follows the open walk and its pause', () => {
+  const walk = { id: 'w1' };
+  assert.equal(walkErrorLine({ known: true, walk, pauses: [] }), 'Your walk is still recording.');
+  assert.equal(walkErrorLine({ known: true, walk, pauses: [{ ended_at: 5 }] }), 'Your walk is still recording.');
+  assert.equal(walkErrorLine({ known: true, walk, pauses: [{ ended_at: 5 }, { ended_at: null }] }), 'Your walk is saved.');
+  assert.equal(walkErrorLine({ known: true, walk: null, pauses: [] }), null);
+  // Not read yet: nothing is claimed.
+  assert.equal(walkErrorLine({ known: false, walk: null, pauses: [] }), null);
 });
 
 test('tend walk-screen 6: every other screen\'s error keeps "Your walk is saved."', () => {

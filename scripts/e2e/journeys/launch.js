@@ -220,6 +220,32 @@ async function fresh(h) {
     // tab's in fix ios-video audit 1) says "Your walk is still recording.", never "Your walk is saved.", which reads as
     // ended; the button stays "Back to Chronicle". And it is true: positions sent behind the error screen are stored.
     {
+      // tend walk-screen audit 5 (the review's auditor 3, ux 2): Navigate with no walk open is the same route, and its map
+      // is the likely thing to throw there (no WebGL2): its error says nothing of a walk.
+      const { c: c0, pg: pg0 } = await freshPage('ready-error');
+      await c0.addInitScript(() => {
+        const real = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+          if (/webgl/.test(String(kind)) && location.pathname.endsWith('/walk')) return null;
+          return real.call(this, kind, ...rest);
+        };
+      });
+      const from0 = h.errors.length;
+      await pg0.goto(navUrl);
+      await pg0.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 20000 }).catch(() => {});
+      await pg0.waitForTimeout(1000);
+      const ready = await pg0.evaluate(() => {
+        const s = [...document.querySelectorAll('[data-testid=screen-error]')].find((e) => !e.closest('[aria-hidden=true]'));
+        if (!s) return null;
+        return { texts: [...s.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim()).map((d) => d.innerText.trim()), path: location.pathname };
+      });
+      await h.shot(pg0, 'ready-screen-error-390');
+      check(!!ready && /\/walk$/.test(ready.path) && !ready.texts.some((t) => /^Your walk is/.test(t)),
+        `tend walk-screen audit 5: Navigate's error with no walk open says nothing of a walk, neither "still recording" nor "saved" (${JSON.stringify(ready)})`);
+      for (let i = h.errors.length - 1; i >= from0; i--) if (/^ready-error: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
+      await c0.close();
+    }
+    {
       const { c, pg } = await freshPage('walk-error');
       await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
