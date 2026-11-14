@@ -66,3 +66,14 @@ test('tend explore 13: stopped during the read or the build, nothing is written;
   assert.deepEqual(await runLook(io({ ...w, read: async () => ({ ok: false, reason: 'failed' }) }), () => false), { kind: 'failed' });
   assert.deepEqual(await runLook(io({ ...w, tileBuild: async () => null }), () => false), { kind: 'line', message: 'Busiest around Wickenden Street: Wickenden Street. A best guess from the map.' });
 });
+
+test('SF5: What\'s good here? says where storefronts gather, never "Busiest area"', { todo: 'test first' }, async () => {
+  const analysis = { basis: 'density', reason: 'unused', pockets: [{ name: 'Thayer Street' }], strips: [], graded: [], landing: null } as unknown as AreaAnalysis;
+  const io: LookIo = {
+    read: async () => ({ ok: true, centre: [-71.4, 41.812], analysis, overture: null }) as never,
+    tileBuild: async () => 'b1',
+    remember: async () => undefined,
+  };
+  const end = await runLook(io, () => false);
+  assert.deepEqual(end, { kind: 'line', message: 'Where storefronts gather: Thayer Street. A best guess from the map.' });
+});

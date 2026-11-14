@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Storefronts (\"busy\" becomes storefronts everywhere the concept shows, listed nearest first; storefronts is presence's own reading and counts only places you walk into; the code renamed with saved choices read across; SF1-SF14, decisions 0140, 0178; from G2) | `claude/wonderful-mendel-jfw77q` | started 2026-11-14: spec, plan and steward triage; tests first |\n"
+    }
+  ]
+}

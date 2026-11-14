@@ -228,3 +228,12 @@ test('SR10: off a scenic route, the re-route keeps the leaning within 30% of wha
   assert.ok(north(past.path) < 0.1, 'the direct way');
   assert.equal(scenicRouteSource(streets, s, ['green', 'sights']).id, 'scenic:green+sights');
 });
+
+test('SF8: a storefronts route names its streets in the order you pass them, never by how many storefronts', { todo: 'test first' }, () => {
+  const near = { name: 'Near Lane', grade: 1 as const, lines: [[at(1, 1.1), at(4, 1.1)]] };
+  const farther = { name: 'Far Lane', grade: 3 as const, lines: [[at(6, 1.1), at(9, 1.1)]] };
+  const o = routeOptions({ streets: ladder(), signals: { green: [], sights: [], storefronts: [near, farther] } as unknown as Signals, leanings: ['storefronts'] as unknown as Leaning[], from, to });
+  const row = o.find((x) => (x.leanings as string[]).includes('storefronts'));
+  assert.ok(row, 'a storefronts route');
+  assert.deepEqual(row.passes.streets, ['Near Lane', 'Far Lane']);
+});

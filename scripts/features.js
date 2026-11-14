@@ -180,7 +180,7 @@ const FEATURES = [
     rule: 'layers',
     source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
     journeys: ['layers', 'dense', 'switches'],
-    specs: ['map-layers', 'explore-dense-city', 'smooth-switches'],
+    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts'],
   },
   {
     name: 'walkability',
@@ -475,6 +475,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  storefronts: { branch: 'claude/wonderful-mendel-jfw77q', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

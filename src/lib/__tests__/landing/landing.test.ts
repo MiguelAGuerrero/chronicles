@@ -131,6 +131,13 @@ test('landing: a pocket with neither strip nor neighbourhood is "A busy pocket" 
   assert.deepEqual(run({ points: x.points, segments: [...grid(), ...x.segments] }).pockets.map((p) => p.name), ['A busy pocket']);
 });
 
+test('SF6: a pocket of storefronts with neither street nor neighbourhood is "A pocket of storefronts"', { todo: 'test first' }, () => {
+  const x = crossing(-1000, 900);
+  const r = run({ points: x.points, segments: [...grid(), ...x.segments] });
+  assert.deepEqual(r.pockets.map((p) => p.name), ['A pocket of storefronts']);
+  assert.equal(r.reason, 'Where storefronts gather', 'the analysis never says "Busiest area" (SF5)');
+});
+
 test('landing: the landing point is on a named street; a station by the pocket comes first (L7)', () => {
   const segs = grid();
   const r = run({ points: alongThayer(0, 250), segments: segs });

@@ -512,3 +512,42 @@ test('fix map-levels audit 2: a town with no listed neighborhoods still draws it
   assert.deepEqual(areaPins([town], null, true).map((p) => p.id), ['Providence']);
   assert.deepEqual(areaPins([town], null, false), [], 'the near page draws no town among neighborhoods');
 });
+
+// specs/storefronts: an area's storefronts, nearest first (SF2, SF3), Walk to's words (SF4) and the spoken lines (SF7).
+type StorefrontsApi = {
+  storefrontsOf: (a: AtlasArea, from: LngLat | null) => { label: string; at: LngLat | null }[];
+  walkViaLine: (via: string) => string;
+};
+const sf = async () => (await import('../../atlas/atlas')) as unknown as StorefrontsApi;
+
+test('SF2: one list of an area\'s storefront streets: a graded town\'s pockets and its other streets, each once', { todo: 'test first' }, async () => {
+  const { storefrontsOf } = await sf();
+  const pockets = [{ at: east(2000), name: 'MacArthur Road' }, { at: east(100), name: null }];
+  const town = row('Whitehall', O, { level: 'town', profile: { steps: {}, strips: ['MacArthur Road', 'Union Street'], stripPeaks: [east(2050), east(700)], stripAt: east(2050), extent: 'outline', pockets } as unknown as AtlasProfile });
+  assert.deepEqual(storefrontsOf(town, O).map((s) => s.label), ['Union Street', 'MacArthur Road'], 'each street once, a pocket with no street left out');
+  const hood = row('Fox Point', O, { profile: { steps: {}, strips: ['Wickenden Street', 'Ives Street'], stripPeaks: [east(300), east(200)], stripAt: east(300) } as unknown as AtlasProfile });
+  assert.deepEqual(storefrontsOf(hood, O), [{ label: 'Ives Street', at: east(200) }, { label: 'Wickenden Street', at: east(300) }], 'a neighborhood lists its streets too');
+  assert.deepEqual(storefrontsOf({ ...hood, profile: null }, O), []);
+});
+
+test('SF3: nearest you first; with no fix, nearest the area\'s point; ties by name; never by how many', { todo: 'test first' }, async () => {
+  const { storefrontsOf } = await sf();
+  // Strips arrive with the most storefronts first: Main, then Elm, then Ash and Birch level.
+  const p = { steps: {}, strips: ['Main Street', 'Elm Street', 'Birch Street', 'Ash Street'], stripPeaks: [east(900), east(-300), east(500), east(500)], stripAt: east(900) } as unknown as AtlasProfile;
+  const a = row('Fox Point', O, { profile: p });
+  assert.deepEqual(storefrontsOf(a, east(1000)).map((s) => s.label), ['Main Street', 'Ash Street', 'Birch Street', 'Elm Street'], 'from you, east of it');
+  assert.deepEqual(storefrontsOf(a, null).map((s) => s.label), ['Elm Street', 'Ash Street', 'Birch Street', 'Main Street'], 'no fix: from the area\'s point');
+});
+
+test('SF4: Walk to\'s line says "Starts you on" the street, with no superlative', { todo: 'test first' }, async () => {
+  const { walkViaLine } = await sf();
+  assert.equal(walkViaLine('Thayer Street'), 'Starts you on Thayer Street');
+});
+
+test('SF7: a tile says "Storefronts along" its street, and a whole town says where its storefronts gather is listed apart', { todo: 'test first' }, () => {
+  const steps = { history: 0, art: 0, culture: 0, parks: 0, viewpoints: 0, food: 2, shops: 0, nightlife: 0 } as const;
+  const area = row('Fox Point', east(400), { profile: { steps, strips: ['Wickenden Street'], stripAt: O, marks: [], sketch: { streets: [], grades: [[], [], []], parks: [] }, overture: null } });
+  const [l] = nearList([area], O, 'neighborhood', 'b1');
+  assert.match(tileLabel(l, { walks: 0, last: null }, fmt), /Storefronts along Wickenden Street\.$/);
+  assert.match(marksExplained({ extent: 'outline' }).at(-1)!, /Where its storefronts gather is listed apart\.$/);
+});
