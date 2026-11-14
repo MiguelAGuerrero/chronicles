@@ -33,6 +33,11 @@ import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
+import { GoHereSheet } from '../../components/atlas/GoHereSheet';
+import { goHereDo, type GoHereChoice } from '../../lib/atlas/goHere';
+import { HANDOFF_HINT, mapsAppName, openInMaps } from '../../lib/nav/openInMaps';
+import { loadPendingDest } from '../../lib/nav/store';
+import { feedback } from '../../lib/motion';
 import { Banner, Button, theme } from '../../components/ui';
 import {
   ATLAS_RULES, areaPins, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, readerTook, townPicked, townReachM, storefrontsOf, waitingMarks, walkTarget,
@@ -157,6 +162,12 @@ export default function Explore() {
   // Every walk asked for here: a refusal is the quiet notice, said (tend recording audit 2).
   const startWalk = (dest: Waypoint) => walkStart.start(dest, undefined, { onError: sayQuiet });
   const [open, setOpen] = useState<string | null>(null);
+  // GH1-GH7: Go here on a tile opens a sheet of two choices for that area; `replaces` says a saved destination is already held.
+  const [goHere, setGoHere] = useState<{ key: string; replaces: boolean } | null>(null);
+  const askGoHere = (key: string) => {
+    setGoHere({ key, replaces: false });
+    void loadPendingDest().then((d) => setGoHere((g) => (g && g.key === key ? { key, replaces: !!d } : g)), () => {});
+  };
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
   const fresh = useAtlas(focused, from, townSeen, looked != null);
@@ -879,6 +890,37 @@ export default function Explore() {
     </View>
   );
 
+  // GH2: Back and Escape close the sheet before anything else.
+  const goHereOpen = goHere != null && focused;
+  useEffect(() => {
+    if (!goHereOpen) return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      setGoHere(null);
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setGoHere(null);
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
+    };
+  }, [goHereOpen]);
+  const goHereArea = goHere ? shown.find((l) => l.area.key === goHere.key)?.area ?? null : null;
+  // GH4-GH6, GH15: Chronicles saves the destination and opens Navigate, ready (a walk open routes it, as Walk to does);
+  // the maps app is called straight from the tap, with the destination alone. Both at any distance.
+  const chooseGoHere = (id: GoHereChoice['id']) => {
+    if (!goHereArea) return;
+    const t = walkTarget(goHereArea);
+    const did = goHereDo(id, !!openInfo.walk);
+    setGoHere(null);
+    if (did === 'maps') {
+      feedback('tap');
+      const failed = () => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
+      openInMaps(t.at, t.label).then((ok) => ok || failed(), failed);
+    } else if (did === 'start') startWalk({ at: t.at, label: t.label, kind: 'point' });
+    else void walkStart.later({ at: t.at, label: t.label, kind: 'point' });
+  };
+
   return (
     <View style={styles.screen} onLayout={(e) => setScreen({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       {mapPane}
@@ -907,6 +949,7 @@ export default function Explore() {
                 wide={!!town && l.area.key === town.key}
                 fromYou={lookOn}
                 onPress={onCard}
+                onGoHere={askGoHere}
               />
             )}
           />
@@ -999,6 +1042,9 @@ export default function Explore() {
           }}
         />
       )}
+      {goHere && goHereArea ? (
+        <GoHereSheet name={goHereArea.name} mapsApp={mapsAppName()} mapsHint={Platform.OS === 'web' ? HANDOFF_HINT : undefined} replaces={goHere.replaces} onChoose={chooseGoHere} onClose={() => setGoHere(null)} />
+      ) : null}
     </View>
   );
 }

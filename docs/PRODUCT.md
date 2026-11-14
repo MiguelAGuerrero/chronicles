@@ -118,6 +118,11 @@ recording, and a recording bar brings a minimized walk back.
   - what you found;
   - the areas next door;
   - Walk to, which starts you on a street of its storefronts.
+- **Go here on every tile** (decision 0180): the tile's last line is a quiet "Go here" with an arrow. It opens a
+  small sheet of two choices, Chronicles first, then the phone's maps app named for it (Apple Maps on an iPhone).
+  Chronicles saves the place as Navigate's destination and opens Navigate, ready; the walk starts only on Start,
+  at any distance. The maps app is handed the destination alone, on the tap. No minutes, no ranking. Not on the
+  tile of the area you are in. A saved destination is said to be replaced, once.
 - A long press on the small map still offers **What's here?** and
   **Walk here**. There are no counts of places on this tab.
 - **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0180):

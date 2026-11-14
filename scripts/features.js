@@ -485,7 +485,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'explore-go-here': { branch: 'claude/focused-brahmagupta-eajl5h', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

@@ -23,6 +23,13 @@ export function mapsTarget(env: { os: string; ua?: string; touchPoints?: number;
   return 'google';
 }
 
+/** The name a row gives the app that gets the destination (GH2): said before the tap, so what leaves the device is plain. */
+export function mapsName(target: MapsTarget): string {
+  if (target === 'apple' || target === 'appleApp') return 'Apple Maps';
+  if (target === 'google') return 'Google Maps';
+  return 'Maps';
+}
+
 const fix6 = (n: number) => n.toFixed(6);
 
 /** The links to try, in order: the first that opens wins. */

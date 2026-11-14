@@ -35,7 +35,7 @@ None new (GH13). The destination goes to meta `nav` through the existing `savePe
 | GH9 | `GH9: the card's Walk to is unchanged` (the journey repeats the near and far Walk to checks) | journey `gohere`; `drive` stays green |
 | GH10 | `GH10: no digits, minutes or "fastest" in the labels` (core) and the journey reads the sheet's text | `goHere.test.ts`; journey `gohere` |
 | GH11 | `GH11: ink, not accent` (journey: computed colour) | journey `gohere` |
-| GH12 | `GH12: tile heights are unchanged and nothing wraps at 320 px; the capture stack stays` (boxes before and with the sheet open) | journey `gohere` |
+| GH12 | `GH12: tile heights are unchanged and nothing wraps at 320 px; the tab bar stays` (boxes before and with the sheet open) | journey `gohere` |
 | GH14 | `GH14: a record cites 0058 and 0121` (docs check reads the file) | `src/lib/__tests__/explore/goHere.test.ts` |
 | GH15 | `GH15: a Go here tap writes nothing the familiarity reads` (shell: the stores written are `nav` alone, or none for Maps) | `goHere.test.ts` |
 | GH13 | `GH13: no new host or write but meta nav` (the request log; the shell test's writes) | journey `gohere` |

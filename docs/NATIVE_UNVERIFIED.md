@@ -279,6 +279,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with VoiceOver or TalkBack on, open the search, type "carl" and listen, then double-tap a result. **Expect:** the field is named "Search towns and cities", the list's change is announced once as "Matches listed" and never on each keystroke or with a number, each row reads its name, region and country then "Shows areas there", and the pick announces "Showing areas around <name>" with focus back on the magnifier (GZ6, GZ11).
 - [ ] **Do:** open the search with the phone offline (airplane mode), type "zuric" and pick Zürich. **Expect:** the matches list with no signal, the map moves there and the page says "Around Zürich"; only the map's own reads report their failure (GZ10).
 - [ ] **Do:** on a phone, drag the Explore row slowly about a third of a card toward the next one and let go. **Expect:** the platform's own snap decides (`snapToInterval`, `decelerationRate="fast"`) and the row ends on one card with that card selected and the map on it, never jumping on to a card the snap did not choose (fix carousel-flick: the flick bias in `snapTarget` is web only, `Platform.OS === 'web'`).
+- [ ] **Do:** on an iPhone, open Explore, tap Go here on a tile, then Apple Maps. **Expect:** Apple Maps opens with walking directions to that area's place; back in Chronicles the sheet is closed and recording (if a walk is open) went on (GH4, decision 0180)
+  - [ ] **Do:** on a phone, tap Go here on a tile, then Chronicles. **Expect:** Navigate opens ready, "To <place>", no walk started and nothing recorded until you tap Start (GH5, GH6)
 
 ## Explore atlas
 

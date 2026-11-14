@@ -48,7 +48,7 @@ Open: none (the owner, Nov 14: Go here on Navigate, every tile, one button openi
 
 10. **GH10 · No minutes, no ranking.** Neither the tile's action nor the sheet's own words show minutes, an arrival time, "fastest", a digit or a count, or two routes compared (the place's name, which may hold digits, is not the sheet's words). The choice is two ways of being taken, not two routes.
 11. **GH11 · Quiet ink.** Go here is in ink, not the accent: the accent stays for a card's single primary action (0172). It is the weakest element on the tile: no fill or border at rest, its type no larger than the tile's meta line. Its pressed state shows.
-12. **GH12 · The row keeps its shape.** Every tile in the row is the same height, with a slot for Go here whether or not that tile has the action; on a town tile both Go here and "See its neighborhoods" show unclipped at 320 px wide, and nothing wraps. The picture shows a plain tile, a town tile and the heading card. A tap on the capture stack works with the sheet open.
+12. **GH12 · The row keeps its shape.** Every tile in the row is the same height, with a slot for Go here whether or not that tile has the action; on a town tile both Go here and "See its neighborhoods" show unclipped at 320 px wide, and nothing wraps. The picture shows a plain tile, a town tile and the heading card. Explore has no capture stack (it is on the walk screen), so the sheet covers none of the tab bar.
 13. **GH13 · Nothing new is kept.** The only thing saved is the destination Navigate already holds for no walk (meta `nav`); no new truth or cache, migration or dependency, and no host is asked beyond the maps app's own link on a tap.
 
 ### Not in this slice (a line each, from the hosts of the area's Walk to)
@@ -68,3 +68,12 @@ No new route, truth or cache, migration or dependency. Reuses `nav/openInMaps.ts
 ## Tests
 
 See `plan.md`.
+
+## Record (Nov 14)
+
+- **Passed:** GH1-GH15, by `src/lib/__tests__/explore/goHere.test.ts` (GH2, GH5, GH6, GH8, GH10, GH14, GH15) and the journey `gohere` (GH1-GH13), the journeys the files reach, typecheck and lint.
+- **Cold find:** found once a tile is centred; not found on a tile peeking at the row's edge (its action is off-screen until the row scrolls it in, which selects it). Left-aligned so more shows; the limit is the row's own and is in `docs/DEFERRED.md`.
+- **UI review:** U1 accepted (`explore-go-here ui 1`, the maps row's external glyph), U4 accepted (`explore-go-here ui 2`, 8 px between rows). U2 (rename the Chronicles row) rejected: "Chronicles, Opens Navigate, ready" is the spec's words; U3's ✕ is already 44 px, and no scrim is by design (GH12); swipe-down is not built. U5-U7 are opinion: the quiet defaults stand.
+- **Deferred:** the other hosts of Walk to (a line each in `docs/DEFERRED.md`).
+- **Not audited** (`/audit` is the owner's to ask). Native has never run on a device: Apple Maps from the sheet and the sheet itself (`docs/NATIVE_UNVERIFIED.md`).
+
