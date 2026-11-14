@@ -335,6 +335,27 @@ async function checks(h) {
       `opening the walks list leaves a view that already shows every place alone (M6, audit 7: ${fitsAfter - fitsBefore} fits, star at ${Math.round(starBefore.y)}, sheet at ${Math.round(sheetTop)})`);
     check((await page.locator('[data-testid=walk-row]').count()) === 1, 'the walks list has the one stopped walk');
     await shot(page, '10-home-walks');
+    // tend tabs 11 (decision 0172, O18: one walk, described one way): the walks row says what it kept as the walk's card
+    // does (tend replay T19), no digit among it, and its More is named by its title, at 390 and 320 px.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        await shot(page, `10-home-walks-${w}`);
+      }
+      const row = await page.evaluate(() => {
+        const e = document.querySelector('[data-testid=walk-row]');
+        const more = e?.parentElement?.querySelector('[data-testid=walk-more]');
+        const texts = e ? [...e.querySelectorAll('div, span')].filter((x) => !x.childElementCount).map((x) => x.textContent) : [];
+        return { texts, name: e?.getAttribute('aria-label') ?? null, more: more?.getAttribute('aria-label') ?? null, right: more ? Math.round(more.getBoundingClientRect().right) : null };
+      });
+      const meta = row.texts.find((t) => / · /.test(t)) ?? '';
+      const kept = meta.split(' · ').slice(3).join(' · ');
+      check(/^(A|An|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten) .*(photo|video|voice memo|note)s?$/.test(kept) && !/\d/.test(kept) && /^More for .+/.test(row.more ?? '') && row.texts.includes(row.more.replace(/^More for /, '')) && row.right <= w,
+        `tend tabs 11: at ${w} px the walks row says what it kept in words and names its More by its title (${JSON.stringify({ meta, more: row.more })})`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
     await page.locator('[data-testid=walk-row]').first().click();
     await page.waitForSelector('[data-testid=done]', { timeout: 90000 });
     check(true, 're-watching from the walks list reaches the card with no taps');

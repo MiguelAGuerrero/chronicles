@@ -282,6 +282,13 @@ async function run(h) {
     });
     check(/^(A|An|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten) /.test(keptLine.kept ?? '') && /photo|video|voice memo|note/.test(keptLine.kept) && !/\d|·/.test(keptLine.kept) && keptLine.hint && !keptLine.lower,
       `tend replay T19: the walk's card says what it kept as one clause in words, the hint "Tap a pin to open it" on its own line (${JSON.stringify(keptLine)})`);
+    // tend tabs 11 (decision 0172, O18): the card's More is named by the title the card shows, as the walk's row is.
+    const cardMore = await pg.evaluate(() => {
+      const more = document.querySelector('[data-testid=card-more]');
+      const head = more?.parentElement?.querySelector('[role=heading]');
+      return { name: more?.getAttribute('aria-label') ?? null, title: head?.textContent?.trim() ?? null };
+    });
+    check(!!cardMore.title && cardMore.name === `More for ${cardMore.title}`, `tend tabs 11: the walk's card names its More by the title it shows (${JSON.stringify(cardMore)})`);
     await pg.click('[data-testid=to-name]');
     await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
     await shot(pg, 'rr-name');

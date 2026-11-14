@@ -29,6 +29,14 @@ export function walkRowSpoken(title: string, meta: string, epilogue: string | nu
   return [`Replay ${title}`, meta.split(' · ').join(', '), line ? `“${line}”` : null].filter(Boolean).join('. ');
 }
 
+/** A day's timeline entry for a walk, under its title: "Walk · 1.2 km · three moments" (tend tabs 11, decision 0172). */
+export function timelineWalkLine(distance: string | null, moments: number): string {
+  return ['Walk', distance, `${numberWord(moments)} ${moments === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');
+}
+
+/** A walk's More, named by the title it shows wherever that title is known: its row, its timeline entry, its card (tend tabs 11). */
+export const moreFor = (title: string): string => `More for ${title}`;
+
 /** A day's timeline entry for a walk as a screen reader says it (tend chronicle 3): its time, the title it shows, its line. */
 export function timelineWalkSpoken(clock: string, title: string, line: string): string {
   return `${[clock, title, ...line.split(' · ')].join(', ')}. Replay it`;

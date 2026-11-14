@@ -163,13 +163,34 @@ async function checks(h) {
       await p2.waitForSelector('[data-testid=day-title]');
       const order = await p2.locator('[data-testid=timeline-moment], [data-testid=timeline-walk]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
       check(order.join(',') === 'timeline-moment,timeline-walk,timeline-moment', `the day lists its moments and walk in time order (${order.join(', ')})`);
-      check(/1 moment\b/.test(await p2.locator('[data-testid=timeline-walk]').innerText()), 'the walk is one row with its moment count (M8)');
+      check(/\bone moment\b/.test(await p2.locator('[data-testid=timeline-walk]').innerText()), 'the walk is one row with its moment count, in words (M8, tend tabs 11)');
       await p2.click('[data-testid=sheet-days-back]');
       await p2.waitForSelector('[data-testid=day-row]');
       check((await p2.locator('[data-testid=day-title]').count()) === 0, 'a day\u2019s timeline goes back to the days list (audit 11)');
       await p2.click('[data-testid=day-row]');
       await p2.waitForSelector('[data-testid=day-title]');
       await shot(p2, '21-day-timeline');
+      // tend tabs 11 (decision 0172, O18): the walk's line says its moments in words, and its More is named by the title
+      // it shows, at 390 and 320 px.
+      for (const w of [390, 320]) {
+        if (w !== 390) {
+          await p2.setViewportSize({ width: w, height: 844 });
+          await p2.waitForTimeout(500);
+          await shot(p2, `21-day-timeline-${w}`);
+        }
+        const row = await p2.evaluate(() => {
+          const e = document.querySelector('[data-testid=timeline-walk]');
+          const more = e?.parentElement?.querySelector('[data-testid=walk-more]');
+          const texts = e ? [...e.querySelectorAll('div, span')].filter((x) => !x.childElementCount).map((x) => x.textContent) : [];
+          const at = texts.findIndex((t) => /^Walk( · |$)/.test(t));
+          // The title is the line above the walk's line.
+          return { line: at >= 0 ? texts[at] : null, title: at > 0 ? texts[at - 1] : null, more: more?.getAttribute('aria-label') ?? null, right: more ? Math.round(more.getBoundingClientRect().right) : null };
+        });
+        check(/^Walk( · .+)? · one moment$/.test(row.line ?? '') && row.more === `More for ${row.title}` && row.right <= w,
+          `tend tabs 11: at ${w} px a day's walk says its moments in words, its More named by its title (${JSON.stringify(row)})`);
+      }
+      await p2.setViewportSize({ width: 390, height: 844 });
+      await p2.waitForTimeout(300);
       // A moment opens in the viewer (M8).
       await p2.locator('[data-testid=timeline-moment]').first().click();
       check(await p2.waitForSelector('text=A green dress in the window.', { timeout: 5000 }).then(() => true, () => false), 'a moment in the timeline opens in the viewer');

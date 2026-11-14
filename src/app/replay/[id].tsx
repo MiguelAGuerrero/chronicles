@@ -45,7 +45,7 @@ import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
-import { newStreetsLine } from '../../lib/quietLines';
+import { moreFor, newStreetsLine } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
 
@@ -627,7 +627,8 @@ export default function Replay() {
                     <Pressable
                       testID="card-more"
                       accessibilityRole="button"
-                      accessibilityLabel="More for this walk"
+                      // Named by the title the card shows, as the walk's row names it (tend tabs 11).
+                      accessibilityLabel={moreFor(data.walk.title ?? suggestTitle(data.walk))}
                       onPress={() => setActionsOpen(true)}
                       style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
                       hitSlop={4}
