@@ -388,6 +388,7 @@ on a phone.
   record a walk.", as the same quiet notice on the ready screen and in the walk's "Not recording" notice. So QL19 and
   the map rule's "Denied says what the recorder's start says" hold on the web again, the two lines sharing their
   beginning and each its own end. QL11's and QL5's wording still wait for your edit.
+  Since `tend walk-screen 4` (Nov 14; decision 0172, O19) the web's lines say "Turn it on in your browser’s or your phone’s settings to see where you are." (Locate) and "… to record a walk." (Start); and since `tend walk-screen 5` (O21) a Locate that finds nothing in time says "Couldn’t find your position. Try again in a moment." in the quiet notice's tone, not red: use these words when you amend QL11 (the O21 bullet above names its wording too).
 - **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
   `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
   agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A
