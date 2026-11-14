@@ -93,3 +93,19 @@ test('NY14: the bundle keeps a note\'s type with the note, and says nothing for 
   assert.equal(byId.typed.note_type, 'question');
   assert.equal(byId.plain.note_type ?? null, null);
 });
+
+test('RX32: the bundle keeps a moment\'s reactions with it, and none for a moment with none', { todo: 'test first' }, async () => {
+  const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
+  const db = p.db as unknown as { setReaction: (r: unknown) => Promise<void> };
+  await p.db.createWalk(walk);
+  await p.db.addMoment(momentOf(cap('felt', 'a.jpg')));
+  await p.db.addMoment(momentOf(cap('plain', null)));
+  await db.setReaction({ moment_id: 'felt', family: 'feeling', reaction: 'happy', set_at: 1 });
+  await db.setReaction({ moment_id: 'felt', family: 'thought', reaction: 'idea', set_at: 2 });
+  const io = memoryIO({ 'a.jpg': new Uint8Array([1, 2, 3]) });
+  await createBundleWriter(p).writeWalkBundle('w1', io);
+  const json = JSON.parse(strFromU8(unzipSync(io.bytes())['walk.json']));
+  const byId = Object.fromEntries(json.moments.map((m: { id: string }) => [m.id, m]));
+  assert.deepEqual(byId.felt.reactions, { feeling: 'happy', thought: 'idea' });
+  assert.equal(byId.plain.reactions ?? null, null);
+});

@@ -450,6 +450,55 @@ async function run(h) {
   const got24 = (await stored(pg)).flatMap((m) => m.pieces).find((x) => /A typed page from the start/.test(x.body ?? ''));
   check(none24 && got24?.note_type === 'idea', `NY24: a new page carries the Type tool; chosen before the words it is on the kept note, and a wordless page keeps nothing (${JSON.stringify({ none24, type: got24?.note_type })})`);
 
+  // RX12, RX13 (reactions, decision 0172): the page's Reaction tool, where Type was, sets the moment's reactions; on a
+  // new page they wait for the words and are kept with the moment; a page left without words keeps nothing.
+  const rxOf = (re) => pg.evaluate((src) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['moment', 'reaction'], 'readonly');
+      const ms = tx.objectStore('moment').getAll();
+      ms.onsuccess = () => {
+        const m = ms.result.find((x) => x.pieces.some((p) => new RegExp(src).test(p.body ?? '')));
+        const rs = tx.objectStore('reaction').getAll();
+        rs.onsuccess = () => resolve(m ? Object.fromEntries(rs.result.filter((r) => r.moment_id === m.id).map((r) => [r.family, r.reaction])) : null);
+      };
+    };
+  }), re.source).catch(() => null);
+  await openPage();
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
+  await pg.waitForTimeout(600);
+  const tool13 = await pg.locator('[data-testid=note-reaction-tool]').getAttribute('aria-label').catch(() => null);
+  await pg.click('[data-testid=note-reaction-tool]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=reaction-pick-emphasis]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=note-page] [data-testid=note-input]');
+  await pg.keyboard.type('A page reacted to before its words.');
+  await pg.waitForTimeout(2500);
+  await pg.click('[data-testid=note-done]');
+  await pg.waitForTimeout(1200);
+  const got13 = await rxOf(/A page reacted to before its words/);
+  check.todo(tool13 === 'Reaction, none' && got13?.thought === 'emphasis' && got13?.taste === 'like',
+    `RX13: a new page carries the Reaction tool; what is chosen before the words is on the moment when it is kept (${JSON.stringify({ tool13, got13 })})`);
+  // RX12: the page of a kept note, opened again, shows the moment's first reaction and changes it there.
+  await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').filter({ hasText: 'A page reacted to before its words' }).last().locator('[data-testid=moment-open]').click().catch(() => {});
+  await pg.waitForSelector('[data-testid=capture-viewer]', { timeout: 8000 }).catch(() => {});
+  await pg.click('[data-testid=viewer-edit-note]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const tool12 = await pg.locator('[data-testid=note-reaction-tool]').getAttribute('aria-label').catch(() => null);
+  const typeTool12 = await pg.locator('[data-testid=note-type-row]').count();
+  await pg.click('[data-testid=note-reaction-tool]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-sad]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const words12 = (await stored(pg)).flatMap((m) => m.pieces).find((x) => /A page reacted to before its words/.test(x.body ?? ''))?.body ?? null;
+  await pg.click('[data-testid=note-done]').catch(() => {});
+  await pg.waitForTimeout(1000);
+  const got12 = await rxOf(/A page reacted to before its words/);
+  check.todo(tool12 === 'Reaction, Like' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
+    `RX12: a note's page has a Reaction tool in place of Type, showing the first reaction; a choice is kept on the moment and leaves the words alone (${JSON.stringify({ tool12, typeTool12, got12 })})`);
+
   await c.close();
 }
 

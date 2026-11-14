@@ -123,7 +123,7 @@ Storage and truth
 31. **RX31** Deleting a moment (by its last piece, by a walk, by Clear) deletes its reactions after the Undo window and not before; Undo keeps them; deleting a piece of a moment that stays keeps them; a piece split out to its own moment takes none.
 32. **RX32** The backup bundle and the web store's export keep a moment's reactions with it.
 33. **RX33** Nothing sets a reaction from a moment's words, picture, time or place: a reaction exists only because the owner chose it.
-34. **RX34** The reactions panel, at 320 px wide and at 200% text, shows every reaction with its name, nothing cut, each target 44 px or more both ways; a screen reader hears each as its name and its family ("Idea, Thought, chosen").
+34. **RX34** The reactions panel, at 320 px wide, shows every reaction with its name, nothing cut, each target 44 px or more both ways; a screen reader hears each as its name and its family ("Idea, Thought") and whether it is chosen. (200% text stays with note types' deferred one-column fallback, `docs/DEFERRED.md`: the web build sets sizes in px.)
 
 35. **RX35** A reaction is shown only on the moment that has it, and moments are gathered only in a lens: no walk, day, week, thread, area or place is shown or said to have a reaction, and none is summed up from them (steward 1).
 36. **RX36** Every reaction glyph, mark and bubble is the one ink colour (white on an ink disc on a pin), asserted by a test; a chosen reaction is shown by weight and a check, never an accent or a tint (steward 5, NY11 carried over).

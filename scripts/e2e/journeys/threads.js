@@ -293,6 +293,19 @@ async function run(h) {
   check(markHidden, 'note-types audit 3: a plain bubble says its type once: the mark inside the group is hidden from a screen reader');
   await shot(pg, '71-threads-note-type');
 
+  // RX16 (reactions): a note's bubble shows its moment's reactions, glyph and name, after its words; a moment with none shows nothing.
+  await openInThread('pier');
+  await pg.click('[data-testid=viewer-more]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=viewer-reaction]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-happy]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-question]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(600);
+  await pg.keyboard.press('Escape').catch(() => {});
+  await closeViewer();
+  const marks16 = await pg.locator(`${bubble('looked strong at the pier')} [data-testid=reaction-marks] [data-testid^=reaction-mark-]`).allInnerTexts().catch(() => []);
+  const plain16 = await pg.locator(`${bubble('And a third')} [data-testid=reaction-marks]`).count();
+  check.todo(marks16.join() === 'Happy,Question' && plain16 === 0, `RX16: a bubble shows its moment's reactions after its words; one with none shows nothing (${JSON.stringify({ marks16, plain16 })})`);
+
   // OT8: Remove from this thread keeps the moment.
   await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]:has-text("And a third") [data-testid=moment-more]').click();
   await pg.click('[data-testid=thread-menu-remove]');

@@ -771,6 +771,46 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listRecalls(), [recall('c1', 2)]);
     });
 
+    // ---- reactions (specs/reactions, decision 0172): their own records, never fields of the moment
+
+    type Rx = { moment_id: string; family: string; reaction: string | null; set_at: number };
+    const rx = (db: Db) => db as unknown as { setReaction: (r: Rx) => Promise<void>; listReactions: () => Promise<Rx[]> };
+    const rxRows = async (db: Db) => (await rx(db).listReactions()).map((r) => [r.moment_id, r.family, r.reaction]).sort();
+
+    test('FC7 setReaction, listReactions, RX28: one per moment and family; set, replaced, cleared; the moment\'s row is never touched', { todo: 'test first' }, async () => {
+      const db = await planned();
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      const before = await db.getMomentsByIds(['m1', 'm2']);
+      await rx(db).setReaction({ moment_id: 'm1', family: 'feeling', reaction: 'happy', set_at: 10 });
+      await rx(db).setReaction({ moment_id: 'm1', family: 'thought', reaction: 'idea', set_at: 11 });
+      await rx(db).setReaction({ moment_id: 'm1', family: 'feeling', reaction: 'sad', set_at: 12 });
+      await rx(db).setReaction({ moment_id: 'm2', family: 'taste', reaction: 'like', set_at: 13 });
+      await rx(db).setReaction({ moment_id: 'm2', family: 'taste', reaction: null, set_at: 14 });
+      await rx(db).setReaction({ moment_id: 'missing', family: 'taste', reaction: null, set_at: 15 });
+      assert.deepEqual(await rxRows(db), [['m1', 'feeling', 'sad'], ['m1', 'thought', 'idea']]);
+      assert.equal((await rx(db).listReactions()).find((r) => r.family === 'feeling')?.set_at, 12);
+      assert.deepEqual(await db.getMomentsByIds(['m1', 'm2']), before, 'no moment or piece changed');
+    });
+
+    test('FC7 deleteMoments, deleteWalk, splitPiece, RX31: a moment\'s reactions go with it and its walk; a piece split out takes none', { todo: 'test first' }, async () => {
+      const db = await planned();
+      await db.createWalk(walk('a', 1));
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      await db.addMoment(one('m3', null, 3));
+      await db.addPiece('m3', { id: 'p3', moment_id: 'm3', t: 4, kind: 'text', file_path: null, body: 'two' });
+      for (const id of ['m1', 'm2', 'm3']) await rx(db).setReaction({ moment_id: id, family: 'thought', reaction: 'idea', set_at: 1 });
+      await db.splitPiece('p3', { id: 'p3', walk_id: null, t: 4, lat: null, lon: null, segment_id: null });
+      await db.addPiece('m2', { id: 'p2', moment_id: 'm2', t: 3, kind: 'text', file_path: null, body: 'more' });
+      await db.deletePieces(['p2']);
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m1', 'm2', 'm3'], 'the split piece\'s new moment has none; m3 keeps its own; m2 keeps its own when one of its pieces goes');
+      await db.deleteMoments(['m1']);
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m2', 'm3']);
+      await db.deleteWalk('a');
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m3']);
+    });
+
     test('FC7 setTranscript, listTranscripts, clearTranscript, TX3: one row per capture, replaced by capture, cleared by capture', async () => {
       const db = await fresh() as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string; text: string }[] | void>>;
       const row = (capture_id: string, text: string) => ({ capture_id, text, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
