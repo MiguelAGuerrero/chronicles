@@ -9,6 +9,7 @@ import { landingOf } from './nav/wayBack';
 import { recorder } from './recorder';
 import { gapKey, gapsOf, type Gap } from './gaps/infer';
 import { HiddenLog } from './hiddenLog';
+import { sameRuns } from './liveRuns';
 import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, withFilled, type ReadTrace } from './rides';
 import type { Fill, LngLat, TracePoint } from './types';
 
@@ -37,17 +38,6 @@ export interface LiveTrace {
   heading: number | null;
   /** The live dot, fed fix by fix (the walk map's dot and the trace's end read it; nothing else). */
   dot: DotStore | null;
-}
-
-/** The same ride lines as last time, kept as they were, so the map isn't sent them again (rides audit 4). */
-function sameRuns(a: LngLat[][], b: LngLat[][]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    const x = a[i];
-    const y = b[i];
-    if (x.length !== y.length || x[0]?.[0] !== y[0]?.[0] || x[x.length - 1]?.[0] !== y[y.length - 1]?.[0] || x[x.length - 1]?.[1] !== y[y.length - 1]?.[1]) return false;
-  }
-  return true;
 }
 
 const NO_FILLS: Fill[] = [];

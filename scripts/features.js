@@ -37,7 +37,7 @@ const FEATURES = [
     about: 'the trace: fixes, the recorder, the live dot, steps, pauses, gaps in time',
     rule: 'recording-and-traces',
     source: [
-      'src/lib/{geo,liveDot,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,hiddenLog,recorderRetry}.ts',
+      'src/lib/{geo,liveDot,liveRuns,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,hiddenLog,recorderRetry}.ts',
       'src/lib/shareLog/**',
       'src/lib/motionSource/**',
       'src/lib/recorder/**',
