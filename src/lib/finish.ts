@@ -16,7 +16,7 @@ import type { Area, WalkArea } from './areas/types';
 import { fillsOf, walkStretches } from './gaps';
 import { ensureTileBuild } from './tiles';
 import type { LngLat, Moment, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
-import { fallback } from './diagnostics/sink';
+import { caught, fallback } from './diagnostics/sink';
 
 const AREA_PAD_M = 150;
 const NEIGHBORHOOD = ['neighbourhood', 'quarter', 'suburb'];
@@ -89,7 +89,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
       streetsRead = features.complete;
       derived = deriveSegments(features.roads, features.names, build);
       // Places of interest come from the same z14 reads as the streets (D1).
-      await db.putPlaces(placesFromTilePois(features.pois ?? [], build)).catch(() => {});
+      await db.putPlaces(placesFromTilePois(features.pois ?? [], build)).catch(caught('cache', 'lib/finish · snapWalk'));
       const mid = fixes[Math.floor(fixes.length / 2)];
       area = pickArea(features.places, [mid.lon, mid.lat]) ?? area;
     }

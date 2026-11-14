@@ -1,6 +1,6 @@
 // @layer shell
 import { THUMB, thumbEdge, thumbName, type ThumbCapture } from './thumbPlan';
-import { fallback } from './diagnostics/sink';
+import { fallback, report } from './diagnostics/sink';
 
 /**
  * Making a photo's small copy (TH1-TH5): the job, with its platform parts
@@ -46,9 +46,7 @@ export function thumbJob(c: ThumbCapture, deps: ThumbDeps, name: string = thumbN
     }
     try {
       return await deps.keep(out.uri, c.walk_id ?? 'moments', name);
-    } catch {
-      return null;
-    } finally {
+    } catch (caughtError) { report('cache', 'lib/thumbJob · thumbJob', caughtError); return null; } finally {
       out.release();
     }
   })().finally(() => inFlight.delete(key));

@@ -67,7 +67,7 @@ import { COMPLEX_STYLE, complexMap } from '../../lib/complexes/mapLayer';
 import { useComplexes, useHiddenKinds } from '../../lib/complexes/useComplexes';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
 import { useTabMap } from '../../lib/useTabMap';
-import { caught } from '../../lib/diagnostics/sink';
+import { caught, fallback } from '../../lib/diagnostics/sink';
 import { usePressHint } from '../../lib/atlas/usePressHint';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
@@ -469,7 +469,7 @@ export default function Explore() {
     setLooking(true);
     try {
       // tend explore 13: stopped is asked after each step, the area's write included.
-      const end = await runLook({ read: () => readArea(at, stopped), tileBuild: () => db.getMeta('tile_build'), remember: rememberArea }, stopped);
+      const end = await runLook({ read: () => readArea(at, stopped), tileBuild: () => db.getMeta('tile_build').catch(fallback('app/(tabs)/explore · look', null, 'the tile build')), remember: rememberArea }, stopped);
       if (end.kind === 'failed') setNotice({ message: 'Couldn’t read the map here', tone: 'error' });
       else if (end.kind === 'line') {
         setNotice({ message: end.message });
@@ -730,7 +730,7 @@ export default function Explore() {
             onPress={() => {
               const at = spot.at;
               setSpot(null);
-              lookHere(at);
+              lookHere(at).catch(caught('unexpected', 'app/(tabs)/explore · Explore'));
             }}
           />
           {spot.ask ? (
@@ -746,7 +746,7 @@ export default function Explore() {
                   onPress={() => {
                     const at = spot.at;
                     setSpot(null);
-                    startWalk({ at, label: 'Your spot', kind: 'point' });
+                    startWalk({ at, label: 'Your spot', kind: 'point' }).catch(caught('unexpected', 'app/(tabs)/explore · Explore'));
                   }}
                 />
               )}
@@ -777,7 +777,7 @@ export default function Explore() {
                 const choice = walkToChoice(you ? metresBetween(you, at) : null, stale ? null : fixSeen.current || null, Date.now());
                 if (openInfo.walk || choice === 'start') {
                   setSpot(null);
-                  startWalk({ at, label: 'Your spot', kind: 'point' });
+                  startWalk({ at, label: 'Your spot', kind: 'point' }).catch(caught('unexpected', 'app/(tabs)/explore · Explore'));
                 } else setSpot({ ...spot, ask: choice });
               }}
             />
@@ -903,14 +903,14 @@ export default function Explore() {
           starting={walkStart.starting}
           onWalkAt={(at, label) => {
             setOpen(null);
-            startWalk({ at, label, kind: 'point' });
+            startWalk({ at, label, kind: 'point' }).catch(caught('unexpected', 'app/(tabs)/explore · Explore'));
           }}
           onPlan={(k) => setPlan(k)}
           covered={plan != null}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
-            startWalk({ at: t.at, label: t.label, kind: 'point' });
+            startWalk({ at: t.at, label: t.label, kind: 'point' }).catch(caught('unexpected', 'app/(tabs)/explore · Explore'));
           }}
           onPick={pick}
           onClose={() => setOpen(null)}
@@ -929,7 +929,7 @@ export default function Explore() {
           onStart={(dest) => {
             setPlan(null);
             setOpen(null);
-            startWalk(dest);
+            startWalk(dest).catch(caught('unexpected', 'app/(tabs)/explore · Explore'));
           }}
         />
       )}

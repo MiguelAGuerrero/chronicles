@@ -24,6 +24,8 @@ const SAVE = /\b(?:db|p\.db|ports\.db)\.(?:put|set|add|append|update|start|end|s
 const REFUSE = /setAudioMode|[Kk]eepAwake|notifier\.|\.play\(|\.pause\(|seekTo|\bShare\.|\bshare\w*\(|[Pp]ermission|vibrate|clipboard|[Ff]ullscreen|wakeLock|AccessibilityInfo|Linking\.|haptic|feedback\(/;
 
 const toPosix = (p) => p.split(path.sep).join('/');
+/** The hand pass's decisions: [{ file, match, kind: 'save' | 'refused' | 'cache', what? }] (--hand <file>). */
+let handTable = [];
 const q = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 
 function srcFiles() {
@@ -65,6 +67,12 @@ function plan(file, source) {
   const site = (n, context, make) => {
     const place = `${short} · ${ownerName(n)}`;
     const text = context.getText(sf);
+    // The hand pass's decision for this site, matched by file and a piece of its code (never a line number).
+    const decided = handTable.find((d) => d.file === rel && text.includes(d.match));
+    if (decided && layer !== 'core') {
+      edits.push(make(place, decided, text));
+      return;
+    }
     const why = layer === 'core' ? 'core: pass a handler in' : SAVE.test(text) ? 'a save: its words and a Retry (EH7)' : REFUSE.test(text) ? 'a refusal: the screen\'s state (EH8)' : null;
     if (why) hand.push({ file: rel, line: lineOf(n), why, text: text.split('\n')[0].slice(0, 100) });
     else edits.push(make(place));
@@ -76,7 +84,15 @@ function plan(file, source) {
       if (h && isFn(h) && (emptyBody(h) || fallbackBody(h))) {
         // `() => null` hands back a value as much as `() => []` does: a fallback, not an empty handler.
         const empty = emptyBody(h) && (ts.isBlock(h.body) || ts.isVoidExpression(h.body));
-        site(n, n.expression.expression, (place) => {
+        site(n, n.expression.expression, (place, decided, text) => {
+          if (decided && decided.kind === 'save') {
+            used.add('failedSave');
+            return { start: h.getStart(sf), end: h.end, text: `failedSave(${q(place)}, ${q(decided.what)}, () => ${text})` };
+          }
+          if (decided && empty) {
+            used.add('caught');
+            return { start: h.getStart(sf), end: h.end, text: `caught(${q(decided.kind)}, ${q(place)})` };
+          }
           if (empty) {
             used.add('caught');
             return { start: h.getStart(sf), end: h.end, text: `caught('cache', ${q(place)})` };
@@ -94,14 +110,15 @@ function plan(file, source) {
     }
     if (ts.isCatchClause(n) && emptyBlock(n.block)) {
       const tryStmt = n.parent;
-      site(n, tryStmt.tryBlock, (place) => {
+      site(n, tryStmt.tryBlock, (place, decided) => {
+        const kind = decided && decided.kind !== 'save' ? decided.kind : 'cache';
         used.add('report');
         const v = n.variableDeclaration ? n.variableDeclaration.name.getText(sf) : 'caughtError';
         const decl = n.variableDeclaration ? '' : ` (${v})`;
         const ret = n.block.statements.map((st) => st.getText(sf)).join(' ');
         const start = n.variableDeclaration ? n.block.getStart(sf) : n.getStart(sf) + 'catch'.length;
         const head = n.variableDeclaration ? '' : `${decl} `;
-        return { start, end: n.block.end, text: `${head}{ report('cache', ${q(place)}, ${v});${ret ? ` ${ret}` : ''} }` };
+        return { start, end: n.block.end, text: `${head}{ report(${q(kind)}, ${q(place)}, ${v});${ret ? ` ${ret}` : ''} }` };
       });
     }
     ts.forEachChild(n, visit);
@@ -133,6 +150,8 @@ function apply(source, edits) {
 
 if (require.main === module) {
   const write = process.argv.includes('--write');
+  const h = process.argv.indexOf('--hand');
+  if (h >= 0) handTable = JSON.parse(fs.readFileSync(process.argv[h + 1], 'utf8'));
   let changed = 0;
   let sites = 0;
   const hand = [];

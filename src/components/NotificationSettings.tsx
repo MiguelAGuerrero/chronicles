@@ -4,7 +4,7 @@ import { db } from '../lib/db';
 import { loadNoticePrefs, NOTICE_KINDS, notifier, saveNoticePrefs, type NoticePrefs, type Permission } from '../lib/notify';
 import { SwitchRow } from './SwitchRow';
 import { Button, theme } from './ui';
-import { caught } from '../lib/diagnostics/sink';
+import { caught, failedSave } from '../lib/diagnostics/sink';
 
 /** What the section says about permission (NT5), per platform; nothing when it is granted. */
 function permissionNote(p: Permission | null, dismissed: boolean): string | null {
@@ -41,7 +41,7 @@ export function NotificationSettings(props: { heading?: boolean } = {}) {
   const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
     let alive = true;
-    notifier.permission().then((p) => alive && setPerm(p), () => {});
+    notifier.permission().then((p) => alive && setPerm(p), caught('refused', 'components/NotificationSettings · NotificationSettings'));
     loadNoticePrefs().then((p) => alive && setPrefs(p), caught('cache', 'components/NotificationSettings · NotificationSettings'));
     return () => {
       alive = false;
@@ -57,7 +57,7 @@ export function NotificationSettings(props: { heading?: boolean } = {}) {
   };
   const set = (next: NoticePrefs) => {
     setPrefs(next);
-    saveNoticePrefs(next).catch(() => {});
+    saveNoticePrefs(next).catch(failedSave('components/NotificationSettings · set', 'a notification setting', () => saveNoticePrefs(next)));
     db.getOpenWalk().then((w) => notifier.prefsChanged(next, w?.id ?? null), caught('cache', 'components/NotificationSettings · set'));
   };
   if (!prefs) return null;
@@ -79,7 +79,7 @@ export function NotificationSettings(props: { heading?: boolean } = {}) {
             onChange={(on) => {
               const next = { ...prefs, [k.id]: on };
               set(next);
-              if (on) notifier.ask(k.id).then(asked, () => {});
+              if (on) notifier.ask(k.id).then(asked, caught('refused', 'components/NotificationSettings · NotificationSettings'));
             }}
           />
         );
@@ -99,7 +99,7 @@ export function NotificationSettings(props: { heading?: boolean } = {}) {
               const ok = r.shown;
               setSent(r.permission === 'granted' ? (ok ? 'sent' : 'failed') : null);
               if (r.permission === 'granted') say(ok ? 'Test notification sent' : 'The test notification couldn’t be shown');
-            }, () => {});
+            }, caught('refused', 'components/NotificationSettings · NotificationSettings'));
           }}
         />
         {sent ? (

@@ -29,6 +29,7 @@ import { MediaEditor } from './edit/MediaEditor';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
 import { HoldButton, LiftIn, theme } from './ui';
+import { caught } from '../lib/diagnostics/sink';
 
 /** The bar's return waits this long at most for its photo to be kept. */
 const RETURN_WAIT_MS = 5000;
@@ -130,7 +131,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       // The photo is kept first, so the walk screen shows it; never held for ever by a save that hangs.
       await settleWithin(keeping.current, RETURN_WAIT_MS);
       // The walk screen opens what a tapped reminder asks for as it mounts (R4).
-      if (open) await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(open.map((c) => c.id))).catch(() => {});
+      if (open) await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(open.map((c) => c.id))).catch(caught('cache', 'components/RecordingBar · back'));
       feedback('tap');
       showWalk();
     } finally {

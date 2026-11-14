@@ -7,7 +7,10 @@ import { subscribeMotion } from './motionSource';
 import type { DotSource } from './liveDot';
 import { StepDetector, STEPS, type MotionState } from './steps';
 import type { Still } from './types';
-import { caught, fallback } from './diagnostics/sink';
+import { caught, failedSave, fallback } from './diagnostics/sink';
+
+/** A still spell's end, said with Retry when it fails (EH7): it is part of this walk. */
+const endStill = (walkId: string, at: number) => db.endStill(walkId, at).catch(failedSave('lib/walkMotion · endStill', 'part of this walk', () => db.endStill(walkId, at)));
 
 /**
  * The walk's motion (Motion, MO1-MO10): Expo's DeviceMotion, read only while a
@@ -64,7 +67,7 @@ export async function restoreMotion(): Promise<void> {
   if (access === 'on') return;
   const needsTap = Platform.OS === 'web' && typeof DeviceMotionEvent !== 'undefined' && typeof (DeviceMotionEvent as unknown as { requestPermission?: unknown }).requestPermission === 'function';
   if (needsTap) return;
-  const p = await DeviceMotion.getPermissionsAsync().catch(() => null);
+  const p = await DeviceMotion.getPermissionsAsync().catch(fallback('lib/walkMotion · restoreMotion', null, 'what getPermissionsAsync read'));
   if (!p?.granted) return;
   const available = await DeviceMotion.isAvailableAsync().catch(fallback('lib/walkMotion · restoreMotion', false, 'what isAvailableAsync read'));
   setAccess(available ? 'on' : 'unavailable');
@@ -123,13 +126,13 @@ export function useWalkMotion(
         // A spell left open by a reload, a crash or a killed app ends now: nothing was sensed since (motion audit 2).
         const open = stored.some((x) => x.ended_at == null);
         const at = Date.now();
-        if (open) await db.endStill(walkId, at).catch(() => {});
+        if (open) await endStill(walkId, at);
         if (!live) return;
         const closed = stored.map((x) => (x.ended_at == null ? { ...x, ended_at: at } : x));
         // Merged, so a spell begun while the read was on its way is kept (audit 8).
         setStills((now) => [...closed, ...now.filter((x) => !closed.some((c) => c.started_at === x.started_at))].sort((a, b) => a.started_at - b.started_at));
       })
-      .catch(() => {});
+      .catch(caught('cache', 'lib/walkMotion · read the stored still spells'));
     return () => {
       live = false;
     };
@@ -150,14 +153,14 @@ export function useWalkMotion(
     const begin = (at: number) => {
       open = at;
       setStills((s) => [...s, { walk_id: walkId, started_at: at, ended_at: null }]);
-      db.startStill(walkId, at).catch(() => {});
+      db.startStill(walkId, at).catch(failedSave('lib/walkMotion · begin', 'part of this walk', () => db.startStill(walkId, at)));
     };
     const end = (at: number) => {
       if (open == null) return;
       open = null;
       // Any open spell ends, so the stored and the live lists can't disagree (audit 2).
       setStills((s) => s.map((x) => (x.ended_at == null ? { ...x, ended_at: Math.max(at, x.started_at) } : x)));
-      db.endStill(walkId, at).catch(() => {});
+      void endStill(walkId, at);
     };
     const timer = setInterval(() => {
       const now = Date.now();

@@ -1,6 +1,7 @@
 // @layer core
 import type { PlannedRoute } from './planner';
 import type { PlannerResult } from './service';
+import { tryJson } from '../parse';
 
 /*
  * The planner page's own state (WP1, WP4, WP18): shut, or open with the routes and the row highlighted. The first route is selected
@@ -37,10 +38,7 @@ export const roundFor = (state: { key: string; n: number }, key: string): number
 /** A line above Start when the open walk has a destination set (audit 16): Start would replace it. Read from meta `nav`. */
 export function headingNote(raw: string | null | undefined, walkId: string | null): string | null {
   if (!raw || !walkId) return null;
-  try {
-    const v = JSON.parse(raw) as { walk_id?: string | null; dest?: unknown } | null;
-    return v && v.walk_id === walkId && v.dest ? 'This replaces where you were heading.' : null;
-  } catch {
-    return null;
-  }
+  const parsed = tryJson(raw);
+  const v = parsed.ok ? (parsed.value as { walk_id?: string | null; dest?: unknown } | null) : null;
+  return v && v.walk_id === walkId && v.dest ? 'This replaces where you were heading.' : null;
 }

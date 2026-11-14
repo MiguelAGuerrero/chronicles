@@ -107,7 +107,7 @@ test('tend walk-screen 3: the web recorder follows the permission after a refusa
   // tend walk-screen audit 2-4: through the follower that resumes only the store's open, unpaused walk (its behaviour is
   // run against session state in refusalFollower.test.ts).
   assert.match(denied, /follower\.refused\(id\)/, 'a refusal is handed to the follower');
-  assert.match(src, /refusalFollower\(\{ watch: watchLocatePermission, walks: db, resume: \(id\) => recorder\.resume\(id\) \}\)/, 'which follows the permission and resumes the same walk');
+  assert.match(src, /refusalFollower\(\{ watch: watchLocatePermission, walks: db, resume: \(id\) => recorder\.resume\(id\)(\.catch\(caught\([^)]*\)\))? \}\)/, 'which follows the permission and resumes the same walk');
   const stopBody = src.slice(src.indexOf('async stop()'), src.indexOf('async resume('));
   assert.match(stopBody, /unfollowPermission\(\)/, 'a stop (End, or Pause) stops following');
   const watchHead = src.slice(src.indexOf('function watch('), src.indexOf('return new Promise'));

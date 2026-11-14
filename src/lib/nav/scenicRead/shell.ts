@@ -12,7 +12,7 @@ import { tilesIn } from '../../tileMath';
 import type { LngLat, StreetSegment } from '../../types';
 import { SCENIC } from '../rules';
 import { corridorBounds, greenFromTiles, sightsFrom, type Signals } from '../scenicSignals';
-import { fallback } from '../../diagnostics/sink';
+import { caught, fallback, report } from '../../diagnostics/sink';
 
 /** One read of the corridor: its streets, and what a scenic route leans toward. */
 export interface ScenicRead {
@@ -48,8 +48,8 @@ export function createScenicRead(p: Pick<Ports, 'db'>, io: ScenicIo) {
         if (shouldStop()) return null;
         const segments = deriveSegments(features.roads, features.names, build);
         const places = placesFromTilePois(features.pois, build);
-        await p.db.putSegments(segments).catch(() => {});
-        await p.db.putPlaces(places).catch(() => {});
+        await p.db.putSegments(segments).catch(caught('cache', 'lib/nav/scenicRead/shell · read'));
+        await p.db.putPlaces(places).catch(caught('cache', 'lib/nav/scenicRead/shell · read'));
         const points = mergeSources(activityFromTilePois(features.pois), overture?.points ?? []);
         const centre: LngLat = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
         const busy = gradeStreets({ centre, points, segments }).graded.map((g) => ({ name: g.name, grade: g.grade, lines: g.lines }));
@@ -60,9 +60,7 @@ export function createScenicRead(p: Pick<Ports, 'db'>, io: ScenicIo) {
         const green = greenFromTiles(features.landcover ?? [], places.filter((x) => x.category === 'parks'));
         if (shouldStop()) return null;
         return { segments, signals: { green, sights: sightsFrom(places, hidden, found), busy } };
-      } catch {
-        return null;
-      }
+      } catch (caughtError) { report('cache', 'lib/nav/scenicRead/shell · read', caughtError); return null; }
     },
   };
 }

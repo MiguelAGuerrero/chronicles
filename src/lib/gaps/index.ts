@@ -7,7 +7,7 @@ import { deriveSegments, type RoadFeature } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { GapDecision } from '../types';
 import { decisionFor, GAP_RULES, gapKey, gapsOf, inferGap, readBounds, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
-import { fallback } from '../diagnostics/sink';
+import { caught, fallback } from '../diagnostics/sink';
 
 /**
  * Filling gaps' reads (G8, G10, G12). A gap's streets are read in code from
@@ -43,7 +43,7 @@ export async function readGap(walkId: string, g: Gap): Promise<Inference | null 
     if (!features) return undefined;
     const segments = deriveSegments(features.roads, features.names, build);
     // The pieces read are cached like any other street read (fog, navigation).
-    await db.putSegments(segments).catch(() => {});
+    await db.putSegments(segments).catch(caught('cache', 'lib/gaps/index · readGap'));
     const inf = inferGap(g, segments, want);
     known.set(key, inf);
     return inf;

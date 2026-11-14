@@ -5,7 +5,7 @@ import { MAX_TILES } from './limits';
 import { walkTileKey } from './match';
 import type { LngLat } from '../types';
 import type { TileFacts, WalkSource, WalkTile, WayFacts } from './types';
-import { fallback, report } from '../diagnostics/sink';
+import { caught, fallback, report } from '../diagnostics/sink';
 
 /*
  * Reading walkability tiles robustly (WK2-WK4, WK18): the device's cache first, one source request at a
@@ -105,7 +105,7 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
             junctions.set(key, got.junctions);
             const row: WalkTile = { key, x, y, build: got.from === 'overture' ? build : 'overpass', code: WALK_CODE, from: got.from, read_at: p.clock.now(), ways: got.ways, junctions: got.junctions };
             settled.set(key, row);
-            await p.db.putWalkTiles([row]).catch(() => {});
+            await p.db.putWalkTiles([row]).catch(caught('cache', 'lib/walk/reader · read'));
             continue;
           }
           failedAt.set(key, p.clock.now());

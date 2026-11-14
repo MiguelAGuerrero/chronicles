@@ -163,7 +163,7 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
             if (trim && where === 'end') {
               setRestartedFrom(status.currentTime);
               seekMemo(player, span.startMs / 1000);
-            } else if (status.didJustFinish || (!trim && whole && status.currentTime * 1000 >= whole - 100)) player.seekTo(span.startMs / 1000);
+            } else if (status.didJustFinish || (!trim && whole && status.currentTime * 1000 >= whole - 100)) player.seekTo(span.startMs / 1000).catch(caught('refused', 'components/CaptureView · VoicePlayer'));
             player.play();
           }
         }}
@@ -476,7 +476,7 @@ export function CaptureViewer(props: {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     let live = true;
-    AccessibilityInfo.isScreenReaderEnabled().then((on) => live && setReader(on), () => {});
+    AccessibilityInfo.isScreenReaderEnabled().then((on) => live && setReader(on), caught('refused', 'components/CaptureView · CaptureViewer'));
     const sub = AccessibilityInfo.addEventListener('screenReaderChanged', (on) => setReader(on));
     return () => {
       live = false;
@@ -935,7 +935,7 @@ export function CaptureViewer(props: {
               try {
                 // Asked first, still inside the tap: a browser refuses a prompt that comes too late (audit 5);
                 // a phone's location task can't show one at all.
-                notifier.ask('recall').catch(() => {});
+                notifier.ask('recall').catch(caught('refused', 'components/CaptureView · CaptureViewer'));
                 // Read fresh: a fire while the viewer was open must not be undone (R9).
                 const fresh = await storedRecall(id);
                 const r = fresh ? editedRecall(fresh, frequency, until) : newRecall(id, frequency, until, props.walkId ?? null);
@@ -1030,7 +1030,7 @@ export function CaptureViewer(props: {
                   disabled={busy}
                   onPress={() => {
                     setMenu(false);
-                    saveCurrent(current);
+                    saveCurrent(current).catch(caught('unexpected', 'components/CaptureView · CaptureViewer'));
                   }}
                   style={({ pressed }) => [styles.menuItem, (pressed || busy) && styles.dim]}
                 >

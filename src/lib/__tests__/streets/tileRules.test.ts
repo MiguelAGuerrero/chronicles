@@ -25,8 +25,8 @@ function loadTiles(db: Db, build = 'b1'): { ensureTileBuild: typeof ensureTileBu
   const code = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const mod = { exports: {} as Record<string, unknown> };
   const fetchTileBuild = async () => ({ build, url: `https://t.example/planet/${build}/{z}/{x}/{y}.pbf` });
-  new Function('module', 'exports', 'db', 'fetchTileBuild', 'TILEJSON_MS', 'AREA_RULES', 'BOUNDARY_PACKS_ID', code)(
-    mod, mod.exports, db, fetchTileBuild, 5000, AREA_RULES, BOUNDARY_PACKS_ID,
+  new Function('module', 'exports', 'db', 'fetchTileBuild', 'TILEJSON_MS', 'AREA_RULES', 'BOUNDARY_PACKS_ID', 'caught', code)(
+    mod, mod.exports, db, fetchTileBuild, 5000, AREA_RULES, BOUNDARY_PACKS_ID, () => () => undefined,
   );
   return mod.exports as { ensureTileBuild: typeof ensureTileBuild };
 }

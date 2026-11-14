@@ -2,6 +2,7 @@
 import { Linking, Platform } from 'react-native';
 import type { LngLat } from '../types';
 import { mapsTarget, mapsUrls } from './handoff';
+import { report } from '../diagnostics/sink';
 
 /**
  * What a screen reader hears on every Open in Maps button. A browser takes no
@@ -29,9 +30,7 @@ export async function openInMaps(at: LngLat, label: string): Promise<boolean> {
       if (target === 'appleApp') window.location.href = url;
       else await Linking.openURL(url);
       return true;
-    } catch {
-      // No app took it: the next link (Google's, on Android).
-    }
+    } catch (caughtError) { report('refused', 'lib/nav/openInMaps · openInMaps', caughtError); }
   }
   return false;
 }

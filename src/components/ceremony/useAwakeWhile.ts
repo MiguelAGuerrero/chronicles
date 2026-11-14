@@ -1,6 +1,7 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
+import { caught } from '../../lib/diagnostics/sink';
 
 const TAG = 'chronicles-replay';
 
@@ -15,7 +16,7 @@ export function useAwakeWhile(on: boolean) {
   useEffect(() => {
     if (!on) return;
     const take = () => {
-      activateKeepAwakeAsync(TAG).catch(() => {});
+      activateKeepAwakeAsync(TAG).catch(caught('refused', 'components/ceremony/useAwakeWhile · take'));
     };
     take();
     const sub = AppState.addEventListener('change', (s) => {
@@ -23,7 +24,7 @@ export function useAwakeWhile(on: boolean) {
     });
     return () => {
       sub.remove();
-      deactivateKeepAwake(TAG).catch(() => {});
+      deactivateKeepAwake(TAG).catch(caught('refused', 'components/ceremony/useAwakeWhile · useAwakeWhile'));
     };
   }, [on]);
 }

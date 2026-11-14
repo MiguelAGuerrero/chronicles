@@ -11,7 +11,7 @@ import { centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyz
 import { keyFor, LANDING_VERSION, replacesRow, type LandingRow } from './view';
 import { placesArchive } from '../discovery/archive';
 import { offPage } from './runOffPage';
-import { fallback } from '../diagnostics/sink';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
@@ -39,9 +39,9 @@ export async function readAround(url: string, build: string, at: LngLat, shouldS
   // Cached like any read, tagged with the build (L2), in batches the page draws between (DC10). A write once started
   // finishes, so no tile is left half stored (audit 5); places are not stored after a cancel. Overture's places, and the
   // archive's, are never stored.
-  await db.putSegments(out.segments, shouldStop).catch(() => {});
+  await db.putSegments(out.segments, shouldStop).catch(caught('cache', 'lib/landing/read · readAround'));
   if (shouldStop()) throw new Cancelled();
-  await db.putPlaces(out.tilePlaces).catch(() => {});
+  await db.putPlaces(out.tilePlaces).catch(caught('cache', 'lib/landing/read · readAround'));
   const { segments, places, points, towns, transit, analysis } = out;
   return { segments, places, points, overture: overture?.release ?? null, archive: archive?.version ?? null, towns, transit, analysis };
 }

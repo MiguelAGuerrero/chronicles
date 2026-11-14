@@ -3,7 +3,7 @@ import type { Ports } from '../ports/types';
 import { createStore, type Store } from '../store';
 import { DEFAULT_DENSITY, DEFAULT_MODE, isDensity, isMode, type Density, type Mode } from '../walkPlanner/settings';
 import { DEFAULT_BUDGET_M, DEFAULT_PREF, isPref, type WalkabilityPref } from './settings';
-import { fallback } from '../diagnostics/sink';
+import { failedSave, fallback } from '../diagnostics/sink';
 
 /*
  * The kind walk's two settings (KW8, KW11), kept in meta `kindwalk_budget` (metres) and `kindwalk_pref`. A shell with a Store
@@ -44,19 +44,19 @@ export function createKindWalkPrefs(p: Pick<Ports, 'db'>): KindWalkPrefsStore {
     // The store first, so the panel redraws at once, then kept.
     async setBudget(m) {
       store.set({ ...store.get(), budgetM: m });
-      await p.db.setMeta('kindwalk_budget', String(m)).catch(() => {});
+      await p.db.setMeta('kindwalk_budget', String(m)).catch(failedSave('lib/kindWalk/prefs · setBudget', 'a walk setting', () => p.db.setMeta('kindwalk_budget', String(m))));
     },
     async setPref(pref) {
       store.set({ ...store.get(), pref });
-      await p.db.setMeta('kindwalk_pref', pref).catch(() => {});
+      await p.db.setMeta('kindwalk_pref', pref).catch(failedSave('lib/kindWalk/prefs · setPref', 'a walk setting', () => p.db.setMeta('kindwalk_pref', pref)));
     },
     async setMode(mode) {
       store.set({ ...store.get(), mode });
-      await p.db.setMeta('kindwalk_mode', mode).catch(() => {});
+      await p.db.setMeta('kindwalk_mode', mode).catch(failedSave('lib/kindWalk/prefs · setMode', 'a walk setting', () => p.db.setMeta('kindwalk_mode', mode)));
     },
     async setDensity(density) {
       store.set({ ...store.get(), density });
-      await p.db.setMeta('kindwalk_density', density).catch(() => {});
+      await p.db.setMeta('kindwalk_density', density).catch(failedSave('lib/kindWalk/prefs · setDensity', 'a walk setting', () => p.db.setMeta('kindwalk_density', density)));
     },
   };
 }

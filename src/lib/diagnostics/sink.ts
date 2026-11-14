@@ -71,6 +71,17 @@ export function failedSave(place: string, what: string, retry: () => Promise<unk
   };
 }
 
+/** A save that says whether it was kept: true, or false with the failure said on screen with Retry (EH7). */
+export function saved(place: string, what: string, save: () => Promise<unknown>): Promise<boolean> {
+  return save().then(
+    () => true,
+    (e: unknown) => {
+      failedSave(place, what, save)(e);
+      return false;
+    },
+  );
+}
+
 /** Repeats every failed save; each that succeeds leaves the line, each that fails again stays with its new reason. */
 export async function retryFailed(): Promise<void> {
   for (const [key, retry] of [...retries]) {

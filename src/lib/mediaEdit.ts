@@ -1,4 +1,5 @@
 // @layer core
+import { tryJson } from './parse';
 /**
  * Media editing (ME1-ME23, decision 0090): a photo's or video's edits as
  * data on the untouched original. One order everywhere (screen, bakers,
@@ -500,11 +501,9 @@ function parseStroke(v: unknown): Stroke | null {
 export function parseEdit(raw: unknown): MediaEdit | null {
   let v: unknown = raw;
   if (typeof raw === 'string') {
-    try {
-      v = JSON.parse(raw);
-    } catch {
-      return null;
-    }
+    const parsed = tryJson(raw);
+    if (!parsed.ok) return null;
+    v = parsed.value;
   }
   if (!isObj(v) || v.v !== 1) return null;
   const rotate = v.rotate ?? 0;

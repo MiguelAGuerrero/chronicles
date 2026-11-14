@@ -103,7 +103,7 @@ import { useOutlineSet } from '../lib/areas/useOutlineSet';
 import { SpaceLine } from '../components/SpaceLine';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
-import { caught, fallback } from '../lib/diagnostics/sink';
+import { caught, failedSave, fallback } from '../lib/diagnostics/sink';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -491,9 +491,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
     (async () => {
       const features = await mapRef.current?.collectView().catch(fallback('app/walk · WalkScreen', null, 'what collectView read'));
       if (features?.complete && features.roads.length && build !== 'unknown') {
-        await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(() => {});
+        await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(caught('cache', 'app/walk · WalkScreen'));
         // Not awaited: the fog shouldn't wait on the place cache.
-        db.putPlaces(placesFromTilePois(features.pois, build, { complete: features.complete })).catch(() => {});
+        db.putPlaces(placesFromTilePois(features.pois, build, { complete: features.complete })).catch(caught('cache', 'app/walk · WalkScreen'));
       } else if (!features?.complete) {
         run.at = null; // zoomed out or not loaded yet: read the streets again on the next fix
       }
@@ -512,10 +512,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
       setFog(segs.filter((x) => !visited.has(x.id) && !walkedNow(streetMidpoint(x))));
       setWalked(segs.filter((x) => visited.has(x.id)));
     })()
-      .catch(() => {})
+      .catch(caught('cache', 'app/walk · WalkScreen'))
       .finally(() => {
         run.busy = false;
-      });
+      }).catch(caught('cache', 'app/walk · WalkScreen'));
   }, [live.here, live.riding, build]);
   // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
   const [showUnwalked, setShowUnwalked] = useState(false);
@@ -547,7 +547,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const changeSettings = (next: ExploreSettings) => {
     if (!loaded) return;
     setLoaded(next);
-    saveSettings(next).catch(() => {});
+    saveSettings(next).catch(failedSave('app/walk · changeSettings', 'your walk settings', () => saveSettings(next)));
   };
   const toggleKind = (k: Kind, on: boolean) => {
     const hidden = new Set(settings.hidden);
@@ -900,11 +900,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!walk) return;
     setExploring(on);
     if (!on) setMarkOpen(null);
-    db.setMeta(EXPLORE_KEY, on ? walk.id : '').catch(() => {});
+    db.setMeta(EXPLORE_KEY, on ? walk.id : '').catch(failedSave('app/walk · setExplore', 'the Explore switch', () => db.setMeta(EXPLORE_KEY, on ? walk.id : '')));
     // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
     if (on) {
       const key = exploredKey(walk.id);
-      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now()))), caught('cache', 'app/walk · setExplore')).catch(() => {});
+      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now()))), caught('cache', 'app/walk · setExplore')).catch(caught('cache', 'app/walk · setExplore'));
     }
   };
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
@@ -959,7 +959,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
       nudgedRef.current = true;
-      db.setMeta(NUDGED_KEY, walk.id).catch(() => {});
+      db.setMeta(NUDGED_KEY, walk.id).catch(caught('cache', 'app/walk · WalkScreen'));
       AccessibilityInfo.announceForAccessibility(nudge!.text);
     }
     const t = setTimeout(() => setNudge(null), MOTION.deadZoneNudge);
@@ -977,7 +977,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         setNotice({ message: 'Press and hold the map to go somewhere, or to see what happened there.' });
         return db.setMeta('hint_go', '1');
       })
-      .catch(() => {});
+      .catch(caught('cache', 'app/walk · WalkScreen'));
   }, [live.distanceM]);
   // Walk back here (DW7): this walk's spot, read again on a reload.
   const walkId = walk?.id ?? null;
@@ -1145,7 +1145,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       .catch(caught('cache', 'app/walk · WalkScreen'))
       .finally(() => {
         retrying.current = false;
-      });
+      }).catch(caught('unexpected', 'app/walk · WalkScreen'));
   }, [resumed, status, paused, walk]);
   // Paused time does not count as walking.
   // Weak GPS is no usable fix for a while, judged before the speed gate: a bus's fixes are good ones (R11).
@@ -1276,7 +1276,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           if (isDrawing) return;
           // Another card takes the slot: the stretch's card goes, rather than hiding and coming back (audit 7).
           setGapOpen(null);
-          pressMap(at, radiusM);
+          pressMap(at, radiusM).catch(caught('unexpected', 'app/walk · WalkScreen'));
         }}
         route={routeLine}
         alternates={alternates}
@@ -1871,7 +1871,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                     const at = spot.at;
                     setSpot(null);
                     setChosen({ walkId: walk.id, at });
-                    saveWayBack(walk.id, at).catch(() => {});
+                    saveWayBack(walk.id, at).catch(failedSave('app/walk · WalkScreen', 'where to walk back to', () => saveWayBack(walk.id, at)));
                     setNotice({ message: CHOSEN_NOTICE });
                   }}
                 />

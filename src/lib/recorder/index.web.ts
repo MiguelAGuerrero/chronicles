@@ -29,7 +29,7 @@ let wakeLock: { release(): Promise<void> } | null = null;
  * Following the site's permission after a refusal, so the walk records again once it is given back (O22): only for the
  * walk the store holds open and not paused (tend walk-screen audit 2-4). `recorder` is read when it resumes.
  */
-const follower = refusalFollower({ watch: watchLocatePermission, walks: db, resume: (id) => recorder.resume(id) });
+const follower = refusalFollower({ watch: watchLocatePermission, walks: db, resume: (id) => recorder.resume(id).catch(caught('unexpected', 'recorder · resume after a refusal')) });
 
 function unfollowPermission() {
   follower.stop();
@@ -62,7 +62,7 @@ async function holdWakeLock() {
 // A wake lock is dropped whenever the tab is hidden; take it again on return.
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (walkId && document.visibilityState === 'visible') holdWakeLock();
+    if (walkId && document.visibilityState === 'visible') holdWakeLock().catch(caught('refused', 'lib/recorder/index · module'));
   });
 }
 
@@ -150,7 +150,7 @@ export const recorder: Recorder = {
     unfollowPermission();
     walkId = null;
     setStatus({ kind: 'idle' });
-    await wakeLock?.release().catch(() => {});
+    await wakeLock?.release().catch(caught('refused', 'lib/recorder/index · stop'));
     wakeLock = null;
   },
   async resume(id) {

@@ -170,7 +170,7 @@ export function useCaptures(
     );
     db.getMoments(walkId).then(facedAll).then((stored) => {
       if (alive.current) setCaptures((prev) => mergeCaptures(stored, prev));
-    });
+    }).catch(caught('cache', 'lib/useCaptures · useCaptures'));
     return off;
   }, [walkId, self]);
 
@@ -366,7 +366,7 @@ export function useCaptures(
           () => {
             if (isFace) captureBus.patch(walkId, m.id, { thumb_path: thumb }, self);
           },
-          () => {},
+          caught('cache', 'lib/useCaptures · thumbFor'),
         );
       }, caught('cache', 'lib/useCaptures · thumbFor'));
     });
@@ -445,7 +445,7 @@ export function useCaptures(
   const discardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetAudioMode = () =>
-    setAudioMode({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
+    setAudioMode({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(caught('refused', 'lib/useCaptures · resetAudioMode'));
 
   /** With `into`, the memo joins that open moment as a piece when saved (MS2, MS3). */
   const startVoice = (into: string | null = null): Promise<boolean> =>

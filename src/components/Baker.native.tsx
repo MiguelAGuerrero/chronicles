@@ -5,6 +5,7 @@ import { emptyEdit, exportPlan, type MediaEdit } from '../lib/mediaEdit';
 import { CaptionBar } from './Caption';
 import { EditedPicture } from './edit/EditedPhoto';
 import type { BakeJob, BakeOpts, Baker } from './Baker.types';
+import { caught } from '../lib/diagnostics/sink';
 
 /** Exported photos are baked at most this many pixels wide; height follows the photo. */
 const BAKE_WIDTH_PX = 1600;
@@ -87,7 +88,7 @@ export function useBaker(): [ReactElement | null, Baker] {
       useRenderInContext: Platform.OS === 'ios',
     })
       .then(j.resolve, j.reject)
-      .finally(() => finish(j));
+      .finally(() => finish(j)).catch(caught('refused', 'components/Baker · capture'));
   };
   // An overlay has no image to wait for; a photo that never loads (the SVG
   // Image has no error event) is given up on rather than left hanging.

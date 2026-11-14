@@ -24,7 +24,7 @@ import { Button, theme } from '../ui';
 import { EditedPicture, fitRect, useNaturalSize, webData } from './EditedPhoto';
 import { seekTo, useVideoSize, VideoPicture } from './EditedVideo';
 import { CropFrame, DrawLayer, FilterStrip, TrimBar } from './tools';
-import { caught } from '../../lib/diagnostics/sink';
+import { caught, report } from '../../lib/diagnostics/sink';
 import { pausePlayer as pauseAudio, playPlayer as playAudio, seekPlayer as seekAudio } from '../../lib/playerControls';
 
 const TOOL_META: Record<EditTool, { label: string; icon: IconName }> = {
@@ -113,9 +113,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
           // The copy it replaced, under its own name, goes (best effort).
           if (old && old !== THUMB.none) void removeMedia([old]).catch(caught('cache', 'components/edit/MediaEditor · save'));
         }
-      } catch {
-        // The old copy stays; the photo itself shows the edits.
-      }
+      } catch (caughtError) { report('cache', 'components/edit/MediaEditor · save', caughtError); }
     }
     // A video's still is taken again where the new kept part starts, with its crop and rotation (VS6), only when
     // the trim, crop or turn moved (audit 8), on the thumbs shell's queue after the editor closes (audit 6): it

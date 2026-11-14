@@ -20,7 +20,7 @@ import { clearNav, loadNav, saveNav } from './store';
 import { streetRouteSource, type StreetSource } from './streetRoute';
 import { traceRouteSource } from './traceRoute';
 import type { Route, RouteSource, Waypoint } from './types';
-import { caught, fallback } from '../diagnostics/sink';
+import { caught, failedSave, fallback } from '../diagnostics/sink';
 
 /** Streets are read this far around both ends of a route. */
 const AREA_PAD_M = 300;
@@ -287,7 +287,7 @@ export function useNavigation(opts: {
     let alive = true;
     loadNav(walkId).then((dest) => {
       if (alive && dest && !navRef.current) goTo(dest).catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
-    });
+    }).catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
     return () => {
       alive = false;
     };
@@ -343,7 +343,7 @@ export function useNavigation(opts: {
             .catch(caught('cache', 'lib/nav/useNavigation · useNavigation'))
             .finally(() => {
               busy.current = false;
-            });
+            }).catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
         }
       }
       apply(next);
@@ -360,7 +360,7 @@ export function useNavigation(opts: {
     if (!s || s.dest.label === label || !walk) return;
     const dest = { ...s.dest, label };
     apply({ ...s, dest });
-    saveNav(walk.id, dest).catch(() => {});
+    saveNav(walk.id, dest).catch(failedSave('lib/nav/useNavigation · useNavigation', 'your destination', () => saveNav(walk.id, dest)));
   }, []);
 
   return { nav, finding, preview, goTo, end, cancel, relabel, select, choose, dismiss };

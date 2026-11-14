@@ -60,7 +60,7 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
   };
   const setPersist = (v: Persist) => {
     persist = v;
-    return p.db.setMeta(PERSIST_KEY, v).catch(() => {});
+    return p.db.setMeta(PERSIST_KEY, v).catch(caught('cache', 'lib/space/shell · setPersist'));
   };
 
   /** The level now; 'unread' when the room can't be read, which changes nothing (SA1). */
@@ -83,14 +83,14 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
       // The room is back: the next low is said again, and a line about it goes.
       if (last != null) {
         said = null;
-        await p.db.setMeta(SAID_KEY, '').catch(() => {});
+        await p.db.setMeta(SAID_KEY, '').catch(caught('cache', 'lib/space/shell · look'));
       }
       if (shown === 'space') show(null, null);
       return null;
     }
     if (!shouldSay(last, level)) return null;
     said = level;
-    await p.db.setMeta(SAID_KEY, level).catch(() => {});
+    await p.db.setMeta(SAID_KEY, level).catch(caught('cache', 'lib/space/shell · look'));
     const line = spaceLine(level);
     show(line, 'space');
     return line;

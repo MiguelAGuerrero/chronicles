@@ -35,6 +35,7 @@ export function followPermission(watch: (on: (state: LocatePermission) => void) 
 export interface RefusalPorts {
   watch: (on: (state: LocatePermission) => void) => () => void;
   walks: Pick<Db, 'getOpenWalk' | 'getPauses'>;
+  /** Records its own failure and never rejects (decision 0179). */
   resume: (walkId: string) => Promise<void>;
 }
 
@@ -78,7 +79,7 @@ export function refusalFollower(p: RefusalPorts) {
       return;
     }
     // Following goes on: refused again, the walk's follower has heard what came between (audit 7).
-    await p.resume(walkId).catch(() => {});
+    await p.resume(walkId);
   };
   return {
     /** The walk being followed, if any. */

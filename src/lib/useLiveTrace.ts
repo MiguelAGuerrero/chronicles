@@ -12,6 +12,7 @@ import { HiddenLog } from './hiddenLog';
 import { newestGap, sameRuns } from './liveTrace';
 import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, withFilled, type ReadTrace } from './rides';
 import type { Fill, LngLat, TracePoint } from './types';
+import { caught } from './diagnostics/sink';
 
 /** How often the screen (and the map) is refreshed from the live trace. */
 const PUBLISH_MS = 2000;
@@ -134,7 +135,7 @@ export function useLiveTrace(
       for (const p of all) if (p.t >= lastT - 60_000) dot.push(p);
       loaded = true;
       publish();
-    });
+    }).catch(caught('cache', 'lib/useLiveTrace · useLiveTrace'));
 
     function publish() {
       if (!dirty.current || AppState.currentState !== 'active') return;

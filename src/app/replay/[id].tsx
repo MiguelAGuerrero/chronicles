@@ -113,7 +113,7 @@ export default function Replay() {
       async (gap: Gap, line: DrawnLine) => {
         if (!data) return;
         await decide(data.walk.id, { t0: gap.t0, t1: gap.t1, path: line.path, lengthM: line.lengthM, street: null, how: 'kept' }, 'kept');
-        await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+        await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(caught('cache', 'app/replay/[id] · Replay')));
         const d = await loadReplay(id).catch(fallback('app/replay/[id] · Replay', null, 'what loadReplay read'));
         if (d) setData(d);
       },
@@ -157,7 +157,7 @@ export default function Replay() {
       return;
     }
     // The card stays, busy, until the card's numbers have followed (audit 14).
-    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(caught('cache', 'app/replay/[id] · decideGap')));
     const d = await loadReplay(id).catch(fallback('app/replay/[id] · decideGap', null, 'what loadReplay read'));
     if (d) setData(d);
     setGapOpen(null);
@@ -305,12 +305,12 @@ export default function Replay() {
       // With a screen reader the animation says nothing: it goes straight to
       // the captures, one after another, then the card. (react-native-web
       // always answers yes, so the web keeps the animation and announces.)
-      const sr = Platform.OS !== 'web' && (await AccessibilityInfo.isScreenReaderEnabled().catch(() => false));
+      const sr = Platform.OS !== 'web' && (await AccessibilityInfo.isScreenReaderEnabled().catch(fallback('app/replay/[id] · Replay', false, 'what isScreenReaderEnabled read')));
       if (sr) {
         setSrMode(true);
         go('path');
       } else go('fog');
-    })();
+    })().catch(caught('cache', 'app/replay/[id] · Replay'));
     return () => {
       alive = false;
     };

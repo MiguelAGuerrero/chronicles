@@ -8,7 +8,7 @@
 import type { Db } from '../db/types';
 import { createStore, type Store } from '../store';
 import { needsTranscript, spanOf, transcriptCaption, wordsOfRow, type MemoRef, type Transcript } from './core';
-import { caught, fallback } from '../diagnostics/sink';
+import { caught, fallback, report } from '../diagnostics/sink';
 
 /** A memo to read: its piece's id, stored file, length and edits. */
 export interface MemoToRead extends MemoRef {
@@ -140,9 +140,7 @@ export function createTranscripts(p: TranscriptPorts) {
       await p.db.setTranscript(row);
       put(row);
       wrote = true;
-    } catch {
-      // One memo's failure is its own: it stays unread, and the next one is read (TX4).
-    } finally {
+    } catch (caughtError) { report('cache', 'lib/transcript/shell · readOne', caughtError); } finally {
       reading = false;
       if (cut) await p.cutter.remove(cut).catch(caught('cache', 'lib/transcript/shell · readOne'));
     }

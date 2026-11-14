@@ -13,7 +13,7 @@ import { arrivalLine, arrivalParts, previousCapture, streetAt } from './context'
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { openWalkViews, toMomentViews, wordsOf } from './views';
-import { fallback } from '../diagnostics/sink';
+import { fallback, saved as savedOrSaid } from '../diagnostics/sink';
 
 /** Meta: what the user chose (RM21), one JSON value; ids and terms only. */
 export const PREFS_KEY = 'resurface_prefs';
@@ -98,7 +98,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     const before = store.get().prefs;
     choices += 1;
     store.set((s) => ({ ...s, prefs: next }));
-    const saved = writes.then(() => p.db.setMeta(PREFS_KEY, JSON.stringify(next)).then(() => true, () => false));
+    const saved = writes.then(() => savedOrSaid('lib/resurface/shell · setPrefs', 'a setting', () => p.db.setMeta(PREFS_KEY, JSON.stringify(next))));
     writes = saved;
     return saved.then((ok) => ({ before, after: next, saved: ok }));
   }

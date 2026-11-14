@@ -4,6 +4,7 @@ import { BOUNDARY_PACKS_ID } from './areas/boundaries';
 import { db } from './db';
 import { fetchTileBuild, TILEJSON_MS } from './tileBuild';
 import { net } from './net';
+import { caught } from './diagnostics/sink';
 
 export { TILE_ZOOM, tileAt, tileRect, onTileEdge, type TileRect } from './tileMath';
 
@@ -47,7 +48,7 @@ export async function ensureTileBuild(): Promise<string> {
     await db.setMeta('street_code', STREET_CODE);
   }
   // With its build, never apart: the location task reads tiles itself, tagged with that build (A11).
-  if (pendingUrl && build !== 'unknown') await db.setMeta('tile_url', pendingUrl).catch(() => {});
+  if (pendingUrl && build !== 'unknown') await db.setMeta('tile_url', pendingUrl).catch(caught('cache', 'lib/tiles · ensureTileBuild'));
   // The rules for crediting streets changed: walks re-snap when their replay
   // next opens, keeping their old summary until then. Street pieces are kept.
   const rules = `${SNAP_RULES}/${AREA_RULES}/${BOUNDARY_PACKS_ID}`;

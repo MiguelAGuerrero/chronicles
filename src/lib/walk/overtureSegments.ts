@@ -3,6 +3,7 @@ import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import type { LngLat } from '../types';
 import type { WayFacts } from './types';
+import { tryJson } from '../parse';
 
 /*
  * Overture's transportation tiles (WK1): the only file that knows their schema (checked 2026-11-04,
@@ -16,11 +17,8 @@ const MPH = 1.609344;
 
 const parse = (s: unknown): unknown => {
   if (typeof s !== 'string') return s ?? null;
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
-  }
+  const r = tryJson(s);
+  return r.ok ? r.value : null;
 };
 
 /** The fastest limit stated, in km/h (a limit that changes along a segment: the worst for someone beside it). */

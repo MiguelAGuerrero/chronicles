@@ -27,6 +27,7 @@ export const endLook = (s: Look, token: number): Look => (isLive(s, token) ? { .
 /** What a look reads and writes, passed in by the screen (`readArea`, the tile build, `rememberArea`). */
 export interface LookIo {
   read: () => Promise<{ ok: true; centre: LngLat; analysis: AreaAnalysis; overture: string | null } | { ok: false; reason: 'failed' | 'cancelled' }>;
+  /** The tile build, or null; it records its own failure and never rejects (decision 0179). */
   tileBuild: () => Promise<string | null>;
   remember: (centre: LngLat, analysis: AreaAnalysis, build: string, overture: string | null) => Promise<unknown>;
 }
@@ -41,7 +42,7 @@ export async function runLook(io: LookIo, stopped: () => boolean): Promise<LookE
   const r = await io.read();
   if (stopped()) return { kind: 'stopped' };
   if (!r.ok) return r.reason === 'failed' ? { kind: 'failed' } : { kind: 'none' };
-  const tile = await io.tileBuild().catch(() => null);
+  const tile = await io.tileBuild();
   if (stopped()) return { kind: 'stopped' };
   await io.remember(r.centre, r.analysis, tile ?? 'unknown', r.overture);
   if (stopped()) return { kind: 'stopped' };

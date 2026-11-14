@@ -3,6 +3,7 @@ import type { TileFeature } from '../areas/tilePlaces';
 import { projector } from '../geo';
 import type { LngLat } from '../types';
 import { osmWeight, overtureWeight } from './weights';
+import { tryJson } from '../parse';
 
 /**
  * A place as density sees it (AD1): where it is, how much it counts, its name
@@ -51,11 +52,8 @@ export interface OverturePlace {
 
 const parse = (s: unknown): unknown => {
   if (typeof s !== 'string') return s ?? null;
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
-  }
+  const r = tryJson(s);
+  return r.ok ? r.value : null;
 };
 
 /** A release whose places no longer decode as the app reads them (fix net-rules): the reader treats it as missing. */

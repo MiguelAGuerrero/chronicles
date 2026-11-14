@@ -397,7 +397,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
               onPress={() => {
                 const at = spot;
                 setSpot(null);
-                startWalk({ at, label: 'Your spot', kind: 'point' });
+                startWalk({ at, label: 'Your spot', kind: 'point' }).catch(caught('unexpected', 'app/(tabs)/index · ChronicleMap'));
               }}
             />
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>

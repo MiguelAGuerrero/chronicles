@@ -46,7 +46,7 @@ import { useThreads } from '../../lib/threads/useThreads';
 import { MyThreads, type MyThreadRow } from '../threads/MyThreads';
 import { OwnThreadScreen } from '../threads/OwnThreadScreen';
 import { ThreadMomentMenu } from '../threads/ThreadMomentMenu';
-import { caught, fallback } from '../../lib/diagnostics/sink';
+import { caught, failedSave, fallback } from '../../lib/diagnostics/sink';
 
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
@@ -580,7 +580,7 @@ export function MemoriesScreen() {
         open={!!menuMoment}
         onlyType={typeOnly}
         // The slip stays quiet: its More offers no Reaction (reactions audit 17).
-        reaction={menuMoment && !menuFromSlip ? { set: menuSet, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(() => {}) } : undefined}
+        reaction={menuMoment && !menuFromSlip ? { set: menuSet, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(failedSave('components/chronicle/MemoriesScreen · onPick', 'a reaction', () => reactions.choose(menuMoment.id, id))) } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;

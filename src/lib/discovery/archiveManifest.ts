@@ -1,5 +1,6 @@
 // @layer core
 import type { LngLat } from '../types';
+import { tryJson } from '../parse';
 
 /*
  * The places archive's manifest (PW2, decision 0103): which file is current for each region, read from the
@@ -82,13 +83,9 @@ export function archiveTag(file: ArchiveFile, at: LngLat): string {
 
 /** PW2: the manifest, or null for anything that isn't one (then no archive is read). */
 export function parseManifest(text: string): Manifest | null {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    return null;
-  }
-  const m = raw as { schema?: unknown; regions?: unknown } | null;
+  const parsed = tryJson(text);
+  if (!parsed.ok) return null;
+  const m = parsed.value as { schema?: unknown; regions?: unknown } | null;
   if (!m || m.schema !== 1 || !Array.isArray(m.regions)) return null;
   const regions: Region[] = [];
   for (const r of m.regions as { id?: unknown; current?: unknown; previous?: unknown }[]) {

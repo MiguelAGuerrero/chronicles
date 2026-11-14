@@ -1,6 +1,6 @@
 // @layer adapter
 import { mediaStore } from '../db/index.web';
-import { fallback } from '../diagnostics/sink';
+import { caught, fallback } from '../diagnostics/sink';
 
 /**
  * The web fallback has no Documents folder. Captured media is kept as Blobs
@@ -159,7 +159,7 @@ export function videoFrame(uri: string, atSec: number, max: number): Promise<{ s
       }, 'image/jpeg', 0.8);
     }
     v.src = uri;
-    void v.play().catch(() => {});
+    void v.play().catch(caught('refused', 'lib/media/index · videoFrame'));
   });
 }
 

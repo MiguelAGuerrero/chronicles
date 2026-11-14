@@ -81,11 +81,11 @@ export function stopWalk(walkId: string): Promise<void> {
  */
 export async function pauseWalk(walkId: string): Promise<void> {
   // Asked first, still inside the tap: a browser refuses a prompt that comes too late (audit 5).
-  notifier.ask('pause').catch(() => {});
+  notifier.ask('pause').catch(caught('refused', 'lib/session · pauseWalk'));
   await db.startPause(walkId, Date.now());
   await recorder.stop();
   void notifyWalkChanged();
-  notifier.pauseStarted(walkId).catch(() => {});
+  notifier.pauseStarted(walkId).catch(caught('refused', 'lib/session · pauseWalk'));
 }
 
 /**

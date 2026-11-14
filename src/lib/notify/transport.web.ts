@@ -28,7 +28,7 @@ function registration(): Promise<ServiceWorkerRegistration | null> {
   return reg;
 }
 // Registered on load (NT2); a browser without service workers loses notifications only.
-registration();
+registration().catch(caught('cache', 'lib/notify/transport · module'));
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const hidden = () => typeof document !== 'undefined' && document.visibilityState !== 'visible';

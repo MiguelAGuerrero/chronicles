@@ -1,4 +1,5 @@
 // @layer core
+import { tryUrl } from '../parse';
 
 /*
  * The rules every request to an outside service follows (fix net-rules, decision 0100): one table of the hosts
@@ -36,11 +37,8 @@ export const PAUSE_MS = 60_000;
 export const PAUSE_MAX_MS = 3_600_000;
 
 export function hostOf(url: string): string | null {
-  try {
-    return new URL(url).host;
-  } catch {
-    return null;
-  }
+  const parsed = tryUrl(url);
+  return parsed.ok ? parsed.value.host : null;
 }
 
 /**

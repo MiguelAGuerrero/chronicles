@@ -4,7 +4,7 @@ import { facedAll, facedAt, type Faced } from '../moment';
 import type { Ports } from '../ports/types';
 import { createStore } from '../store';
 import { editedThumbName, THUMB, wantsThumb, type MadeStill } from '../thumbPlan';
-import { caught, fallback } from '../diagnostics/sink';
+import { caught, fallback, report } from '../diagnostics/sink';
 
 /**
  * Every preview's small copies (video thumbnails VS2, VS6, VS9; the audit's 1-4, 9): a photo's copy or a video's
@@ -89,9 +89,7 @@ export function createThumbs(p: Pick<Ports, 'db'>, deps: ThumbsDeps) {
         }
         try {
           await p.db.updatePiece(pieceId, { thumb_path: ref });
-        } catch {
-          return;
-        }
+        } catch (caughtError) { report('cache', 'lib/thumbs/shell · remake', caughtError); return; }
         put(pieceId, { ref, replaced: old });
         // A dropped or unreadable still may be asked again later by a preview.
         if (!ref) asked.delete(pieceId);

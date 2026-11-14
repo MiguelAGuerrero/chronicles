@@ -119,7 +119,7 @@ export default function DayReplay() {
         watched,
       });
       setStatus('ready');
-      const sr = Platform.OS !== 'web' && (await AccessibilityInfo.isScreenReaderEnabled().catch(() => false));
+      const sr = Platform.OS !== 'web' && (await AccessibilityInfo.isScreenReaderEnabled().catch(fallback('app/day/[key] · DayReplay', false, 'what isScreenReaderEnabled read')));
       setSrMode(sr);
       setFitKey((k) => k + 1);
       setPhase({ beat: 'path', t0: Date.now() });
@@ -189,7 +189,7 @@ export default function DayReplay() {
     if (!words) return;
     saidAt.current = phase.t0;
     AccessibilityInfo.announceForAccessibility(words);
-    if (!skipped) db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
+    if (!skipped) db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(caught('cache', 'app/day/[key] · DayReplay'));
   }, [onCard, data, skipped, phase.t0]);
 
   // Each walk's trace as far as the ceremony has drawn it; every walk whole on the card.

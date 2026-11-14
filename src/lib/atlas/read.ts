@@ -22,7 +22,7 @@ import { borderReach, insideTown, isWard, listingBy, shapedHoods, shapeUnread, t
 import { placesArchive } from '../discovery/archive';
 import { type Extent } from './profile';
 import { offPage } from '../landing/runOffPage';
-import { fallback } from '../diagnostics/sink';
+import { caught, fallback } from '../diagnostics/sink';
 
 /*
  * The atlas's reads (AT1, AT5, AT14): the tiles are fetched and decoded in
@@ -131,7 +131,7 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     const url = await db.getMeta('tile_url');
     const failed = async () => {
       const row = { ...area, failed_at: Date.now() };
-      await db.putAtlasAreas([row]).catch(() => {});
+      await db.putAtlasAreas([row]).catch(caught('cache', 'lib/atlas/read · failed'));
       return row;
     };
     if (!url) return failed();

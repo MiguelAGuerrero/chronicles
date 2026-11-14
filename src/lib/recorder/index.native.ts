@@ -97,9 +97,9 @@ async function ensurePermission(): Promise<string | undefined> {
   }
   if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
     // Without it, Android 13+ hides the "walk in progress" notification.
-    await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS').catch(() => {});
+    await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS').catch(caught('refused', 'lib/recorder/index · ensurePermission'));
   }
-  const bg = await Location.requestBackgroundPermissionsAsync().catch(() => null);
+  const bg = await Location.requestBackgroundPermissionsAsync().catch(fallback('lib/recorder/index · ensurePermission', null, 'what requestBackgroundPermissionsAsync read'));
   if (bg?.status !== 'granted') {
     return 'Recording continues in your pocket while this walk is open. Allow location "Always" in Settings if it stops when the app is closed.';
   }

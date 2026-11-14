@@ -84,7 +84,7 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
         await p.db.putOutlineTiles([tile]);
         return tile;
       })
-      .catch(() => null)
+      .catch(fallback('lib/areas/outlineRead · fetchTile', null, 'what then read'))
       .finally(() => inflight.delete(key));
     inflight.set(key, job);
     return job;

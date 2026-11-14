@@ -5,6 +5,7 @@ import { distanceM } from './geo';
 import { NAV } from './nav/rules';
 import type { Waypoint } from './nav/types';
 import type { LngLat } from './types';
+import { tryJson } from './parse';
 
 /**
  * Starting a walk from the tabs (Navigation & tabs, NV19-NV25). Pure: the
@@ -30,12 +31,9 @@ export function navValue(walkId: string | null, dest: Waypoint): string {
 /** The drawer's destination: `nav` held for no walk yet. A walk's own destination is not the drawer's. */
 export function pendingDest(raw: string | null | undefined): Waypoint | null {
   if (!raw) return null;
-  try {
-    const v = JSON.parse(raw) as { walk_id: string | null; dest: Waypoint } | null;
-    return v && v.walk_id == null && v.dest && Array.isArray(v.dest.at) ? v.dest : null;
-  } catch {
-    return null;
-  }
+  const parsed = tryJson(raw);
+  const v = parsed.ok ? (parsed.value as { walk_id: string | null; dest: Waypoint } | null) : null;
+  return v && v.walk_id == null && v.dest && Array.isArray(v.dest.at) ? v.dest : null;
 }
 
 /**

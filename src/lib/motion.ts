@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { playFeedback } from './haptics';
 import type { FeedbackKind } from './motionTokens';
+import { caught } from './diagnostics/sink';
 
 export { durationFor, MOTION, PRESS_SCALE } from './motionTokens';
 
@@ -15,7 +16,7 @@ export { durationFor, MOTION, PRESS_SCALE } from './motionTokens';
 
 /** The system's reduce-motion setting at launch, read synchronously on the web so the first frame is right. */
 let reducedNow = Platform.OS === 'web' && typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-AccessibilityInfo.isReduceMotionEnabled().then((v) => (reducedNow = v), () => {});
+AccessibilityInfo.isReduceMotionEnabled().then((v) => (reducedNow = v), caught('refused', 'lib/motion · module'));
 
 /** Reduce motion, kept live: a change during a session applies at once (M2, audit 3). */
 export function useReducedMotion(): boolean {
@@ -25,7 +26,7 @@ export function useReducedMotion(): boolean {
     AccessibilityInfo.isReduceMotionEnabled().then((v) => {
       reducedNow = v;
       if (alive) setReduced(v);
-    }, () => {});
+    }, caught('refused', 'lib/motion · useReducedMotion'));
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (v: boolean) => {
       reducedNow = v;
       setReduced(v);

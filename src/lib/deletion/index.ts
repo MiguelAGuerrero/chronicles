@@ -24,7 +24,7 @@ export const deletions = createPending({
   clearTimer: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
   run,
   // Kept so a killed app stores it at the next launch (UC13, decision 0113); a failed write only loses that.
-  save: (jobs) => void db.setMeta(PENDING_KEY, jobs.length ? JSON.stringify(jobs) : '').catch(() => {}),
+  save: (jobs) => void db.setMeta(PENDING_KEY, jobs.length ? JSON.stringify(jobs) : '').catch(caught('cache', 'lib/deletion/index · save')),
 });
 
 // A reminder never brings back a moment waiting in Undo (ui-conformance audit 7).

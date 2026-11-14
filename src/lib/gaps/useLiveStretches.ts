@@ -4,7 +4,7 @@ import { db } from '../db';
 import type { Fill, GapDecision, LngLat } from '../types';
 import { decide, readGap } from './index';
 import { decisionFor, emptyGaps, fillsOf, gapKey, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
-import { fallback } from '../diagnostics/sink';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** A gap whose streets couldn't be read is tried again after this long (G8; offline, a failed fetch). */
 const RETRY_MS = 2 * 60_000;
@@ -50,7 +50,7 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
     // A failed read is no decisions, so gaps are still read (audit 11).
     db.getGapDecisions(walkId)
       .catch(fallback('lib/gaps/useLiveStretches · useLiveStretches', [] as GapDecision[], 'what getGapDecisions read'))
-      .then((rows) => alive && setDecisions({ walkId, rows }));
+      .then((rows) => alive && setDecisions({ walkId, rows })).catch(caught('cache', 'lib/gaps/useLiveStretches · useLiveStretches'));
     return () => {
       alive = false;
     };
@@ -91,7 +91,7 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
         if (retry.current) clearTimeout(retry.current);
         retry.current = setTimeout(() => setTick((t) => t + 1), RETRY_MS);
       }
-    });
+    }).catch(caught('cache', 'lib/gaps/useLiveStretches · useLiveStretches'));
   }, [walkId, gaps, mine, found, decisions.walkId, tick]);
 
   const stretches = useMemo(() => (gaps.length ? stretchesFor(gaps, found, mine) : NONE), [gaps, found, mine]);

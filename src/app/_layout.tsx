@@ -52,7 +52,7 @@ export default function RootLayout() {
   // opened: the walk screen comes back, then recording re-attaches.
   useEffect(() => {
     // Memos and videos play with the ringer switch off, wherever they are opened.
-    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
+    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(caught('refused', 'app/_layout · RootLayout'));
     // Notices a new map build early, so the fog on the walk screen is never stale.
     ensureTileBuild().catch(caught('cache', 'app/_layout · RootLayout'));
     // The km or miles setting (QL13); until it loads, the locale's default shows.
@@ -72,7 +72,7 @@ export default function RootLayout() {
       lift: () => setCovered(false),
       resume: reconcileOpenWalk,
       capMs: LAUNCH_COVER_MAX_MS,
-    });
+    }).catch(caught('unexpected', 'app/_layout · RootLayout'));
   }, []);
 
   return (

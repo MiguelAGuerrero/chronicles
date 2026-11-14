@@ -146,7 +146,7 @@ test("CQ13 the scope follows the changed files' features and the queue is ranked
   assert.ok(!items.some((it) => it.file === 'src/lib/rides.ts'), 'out of scope');
 });
 
-test('EH11 EH12 the baseline holds no swallowed and no floating entry', { todo: 'test first' }, () => {
+test('EH11 EH12 the baseline holds no swallowed and no floating entry', () => {
   const b = JSON.parse(readFileSync(join(ROOT, 'scripts', 'quality.baseline.json'), 'utf8')) as Record<string, number>;
   const left = Object.keys(b).filter((id) => id.startsWith('swallowed:') || id.startsWith('floating:'));
   assert.deepEqual(left, [], 'every caught error handled by its kind (decision 0179)');

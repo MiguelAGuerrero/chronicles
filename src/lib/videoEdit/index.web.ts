@@ -1,6 +1,6 @@
 // @layer adapter
 import { exportSpan, type ExportPlan, type MediaEdit } from '../mediaEdit';
-import { caught } from '../diagnostics/sink';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** How long a refused start (sound without a tap: Safari) may keep the export waiting. */
 const START_WAIT_MS = 1500;
@@ -107,10 +107,10 @@ export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: Med
     video.addEventListener('ended', finish, { once: true });
     // Sound refused without a tap: the picture still records, without it; a start that never
     // comes fails rather than leaving "Saving…" up (media-editing audit 4).
-    const started = await within(video.play().then(() => true, () => false), START_WAIT_MS);
+    const started = await within(video.play().then(() => true, fallback('lib/videoEdit/index · exportVideo', false, 'what play read')), START_WAIT_MS);
     if (!started) {
       video.muted = true;
-      const again = await within(video.play().then(() => true, () => false), START_WAIT_MS);
+      const again = await within(video.play().then(() => true, fallback('lib/videoEdit/index · exportVideo', false, 'what play read')), START_WAIT_MS);
       if (!again) {
         if (rec.state !== 'inactive') rec.stop();
         throw new Error('The video could not be played.');

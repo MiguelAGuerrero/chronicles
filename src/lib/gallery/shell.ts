@@ -8,7 +8,7 @@ import type { Walk } from '../types';
 import { withPiecePatch } from './layout';
 import type { GalleryView, Show, Zoom } from './types';
 import { DEFAULT_VIEW, readView } from './view';
-import { fallback } from '../diagnostics/sink';
+import { failedSave, fallback } from '../diagnostics/sink';
 
 export interface GalleryState {
   status: 'idle' | 'loading' | 'ready' | 'failed';
@@ -70,7 +70,7 @@ export function createGallery(p: Pick<Ports, 'db'>) {
     setView(change: Partial<GalleryView>): Promise<void> {
       store.set((s) => ({ ...s, view: { ...s.view, ...change } }));
       const v = store.get().view;
-      saving = saving.then(() => p.db.setMeta('gallery_view', JSON.stringify(v))).catch(() => {});
+      saving = saving.then(() => p.db.setMeta('gallery_view', JSON.stringify(v))).catch(failedSave('lib/gallery/shell · setView', 'how the gallery is shown', () => saving.then(() => p.db.setMeta('gallery_view', JSON.stringify(v)))));
       return saving.then(() => {});
     },
     setShow: (show: Show) => store.set((s) => ({ ...s, show })),
