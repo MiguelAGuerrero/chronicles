@@ -8,7 +8,8 @@ import { RecorderError, startErrorFrom } from '../../recorder/types';
 // notice's colour and not the red fault, in Locate's words with its own end; on a phone the words stay, with Open Settings.
 
 test('tend recording T26: Start refused says Locate’s line with its own end, quietly, on the web and on a phone', () => {
-  assert.equal(START_OFF.web, 'Location is off for this site. Turn it on in the browser’s settings to record a walk.');
+  // tend walk-screen 4 (decision 0172, O19): the web's line names the browser's and the phone's settings.
+  assert.equal(START_OFF.web, 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to record a walk.');
   assert.equal(START_OFF.native, 'Location is turned off for Chronicles. Turn it on in Settings to record a walk.');
   // Beside Locate's: the same beginning, its own end.
   const head = (s: string) => s.slice(0, s.indexOf(' to '));

@@ -13,10 +13,11 @@ export interface LocateError {
 /**
  * Location refused, said as a quiet notice, not a fault (T17, decision 0154): the person turned it off, and
  * the notice says where to turn it back on. A browser keeps the permission per site; a phone keeps it in Settings,
- * which the banner opens. The phone's line is the recorder's start's, with Locate's own end.
+ * which the banner opens, and can keep location off for the browser itself, so the web's line names both (decision
+ * 0172, O19). The phone's line is the recorder's start's, with Locate's own end.
  */
 export const LOCATION_OFF = {
-  web: 'Location is off for this site. Turn it on in the browser’s settings to see where you are.',
+  web: 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to see where you are.',
   native: 'Location is turned off for Chronicles. Turn it on in Settings to find your position.',
 } as const;
 
@@ -25,7 +26,7 @@ export const LOCATION_OFF = {
  * ready screen and in the walk's "Not recording" notice. A phone's Settings hold the permission, which the notice opens.
  */
 export const START_OFF = {
-  web: 'Location is off for this site. Turn it on in the browser’s settings to record a walk.',
+  web: 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to record a walk.',
   native: 'Location is turned off for Chronicles. Turn it on in Settings to record a walk.',
 } as const;
 

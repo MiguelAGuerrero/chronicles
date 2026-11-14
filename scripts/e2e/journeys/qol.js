@@ -1195,11 +1195,12 @@ async function run(h) {
 
     // tend map T17 (decision 0154): a refused location is a quiet notice in ink, never the red fault, in the owner's words,
     // every word of it on screen; and with no fix and no tiles drawn, no scale bar over the blank world ("2,000 km").
-    const T17_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to see where you are.';
+    // tend walk-screen 4 (decision 0172, O19): the browser's or the phone's settings, on Locate's line and Start's.
+    const T17_WORDS = 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to see where you are.';
     // tend explore audit 9: the empty card's line while location is blocked (the owner, in person, Nov 14).
     const BLOCKED_WORDS = 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.';
     // tend recording T26 (decision 0162): Start's refusal, Locate's line with its own end.
-    const T26_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to record a walk.';
+    const T26_WORDS = 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to record a walk.';
     // The region's text as written, the zero-width space a repeat adds kept (tend recording audit 4).
     const rawSaid = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => e.textContent), id);
     const saidIn = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), id);
