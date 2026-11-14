@@ -1,0 +1,59 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Chronicle journal, cut 1 ("
+      ],
+      "body": "| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; a voice note plays in line with its bar; since Nov 14 the camera and the mic sit in a row under the line, a \"+\" before it, and the bar shows only when needed; JN1-JN40, decisions 0155, 0172) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, audited 2026-11-13 with the owner's answers built (the pen in the bar when the page is pulled down, fixed places for the camera and the mic, an edge under the held date, the recording's mark while writing); the in-line voice note built and audited 2026-11-13 from the owner's request; JN34-JN40 built 2026-11-14 on `claude/chronicles-action-button-layout-x4cg4k` from the owner's mock-up review, test-first (7 of 7), the UI review's 8 findings: 1 fixed, 1 deferred, 3 to the owner, 3 rejected as before this slice; not deployed (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page`, `claude/determined-heisenberg-b894d7`, `fix/journal-audit-2`, `claude/chronicles-action-button-layout-x4cg4k` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred; JN28-JN33, 23: 15 fixed, 4 deferred, 4 rejected; the in-line voice note, 19: 12 fixed, 3 deferred, 3 rejected, 1 a pass) |\n",
+      "target": "sha256:3037358989d24ca0a0a02d87ac1a938e77b976e3149c8a7824158763d947c1ac"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "The row under the line",
+        "--reason",
+        "built and committed on the branch"
+      ],
+      "target": "sha256:fb6b4f7163d8e54fe4a9ecf3efe8906389a8980f1097f570b0138bde84e96dfe"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 ("
+      ],
+      "body": "- **The top entry's reaction sign is half under the held date's edge at rest** (the row under the line's UI review, 4; from audit 52's fade, before decision 0172): the date's faded bands lie over the first entry's header, so its sign reads clipped. Recommended: start the peek's first entry below the edge.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /slice: the row under the line"
+      ],
+      "intro": "From the UI review of JN34-JN40 (2026-11-14, `specs/chronicle-journal/spec.md`, \"The row under the line: record\"). Built on `claude/chronicles-action-button-layout-x4cg4k`, not deployed.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice: the row under the line"
+      ],
+      "body": "- **One glyph for \"write an entry\"** (ux 1, 2; H4, matrix 5): the line has your \"+\", the pulled-back bar a pen, for the same action; and a \"+\" beside a camera and a mic can read as an Add menu. Recommended: keep your \"+\" on the line and make the bar's pen a \"+\" too, or the line's a pen.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice: the row under the line"
+      ],
+      "body": "- **A recording's order differs between the row and the bar** (ux 3, H4): the row keeps Stop under the finger (camera, Stop, timer, Discard), the bar leads with the timer and Discard. Recommended: the bar follows the row, so Stop is always in the mic's place and the timer after it.\n"
+    }
+  ]
+}

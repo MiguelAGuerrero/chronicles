@@ -854,8 +854,9 @@ const styles = StyleSheet.create({
   // 44 pt target starts at the screen's edge and runs over the first letters, where a tap does the same (cold find).
   plus: { position: 'absolute', left: -24, top: 0, width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 1 },
   // The glyphs line up with the line's first letter: a 44 pt target holds a 24 pt glyph 10 pt in.
-  pageRow: { flexDirection: 'row', alignItems: 'center', marginLeft: -10, minHeight: 44 },
-  rowTimer: { flexDirection: 'row', alignItems: 'center', flexGrow: 0, flexShrink: 0, gap: 4, marginLeft: 8 },
+  // 12 pt between the targets, for a thumb on foot (matrix 22, chronicle-journal ui 11).
+  pageRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginLeft: -10, minHeight: 44 },
+  rowTimer: { flexDirection: 'row', alignItems: 'center', flexGrow: 0, flexShrink: 0, gap: 4, marginLeft: -4 },
   rowFill: { flexGrow: 1 },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   iconVoice: { backgroundColor: '#6b21a8' },
@@ -870,7 +871,7 @@ const styles = StyleSheet.create({
   pickOn: { backgroundColor: '#ebe7df', borderBottomColor: theme.ink },
   pickName: { color: theme.ink, fontSize: 12 },
   pickNameOn: { fontWeight: '700' },
-  walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: 8 },
+  walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: -4 },
   unseen: { opacity: 0 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
   timerText: { color: theme.ink, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
