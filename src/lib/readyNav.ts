@@ -49,3 +49,13 @@ export function arrivalNotice(params: { warning?: string; started?: string }): s
 export function exitPlan(canGoBack: boolean): { kind: 'back' } | { kind: 'replace'; to: typeof BENEATH_TAB } {
   return canGoBack ? { kind: 'back' } : { kind: 'replace', to: BENEATH_TAB };
 }
+
+/**
+ * The walk route's error line (decision 0172, O35; tend walk-screen audit 5), from the keeper's open walk and pauses: a
+ * walk recording is "still recording" (the owner's words); a paused one is saved, as every other screen says; with no
+ * walk open (Navigate, ready) or before storage is read, no walk line.
+ */
+export function walkErrorLine(open: { known: boolean; walk: { id: string } | null; pauses: readonly { ended_at: number | null }[] }): string | null {
+  if (!open.known || !open.walk) return null;
+  return open.pauses.some((p) => p.ended_at == null) ? 'Your walk is saved.' : 'Your walk is still recording.';
+}

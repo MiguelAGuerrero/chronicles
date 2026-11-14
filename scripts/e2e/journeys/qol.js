@@ -1195,11 +1195,12 @@ async function run(h) {
 
     // tend map T17 (decision 0154): a refused location is a quiet notice in ink, never the red fault, in the owner's words,
     // every word of it on screen; and with no fix and no tiles drawn, no scale bar over the blank world ("2,000 km").
-    const T17_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to see where you are.';
+    // tend walk-screen 4 (decision 0172, O19): the browser's or the phone's settings, on Locate's line and Start's.
+    const T17_WORDS = 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to see where you are.';
     // tend explore audit 9: the empty card's line while location is blocked (the owner, in person, Nov 14).
     const BLOCKED_WORDS = 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.';
     // tend recording T26 (decision 0162): Start's refusal, Locate's line with its own end.
-    const T26_WORDS = 'Location is off for this site. Turn it on in the browser’s settings to record a walk.';
+    const T26_WORDS = 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to record a walk.';
     // The region's text as written, the zero-width space a repeat adds kept (tend recording audit 4).
     const rawSaid = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => e.textContent), id);
     const saidIn = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), id);
@@ -1270,6 +1271,25 @@ async function run(h) {
       check(isQuiet(startSeen.banner) && startSeen.lines >= 1 && startSeen.cut === 0 && startSaid.length === 1 && startSaid[0].text === T26_WORDS
         && (await pg2.getByText(/Location permission was denied/).count()) === 0,
         `tend recording T26: Navigate at 390, Start refused says "${T26_WORDS}" as a quiet notice, not an alert in red, every line whole, and the live region says it (${JSON.stringify({ ...startSeen, said: startSaid })})`);
+      // tend walk-screen audit 2 (the review's auditor 1): a refused Start has no walk, so location given back after it
+      // records nothing: no position is stored, and no walk opens.
+      await c2.grantPermissions(['geolocation']);
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c2.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg2.waitForTimeout(1000);
+      }
+      const afterStart = await pg2.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['trace_point', 'walk'], 'readonly');
+          const f = tx.objectStore('trace_point').count();
+          const w = tx.objectStore('walk').getAll();
+          tx.oncomplete = () => resolve({ fixes: f.result, open: w.result.filter((x) => x.open).length });
+        };
+      }));
+      check(afterStart.fixes === 0 && afterStart.open === 0,
+        `tend walk-screen audit 2: after a refused Start, location given back stores no position and opens no walk (${JSON.stringify(afterStart)})`);
       await c2.close();
     }
 
@@ -1278,6 +1298,12 @@ async function run(h) {
     // dismissal, in Start's words; the walk's live region says it. At 390 and 320.
     for (const [w, hgt] of [[390, 844], [320, 700]]) {
       const { c: c5, pg: pg5 } = await freshPage(`qol-denied-walk-${w}`);
+      // The page's visibility, faked (as `hidden`), so a return to the front can be made (tend walk-screen 2).
+      await c5.addInitScript(() => {
+        window.__vis = 'visible';
+        Object.defineProperty(document, 'visibilityState', { get: () => window.__vis });
+        Object.defineProperty(document, 'hidden', { get: () => window.__vis === 'hidden' });
+      });
       await pg5.setViewportSize({ width: w, height: hgt });
       await pg5.goto(navUrl);
       await pg5.waitForSelector('[data-testid=start]');
@@ -1315,7 +1341,91 @@ async function run(h) {
       const againRaw = await rawSaid(pg5, 'walk-said');
       check(upRaw.length === 1 && againRaw.length === 1 && againRaw[0] !== upRaw[0] && againRaw[0].replace(/\u200B/g, '') === T26_WORDS,
         `tend recording audit 4: at ${w}, the chip's tap with the notice up changes the walk's live region, so it is said again (${JSON.stringify([upRaw, againRaw])})`);
+      // tend walk-screen 2: location allowed again and the page back in front, the walk records again, and the
+      // refusal's notice goes with the chip; it outlived the retry that restarted the recorder (the T26 review's F5).
+      const fixesOf = () => pg5.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('trace_point', 'readonly').objectStore('trace_point').count();
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const fixesOff = await fixesOf();
+      await c5.grantPermissions(['geolocation']);
+      await pg5.evaluate(() => { window.__vis = 'hidden'; document.dispatchEvent(new Event('visibilitychange')); });
+      await pg5.waitForTimeout(300);
+      await pg5.evaluate(() => { window.__vis = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c5.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg5.waitForTimeout(1000);
+      }
+      const back5 = { chip: await chip.count(), notice: await notice().count(), fixes: (await fixesOf()) - fixesOff };
+      check(back5.chip === 0 && back5.notice === 0 && back5.fixes > 0,
+        `tend walk-screen 2: at ${w}, location allowed again and the page back in front, the walk records again and the refusal's notice goes with the chip (${JSON.stringify(back5)})`);
       await c5.close();
+    }
+
+    // tend walk-screen 3 (decision 0172, O22): location turned off mid-walk, on the page as it is (no reload, no return to
+    // the front), stops the recording with the quiet notice; turned back on, the walk records again by itself, with no
+    // new words: the notice and the chip go. Nothing is stored for the off span: no pause row, so it reads as a gap.
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      const { c: c8, pg: pg8 } = await freshPage(`qol-location-back-${w}`);
+      // tend walk-screen audit 6: the screen's wake locks, counted (headless Chromium grants none of its own).
+      await c8.addInitScript(() => {
+        window.__locks = { held: 0, taken: 0 };
+        Object.defineProperty(navigator, 'wakeLock', {
+          configurable: true,
+          value: {
+            request: async () => {
+              window.__locks.held++;
+              window.__locks.taken++;
+              let released = false;
+              return { release: async () => { if (!released) { released = true; window.__locks.held--; } } };
+            },
+          },
+        });
+      });
+      await pg8.setViewportSize({ width: w, height: hgt });
+      await pg8.goto(navUrl);
+      await pg8.waitForSelector('[data-testid=start]');
+      await pg8.waitForTimeout(1500);
+      await pg8.click('[data-testid=start]');
+      await pg8.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg8.waitForTimeout(1500);
+      const stored = () => pg8.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['trace_point', 'pause'], 'readonly');
+          const f = tx.objectStore('trace_point').count();
+          const p = tx.objectStore('pause').count();
+          tx.oncomplete = () => resolve({ fixes: f.result, pauses: p.result });
+        };
+      }));
+      const chip8 = pg8.locator('[data-testid=status-chip]');
+      const notice8 = () => pg8.locator('[data-testid=lift-in]', { hasText: T26_WORDS }).count();
+      await c8.clearPermissions();
+      await chip8.waitFor({ timeout: 10000 }).catch(() => {});
+      await pg8.waitForTimeout(800);
+      const off = { chip: await chip8.count(), notice: await notice8(), ...(await stored()) };
+      await shot(pg8, `qol-13g-walk-location-off-${w}`);
+      await c8.grantPermissions(['geolocation']);
+      for (let j = 1; j <= 4; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg8.waitForTimeout(1000);
+      }
+      const on = { chip: await chip8.count(), notice: await notice8(), ...(await stored()) };
+      await shot(pg8, `qol-13h-walk-location-back-${w}`);
+      // tend walk-screen audit 10: the walk keeps its banner for a refusal; only Explore's card says it alone.
+      check(off.notice === 1, `tend walk-screen audit 10: at ${w}, the walk refused shows its banner (${JSON.stringify(off)})`);
+      check(off.chip === 1 && off.notice === 1 && on.chip === 0 && on.notice === 0 && on.fixes > off.fixes && on.pauses === 0,
+        `tend walk-screen 3: at ${w}, location turned off mid-walk says so quietly; turned back on, the walk records again by itself, the notice and chip gone, and no pause stored (${JSON.stringify({ off, on })})`);
+      // tend walk-screen audit 6 (the review's auditor 5): the restart took a second wake lock and never let go of the
+      // first, which kept the screen awake after the walk ended. One is held after a refusal and a return.
+      const locks = await pg8.evaluate(() => window.__locks);
+      check(locks.held === 1 && locks.taken >= 2, `tend walk-screen audit 6: at ${w}, one wake lock held after a refusal and a return (${JSON.stringify(locks)})`);
+      await c8.close();
     }
 
     // tend recording audit 1-3: the same refusal is the same quiet notice, said, wherever a walk is asked for: Resume on a
@@ -1424,15 +1534,21 @@ async function run(h) {
         check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
           `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
         await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
-        await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
         if (screen === 'Explore') {
-          // tend explore 8 (O20): after the refusal Find me waits, its notice saying where to turn location on; the edge
+          // tend walk-screen audit 10 (the review's ux 3; the owner, in person, Nov 14: "Card only on Explore"): while the card
+          // says location is blocked, no banner says it again over it; with no fix and no tiles, still no scale bar.
+          const seen = await readNotice(pg4, T17_WORDS);
+          const banners = await pg4.locator('[data-testid=lift-in]', { hasText: /Location is off/ }).filter({ visible: true }).count();
+          check(seen.banner == null && banners === 0 && seen.bars.length === 0,
+            `tend walk-screen audit 10: Explore at ${w}, refused while the card says location is blocked, no banner says it again, and no scale bar over the blank world (${JSON.stringify({ ...seen, banners })})`);
+        } else await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
+        if (screen === 'Explore') {
+          // tend explore 8 (O20): after the refusal Find me waits, the card saying where to turn location on; the edge
           // Locate is the one way meanwhile. Once the permission changes (the site allowed), Find me is back, the edge's gone.
           const refused = await ways();
-          const notice = await pg4.getByText(T17_WORDS).count();
           // tend explore audit 8: while the permission reads "denied" the edge Locate could only be refused again, so it goes too.
-          check(refused.findMe === 0 && refused.edge === 0 && notice >= 1,
-            `tend explore 8, tend explore audit 8: Explore at ${w}, after a refusal, location blocked, no Find me and no edge Locate, only the notice that says where to turn location on (${JSON.stringify({ ...refused, notice })})`);
+          check(refused.findMe === 0 && refused.edge === 0,
+            `tend explore 8, tend explore audit 8: Explore at ${w}, after a refusal, location blocked, no Find me and no edge Locate, only the card that says where to turn location on (${JSON.stringify(refused)})`);
           // tend explore audit 9 (the owner, in person, Nov 14, during the review: "Say where to turn it on"): while location is
           // blocked the empty card's line is the refusal's own sentence, muted, with no crosshair glyph.
           const card = await pg4.evaluate(() => {
@@ -1473,6 +1589,37 @@ async function run(h) {
           await shot(pg4, `qol-14-explore-allowed-${w}`);
         }
         await c4.close();
+      }
+    }
+
+    // tend walk-screen 5 (decision 0172, O21): Locate that finds nothing in time says "Couldn’t find your position. Try
+    // again in a moment." as the quiet notice, not the red fault, said by the screen's live region; on Explore it is no
+    // refusal, so Find me stays offered. The browser here never gives a position, so every Locate times out (10 s).
+    const TIMEOUT_WORDS = 'Couldn’t find your position. Try again in a moment.';
+    for (const [screen, url, saidId] of [['Navigate', navUrl, 'ready-said'], ['Explore', exploreUrl, 'atlas-snap-said']]) {
+      for (const [w, hgt] of [[390, 844], [320, 700]]) {
+        const { c: c10, pg: pg10 } = await freshPage(`qol-timeout-${screen}-${w}`);
+        await c10.addInitScript(() => {
+          let n = 0;
+          navigator.geolocation.watchPosition = () => ++n;
+          navigator.geolocation.getCurrentPosition = () => {};
+          navigator.geolocation.clearWatch = () => {};
+        });
+        await pg10.setViewportSize({ width: w, height: hgt });
+        await pg10.goto(url);
+        await pg10.waitForTimeout(3000);
+        const findMe = () => pg10.locator('[data-testid=atlas-locate]').filter({ visible: true }).count();
+        const button = screen === 'Explore' && (await findMe()) ? '[data-testid=atlas-locate]' : 'xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]';
+        await pg10.locator(button).filter({ visible: true }).first().click({ timeout: 10000 }).catch(() => {});
+        await pg10.waitForTimeout(11_500);
+        const seen = await readNotice(pg10, TIMEOUT_WORDS);
+        const said = await saidIn(pg10, saidId);
+        const red = await pg10.getByText(/^Couldn.t find your position$/).count();
+        const offered = screen === 'Explore' ? await findMe() : null;
+        await shot(pg10, `qol-15-${screen.toLowerCase()}-locate-timeout-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && red === 0 && said.length === 1 && said[0].text === TIMEOUT_WORDS && (offered == null || offered === 1),
+          `tend walk-screen 5: ${screen} at ${w}, Locate timed out says "${TIMEOUT_WORDS}" as the quiet notice, every line whole, said by the live region, and on Explore Find me stays offered (${JSON.stringify({ ...seen, said, red, offered })})`);
+        await c10.close();
       }
     }
 

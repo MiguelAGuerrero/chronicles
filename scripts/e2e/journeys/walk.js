@@ -309,9 +309,36 @@ async function checks(h) {
         check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        // tend walk-screen audit 11 (the owner, Nov 14): the found pin is said with the kind of the moment that found it.
+        const foundSaid = await page.$$eval('.maplibregl-map [aria-label^="Found"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+        check(foundSaid.length === 1 && foundSaid[0] === 'Found with a video: Hessian Memorial, History',
+          `a capture within 60 m finds the place, which stays drawn as found; tend walk-screen audit 11: said "Found with a video: Hessian Memorial, History" (${JSON.stringify(foundSaid)})`);
+        // tend walk-screen 9 (decision 0172, O26): the found place's pin wears the kept moment's own glyph, here the video's,
+        // where it wore a tick (a checklist's "done"); its spoken name is as before. Pictured close at 390 and 320.
+        const foundPin = page.locator('[aria-label="Found with a video: Hessian Memorial, History"]');
+        const glyphs = async () => foundPin.first().evaluate((e) => [...e.querySelectorAll('[data-testid^=found-kind-]')].map((g) => g.getAttribute('data-testid'))).catch(() => null);
+        const closeUp = async (name) => {
+          const b = await foundPin.first().boundingBox();
+          const vw = page.viewportSize();
+          if (b && process.env.E2E_SHOTS) {
+            const x = Math.max(0, b.x - 70);
+            const y = Math.max(0, b.y - 50);
+            await page.screenshot({ path: path.join(process.env.E2E_SHOTS, `${name}.png`), clip: { x, y, width: Math.min(180, vw.width - x), height: Math.min(140, vw.height - y) } });
+          }
+          await shot(page, `${name}-screen`);
+        };
+        const kinds390 = await glyphs();
+        await closeUp('03h-found-pin-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(800);
+        const kinds320 = await glyphs();
+        await closeUp('03h-found-pin-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(800);
+        check(JSON.stringify(kinds390) === '["found-kind-videocam"]' && JSON.stringify(kinds320) === '["found-kind-videocam"]',
+          `tend walk-screen 9: the found place's pin shows the video's glyph, the moment that found it, in place of a tick (${JSON.stringify({ kinds390, kinds320 })})`);
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
-        check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
+        check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found( with a \w+)?: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
       }
       if (k === 25) {
@@ -472,8 +499,61 @@ async function checks(h) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
+        // tend walk-screen 7 (decision 0172, O27): Pause shows its word under its icon, as Hold shows its own, and Resume
+        // while paused; the spoken name is as before. At 390 and 320 the strip keeps every word whole on one line, its
+        // buttons 44 or more and on screen, and its height (`BAR_H`, 69).
+        const strip = (id) => page.evaluate((id) => {
+          const b = document.querySelector(`[data-testid=${id}]`);
+          const hold = document.querySelector('[data-testid=stop]');
+          const stats = document.querySelector('[data-testid=walk-stats]');
+          const bar = document.querySelector('[data-testid=walk-bar]');
+          if (!b || !hold || !stats) return null;
+          const oneLine = (el) => {
+            const r = document.createRange();
+            r.selectNodeContents(el);
+            const lines = new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+            return lines.size === 1 && el.scrollWidth <= el.clientWidth + 1;
+          };
+          const leaf = (root) => [...root.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim());
+          const words = leaf(b);
+          const icon = [...b.querySelectorAll('div')].find((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText));
+          const wr = words.find((d) => /[A-Za-z]/.test(d.innerText))?.getBoundingClientRect();
+          const ir = icon?.getBoundingClientRect();
+          const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+          return {
+            said: b.getAttribute('aria-label'), word: words.map((d) => d.innerText.trim()).filter((t) => /[A-Za-z]/.test(t)).join(' '),
+            under: !!(wr && ir && wr.top >= ir.bottom - 1), whole: words.every(oneLine) && leaf(hold).every(oneLine) && oneLine(stats.querySelector('div') ?? stats),
+            btn: box(b), hold: box(hold), barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
+          };
+        }, id);
+        const fits = (m) => !!m && m.whole && m.under && m.btn.w >= 44 && m.btn.h >= 44 && m.hold.h >= 44 && m.btn.l >= 0 && m.hold.r <= m.vw && m.btn.r <= m.hold.l;
+        const seenStrip = {};
+        seenStrip.walking390 = await strip('pause-walk');
+        await shot(page, '03f-strip-walking-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(600);
+        seenStrip.walking320 = await strip('pause-walk');
+        await shot(page, '03f-strip-walking-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(600);
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
+        await page.waitForTimeout(400);
+        seenStrip.paused390 = await strip('resume-walk');
+        await shot(page, '03g-strip-paused-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(600);
+        seenStrip.paused320 = await strip('resume-walk');
+        await shot(page, '03g-strip-paused-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(600);
+        check(seenStrip.walking390?.word === 'Pause' && seenStrip.walking390.said === 'Pause the walk' && seenStrip.paused390?.word === 'Resume' && seenStrip.paused390.said === 'Resume the walk'
+          && Object.values(seenStrip).every((m) => fits(m) && m.barH === 69),
+          `tend walk-screen 7: the strip's Pause says "Pause" under its icon, and "Resume" while paused, its spoken name unchanged; at 390 and 320 every word whole on one line, 44 or more, on screen, the strip 69 high (${JSON.stringify(seenStrip)})`);
+        // tend walk-screen audit 9 (the review's ux 1): Hold stood 44 high beside the 48 pt Pause, their tops and bottoms 2 px
+        // apart; on the walk's strip both are 48 and share a top and a bottom.
+        check(Object.values(seenStrip).every((m) => m && m.hold.h === 48 && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5),
+          `tend walk-screen audit 9: on the walk's strip Hold is 48 high, level with Pause at top and bottom, walking and paused, at 390 and 320 (${JSON.stringify(Object.values(seenStrip).map((m) => m && [m.btn.t, m.btn.b, m.hold.t, m.hold.b]))})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+ m$/').first().innerText();

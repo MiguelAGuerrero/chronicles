@@ -77,9 +77,9 @@
       "WT"
     ],
     "commits": {
-      "growth": 171,
-      "refinement": 442,
-      "other": 575
+      "growth": 174,
+      "refinement": 460,
+      "other": 574
     },
     "areas": {
       "rough": [
@@ -153,9 +153,9 @@
     },
     "walk-screen": {
       "state": "rough",
-      "swept": "2026-11-11",
-      "main": "bc41449fde47f1c5e3853364a51c46560392cd41",
-      "note": "First sweep, not whole: the auditor read half the area's modules (not useReady, CaptureStack, ReadyBar, StartSettings, MomentBar, useLiveTrace); 320 px, 200% text and offline were not pictured. One medium finding shipped (Stop's second held-photo warning); two medium hook findings filed [loop] for want of a hook harness."
+      "swept": "2026-11-14",
+      "main": "85cffce8e0003310f492d930518cb3f8d76bd1ef",
+      "note": "A ledger run (lens 7), capped at 8: the owner's answers of decision 0172 for the walk and its recording (O19, O21, O22, O23, O26, O27, O35) and the [loop] item O22 is built with, as tend walk-screen 2-9; the review's eleven accepted findings as audits 2-11 (two of them the owner's answers of Nov 14, added to O6/O20 and O26). Left by the cap: the Navigate, ready memo items and the rest of its [loop] items; lenses 1-6 not run."
     },
     "tabs": {
       "state": "rough",
