@@ -125,9 +125,9 @@ Home / tabs
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
-  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and, for an edit, the Type tool; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap), NoteTypeMenu.tsx (the nine entries of a note's type, NY6)
-  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a single typed note wears its type's glyph (`pinMark`)
-  NoteMark.tsx               a note's type as an ink glyph and its spoken name, on the viewer's note and the owner-thread bubble (NY9, NY17)
+  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and the Reaction tool; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap; its reactions held until it is kept)
+  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a pin of one moment wears its reactions as ink bubbles from its bottom-left (`pinReactions`, RX17)
+  reactions/                 ReactionPanel (the three families, RX6), ReactionMarks (glyphs and names, RX14-RX16), ReactionSign (the face with a plus, RX9), ReactionsScreen and LensScreen (the contents' lenses, RX22-RX25)
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
   Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
   Baker(.native|.web).tsx    renders a photo's edits and caption into a saved copy, or the lines and caption alone into a clear PNG for a video (Baker.types.ts): react-native-view-shot over EditedPicture on native, canvas on web
@@ -327,7 +327,7 @@ Memories, moments, days
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
-  noteType.ts                a note's type (core, NY1-NY3, decision 0149): the eight ink marks in fixed order, `noteTypeOf` (unknown reads none), `markOf`; `noteEdit.notePatch` is the one write of text and type together
+  reactions/                 reactions (decision 0172): core.ts (the eight in three families, `pick`, `ordered`, `setsOf`, `migrateTypes`), lens.ts (the only gathering by reaction), shell.ts (read whole, `choose`, `hold`/`keep` for a new page; index.ts the instance), useReactions.ts
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
   notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
@@ -567,7 +567,7 @@ Truth (`lib/types.ts`):
   replies, reminders and finds point at the same ids as before.
 - `Capture`, a moment's piece: id, moment_id, t (its own capture time), kind
   (photo | video | voice | text), file_path, body, caption, caption_y,
-  thumb_path, note_type (a note's type, raw as stored, SQLite migration 25, IndexedDB 20; decision 0149), edit (a photo's or video's edits as data: rotate, crop, filter,
+  thumb_path, edit (a photo's or video's edits as data: rotate, crop, filter,
   lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
   object; `parseEdit` reads both, decision 0090), body_format (a note's body is
   Markdown the note page wrote: 'md'; null or absent, it reads as stored;
@@ -579,6 +579,11 @@ Truth (`lib/types.ts`):
   piece. A place write is the moment's (`db.updateMoment`).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
+
+Reactions (`reactions/core.ts`, truth, decision 0172): `StoredReaction` (`reaction`: moment_id, family, reaction,
+set_at; one row per moment and family). A moment carries nothing of them; `deleteMoments` and `deleteWalk` take its rows.
+SQLite migration 29 and IndexedDB 22 made it and moved each note's old `capture.note_type` onto its moment (the column
+stays, unread).
 
 Owner threads (`threads/types.ts`, truth, never derived, decision 0104): `Thread`
 (`thread`: id, name nullable, created_at), `Member` (`thread_member`: thread_id,

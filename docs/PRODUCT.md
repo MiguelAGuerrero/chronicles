@@ -337,9 +337,7 @@ recording, and a recording bar brings a minimized walk back.
     write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
     the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
-    are one entry; Done ends it, as do two minutes without a piece. A note can carry a **type** by choice: a face with a small plus in the corner of the entry being written opens
-    the eight, named, just above the bar for one pick, and the mark then sits above the note's words; a note kept today
-    offers the same sign on its row. It is never asked for. Typing **@** references another moment, drawn on
+    are one entry; Done ends it, as do two minutes without a piece. Any entry can carry **reactions** by choice (decision 0172): the face with a small plus at the end of the entry being written opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the bar, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline. They are never asked for. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
     walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
     is today's date and the empty page.
@@ -352,7 +350,7 @@ recording, and a recording bar brings a minimized walk back.
     that says why ("A year ago today", "Last October", "You keep coming back to the water"). A tap opens it; its More
     holds **Relive it** (the replay of its walk, or its day), **Another**, and the two below. Nothing from the last day
     is resurfaced. It keeps its place while you write.
-  - **The contents** (the button at the top right): **Threads**, **Hidden** (what you hid, set to fewer, removed or
+  - **The contents** (the button at the top right): **Threads**, **Reactions** (a row per reaction a moment has, named in words, "Ideas", "Dislikes", "Happy moments", never counted; each opens its moments oldest first, in their context, and the viewer steps through them), **Hidden** (what you hid, set to fewer, removed or
     softened, each to bring back), the switch **Bring moments back**, and **Forget my choices**.
   - **Threads**: things the user keeps coming back to, found in the words of
     notes and photo captions (a word in three moments on two days). A tile shows
@@ -523,7 +521,7 @@ recording, and a recording bar brings a minimized walk back.
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings) | Shipped on web (native unverified) |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
-| Note types (one of eight ink marks on a note, chosen on the note's page (its Type tool): question, emphasis, idea, happy, neutral, sad, like, dislike; shown above the viewer's page, a single note's pin and a thread's bubble; never counted, filtered or inferred) | Built 2026-11-12 (web verified by the e2e `qol`, `threads`, `responses`; native unverified) |
+| Reactions (any moment carries at most one reaction per family: Feeling, Taste, Thought; set from the journal's sign, More, the viewer's More and a note page's Reaction tool; drawn under an entry's dateline, the viewer's info line, a card and a bubble, and as ink bubbles on a single moment's pin; gathered in the journal's contents → Reactions, a lens per reaction, oldest first, no count; never inferred, never said of a place; replaced note types, decision 0172) | Built 2026-11-14 (web verified by the e2e `reactions`, `journal`, `notepage`, `qol`, `threads`, `responses`; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |

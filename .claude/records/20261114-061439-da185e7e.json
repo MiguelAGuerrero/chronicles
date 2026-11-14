@@ -1,0 +1,106 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "start an entry, tap the tag in the corner of its dateline, pick a type",
+        "--reason",
+        "note types became reactions (decision 0172); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:4b8098afa8ca37ca9fb9fdb9f5c064ebd0f2aef621096cf8b58f51485d615918"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "tap the tag in the corner of the entry being written",
+        "--reason",
+        "note types became reactions (decision 0172); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:8e164ff32e4bfd1101cbe00ab94152b77dcec63cbd2aff3c1b51b212b8edbb52"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "upgrade from a build before note types",
+        "--reason",
+        "note types became reactions (decision 0172); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:f4bf35da298e68dce229263d022c25b3407551e28425e51193d940d4ca215318"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "open a note's page with Edit and open its Type tool",
+        "--reason",
+        "note types became reactions (decision 0172); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:8fcc6ca60e097480b933487e5d80f18cdf28de23b2744ea5684d1a7a6bffe9cd"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** upgrade from a build with note types to this one, with a note typed Idea and a stacked moment holding two notes typed Happy and Sad; open Memories, then the contents, Reactions. **Expect:** the app opens (SQLite migration 29 makes the `reaction` table and moves each type onto its moment); Ideas lists the note; the stacked moment shows Happy only, the earlier note's (RX29)\n",
+      "intro": "What the reactions slice wrote and has not run on a phone (`specs/reactions`, decision 0172).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, in Memories, start an entry, tap the face with a plus at the end of its dateline, choose Happy and then Idea, keep typing, tap Done. **Expect:** the three rows of reactions sit just above the bar and above the keyboard, the camera, the mic and Done stay in their places, both choices stay chosen, the next character closes the rows, and the entry shows Happy and Idea under its dateline (RX6-RX8, RX14)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [ ] **Do:** on a phone, react to a photo from the viewer's More, then open Chronicle's Map and the walk screen near it. **Expect:** the photo's pin keeps its picture and wears a row of small ink bubbles from its bottom-left (Happy, Like, Idea), faint on a memory pin, and a change made from the viewer shows on the pin when it closes (RX17-RX21; the Marker is keyed by its reactions)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)",
+        "--new"
+      ],
+      "body": "- [owner] **Reactions** (0172): a lens narrowed by location (\"my likes around here\"), Emphasis offering a reminder and a Question asking again when you are back are each a later slice, gated at `/vision` first (the gate argued once that likes gathered by place must never become something said of a place).\n",
+      "intro": "What the reactions slice left out (`specs/reactions`, decision 0172).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [loop] **Reactions** (RX34): the panel at 200% text. The web build sets sizes in px; on a phone the rows of three may crowd at a large font scale. Carries note types' audit 22 (a one-column fallback above a font scale of about 1.5).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.\n"
+    }
+  ]
+}

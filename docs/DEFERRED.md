@@ -812,3 +812,11 @@ What the note types slice left out (`specs/note-types`, decision 0161).
 - **Words that arrive after Chronicle opened** reach Memories through a refresh (`resurface.refresh` on the transcripts' store); a thread formed by new words appears at the next open, not while Memories is up (the owner's threads are untouched).
 - **Memo transcripts audit 5 (in part)**: the transcripts' store copies its map for every row written (O(n²) over a backfill of thousands of memos); a batch write per run would do. **Audit 20**: a long press on the caption selects its text (`selectable`) beside the viewer's swipe and tap-to-hide handlers; tried on a phone only. **Audit 21**: the caption does not set its language for a screen reader (WCAG 3.1.2), for a memo spoken in another language than the app's.
   Followed up (memo-transcripts-followups): the store half is fixed (the shell writes rows to a pending map and publishes once per run or every 50 rows; test "memo-transcripts audit 5b"). Left open: the rest of audit 5 is as recorded above.
+
+## Reactions (RX1-RX36, decision 0172)
+
+What the reactions slice left out (`specs/reactions`, decision 0172).
+
+- [owner] **Reactions** (0172): a lens narrowed by location ("my likes around here"), Emphasis offering a reminder and a Question asking again when you are back are each a later slice, gated at `/vision` first (the gate argued once that likes gathered by place must never become something said of a place).
+- [loop] **Reactions** (RX34): the panel at 200% text. The web build sets sizes in px; on a phone the rows of three may crowd at a large font scale. Carries note types' audit 22 (a one-column fallback above a font scale of about 1.5).
+- [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
