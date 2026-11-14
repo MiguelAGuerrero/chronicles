@@ -275,15 +275,24 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 14, `/tend inbox T20 yes`** (from `da4226cd`; the owner's own answer, in person, Nov 12, decision 0165; T19, T21
-and T30, answered in decisions 0165 and 0170, wait for later runs, one build per run).
+**Nov 14, `/tend inbox T20 yes`** (from `da4226cd`, rebased on `f26f7dd1`; the owner's own answer, in person, Nov 12,
+decision 0165; T19, T21 and T30, answered in decisions 0165 and 0170, wait for later runs, one build per run).
 - `tend replay T20`: the day replay's "Back to the map" (a day with nothing kept) and the replay's "Back to walks" (a walk
   not found) read "Back to Chronicle", where `router.dismissTo('/')` already went (decision 0112). Sibling lens:
   `ScreenError`'s "Back to walks" is the same control going to the same place, built with them; Chronicle's map pill,
-  said "Back to the map", goes to the map and is left. Where each goes is unchanged. The launch journey reaches all
-  three from inside the app and checks the words, the spoken name, one line at 390 and 320 px, and Chronicle at `/`.
-Review: waiting (one round of the auditor and the ux-reviewer, decision 0145).
-Not a sweep: no lens ran and no area changed state. Nothing here has run on a phone (`docs/NATIVE_UNVERIFIED.md`).
+  said "Back to the map", goes to the map and is left. The launch journey reaches all three from inside the app and
+  checks the words, the spoken name, one line at 390 and 320 px, and Chronicle at `/`.
+The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
+- `tend replay audit 7`: inside the tabs `dismissTo('/')` did nothing, so on Explore's and Navigate's error screens
+  "Back to Chronicle" goes by `router.navigate('/')` and opens Chronicle's tab (`TabScreenError`; auditor 1). The T20
+  step's injected failure now fires only on the day's route (auditor 4).
+- `tend replay audit 8`: Chronicle's own tab and the tabs' layout boundary show Try again alone (`HomeScreenError`; ux 1,
+  auditor 2).
+- `tend replay audit 9`: the replay's own unit tests hold the three ways back to "Back to Chronicle" (auditor 3).
+Review: 5 accepted, 1 deferred (ux 2, `[owner]` low: "Your walk is saved." mid-walk), 0 rejected.
+Not a sweep: no lens ran and no area changed state. Journeys launch, tabs and freelook green on the final code; replay,
+days, gaps and walk on the T20 build (their files unchanged since). Nothing here has run on a phone
+(`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 

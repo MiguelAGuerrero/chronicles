@@ -1,0 +1,44 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Why Chronicle went white after Keep it",
+        "--reason",
+        "tend replay audits 7 and 8: the run's own sub-note corrected, the button opens Chronicle from Explore and Navigate, Try again alone on Chronicle's tab and the tabs' layout"
+      ],
+      "body": "- **Why Chronicle went white after Keep it** (Nov 4, the owner's iPhone): not reproduced in Chromium. The tabs now show `ScreenError` with the message; the cause waits for it. On a tab, its \"Back to walks\" goes nowhere (Chronicle is already the route, and only `retry` clears the boundary); Try again and the tab bar work (fix ios-video audit 6)\n  - Since `tend replay T20`, `audit 7` and `audit 8` (Nov 14, decision 0165): the button reads \"Back to Chronicle\" and opens Chronicle's tab from Explore and Navigate (`TabScreenError`, `router.navigate('/')`); on Chronicle's own tab and in the tabs' layout boundary, which has no tab bar, the error screen shows Try again alone (`HomeScreenError`).\n",
+      "target": "sha256:aad7cd574e240537e2189a6e9521e84d2c448e5478333f9401f86507ef95dd31"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "iPhone SE (320 pt wide) at the largest text size, open a replay whose walk"
+      ],
+      "body": "- [ ] **Do:** on an iPhone SE (320 pt wide) at the largest text size, open a replay whose walk was deleted from inside the app, a day with nothing kept, and a screen that throws (as above) on a replay, a day, the walk screen, Explore, Navigate and Chronicle. **Expect:** each way back reads \"Back to Chronicle\", whole in its button, and opens Chronicle: from a replay, a day and the walk screen by dismissing to it, from Explore and Navigate by opening Chronicle's tab; Chronicle's own tab and the tabs' layout boundary show Try again alone (`tend replay T20`, `audit 7`, `audit 8`; the web e2e checks one line at 320 px, where react-native-web sizes text in px).\n",
+      "target": "sha256:bfceef989e4abce48e451d56fc3fecba93d5d7366bf07b64a04fc3bf0ea27fb5"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay rhythm",
+        "--after",
+        "Why Chronicle went white after Keep it"
+      ],
+      "body": "- [owner] **The walk screen's error mid-walk** (the T20 review's ux 2, low): an error on the walk screen mid-walk says \"Your walk is saved.\" beside \"Back to Chronicle\", which can read as the walk ended; a walk-route body such as \"Your walk is still recording.\" is new words, yours (`ScreenError.tsx` l.17, `walk.tsx` l.164; `useReady.tsx` l.265 says \"Back to the tab you came from\").\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 14, `/tend inbox T20 yes`** (from `da4226cd`, rebased on `f26f7dd1`; the owner's own answer, in person, Nov 12,\ndecision 0165; T19, T21 and T30, answered in decisions 0165 and 0170, wait for later runs, one build per run).\n- `tend replay T20`: the day replay's \"Back to the map\" (a day with nothing kept) and the replay's \"Back to walks\" (a walk\n  not found) read \"Back to Chronicle\", where `router.dismissTo('/')` already went (decision 0112). Sibling lens:\n  `ScreenError`'s \"Back to walks\" is the same control going to the same place, built with them; Chronicle's map pill,\n  said \"Back to the map\", goes to the map and is left. The launch journey reaches all three from inside the app and\n  checks the words, the spoken name, one line at 390 and 320 px, and Chronicle at `/`.\nThe review's fixes (one round of the auditor and the ux-reviewer, decision 0145):\n- `tend replay audit 7`: inside the tabs `dismissTo('/')` did nothing, so on Explore's and Navigate's error screens\n  \"Back to Chronicle\" goes by `router.navigate('/')` and opens Chronicle's tab (`TabScreenError`; auditor 1). The T20\n  step's injected failure now fires only on the day's route (auditor 4).\n- `tend replay audit 8`: Chronicle's own tab and the tabs' layout boundary show Try again alone (`HomeScreenError`; ux 1,\n  auditor 2).\n- `tend replay audit 9`: the replay's own unit tests hold the three ways back to \"Back to Chronicle\" (auditor 3).\nReview: 5 accepted, 1 deferred (ux 2, `[owner]` low: \"Your walk is saved.\" mid-walk), 0 rejected.\nNot a sweep: no lens ran and no area changed state. Journeys launch, tabs and freelook green on the final code; replay,\ndays, gaps and walk on the T20 build (their files unchanged since). Nothing here has run on a phone\n(`docs/NATIVE_UNVERIFIED.md`).\n"
+    }
+  ]
+}
