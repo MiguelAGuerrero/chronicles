@@ -62,6 +62,6 @@ No native module changes. `WalkMap.native.tsx` renames its layer ids and props o
 
 - **S1 accepted** into SF8: a storefronts route named its streets highest grade first (`passesOf`); now in the order passed.
 - **S2 accepted** into SF2: the card's rows and chips were two tiers; now one list, nearest first, each row with Walk to where walkable.
-- **S3 rejected**: renaming the "What's good here?" action. The owner's G2 (point 4) keeps the title and changes its line; filed for `/tend` as a proposal ("What's here?"), not built.
+- **S3 rejected, then taken by the owner**: G2 (point 4) kept the title, so it was filed; the owner chose "What's here?" the same day (SF15).
 - **S4 accepted** into SF1: the tip names offices too, since they still weigh.
 - Silent 1 (offices): kept, as the owner's list of what stops counting left them; a default in the spec. Silent 2 (Walk to's start and the tile's street are the one with the most storefronts): a default in the spec, the words never say so.

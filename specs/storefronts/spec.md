@@ -11,7 +11,7 @@ Verb: earn (Explore before: the word stops promising people what the data cannot
 Touches: VISION.md Never, "Popularity, trending, foot traffic, other people's activity" (nearest fit "Presence of places from open data": storefronts is what is there, never who is); Never, "rankings of places" (nearest first, never busiest first; nothing counts storefronts); decisions 0034 (information only), 0080 (amended), 0127 (amended), 0109 (the sources stay Overture and OpenStreetMap), 0140 (storefronts is presence's).
 Verdict: aligned
 Shape: as filed in G2, with the owner's two calls of Nov 14 (decision 0178): storefronts count only places you walk into, and the code says storefronts too.
-Criteria: SF1-SF14.
+Criteria: SF1-SF15.
 Open: none.
 
 ## What it is
@@ -25,6 +25,7 @@ The map layer, the area card, What's good here?, the walk's help line and the ro
 - **Storefronts count only places you walk into** (the owner, Nov 14, decision 0178): parks and green, monuments and memorials, public art, viewpoints, curiosities, listed structures and cemeteries weigh nothing toward storefronts. Shops, food, drink, venues, museums and theatres, everyday services, health, civic places, lodging, sport, offices and vehicle services weigh as before. A complex's "shopping" word keeps reading the old weight (`densityWeight`), since a mall's art is still its own.
 - **The code says storefronts too** (the owner, Nov 14, decision 0178): the layer's id, the leaning's value, hooks, modules, test ids and perf counters. A choice saved under the old word is read as the new one.
 - **Go straight through** (the owner, Nov 14): no stop at the plan.
+- **"What's good here?" becomes "What's here?"** (the owner, Nov 14, after the steward's S3: "Go with what's here, that's better for me"; SF15).
 - Defaults taken in the slice, for the owner to overrule: the card's two sections ("Busy areas", "Busy streets") become one list, "Storefronts", so two sections never share a name and a dense far street never sits above a near one (steward S2); offices stay storefronts, as the owner's list of what stops counting left them; the route leaning's label "Streets with life" becomes "Storefronts"; Walk to still starts at the street with the most storefronts (AT8; only its words change), and a tile still shows that street.
 
 ## Acceptance criteria
@@ -43,6 +44,7 @@ The map layer, the area card, What's good here?, the walk's help line and the ro
 12. **SF12** A choice saved under the old word holds: the layer saved on stays on as Storefronts, the leaning saved off stays off, and a navigation in progress that leaned on busy streets leans on storefronts after a reload.
 13. **SF13** The code names the concept storefronts: no module, prop, test id, map layer id or perf counter under `src/` names it busy (other meanings of busy, a button's wait, an overloaded server, a busy recorder, walkability's traffic, are untouched).
 14. **SF14** Decisions 0080 and 0127, and the shipped specs that pin the old words, say they were amended by this slice.
+15. **SF15** The owner's task, "look at what's here" (the owner, Nov 14, taking the steward's S3): the long press's action on Explore's map is titled "What's here?", never "What's good here?"; it says where there is a lot, never whether it is good. Finding: someone told only "see what's around this spot" presses and holds the map, as the map's own hint says, and finds the words there.
 
 ## Record
 
