@@ -191,6 +191,14 @@ const FEATURES = [
     specs: ['walkability', 'walkability-headsup', 'walkability-urban-form'],
   },
   {
+    name: 'after-dark',
+    about: 'after dark: lit streets and places open after sunset as a map layer, read from OpenStreetMap by tile; sunset on the device; the unlit heads-up',
+    rule: 'after-dark',
+    source: ['src/lib/dark/**'],
+    journeys: ['dark'],
+    specs: ['after-dark'],
+  },
+  {
     name: 'landing',
     about: 'what\'s good here: landing analysis, busy streets, activity density',
     rule: 'landing',
@@ -467,6 +475,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'after-dark': { branch: 'claude/affectionate-heisenberg-4x07ad', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
