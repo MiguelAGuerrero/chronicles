@@ -91,7 +91,7 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   without one while a release is known, is stale too (`isStale`). An area
   centred within 1 km of a remembered one replaces it. Markers are rebuilt only
   when areas change, never per zoom. A strip's name keeps 80 m from the pin.
-- **Busy names are the map's text** (decision 0160, `.claude/rules/map.md`): `busyNames` (`landing/names.ts`) gives one per
+- **Busy names are the map's text** (decision 0160, `.claude/rules/map-reactivity.md`): `busyNames` (`landing/names.ts`) gives one per
   strip at its label point, turned along its street (`alongAngle`), and one per unlabelled pocket; `landingView` lists strips
   and labels heaviest first and never carries a weight (L9's test).
 - **A street's name is drawn once** (fix street-label-double, Nov 4; explore-dense-city audit 4, the owner: once per 300 m):
