@@ -216,6 +216,62 @@ async function checks(h) {
 // The fresh-browser flows. The full flow runs them after the shared page's story, as before.
 async function fresh(h) {
   const { navUrl, start, at, dLat, dLon, check, metaOf, drawerTo, tabTo, shownCount, tabBarShown, freshPage, openWalk, scriptsDir, routed } = h;
+    // tend walk-screen 6 (decision 0172, O35): the walk screen throwing mid-walk (its map's WebGL context refused, as a
+    // tab's in fix ios-video audit 1) says "Your walk is still recording.", never "Your walk is saved.", which reads as
+    // ended; the button stays "Back to Chronicle". And it is true: positions sent behind the error screen are stored.
+    {
+      const { c, pg } = await freshPage('walk-error');
+      await pg.goto(navUrl);
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=start]');
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(1500);
+      await c.addInitScript(() => {
+        const real = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+          if (/webgl/.test(String(kind)) && location.pathname.endsWith('/walk')) return null;
+          return real.call(this, kind, ...rest);
+        };
+      });
+      const fixes = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('trace_point', 'readonly').objectStore('trace_point').count();
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const from = h.errors.length;
+      await pg.reload();
+      await pg.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 20000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      const read = () => pg.evaluate(() => {
+        const s = [...document.querySelectorAll('[data-testid=screen-error]')].find((e) => !e.closest('[aria-hidden=true]'));
+        if (!s) return null;
+        const texts = [...s.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim()).map((d) => d.innerText.trim());
+        const buttons = [...s.querySelectorAll('[role=button]')].map((b) => b.getAttribute('aria-label') ?? b.innerText.trim());
+        return { texts, buttons, wide: document.documentElement.scrollWidth <= window.innerWidth };
+      });
+      const seen = await read();
+      await h.shot(pg, 'walk-screen-error-390');
+      const before = await fixes();
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg.waitForTimeout(1000);
+      }
+      const recorded = (await fixes()) - before;
+      await pg.setViewportSize({ width: 320, height: 700 });
+      await pg.waitForTimeout(500);
+      const at320 = await read();
+      await h.shot(pg, 'walk-screen-error-320');
+      check(!!seen && seen.texts.includes('Your walk is still recording.') && !seen.texts.includes('Your walk is saved.')
+        && seen.buttons.includes('Back to Chronicle') && seen.buttons.includes('Try again') && recorded > 0 && at320?.wide,
+        `tend walk-screen 6: the walk screen's error mid-walk says "Your walk is still recording.", with Try again and "Back to Chronicle", whole at 390 and 320, and the walk does record behind it (${JSON.stringify({ seen, at320, recorded })})`);
+      // The refused map is the step's own doing: not the app's console errors.
+      for (let i = h.errors.length - 1; i >= from; i--) if (/^walk-error: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
+      await c.close();
+    }
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).

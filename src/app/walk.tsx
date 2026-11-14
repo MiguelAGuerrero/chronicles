@@ -160,8 +160,9 @@ type Notice = {
 };
 
 
-// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
-export { ScreenError as ErrorBoundary } from '../components/ScreenError';
+// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1); here, that the walk is still
+// recording (decision 0172, O35).
+export { WalkScreenError as ErrorBoundary } from '../components/ScreenError';
 
 /**
  * The walk screen, and Navigate itself (NR1-NR6): ready with no walk open,

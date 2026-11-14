@@ -10,11 +10,11 @@ import { Button, theme } from './ui';
  */
 type Exit = 'dismiss' | 'navigate' | 'none';
 
-function ErrorScreen({ error, retry, exit }: ErrorBoundaryProps & { exit: Exit }) {
+function ErrorScreen({ error, retry, exit, body = 'Your walk is saved.' }: ErrorBoundaryProps & { exit: Exit; body?: string }) {
   return (
     <View style={styles.screen} testID="screen-error">
       <Text style={styles.title} accessibilityRole="header">Something went wrong showing this screen.</Text>
-      <Text style={styles.body}>Your walk is saved.</Text>
+      <Text style={styles.body}>{body}</Text>
       <Text style={styles.detail} selectable>{error?.message || String(error)}</Text>
       <Button label="Try again" onPress={() => void retry()} />
       {exit !== 'none' && (
@@ -37,6 +37,14 @@ function ErrorScreen({ error, retry, exit }: ErrorBoundaryProps & { exit: Exit }
  */
 export function ScreenError(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} exit="dismiss" />;
+}
+
+/**
+ * The same, on the walk screen: the recorder goes on behind it, so it says the walk is still recording, never that it
+ * is saved, which can read as ended (decision 0172, O35). The way back is the walk's own, as `ScreenError`'s.
+ */
+export function WalkScreenError(props: ErrorBoundaryProps) {
+  return <ErrorScreen {...props} exit="dismiss" body="Your walk is still recording." />;
 }
 
 /** The same, on Explore and Navigate: its way back opens Chronicle's tab (tend replay audit 7). */
