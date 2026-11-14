@@ -30,7 +30,7 @@ const FEATURES = [
     rule: 'storage',
     source: ['src/lib/db/**', 'src/lib/media/**', 'src/lib/space/**', 'src/components/SpaceLine.tsx'],
     journeys: ['space', 'upgrade'],
-    specs: ['storage-awareness', 'moment-table'],
+    specs: ['storage-awareness', 'moment-table', 'errors-handled'],
   },
   {
     name: 'recording',
@@ -475,6 +475,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'errors-handled': { branch: 'claude/serene-sagan-ig8te6', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
