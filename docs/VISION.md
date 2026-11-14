@@ -141,3 +141,4 @@ same argument is not had twice.
 | 0139 | Media: bare tiles; the day header says where |
 | 0147 | Complexes: information only; the street kept; a viewing never fetches (reshaped at the gate, Nov 11) |
 | 0155 | Chronicle is a journal: writing in it captures |
+| 0172 | Annotations on moments: descriptors in fixed families, one per family, chosen by the owner; gathered in Chronicle's lenses as moments in context; never counted, never said of a place; amends 0161 (reshaped at the gate, Nov 14) |
