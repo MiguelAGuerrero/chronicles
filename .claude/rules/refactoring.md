@@ -28,10 +28,24 @@ procedure is `/refactor` (`.claude/skills/refactor/SKILL.md`); this file is the 
 - **Where it runs:** `npm test` without the type checker; `check:affected` and CI with it (`check:quality`).
 - **Refactor commits** (`refactor <feature> N: R<k> …`) never change or remove a line of an existing test
   (`check:refactor`; CI over agent commits). A test that must change means behaviour changed: not a refactor.
+- **Code that moves keeps its ceilings** (code-quality audit 3): a function found in another file under its recorded
+  name carries its entry; a per-file count (swallowed errors, colours, a file's length, a dead module) may appear in
+  a new file while the same metric dropped as much elsewhere. A recorded file growing is still worse. `--tighten`
+  takes the move in; `looser()` reads moves the same way, so a carried entry is no loosening.
+- **Unnamed callbacks are keyed by the named function that holds them** (`Name/*`), with the worst of their measures
+  (audit 1): adding or moving a callback renames nothing; the worst one growing is worse.
 - **Traps.** A clone counts on both files, so a copy made in one fails the gate on the other too. A component's
-  nested callbacks are measured on their own (a 300-line `useEffect` body is a long non-UI function). `--scope`
-  without a feature reads the changed files from `scripts/affected.js`, so a branch with no merge base scopes
-  everything.
+  nested callbacks are measured on their own (a 300-line `useEffect` body is a long non-UI function); a lowercase
+  function that renders JSX gets a component's length limit and a function's branches (audit 9). A factory that
+  hands back closures, or code that awaits, is never "pure logic outside core" (audit 2). A test's `import *` or
+  `await import()` uses only the names it mentions, and only as a test (audit 8). An `@instance` file is exempt
+  from shell-singleton only while it holds no function of 3+ lines (audit 10). `--scope` refuses an unknown feature;
+  without one it reads the changed files from `scripts/affected.js`, so a branch with no merge base scopes everything.
+- **CI judges a push against its base:** `check:quality -- --since "$BEFORE"` fails a baseline looser than the one
+  before the push, and `check:refactor -- --ci "$BEFORE..$GITHUB_SHA"` reads only the push's agent commits (audit 4,
+  7). `check:affected` runs the gate last, after the tests, typecheck and lint (audit 11).
+- **A refactor commit may change a test's import declarations** (they follow moved code) and move a test file whole;
+  any other changed, removed or deleted test line fails `check:refactor`, whatever the case of `refactor` (audit 5, 6).
 
 ## The catalog
 
@@ -75,4 +89,5 @@ against the old place) before the move.
   (AGENTS.md, React Compiler), or the effect split by what it reacts to.
 - **R20 Derive in render.** An effect that only sets state becomes a value computed in render (`useMemo` only if
   measured); a selector returns a field or a primitive.
-- **R21 A test that can fail.** A test with no assertion gets the assertion its name promises, or goes.
+- **R21 A test that can fail.** A test with no assertion gets the assertion its name promises (an added line; removing
+  the test is a change of its own, not a refactor commit).

@@ -9,7 +9,7 @@ import { landingOf } from './nav/wayBack';
 import { recorder } from './recorder';
 import { gapKey, gapsOf, type Gap } from './gaps/infer';
 import { HiddenLog } from './hiddenLog';
-import { newestGap, sameRuns } from './liveRuns';
+import { newestGap, sameRuns } from './liveTrace';
 import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, withFilled, type ReadTrace } from './rides';
 import type { Fill, LngLat, TracePoint } from './types';
 

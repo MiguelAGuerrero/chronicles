@@ -434,7 +434,7 @@ npm run check:refactor             # refactor commits on the branch changed no e
 ## 5. CI
 
 `.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`,
-`check:docs`, `check:vision`, `check:quality`, `check:refactor`, typecheck, `npm test`, lint, the `/chronicles` export and the
+`check:docs`, `check:vision`, `check:quality -- --since` the push's base, `check:refactor` over the push's agent commits, typecheck, `npm test`, lint, the `/chronicles` export and the
 deploy. **The e2e is not in CI** (it needs a browser and takes about 15
 minutes): it is the agent's job before merging.
 

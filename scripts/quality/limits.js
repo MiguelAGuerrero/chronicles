@@ -62,7 +62,10 @@ function violations(facts) {
   const nameOf = namer();
   const byFile = new Map();
   for (const f of facts.functions) {
-    const named = { ...f, stable: nameOf(f.file, f.name) };
+    // An unnamed callback is keyed by the named function that holds it: its measures there are the
+    // worst of its callbacks', so adding or moving a callback renames nothing (code-quality audit 1).
+    const stable = f.name.startsWith('<') ? `${f.owner || '<module>'}/*` : nameOf(f.file, f.name);
+    const named = { ...f, stable };
     if (!byFile.has(f.file)) byFile.set(f.file, []);
     byFile.get(f.file).push(named);
   }
@@ -73,13 +76,18 @@ function violations(facts) {
       if (uiLike) {
         if (f.lines > LIMITS['component-lines'].limit) add('component-lines', file, f.stable, f.lines, f.line);
         if (f.hookCount > LIMITS['component-hooks'].limit) add('component-hooks', file, f.stable, f.hookCount, f.line);
-      } else if (!f.jsx) {
+      } else if (f.jsx) {
+        // A lowercase or unnamed function that renders: a component's length, a function's branches (audit 9).
+        if (f.lines > LIMITS['component-lines'].limit) add('component-lines', file, f.stable, f.lines, f.line);
+        if (f.complexity > LIMITS['fn-branches'].limit) add('fn-branches', file, f.stable, f.complexity, f.line);
+      } else {
         if (f.lines > LIMITS['fn-lines'].limit) add('fn-lines', file, f.stable, f.lines, f.line);
         if (f.complexity > LIMITS['fn-branches'].limit) add('fn-branches', file, f.stable, f.complexity, f.line);
       }
       if (f.maxNesting > LIMITS.nesting.limit) add('nesting', file, f.stable, f.maxNesting, f.line);
       if ((fi.layer === 'shell' || fi.layer === 'adapter') && !f.inClass && f.complexity > LIMITS['shell-branches'].limit) add('shell-branches', file, f.stable, f.complexity, f.line);
-      if (fi.layer !== 'core' && f.pure && f.lines >= 5) add('pure-outside-core', file, f.stable, f.lines, f.line);
+      // A factory that hands back closures, or code that awaits, is a shell's own pattern (audit 2).
+      if (fi.layer !== 'core' && f.pure && f.lines >= 5 && !f.returnsClosures && !f.awaitsDeep) add('pure-outside-core', file, f.stable, f.lines, f.line);
     }
     if (fi.silentCatches) add('swallowed', file, null, fi.silentCatches);
     if (facts.floating && fi.floatingPromises) add('floating', file, null, fi.floatingPromises);
@@ -97,15 +105,23 @@ function violations(facts) {
   count('platform-os', P.platformBranches);
   count('fresh-selector', P.freshSelectors);
   for (const p of P.wideProps) add('component-props', p.file, p.component, p.props, p.line);
-  const ctx = namer();
-  for (const c of P.contextCalls) add('context-call', c.file, ctx(c.file, `${c.call}`), 1, c.line);
+  // Per function, a count: which call of several is short changes nothing (audit 1).
+  const perFn = (metric, list, nameOf_) => {
+    const n = new Map();
+    for (const x of list) {
+      const k = `${x.file}\u0000${nameOf_(x)}`;
+      if (!n.has(k)) n.set(k, { x, v: 0 });
+      n.get(k).v++;
+    }
+    for (const [k, { x, v }] of n) add(metric, x.file, k.split('\u0000')[1], v, x.line);
+  };
+  perFn('context-call', P.contextCalls, (c) => `${c.fn || '<module>'}:${c.call}`);
   const mut = new Set();
   for (const m of P.paramMutation) if (m.exported && !mut.has(`${m.file}#${m.fn}`)) {
     mut.add(`${m.file}#${m.fn}`);
     add('param-mutation', m.file, m.fn, 1, m.line);
   }
-  const eff = namer();
-  for (const d of P.derivedStateEffects) add('derived-state', d.file, eff(d.file, d.component), 1, d.line);
+  perFn('derived-state', P.derivedStateEffects, (d) => d.component);
   for (const e of facts.unusedExports) if (!e.typeOnly) add('unused-export', e.file, e.name, 1, e.line);
   for (const c of facts.cycles) add('cycle', c[0], c.join(' > '), 1);
   for (const s of facts.shellsOnSingletons) add('shell-singleton', s.file, null, 1);

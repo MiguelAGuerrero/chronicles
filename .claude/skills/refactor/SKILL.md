@@ -49,7 +49,8 @@ Take them from the top of the queue, skipping one that is:
 - **behavioural**: a move whose recipe changes what a person sees or what is stored (an error now shown, a trace read
   with its fills, R17 when the fix is to pass the context): file it, as the owner's call;
 - **architectural**: a dependency, a migration, a navigation change, a module moved across `src/lib` and
-  `src/components`, a derivation-rule bump, or more than about 8 source files: file it;
+  `src/components` (except a move the owner approved: `components/map/types.ts` into `src/lib`, decision 0178), a
+  derivation-rule bump, or more than about 8 source files: file it;
 - **a god screen's split**: `walk.tsx` and `WalkMap.web.tsx` have their own decomposition slices; take a move there
   only if it is one effect cluster or one helper (R1, R3, R4 for one cluster).
 

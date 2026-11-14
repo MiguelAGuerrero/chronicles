@@ -76,8 +76,12 @@ jobs:
       - run: npm run check:vision
       # Code quality (specs/code-quality): nothing recorded got worse, new code within the limits, and a
       # refactor commit changes no existing test (CQ12, CQ14).
-      - run: npm run check:quality
-      - run: npm run check:refactor -- --ci
+      - name: Code quality, judged against the push's base (CQ12, CQ14; code-quality audit 4, 7)
+        run: |
+          npm run check:quality -- --since "${BEFORE}"
+          npm run check:refactor -- --ci "${BEFORE}..${GITHUB_SHA}"
+        env:
+          BEFORE: ${{ github.event.before }}
       - run: npm run typecheck
       - run: npm test
       # Lint holds the import boundaries and the functional core's layers (FC3, FC5).

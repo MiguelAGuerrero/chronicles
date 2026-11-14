@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { sameRuns } from '../../liveRuns';
+import { newestGap, sameRuns } from '../../liveTrace';
 import type { LngLat } from '../../types';
 
 // The live trace's decisions, out of useLiveTrace (refactor recording 1, R1).
@@ -17,8 +17,7 @@ test('refactor recording 1: the same ride lines are the same, so the map is not 
   assert.equal(sameRuns([run()], [run()]), true, 'empty lines');
 });
 
-test('refactor recording 2: the newest gap in the kept trace is the app closed or the page hidden, never a pause', async () => {
-  const { newestGap } = await import('../../liveRuns');
+test('refactor recording 2: the newest gap in the kept trace is the app closed or the page hidden, never a pause', () => {
   const fix = (t: number) => ({ walk_id: 'w', t, lat: 0, lon: 0, accuracy_m: 5, speed: null, course: null });
   const kept = [fix(0), fix(1_000), fix(200_000), fix(201_000), fix(500_000)];
   assert.deepEqual(newestGap(kept, []), { ms: 299_000, at: 500_000 }, 'the newest of two gaps');

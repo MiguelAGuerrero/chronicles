@@ -120,8 +120,32 @@ Open: none
   journey, the one `check:e2e` named (for `useLiveTrace.ts`), passed in one run.
 - **The baseline** was written from the tree as merged with `main` (849 entries); `main` had added 38 regressions
   while the slice was built. `/refactor` on the slice's scope then moved `sameRuns` and `newestGap` from
-  `useLiveTrace.ts` into core (`refactor recording 1-2`, `src/lib/liveRuns.ts`), and the baseline tightened to 847.
+  `useLiveTrace.ts` into core (`refactor recording 1-2`, `src/lib/liveRuns.ts`, renamed `liveTrace.ts` by audit 14), and the baseline tightened to 847.
 - **Deferred** (`docs/DEFERRED.md`, "Code quality"): errors handled by kind (0179), the palette (0180), the
   decomposition slices for `walk.tsx` and `WalkMap.web.tsx`, the `map/types.ts` move, a coverage ratchet and mutation
   testing, floating promises in `npm test`.
 - Native: none; the slice touched a comment in `recorder/index.native.ts`, and nothing here has run on a phone.
+
+## Audit (2026-11-14)
+
+The `auditor`, report-only, over the scripts, tests, skill and docs; no screen changed, so no pictures, cold find or
+UX review, and the steward was skipped (no surface). 14 findings: 13 fixed (12 behind a regression test in
+`arch/qualityAudit.test.ts`, one a rename the typecheck covers), 1 in part, its rest deferred.
+
+1. Unnamed callbacks keyed by their place in the file: **accept**, keyed by the named function that holds them, the worst measure (`code-quality audit 1`).
+2. Shell factories counted as pure logic outside core: **accept**, a function handing back closures or awaiting anywhere is not (`code-quality audit 2`).
+3. Code moved to another file arrives as new: **accept**, a named entry carries by name, a per-file count while the metric's total holds (`code-quality audit 3`).
+4. "No looser than main" vacuous in CI: **accept**, `check:quality -- --since "$BEFORE"` in CI (`code-quality audit 4`).
+5. Deleted or renamed-and-edited tests, and `Refactor` in another case, passed check:refactor: **accept** (`code-quality audit 5`).
+6. An import-line edit in a test was refused: **accept**, import declarations follow moved code (`code-quality audit 6`).
+7. `--ci` re-judged the last 50 commits and could crash: **accept**, the push's range, a named error for an unknown one (`code-quality audit 7`).
+8. A test's namespace import hid unused exports: **accept** (`code-quality audit 8`).
+9. Lowercase JSX functions escaped every limit: **accept** (`code-quality audit 9`).
+10. The limits and `@instance` could be loosened unseen: **accept**, the limits pinned in the test, an instance file with a 3+-line function is a shell (`code-quality audit 10`).
+11. check:affected stopped at the gate before the tests: **accept**, the gate runs last (`code-quality audit 11`).
+12. A mistyped `--scope` feature passed: **accept**, exit 2 (`code-quality audit 12`).
+13. Ways around the error and React analyzers: **accept in part** (`code-quality audit 13`: an empty return, `.then(a, () => {})`, `catch { return null }`, `Platform.select`, `hsl()`, a suppression listing another rule); **defer** named colours, `.catch(noop)` and promises returned to JSX handlers (`docs/DEFERRED.md`, "Code quality").
+14. `liveRuns.ts` held no `liveRuns`: **accept**, renamed `liveTrace.ts`; the typecheck covers it.
+
+The analyzers changed, so the first baseline (not yet on `main`) was written again: 893 entries. The auditor's native
+list is in `docs/NATIVE_UNVERIFIED.md`, "Recording and the background task".

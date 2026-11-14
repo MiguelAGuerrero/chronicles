@@ -190,7 +190,7 @@ function platformPairs(files, graph, dup) {
 function collect(root = ROOT, { minTokens, types = false } = {}) {
   const all = srcFiles(root);
   const prod = all.filter((f) => !isTest(f));
-  const { layers: libLayers } = layers.readLayers(root);
+  const libLayers = fs.existsSync(path.join(root, 'src', 'lib')) ? layers.readLayers(root).layers : new Map();
   const libRel = new Map([...libLayers].map(([k, v]) => [toPosix(k), v]));
   const featureNames = (rel) => features.featuresOf(rel).map((f) => f.name);
 
@@ -299,7 +299,9 @@ function collect(root = ROOT, { minTokens, types = false } = {}) {
     }
   }
   const shellsOnSingletons = prod
-    .filter((f) => files[f].layer === 'shell' && !/^\/\/ @instance/m.test(sources.get(f)))
+    // An instance file may import a singleton to build from it, and nothing more: one that also holds
+    // a function of 3+ lines is a shell like any other (code-quality audit 10).
+    .filter((f) => files[f].layer === 'shell' && !(/^\/\/ @instance/m.test(sources.get(f)) && !fnRecords.some((x) => x.file === f && x.lines >= 3)))
     .map((f) => ({ file: f, imports: (graph.mods.get(f)?.imports || []).filter((i) => !i.typeOnly && Array.isArray(i.names)).flatMap((i) => i.names.filter((n) => SINGLETON.test(n))) }))
     .filter((x) => x.imports.length)
     .map((x) => ({ ...x, factory: [...(graph.mods.get(x.file)?.exports.keys() || [])].some((n) => /^create[A-Z]/.test(n)) }));
@@ -550,6 +552,11 @@ function main(args, root = ROOT) {
     return 0;
   }
   const gated = args.includes('check') || args.includes('--scope') || args.includes('--tighten');
+  const feature = opt('--scope');
+  if (feature && !features.byName.has(feature)) {
+    console.error(`--scope: no feature "${feature}" in scripts/features.js (${[...features.byName.keys()].join(', ')}).`);
+    return 2;
+  }
   if (!gated) {
     const only = opt('--files') ? new Set(opt('--files').split(',').map((x) => x.trim()).filter(Boolean)) : null;
     process.stdout.write(summary(facts, { only, n: Number(opt('--top')) || 15 }) + '\n');
@@ -573,11 +580,26 @@ function main(args, root = ROOT) {
   }
   if (args.includes('check') || args.includes('--scope')) {
     let scope = null;
-    if (args.includes('--scope')) scope = new Set(scopeFiles(root, facts, { feature: opt('--scope') }));
+    if (args.includes('--scope')) scope = new Set(scopeFiles(root, facts, { feature }));
     const inScope = (x) => !scope || scope.has(x.file);
     const sub = scope ? Object.fromEntries(Object.entries(base).filter(([id]) => scope.has(id.slice(id.indexOf(':') + 1).split('#')[0]))) : base;
     const r = baselineOps.compare(v.filter(inScope), sub, skip);
-    const out = report('New code past a limit', r.added) + report('Worse than recorded', r.worse) + report('Better than recorded (tighten)', r.stale);
+    // --since <rev>: the baseline may be no looser than it was at <rev> (CI: the push's base; audit 4).
+    const since = opt('--since');
+    let loose = [];
+    if (since !== null) {
+      if (!since || /^0+$/.test(since)) console.log('check:quality --since: no base to compare the baseline with (a new branch); not judged.');
+      else {
+        let theirs = null;
+        try {
+          theirs = JSON.parse(execFileSync('git', ['show', `${since}:${BASELINE}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+        } catch {
+          console.log(`check:quality --since: ${since} has no ${BASELINE} (or is not in this clone); not judged.`);
+        }
+        if (theirs) loose = baselineOps.looser(base, theirs).map((id) => `${id}: ${base[id]}, recorded ${theirs[id] ?? 'nowhere'} at ${since.slice(0, 8)}. Fix the code; a baseline is only lowered (--tighten).`);
+      }
+    }
+    const out = report('Baseline looser than at --since', loose) + report('New code past a limit', r.added) + report('Worse than recorded', r.worse) + report('Better than recorded (tighten)', r.stale);
     if (out) console.log(out.trimEnd());
     else console.log(`check:quality: ok (${scope ? `${scope.size} files in scope, ` : ''}${Object.keys(base).length} recorded${skip.length ? `; without --types, ${skip.join(', ')} not measured` : ''}).`);
     if (scope) {
@@ -588,7 +610,7 @@ function main(args, root = ROOT) {
       const waiting = Object.entries(limits.WAITING).map(([m, why]) => `${m} waits on ${why}`).join('; ');
       if (waiting) console.log(`  (${waiting})`);
     }
-    return r.added.length || r.worse.length || r.stale.length ? 1 : 0;
+    return r.added.length || r.worse.length || r.stale.length || loose.length ? 1 : 0;
   }
   return 0;
 }

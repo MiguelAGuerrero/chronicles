@@ -165,7 +165,7 @@ Recording and traces
   walkMotion.ts              askMotion, restoreMotion, useWalkMotion (expo-sensors permission; samples through motionSource/)
   motionSource/              motion samples: DeviceMotion on native, the devicemotion event on web
   useLiveTrace.ts            the walk screen's live trace: reads raw fixes every 2 s, feeds the DotStore, reports gaps and rides
-  liveRuns.ts                its decisions, in core: sameRuns (ride lines unchanged), newestGap (the newest gap that isn't a pause)
+  liveTrace.ts               its decisions, in core: sameRuns (ride lines unchanged), newestGap (the newest gap that isn't a pause)
   useGlidingWalker.ts        runs the glide as a render loop outside React
   traceEnds.ts               where a walk began and ended
   gpsLog.ts                  the raw readings as text for Share GPS log

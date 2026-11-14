@@ -151,6 +151,11 @@ function buildGraph(root, files, { extraImporters = [], isTest = () => false, fe
     mods.set(rel, readModule(abs, fs.readFileSync(abs, 'utf8')));
   }
   const inSet = new Set(files);
+  const texts = new Map();
+  const testText = (rel) => {
+    if (!texts.has(rel)) texts.set(rel, fs.readFileSync(path.join(root, rel), 'utf8'));
+    return texts.get(rel);
+  };
   const out = new Map(); // value edges, for cycles and fan
   const typeOut = new Map();
   const fanIn = new Map(files.map((f) => [f, new Set()]));
@@ -175,6 +180,14 @@ function buildGraph(root, files, { extraImporters = [], isTest = () => false, fe
       for (const t of targets) {
         if (t === rel) continue;
         const u = used.get(t);
+        if (imp.names === '*' && isTest(rel)) {
+          // A test's namespace or dynamic import uses only what it names, and only as a test
+          // (code-quality audit 8): it never hides an export production code doesn't use.
+          const text = testText(rel);
+          for (const name of mods.get(t)?.exports.keys() || []) if (new RegExp(`\\b${name.replace(/[$]/g, '\\$')}\\b`).test(text)) u.byTest.add(name);
+          testFanIn.get(t).add(rel);
+          continue;
+        }
         if (imp.names === '*') u.star = true;
         else for (const n of imp.names) {
           u.names.add(n);

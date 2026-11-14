@@ -104,6 +104,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with a reminder set near a bus stop, ride a bus past it with the screen off. **Expect:** the task's two-minute `tail` reads the bus's fixes as a ride, not jumps, so the reminder fires from the ride (Rides).
 - [ ] **Do:** start an exploring walk on a quiet street, lock the screen and walk into a new area for 10 minutes. **Expect:** Explore's background read (`exploreRun.ts`) builds the area's checklist with the screen off: "?" marks show at once when you unlock (v1 Explore).
 - [ ] **Do:** after a drive with no walk, park and make a note on Navigate's ready screen; then make one indoors with a weak signal. **Expect:** one fix per moment (`locate/index.native.ts`): the note is placed where you are, never at a cached fix older than 15 s from before the drive; with no fresh fix in 10 s, it is kept with no place (Moments and days). (M2)
+- [ ] **Do:** with Remind me here set on a photo, start a walk, stand still a minute with the phone face up, then put the app in the background and walk past the spot. **Expect:** the reminder fires once in the background, as it did before code-quality: the recorder's tail is read without still spells or gap fills on purpose (`// readTrace:` in `recorder/index.native.ts`; code-quality audit, native list)
+- [ ] **Do:** close the app mid-walk for two minutes, reopen it on the walk screen. **Expect:** the trace resumes, and the newest gap is reported as before (`newestGap` and `sameRuns` now come from `lib/liveTrace`, a core module the native bundle has not loaded yet; refactor recording 1-2)
 
 ## Media and capture
 

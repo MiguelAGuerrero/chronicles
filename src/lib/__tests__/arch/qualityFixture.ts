@@ -51,7 +51,7 @@ export type Facts = {
   libImportsViews: { file: string; spec: string }[];
   testsWithoutAssertions: { file: string; name: string }[];
 };
-export type Violation = { id: string; metric: string; value: number; limit: number | null; move: string; message: string };
+export type Violation = { id: string; metric: string; value: number; limit: number | null; move: string; message: string; name: string | null };
 export type Quality = {
   collect(root: string, o?: { types?: boolean }): Facts;
   violations(facts: Facts): Violation[];

@@ -259,6 +259,37 @@ function moduleScope(sf, resolveImport) {
   return { imports, consts, lets, fns, resolveImport };
 }
 
+/** Does the function hand back closures (a factory: an object of methods, or a function)? */
+function returnsClosures(fn) {
+  const closureish = (e) => {
+    while (e && (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e))) e = e.expression;
+    if (!e) return false;
+    if (isFn(e)) return true;
+    return ts.isObjectLiteralExpression(e) && e.properties.some((p) => ts.isMethodDeclaration(p) || (ts.isPropertyAssignment(p) && isFn(p.initializer)) || ts.isGetAccessor(p));
+  };
+  if (fn.body && !ts.isBlock(fn.body)) return closureish(fn.body);
+  let found = false;
+  const visit = (n) => {
+    if (found || (n !== fn && isFn(n))) return;
+    if (ts.isReturnStatement(n) && closureish(n.expression)) found = true;
+    ts.forEachChild(n, visit);
+  };
+  if (fn.body) visit(fn.body);
+  return found;
+}
+
+/** Is there an await anywhere inside, nested functions included? */
+function awaitsDeep(fn) {
+  let found = false;
+  const visit = (n) => {
+    if (found) return;
+    if (ts.isAwaitExpression(n) || (ts.isForOfStatement(n) && n.awaitModifier)) found = true;
+    ts.forEachChild(n, visit);
+  };
+  if (fn.body) visit(fn.body);
+  return found;
+}
+
 /**
  * Every function of a file with its measures and, for top-level functions and
  * hoistable closures, a purity verdict with reasons.
@@ -360,6 +391,14 @@ function analyzeFunctions(file, source, { resolveImport = () => 'unknown' } = {}
     if (!judged(f)) continue;
     f.impurity = reasonsOf(f, pureNames);
     f.pure = f.impurity.length === 0;
+  }
+  for (const f of all) {
+    // The nearest named function around an unnamed callback: its stable home (code-quality audit 1).
+    let o = f.parent;
+    while (o && o.name.startsWith('<')) o = o.parent;
+    f.owner = o ? o.name : '<module>';
+    f.returnsClosures = returnsClosures(f.node);
+    f.awaitsDeep = awaitsDeep(f.node);
   }
   for (const f of all) {
     delete f.node;

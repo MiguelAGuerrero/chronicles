@@ -1,0 +1,39 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** with Remind me here set on a photo, start a walk, stand still a minute with the phone face up, then put the app in the background and walk past the spot. **Expect:** the reminder fires once in the background, as it did before code-quality: the recorder's tail is read without still spells or gap fills on purpose (`// readTrace:` in `recorder/index.native.ts`; code-quality audit, native list)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** close the app mid-walk for two minutes, reopen it on the walk screen. **Expect:** the trace resumes, and the newest gap is reported as before (`newestGap` and `sameRuns` now come from `lib/liveTrace`, a core module the native bundle has not loaded yet; refactor recording 1-2)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Code quality"
+      ],
+      "body": "- Code-quality audit 13, the rest (deferred): named colours (`'white'`) are not counted as colour literals (too many plain words would read as colours before the palette exists); `.catch(noop)` with a named empty function is not followed to its body; a promise an arrow hands back to a JSX handler (`onPress={() => save()}`) is not a floating promise to the type pass\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Code quality (facts from the syntax tree and git, `npm run quality`; a ratchet, `check:quality` against a baseline that only shrinks, a file over 400 lines frozen; `check:refactor`; `/refactor` after green and in `/tend` sweeps; CQ1-CQ15, decisions 0178-0180) | built 2026-11-14 and audited (14 findings: 13 fixed, 1 in part and its rest deferred); test-first by history (15 of 15); unit tests (2,572), typecheck, lint, docs, vision and records checks; the `hidden` journey twice (before and after the audit); the baseline 893 entries, written from the tree as merged with main; not deployed | `claude/serene-sagan-ig8te6` | `specs/code-quality/spec.md` | yes (tests `code-quality audit 1-13`) |\n"
+    }
+  ]
+}

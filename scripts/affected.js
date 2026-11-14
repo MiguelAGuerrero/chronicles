@@ -533,7 +533,7 @@ async function main(cmd) {
     const plan = all ? ['layers', 'tests'] : hookPlan(changed);
     steps = plan.map((p) => (p === 'layers' ? step('layers', layersStep) : step('tests', () => testsStep(changed, all))));
   } else if (cmd === 'check') {
-    steps = [step('layers', layersStep), step('quality', qualityStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
+    steps = [step('layers', layersStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all)), step('quality', qualityStep)];
   } else if (cmd === 'e2e') {
     const { real, comment } = splitComment(ROOT, base, changed);
     console.log(e2eHint(real, all, greenStatus(ROOT), comment));

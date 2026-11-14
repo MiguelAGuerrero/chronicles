@@ -826,3 +826,4 @@ The code-quality slice (CQ1-CQ15) left these for slices of their own, each the o
 - `src/components/map/types.ts` into a new map folder of `src/lib` (R6 with R1), the first queue item for `/refactor` (decision 0178): 11 `src/lib` modules import it, 2 by value
 - A coverage ratchet for core and mutation testing: `npm run test:coverage` exists; mutation testing needs a dependency, which the slice ruled out (decision 0178)
 - Floating promises are not checked by `npm test`: the type checker costs a program (about 5 s), so `check:affected` and CI run them (`check:quality`)
+- Code-quality audit 13, the rest (deferred): named colours (`'white'`) are not counted as colour literals (too many plain words would read as colours before the palette exists); `.catch(noop)` with a named empty function is not followed to its body; a promise an arrow hands back to a JSX handler (`onPress={() => save()}`) is not a floating promise to the type pass

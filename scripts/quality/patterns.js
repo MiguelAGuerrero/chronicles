@@ -43,11 +43,15 @@ const iterCallback = (fn) => {
   const p = fn.parent;
   return p && ts.isCallExpression(p) && p.arguments.includes(fn) && ts.isPropertyAccessExpression(p.expression) && ITERATES.has(p.expression.name.text);
 };
+/** Nothing, null or undefined: what a swallowed error hands back. */
+const nothing = (e) => !e || e.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(e) && e.text === 'undefined') || ts.isVoidExpression(e);
+/** A block that does nothing but return nothing (code-quality audit 13). */
+const emptyBlock = (b) => b.statements.every((st) => ts.isReturnStatement(st) && nothing(st.expression));
 const emptyBody = (fn) => {
   const b = fn.body;
   if (!b) return true;
-  if (ts.isBlock(b)) return b.statements.length === 0;
-  return b.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(b) && b.text === 'undefined') || (ts.isVoidExpression(b));
+  if (ts.isBlock(b)) return emptyBlock(b);
+  return nothing(b);
 };
 
 /** Every pattern in one file. `layer` decides which rules apply. */
@@ -80,7 +84,7 @@ function patterns(sf, layer) {
     }
     return false;
   };
-  out.hookDepSuppressions = (text.match(/eslint-disable[-a-z]* react-hooks\/exhaustive-deps/g) || []).length;
+  out.hookDepSuppressions = (text.match(/eslint-disable[-a-z]*[^\n]*react-hooks\/exhaustive-deps/g) || []).length;
 
   // Parameters of every function, for "mutates its input".
   const paramsOf = new Map();
@@ -109,13 +113,14 @@ function patterns(sf, layer) {
       }
       if (core && method && LOCAL_TIME.test(method)) out.localTime.push({ line: lineOf(sf, n), call: method });
       if (method === 'catch' && n.arguments.length === 1 && isFn(n.arguments[0]) && emptyBody(n.arguments[0])) out.silentCatch.push({ line: lineOf(sf, n), kind: '.catch(() => {})' });
+      if (method === 'then' && n.arguments.length === 2 && isFn(n.arguments[1]) && emptyBody(n.arguments[1])) out.silentCatch.push({ line: lineOf(sf, n), kind: '.then(a, () => {})' });
       const ctx = CONTEXT_CALLS[ts.isIdentifier(callee) ? callee.text : ''];
       if (ctx && n.arguments.length < ctx.args) {
         let missing = ctx.names.slice(n.arguments.length);
         // readTrace, then withFilled(plain, fills) in the same function: the gaps
         // have to be read from the plain trace before its fills are known.
         if (missing.includes('fills') && fillsAppliedNearby(n)) missing = missing.filter((m) => m !== 'fills');
-        if (missing.length && !saysWhy(lineOf(sf, n), callee.text)) out.contextCalls.push({ line: lineOf(sf, n), call: callee.text, missing });
+        if (missing.length && !saysWhy(lineOf(sf, n), callee.text)) out.contextCalls.push({ line: lineOf(sf, n), call: callee.text, missing, fn: enclosingFnName(n) });
       }
       if (name === 'useStore' && n.arguments.length >= 2 && isFn(n.arguments[1])) {
         let body = n.arguments[1].body;
@@ -137,9 +142,9 @@ function patterns(sf, layer) {
       const owner = ownerWithParam(n, r, paramsOf);
       if (owner) out.paramMutation.push({ line: lineOf(sf, n), fn: enclosingFnName(n), param: r, exported: exportedFn(owner) });
     }
-    if (ts.isCatchClause(n) && n.block.statements.length === 0) out.silentCatch.push({ line: lineOf(sf, n), kind: 'catch {}' });
-    if (!platformFile && ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Platform' && n.name.text === 'OS') out.platformBranches.push(lineOf(sf, n));
-    if (ts.isStringLiteralLike(n) && /^#[0-9a-fA-F]{3,8}$|^rgba?\(/.test(n.text)) out.hexColors++;
+    if (ts.isCatchClause(n) && emptyBlock(n.block)) out.silentCatch.push({ line: lineOf(sf, n), kind: 'catch {}' });
+    if (!platformFile && ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Platform' && (n.name.text === 'OS' || n.name.text === 'select')) out.platformBranches.push(lineOf(sf, n));
+    if (ts.isStringLiteralLike(n) && /^#[0-9a-fA-F]{3,8}$|^rgba?\(|^hsla?\(/.test(n.text)) out.hexColors++;
     ts.forEachChild(n, (c) => visit(c, nextDepth));
   };
   visit(sf, 0);
