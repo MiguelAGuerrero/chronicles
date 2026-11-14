@@ -239,24 +239,19 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
-- **T29 [owner] Reminders say their counts in digits beside pins that say words** (2026-11-13)
-  Area: notifications, memories (the T14 sibling lens). Seen: two memories in reach are the reminder "2 memories here"
-  with the body "2 voice memos and a note" (`discovery/recall.ts` l.99 and `kindsOf` l.114, its kinds in a fixed
-  order), on the reminder card (R7, `ReminderCard.tsx`) and in the announcements of the recording bar and the walk
-  screen (`RecordingBar.tsx` l.106, `walk.tsx`); since `tend map T14` the memory pin at that place says "Memories: a
-  photo and a note" (the T14 review's F6), from a second copy of the kinds' words. "What happened here" says
-  "Tuesday evening in Fox Point · 12 min in" (`here/shell.ts` l.50) where a pin says "twelve minutes in" (F7). Rests
-  on: VISION.md Always, "Counts are words, in a clause. Distances and times are fine."
-  Recommended: a reminder of several says "Two memories here", and its body the pin's words from one table
-  (`pinKindsWords`, its kinds in the order taken): "Two voice memos and a note"; the announcements say the same.
-  "What happened here" keeps "12 min in": the page allows times in digits. /vision: aligned (honour; "Counts are
-  words"); F7 is no breach ("Distances and times are fine"), so it is left. It amends v1-discovery R7's example "2
-  memories here".
-  Otherwise: also "twelve minutes in" for "What happened here", one voice with the pins; or leave them.
-  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): "Words;
-  keep '12 min in'", the recommended shape: a reminder of several says "Two memories here" and its body takes the
-  pins' words from one table (`pinKindsWords`, in the order taken); the announcements say the same; "What happened
-  here" keeps "12 min in". Waits for the next `/tend inbox`, one build per run (T25 was built first).
+- **T30 [owner] Counts in digits beside the reminders: the memory preview, the walks row, a delete's confirm** (2026-11-14)
+  Area: memories, tabs, deletion (the T29 sibling lens). Seen: a memory preview of a group shows and says "2 more
+  here" ("…, and 2 more here. Open"; `MemoryPreview.tsx` l.42 and l.64, MR4's "N more here"); a walks list row ends
+  "1 photo · 1 video · 1 voice memo · 1 note" (`walkRowMeta`, from `formatCaptures` in `lib/format.ts` l.56, the line
+  the replay card shares, which T19 answers); a delete asks "Its trace, 3 moments and 12 streets walked go." and "2
+  photos and 1 voice memo go." (`deletion/core.ts`, `count` l.92; D4's own example has digits). Since `tend explore
+  T29` the reminder on the same walk screen says "Two memories here". Rests on: VISION.md Always, "Counts are words,
+  in a clause. Distances and times are fine."
+  Recommended: words through `numberWord`, one voice with the reminders and pins: the preview "and two more here";
+  the walks row's captures T19's clause ("A photo, a video, a voice memo and a note"), built with T19 since they share
+  `formatCaptures`; a confirm "Its trace, three moments and twelve streets walked go.", "Two photos and a voice memo
+  go." /vision: aligned (honour; "Counts are words"); it amends MR4's "N more here" and D4's example.
+  Otherwise: the memory preview alone (it sits where the reminder card does); or leave them.
 
 ### Next evolutions
 
@@ -316,6 +311,15 @@ your edit (noted under "Open before the loop").
 
 ### Open before the loop
 
+- **v1-discovery R7's example after T29** (Nov 14; decision 0164): since `tend explore T29` two or more reminders in
+  reach show as one card that says its count in words, "Two memories here" (`numberWord`; "Many memories here" past
+  fifty-nine), its body the pins' words for its kinds in the order taken ("A voice memo and two photos",
+  `pinKindsWords`), the same on the card, in the notification and in the announcements of the walk screen and the
+  recording bar. Amend, in the doc and its mirror (the loop may not edit a spec): `specs/v1-discovery/spec.md` l.211,
+  R7's "Two reminders in reach show as one: "2 memories here"". No rule line said the old words, and none says the
+  new: `.claude/rules/explore-and-discovery.md`, which holds "Remind me here", is at 39,957 of the 40,000 characters
+  `check:docs` allows, so the loop could add no line; a split of it into two files is yours (the loop changes no
+  line it did not write). Until then the words are in `reminderText`'s and `reminderSpoken`'s comments.
 - **v0.5-places' "merge with a count" after T15** (Nov 13; decision 0154): since `tend places T15` every walked-place
   star is a white star on an ink disc, one size, and a merged star draws no numeral; its spoken name says its places
   and walks in words ("Two places, two walks. Zoom in"; a lone star "Fox Point, one walk. Open", `tend places audit

@@ -128,6 +128,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The "in front" rule stays per transport: a phone lists background notices quietly, a browser has no list, `NoticeTransport` (Notifications)
 - The Android channel's importance is DEFAULT, so the test may not pop up as a banner (Notifications)
 - Unit tests of the web transport, `notify/transport.web.ts`; the e2e drives the real service worker (Notifications)
+- [loop] The walk screen and the recording bar announce the count of the reminders that just came due, while the card counts all it holds: a card of one joined by two more shows "Three memories here" and is announced "Two memories here" (`walk.tsx` l.841 and `RecordingBar.tsx` l.106, `reminderSpoken(due)`, a count since `tend explore T29`, a number before; ui-patterns, the same thing said the same way; low)
 
 ## Moments and days
 
@@ -163,6 +164,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The journal's in-line voice note is not a focus target apart from its entry's open button for a screen reader on a phone, because it sits inside it; the viewer still plays the note. The fix splits the entry's open target, a navigation call for the owner (journal voice audit 2)
 - The viewer's player says "voice memo" where the journal's says "voice note": one noun for both (journal voice audit 16, opinion)
 - The journal's in-line voice note shows its pause glyph while the file is still resolving, before anything plays: a brief busy state would be honest (journal voice audit 19, opinion)
+- [loop] Three more tables of the kinds' words beside the pins' one (`pinKindsWords`, `KIND_NAME` in `lib/pins.ts`, which the reminders take since `tend explore T29`): `resurface/context.ts` `KIND` ("just after a photo"), `lib/format.ts` `formatCaptures` (T19 and the inbox entry filed beside T29 would change its words) and `deletion/core.ts` `KIND_NOUN` and `mediaRemoveText`'s nouns; the same words today, so a later change can split them (cleanup, the T29 sibling lens; low)
 
 ## Deletion
 

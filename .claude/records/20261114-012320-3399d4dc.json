@@ -1,0 +1,56 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T29",
+        "--reason",
+        "the owner's yes, built in tend explore T29"
+      ],
+      "target": "sha256:0860381be3b88ec30a4f542efa1f480df4e5885d29f2e6b824b1fcbe17063102"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Counts in digits beside the reminders: the memory preview, the walks row, a delete's confirm** (2026-11-14)\n  Area: memories, tabs, deletion (the T29 sibling lens). Seen: a memory preview of a group shows and says \"2 more\n  here\" (\"…, and 2 more here. Open\"; `MemoryPreview.tsx` l.42 and l.64, MR4's \"N more here\"); a walks list row ends\n  \"1 photo · 1 video · 1 voice memo · 1 note\" (`walkRowMeta`, from `formatCaptures` in `lib/format.ts` l.56, the line\n  the replay card shares, which T19 answers); a delete asks \"Its trace, 3 moments and 12 streets walked go.\" and \"2\n  photos and 1 voice memo go.\" (`deletion/core.ts`, `count` l.92; D4's own example has digits). Since `tend explore\n  T29` the reminder on the same walk screen says \"Two memories here\". Rests on: VISION.md Always, \"Counts are words,\n  in a clause. Distances and times are fine.\"\n  Recommended: words through `numberWord`, one voice with the reminders and pins: the preview \"and two more here\";\n  the walks row's captures T19's clause (\"A photo, a video, a voice memo and a note\"), built with T19 since they share\n  `formatCaptures`; a confirm \"Its trace, three moments and twelve streets walked go.\", \"Two photos and a voice memo\n  go.\" /vision: aligned (honour; \"Counts are words\"); it amends MR4's \"N more here\" and D4's example.\n  Otherwise: the memory preview alone (it sits where the reminder card does); or leave them.\n",
+      "number": "T30"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **v1-discovery R7's example after T29** (Nov 14; decision 0164): since `tend explore T29` two or more reminders in\n  reach show as one card that says its count in words, \"Two memories here\" (`numberWord`; \"Many memories here\" past\n  fifty-nine), its body the pins' words for its kinds in the order taken (\"A voice memo and two photos\",\n  `pinKindsWords`), the same on the card, in the notification and in the announcements of the walk screen and the\n  recording bar. Amend, in the doc and its mirror (the loop may not edit a spec): `specs/v1-discovery/spec.md` l.211,\n  R7's \"Two reminders in reach show as one: \"2 memories here\"\". No rule line said the old words, and none says the\n  new: `.claude/rules/explore-and-discovery.md`, which holds \"Remind me here\", is at 39,957 of the 40,000 characters\n  `check:docs` allows, so the loop could add no line; a split of it into two files is yours (the loop changes no\n  line it did not write). Until then the words are in `reminderText`'s and `reminderSpoken`'s comments.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications"
+      ],
+      "body": "- [loop] The walk screen and the recording bar announce the count of the reminders that just came due, while the card counts all it holds: a card of one joined by two more shows \"Three memories here\" and is announced \"Two memories here\" (`walk.tsx` l.841 and `RecordingBar.tsx` l.106, `reminderSpoken(due)`, a count since `tend explore T29`, a number before; ui-patterns, the same thing said the same way; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- [loop] Three more tables of the kinds' words beside the pins' one (`pinKindsWords`, `KIND_NAME` in `lib/pins.ts`, which the reminders take since `tend explore T29`): `resurface/context.ts` `KIND` (\"just after a photo\"), `lib/format.ts` `formatCaptures` (T19 and the inbox entry filed beside T29 would change its words) and `deletion/core.ts` `KIND_NOUN` and `mediaRemoveText`'s nouns; the same words today, so a later change can split them (cleanup, the T29 sibling lens; low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Notifications ("
+      ],
+      "body": "- [ ] **Do:** since `tend explore T29` (decision 0164), set Remind me here on a photo, a note and a voice memo kept in that order at one spot; on a later walk pass the spot with the walk screen in front and VoiceOver, then TalkBack, on; again with the walk minimized; again with the app in the background. **Expect:** one card \"Three memories here\", its body \"A photo, a note and a voice memo\", announced \"Three memories here\"; minimized, the recording bar's line and its announcement say the same; in the background, one notification with that title and body; no digits anywhere (`reminderText`, `reminderSpoken`).\n"
+    }
+  ]
+}
