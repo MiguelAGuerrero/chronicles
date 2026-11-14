@@ -91,6 +91,14 @@ async function run(h) {
   const marks14 = await photoEntry().locator('[data-testid=reaction-marks] [data-testid=reaction-name]').allInnerTexts().catch(() => []);
   check(marked9 === 'Reaction, Happy' && marks14.join() === 'Happy',
     `RX9, RX14: marked, the sign is the first reaction's glyph; the entry spells its reactions under the dateline (${JSON.stringify({ marked9, marks14 })})`);
+  // reactions ui 2 (the cold find): the sign's plus reads as ink, not a faint grey badge: an ink disc of 16 px or more.
+  const ui2 = await pg.evaluate(() => {
+    const add = document.querySelector('[data-testid=reaction-sign-add]');
+    if (!add) return null;
+    const r = add.getBoundingClientRect();
+    return { w: Math.round(r.width), bg: getComputedStyle(add).backgroundColor };
+  });
+  check.todo(!!ui2 && ui2.w >= 16 && ui2.bg === INK, `reactions ui 2: the sign's plus is an ink disc of 16 px or more (${JSON.stringify(ui2)})`);
   const old9 = await entry('Nothing much on the way home').locator('[data-testid=reaction-sign]').count();
   check(old9 === 0, `RX9: an entry of an earlier day shows no sign on its row (${old9})`);
 
@@ -264,6 +272,20 @@ async function run(h) {
   const overlaps = (a, b) => !!a && !!b && a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
   check(box20.bubbles.length === 3 && box20.bubbles.every((b) => ![box20.bell, box20.clock, box20.video].some((o) => overlaps(b, o))),
     `RX20: the bubbles never cover the bell, the clock or the video mark (${JSON.stringify(box20)})`);
+  // reactions ui 1 (the cold find): every bubble touches its own head, and none lies over another pin's head.
+  const ui1 = await pg.evaluate(() => {
+    const box = (e) => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; };
+    const meets = (a, b, pad = 0) => a[0] < b[2] + pad && b[0] < a[2] + pad && a[1] < b[3] + pad && b[1] < a[3] + pad;
+    const pins = [...document.querySelectorAll('[data-ids]')].map((el) => ({ el, head: el.querySelector('[data-testid=pin-head]') }));
+    const rows = pins.filter((p) => p.el.querySelector('[data-testid=pin-reaction]')).map((p) => {
+      const bubbles = [...p.el.querySelectorAll('[data-testid=pin-reaction]')].map(box);
+      const head = box(p.head);
+      const others = pins.filter((o) => o !== p && o.head).map((o) => box(o.head));
+      return { touch: bubbles.every((b) => meets(b, head)), over: bubbles.some((b) => others.some((o) => meets(b, o))) };
+    });
+    return { rows: rows.length, apart: rows.filter((r) => !r.touch).length, over: rows.filter((r) => r.over).length };
+  });
+  check.todo(ui1.rows >= 2 && ui1.apart === 0 && ui1.over === 0, `reactions ui 1: every bubble touches its own pin's head, and none lies over another pin's head (${JSON.stringify(ui1)})`);
   const handle = await pg.$(pin);
   await pg.click(pin).catch(() => {});
   await there('[data-testid=capture-viewer]');
