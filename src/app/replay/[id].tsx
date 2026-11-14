@@ -45,7 +45,7 @@ import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
-import { moreFor, newStreetsLine } from '../../lib/quietLines';
+import { moreFor, newStreetsLine, walkCardStreets } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
 
@@ -434,7 +434,9 @@ export default function Replay() {
   const head = headline(s, data);
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
-  const freshLine = s?.streets_read ? newStreetsLine(data.newStreets) : null;
+  const freshLine = s?.streets_read ? newStreetsLine(data.newStreets, { bind: true }) : null;
+  // Streets walked and new, in words (tend replay T31).
+  const streetsLine = walkCardStreets(s?.streets_walked ?? 0, freshLine);
 
   const save = async () => {
     if (saving) return;
@@ -640,8 +642,7 @@ export default function Replay() {
                 {/* New streets are a clause in the line, never a big orange number (tabs audit U13). */}
                 <Text testID="card-line" style={styles.cardLine}>
                   <Text testID="card-distance">{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
-                  {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
-                  {freshLine ? `, ${freshLine}` : ''}
+                  {streetsLine ? ` · ${streetsLine}` : ''}
                 </Text>
                 {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
                 {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}

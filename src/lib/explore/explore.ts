@@ -10,6 +10,7 @@ import { isKindHidden } from '../discovery/refinements';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
+import { numberWord } from '../resurface/lines';
 
 export type { Kind } from '../discovery/types';
 
@@ -506,12 +507,15 @@ type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind
 export const foundLine = (f: Found): string =>
   f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${f.kind ? kindOf(f.kind).label : categoryOf(f.category).label}`;
 
-/** The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more. */
+/**
+ * The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more, in words,
+ * "and two more" (tend replay T31).
+ */
 export function foundList(names: string[]): string | null {
   if (!names.length) return null;
   const shown = names.slice(0, names.length > 4 ? 3 : 4).join(' · ');
   const more = names.length - (names.length > 4 ? 3 : names.length);
-  return `Found ${shown}${more > 0 ? ` and ${more} more` : ''}`;
+  return `Found ${shown}${more > 0 ? ` and ${numberWord(more)} more` : ''}`;
 }
 
 /**

@@ -10,7 +10,7 @@ test('tabs audit U13: new streets are a quiet clause, naming one or two, never a
   assert.equal(newStreetsLine([]), null);
   assert.equal(newStreetsLine(['Elm Street']), 'your first time down Elm Street');
   assert.equal(newStreetsLine(['Elm Street', 'Hope Street']), 'your first time down Elm Street and Hope Street');
-  assert.equal(newStreetsLine(['A Street', 'B Street', 'C Street']), '3 streets new to you');
+  assert.equal(newStreetsLine(['A Street', 'B Street', 'C Street']), 'three streets new to you', 'in words since tend replay T31');
 });
 
 test('tabs audit U13: what a walk passed is named, or "a few places", never counted', () => {

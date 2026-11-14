@@ -8,11 +8,25 @@ import { formatCaptures, formatDistance, formatDuration } from './format';
 import type { Star } from './places';
 import { numberWord } from './resurface/lines';
 
-/** "your first time down Elm Street", or "3 streets new to you"; null when none were new. */
-export function newStreetsLine(names: string[]): string | null {
+/**
+ * "your first time down Elm Street", or past two "three streets new to you", in words (tend replay T31, the owner's yes,
+ * Nov 14); null when none were new. `bind`, for the card's line, keeps the count on its noun's line; the fog beat's
+ * headline is also said, so it keeps plain spaces.
+ */
+export function newStreetsLine(names: string[], o: { bind?: boolean } = {}): string | null {
   if (!names.length) return null;
   if (names.length <= 2) return `your first time down ${names.join(' and ')}`;
-  return `${names.length} streets new to you`;
+  return `${numberWord(names.length)}${o.bind ? '\u00a0' : ' '}streets new to you`;
+}
+
+/**
+ * The walk card's streets after its distance and time: "one street walked, your first time down Transit Street", "seven
+ * streets walked, three streets new to you" (tend replay T31), the count kept on its noun's line, as a day's walk line
+ * keeps its (tend tabs audit 24); null with neither.
+ */
+export function walkCardStreets(walked: number, fresh: string | null): string | null {
+  const said = walked > 0 ? `${numberWord(walked)}\u00a0${walked === 1 ? 'street' : 'streets'} walked` : null;
+  return [said, fresh].filter(Boolean).join(', ') || null;
 }
 
 /**

@@ -7,7 +7,8 @@ import { type Faced, facedOf } from '../../moment';
 import { buildDays, dayCard, dayLine, momentPlace, type WalkPlaces } from '../../days';
 import { formatCaptures } from '../../format';
 import { kindsClause, pinKindsWords } from '../../pins';
-import { walkRowMeta, walkRowSpoken } from '../../quietLines';
+import { newStreetsLine, walkCardStreets, walkRowMeta, walkRowSpoken } from '../../quietLines';
+import { foundList } from '../../explore/explore';
 import { pinHint } from '../../replay';
 import type { StreetSegment, Walk } from '../../types';
 
@@ -123,4 +124,26 @@ test('tend replay audit 13: the day\'s card reads its places from what the day s
   const card = dayCard(day, at(20, 9), loaded);
   assert.equal(card.line, 'Two moments, around Wickenden Street');
   assert.equal(card.walked, '2.1 km walked');
+});
+
+// The walk's card and the fog beat say their last counts in words, through numberWord (tend replay T31, the owner's
+// yes, Nov 14): streets walked, streets new to you past two, and the finds past four.
+test('tend replay T31: the walk card says its streets walked and its new streets in words', () => {
+  assert.equal(walkCardStreets(1, newStreetsLine(['Transit Street'], { bind: true })), 'one\u00a0street walked, your first time down Transit Street');
+  assert.equal(walkCardStreets(7, newStreetsLine(['A Street', 'B Street', 'C Street'], { bind: true })), 'seven\u00a0streets walked, three\u00a0streets new to you');
+  assert.equal(walkCardStreets(12, null), 'twelve\u00a0streets walked');
+  // Past fifty-nine, numberWord's "many".
+  assert.equal(walkCardStreets(75, null), 'many\u00a0streets walked');
+  assert.equal(walkCardStreets(0, null), null);
+  // The fog beat's headline takes the same words with a capital, and a screen reader hears plain spaces.
+  assert.equal(newStreetsLine(['A Street', 'B Street', 'C Street']), 'three streets new to you');
+  assert.equal(newStreetsLine(Array.from({ length: 21 }, (_, i) => `S${i}`)), 'twenty-one streets new to you');
+  // One or two are still named.
+  assert.equal(newStreetsLine(['Elm Street', 'Hope Street'], { bind: true }), 'your first time down Elm Street and Hope Street');
+});
+
+test('tend replay T31: the walk card says how many more it found in words', () => {
+  assert.equal(foundList(['A', 'B', 'C', 'D', 'E']), 'Found A · B · C and two more');
+  assert.equal(foundList(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O']), 'Found A · B · C and twelve more');
+  assert.equal(foundList(['A', 'B', 'C', 'D']), 'Found A · B · C · D');
 });
