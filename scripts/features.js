@@ -356,6 +356,8 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // The row under the line (decision 0175) was replaced by a toolbar at the foot the same day (decision 0176, the owner).
+  'chronicle-journal': ['JN34', 'JN35', 'JN36', 'JN37', 'JN38', 'JN39', 'JN40'],
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
   // of Places worth the stop went with them.
@@ -467,6 +469,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'chronicle-journal': { branch: 'claude/chronicles-action-button-layout-x4cg4k', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

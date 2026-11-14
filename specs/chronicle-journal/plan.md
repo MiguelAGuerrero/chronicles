@@ -211,3 +211,37 @@ None. No truth, no cache, no migration.
 ### Native paths that will not run on a device
 
 - The row under a native `TextInput`'s placeholder, the bar appearing when pulled back, and recording from the row: web only until a phone runs it.
+
+## A toolbar at the foot (JN41-JN46, Nov 14, decision 0176)
+
+The owner approved this from two mock-ups of the real app ("Tighten, then build"). It replaces JN34-JN40's row.
+
+### Files
+- `src/components/journal/OpenLine.tsx`: the bar is always drawn on the page as on the other screens; at rest its row is the field (`bar-compose`, grey, the app's sans, 15 px, tight padding), the pen (`bar-write`, or Done in its place while an entry is open), the camera and the mic. The row under the line, its slot, the "+", `voiceIn` and the `opened` prop go. The page's field loses its placeholder.
+- `src/lib/journal/bar.ts`: `controlsAt` goes; `footRoom` stays (with the bar always drawn, it is `max(barH, aboveH)` and the keyboard's room).
+- `src/components/journal/JournalPage.tsx`: `onOpen`, `lineRoom` and the row-in-view threshold go; `onAway` returns to "the empty page is out of view" (it no longer moves anything; kept only if a reader needs it, else removed).
+- `src/components/chronicle/MemoriesScreen.tsx`: `sheetOpen` and `penInBar` go.
+- `scripts/e2e/journeys/journal.js`: the JN34-JN40 block and its audit checks (61, 64, 65, 68, 69, 77) are replaced by JN41-JN46; the checks amended for "no bar at rest" go back to reading the bar.
+- Docs: 0176, the rule files (`journal-rest.md`, `ui-patterns.md` T7's exception becomes T8's), `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`.
+
+### Tests per criterion
+| Id | Test |
+|---|---|
+| JN41 | journey: at rest and pulled back, `open-line` holds `bar-compose` ("What’s on your mind?", sans, grey ground), `bar-write`, `band-photo`, `band-voice`, each ≥ 44 px, named, in ink; same box at the foot and pulled back. Cold find in the UI review |
+| JN42 | journey: a tap on `bar-compose` and on `bar-write` puts the focus in `line-input` on the page, under the last entry; the bar then holds the writing row |
+| JN43 | journey: the field on the page has no placeholder; no `line-plus`, no `line-row`; the last entry's box is the same before and after writing starts and stops |
+| JN44 | journey: words left with the keyboard down: `line-done` where `bar-write` was, no pen; after Done the pen is back |
+| JN45 | journey: a voice note from the toolbar: pen, timer, Discard, camera, Stop in the mic's place, no Done |
+| JN46 | journey: at 320 px the field's text is not cut (`scrollWidth <= clientWidth`) and the toolbar is one row, at rest, open and recording; a thread shows the field in the bar |
+
+### Goal to control
+| Goal | Control | Where you'll look | Matrix |
+|---|---|---|---|
+| Write an entry | The grey field, or the pen | The foot, where composers live | 22; Facebook's composer, Day One's entry bar |
+| Add a photo or a voice note | The camera and the mic beside them | The same bar | 22, 5 |
+| Finish | Done in the pen's place | The bar's trailing group | 23 |
+
+T8 (a toolbar with the tab bar) is departed from by the owner's call (0176), as 0112's stack was.
+
+### Native paths not run on a device
+The toolbar over the tab bar on an iPhone with a home indicator; the keyboard taking it up from the field's tap.

@@ -845,159 +845,99 @@ async function run(h) {
   await pg.waitForTimeout(900);
   check((await pg.locator('[data-testid=bar-write]').count()) === 0, 'chronicle-journal audit 50: with the empty page in view the bar holds no pen: the page is the pen');
 
-  // JN34-JN40 (decision 0175): the camera and the mic sit in a row under the line, a "+" in ink before it; the bar
-  // shows only when the row is out of view or the keyboard is up.
+  // JN41-JN46 (decision 0176): the capture is a toolbar fixed at the foot: a grey "What's on your mind?" field, the
+  // pen, the camera and the mic; the words are written on the page.
   await scrollTo('foot');
   await pg.waitForTimeout(900);
   const INK = 'rgb(29, 36, 48)';
   const inBarNow = (id) => pg.evaluate((id) => !!document.querySelector(`[data-testid=open-line] [data-testid=${id}]`), id);
-  const row34 = await pg.evaluate((ink) => {
-    const r = (id) => { const e = document.querySelector(`[data-testid=${id}]`); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height), bottom: Math.round(b.bottom), label: e.getAttribute('aria-label'), ink: [e, ...e.querySelectorAll('*')].some((x) => getComputedStyle(x).color === ink) } : null; };
-    return { field: r('line-input'), plus: r('line-plus'), photo: r('band-photo'), voice: r('band-voice'), bar: !!document.querySelector('[data-testid=open-line]') };
+  const tool = () => pg.evaluate((ink) => {
+    const bar = document.querySelector('[data-testid=open-line]');
+    const r = (id) => { const e = bar?.querySelector(`[data-testid=${id}]`); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height), label: e.getAttribute('aria-label'), ink: [e, ...e.querySelectorAll('*')].some((x) => getComputedStyle(x).color === ink) } : null; };
+    const f = bar?.querySelector('[data-testid=bar-compose]');
+    const t = f && [...f.querySelectorAll('*')].find((x) => x.childElementCount === 0 && x.textContent.trim());
+    return {
+      bar: bar ? { y: Math.round(bar.getBoundingClientRect().y), h: Math.round(bar.getBoundingClientRect().height) } : null,
+      field: r('bar-compose'), pen: r('bar-write'), photo: r('band-photo'), voice: r('band-voice'), done: r('line-done'),
+      text: t ? t.textContent.trim() : null, font: t ? getComputedStyle(t).fontFamily : '', cut: t ? t.scrollWidth > t.clientWidth + 1 : null,
+      ground: f ? getComputedStyle(f).backgroundColor : null,
+    };
   }, INK);
-  const glyphLeft = (b) => b.x + 10; // a 24 pt glyph centred in a 44 pt target
-  check(!!row34.field && !!row34.photo && !!row34.voice && !!row34.plus && !row34.bar
-    && Math.abs(glyphLeft(row34.photo) - row34.field.x) <= 4 && row34.photo.y >= row34.field.bottom - 2 && row34.photo.y === row34.voice.y && row34.photo.x < row34.voice.x
-    && [row34.photo, row34.voice].every((b) => b.w >= 44 && b.h >= 44 && b.ink) && row34.photo.label === 'Add a photo or video' && row34.voice.label === 'Record a voice note'
-    && row34.plus.ink && row34.plus.x >= 0 && row34.plus.w >= 44 && row34.plus.h >= 44,
-    `JN34: at rest a "+" in ink before the line, and the camera and the mic in a row under it, from its first letter, in ink, named, each a thumb's target (${JSON.stringify(row34)})`);
-  // A screen reader walks the page without focusing the field (focus would raise the keyboard and the bar): the
-  // order is the document's order of what can be reached.
-  const next34 = await pg.evaluate(() => {
-    const all = [...document.querySelectorAll('input, textarea, button, [role=button], [tabindex]')].filter((e) => e.getAttribute('tabindex') !== '-1' && e.getAttribute('aria-hidden') !== 'true' && !e.closest('[aria-hidden=true]') && e.getBoundingClientRect().width > 0);
-    const i = all.findIndex((e) => e.getAttribute('data-testid') === 'line-input');
-    return i >= 0 ? all[i + 1]?.getAttribute('data-testid') ?? null : null;
-  });
-  check(next34 === 'band-photo', `JN34: for a screen reader the row comes right after the field (${next34})`);
-  await shot(pg, 'journal-34-row-at-rest');
-  check(!!row34.photo && !!row34.voice && row34.voice.x - (row34.photo.x + row34.photo.w) >= 12,
-    `chronicle-journal ui 11: the camera's and the mic's targets have 12 pt between them, for a thumb on foot (${JSON.stringify({ photo: row34.photo, voice: row34.voice })})`);
-  check(!row34.bar && (await pg.locator('[data-testid=open-line]').count()) === 0, 'JN35: at rest with the row in view no bar is drawn above the tab bar');
-  // chronicle-journal audit 69: the "+" lies inside its parent's box (Android delivers no touch outside a parent's bounds).
-  const plus69 = await pg.evaluate(() => { const p = document.querySelector('[data-testid=line-plus]'); if (!p) return null; const r = p.getBoundingClientRect(); const q = p.parentElement.getBoundingClientRect(); return { r: [Math.round(r.left), Math.round(r.right)], q: [Math.round(q.left), Math.round(q.right)] }; });
-  check(!!plus69 && plus69.r[0] >= plus69.q[0] && plus69.r[1] <= plus69.q[1], `chronicle-journal audit 69: the "+" is inside its parent's bounds (${JSON.stringify(plus69)})`);
-  // chronicle-journal audit 61: pulled back a pixel at a time across the row's edge, the controls change place at most once.
-  const flips61 = await pg.evaluate(async () => {
-    const root = document.querySelector('[data-testid=journal-page]');
-    const sc = root && [root, ...root.querySelectorAll('*')].find((x) => x.scrollHeight > x.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(x).overflowY));
-    if (!sc) return -1;
-    const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    let was = !!document.querySelector('[data-testid=open-line]'); let flips = 0;
-    for (let i = 0; i < 700 && sc.scrollTop > 0; i++) { sc.scrollTop -= 1; sc.dispatchEvent(new Event('scroll')); await frame(); const now = !!document.querySelector('[data-testid=open-line]'); if (now !== was) flips += 1; was = now; }
-    return flips;
-  });
-  check(flips61 === 1, `chronicle-journal audit 61: scrolling back a pixel at a time across the row's edge moves the controls exactly once (${flips61} changes)`);
+  const atFoot41 = await tool();
+  await scrollTo('top');
+  await pg.waitForTimeout(1200);
+  const back41 = await tool();
+  await shot(pg, 'journal-41-toolbar-pulled-back');
   await scrollTo('foot');
   await pg.waitForTimeout(1200);
-  // JN36: the keyboard takes the row to the bar; writing stopped, it is back and nothing above the line moved.
-  const before36 = { field: await box(pg, input), last: await box(pg, `${entries} >> nth=-1`) };
-  await pg.click(input).catch(() => {});
-  await pg.waitForTimeout(900);
-  const typing36 = { barCam: await inBarNow('band-photo'), rowCam: await pg.evaluate(() => [...document.querySelectorAll('[data-testid=band-photo]')].filter((e) => !e.closest('[data-testid=open-line]')).length) };
-  await shot(pg, 'journal-36-row-in-the-bar');
-  await pg.evaluate(() => document.activeElement?.blur?.());
-  await pg.waitForTimeout(1200);
-  const after36 = { field: await box(pg, input), last: await box(pg, `${entries} >> nth=-1`), barCam: await inBarNow('band-photo') };
-  check(typing36.barCam && typing36.rowCam === 0 && !after36.barCam && same(before36.field, after36.field) && same(before36.last, after36.last),
-    `JN36: with the keyboard the camera and the mic are in the bar, not the row; after, the row is back and nothing above it moved (${JSON.stringify({ typing36, before36, after36 })})`);
-  // JN38: a voice note begun from the row records in the row; Stop where the mic was, the camera where it was.
-  const mic38 = await box(pg, '[data-testid=band-voice]');
-  const cam38 = await box(pg, '[data-testid=band-photo]');
-  await pg.click('[data-testid=band-voice]').catch(() => {});
+  await shot(pg, 'journal-41-toolbar-at-rest');
+  const sans = (f) => !/serif/.test(f.replace(/sans-serif/g, ''));
+  check.todo(!!atFoot41.field && !!atFoot41.pen && !!atFoot41.photo && !!atFoot41.voice && atFoot41.text === 'What’s on your mind?' && sans(atFoot41.font)
+    && atFoot41.ground !== 'rgba(0, 0, 0, 0)' && [atFoot41.pen, atFoot41.photo, atFoot41.voice].every((b) => b.w >= 44 && b.h >= 44 && b.ink)
+    && atFoot41.field.x < atFoot41.pen.x && atFoot41.pen.x < atFoot41.photo.x && atFoot41.photo.x < atFoot41.voice.x
+    && atFoot41.pen.label === 'Write an entry' && atFoot41.field.label === 'What’s on your mind?' && !!back41.bar && same({ ...atFoot41.bar, x: 0, w: 0 }, { ...back41.bar, x: 0, w: 0 }),
+    `JN41: one toolbar at the foot, the same at rest and pulled back: the grey field "What’s on your mind?" in the sans, then the pen, the camera and the mic (${JSON.stringify({ atFoot41, back41: back41.bar })})`);
+  // JN43: the page has no placeholder, no "+" and no row of its own.
+  const page43 = await pg.evaluate(() => ({ placeholder: document.querySelector('[data-testid=journal-page] [data-testid=line-input]')?.getAttribute('placeholder') ?? null, plus: document.querySelectorAll('[data-testid=line-plus]').length, row: document.querySelectorAll('[data-testid=line-row]').length }));
+  check.todo(!page43.placeholder && page43.plus === 0 && page43.row === 0, `JN43: the page carries no placeholder, "+" or row; the toolbar says it (${JSON.stringify(page43)})`);
+  // JN42: the field and the pen each put the caret on the page under the last entry; the toolbar becomes the writing row.
+  const last42 = await box(pg, `${entries} >> nth=-1`);
+  const tapTo = async (id) => {
+    await pg.click(`[data-testid=${id}]`).catch(() => {});
+    await pg.waitForTimeout(900);
+    const r = await pg.evaluate(() => { const a = document.activeElement; const f = a?.getBoundingClientRect(); return { id: a?.getAttribute('data-testid'), onPage: !!a?.closest('[data-testid=journal-page]'), top: f ? Math.round(f.top) : null, done: !!document.querySelector('[data-testid=open-line] [data-testid=line-done]'), field: !!document.querySelector('[data-testid=open-line] [data-testid=bar-compose]') }; });
+    await pg.evaluate(() => document.activeElement?.blur?.());
+    await pg.waitForTimeout(900);
+    return r;
+  };
+  const viaField = await tapTo('bar-compose');
+  const viaPen = await tapTo('bar-write');
+  const lastAfter = await box(pg, `${entries} >> nth=-1`);
+  check.todo([viaField, viaPen].every((v) => v.id === 'line-input' && v.onPage && v.top >= (last42 ? last42.y + last42.h - 2 : 0) && v.done && !v.field),
+    `JN42: the field and the pen each put the caret on the page under the last entry, and the toolbar becomes the writing row (${JSON.stringify({ viaField, viaPen, last42 })})`);
+  check.todo(same(last42, lastAfter), `JN43: nothing on the page moved as writing began and stopped (${JSON.stringify({ last42, lastAfter })})`);
+  // JN45: a voice note from the toolbar: pen, timer and Discard lead, the camera keeps its place, Stop in the mic's, no Done.
+  const before45 = await tool();
+  await pg.click('[data-testid=open-line] [data-testid=band-voice]').catch(() => {});
   await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
   await pg.waitForTimeout(1200);
-  const rec38 = {
-    stop: await box(pg, '[data-testid=band-voice-save]'), cam: await box(pg, '[data-testid=band-photo]'),
-    camOff: await pg.locator('[data-testid=band-photo]').first().getAttribute('aria-disabled').catch(() => 'missing'),
-    inBar: await inBarNow('band-voice-save'), timer: await box(pg, '[data-testid=band-voice-timer]'),
-  };
-  check(!!mic38 && !!rec38.stop && !rec38.inBar && rec38.stop.x === mic38.x && rec38.stop.y === mic38.y && same(cam38, rec38.cam) && rec38.camOff !== 'true' && !!rec38.timer && rec38.timer.x > rec38.stop.x,
-    `JN38: recording from the row stays in it: Stop where the mic was, the camera in its place and working, the timer after (${JSON.stringify({ mic38, cam38, rec38 })})`);
-  await shot(pg, 'journal-38-recording-in-the-row');
-  // JN37: pulled back mid-note, the bar holds the pen, the camera and Stop.
-  await scrollTo('top');
-  await pg.waitForTimeout(1200);
-  const back37 = { cam: await inBarNow('band-photo'), stop: await inBarNow('band-voice-save'), timer: await inBarNow('band-voice-timer') };
-  const rec64 = { pen: await inBarNow('bar-write'), done: await pg.locator('[data-testid=line-done]').filter({ visible: true }).count() };
-  check(rec64.pen, `chronicle-journal audit 64: pulled back mid-note, the bar still holds the pen (${JSON.stringify(rec64)})`);
-  await shot(pg, 'journal-37-pulled-back-recording');
-  await scrollTo('foot');
-  await pg.waitForTimeout(1200);
+  const rec45 = { pen: await inBarNow('bar-write'), timer: await inBarNow('band-voice-timer'), stop: await box(pg, '[data-testid=band-voice-save]'), cam: await box(pg, '[data-testid=open-line] [data-testid=band-photo]'), done: await pg.locator('[data-testid=line-done]').filter({ visible: true }).count() };
+  await shot(pg, 'journal-45-recording');
+  check.todo(rec45.pen && rec45.timer && !!rec45.stop && !!before45.voice && rec45.stop.x === before45.voice.x && !!rec45.cam && rec45.cam.x === before45.photo.x && rec45.done === 0,
+    `JN45: a voice note records in the toolbar: the pen and the timer lead, the camera keeps its place, Stop takes the mic's, no Done (${JSON.stringify({ before45, rec45 })})`);
   await pg.click('[data-testid=band-voice-discard]').catch(() => {});
   await pg.waitForTimeout(1200);
-  await scrollTo('top');
-  await pg.waitForTimeout(1200);
-  const back37b = { pen: await inBarNow('bar-write'), cam: await inBarNow('band-photo'), mic: await inBarNow('band-voice') };
-  check(back37.cam && back37.stop && back37.timer && back37b.pen && back37b.cam && back37b.mic,
-    `JN37: pulled back, the bar holds the pen, the camera and the mic; a recording under way shows there with its timer and Stop (${JSON.stringify({ back37, back37b })})`);
-  await scrollTo('foot');
-  await pg.waitForTimeout(1200);
-  // JN40: a message (the discarded note's Undo) never covers the row.
-  const undo40 = await box(pg, '[data-testid=band-voice-undo]');
-  const row40 = [await box(pg, '[data-testid=band-photo]'), await box(pg, '[data-testid=band-voice]')];
-  const overlaps = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-  check(!!undo40 && row40.every(Boolean) && !row40.some((b) => overlaps(undo40, b)), `JN40: Undo sits clear of the row (${JSON.stringify({ undo40, row40 })})`);
   await pg.click('[data-testid=band-voice-undo-act]').catch(() => {});
   await pg.waitForTimeout(1200);
-  // JN39: words left with the keyboard down offer Done in the row; Done leaves the row with the camera and the mic.
+  // JN44: words left with the keyboard down: Done in the pen's place; after Done, the pen is back.
   await type('Left open on purpose.');
   await pg.waitForTimeout(700);
   await pg.evaluate(() => document.activeElement?.blur?.());
   await pg.waitForTimeout(1200);
-  const open39 = { done: await box(pg, '[data-testid=line-done]'), inBar: await inBarNow('line-done'), mic: await box(pg, '[data-testid=band-voice]') };
-  const status77 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=line-row] [data-testid=line-status]'); return e ? e.innerText.trim() : null; });
-  check(status77 === 'Kept as you write', `chronicle-journal audit 77: an entry left open says "Kept as you write" in the row, as the bar does (${status77})`);
-  await shot(pg, 'journal-39-done-in-the-row');
-  await pg.click('[data-testid=line-done]').catch(() => {});
+  const open44 = await tool();
+  await shot(pg, 'journal-44-entry-open');
+  await pg.click('[data-testid=open-line] [data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(1500);
-  const closed39 = { done: await pg.locator('[data-testid=line-done]').count(), cam: await box(pg, '[data-testid=band-photo]'), bar: await pg.locator('[data-testid=open-line]').count() };
-  check(!!open39.done && !open39.inBar && !!open39.mic && open39.done.x > open39.mic.x && open39.done.y === open39.mic.y && closed39.done === 0 && !!closed39.cam && closed39.bar === 0,
-    `JN39: an entry left open with the keyboard down offers Done at the row's end; after Done the row is the camera and the mic (${JSON.stringify({ open39, closed39 })})`);
-  await type('Open again, for a voice note.');
+  const closed44 = await tool();
+  check.todo(!!open44.done && !open44.pen && !!open44.field && !closed44.done && !!closed44.pen && !!closed44.field,
+    `JN44: with an entry open and the keyboard down, Done is in the pen's place beside the field; after Done the pen is back (${JSON.stringify({ open44, closed44 })})`);
+  // JN46: at 320 px the field's words are whole and the toolbar is one row, at rest and with an entry open.
+  await pg.setViewportSize({ width: 320, height: 640 });
+  await pg.waitForTimeout(1200);
+  const narrowRest = await tool();
+  await shot(pg, 'journal-46-toolbar-320');
+  await type('Narrow.');
   await pg.waitForTimeout(700);
   await pg.evaluate(() => document.activeElement?.blur?.());
   await pg.waitForTimeout(1200);
-  // chronicle-journal audit 65: with the entry open, a voice note from the row: neither the row nor the bar (pulled back)
-  // offers Done while it records, and the pen stays in the bar.
-  await pg.click('[data-testid=band-voice]').catch(() => {});
-  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
+  const narrowOpen = await tool();
+  await pg.click('[data-testid=open-line] [data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(1200);
-  const row65 = await pg.locator('[data-testid=line-done]').filter({ visible: true }).count();
-  await scrollTo('top');
-  await pg.waitForTimeout(1200);
-  const bar65 = { done: await pg.locator('[data-testid=line-done]').filter({ visible: true }).count(), pen: await inBarNow('bar-write') };
-  await scrollTo('foot');
-  await pg.waitForTimeout(1200);
-  await pg.click('[data-testid=band-voice-discard]').catch(() => {});
-  await pg.waitForTimeout(1200);
-  check(row65 === 0 && bar65.done === 0 && bar65.pen, `chronicle-journal audit 65: with an entry open, while a voice note records neither the row nor the bar offers Done; the bar keeps its pen (${JSON.stringify({ row65, bar65 })})`);
-  await pg.click('[data-testid=line-done]').catch(() => {});
-  await pg.waitForTimeout(1200);
-  // JN40: at 320 px the row is one line.
-  await pg.setViewportSize({ width: 320, height: 640 });
-  await pg.waitForTimeout(1200);
-  await scrollTo('foot');
-  await pg.waitForTimeout(900);
-  const narrow40 = [await box(pg, '[data-testid=band-photo]'), await box(pg, '[data-testid=band-voice]')];
-  check(narrow40.every(Boolean) && narrow40[0].y === narrow40[1].y && narrow40[1].x + narrow40[1].w <= 320, `JN40: at 320 px the row is one line (${JSON.stringify(narrow40)})`);
-  await shot(pg, 'journal-40-row-320');
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(1200);
-  // chronicle-journal audit 68: back from the threads, the camera is seen on every frame (a stale "opened" drew the row on
-  // a page not yet shown).
-  await h.toThreads(pg);
-  await pg.waitForTimeout(900);
-  await pg.evaluate(() => {
-    window.__cam68 = [];
-    const t0 = performance.now();
-    const seen = () => [...document.querySelectorAll('[data-testid=band-photo]')].some((e) => { const r = e.getBoundingClientRect(); if (!r.width) return false; for (let x = e; x; x = x.parentElement) if (Number(getComputedStyle(x).opacity) === 0) return false; return true; });
-    const tick = () => { window.__cam68.push(seen()); if (performance.now() - t0 < 3000) requestAnimationFrame(tick); };
-    requestAnimationFrame(tick);
-  });
-  await h.toJournal(pg);
-  await pg.waitForTimeout(3200);
-  const cam68 = await pg.evaluate(() => window.__cam68 ?? []);
-  check(cam68.length > 10 && cam68.every(Boolean), `chronicle-journal audit 68: back from the threads, the camera is visible on every frame (${cam68.filter((x) => !x).length} of ${cam68.length} without)`);
+  const oneRow = (t) => !!t.bar && t.bar.h <= 64 && [t.field, t.pen ?? t.done, t.photo, t.voice].every((b) => !!b && Math.abs(b.y + b.h / 2 - (t.field.y + t.field.h / 2)) <= 4);
+  check.todo(narrowRest.cut === false && oneRow(narrowRest) && narrowOpen.cut === false && oneRow(narrowOpen),
+    `JN46: at 320 px "What’s on your mind?" is whole and the toolbar is one row, at rest and with an entry open (${JSON.stringify({ narrowRest, narrowOpen })})`);
 
   // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
   const pageEntry = pg.locator(entries).filter({ hasText: 'Smelled it two blocks off.' });
