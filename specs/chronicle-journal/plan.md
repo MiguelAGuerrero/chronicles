@@ -147,7 +147,7 @@ For the owner's review before any code. Spec: JN34-JN40 in `specs/chronicle-jour
 ### Defaults for your review
 
 1. **The row is drawn quiet but findable:** the same two glyphs as the bar (`camera-outline`, `mic-outline`) in ink, 22 pt glyphs in 44 pt targets, no labels, no container. Restraint (VISION.md) without hiding them ("Found before quiet"). Words beside the glyphs ("Photo", "Voice") would be louder and more findable; not taken by default.
-2. **Recording stays in the row** (JN38): the timer and Discard lead, Stop takes the mic's place and the camera keeps its own, so the finger that started it finds Stop under it. The alternative, moving the recording to the bar, puts Stop a screen away from where you tapped. Stop keeps the recording purple: the row is the line's, and that colour is the line's own.
+2. **Recording stays in the row** (JN38): Stop takes the mic's place, the camera keeps its own, the timer and Discard follow, so the finger that started it finds Stop under it. The alternative, moving the recording to the bar, puts Stop a screen away from where you tapped. Stop keeps the recording purple: the row is the line's, and that colour is the line's own.
 3. **Done for an open entry is in the row** (JN39), after a photo or a voice note with no keyboard up; otherwise Done is only in the keyboard bar. Done's kept place at rest (audit 51) goes: with no bar at rest there is nothing to keep it in.
 4. **No bar at rest, rather than an empty one** (JN35): the empty page runs down to the tab bar. This also settles ux 3 of Nov 13 (a toolbar above the tab bar at rest, T8).
 5. **The row sits in the empty page's top, under the field**, so a tap anywhere else on the empty page still writes (JN32); the row takes its own taps.
@@ -168,12 +168,12 @@ None. No truth, no cache, no migration.
 
 | Id | Test |
 |---|---|
-| JN34 | `journal` journey: at rest `page-photo` and `page-voice` are visible, their left edge within 4 px of the field's, their top under the placeholder, each ≥ 44 px, ink, named, and next after the field in DOM order; shot. Cold find by the `ux-reviewer` |
+| JN34 | `journal` journey: at rest `band-photo` and `band-voice` (the same ids as the bar's: only one of the two is ever drawn, JN35) are visible, their left edge within 4 px of the field's, their top under the placeholder, each ≥ 44 px, ink, named, and next after the field in DOM order; shot. Cold find by the `ux-reviewer` |
 | JN35 | `bar.test.ts` (`src/lib/__tests__/journal/`): `controlsAt` over every input, one answer each; journey: no `open-line` at rest, the bar's camera with reads broken (`__breakReads`) |
 | JN36 | `bar.test.ts`: typing → bar, no row; journey: focus the field, the row is gone and `open-line` holds the writing row; blur, the row is back and the placeholder's and last entry's tops are unchanged |
 | JN37 | `bar.test.ts`: row out of view → bar; journey: scroll back, `bar-write`, `band-photo`, `band-voice` visible; and mid-recording, Stop in the bar |
-| JN38 | journey: tap `page-voice`, the timer and Stop are in the row, Stop's box where the mic's was, the camera where it was and enabled |
-| JN39 | journey: words typed then blur, `page-done` in the row; Done ends the entry and the row returns to two; `bar.test.ts`: a failed save → bar (the journey has no write-failure hook) |
+| JN38 | journey: tap `band-voice` in the row, the timer and Stop are in the row, Stop's box where the mic's was, the camera where it was and enabled |
+| JN39 | journey: words typed then blur, `line-done` in the row; Done ends the entry and the row returns to two; `bar.test.ts`: a failed save → bar (the journey has no write-failure hook) |
 | JN40 | journey: an Undo pill at rest does not overlap the row's box; a thread shows the bar as before; at 320 px no control in the row wraps (every state) |
 
 ### Goal to control
@@ -202,7 +202,7 @@ None. No truth, no cache, no migration.
 7. The recording purple on the page: reject; the row is the line's, and the purple is the line's own recording colour (the bar's Stop today).
 8. "Someone finds them" is a judgement: accept; JN34 now names what is checked (glyph, ink, 44 pt, spoken name), and the cold find runs in the UX review.
 9. Screen-reader order: accept, JN34 amends JN23 (the row right after the field).
-- Question it raised: with icons under it, does the placeholder read more like a prompt than 0171 allowed? My view: no, it says nothing more than before; yours to call.
+- Question it raised: with icons under it, does the placeholder read more like a prompt than 0171 allowed? The owner (Nov 14): "it's not requesting you to do anything. It's more of a suggestion"; and a Notion-style "+" in ink before it, chosen from a mock-up.
 
 ### Deferred
 

@@ -22,3 +22,6 @@ as a chat box, JN28).
 - T7 ("no loose buttons on content") gets an exception: the row belongs to the line. T7's "container and 3:1" is
   waived: the row is on the page's own ground in ink, and a container would make it the block 0112 forbids.
 - Native is unverified on a device.
+- From the mock-up (Nov 14): a Notion-style "+" in ink in the margin before the placeholder (a tap puts the caret on
+  the line; it leaves once there are words). On the steward's question, the owner: the placeholder "is not requesting
+  you to do anything. It's more of a suggestion", so 0171's "one hint, no other prompt" holds.

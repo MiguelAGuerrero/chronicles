@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| The row under the line (the journal's camera and mic in a row under \"What’s on your mind?\", a \"+\" in ink in the margin before it, the bar only when the row is out of view or the keyboard is up; JN34-JN40, decision 0172) | `claude/chronicles-action-button-layout-x4cg4k` | started 2026-11-14: spec, plan and mock-up approved by the owner; tests first next |\n"
+    }
+  ]
+}

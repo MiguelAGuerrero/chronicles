@@ -836,6 +836,101 @@ async function run(h) {
   await pg.waitForTimeout(900);
   check((await pg.locator('[data-testid=bar-write]').count()) === 0, 'chronicle-journal audit 50: with the empty page in view the bar holds no pen: the page is the pen');
 
+  // JN34-JN40 (decision 0172): the camera and the mic sit in a row under the line, a "+" in ink before it; the bar
+  // shows only when the row is out of view or the keyboard is up.
+  await scrollTo('foot');
+  await pg.waitForTimeout(900);
+  const INK = 'rgb(29, 36, 48)';
+  const inBarNow = (id) => pg.evaluate((id) => !!document.querySelector(`[data-testid=open-line] [data-testid=${id}]`), id);
+  const row34 = await pg.evaluate((ink) => {
+    const r = (id) => { const e = document.querySelector(`[data-testid=${id}]`); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height), bottom: Math.round(b.bottom), label: e.getAttribute('aria-label'), ink: [e, ...e.querySelectorAll('*')].some((x) => getComputedStyle(x).color === ink) } : null; };
+    return { field: r('line-input'), plus: r('line-plus'), photo: r('band-photo'), voice: r('band-voice'), bar: !!document.querySelector('[data-testid=open-line]') };
+  }, INK);
+  const glyphLeft = (b) => b.x + 10; // a 24 pt glyph centred in a 44 pt target
+  check.todo(!!row34.field && !!row34.photo && !!row34.voice && !!row34.plus && !row34.bar
+    && Math.abs(glyphLeft(row34.photo) - row34.field.x) <= 4 && row34.photo.y >= row34.field.bottom - 2 && row34.photo.y === row34.voice.y && row34.photo.x < row34.voice.x
+    && [row34.photo, row34.voice].every((b) => b.w >= 44 && b.h >= 44 && b.ink) && row34.photo.label === 'Add a photo or video' && row34.voice.label === 'Record a voice note'
+    && row34.plus.ink && row34.plus.x + row34.plus.w <= row34.field.x + 12,
+    `JN34: at rest a "+" in ink before the line, and the camera and the mic in a row under it, from its first letter, in ink, named, each a thumb's target (${JSON.stringify(row34)})`);
+  await pg.focus('[data-testid=line-input]').catch(() => {});
+  await pg.keyboard.press('Tab');
+  const next34 = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(900);
+  check.todo(next34 === 'band-photo', `JN34: for a screen reader the row comes right after the field (${next34})`);
+  await shot(pg, 'journal-34-row-at-rest');
+  check.todo(!row34.bar && (await pg.locator('[data-testid=open-line]').count()) === 0, 'JN35: at rest with the row in view no bar is drawn above the tab bar');
+  // JN36: the keyboard takes the row to the bar; writing stopped, it is back and nothing above the line moved.
+  const before36 = { field: await box(pg, input), last: await box(pg, `${entries} >> nth=-1`) };
+  await pg.click(input).catch(() => {});
+  await pg.waitForTimeout(900);
+  const typing36 = { barCam: await inBarNow('band-photo'), rowCam: await pg.evaluate(() => [...document.querySelectorAll('[data-testid=band-photo]')].filter((e) => !e.closest('[data-testid=open-line]')).length) };
+  await shot(pg, 'journal-36-row-in-the-bar');
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(1200);
+  const after36 = { field: await box(pg, input), last: await box(pg, `${entries} >> nth=-1`), barCam: await inBarNow('band-photo') };
+  check.todo(typing36.barCam && typing36.rowCam === 0 && !after36.barCam && same(before36.field, after36.field) && same(before36.last, after36.last),
+    `JN36: with the keyboard the camera and the mic are in the bar, not the row; after, the row is back and nothing above it moved (${JSON.stringify({ typing36, before36, after36 })})`);
+  // JN38: a voice note begun from the row records in the row; Stop where the mic was, the camera where it was.
+  const mic38 = await box(pg, '[data-testid=band-voice]');
+  const cam38 = await box(pg, '[data-testid=band-photo]');
+  await pg.click('[data-testid=band-voice]').catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const rec38 = {
+    stop: await box(pg, '[data-testid=band-voice-save]'), cam: await box(pg, '[data-testid=band-photo]'),
+    camOff: await pg.locator('[data-testid=band-photo]').first().getAttribute('aria-disabled').catch(() => 'missing'),
+    inBar: await inBarNow('band-voice-save'), timer: await box(pg, '[data-testid=band-voice-timer]'),
+  };
+  check.todo(!!mic38 && !!rec38.stop && !rec38.inBar && rec38.stop.x === mic38.x && rec38.stop.y === mic38.y && same(cam38, rec38.cam) && rec38.camOff !== 'true' && !!rec38.timer && rec38.timer.x > rec38.stop.x,
+    `JN38: recording from the row stays in it: Stop where the mic was, the camera in its place and working, the timer after (${JSON.stringify({ mic38, cam38, rec38 })})`);
+  await shot(pg, 'journal-38-recording-in-the-row');
+  // JN37: pulled back mid-note, the bar holds the pen, the camera and Stop.
+  await scrollTo('top');
+  await pg.waitForTimeout(1200);
+  const back37 = { pen: await inBarNow('bar-write'), cam: await inBarNow('band-photo'), stop: await inBarNow('band-voice-save') };
+  await shot(pg, 'journal-37-pulled-back-recording');
+  await scrollTo('foot');
+  await pg.waitForTimeout(1200);
+  await pg.click('[data-testid=band-voice-discard]').catch(() => {});
+  await pg.waitForTimeout(1200);
+  await scrollTo('top');
+  await pg.waitForTimeout(1200);
+  const back37b = { pen: await inBarNow('bar-write'), cam: await inBarNow('band-photo'), mic: await inBarNow('band-voice') };
+  check.todo(back37.pen && back37.cam && back37.stop && back37b.pen && back37b.cam && back37b.mic,
+    `JN37: pulled back, the bar holds the pen, the camera and the mic, and a recording under way with its Stop (${JSON.stringify({ back37, back37b })})`);
+  await scrollTo('foot');
+  await pg.waitForTimeout(1200);
+  // JN40: a message (the discarded note's Undo) never covers the row.
+  const undo40 = await box(pg, '[data-testid=band-voice-undo]');
+  const row40 = [await box(pg, '[data-testid=band-photo]'), await box(pg, '[data-testid=band-voice]')];
+  const overlaps = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  check.todo(!!undo40 && row40.every(Boolean) && !row40.some((b) => overlaps(undo40, b)), `JN40: Undo sits clear of the row (${JSON.stringify({ undo40, row40 })})`);
+  await pg.click('[data-testid=band-voice-undo-act]').catch(() => {});
+  await pg.waitForTimeout(1200);
+  // JN39: words left with the keyboard down offer Done in the row; Done leaves the row with the camera and the mic.
+  await type('Left open on purpose.');
+  await pg.waitForTimeout(700);
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(1200);
+  const open39 = { done: await box(pg, '[data-testid=line-done]'), inBar: await inBarNow('line-done'), mic: await box(pg, '[data-testid=band-voice]') };
+  await shot(pg, 'journal-39-done-in-the-row');
+  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.waitForTimeout(1500);
+  const closed39 = { done: await pg.locator('[data-testid=line-done]').count(), cam: await box(pg, '[data-testid=band-photo]'), bar: await pg.locator('[data-testid=open-line]').count() };
+  check.todo(!!open39.done && !open39.inBar && !!open39.mic && open39.done.x > open39.mic.x && open39.done.y === open39.mic.y && closed39.done === 0 && !!closed39.cam && closed39.bar === 0,
+    `JN39: an entry left open with the keyboard down offers Done at the row's end; after Done the row is the camera and the mic (${JSON.stringify({ open39, closed39 })})`);
+  // JN40: at 320 px the row is one line.
+  await pg.setViewportSize({ width: 320, height: 640 });
+  await pg.waitForTimeout(1200);
+  await scrollTo('foot');
+  await pg.waitForTimeout(900);
+  const narrow40 = [await box(pg, '[data-testid=band-photo]'), await box(pg, '[data-testid=band-voice]')];
+  check.todo(narrow40.every(Boolean) && narrow40[0].y === narrow40[1].y && narrow40[1].x + narrow40[1].w <= 320, `JN40: at 320 px the row is one line (${JSON.stringify(narrow40)})`);
+  await shot(pg, 'journal-40-row-320');
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(1200);
+
   // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
   const pageEntry = pg.locator(entries).filter({ hasText: 'Smelled it two blocks off.' });
   await pageEntry.scrollIntoViewIfNeeded().catch(() => {});
@@ -1062,6 +1157,7 @@ async function run(h) {
   const stillFailed = await shown('[data-testid=memories-failed]');
   const keptDown = (await stored(pg)).moments.some((m) => m.pieces.some((p) => p.body === 'Kept while the page was down.'));
   const drawnDown = await pg.locator('[data-testid=memories] [data-testid=moment-card]').filter({ hasText: 'Kept while the page was down.' }).count();
+  check.todo(failed && (await pg.locator('[data-testid=band-photo]').filter({ visible: true }).count()) === 1, 'JN35: a page that failed to read opens with the camera and the mic one tap away');
   check(failed && keptDown && drawnDown === 1, `JN9: on the failed page the line keeps an entry, and it is drawn there (${JSON.stringify({ failed, keptDown, drawnDown })})`);
   check(stillFailed && drawnDown === 1 && emptiedLeft === 0,
     `chronicle-journal audit 6: with reads still failing, the entry drawn holds every word, and an emptied one leaves (${JSON.stringify({ stillFailed, drawnDown, emptiedLeft })})`);
