@@ -289,6 +289,17 @@ async function run(h) {
       return { name: more?.getAttribute('aria-label') ?? null, title: head?.textContent?.trim() ?? null };
     });
     check(!!cardMore.title && cardMore.name === `More for ${cardMore.title}`, `tend tabs 11: the walk's card names its More by the title it shows (${JSON.stringify(cardMore)})`);
+    // tend replay audit 10: the hint is the card's last line before its buttons, as on the day's card.
+    const hintAt = await pg.evaluate(() => {
+      const again = [...document.querySelectorAll('[role=button]')].find((b) => b.textContent.trim() === 'Watch again');
+      const row = again?.parentElement;
+      let prev = row?.previousElementSibling;
+      while (prev && !prev.textContent.trim()) prev = prev.previousElementSibling;
+      const pins = document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]').length;
+      const hint = [...document.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it');
+      return { before: prev?.textContent ?? null, pins, hint };
+    });
+    check(hintAt.before === 'Tap a pin to open it', `tend replay audit 10: the walk's card ends on its hint, right above its buttons (${JSON.stringify(hintAt)})`);
     await pg.click('[data-testid=to-name]');
     await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
     await shot(pg, 'rr-name');
@@ -449,7 +460,8 @@ async function run(h) {
         const card = document.querySelector('[data-testid=day-card]');
         const line = document.querySelector('[data-testid=day-card-line]');
         const r = line?.getBoundingClientRect();
-        return { line: line?.textContent ?? null, right: r ? Math.round(r.right) : null, hint: !!card && [...card.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it') };
+        const pins = document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]').length;
+        return { line: line?.textContent ?? null, right: r ? Math.round(r.right) : null, pins, hint: !!card && [...card.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it') };
       });
       check(/^(One moment|[A-Z][a-z-]+ moments)(, around .+| around .+)?$/.test(day.line ?? '') && !/\d|·/.test(day.line) && day.hint && day.right <= w,
         `tend replay T19: at ${w} px the day's card says its moments in a clause, with "Tap a pin to open it" (${JSON.stringify(day)})`);

@@ -111,6 +111,15 @@ async function checks(h) {
       const media = (await capsOf()).filter((c) => c.kind !== 'text');
       const mediaRefs = media.flatMap((c) => [c.file_path, c.thumb_path]).filter((r) => r && r !== 'none');
       check(media.length >= 3 && mediaRefs.every(Boolean), `the walk has media to remove (${media.map((c) => c.kind).join(', ')})`);
+      // tend replay audit 10: on a card with finds and a low the hint still stands last, right above the buttons.
+      const hintLast = await page.evaluate(() => {
+        const again = [...document.querySelectorAll('[role=button]')].find((b) => b.textContent.trim() === 'Watch again');
+        let prev = again?.parentElement?.previousElementSibling;
+        while (prev && !prev.textContent.trim()) prev = prev.previousElementSibling;
+        return { before: prev?.textContent ?? null, finds: document.querySelector('[data-testid=card-finds]')?.textContent ?? null, low: document.querySelector('[data-testid=card-low]')?.textContent ?? null };
+      });
+      check(hintLast.before === 'Tap a pin to open it' && !!(hintLast.finds || hintLast.low),
+        `tend replay audit 10: a walk's card with finds or a low ends on its hint, right above its buttons (${JSON.stringify(hintLast)})`);
       await page.click('[data-testid=card-more]');
       await page.click('[data-testid=action-media]');
       await page.waitForSelector('[data-testid=confirm]');
