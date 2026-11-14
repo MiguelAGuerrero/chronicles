@@ -328,18 +328,18 @@ recording, and a recording bar brings a minimized walk back.
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
-    down to the tab bar. Pull down to read back; each day's date holds at the top while its entries pass.
-  - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
-    the page itself, in your serif, with no box and one muted placeholder ("What’s on your mind?"), a "+" in ink in the
-    margin before it and the camera and the mic in a row directly under it (decision 0175, the composer row). The day's entries stack: each new one, words, photo
+    down to the toolbar. Pull down to read back; each day's date holds at the top while its entries pass.
+  - **A toolbar at the foot** (decisions 0178, 0179): above the tab bar, wherever the page is scrolled, a soft grey
+    field "What’s on your mind?", then the camera and the mic; while an entry is open, Done after the field.
+  - **The composer** (decision 0179): tap the field or the empty page and a sheet rises over the journal, from a dimmed
+    edge to the keyboard: "New entry" and Done at its top, room to type in your serif, the camera, the mic and Open as
+    a page at its foot. What you type is kept as you type; Done, a tap on the dimmed edge or Back closes it, and the entry
+    is on the page. The page is for reading. The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
-    the line being written holding its place, as paper in a typewriter. At rest nothing sits above the tab bar; a bar
-    comes up only when the row is out of view (pulled down: a pen, the camera and the mic), and while you write it holds "Kept as you
-    write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
-    the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
+    the newest at the end. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
-    are one entry; Done ends it (in the row, after a photo with no keyboard up), as do two minutes without a piece. A
-    voice note records where it was begun: from the row, Stop takes the mic's place there. Any entry can carry **reactions** by choice (decision 0176): the face with a small plus at the end of the entry being written opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the bar, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline, and the sign stays the face with a plus. In Memories each one there, and under the viewer's line, is a link to its lens ("Idea" opens Ideas; Back returns to the journal; decision 0177); elsewhere they are words. A reaction that could not be kept says "Not kept yet" in its panel. They are never asked for. Typing **@** references another moment, drawn on
+    are one entry; Done ends it, as do two minutes without a piece. A voice note records in the toolbar, Stop in the
+    mic's place. Any entry can carry **reactions** by choice (decision 0176): the face with a small plus by the composer's title (or at the end of the entry being written) opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the composer's tools, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline, and the sign stays the face with a plus. In Memories each one there, and under the viewer's line, is a link to its lens ("Idea" opens Ideas; Back returns to the journal; decision 0177); elsewhere they are words. A reaction that could not be kept says "Not kept yet" in its panel. They are never asked for. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
     walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
     is today's date and the empty page.

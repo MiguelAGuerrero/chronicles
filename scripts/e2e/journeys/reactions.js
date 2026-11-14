@@ -175,8 +175,11 @@ async function run(h) {
   check(alone10 === 0 && open10 === 1 && kept10?.feeling === 'sad' && kept10?.thought === 'question',
     `RX10: More's Reaction shows the families by themselves and stays open for a second family (${JSON.stringify({ alone10, open10, kept10 })})`);
 
-  // RX6-RX8: the entry being written: nothing before its first character, then the sign; the panel above the bar
-  // keeps writing, the camera, the mic and Done; a choice keeps it open; the next character closes it.
+  // RX6-RX8: the entry being written: nothing before its first character, then the sign; the panel above the composer's
+  // tools keeps writing, the camera, the mic and Done; a choice keeps it open; the next character closes it.
+  // The entry is written in the composer (chronicle-journal JN47, decision 0179): the toolbar's field opens it.
+  await pg.click('[data-testid=bar-compose]', { timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(600);
   await pg.click('[data-testid=line-input]', { timeout: 8000 }).catch(() => {});
   await pg.waitForTimeout(400);
   const before6 = await pg.locator('[data-testid=reaction-slot]').filter({ visible: true }).count();
