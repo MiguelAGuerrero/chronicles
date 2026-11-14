@@ -150,7 +150,7 @@ export function LayersControl(props: {
               return (
                 <View key={l.id}>
                   <View style={styles.rowPad}>
-                    <SwitchRow testID={`layer-${l.id}`} label={l.name} icon={l.icon as IconName} value={on} onChange={() => layers.toggle(l.id)} />
+                    <SwitchRow testID={`layer-${l.id}`} label={l.name} note={l.sub} icon={l.icon as IconName} value={on} onChange={() => layers.toggle(l.id)} />
                   </View>
                   {on && props.notes?.[l.id] ? (
                     <View style={[styles.legend, styles.noteInset]}>

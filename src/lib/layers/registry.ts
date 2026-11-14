@@ -32,6 +32,8 @@ export interface LayerDef {
   legend: readonly LegendRow[];
   /** One quiet line under the legend, in words (where the data is from, what it can't say). */
   note?: string;
+  /** Under the switch's name, what it shows, where the name alone can't say (after-dark ui 1: the cold find). */
+  sub?: string;
 }
 
 export const LAYERS: readonly LayerDef[] = [
@@ -67,6 +69,7 @@ export const LAYERS: readonly LayerDef[] = [
     // After dark (specs/after-dark DK1, DK12): what is mapped, never a grade (DK11).
     id: 'dark',
     name: 'After dark',
+    sub: 'Lit streets, places open',
     icon: 'moon-outline',
     defaultOn: false,
     legend: [

@@ -106,8 +106,8 @@ test('DK17: no route module reads after-dark data; only the layer\'s screens, th
   for (const f of got) assert.ok(!/walkPlanner|kindWalk|routeLeanings|readyNav|startPlan|\/nav\//.test(f), `${f} is a route module`);
 });
 
-test('after-dark ui 1: the After dark switch says under its name what it shows, so both tasks find it (the cold find)', { todo: 'test first' }, () => {
-  const d = dark() as (ReturnType<typeof dark> & { sub?: string }) | undefined;
+test('after-dark ui 1: the After dark switch says under its name what it shows, so both tasks find it (the cold find)', () => {
+  const d = dark();
   assert.equal(d?.sub, 'Lit streets, places open');
   assert.ok(!BANNED.test(d?.sub ?? ''));
 });
