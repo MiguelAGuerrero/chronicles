@@ -787,9 +787,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 What the note types slice left out (`specs/note-types`, decision 0161).
 
 - [owner] **Note types** (0161): a type chosen while a note is first written (a new note's page and Respond's start with no type; Edit sets one, so capture stays one tap); searching, lensing or threading notes by type; a type on a photo, video or memo. Any feature that reads types goes through the vision gate again.
-- [loop] **Note types** (0161, audit 2): a pin's marker is rebuilt, and web focus lost, when its note's type changes (the key includes the mark); the reminder bell keeps the element. No test reaches a single-note pin in the e2e (the replay's is always a group).
 - [loop] **Note types** (0161, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
-- [loop] **Note types** (0161, audit 22): the Type menu on the note page, in two columns, may wrap or crowd at 200% text or below 320 px wide; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).
 - [owner] **Note types** (0161, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.
 - **The voicetrim journey waits for a test id main no longer has** (found deploying video thumbnails, Nov 13): it waits
   for `[data-testid=memories-list] [data-testid=moment-card]`, and the journal page (`e43c64a`, JN1-JN24) dropped

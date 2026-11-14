@@ -606,8 +606,6 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 
 What the note types slice wrote and has not run on a phone (`specs/note-types`, decision 0161).
 
-- [ ] **Do:** on a phone, open a moment with a photo and a note, open the note by its piece, set Type to Question, then look at the moment's pin and its card, and Split the note out. **Expect:** the photo's pin and card keep the photo and show no type; the note shows the question mark when opened again; Split out keeps the type on the note (NY5, note-types audit 1, 12, 13)
-
 ## Video thumbnails (VS1-VS9)
 
 - [ ] **Do:** take a video with the camera button, then open Media. **Expect:** its tile shows the video's first frame under a play mark and its length, made within a few seconds, never a black frame; the capture itself was never slowed (VS1).
