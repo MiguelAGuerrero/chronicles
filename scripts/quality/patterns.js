@@ -98,7 +98,13 @@ function patterns(sf, layer) {
       if (core && method && LOCAL_TIME.test(method)) out.localTime.push({ line: lineOf(sf, n), call: method });
       if (method === 'catch' && n.arguments.length === 1 && isFn(n.arguments[0]) && emptyBody(n.arguments[0])) out.silentCatch.push({ line: lineOf(sf, n), kind: '.catch(() => {})' });
       const ctx = CONTEXT_CALLS[ts.isIdentifier(callee) ? callee.text : ''];
-      if (ctx && n.arguments.length < ctx.args) out.contextCalls.push({ line: lineOf(sf, n), call: callee.text, missing: ctx.names.slice(n.arguments.length) });
+      if (ctx && n.arguments.length < ctx.args) {
+        let missing = ctx.names.slice(n.arguments.length);
+        // readTrace, then withFilled(plain, fills) in the same function: the gaps
+        // have to be read from the plain trace before its fills are known.
+        if (missing.includes('fills') && fillsAppliedNearby(n)) missing = missing.filter((m) => m !== 'fills');
+        if (missing.length) out.contextCalls.push({ line: lineOf(sf, n), call: callee.text, missing });
+      }
       if (name === 'useStore' && n.arguments.length >= 2 && isFn(n.arguments[1])) {
         let body = n.arguments[1].body;
         while (body && ts.isParenthesizedExpression(body)) body = body.expression;
@@ -127,6 +133,22 @@ function patterns(sf, layer) {
   visit(sf, 0);
   if (layer !== 'core') react(sf, out);
   return out;
+}
+
+/** Does the function around this call also call withFilled? */
+function fillsAppliedNearby(n) {
+  let fn = n.parent;
+  while (fn && !isFn(fn)) fn = fn.parent;
+  if (!fn) return false;
+  let found = false;
+  const look = (c) => {
+    if (found) return;
+    if (ts.isCallExpression(c) && ts.isIdentifier(c.expression) && c.expression.text === 'withFilled') found = true;
+    ts.forEachChild(c, look);
+  };
+  // The live trace reads in one callback and fills in the same one; a hook's body counts as one function.
+  look(fn);
+  return found;
 }
 
 /** Is `fn` a function the module exports (a declaration, or a const's initializer)? */
