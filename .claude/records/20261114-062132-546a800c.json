@@ -1,0 +1,37 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "On a town's neighborhood page the title reads the parent town",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend explore 10: \"You're in Fox Point\" is a status line in ink, not link-coloured"
+      ],
+      "target": "sha256:2e01d87f1721751e96b8e26e62d1af2fb4c61be9dac4352024a7d06a7cb1d0fd"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The Explore toast's 3000 ms dwell",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend explore 12: Explore's toast dwells for a motion token, MOTION.toast"
+      ],
+      "target": "sha256:e38f83831ea2df2dd4079aae15634f125dc3e02c9bb67b95d89481c0f33d7263"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The far town's card (Walk now / When I get there) shows two close buttons",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend explore 11: a far town's question says \"Not now\" in words and no second name line"
+      ],
+      "target": "sha256:43d114e1847f8f841ce8b22d9dbb03ed8ee7eab4e3a35670797a7ec66acaef4b"
+    }
+  ]
+}

@@ -157,7 +157,7 @@ export interface Db {
   listRecalls(): Promise<Recall[]>;
 
   /**
-   * A moment's reactions (RX28, decision 0172): truth, one row per moment and family, never a field of the moment.
+   * A moment's reactions (RX28, decision 0176): truth, one row per moment and family, never a field of the moment.
    * `reaction: null` deletes the family's row. `deleteMoments` and `deleteWalk` take a moment's rows; a piece split out takes none.
    */
   setReaction(r: StoredReaction): Promise<void>;

@@ -2,7 +2,7 @@
   "lastT": 30,
   "lastG": 4,
   "balance": {
-    "date": "2026-11-12",
+    "date": "2026-11-14",
     "days": 14,
     "slicesGrown": [
       "AD",
@@ -10,6 +10,7 @@
       "AT",
       "CP",
       "CX",
+      "DC",
       "DN",
       "DW",
       "E",
@@ -20,7 +21,9 @@
       "GT",
       "GW",
       "H",
+      "HB",
       "HC",
+      "JN",
       "KW",
       "L",
       "M",
@@ -38,6 +41,7 @@
       "NP",
       "NR",
       "NV",
+      "NY",
       "OT",
       "PA",
       "PC",
@@ -58,21 +62,24 @@
       "SB",
       "SH",
       "SR",
+      "SS",
       "TB",
       "TD",
       "TO",
       "TP",
+      "TX",
       "UC",
       "UF",
+      "VT",
       "WH",
       "WK",
       "WP",
       "WT"
     ],
     "commits": {
-      "growth": 138,
-      "refinement": 301,
-      "other": 465
+      "growth": 171,
+      "refinement": 442,
+      "other": 575
     },
     "areas": {
       "rough": [
@@ -94,6 +101,7 @@
       "deletion",
       "gallery",
       "gaps",
+      "journal",
       "kind-walk",
       "landing",
       "layers",
@@ -110,12 +118,13 @@
       "storage",
       "streets",
       "threads",
+      "transcript",
       "walk-planner",
       "walkability",
       "web"
     ],
     "open": {
-      "openT": 9,
+      "openT": 6,
       "phoneT": 4,
       "openG": 1
     },
@@ -132,9 +141,9 @@
     },
     "explore": {
       "state": "rough",
-      "swept": "2026-11-11",
-      "main": "0193552f695b394b6965c8dc2127ce33f01cd90b",
-      "note": "Second sweep, for the lenses the first left out; not whole (200% text, offline pictures, reviewers on new pictures). Five loop findings shipped (look race, WT11 spoken kinds, two Escape layers, WT13 town tap zoom); twelve [loop] items deferred, four medium (readNear retry, exploreRead centre, capture during a read, web focus). T4 and T5 still open."
+      "swept": "2026-11-14",
+      "main": "e6bdfc6a5ccf94f605ab48dd482902eba662b187",
+      "note": "Ledger run, capped at 8, not whole (lenses 1-6 not run). Built the owner's answers O2, O3, O6+O20, O7, O10 (decision 0172) and three medium [loop] items (cancelled look, capture during a read, shared explore read); the review's fourteen findings shipped as audits 8-17, with the owner's answer of Nov 14 for the blocked card's words. Left [loop]: readNear's write retry and its failed listAtlasAreas (medium, low); five low filed from the review."
     },
     "navigation": {
       "state": "rough",

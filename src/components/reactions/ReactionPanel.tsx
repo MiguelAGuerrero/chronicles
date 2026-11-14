@@ -6,7 +6,7 @@ import { theme } from '../ui';
 const ROWS = familyRows();
 
 /**
- * The reactions (RX6, RX10-RX12, RX34, RX36; decision 0172): three rows under the words Feeling, Taste and Thought,
+ * The reactions (RX6, RX10-RX12, RX34, RX36; decision 0176): three rows under the words Feeling, Taste and Thought,
  * each reaction a glyph over its name. A tap chooses it, replacing its family's, or clears it if it was the one; the
  * panel stays, so a second family is one more tap. In ink only: a chosen one is shown by weight, a check beside its name
  * and its spoken state, never a fill, a rule like a tab's or a second colour (reactions ui 3). Every row has three

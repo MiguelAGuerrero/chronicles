@@ -729,7 +729,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listRecalls(), [recall('c1', 2)]);
     });
 
-    // ---- reactions (specs/reactions, decision 0172): their own records, never fields of the moment
+    // ---- reactions (specs/reactions, decision 0176): their own records, never fields of the moment
 
     type Rx = { moment_id: string; family: string; reaction: string | null; set_at: number };
     const rx = (db: Db) => db as unknown as { setReaction: (r: Rx) => Promise<void>; listReactions: () => Promise<Rx[]> };

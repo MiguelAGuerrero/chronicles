@@ -1,6 +1,6 @@
 # Reactions: the plan
 
-For `specs/reactions/spec.md` (RX1-RX36), decision 0172. The owner reviews this before any code.
+For `specs/reactions/spec.md` (RX1-RX36), decision 0176. The owner reviews this before any code.
 
 ## For the owner: four calls the criteria assume
 
@@ -77,7 +77,7 @@ Changed
 - Gone: `lib/noteType.ts`, `lib/noteTypeChoice.ts`, `components/NoteMark.tsx` (their tests move to `reactions/`).
 - `scripts/features.js`: a `reactions` feature (folder `src/lib/__tests__/reactions/`, its files, journeys `reactions`,
   `journal`, `notepage`, `threads`, `qol`; spec `reactions`); `note-types` criteria NY1-NY27 retired, "superseded by
-  reactions (decision 0172)"; `IN_PROGRESS` while built.
+  reactions (decision 0176)"; `IN_PROGRESS` while built.
 - Docs: `docs/PRODUCT.md` (Memories, the viewer, the map), `docs/ARCHITECTURE.md` (data model, the files),
   `.claude/rules/captures-and-media.md`, `map.md`, `memories.md`, `storage.md`; `docs/STATUS.md` by `npm run records`.
 
@@ -120,7 +120,7 @@ Matrix departures: none. The panel above the bar is the one NY19 already built, 
 
 ## Deferred
 
-- A lens narrowed by location, Emphasis offering a reminder, a Question asking again: each a later slice, gated (0172).
+- A lens narrowed by location, Emphasis offering a reminder, a Question asking again: each a later slice, gated (0176).
 - Reactions in search: there is no search yet.
 - Reactions on the slip, gallery tiles, response entries and the @ picker (the spec's surfaces table says why).
 

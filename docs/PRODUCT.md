@@ -328,16 +328,18 @@ recording, and a recording bar brings a minimized walk back.
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
-    down to the bar. Pull down to read back; each day's date holds at the top while its entries pass.
+    down to the tab bar. Pull down to read back; each day's date holds at the top while its entries pass.
   - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
-    the page itself, in your serif, with no box and one muted placeholder ("What’s on your mind?"). The day's entries stack: each new one, words, photo
+    the page itself, in your serif, with no box and one muted placeholder ("What’s on your mind?"), a "+" in ink in the
+    margin before it and the camera and the mic in a row directly under it (decision 0175, the composer row). The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
-    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic, each always in the same place, and a pen at its left once
-    the page is pulled down and the empty page is out of view; while you write it holds "Kept as you
+    the line being written holding its place, as paper in a typewriter. At rest nothing sits above the tab bar; a bar
+    comes up only when the row is out of view (pulled down: a pen, the camera and the mic), and while you write it holds "Kept as you
     write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
     the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
-    are one entry; Done ends it, as do two minutes without a piece. Any entry can carry **reactions** by choice (decision 0172): the face with a small plus at the end of the entry being written opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the bar, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline. They are never asked for. Typing **@** references another moment, drawn on
+    are one entry; Done ends it (in the row, after a photo with no keyboard up), as do two minutes without a piece. A
+    voice note records where it was begun: from the row, Stop takes the mic's place there. Any entry can carry **reactions** by choice (decision 0176): the face with a small plus at the end of the entry being written opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the bar, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline. They are never asked for. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
     walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
     is today's date and the empty page.
@@ -521,7 +523,7 @@ recording, and a recording bar brings a minimized walk back.
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings) | Shipped on web (native unverified) |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
-| Reactions (any moment carries at most one reaction per family: Feeling, Taste, Thought; set from the journal's sign, More, the viewer's More and a note page's Reaction tool; drawn under an entry's dateline, the viewer's info line, a card and a bubble, and as ink bubbles on a single moment's pin; gathered in the journal's contents → Reactions, a lens per reaction, oldest first, no count; never inferred, never said of a place; replaced note types, decision 0172) | Built 2026-11-14 (web verified by the e2e `reactions`, `journal`, `notepage`, `qol`, `threads`, `responses`; native unverified) |
+| Reactions (any moment carries at most one reaction per family: Feeling, Taste, Thought; set from the journal's sign, More, the viewer's More and a note page's Reaction tool; drawn under an entry's dateline, the viewer's info line, a card and a bubble, and as ink bubbles on a single moment's pin; gathered in the journal's contents → Reactions, a lens per reaction, oldest first, no count; never inferred, never said of a place; replaced note types, decision 0176) | Built 2026-11-14 (web verified by the e2e `reactions`, `journal`, `notepage`, `qol`, `threads`, `responses`; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |

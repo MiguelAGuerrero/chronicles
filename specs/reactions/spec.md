@@ -7,31 +7,31 @@ Nov 14, 2026 · @Miguel Guerrero
 A note can carry one of eight types (`specs/note-types`, decision 0161), set on the note's piece and shown in place of
 the note's glyph. The owner wants that mark generalized: any moment (a photo, a memo, a video, a note) carries
 reactions, at most one per family, and they are gathered later ("all my ideas", "all my dislikes"). They show on a
-moment's pin as small bubbles, the way the reminder bell already does. Decision 0172 and its two addenda hold the
+moment's pin as small bubbles, the way the reminder bell already does. Decision 0176 and its two addenda hold the
 owner's calls.
 
 ## Vision
 
 Idea: "Reimagine the note type as a generalized model to assign annotated descriptors per moment, whether that be an emotion, a reaction, an idea", seeded from the note types; gather "all my ideas", "all the dislikes I have in my memories"; show them on pins "as little bubbles on the corner".
 Verb: return (a lens gives back every moment of a reaction, in its context: recall, the "second mind"); honour (a photo, a memo or a video keeps why it was kept, not only a note).
-Touches: decision 0161 and NY12 ("nothing sorts, filters or searches notes by type"; reversed for lenses by the owner, 0172); 0161's "a like or dislike is never carried to Explore, a place, a route or a recommendation" (kept whole); Never "Ratings, reviews … of places" (no place is said to be liked or disliked; the gate argued once against likes gathered by location, and that lens is not in this slice); Never "Scores" and Always "Counts are words" (no count of a reaction anywhere, no share, no mood over time); Never "Writing the owner's words for them" and NY13 (a reaction exists only because the owner chose it); Never "A capture behind a menu, a drawer or an extra tap" and NY18-NY26 (reacting is never a step before keeping); Always "A moment carries its context" (a lens shows moments with their place, time and walk, never a grid of glyphs); Never "Celebration" and Always "Restraint" (ink glyphs, no colour); 0104 ("moments stay whole": reactions are separate records); 0105 and RB1 (an ink disc with a white glyph and a spoken name is how a pin says a thing); 0139 (gallery tiles stay bare); 0168 (the face with a plus is the sign).
-Verdict: aligned if reshaped (decision 0172; the owner reaffirmed lenses over 0161's NY12)
+Touches: decision 0161 and NY12 ("nothing sorts, filters or searches notes by type"; reversed for lenses by the owner, 0176); 0161's "a like or dislike is never carried to Explore, a place, a route or a recommendation" (kept whole); Never "Ratings, reviews … of places" (no place is said to be liked or disliked; the gate argued once against likes gathered by location, and that lens is not in this slice); Never "Scores" and Always "Counts are words" (no count of a reaction anywhere, no share, no mood over time); Never "Writing the owner's words for them" and NY13 (a reaction exists only because the owner chose it); Never "A capture behind a menu, a drawer or an extra tap" and NY18-NY26 (reacting is never a step before keeping); Always "A moment carries its context" (a lens shows moments with their place, time and walk, never a grid of glyphs); Never "Celebration" and Always "Restraint" (ink glyphs, no colour); 0104 ("moments stay whole": reactions are separate records); 0105 and RB1 (an ink disc with a white glyph and a spoken name is how a pin says a thing); 0139 (gallery tiles stay bare); 0168 (the face with a plus is the sign).
+Verdict: aligned if reshaped (decision 0176; the owner reaffirmed lenses over 0161's NY12)
 Shape: Eight reactions in three fixed families: Feeling (Happy, Neutral, Sad), Taste (Like, Dislike), Thought (Question, Emphasis, Idea). At most one per family per moment, chosen only by the owner, after keeping, from the face with a plus. Stored as their own records, never on the moment. A moment's reactions show as ink glyphs with their names wherever the moment is read, and as bubbles from the bottom-left of a single moment's pin. The journal's contents gain Reactions: one lens per reaction that has a moment, named in words ("Ideas"), opening the moments in context. Nothing counts them, ranks them or says anything of a place.
 Criteria: RX1-RX36 below.
 Open: none (the owner's calls of Nov 14, below).
 
 ## Decisions (the owner's calls)
 
-- **Nov 14 (0172):** several reactions per moment, at most one per family; a fixed set, grouped; on the whole moment, in
+- **Nov 14 (0176):** several reactions per moment, at most one per family; a fixed set, grouped; on the whole moment, in
   separate records; existing note types move onto their moment; the first behaviour is collections, as Chronicle lenses.
   A lens by location, Emphasis offering a reminder and a Question asking again are later slices, each gated.
-- **Nov 14 (0172, pins):** bubbles in a row from the pin's bottom-left corner in the families' order; drawn as the bell
+- **Nov 14 (0176, pins):** bubbles in a row from the pin's bottom-left corner in the families' order; drawn as the bell
   is (ink disc, white glyph, white edge, the clock's size); a pin of one moment only; the head always shows the kind
   (amends NY10).
-- **Nov 14 (0172, the word):** they are reactions; families Feeling, Taste, Thought; "Type" becomes "Reaction"
+- **Nov 14 (0176, the word):** they are reactions; families Feeling, Taste, Thought; "Type" becomes "Reaction"
   everywhere; lenses named in plain words, never with a count.
 
-- **Nov 14 (0172, the slice's calls):** reactions in a table of their own, read whole as the bell reads reminders; the
+- **Nov 14 (0176, the slice's calls):** reactions in a table of their own, read whole as the bell reads reminders; the
   contents' Reactions holds the lenses; bubbles are faint on a faint pin and drawn on every map, the replays included;
   the defaults taken: the earliest note's type wins its family, the three families in one panel, a moment set aside
   with Not this one stays in its lens.
@@ -149,7 +149,7 @@ Built Nov 14, 2026, on `claude/trusting-gates-cd90zs`, test-first (the todos at 
 lens, the shell, both stores' migration and the Db contract (fake, IndexedDB, SQLite over `node:sqlite`), the bundle,
 pin reactions and the readers' guard in unit tests (`src/lib/__tests__/reactions/`, `map/pinReactions`, `dbContract`,
 `captures/bundle`); the screens in the `reactions` journey (new) and `journal`, `notepage`, `qol`, `threads`,
-`responses`. Note types retire whole (NY1-NY27 in `RETIRED`, decision 0172); their checks were carried to reactions
+`responses`. Note types retire whole (NY1-NY27 in `RETIRED`, decision 0176); their checks were carried to reactions
 or dropped with the feature (note-types audit 9, 56 and 63 carried; the Type menu's audit 8, 20 and 21 went with it).
 Typecheck, lint and `npm test` pass. Journeys run: `reactions`, `journal`, `notepage`, `qol`, `threads`, `responses`,
 `upgrade` (MT9 now expects IndexedDB 22). `journal`'s "fix entry-jitter 1" failed on the branch, passed 3 of 3 on
@@ -165,7 +165,7 @@ The UX reviewer, given three pictures and the three tasks in the owner's words a
 - RX2 "Gather all my ideas": found late, through Contents → Reactions ("Contents" reads as a book's table of contents).
 - RX3 "See on the map what I reacted to": found, with doubt (bubbles sat apart from their pins).
 Accepted: `reactions ui 1` (the bubbles lie across their own head's lower part, never over another pin) and
-`reactions ui 2` (the sign's plus a 16 pt ink disc). "Contents" as the way to the lenses is the owner's call (0172):
+`reactions ui 2` (the sign's plus a 16 pt ink disc). "Contents" as the way to the lenses is the owner's call (0176):
 put to the owner in `docs/STATUS.md`.
 
 ### UI review (decision 0145)

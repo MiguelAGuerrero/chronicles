@@ -1,4 +1,4 @@
-# 0172. Annotations: note types become descriptors on any moment, gathered in Chronicle's lenses
+# 0176. Annotations: note types become descriptors on any moment, gathered in Chronicle's lenses
 
 Date: 2026-11-14 · Status: accepted · Area: captures, chronicle, vision · Amends: decision 0161 (note types: notes only, one per note, on the piece, never filtered or searched), NY5 and NY12 of `specs/note-types`
 
@@ -43,7 +43,7 @@ What still holds from 0161 and the page:
   its ban on filtering yields to the lens code only.
 - **Proposed edits to `docs/VISION.md`** (the owner makes them): a Shapes row "Annotations on moments | aligned if
   reshaped | descriptors in fixed families, chosen by the owner; gathered in Chronicle's lenses as moments in context;
-  never counted, never said of a place (0172)"; and, as 0161 proposed, under Never "A feed, followers, likes …" the
+  never counted, never said of a place (0176)"; and, as 0161 proposed, under Never "A feed, followers, likes …" the
   nearest fit "a mark on your own moment, shown to no one".
 
 ## Addendum, Nov 14 (pins)

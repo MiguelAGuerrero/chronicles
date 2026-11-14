@@ -1,6 +1,6 @@
 // @layer core
 /**
- * Reactions (specs/reactions, RX4-RX5, RX9, RX16, RX28-RX29, RX33; decision 0172): why a moment mattered, chosen by the
+ * Reactions (specs/reactions, RX4-RX5, RX9, RX16, RX28-RX29, RX33; decision 0176): why a moment mattered, chosen by the
  * owner on any moment, at most one per family. Never inferred, never counted, never said of a place: these functions
  * take stored reactions and the owner's taps, nothing about a moment's words, picture, time or place.
  */

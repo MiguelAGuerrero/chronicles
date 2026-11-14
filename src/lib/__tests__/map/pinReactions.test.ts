@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-// Reactions on a pin (RX17-RX19, decision 0172's addendum on pins). Reached by name: test first.
+// Reactions on a pin (RX17-RX19, decision 0176's addendum on pins). Reached by name: test first.
 const pins = () => import('../../pins' as string) as Promise<Record<string, any>>;
 const icons = () => import('../../reactions/core' as string) as Promise<Record<string, any>>;
 const cap = (id: string, kind: string, extra: Record<string, unknown> = {}) => ({ id, kind, t: 1, pieces: [{ id, kind }], ...extra });

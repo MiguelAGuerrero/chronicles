@@ -91,3 +91,23 @@ export function sheetOpens(o: OpenInput): boolean {
   if (o.view <= 0) return false;
   return o.hard || (o.answered && (o.measured || o.slack));
 }
+
+/**
+ * The box the peek and the empty page share (fix entry-jitter 2): at least the room, and the empty page at least
+ * `blankMin`, growing to fill the rest. Laid out by the platform, the empty page is then `blankHeight` of whatever the
+ * peek measures, in the same pass as the peek: max(blankMin, room - peek) = max(BLANK_MIN, room - min(peek, most)).
+ */
+export function restBox(o: Omit<RestInput, 'peek'>): { room: number; blankMin: number } {
+  const room = Math.max(0, o.view - o.foot - o.sticky);
+  return { room, blankMin: blankHeight({ ...o, peek: Number.POSITIVE_INFINITY }) };
+}
+
+/**
+ * Whether a commit takes the sheet to its end before it is painted (fix entry-jitter 2): on the web (iOS Safari keeps no
+ * scroll anchor; native has `maintainVisibleContentPosition`), once open, with the reader at the end. Never while the
+ * field has the keyboard (a keystroke would pull a finger reading back; `onContentSizeChange` keeps the line in view,
+ * audit 3) or while the keyboard's slide is pending or under way (JN33, audit 2).
+ */
+export function snapsToEnd(o: { web: boolean; armed: boolean; pinned: boolean; writing: boolean; moving: boolean; sliding: boolean }): boolean {
+  return o.web && o.armed && o.pinned && !o.writing && !o.moving && !o.sliding;
+}

@@ -362,7 +362,7 @@ async function run(h) {
   await empty.pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(empty.pg, 'chronicle', 'memories');
   check(await empty.pg.waitForSelector('[data-testid=day-heading]', { timeout: 15000 }).then(() => true, () => false)
-    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=open-line]').count()) === 1
+    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=line-input]').count()) === 1
     && (await empty.pg.locator('[data-testid=resurfaced]').count()) === 0 && (await empty.pg.locator('[data-testid=moment-card]').count()) === 0,
     'RM4: with nothing kept, today\'s date and the open line, and no slip or entry (amended by JN2)');
   await empty.c.close();

@@ -43,6 +43,20 @@ async function run(h) {
     // explore-carousel audit 4: a town card that is not selected makes no promise of a way in.
     const townFooters = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-level="town"]')].map((e) => ({ sel: e.dataset.selected, has: /See its neighborhoods/.test(e.innerText) })));
     check(townFooters.length > 0 && townFooters.every((t) => t.has === (t.sel === '1')), `explore-carousel audit 4: the footer shows only on the selected town card (${JSON.stringify(townFooters)})`);
+    // tend explore 9 (decision 0172, O3, the accent at rest): the selected card's border, its "See its neighborhoods" and its
+    // chevron are ink (#1d2430); the accent is only for a card's single primary action.
+    const inkOf = (sel) => pg.evaluate((q) => {
+      const tile = document.querySelector(q);
+      if (!tile) return null;
+      const label = [...tile.querySelectorAll('div')].find((e) => e.childElementCount === 0 && /^(See its neighborhoods|What’s here)$/.test(e.textContent));
+      const chevron = label?.nextElementSibling;
+      const cs = (e) => (e ? getComputedStyle(e) : null);
+      return { border: cs(tile)?.borderTopColor, label: cs(label)?.color, chevron: cs(chevron)?.color };
+    }, sel);
+    const INK = 'rgb(29, 36, 48)';
+    const atRest = await inkOf('[data-testid=atlas-tile][data-level="town"][data-selected="1"]');
+    check(atRest && atRest.border === INK && atRest.label === INK && atRest.chevron === INK,
+      `tend explore 9: the selected town card's border, "See its neighborhoods" and its chevron are ink, not the accent (${JSON.stringify(atRest)})`);
 
     // A tap on the selected town opens its page: the town's own card, then its neighborhoods; the pill goes back to the towns.
     await safe(() => pg.locator('[data-testid=atlas-tile][data-selected="1"]').first().click());
@@ -54,6 +68,9 @@ async function run(h) {
       `fix explore-town-scope: a town's page is titled with its name and its pill reads "Towns" (${townSel}, ${JSON.stringify(pillText)})`);
     const pageLevels = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-town-head], [data-testid=atlas-tile]')].map((e) => e.dataset.level));
     check(pageLevels[0] === 'town' && pageLevels.slice(1).every((l) => l === 'neighborhood'), `EC3: a town's page is its own card, then its neighborhoods (${pageLevels.join(', ')})`);
+    const headAtRest = await inkOf('[data-testid=atlas-town-head][data-selected="1"]');
+    check(headAtRest && headAtRest.border === INK && headAtRest.label === INK && headAtRest.chevron === INK,
+      `tend explore 9: on a town's page its selected card's border, "What’s here" and its chevron are ink (${JSON.stringify(headAtRest)})`);
     // The town's own card leads; step onto its first neighborhood for the gestures (the keys go to the canvas, audit 3).
     await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
     await pg.keyboard.press('ArrowRight');
@@ -483,6 +500,137 @@ async function wholeTowns(h) {
   }
 }
 
+// The area card's footer at 390 and 320 (decision 0172): where you are, it is a status line in ink (tend explore 10); a far
+// town's question has a quiet "Not now" and no name line (tend explore 11).
+async function cardFooter(h) {
+  const { exploreUrl, check, freshPage, shot, areaTile, snapWorld } = h;
+  for (const [w, hgt] of [[390, 844], [320, 700]]) {
+    const { c, pg } = await freshPage(`carousel-footer-${w}`);
+    try {
+      await pg.setViewportSize({ width: w, height: hgt });
+      await pg.goto(exploreUrl);
+      const fox = await areaTile(pg, 'Fox Point');
+      await fox.click().catch(() => {});
+      if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null))) await fox.click().catch(() => {});
+      await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(900);
+      // tend explore 10 (O10): "You're in Fox Point" is a status line in ink, never link-coloured; the page's heading stays the town.
+      const here = await pg.evaluate(() => {
+        const e = [...document.querySelectorAll('[data-testid=atlas-card] div')].find((d) => d.childElementCount === 0 && /^You’re in /.test(d.textContent));
+        return e ? { text: e.textContent, color: getComputedStyle(e).color, weight: getComputedStyle(e).fontWeight, link: !!e.closest('a,[role=link],[role=button]') } : null;
+      });
+      const heading = await pg.locator('[data-testid=explore-area]').innerText().catch(() => '');
+      // tend explore audit 17: in regular weight, so the status line never looks like a text button.
+      check(here && here.text === 'You’re in Fox Point' && here.color === 'rgb(29, 36, 48)' && here.weight === '400' && !here.link && heading === 'Providence',
+        `tend explore 10, tend explore audit 17: at ${w}, the card's "You're in Fox Point" is a status line in ink and regular weight, not link-coloured, and the heading stays the town (${JSON.stringify({ ...here, heading })})`);
+      await shot(pg, `carousel-here-card-${w}`);
+    } finally {
+      await c.close();
+    }
+    // tend explore 11 (O2): a far town's question says no name of its own (the card's header names the town), and its
+    // way out is a quiet "Not now" in words, not a second close button.
+    snapWorld.serve = true;
+    const { c: c2, pg: pg2 } = await freshPage(`carousel-far-${w}`);
+    try {
+      await pg2.setViewportSize({ width: w, height: hgt });
+      await pg2.goto(exploreUrl);
+      const cranston = pg2.locator('[data-testid=atlas-tile][data-name="Cranston"]');
+      await pg2.waitForSelector('[data-testid=atlas-tile][data-name="Cranston"]', { timeout: 60000 }).catch(() => {});
+      await cranston.first().click().catch(() => {});
+      await pg2.waitForTimeout(800);
+      if (!(await pg2.locator('[data-testid=atlas-card]').count()) && (await cranston.count())) await cranston.first().click().catch(() => {});
+      await pg2.waitForTimeout(800);
+      if (!(await pg2.locator('[data-testid=atlas-card]').count())) await pg2.click('[data-testid=atlas-town-head]', { timeout: 30000 }).catch(() => {});
+      await pg2.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
+      await pg2.waitForTimeout(700);
+      await pg2.click('[data-testid=atlas-walk]').catch(() => {});
+      await pg2.waitForTimeout(900);
+      const asked = await pg2.evaluate(() => {
+        const footer = document.querySelector('[data-testid=atlas-footer]');
+        const cancel = document.querySelector('[data-testid=atlas-walk-cancel]');
+        const r = cancel?.getBoundingClientRect();
+        return {
+          footer: footer?.innerText.replace(/\s+/g, ' ').trim() ?? null,
+          cancel: cancel?.innerText.trim() ?? null,
+          spoken: cancel?.getAttribute('aria-label') ?? null,
+          size: r ? [Math.round(r.width), Math.round(r.height)] : null,
+          now: !!document.querySelector('[data-testid=atlas-walk-now]'),
+        };
+      });
+      check(asked.now && asked.cancel === 'Not now' && asked.spoken === 'Not now' && asked.footer != null && !/Cranston/.test(asked.footer)
+        && asked.size && asked.size[0] >= 44 && asked.size[1] >= 44,
+        `tend explore 11: at ${w}, a far town's question has no name line and a quiet "Not now" in words, a 44 px target (${JSON.stringify(asked)})`);
+      // tend explore audit 16: Not now is below the two choices, centred, a 44 px text button; below 360 px the choices stack
+      // full width (Walk now, When I get there, Not now), and no label wraps.
+      const order = await pg2.evaluate(() => {
+        const box = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+        const [now, later, cancel] = ['atlas-walk-now', 'atlas-walk-later', 'atlas-walk-cancel'].map(box);
+        const footer = document.querySelector('[data-testid=atlas-footer]')?.getBoundingClientRect();
+        const lines = (id) => {
+          const el = [...document.querySelectorAll(`[data-testid=${id}] div`)].find((d) => d.childElementCount === 0 && d.textContent.trim());
+          if (!el) return null;
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          return new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top))).size;
+        };
+        if (!now || !later || !cancel || !footer) return null;
+        return {
+          below: cancel.top >= Math.max(now.bottom, later.bottom) - 0.5,
+          centred: Math.abs((cancel.left + cancel.right) / 2 - (footer.left + footer.right) / 2) <= 2,
+          stacked: later.top >= now.bottom - 0.5,
+          // Stacked, each choice takes the footer's whole width (its 16 px padding aside).
+          full: [now, later].every((b) => Math.abs(b.width - (footer.width - 32)) <= 2),
+          target: [Math.round(cancel.width), Math.round(cancel.height)],
+          lines: [lines('atlas-walk-now'), lines('atlas-walk-later'), lines('atlas-walk-cancel')],
+        };
+      });
+      check(order && order.below && order.centred && order.target[1] >= 44 && order.target[0] >= 44 && order.stacked === (w < 360) && (w >= 360 || order.full) && order.lines.every((n) => n === 1),
+        `tend explore audit 16: at ${w}, Not now sits centred below the choices, a 44 px target; ${w < 360 ? 'stacked full width' : 'side by side'}, nothing wraps (${JSON.stringify(order)})`);
+      await shot(pg2, `carousel-far-question-${w}`);
+      await pg2.click('[data-testid=atlas-walk-cancel]').catch(() => {});
+      await pg2.waitForTimeout(500);
+      check((await pg2.locator('[data-testid=atlas-walk]').count()) === 1 && (await pg2.locator('[data-testid=atlas-walk-now]').count()) === 0,
+        `tend explore 11: at ${w}, Not now closes the question and leaves the card`);
+    } finally {
+      await c2.close();
+      snapWorld.serve = false;
+    }
+  }
+}
+
+// tend explore 12 (decision 0172, O7): a long press below zoom 10 says "Zoom in to look closer" for MOTION.exploreToast (3 s), then
+// the toast goes by itself; nothing else about it changed. At 390 and 320, pictured.
+async function toastDwell(h) {
+  const { exploreUrl, check, freshPage, shot } = h;
+  for (const [w, hgt] of [[390, 844], [320, 700]]) {
+    const { c, pg } = await freshPage(`carousel-toast-${w}`);
+    try {
+      await pg.setViewportSize({ width: w, height: hgt });
+      await pg.goto(exploreUrl);
+      await pg.waitForSelector('[data-testid=atlas-tile]', { timeout: 60000 }).catch(() => {});
+      await pg.waitForTimeout(2000);
+      const box = await pg.locator('canvas.maplibregl-canvas').filter({ visible: true }).last().boundingBox();
+      await pg.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40);
+      for (let i = 0; i < 20; i++) {
+        await pg.mouse.wheel(0, 600);
+        await pg.waitForTimeout(120);
+      }
+      await pg.waitForTimeout(1500);
+      await pg.mouse.down();
+      await pg.waitForTimeout(700);
+      await pg.mouse.up();
+      await pg.waitForTimeout(400);
+      const up = await pg.getByText('Zoom in to look closer').count();
+      await shot(pg, `carousel-toast-${w}`);
+      await pg.waitForTimeout(3300);
+      const gone = await pg.getByText('Zoom in to look closer').count();
+      check(up === 1 && gone === 0, `tend explore 12: at ${w}, the toast shows, then goes by itself within its dwell, MOTION.exploreToast (${JSON.stringify({ up, gone })})`);
+    } finally {
+      await c.close();
+    }
+  }
+}
+
 module.exports = {
   name: 'carousel',
   // Explore carousel (EC1-EC20): the map and a row of area cards.
@@ -491,6 +639,7 @@ module.exports = {
     'src/lib/atlas/carousel.ts',
     'src/components/atlas/AtlasCarousel.tsx',
     'src/components/atlas/AtlasTile.tsx',
+    'src/components/atlas/AtlasCard.tsx',
     'src/components/map/WalkMap.web.tsx',
     'src/components/map/types.ts',
     'src/components/AreaPoint.tsx',
@@ -504,5 +653,7 @@ module.exports = {
     await hintOnce(h);
     await townFramedOnce(h);
     await wholeTowns(h);
+    await cardFooter(h);
+    await toastDwell(h);
   },
 };

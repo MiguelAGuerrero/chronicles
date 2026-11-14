@@ -91,6 +91,7 @@ The journal (specs/chronicle-journal, JN1-JN24, decision 0155): Memories as one 
   journal/target.ts          where an entry goes: the open walk, a moment of its own, or wait until the keeper knows
   journal/blocks.ts          noteBlocks (a page-written note's Markdown as blocks the sheet draws natively, mentions kept), sheetBlocks (the first twelve, and that it goes on)
   journal/rest.ts            blankHeight (the empty page's height, so the sheet's end shows the entry the page opened on under its date, and the stack since), anchorOf, peekStart (which rows that is)
+  journal/bar.ts             controlsAt: whether the camera and the mic are in the row under the line or in the bar at the foot, never both (JN35, decision 0175)
   journal/keyboard.ts        keyboardLift: how far a browser's keyboard hides the foot (used by threads/useKeyboardHeight.web)
   components/journal/        JournalPage (the sheet: opens at the foot, older entries added above), Entry (dateline and pieces, no card; a page-written note as native blocks), Slip (the resurfaced moment), OpenLine (the field, camera and mic; runs the pen through useCaptures; Open as a page hands the entry to the note's page), type (the owner's serif)
 Media gallery (specs/media-gallery, MG1-MG22, decision 0139)
@@ -327,7 +328,7 @@ Memories, moments, days
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
-  reactions/                 reactions (decision 0172): core.ts (the eight in three families, `pick`, `ordered`, `setsOf`, `migrateTypes`), lens.ts (the only gathering by reaction), shell.ts (read whole, `choose`, `hold`/`keep` for a new page; index.ts the instance), useReactions.ts
+  reactions/                 reactions (decision 0176): core.ts (the eight in three families, `pick`, `ordered`, `setsOf`, `migrateTypes`), lens.ts (the only gathering by reaction), shell.ts (read whole, `choose`, `hold`/`keep` for a new page; index.ts the instance), useReactions.ts
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
   notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
@@ -580,7 +581,7 @@ Truth (`lib/types.ts`):
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 
-Reactions (`reactions/core.ts`, truth, decision 0172): `StoredReaction` (`reaction`: moment_id, family, reaction,
+Reactions (`reactions/core.ts`, truth, decision 0176): `StoredReaction` (`reaction`: moment_id, family, reaction,
 set_at; one row per moment and family). A moment carries nothing of them; `deleteMoments` and `deleteWalk` take its rows.
 SQLite migration 29 and IndexedDB 22 made it and moved each note's old `capture.note_type` onto its moment (the column
 stays, unread).

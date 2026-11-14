@@ -1,0 +1,26 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A look cancelled while `rememberArea` is writing",
+        "--reason",
+        "built in tend explore 13: a look cancelled while its area is written says nothing"
+      ],
+      "target": "sha256:25946d27f941c3d0e9aa0d192a3b61179b02f705e77f8653f5b7b66cc8ef6a60"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A capture made while the read of its own area is still running",
+        "--reason",
+        "built in tend explore 14: a capture made while its area's read runs waits for that read's places"
+      ],
+      "target": "sha256:320a3ae3fe61eb9865529f5b13a66ae024ffb3a0b4bb41aeb19ea74e7908928d"
+    }
+  ]
+}

@@ -419,7 +419,7 @@ async function run(h) {
   const readyPage = await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.keyboard.press('Escape');
   check(readyPage, 'NP1: Navigate\'s pencil opens the page in one tap');
-  // RX12, RX13 (reactions, decision 0172): the page's Reaction tool, where Type was, sets the moment's reactions; on a
+  // RX12, RX13 (reactions, decision 0176): the page's Reaction tool, where Type was, sets the moment's reactions; on a
   // new page they wait for the words and are kept with the moment; a page left without words keeps nothing.
   const rxOf = (re) => pg.evaluate((src) => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
@@ -434,7 +434,7 @@ async function run(h) {
     };
   }), re.source).catch(() => null);
   await pg.goto(url);
-  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=line-input]', { timeout: 30000 });
   await pg.waitForTimeout(1200);
   await openPage();
   await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });

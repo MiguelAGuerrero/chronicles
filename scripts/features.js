@@ -127,7 +127,7 @@ const FEATURES = [
   {
     name: 'presence',
     about: 'what a place is: one vocabulary of classes from every source\'s tags, read by density, marks and bars (decision 0140)',
-    rule: 'explore-and-discovery',
+    rule: 'presence',
     source: ['src/lib/presence/**'],
     // Its consumers own the journeys that show it: explore's marks, atlas and grading.
     journeys: [],
@@ -144,7 +144,7 @@ const FEATURES = [
   {
     name: 'explore',
     about: 'the Explore tab (the atlas), discovery, marks, reminders',
-    rule: 'explore-and-discovery',
+    rule: 'explore-atlas',
     source: [
       'src/lib/discovery/**',
       'src/lib/explore/**',
@@ -266,15 +266,15 @@ const FEATURES = [
   {
     name: 'transcript',
     about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0169)',
-    rule: 'captures-and-media',
+    rule: 'memo-transcripts',
     source: ['src/lib/transcript/**', 'src/lib/useTranscript.ts', 'src/components/MemoTranscript.tsx'],
     journeys: ['transcript'],
     specs: ['memo-transcripts'],
   },
   {
     name: 'reactions',
-    about: 'reactions on any moment, one per family (Feeling, Taste, Thought): the sign, the panel, marks, pin bubbles and the lenses (decision 0172)',
-    rule: 'captures-and-media',
+    about: 'reactions on any moment, one per family (Feeling, Taste, Thought): the sign, the panel, marks, pin bubbles and the lenses (decision 0176)',
+    rule: 'reactions',
     source: ['src/lib/reactions/**', 'src/components/reactions/**', 'src/lib/pins.ts'],
     journeys: ['reactions'],
     specs: ['reactions'],
@@ -306,7 +306,7 @@ const FEATURES = [
   {
     name: 'notes',
     about: 'note pages: a note is a journal entry, written in TipTap (Expo DOM), kept as it is written, read in the viewer; its body is Markdown once the page wrote it',
-    rule: 'captures-and-media',
+    rule: 'note-pages',
     source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
     journeys: ['notepage'],
     specs: ['note-pages'],
@@ -361,7 +361,7 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
-  // Note types became reactions on any moment (the owner, Nov 14, decision 0172): one per family, their own records,
+  // Note types became reactions on any moment (the owner, Nov 14, decision 0176): one per family, their own records,
   // the head always the kind, Type now Reaction. specs/reactions (RX1-RX36) carries what stands of them.
   'note-types': Array.from({ length: 27 }, (_, i) => `NY${i + 1}`),
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its

@@ -1,4 +1,4 @@
-// Reactions (specs/reactions, RX1-RX36, decision 0172): any moment carries reactions, at most one per family; the
+// Reactions (specs/reactions, RX1-RX36, decision 0176): any moment carries reactions, at most one per family; the
 // journal's sign and More, the viewer's More, marks under a dateline and the viewer's info line, bubbles on a single
 // moment's pin, and the lenses in the journal's contents. Its own browser. E2E_ONLY=reactions runs it alone.
 

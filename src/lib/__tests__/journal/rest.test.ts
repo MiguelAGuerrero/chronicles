@@ -96,3 +96,38 @@ test('fix entry-jitter audit 3: a failed read is an answer, so the kept-this-sit
   // `answered` is true for a read that failed as for one that succeeded (MemoriesScreen passes both).
   assert.equal(rs.sheetOpens({ view: 700, answered: true, measured: true, slack: false, hard: false }), true);
 });
+
+test('fix entry-jitter 2 1: the empty page the platform lays out in the rest box is blankHeight, whatever the peek measures', () => {
+  // The empty page fills what the peek leaves of the room, never under its minimum: the browser does this in the
+  // same layout as the peek, so a peek that grows takes its room from the empty page and the sheet's end stays.
+  for (const view of [200, 500, 700, 844]) {
+    for (const sticky of [0, 48, 66]) {
+      const box = rs.restBox({ view, foot: 77, sticky });
+      for (const peek of [0, 40, 120, 300, 333, 600, 2000]) {
+        const laid = Math.max(box.blankMin, box.room - peek);
+        assert.ok(Math.abs(laid - rs.blankHeight({ view, foot: 77, sticky, peek })) <= 1, `${view} ${sticky} ${peek}: ${laid}`);
+      }
+    }
+  }
+});
+
+const SNAP = { web: true, armed: true, pinned: true, writing: false, moving: false, sliding: false };
+
+test('fix entry-jitter 2 audit 1: a pinned page is taken to its end before paint whether or not older entries were asked for', () => {
+  // An older page that brought no rows left the ask standing for the sitting; the snap no longer depends on it.
+  assert.equal(rs.snapsToEnd(SNAP), true);
+  assert.equal(rs.snapsToEnd({ ...SNAP, pinned: false }), false);
+  assert.equal(rs.snapsToEnd({ ...SNAP, armed: false }), false);
+  // Native keeps its place itself.
+  assert.equal(rs.snapsToEnd({ ...SNAP, web: false }), false);
+});
+
+test('fix entry-jitter 2 audit 2: the keyboard\'s slide is not snapped away before it starts', () => {
+  // JN33: the stack slides up as the keyboard comes and goes; an animated move pending or under way is left alone.
+  assert.equal(rs.snapsToEnd({ ...SNAP, moving: true }), false);
+  assert.equal(rs.snapsToEnd({ ...SNAP, sliding: true }), false);
+});
+
+test('fix entry-jitter 2 audit 3: while the field has the keyboard, a keystroke does not pull the page to its end', () => {
+  assert.equal(rs.snapsToEnd({ ...SNAP, writing: true }), false);
+});

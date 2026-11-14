@@ -15,7 +15,6 @@ import {
   alertedFor,
   alertKeys,
   EXPLORE_RULES,
-  findFor,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -27,7 +26,8 @@ import {
   type ExploreRead,
 } from './explore';
 import { placesArchive } from '../discovery/archive';
-import { exploreBuild, exploreBusy, exploreRead, itemBounds } from './exploreRun';
+import { exploreBuild, exploreBusy, exploreHold, explorePending, exploreRead, itemBounds } from './exploreRun';
+import { createCaptureFinds } from './exploreQueue';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
 /** Items are read again around you after this much walking. */
@@ -80,6 +80,17 @@ export function useExplore(opts: {
     };
   }, []);
 
+  // Captures finding places (E8, E9): `finder` (exploreQueue.ts) records each find through `record`.
+  const record = useCallback(async (item: ChecklistItem, captureId: string) => {
+    const walkId = latest.current.walkId;
+    if (!walkId) return;
+    await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
+    if (!mounted.current) return;
+    setFound((f) => new Set([...(f ?? []), item.key]));
+    latest.current.onFound(item);
+  }, []);
+  const [finder] = useState(() => createCaptureFinds({ pending: explorePending }));
+
   useEffect(() => {
     let alive = true;
     loadSettings().then((s) => alive && setSettings(s), () => {});
@@ -88,7 +99,7 @@ export function useExplore(opts: {
       db.listFinds().then((f) => {
         if (!alive) return;
         // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
-        for (const x of f) handled.current.add(x.capture_id);
+        finder.seen(f.map((x) => x.capture_id));
         setFound(new Set(f.map((x) => x.key)));
       }, () => alive && setFound((was) => was ?? new Set()));
     readFinds();
@@ -99,7 +110,7 @@ export function useExplore(opts: {
       off();
       offDeleted();
     };
-  }, []);
+  }, [finder]);
 
   // What is known: checklists and reads, kept in memory and refreshed after each read.
   const known = useRef<{ areas: ChecklistArea[]; reads: ExploreRead[] } | null>(null);
@@ -118,12 +129,13 @@ export function useExplore(opts: {
   // One read at a time, a failed one waiting 2 min and 100 m (E5); every walk, quiet or not (E2).
   const failed = useRef<{ at: LngLat; t: number } | null>(null);
   const checkedAt = useRef<LngLat | null>(null);
-  const readAt = useCallback(async (centre: LngLat): Promise<boolean> => {
+  const readAt = useCallback(async (centre: LngLat, stop: () => boolean = () => false): Promise<boolean> => {
     // Busy streets only on an exploring walk (the owner's call); checklists on every walk.
-    const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current);
+    const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current || stop());
     if (!mounted.current) return false;
     if (!r.ok) {
-      failed.current = { at: centre, t: Date.now() };
+      // tend explore audit 13: a read its caller stopped is no failure, so it sets no failure's wait.
+      if (!r.stopped) failed.current = { at: centre, t: Date.now() };
       return false;
     }
     failed.current = null;
@@ -135,21 +147,26 @@ export function useExplore(opts: {
   const sweptAt = useRef<LngLat[]>([]);
   const maybeRead = useCallback(async (fix: LngLat) => {
     if (exploreBusy() || !retryAllowed(failed.current, fix, Date.now())) return;
-    const build = await exploreBuild();
-    if (build === 'unknown') return;
-    const k = known.current ?? (await loadKnown());
-    const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-    // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
-    await placesArchive.refresh();
-    let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-    if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
-      const rows = await db.listLandings().catch(() => []);
-      // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
-      if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
-    }
-    if (!centre) return;
-    if (latest.current.exploring) sweptAt.current.push(centre);
-    if (await readAt(centre)) await loadItems(fix);
+    // tend explore audit 11: held from here, so a capture made while the read is still being decided waits for it; let go
+    // before the read's items load, so the capture is looked at again with them.
+    const read = await exploreHold(async () => {
+      const build = await exploreBuild();
+      if (build === 'unknown') return false;
+      const k = known.current ?? (await loadKnown());
+      const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
+      // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
+      await placesArchive.refresh();
+      let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
+      if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
+        const rows = await db.listLandings().catch(() => []);
+        // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
+        if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
+      }
+      if (!centre) return false;
+      if (latest.current.exploring) sweptAt.current.push(centre);
+      return readAt(centre);
+    });
+    if (read) await loadItems(fix);
   }, [loadKnown, loadItems, readAt]);
 
   const { here, exploring } = opts;
@@ -180,16 +197,20 @@ export function useExplore(opts: {
       return () => clearTimeout(t);
     }
     let alive = true;
+    // tend explore audit 11: the route's reads hold the queue while they are decided, as `maybeRead`'s do, until its items load.
     (async () => {
-      for (const p of routeProbes(routePath)) {
-        if (!alive || !retryAllowed(failed.current, p, Date.now())) break;
-        const build = await exploreBuild();
-        if (build === 'unknown') break;
-        const k = known.current ?? (await loadKnown());
-        const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-        const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-        if (centre && !(await readAt(centre))) break;
-      }
+      await exploreHold(async () => {
+        for (const p of routeProbes(routePath)) {
+          if (!alive || !retryAllowed(failed.current, p, Date.now())) break;
+          const build = await exploreBuild();
+          if (build === 'unknown') break;
+          const k = known.current ?? (await loadKnown());
+          const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
+          const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
+          // tend explore audit 13: a route dropped meanwhile stops its reads, a waiting one included.
+          if (centre && !(await readAt(centre, () => !alive))) break;
+        }
+      });
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);
       const got = box ? await db.checklistItemsIn(box).catch(() => []) : [];
       if (alive && mounted.current) setRouteItems(got);
@@ -218,34 +239,16 @@ export function useExplore(opts: {
 
   // A capture within 60 m finds the one place in reach, on any walk, whatever its kind (E8, E9, E18).
   // With two or more in reach nothing is found: the walker taps a mark to make a moment about it, never a guess.
-  // Each capture is handled once; an unstamped one has no place until stop.
-  const handled = useRef(new Set<string>());
-  const record = useCallback(async (item: ChecklistItem, captureId: string) => {
-    const walkId = latest.current.walkId;
-    if (!walkId) return;
-    await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
-    if (!mounted.current) return;
-    setFound((f) => new Set([...(f ?? []), item.key]));
-    latest.current.onFound(item);
-  }, []);
+  // Each capture is handled once; an unstamped one has no place until stop. `finder` (exploreQueue.ts) keeps which are
+  // handled, holds one with nothing in reach while a read is pending (tend explore 14, audit 11) and a place being
+  // recorded as taken (audit 12).
   useEffect(() => {
-    const walkId = opts.walkId;
     // Not before the finds are known: they say which captures already found something (audit 4).
-    if (!found) return;
-    const fresh = opts.captures.filter((c) => !handled.current.has(c.id) && c.lat != null && c.lon != null);
-    if (!walkId || !fresh.length || !items.length) return;
-    for (const c of fresh) handled.current.add(c.id);
-    (async () => {
-      const taken = new Set(found);
-      for (const c of fresh) {
-        const place = findFor([c.lon!, c.lat!], [...items, ...routeItems], taken);
-        if (!place) continue;
-        taken.add(place.key);
-        await record(place, c.id);
-        if (!mounted.current) return;
-      }
-    })();
-  }, [opts.captures, opts.walkId, items, routeItems, found, record]);
+    if (!found || !opts.walkId || !items.length) return;
+    const fresh = opts.captures.filter((c) => !finder.isHandled(c.id) && c.lat != null && c.lon != null);
+    if (!fresh.length) return;
+    void finder.look(fresh.map((c) => ({ id: c.id, at: [c.lon!, c.lat!] as LngLat })), [...items, ...routeItems], found, record, () => mounted.current);
+  }, [opts.captures, opts.walkId, items, routeItems, found, finder, record]);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;
   const foundSet = useMemo(() => found ?? new Set<string>(), [found]);

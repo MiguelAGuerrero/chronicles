@@ -270,7 +270,7 @@ export const MIGRATIONS: readonly string[] = [
     capture_id TEXT PRIMARY KEY, text TEXT NOT NULL, lang TEXT NOT NULL, from_ms INTEGER, to_ms INTEGER, made_at INTEGER NOT NULL
   );
   `,
-  // Reactions (RX28, RX29, decision 0172): their own records, one per moment and family. Every note type kept before moves
+  // Reactions (RX28, RX29, decision 0176): their own records, one per moment and family. Every note type kept before moves
   // onto its moment, the earliest note winning its family (the first row in time order is kept, the rest ignored);
   // capture.note_type is left, never read again.
   `

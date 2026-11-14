@@ -194,8 +194,14 @@ paths right.
 
 ## 7. Docs as you go
 
-- A new rule or trap: the matching `.claude/rules/<area>.md`.
-- An owner's call made during the slice: `docs/decisions/` (date, the call, why).
+- A new rule or trap: the matching `.claude/rules/<area>.md`. A slice with its own decision record and its own
+  code folder gets its own `.claude/rules/<topic>.md` instead, `paths:` narrowed to that folder, rather than
+  appending to its area's file. A rule file past the warning size
+  (`check:docs` warns at 20,000 characters) is split by topic before more is added (decision 0173).
+- An owner's call made during the slice: `docs/decisions/` (date, the call, why), numbered by
+  `npm run book:next-decision` in the worktree (any checkout cut from `main` since decision 0174) after
+  your last fetch, never claimed early; before publishing, `npm run book:next-decision -- --check
+  <NNNN> <file>`.
 - What was left out: `docs/DEFERRED.md` (`npm run records -- deferred item add
   "<section>" --file <item>`, `--new` for the slice's own section); untried native
   code: an item in `docs/NATIVE_UNVERIFIED.md` (`**Do:** … **Expect:** …`;
@@ -208,7 +214,8 @@ paths right.
 
 `/audit <slug>` runs only when the owner asks (decision 0074); the UI review in step 9 runs on every slice that
 changes a screen, audit or not (decision 0145). Then fix the
-accepted findings, each behind a regression test named `<slug> audit N`.
+accepted findings, each behind a regression test named `<slug> audit N`, N on from
+`npm run book:next-audit -- <slug>` in the worktree.
 
 ## 9. Before done
 

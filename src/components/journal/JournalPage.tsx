@@ -1,8 +1,8 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent, type ViewStyle } from 'react-native';
 import { dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
-import { anchorOf, blankHeight, peekMeasured, peekStart, sheetOpens, stickyDay } from '../../lib/journal/rest';
+import { anchorOf, peekMeasured, peekStart, restBox, sheetOpens, snapsToEnd, stickyDay } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
 import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
@@ -11,6 +11,8 @@ export type JournalPageHandle = { toFoot: (animated?: boolean) => void };
 
 /** Older entries are asked for this near the top of what is drawn. */
 const NEAR_TOP = 240;
+// What the sheet's foot pads beyond the line's own height (`MemoriesScreen`'s `footPad`): not a bar.
+export const FOOT_GAP = 16;
 /** How long the sheet's end is held while the empty page grows or comes back (the bars fold in about this long). */
 const SETTLE_MS = 450;
 /** The sheet is shown this long after the read answered at most, whether or not its rows have reported their heights. */
@@ -49,6 +51,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   writing?: boolean;
   /** The empty page went out of view, or came back (audit 50): out of view, the bar holds the pen. */
   onAway?: (away: boolean) => void;
+  /** The sheet has opened (it is seen): until then the bar holds the capture controls (JN35). */
+  onOpen?: (open: boolean) => void;
   /** Memories is the screen in front. Coming back to it is a new sitting: the page opens on the last entry again (audit 42). */
   focused?: boolean;
   /** Said under today's date when the page could not be read. */
@@ -88,11 +92,15 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const anchor = anchorOf(props.rows, focused && !wasFocused ? null : opened0);
   if (anchor !== opened0) setOpened0(anchor);
   const from = peekStart(props.rows, anchor);
-  const peek = props.rows.slice(from).reduce((sum, r) => sum + (heights[r.key] ?? 0), 0);
   // A peek that begins with a date brings its own; otherwise its day's date is held above it (audit 48).
   const held = stickyDay(props.rows, from);
   const sticky = held == null ? 0 : heights[held] || DATE_H;
-  const blank = view > 0 ? blankHeight({ view, foot: props.footPad, sticky, peek }) : 0;
+  // The peek and the empty page share one box as tall as the room (fix entry-jitter 2): the empty page takes what
+  // the peek leaves, in the browser's own layout. Sized from measured heights it lagged a render behind, and a peek
+  // that grew (a dateline wrapping when its place was read) moved the sheet's end and the entry with it.
+  const box = view > 0 ? restBox({ view, foot: props.footPad, sticky }) : { room: 0, blankMin: 0 };
+  // The empty page's height as laid out, for `onAway`.
+  const blankH = useRef(0);
   // The sheet opens once, when what sizes the empty page is known (fix entry-jitter). Taken to its end before that,
   // the entry sat above its resting place and slid down as each height arrived, on a page seen for the first time.
   // The read must have answered (a slow one would show today's date alone); a row that never reports (a reused view on the web) is waited for `OPEN_WAIT_MS`, a read that never answers `OPEN_HARD_MS`.
@@ -110,15 +118,30 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   }, [answered]);
   const [open, setOpen] = useState(false);
   if (!open && sheetOpens({ view, answered, measured: peekMeasured(props.rows, from, heights), slack, hard })) setOpen(true);
-  // Callbacks read it from a ref; once open, the page is taken to its end the once.
+  // Callbacks read it from a ref; once open, the page is taken to its end the once, before it is painted (fix
+  // entry-jitter 2: after it, one frame showed the sheet's top).
   const armed = useRef(false);
-  useEffect(() => {
+  useLayoutEffect(() => {
     armed.current = open;
-    if (open && pinned.current) scroll.current?.scrollToEnd({ animated: false });
+    if (!open) return;
+    pinned.current = true;
+    // Opening is not a movement the eye follows: the first slide is the keyboard's.
+    moving.current = false;
+    scroll.current?.scrollToEnd({ animated: false });
   }, [open]);
+  const { onOpen } = props;
+  useEffect(() => {
+    onOpen?.(open);
+  }, [onOpen, open]);
   // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
   // changes the sheet's length while the reader is at its end just keeps the end in view.
   const moving = useRef(false);
+  // An animated slide to the end is under way: nothing snaps it there meanwhile.
+  const sliding = useRef(false);
+  const slid = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (slid.current) clearTimeout(slid.current);
+  }, []);
   // The keyboard coming and going changes the sheet's height and its length in several steps (the bars fold, the
   // empty page resizes). The reader is at the end before and must be at the end after, whatever a scroll event in between
   // says: the end is held for a moment, and the sheet is taken there once more when it has settled.
@@ -153,7 +176,17 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     return () => clearTimeout(t);
   }, [focused]);
 
+  // At rest at the end, every change is taken to the end before it is painted (fix entry-jitter 2). iOS Safari keeps no
+  // scroll anchor: an entry above that grew as its place was read pushed the one in view down for a frame, and
+  // `onContentSizeChange` brought it back only after. `snapsToEnd` says when (lib/journal/rest).
+  useLayoutEffect(() => {
+    const web = Platform.OS === 'web';
+    if (!snapsToEnd({ web, armed: armed.current, pinned: pinned.current, writing, moving: moving.current, sliding: sliding.current })) return;
+    scroll.current?.scrollToEnd({ animated: false });
+  });
+
   const away = useRef(false);
+  const lineRoom = useRef(0);
   // A page just drawn is at its foot, with the empty page in view (audit 60).
   const { onAway } = props;
   useEffect(() => {
@@ -163,11 +196,13 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     at.current = { y: contentOffset.y, height: contentSize.height, view: layoutMeasurement.height };
-    if (!hold.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
+    if (!hold.current && armed.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
     if (pinned.current) opened.current = true;
-    // The empty page is the sheet's last `blank` px above its foot's padding.
-    // Out of view: its top is under the bar or below it (audit 61).
-    const out = contentOffset.y + layoutMeasurement.height < contentSize.height - blank + 24;
+    // The empty page is the sheet's last `blankH` px (as measured) above its foot's padding; the line and the row under it are its
+    // first `lineRoom` px. Out of view: the row is not wholly above the foot's padding (audit 61, JN37). A bar that
+    // comes in adds its height to that padding, so the row must clear it before the bar goes again.
+    const foot = contentSize.height - props.footPad;
+    const out = contentOffset.y + layoutMeasurement.height - (props.footPad - FOOT_GAP) < foot - blankH.current + Math.max(24, lineRoom.current) - 4;
     if (out !== away.current) {
       away.current = out;
       props.onAway?.(out);
@@ -182,6 +217,13 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     if (!armed.current) return;
     const animated = moving.current;
     moving.current = false;
+    if (animated) {
+      sliding.current = true;
+      if (slid.current) clearTimeout(slid.current);
+      slid.current = setTimeout(() => {
+        sliding.current = false;
+      }, SETTLE_MS);
+    }
     scroll.current?.scrollToEnd({ animated });
   };
   const onContentSizeChange = (_w: number, h: number) => {
@@ -201,8 +243,27 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     }
     if (pinned.current) toEnd();
   };
-  // Each day's date is held at the top while its entries pass (JN31).
-  const dates = props.rows.flatMap((r, i) => (r.k === 'day' ? [i] : []));
+  // Each day's date is held at the top while its entries pass (JN31). Those before the peek are the sheet's own
+  // children; a date inside the peek's box is held by the browser within the box (web), and not held on native.
+  const dates = props.rows.slice(0, from).flatMap((r, i) => (r.k === 'day' ? [i] : []));
+  const row = (r: JournalRow, inBox: boolean) => {
+    const onLayout = (e: { nativeEvent: { layout: { height: number } } }) => measured(r.key, Math.round(e.nativeEvent.layout.height));
+    if (r.k === 'day') {
+      const day = (
+        <View key={r.key} style={styles.day} onLayout={onLayout}>
+          <Text style={styles.heading} accessibilityRole="header" testID="day-heading">{dayHeading(r.t, props.now)}</Text>
+          {r.today ? props.notice : null}
+          {/* An edge (audit 52): what passes under the held date fades into the page's ground, not cut mid-line. */}
+          <View style={styles.edge} pointerEvents="none" testID="day-edge">
+            {EDGE.map((o) => <View key={o} style={[styles.edgeBand, { opacity: o }]} />)}
+          </View>
+        </View>
+      );
+      return inBox && Platform.OS === 'web' ? <View key={r.key} style={HELD}>{day}</View> : day;
+    }
+    if (r.k === 'slip') return <View key={r.key} onLayout={onLayout}>{props.slip}</View>;
+    return <View key={r.key} onLayout={onLayout}>{props.entry(r.m)}</View>;
+  };
   return (
     <ScrollView
       ref={scroll}
@@ -222,37 +283,35 @@ export const JournalPage = forwardRef<JournalPageHandle, {
       maintainVisibleContentPosition={Platform.OS === 'web' ? undefined : { minIndexForVisible: 0 }}
       keyboardShouldPersistTaps="handled"
     >
-      {props.rows.map((r) => {
-        const onLayout = (e: { nativeEvent: { layout: { height: number } } }) => measured(r.key, Math.round(e.nativeEvent.layout.height));
-        if (r.k === 'day') {
-          return (
-            <View key={r.key} style={styles.day} onLayout={onLayout}>
-              <Text style={styles.heading} accessibilityRole="header" testID="day-heading">{dayHeading(r.t, props.now)}</Text>
-              {r.today ? props.notice : null}
-              {/* An edge (audit 52): what passes under the held date fades into the page's ground, not cut mid-line. */}
-              <View style={styles.edge} pointerEvents="none" testID="day-edge">
-                {EDGE.map((o) => <View key={o} style={[styles.edgeBand, { opacity: o }]} />)}
-              </View>
-            </View>
-          );
-        }
-        if (r.k === 'slip') return <View key={r.key} onLayout={onLayout}>{props.slip}</View>;
-        return <View key={r.key} onLayout={onLayout}>{props.entry(r.m)}</View>;
-      })}
-      {/* The empty page (JN31, JN32): the field is its first line, and the rest of it is one place to tap. */}
-      <View key="blank" style={{ minHeight: blank }} testID="empty-page">
-        {/* Under the field, the whole of it: the room above the line takes the tap too (audit 45). The field has
-            the name for a screen reader; this is the same thing to a finger, so it is not said twice (audit 44). */}
-        <Pressable
-          testID="line-write"
-          onPress={props.onWrite}
-          style={StyleSheet.absoluteFill}
-          accessible={false}
-          importantForAccessibility="no"
-          aria-hidden
-          tabIndex={-1}
-        />
-        {props.field}
+      {props.rows.slice(0, from).map((r) => row(r, false))}
+      {/* The peek and the empty page (JN31-JN33), in a box at least as tall as the room. */}
+      <View key="peek" style={{ minHeight: box.room }}>
+        {props.rows.slice(from).map((r) => row(r, true))}
+        {/* The empty page (JN31, JN32): the field is its first line, and the rest of it is one place to tap. */}
+        <View
+          key="blank"
+          style={[styles.blank, { minHeight: box.blankMin }]}
+          testID="empty-page"
+          onLayout={(e) => {
+            blankH.current = Math.round(e.nativeEvent.layout.height);
+          }}
+        >
+          {/* Under the field, the whole of it: the room above the line takes the tap too (audit 45). The field has
+              the name for a screen reader; this is the same thing to a finger, so it is not said twice (audit 44). */}
+          <Pressable
+            testID="line-write"
+            onPress={props.onWrite}
+            style={StyleSheet.absoluteFill}
+            accessible={false}
+            importantForAccessibility="no"
+            aria-hidden
+            tabIndex={-1}
+          />
+          {/* The field and the row under it (JN34): their height says where the row ends, for JN37's "in view". */}
+          <View onLayout={(e) => { lineRoom.current = Math.round(e.nativeEvent.layout.height); }} pointerEvents="box-none">
+            {props.field}
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -264,7 +323,11 @@ export const JournalPage = forwardRef<JournalPageHandle, {
  */
 const EDGE = [0.82, 0.6, 0.4, 0.22];
 
+/** What react-native-web's `stickyHeaderIndices` puts around a held child, for a date inside the peek's box. */
+const HELD = { position: 'sticky', top: 0, zIndex: 10 } as unknown as ViewStyle;
+
 const styles = StyleSheet.create({
+  blank: { flexGrow: 1 },
   edge: { position: 'absolute', left: 0, right: 0, top: '100%' },
   edgeBand: { height: 4, backgroundColor: theme.bg },
   scroll: { flex: 1 },

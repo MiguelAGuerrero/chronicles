@@ -1,0 +1,73 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, with location never asked, open Explore with no fix and tap Find me; decline; on Android decline once (\"Deny\") and then again (\"Don't ask again\"); on iOS also try with Location Services off for the whole phone; each time go to Settings, turn location on for Chronicles and come back. **Expect:** `watchLocatePermission` (`locate/permission.native.ts`) hears the change on the return to the front (`AppState` 'active'; whether iOS's own prompt toggles `AppState`, or iOS ends the app when a permission changes in Settings, is unknown): after Android's first Deny (`canAskAgain` true) the card withholds Find me and the edge Locate stays; once blocked (`canAskAgain` false, or iOS's denied) neither shows and the card says \"Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.\"; with Location Services off, whether `getForegroundPermissionsAsync` reads denied is unknown; back with location on, the notice goes and Find me returns (`tend explore audits 8-10`; the review of `/tend explore`, Nov 14, auditor's native list).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on a phone, long press Explore's map, tap What's good here? and Cancel at once, several times; on a walk, take a photo beside a place to find just as the walk reaches a new area, so its read is still running. **Expect:** a look cancelled while its area is written on the SQLite queue says nothing (`runLook`, tend explore 13); the photo finds its place once the read's items load, and the place is found once, with one \"Found\" (`createCaptureFinds`, tend explore 14, audits 11, 12); the timing behind the single SQLite write queue is unverified (the review of `/tend explore`, Nov 14, auditor's native list).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--reason",
+        "a new finding of the review of /tend explore (Nov 14), filed [loop] low; it moves none of the [owner] items this run built and removed: \"With no fix, Explore shows Locate at the\", \"Explore's empty card still offers Find m\", \"Explore's area card carries the accent o\", \"On a town's neighborhood page the title \", \"The Explore toast's 3000 ms dwell (`expl\", \"The far town's card (Walk now / When I g\""
+      ],
+      "body": "- [loop] Explore's accent at rest beyond the selected card: the area card's \"How the marks work\" and its icon (`AtlasCard.tsx`, `howText`) and the selected area's name on the map are drawn in the accent though neither is a card's single primary action (decision 0172, \"The accent at rest\"; pictures `after/explore-here-card-390`, `after/explore-toast-390`; the review of `/tend explore`, Nov 14, ux-reviewer, judgment 3; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--reason",
+        "a new finding of the review of /tend explore (Nov 14), filed [loop] low; it moves none of the [owner] items this run built and removed: \"With no fix, Explore shows Locate at the\", \"Explore's empty card still offers Find m\", \"Explore's area card carries the accent o\", \"On a town's neighborhood page the title \", \"The Explore toast's 3000 ms dwell (`expl\", \"The far town's card (Walk now / When I g\""
+      ],
+      "body": "- [loop] At 320 px Fox Point's card cuts its kind rows' word: \"some\" reads \"so…\", and History's is lost beside its Suggest a walk (picture `after/explore-here-card-320`, the same before; WCAG 2.2, 1.4.10 Reflow; the review of `/tend explore`, Nov 14, ux-reviewer; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--reason",
+        "a new finding of the review of /tend explore (Nov 14), filed [loop] low; it moves none of the [owner] items this run built and removed: \"With no fix, Explore shows Locate at the\", \"Explore's empty card still offers Find m\", \"Explore's area card carries the accent o\", \"On a town's neighborhood page the title \", \"The Explore toast's 3000 ms dwell (`expl\", \"The far town's card (Walk now / When I g\""
+      ],
+      "body": "- [loop] Explore's toast \"Zoom in to look closer\" sits over the map's credits (i) (picture `after/explore-toast-390`, the same before; ui-patterns, a control may not be covered, T7: lift the toast above the credits; the review of `/tend explore`, Nov 14, ux-reviewer; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--reason",
+        "a new finding of the review of /tend explore (Nov 14), filed [loop] low; it moves none of the [owner] items this run built and removed: \"With no fix, Explore shows Locate at the\", \"Explore's empty card still offers Find m\", \"Explore's area card carries the accent o\", \"On a town's neighborhood page the title \", \"The Explore toast's 3000 ms dwell (`expl\", \"The far town's card (Walk now / When I g\""
+      ],
+      "body": "- [loop] With no fix, Move map floats alone in Locate's column with two empty slots under it (the compass's and Locate's), since the edge Locate steps aside for Find me (tend explore 8); the column could close up (picture `after/explore-nofix-390`; the review of `/tend explore`, Nov 14, auditor, UI notes; low, opinion)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 14, `/tend explore --cap=8 --deploy=main`, the ledger lens** (from `e6bdfc6a`, rebased on `00e0bbe9`; the owner's\nanswers of decision 0172 for Explore first, then Explore's medium `[loop]` items).\n- `tend explore 8`: one way to find you (O6, O20): no edge Locate beside Find me; no Find me after a refusal until the\n  permission changes (`findYou`, `locate/permission.*`, native unverified).\n- `tend explore 9`: the selected card's border and footer link in ink (O3, the accent at rest).\n- `tend explore 10`: \"You're in Fox Point\" a status line in ink (O10).\n- `tend explore 11`: the far town's question says \"Not now\" in words, no second name line (O2).\n- `tend explore 12`: Explore's toast dwell a motion token (O7; O23, the walk screen's, waits for its run).\n- `tend explore 13`: a look cancelled while its area is written says nothing (`runLook`).\n- `tend explore 14`: a capture made during its area's read waits for that read (`capturesToFind`).\n- `tend explore 15`: a read for another centre waits for the running one, never told it was its own (`readJoin`).\n- The review (auditor and ux-reviewer, one round, decision 0145): fourteen findings accepted, shipped as\n  `tend explore audit 8-17`: blocked location shows no edge Locate either (audit 8); the owner's answer, in person,\n  Nov 14, during the review, \"Say where to turn it on\", added to 0172's O6 and O20: while blocked the empty card says\n  \"Location is off. Turn it on in your browser's or your phone's settings to see the areas around you.\" (on a phone,\n  the phone notice's words: \"Location is turned off for Chronicles. Turn it on in Settings to see the areas around\n  you.\"), muted, no crosshair, the notice still closable (audit 9); the refusal's notice goes once allowed (10); the\n  explore reads' queue a tested shell (`explore/exploreQueue.ts`) with a pending hold (11), places being recorded taken\n  (12), stopped waiters and reads (13); `MOTION.exploreToast` (14); the compass hands focus to Move map (15); \"Not now\"\n  below the choices, which stack under 360 px (16); \"You're in\" in regular weight (17); the run's own rule line on the\n  edge Locate reworded (auditor 7). Five filed `[loop]` low: the accent at rest on \"How the marks work\" and the map's\n  selected name, the kind rows cut at 320, the toast over the credits, Move map alone in its column.\nLeft by the cap, `[loop]` as they were: \"A near read whose write fails is retried every 1.5 s\", \"A failed\n`listAtlasAreas` in `readNear`\". Entries filed: none (the answers were the owner's). Lenses not run: 1-6 (a ledger run;\nonly the screens the answers changed were pictured, at 390 and 320). Explore stays rough (capped). Nothing here has run\non a phone.\n"
+    }
+  ]
+}

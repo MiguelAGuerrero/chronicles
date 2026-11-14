@@ -1,6 +1,6 @@
 // @layer shell
 /**
- * Reactions' shell (RX8, RX13, RX24, RX26; decision 0172): every moment's reactions read once into memory, as the
+ * Reactions' shell (RX8, RX13, RX24, RX26; decision 0176): every moment's reactions read once into memory, as the
  * reminder bell reads reminders; a choice written at once, the map changed only after the write; a new page's choices
  * held until its moment is kept. Takes its effects as ports, so a Node test runs it over `fakePorts()`.
  */

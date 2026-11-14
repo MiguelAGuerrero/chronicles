@@ -170,7 +170,7 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     d.createObjectStore('transcript', { keyPath: 'capture_id' });
   }
   if (oldVersion < 22 && upTo >= 22) {
-    // Reactions (RX28, RX29, decision 0172): their own records, one per moment and family. Every note type kept before
+    // Reactions (RX28, RX29, decision 0176): their own records, one per moment and family. Every note type kept before
     // moves onto its moment, the earliest note winning its family; the pieces' old field is left, never read again.
     const reactions = d.createObjectStore('reaction', { keyPath: ['moment_id', 'family'] });
     reactions.createIndex('moment_id', 'moment_id');

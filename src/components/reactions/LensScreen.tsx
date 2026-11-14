@@ -8,7 +8,7 @@ import { Icon, type IconName } from '../icons';
 import { theme } from '../ui';
 
 /**
- * A lens (RX24, RX25; decision 0172): every kept moment with one reaction, oldest first, each a moment in its context
+ * A lens (RX24, RX25; decision 0176): every kept moment with one reaction, oldest first, each a moment in its context
  * (its picture or kind, its words, its date, place and walk). One list: no map, no grouping by place or period, no
  * count. A tap opens the moment, and the viewer steps through the lens.
  */

@@ -1,6 +1,6 @@
 // @layer core
 /**
- * Lenses (RX23-RX27, decision 0172): the only code that gathers moments by a reaction. A lens is one list of moments,
+ * Lenses (RX23-RX27, decision 0176): the only code that gathers moments by a reaction. A lens is one list of moments,
  * oldest first, chosen by the owner's reactions alone; nothing here counts, ranks or groups by place or period.
  */
 import { FAMILIES, REACTIONS, type Family, type ReactionId, type ReactionInfo, type ReactionSet } from './core';

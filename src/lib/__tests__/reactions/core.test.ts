@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-// Reactions (specs/reactions, decision 0172): the model. The module is reached by name: this file ran before it existed (test first).
+// Reactions (specs/reactions, decision 0176): the model. The module is reached by name: this file ran before it existed (test first).
 type Fn = (...a: any[]) => any;
 const core = () => import('../../reactions/core' as string) as Promise<Record<string, any>>;
 

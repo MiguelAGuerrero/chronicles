@@ -50,7 +50,7 @@ Classify every finding before touching code. When in doubt, it waits.
 |---|---|---|
 | **loop** | An **existing** element made to behave or look right against a **cited** source: `docs/research/ui-references.md`, `.claude/rules/ui-patterns.md`, a rule file, WCAG 2.2, the platform's guidelines, a line of `docs/VISION.md`'s Always that an existing screen breaks, or a spec criterion that shipped (its test exists, its slice's record says shipped) and the build now breaks. Also bugs, performance, cleanup, missing tests and journeys, docs drift. | Shipped, one commit each |
 | **owner** | Anything new a person can see or act on: a control, a screen, a setting, a stored field, a notification, copy that says something new or changes what a line means (an empty state's words included). Anything removed. A criterion never built: one in `UNTESTED` or `IN_PROGRESS` (`scripts/features.js`), in `docs/DEFERRED.md`, or in a queued spec. Anything whose only source is opinion. Anything `/vision` answers with other than **aligned** or **no surface**. The replay's beats, order or copy. | The inbox, with a recommended shape |
-| **architecture** | A dependency, a migration or data-model change, a navigation-flow change, a host, a derivation-rule bump (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`), more than about 8 files. | The inbox as `[arch]`; never started |
+| **architecture** | A dependency, a migration or data-model change, a navigation-flow change, a host, a derivation-rule bump (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`), more than about 8 source files (tests, journeys and record documents apart). | The inbox as `[arch]`; never started |
 | **phone** | Anything only a device can show or verify: haptics, gestures, native map behaviour, background recording, VoiceOver and TalkBack, real GPS. | The inbox as `[phone]`, with **Do** and **Expect**; never shipped |
 
 A loop fix that turns out to need an owner or architecture change stops there
@@ -100,7 +100,8 @@ source.
    (`scripts/perf-walk.js`), dead code, a layer baseline entry that is fixed.
 6. **The identity.** `npm run check:vision -- --list`; score words, numerals
    and accent colour in the area's copy and pictures.
-7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`.
+7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:
+   `npm run book:items -- deferred --tag loop --section "<area's section>"`.
 
 Run the subagents in one message. An empty lens is a result: say "nothing
 found" and move on. Never invent a finding to fill a run, and never turn a
@@ -135,7 +136,9 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    Test: tend memories 3 (src/lib/__tests__/memories/undo.test.ts)
    Source: WCAG 2.2, 4.1.2 Name, Role, Value (docs/research/ui-references.md, section 4)
    ```
-2. **Checks per commit:** `npm run check:affected`. For storage, the
+2. **Checks per commit:** `npm run check:affected`, and before committing,
+   in the worktree, the size tripwire `npm run book:files -- HEAD --max-src 8`
+   (the finding's source files, untracked included; past it, "Hard stops"). For storage, the
    recorder, the walk screen, the replay, and any change to what a screen
    shows: `npm test` and the journey that covers it, once, with a before and
    after picture kept for the report.
@@ -169,6 +172,10 @@ entry per finding, written so a yes or no is enough:
 - `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
 - An addition too large for one commit is not a `T` entry: shape it as a `G`
   entry with criteria (section 9's form), so a yes has something to hold it to.
+- A rule file past the warning size (`check:docs` warns at 20,000 characters) is
+  never a `[loop]` item: the loop only adds to rule files (0135), so it cannot split
+  one. File it as a `T [owner]` entry asking to split it by topic, so it is asked,
+  not left in the ledger (decision 0173).
 - Findings that are real but not worth the owner's time now go to the area's
   section of `docs/DEFERRED.md`, tagged: `npm run records -- deferred item add
   "<section>" --file <item>` (`--after <match>` beside its kin; `--new` for a
@@ -179,9 +186,12 @@ entry per finding, written so a yes or no is enough:
 
 Give every untagged bullet in `docs/DEFERRED.md` (or the named section's) one
 tag at its start, by the table in section 1, keeping its words
-(`npm run records -- deferred item tag <match> <tag>`):
+(`npm run records -- deferred item tag <match> <tag>`). In the worktree, `npm run
+book:items -- deferred --tag none [--section <text>]` lists them with a `<match>`
+records.js accepts and its `shell:` form to paste; it reads the run's own copy once
+an operation changed it, and says which. Never shorten a match by hand:
 
-- `[loop]`: the loop may ship it;
+- `[loop]`: the loop may ship it (never a rule file's split: section 5);
 - `[owner]`: an addition, a product question, or an owner's call already
   named as one;
 - `[arch]`: needs an architectural decision;
@@ -392,10 +402,14 @@ The owner picks; the loop never starts a `G` entry unasked.
    a loop commit with its own named, real test and its source, and none
    touches what the loop may not), `npm run typecheck && npm run lint &&
    npm test`, then `.claude/skills/ship.md`, "Review": one `auditor` pass over
-   the run's whole diff, one round, fixes named `tend <area> audit N`. A `G`
+   the run's whole diff, one round, fixes named `tend <area> audit N`, N on from
+   `npm run book:next-audit -- "tend <area>"` in the worktree (main's, the branch's and the
+   working tree's highest, in files and commit messages). A `G`
    build runs the slice's step 9 and the same review in place of `check:tend`.
 3. **Publish**, by `--deploy`:
-   - `main`: `.claude/skills/ship.md`, "Publish to main", once. Whenever
+   - `main`: `.claude/skills/ship.md`, "Publish to main", once (a decision
+     record the run wrote: `npm run book:next-decision -- --check <NNNN> <file>`
+     in the worktree after the last fetch). Whenever
      `main` moved, compare its `lastT` and `lastG` with the ones this run
      started from. If the rebase conflicts in `docs/STATUS.md`,
      `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` and the ledger, take
