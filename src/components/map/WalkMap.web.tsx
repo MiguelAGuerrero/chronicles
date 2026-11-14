@@ -424,6 +424,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         };
         const w = window as { __zoomTo?: unknown; __busyNamesIn?: unknown; __busyNamePoint?: unknown };
         w.__zoomTo = (at: LngLat, zoom: number) => map.jumpTo({ center: at, zoom });
+        // smooth-switches SS9: the same move with the app idle, the bare camera's cost to measure a switch against. Started by a
+        // key, as a switch is (`__easeNext`, then F9): a move started from a script got almost no frames in headless Chromium.
+        window.addEventListener('keydown', (e) => {
+          const next = (window as { __easeNext?: [LngLat, number] }).__easeNext;
+          if (e.key !== 'F9' || !next) return;
+          map.easeTo({ center: next[0], duration: next[1] });
+        });
         w.__busyNamesIn = (x0: number, y0: number, x1: number, y1: number) => busyIn([canvasXY(x0, y0), canvasXY(x1, y1)]);
         w.__busyNamePoint = () => {
           const r = map.getCanvas().getBoundingClientRect();
@@ -776,6 +783,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => { if (ready) setData('route-grades', routeGradesGeoJSON(props.routeGrades)); }, [ready, props.routeGrades]);
   useEffect(() => { if (ready) setData('found-pins', pinsGeoJSON(props.foundPins)); }, [ready, props.foundPins]);
+  const hasLanding = !!props.landing;
   useEffect(() => {
     if (!ready) return;
     setData('alternates', alternatesGeoJSON(props.alternates));
@@ -783,9 +791,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.alternates = String(props.alternates?.length ?? 0);
     // The e2e reads which of the trace-like layers carry anything (only when it is measuring): none while a preview is up.
     if ((window as { __perf?: unknown }).__perf && container.current) {
-      container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', props.landing ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
+      container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', hasLanding ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
     }
-  }, [ready, props.alternates, props.trace, props.walked, props.fog, props.faint, props.landing, props.borders, props.walkability]);
+  }, [ready, props.alternates, props.trace, props.walked, props.fog, props.faint, hasLanding, props.borders, props.walkability]);
+  // SS3: the lines and pockets are sent only when they change, never because the names near the selected area did: each
+  // send drops the source's tiles, and a revisit's lines were cut again.
+  const graded = props.landing?.graded;
+  const pockets = props.landing?.pockets;
   useEffect(() => {
     if (!ready) return;
     setData('pockets', pocketsGeoJSON(props.landing));
@@ -794,7 +806,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     container.current?.setAttribute('data-busy', props.landing ? `strips:${stripsGeoJSON(props.landing).features.length}` : '');
     // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
     container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
-  }, [ready, props.landing]);
+    // The view is read whole; what it draws is in `graded` and `pockets`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, graded, pockets]);
   // The busy names (DC1, DC14): sent when the areas or the reserved name change, never per fix or zoom.
   const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
   const reserveRef = useRef(props.busyNamesReserve);
@@ -851,14 +865,44 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       }
     };
   });
+  // SS5: a switch's move holds the names: cleared at once, sent once when that move settles (the moveend below).
+  const namesHeld = useRef(false);
+  const switchSeen = useRef(props.busyNamesSwitch);
   useEffect(() => {
-    if (ready) sendNames.current();
+    const map = mapRef.current;
+    if (!ready || !map || props.busyNamesSwitch === switchSeen.current) return;
+    switchSeen.current = props.busyNamesSwitch;
+    namesHeld.current = true;
+    perfCount('busy-names:clear');
+    (map.getSource('busy-names') as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData({ type: 'FeatureCollection', features: [] });
+    // A switch that moves nothing (the camera already there) lets them go once its move would have ended.
+    const t = setTimeout(() => {
+      if (namesHeld.current && !map.isMoving()) {
+        namesHeld.current = false;
+        sendNames.current();
+      }
+    }, MOTION.camera + MOTION.ease);
+    return () => clearTimeout(t);
+  }, [ready, props.busyNamesSwitch]);
+  useEffect(() => {
+    if (ready && !namesHeld.current) sendNames.current();
   }, [ready, props.landing, reserveKey, pinsKey, nearKey]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    // The rooms follow the map: once it settles, and when the screen changes size.
-    const again = () => { if (landingRef.current) sendNames.current(); };
+    // The rooms follow the map: once it settles, and when the screen changes size. A switch's held names go out here,
+    // once, a frame on: a move cut short by the next one ends before that one starts (SS5).
+    const again = () => {
+      if (!namesHeld.current) {
+        if (landingRef.current) sendNames.current();
+        return;
+      }
+      requestAnimationFrame(() => {
+        if (!namesHeld.current || map.isMoving()) return;
+        namesHeld.current = false;
+        sendNames.current();
+      });
+    };
     map.on('moveend', again);
     map.on('resize', again);
     return () => {
@@ -1021,10 +1065,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pins = useZoomPins(props.captures, view?.zoom ?? null, view?.lat ?? null);
   // One read of the reminders per map, for the bells on its pins (RB1, RB6).
   const reminded = useReminded();
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, props.clocks);
+  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, props.clocks, props.now);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded);
+  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, undefined, props.now);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -1183,8 +1227,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     }
     complexMarkers.current = [];
   }, []);
-  // Explore's area points (atlas round 3), as DOM markers like the strip names, rebuilt only when they change.
-  const areaMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
+  // Explore's area points (atlas round 3), as DOM markers. SS6: kept by area and re-rendered in place when their look
+  // changes (the one left, the one selected); built only for an area new to the map, removed only for one gone.
+  const areaMarkers = useRef<{ id: string; at: string; look: string; el: HTMLDivElement; marker: Marker; root: Root }[]>([]);
   const areaKey = (props.areaPoints ?? []).map((p) => `${p.id}:${p.name ?? ''}:${p.selected ? 1 : 0}`).join('|');
   const areaPointsRef = useRef(props.areaPoints);
   useEffect(() => {
@@ -1193,13 +1238,29 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    for (const m of areaMarkers.current) {
+    const points = areaPointsRef.current ?? [];
+    const ids = new Set(points.map((p) => p.id));
+    for (const m of areaMarkers.current.filter((x) => !ids.has(x.id))) {
       m.marker.remove();
       const r = m.root;
       queueMicrotask(() => r.unmount());
     }
-    areaMarkers.current = [];
-    for (const p of areaPointsRef.current ?? []) {
+    const kept = areaMarkers.current.filter((x) => ids.has(x.id));
+    areaMarkers.current = points.map((p) => {
+      const look = `${p.name ?? ''}:${p.selected ? 1 : 0}`;
+      const at = p.at.join(',');
+      const was = kept.find((x) => x.id === p.id);
+      if (was) {
+        if (was.at !== at) was.marker.setLngLat(p.at);
+        if (was.look !== look) {
+          if (p.name) was.el.dataset.name = p.name;
+          else delete was.el.dataset.name;
+          if (p.selected) was.el.dataset.selected = '1';
+          else delete was.el.dataset.selected;
+          was.root.render(<AreaPointView pin={p} />);
+        }
+        return { ...was, at, look };
+      }
       const el = document.createElement('div');
       el.style.pointerEvents = 'none';
       el.setAttribute('aria-hidden', 'true');
@@ -1210,8 +1271,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       perfCount('marker:area');
       root.render(<AreaPointView pin={p} />);
       // Anchored at the top so the dot, not the label, sits on the point.
-      areaMarkers.current.push({ marker: new Marker({ element: el, anchor: 'top', offset: [0, -6] }).setLngLat(p.at).addTo(map), root });
-    }
+      return { id: p.id, at, look, el, root, marker: new Marker({ element: el, anchor: 'top', offset: [0, -6] }).setLngLat(p.at).addTo(map) };
+    });
   }, [ready, areaKey]);
   useEffect(() => () => {
     for (const m of areaMarkers.current) {
@@ -1391,6 +1452,7 @@ function usePinMarkers(
   memory: boolean,
   reminded: ReadonlySet<string>,
   clocks?: readonly WalkClock[],
+  now?: number,
 ) {
   const latest = useRef({ pins: new Map<string, CapturePin>(), onPress });
   useEffect(() => {
@@ -1416,8 +1478,10 @@ function usePinMarkers(
       // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
       const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${pinMark(pin)?.id ?? ''}`;
       const existing = markers.current.get(pin.id);
-      // Its walk's clock may come after the pin (tend map T14): the name follows in place.
-      const label = pinLabel(pin, interactive, memory, bell, clocks);
+      // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
+      // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
+      // audit 29); a new one relabels in place.
+      const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt);
       if (existing?.key === key && existing.bell === bell && existing.marker.getElement().getAttribute('aria-label') !== label) {
         existing.marker.getElement().setAttribute('aria-label', label);
       }
@@ -1465,7 +1529,7 @@ function usePinMarkers(
       drop(m);
       markers.current.delete(id);
     }
-  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, clocks]);
+  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, clocks, now]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

@@ -1,11 +1,11 @@
-# 0166. The journal's Type slot is a reaction sign, not a word
+# 0168. The journal's Type slot is a reaction sign, not a word
 
 Date: 2026-11-13 · Status: accepted · Area: journal, captures, vision · Amends: decision 0161 (note types), the gate of Nov 13 in `specs/note-types/spec.md`
 
 ## Context
 The vision gate of Nov 13 (note types at capture) argued that the word stays "Type" and never "reaction": the word
 for likes on someone else's post, the reading decision 0161 worked to avoid. The slot shipped as a muted tag the
-owner could not find (decision 0165), and was then given the word "Type". The owner, the same evening: "I would
+owner could not find (decision 0167), and was then given the word "Type". The owner, the same evening: "I would
 instead just make it an emoji indicator for like a reaction as an icon so that way it doesn't explicitly say type so
 it's kind of like a reaction in that type of sense."
 

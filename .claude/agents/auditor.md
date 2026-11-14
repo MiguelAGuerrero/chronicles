@@ -36,7 +36,7 @@ harnesses before reading the code.
 When the slice puts a feature on a component drawn in more than one place (a note's page, a moment's
 card, a pin, a bar), list every host of that component from the code (`grep -rn "<Name" src`) and say for
 each whether the feature reaches it. A host the spec did not name is a finding, whether the feature is
-missing there or arrived there by accident (decision 0165: the page a note opens into from the journal's
+missing there or arrived there by accident (decision 0167: the page a note opens into from the journal's
 line had no Type tool, and Respond's page had gained one).
 
 ## Tools

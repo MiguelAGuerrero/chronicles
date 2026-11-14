@@ -82,13 +82,13 @@ Run `/vision` on the slice, in the owner's words. Its block becomes the spec's
    `specs/<slug>/spec.md`, each with an id (`XX1`, `XX2`, ... with the tab's
    prefix). A criterion names an observable outcome, never an implementation.
 2. Put owner's calls already made in the spec's "Decisions" list, with the date.
-2a. **The owner's task, in their words** (decision 0165). For each thing a person can newly do, the first
+2a. **The owner's task, in their words** (decision 0167). For each thing a person can newly do, the first
    criterion is the task as the owner said it ("put a type on a note"), and it carries a **finding
    criterion**: someone who was not told where the control is can find it from the screen they would look
    on. A control is found by ink and a word or a symbol people already know; "a slot named X" checked by
    its test id or its spoken name is a mechanism, not a finding criterion, and passes for a control nobody
    can see.
-2b. **Every surface, from the code, not from memory** (decision 0165). When the feature attaches to
+2b. **Every surface, from the code, not from memory** (decision 0167). When the feature attaches to
    something drawn in more than one place (a note, a moment, a page, a pin), list every host of that
    component (`grep -rn "<Component" src`) and every route into it, and give each one a criterion or a
    line saying why the feature is not there. "A new note's page" is one host of the page; the page opened
@@ -243,14 +243,14 @@ of browser, so the named ones run once, at the end, and the rest is mechanical:
 spec's record (accept, defer, reject); an accepted one gets a regression test named `<slug> ui N` before its fix. A
 slice with an open accepted UI finding is not done.
 
-**The cold find** (decision 0165), before that review and apart from it: spawn the `ux-reviewer` with the
+**The cold find** (decision 0167), before that review and apart from it: spawn the `ux-reviewer` with the
 pictures and one sentence per task in the owner's words ("put a type on the note you are writing"), and
 nothing else: no goal-to-control lines, no spec, no names of controls. It says where it would tap and
 why, or that it cannot tell. A task it cannot place, or places wrongly, is a `high` finding however well
 the control tests. Only then give it the plan's lines for the review above; a reviewer told where a
 control is cannot tell you whether it can be found.
 
-**Show the owner** (decision 0165): send the pictures of each new or moved control with `SendUserFile`,
+**Show the owner** (decision 0167): send the pictures of each new or moved control with `SendUserFile`,
 one line each saying where it is and what a tap does. The report's first section is "Where to find it".
 
 All green. A "Covered by nothing" line from `check:affected` for a file the

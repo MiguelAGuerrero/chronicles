@@ -1,6 +1,7 @@
 // @layer view
 import { nextShown } from './shown';
 import { useEffect, useRef, useState } from 'react';
+import type { Stillness } from '../layers/useBusyLayer';
 import { ensureOvertureRelease } from '../activity/overture';
 import type { LngLat } from '../types';
 import { retryIn } from './extent';
@@ -28,7 +29,12 @@ export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKi
  * read shows nothing and is asked again once COMPLEX_RETRY_MS has passed, with no change of tab or area (complexes audit 4).
  * Never for the areas merely in view.
  */
-export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; reachM: number } | null): { complexes: Complex[]; partial: boolean } {
+export function useComplexes(
+  enabled: boolean,
+  area: { key: string; at: LngLat; reachM: number } | null,
+  /** Explore's: the read starts once the camera is still, never mid-switch (smooth-switches SS9). */
+  stillness?: Stillness,
+): { complexes: Complex[]; partial: boolean } {
   const [state, setState] = useState<{ key: string | null; complexes: Complex[]; partial: boolean }>({ key: null, complexes: [], partial: false });
   const [tick, setTick] = useState(0);
   const stateNow = useRef(state);
@@ -36,6 +42,10 @@ export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; 
     stateNow.current = state;
   }, [state]);
   const failedAt = useRef<{ key: string; t: number } | null>(null);
+  const stillRef = useRef(stillness);
+  useEffect(() => {
+    stillRef.current = stillness;
+  });
   const key = area?.key ?? null;
   const lon = area?.at[0];
   const lat = area?.at[1];
@@ -50,14 +60,22 @@ export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; 
       return () => clearTimeout(timer);
     }
     let live = true;
+    let retry: ReturnType<typeof setTimeout> | null = null;
     void (async () => {
+      const still = stillRef.current;
+      while (still?.().moving) {
+        await still().settled();
+        if (!live) return;
+      }
       const release = await ensureOvertureRelease().catch(() => null);
       if (!live) return;
       const r = release ? await complexes.readArea({ at: [lon, lat], reachM }, release, () => !live).catch(() => null) : null;
       if (!live) return;
       if (!r || r.failed) {
-        failedAt.current = { key, t: Date.now() };
-        setTick((n) => n + 1);
+        // Asked again when due, by the timer alone: a render now would only set it (smooth-switches SS9).
+        const t = Date.now();
+        failedAt.current = { key, t };
+        retry = setTimeout(() => setTick((n) => n + 1), retryIn(t, Date.now()) ?? 0);
         return;
       }
       failedAt.current = null;
@@ -68,6 +86,7 @@ export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; 
     })();
     return () => {
       live = false;
+      if (retry) clearTimeout(retry);
     };
   }, [enabled, key, lon, lat, reachM, tick]);
   return state.key === key ? { complexes: state.complexes, partial: state.partial } : { complexes: [], partial: false };

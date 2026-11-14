@@ -681,12 +681,15 @@ async function run(h) {
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
       await pg.waitForSelector('text=Photo saved here', { timeout: 15000 }).catch(() => {});
       // Inside the photo's own pin on the walk map (a pin's content may be hidden from screen readers under its label).
-      const thumb = pg.locator('.maplibregl-map [aria-label="Photo. Open"] [data-testid=pin-thumb]');
+      const thumb = pg.locator('.maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"] [data-testid=pin-thumb]');
       await thumb.first().waitFor({ timeout: 20000 }).catch(() => {});
       const row = await capRow('photo');
       const inPin = (await thumb.count()) > 0;
       check((await thumb.count()) === 1 && inPin && row && row.thumb_path && row.thumb_path !== 'none',
         `qol QL26, QL27: the photo's pin shows its small copy once it is made, without a reload (${await thumb.count()} pictures, in its pin ${inPin}, thumb ${row && row.thumb_path})`);
+      // tend map audit 31: the pin of one photo says its minutes in (tend map T28), read whole, not only by its kind.
+      const photoLabel = await pg.locator('.maplibregl-map [aria-label^="Photo"][aria-label$=". Open"]').first().getAttribute('aria-label').catch(() => null);
+      check(/^Photo, (at the start|.+ in)(, with more in this moment)?(, reminder set)?\. Open$/.test(photoLabel ?? ''), `tend map audit 31: a pin of one photo says its minutes in (${photoLabel})`);
     });
     await qstep('qol note', async () => {
       await pg.click('[data-testid=cap-note]');
@@ -828,7 +831,7 @@ async function run(h) {
 
     // A note edited from the replay's viewer reads the new words when opened again (QL24, QL25).
     const openNote = async () => {
-      await pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), [aria-label="Note. Open"]').last().click();
+      await pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), [aria-label^="Note, "][aria-label$=". Open"]').last().click();
       await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
       for (let i = 0; i < 4; i++) {
         if (await pg.locator('[data-testid=viewer-more]').count()) {

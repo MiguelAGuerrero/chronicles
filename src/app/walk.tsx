@@ -4,6 +4,7 @@ import type { NotePageHandle } from '../components/notePage/NotePage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { walkClocks } from '../lib/pins';
+import { nextDayPartBoundary } from '../lib/resurface/context';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
@@ -307,6 +308,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const sub = AppState.addEventListener('change', (st) => st === 'active' && setResumed((n) => n + 1));
     return () => sub.remove();
   }, []);
+  // The moment the pins say their part of the day from (tend map audit 29): this one map stays up from the ready
+  // screen through the walk, so it is renewed on each return to the front and at the next boundary the words turn on.
+  const [pinNow, setPinNow] = useState(() => Date.now());
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && setPinNow(Date.now()));
+    return () => sub.remove();
+  }, []);
+  useEffect(() => {
+    const id = setTimeout(() => setPinNow(Date.now()), nextDayPartBoundary(pinNow) - pinNow);
+    return () => clearTimeout(id);
+  }, [pinNow]);
 
   // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
   // The buttons the compass hands the focus to as it leaves (tend map 6): Locate on the ready screen; on the walk,
@@ -784,7 +796,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
     .map((c) => c.id)
     .join(',');
-  // The walk's clock, so a pin of several says how far in it was (tend map T14).
+  // The walk's clock, so a pin says how far in it was (tend map T14, T28).
   // Only while the open walk is this one: after Stop its pauses are gone (tend map audit 21).
   const openRow = openWalk.walk;
   const clocks = useMemo(() => walkClocks(walk, openRow, pauses), [walk, openRow, pauses]);
@@ -1181,13 +1193,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={bearing.set} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} now={pinNow} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={bearing.set} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
         {...drawn}
         busyNamesNear={namesNearYou(live.here)}
         captures={captures}
         clocks={clocks}
+        now={pinNow}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}

@@ -76,6 +76,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | The section bar names what Chronicle shows (the sheet's Walks, Days, Map, a drag and a long press move the bar; the bar's press, even on the selected section, moves the sheet; one map across Walks, Days and Map; SB1-SB5, decision 0136, from G1) | shipped 2026-11-11 by `/tend inbox G1 yes` (web verified by `resurface/section.test.ts` and the e2e `chronicle`, `capturehome`, `qol`, `resurface`, `tabs`) | `eb40c5c` | `specs/section-bar/spec.md` | the run's review (see Last tend) |
 | Presence: one system says what a place is (one table from poi classes and Overture's taxonomy to classes; density and marks read them; curation apart; PRESENCE_CODE in the atlas and landing codes; PR1-PR8, decision 0140; the first of two slices) | shipped | from G3 (`/tend inbox G3 yes`), Nov 11 | `specs/presence/spec.md` | review in the `/tend` run |
 | Presence readers: the archive, bars, notable names, greens and the planner read presence's classes (a place carries its classes, never stored; `recorded` and `historic_name` judged by curation; History beside a category only from `historic`; nothing a person sees changes, held by golden tables; PS1-PS11, decision 0140; the second of two slices) | shipped 2026-11-11 by `/tend inbox G4 yes`, parked beside community parks, resumed on main by `/tend inbox T8 yes` (decision 0146: greens and community parks read presence, the carry a9.p1 under a9.p2; golden tables captured again on main; 1918 unit tests, typecheck, lint; e2e `marks`, `atlas`, `grading`, `curiosities`, `outlines`, `planner`, `upgrade`; native untouched) | from G4; parked as `slice/presence-readers-parked`, landed from `tend/inbox-t8-20261111-2103` | `specs/presence-readers/spec.md` (repo first) | review in the `/tend` runs (`presence-readers audit 1-6`, then one round over the resolution, `audit 7-12`, one filed as T9) |
+| Smooth neighborhood switches (a switch redraws nothing it already showed: the neighborhood's outline kept and derived after the move, unchanged Busy lines never resent, the names once at the settle, the lines held on a town's page, markers kept, a cut read retried; one Explore render per move, costing what the camera alone does; SS1-SS10, decision 0166) | shipped 2026-11-14 | `4e9a496` 2026-11-14 (Pages run 254) | `specs/smooth-switches/spec.md` | no (UI review: 1 finding, fixed) |
 
 Not a tab, but tracked: **suggested routes** shipped as scenic routes (decision 0095);
 Explore's route preview and "Walk this way" stay deferred.
@@ -182,12 +183,16 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   clause, "Two photos, a video, a voice memo and a note"; one hint on both, "Tap a pin to open it". /vision: aligned
   (return; "Counts are words, in a clause"), amends M13.
   Otherwise: the numbers as words only ("Four moments · two places"); or leave it.
+  **Answered** by the owner in person (Nov 12; decision 0165): "Clauses, one hint", the recommended shape. Recorded
+  Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).
 - **T20 [owner] Replay: "Back to the map" and "Back to walks" both go to Chronicle** (2026-11-12)
   Area: replay. Seen: `src/app/day/[key].tsx` (a day with nothing kept: "Back to the map"), `src/app/replay/[id].tsx`
   (a walk not found: "Back to walks"); both `router.dismissTo('/')`, which is Chronicle since decision 0112. Rests on:
   VISION.md, "Chronicle first ... the map is one view of it, not its home" (steward S4). New words, so yours.
   Recommended: both read "Back to Chronicle". /vision: aligned (return; the place's own name, nothing new).
   Otherwise: "Back" alone; or leave it.
+  **Answered** by the owner in person (Nov 12; decision 0165): "Back to Chronicle", the recommended shape. Recorded
+  Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).
 - **T21 [owner] Replay: the name step's only way on is Keep it** (2026-11-12)
   Area: replay (beat five). Seen: `probe-390r-name`, `probe-320r-name` (two fields and Keep it, no Cancel or back).
   Rests on: NN/g H3, "a clearly marked 'emergency exit'"; the goal-to-control matrix, row 18, "Text view in a sheet
@@ -196,6 +201,8 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Recommended: a quiet "Back" in the name sheet's top row, in the card's "Not now" style, returning to the card with
   the words kept. /vision: aligned (return; restraint: one quiet text control, no new colour).
   Otherwise: leave it (Keep it with the suggested name loses nothing).
+  **Answered** by the owner in person (Nov 12; decision 0165): "A quiet Back", the recommended shape. Recorded Nov 13;
+  waits for the next `/tend inbox`, one build per run (T28 was built first).
 - **T22 [owner] The walked colour is separate from the accent** (2026-11-12)
   Area: replay, and every map that draws walked streets (Chronicle's map, the walk's end marker, any map given
   `walked`). Seen: `probe-390r-fog` (beat one lights the walked streets in `COLORS.walked`, `#c2410c`, the same hex as
@@ -208,6 +215,9 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   the hue. /vision: aligned (return; restraint in colour), amends QL2's colour word.
   Otherwise: keep the hue but draw the walked streets lighter in the replay only; or leave it.
   Since `tend places T15` (Nov 13): a walked place's star is ink (`#1d2430`), beside T14's pin of several on its dark neutral head (`#3f3f46`); the two grounds are about 1.5:1, told apart by the star's white glyph and the pin's kind discs and stem, not by hue (the T15 probe's `after-fit-390-close`; the T15 review's F5, no action). A walked hue picked here would not reach the stars, which are ink by your answer.
+  **Answered** by the owner in person (Nov 12; decision 0165): "Show me swatches", not a yes to a hue: a later run
+  renders three walked hues apart from the accent, the owner picks one, then it is built. Recorded Nov 13; waits for
+  the next `/tend inbox`, one build per run (T28 was built first).
 - **T23 [phone] The replays at the largest text size** (2026-11-12)
   Area: replay. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; finish a walk
@@ -228,27 +238,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
-- **T28 [owner] Map: when a pin says its time** (2026-11-13)
-  Area: map. Seen: since `tend map T14` a pin of several says its time on the walk screen, the replay and a day's
-  replay ("A photo and a note, twelve minutes in. Open"), while a pin of one moment beside it says "Photo. Open" (the T14
-  review's U4); since `tend map audit 19` a pin whose moments lie more than ten walked minutes apart (a loop's start
-  and end) says its kinds alone, where it said "at the start" for a note taken 58 minutes later (the review's F1); and
-  Chronicle's map, memory pins and the ready screen have no walk clock, so their pins say their kinds alone (`pinInto`,
-  `src/lib/pins.ts`). Rests on: VISION.md Always, "A moment carries its context: place, time, its walk, what came just
-  before"; your answer in 0154, the time in a pin's name.
-  Recommended: a pin of one moment says its minutes too when its walk's clock is known ("Photo, twelve minutes in.
-  Open"); a pin whose moments lie more than ten walked minutes apart says the span ("A photo and a note, from the
-  start to fifty-eight minutes in. Open"); a map with no walk clock says the part of the day of the pin's first moment,
-  as a moment's own line does ("A photo and a note, Tuesday evening. Open"). /vision: aligned (honour: "A moment
-  carries its context"; no count, and the words are the moment's own line's). It amends QL26's, NY10's and RB7's
-  spoken examples again.
-  Otherwise: as built (a pin of several says its time, a pin of one moment does not, a spread pin and a map with no
-  clock say none); or only the span, and nothing more.
-  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): "Time on
-  every pin", the recommended shape: a pin of one moment says its minutes when its walk's clock is known; a pin whose
-  moments lie more than ten walked minutes apart says the span ("from the start to fifty-eight minutes in"); a map with
-  no walk clock says the part of the day of the pin's first moment. Waits for the next `/tend inbox`, one build per run
-  (T25 was built first).
 - **T29 [owner] Reminders say their counts in digits beside pins that say words** (2026-11-13)
   Area: notifications, memories (the T14 sibling lens). Seen: two memories in reach are the reminder "2 memories here"
   with the body "2 voice memos and a note" (`discovery/recall.ts` l.99 and `kindsOf` l.114, its kinds in a fixed
@@ -294,30 +283,35 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T25 yes, T28 yes, T29 yes`** (from `67a46a17`, rebased on `741f3b31`; the owner's own answers,
-in person, Nov 13: T25 in decision 0162, T28 and T29 in decision 0164; one build per run, so T28 and T29 wait, marked
-answered).
-- `tend map T25`: the replay's end is a bullseye, a walked centre, a white band and a walked outer ring with a thin
-  white edge, 22 px across like the start, so it differs in shape from the walker's solid dot as well as from the hollow
-  start; the start and the dot unchanged, no hue of its own. Sibling lens: only the replay and the day replay pass
-  `ended`, so only they draw an end, web and native, through one paint; the live walk has none (its dot is its end);
-  Chronicle's map, Explore and the planner draw no trace; no walk card or mini-map draws a trace's end.
+**Nov 13, `/tend inbox T28 yes, T19 yes, T20 yes, T21 yes, T22 swatches`** (from `63cf0214`, rebased on `da529bad`; the
+owner's own answers, in person: T28 on Nov 13 in decision 0164; T19-T22 on Nov 12 and the T28 review's ux 1 and ux 2
+on Nov 13, recorded in decision 0165; one build per run, so T19, T20 and T21 wait, marked answered, and T22 waits for
+its swatches).
+- `tend map T28`: every pin says when: a pin of one moment its minutes too ("Photo, twelve minutes in. Open"); a pin
+  whose moments lie more than ten walked minutes apart the span ("A photo and a note, from the start to fifty-eight
+  minutes in. Open"); a pin no walk clock holds the part of the day of its first moment, in the moment's own line's
+  words ("A photo and a note, Tuesday evening. Open"). Nothing drawn changed. Sibling lens: the walk screen and the
+  replay have a clock; the walk screen after Stop, the ready screen, Chronicle's map and memory pins have none; a day
+  replay's pin of two walks, or of a moment outside a walk, has none either; Explore and the planner draw no pins of
+  moments.
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend map audit 25`: a walk that ends on or near its start keeps its bullseye whole: the start is drawn in the first
-  layer, under the end's ring, and the second draws the end's centre and band alone (auditor 25, high: the start had
-  covered the end's ring, a regression from T16). The `qol` journey walks a small loop and reads the end over the start
-  at 390 and 320.
-- `tend map audit 26`: at Hold, with motion, the dot and the end are both on the map, apart, checked and pictured at
-  390 and 320 (ux 26).
-Review: 2 accepted (auditor 25, ux 26); 2 noted on `[owner]` items in `docs/DEFERRED.md` (ux 25, a pin's stalk across
-the bullseye's band; the solid end's size item, which the pictures no longer match: you may close it); ux 27 no action
-(the dot arriving on the end covers it, as before); 0 rejected. Both reviewers ruled the white edge inside your answer.
-Each check was seen failing first: the unit tests on the code before each fix, the journey's T25 check on main's end
-and audit 25's on the T25 build (`E2E_SOFT`); audit 26 is evidence with no code change.
-Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `qol`, `replay`, `days` (and on
-the T25 build `layers`, `walkability`, `snap`, `freelook`, `dense`, `carousel`); main's four journal commits landed
-before the review and touch none of them. Nothing here has run on a phone; the bullseye on native is unverified
-(`docs/NATIVE_UNVERIFIED.md`). QL2's wording waits for your edit (noted under "Open before the loop").
+- `tend map audit 27`: a pin whose moments fall on different days says the span of their days ("from three weeks ago
+  to Tuesday evening"; the owner's answer to ux 1).
+- `tend map audit 28`: on a map of several walks every pin says its part of the day (the owner's answer to ux 2).
+- `tend map audit 29`: the walk screen renews its pins' `now` on return to the front and at the next boundary the
+  words turn on (`nextDayPartBoundary`; auditor 1, ux 3); the e2e for it is a `[loop]` item in `docs/DEFERRED.md`.
+- `tend map audit 30`: the span is said in the minutes it names, its unit once ("from twelve to fifty minutes in");
+  `pinInto` deleted (auditor 3, ux 5, auditor 6).
+- `tend map audit 31`: `qol` reads a one-photo pin's minutes whole; the `days` checks keep to the map and take
+  "yesterday night" (auditor 4, auditor 7).
+Review: 9 accepted, 2 recorded (auditor 2: a native check for the new names, the two old checks noted superseded;
+auditor 5: the map rule's "kinds alone" lines, noted under "Open before the loop"), 1 deferred `[owner]` (ux 4, the
+long-ago line's comma), 0 rejected. Each check was seen failing first: the unit tests on the code before each fix,
+the journeys' T28 and audit 31 checks on main's build (`E2E_SOFT`).
+Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `days`, `qol`, `walk`, `edit`,
+`launch`, `ready`. Nothing here has run on a phone; the spoken names on native are unverified
+(`docs/NATIVE_UNVERIFIED.md`). QL26's, NY10's, MR2's and RB7's words, and the map rule's "kinds alone" lines, wait for
+your edit (noted under "Open before the loop").
 
 ### Open before the loop
 
@@ -345,6 +339,21 @@ before the review and touch none of them. Nothing here has run on a phone; the b
   shape, which the loop rewords not: `.claude/rules/captures-and-media.md` (Note types, "a pin of several keeps its
   count") and `.claude/rules/memories.md` ("Its label is "N memories here""); a "Since `tend map T14`" line under each
   says what is true, and `.claude/rules/map.md` has the new "A pin of several moments" bullet.
+  Since `tend map T28` (Nov 13; decision 0164) every pin says when: a pin of one moment its minutes too ("Photo, twelve
+  minutes in. Open"); a pin whose moments lie more than ten walked minutes apart the span ("A photo and a note, from
+  the start to fifty-eight minutes in. Open"); a pin no walk clock holds (Chronicle's map, the ready screen, memory
+  pins, moments of two walks on a day, a moment outside a walk) the part of the day of its first moment ("A photo and
+  a note, Tuesday evening. Open"; "Memories: a photo and a note, Tuesday evening"). So the amended examples of QL26,
+  NY10 and RB7 take the time too (RB7's "A photo and a note, twelve minutes in, reminder set. Open"), and MR2's memory
+  pin its part of the day. `.claude/rules/map.md` has a "When a pin says it" bullet, which supersedes the "kinds
+  alone" cases in the T14 bullet above it, and `.claude/rules/memories.md` a "Since `tend map T28`" line.
+  Since the T28 review (`tend map audit 27`-`30`; the owner's answers in decision 0165): a pin whose moments fall on
+  different days says the span of their days ("Memories: a photo and a note, from three weeks ago to Tuesday
+  evening. Open"); on a map of several walks every pin says its part of the day; a span under an hour shares its unit
+  ("from twelve to fifty minutes in"). And `.claude/rules/map.md`'s "A pin of several moments" bullet and its
+  sub-bullet (l.153-163: "without it (Chronicle's map, memory pins, moments of two walks) the name says the kinds
+  alone", "says its kinds alone (`tend map audit 19`)", `pinInto`, now deleted) contradict the "When a pin says it"
+  bullet under them (the T28 review's auditor 5): reword them when you amend the specs; the loop rewords no rule line.
 - **QL11's and the map rule's words after T17** (Nov 13; decision 0154): QL11 in the quality-of-life doc (mirrored in
   `specs/quality-of-life/spec.md`) says "Denied location shows the error banner a moment's placement shows"; since
   `tend map T17` a refused location is the quiet notice (the cream banner, its text the dark brown `#6b4500`, no
@@ -495,6 +504,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
+| Smooth neighborhood switches (a switch redraws nothing it already showed: the outline kept and derived after the settle, unchanged Busy lines never resent, the names sent once at the settle, lines held on a town's page, markers not rebuilt, a cut read retried; SS1-SS10, after Explore in a dense city) | `claude/trusting-cannon-f5wdhg` | built 2026-11-13, test-first by history (10 of 10): unit tests (2344), typecheck, lint, docs and vision checks; the `switches` journey (at 4x CPU each switch paired with the camera alone's move) and the 16 journeys `check:affected` names pass on the merged build; steward read (S1-S3 accepted); UI review: U1 fixed, then superseded by main's fix carousel-height on the merge; SS9 amended on the owner's call (decision 0166); native unverified; not audited; merged to main and deployed 2026-11-14 (`4e9a496`, Pages run 254; the live bundle carries the slice). Late border fixed on the way (`readerTook`; the dense journey's DC17 now zooms on the selected area). Spec `specs/smooth-switches/spec.md` |
 | Voice trim (a voice memo trimmed with start and end handles, as data on the untouched recording; Edit in the viewer; the kept part plays everywhere, its length said in words; VT1-VT12, decision 0090) | `claude/upbeat-gates-s6xy90` | built 2026-11-12, test-first by intent, the owner waived `check:test-first` for it (6 of 11 criteria report todo-before-real: the unit tests' todos used a constant the history check does not read; VT7 is device-only): unit tests (2072), typecheck, lint, docs and vision checks; the `voicetrim` journey and the nine journeys `check:affected` named (edit, notepage, qol, replay, responses, resurface, stacks, threads, walk) pass on the web build; a first sweep failed on a build whose map worker was missing (`npm ci --ignore-scripts` skipped `copy-maplibre-worker.js`), so it is not the slice's; steward read once (6 findings, triaged in the plan); native unverified; audited 2026-11-13 at the owner's request (12 findings: 6 fixed, 2 deferred, 4 rejected; tests `voice-trim audit 1-4, 9, 10`; the UI review before it: `voice-trim ui 1, 3` fixed, `ui 4, 6` guards); spec `specs/voice-trim/spec.md` |
 | Video thumbnails (a video's still where its kept part starts, in every preview under a play mark: the gallery, Memories, a walk's memory preview, a one-video pin, the replay's pile; a web exception for the frame; VS1-VS9) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-13, test-first by history (9 of 9): unit tests (2140), typecheck, lint, docs and vision checks; the `videothumbs` journey (14 checks, green four runs in a row) and the eleven journeys `check:affected` names pass; steward read (S1-S4 accepted); UI review (decision 0145): 5 findings, 3 fixed (`video-thumbnails ui 1, 3, 4`), 1 deferred (U1, older), 1 rejected; audited 2026-11-13 at the owner's request (13 findings: 9 fixed, tests `video-thumbnails audit 1-9`; 2 deferred; 2 rejected); merged with main (its ids renamed VS1-VS9, voice trim holding VT; `RENAMED` in scripts/features.js), 2323 unit tests, and twelve of the thirteen journeys `check:affected` names pass on the /chronicles build; `voicetrim` fails on main too (a test id the journal page dropped; DEFERRED); native unverified; merged to main on the owner's go-ahead (Nov 13, `b67935a`); its Pages run (243) was refused by the record gate (decision 0156): the merge's documents and one commit after it were hand-edited, mine; the fix-forward set this row through `npm run records` (`d5cab8b`); deployed by Pages run 244 (Nov 13), live check done (a video recorded on the live site gets its still under the play mark in Media). Spec `specs/video-thumbnails/spec.md` |
 | Neighborhood boundaries (real Overture neighborhood shapes replace the 800 m ring and the 1 km nearest-point placement; a nearest-point share where a town has none; one rule draws and places; HB1-HB16) | `claude/elegant-brahmagupta-ficipi` | built 2026-11-12, test-first by history (16 of 16): HB1-HB16 and the `outlines` journey's HB9/HB10 checks; steward read twice; audited at the owner's request (12 accepted, 1 rejected, 2 deferred, 5 questions for the owner; tests `neighborhood-boundaries audit 1-9, 11-13`); native unverified (the ground line layer, SQLite migration 26); not merged or deployed; spec `specs/neighborhood-boundaries/spec.md` |

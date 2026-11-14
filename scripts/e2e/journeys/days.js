@@ -59,9 +59,14 @@ async function checks(h) {
         `the moment belongs to no walk and sits where it was made (M1, M2)`);
       check((await p2.evaluate(() => window.__watches.size)) === 0, 'no location watch keeps running after a moment (M5)');
       // The moment is a pin where it was made, on Navigate, and the pin opens it (M16, moment pins 1-2).
-      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on Navigate (M16, moment pins 1)');
+      check(await p2.waitForSelector('.maplibregl-map [aria-label^="Note, "][aria-label$=". Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on Navigate (M16, moment pins 1)');
+      // tend map T28: the ready screen has no walk clock, so the pin says the part of the day, as the moment's own line does.
+      // tend map audit 31: scoped to the map (a journal entry can carry the same words), and a run just past midnight.
+      const today = /^Note, (this (morning|afternoon|evening)|tonight|late last night|yesterday night)\. Open$/;
+      const readyLabel = await p2.locator('.maplibregl-map [aria-label^="Note, "][aria-label$=". Open"]').first().getAttribute('aria-label').catch(() => null);
+      check(today.test(readyLabel ?? ''), `tend map T28: a moment's pin on the ready screen says the part of the day (${readyLabel})`);
       await shot(p2, '20-moment-home');
-      await p2.click('[aria-label="Note. Open"]');
+      await p2.click('.maplibregl-map [aria-label^="Note, "][aria-label$=". Open"]');
       check(await p2.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => true, () => false)
         && (await p2.getByText('A green dress in the window.').count()) > 0, 'the moment\'s pin on Navigate opens it in the viewer (M16, moment pins 2)');
       await p2.click('[data-testid=viewer-close]');
@@ -69,7 +74,9 @@ async function checks(h) {
 
       // With nothing walked yet, Chronicle frames the moment, so its pin is in view, not the world (moment pins 3).
       await tabTo(p2, 'chronicle');
-      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'Chronicle frames a moment made before any walk, and shows its pin (M16, moment pins 3)');
+      check(await p2.waitForSelector('.maplibregl-map [aria-label^="Note, "][aria-label$=". Open"]', { timeout: 15000 }).then(() => true, () => false), 'Chronicle frames a moment made before any walk, and shows its pin (M16, moment pins 3)');
+      const chronicleLabel = await p2.locator('.maplibregl-map [aria-label^="Note, "][aria-label$=". Open"]').first().getAttribute('aria-label').catch(() => null);
+      check(today.test(chronicleLabel ?? ''), `tend map T28: the moment's pin on Chronicle's map says the part of the day (${chronicleLabel})`);
 
       // Today is listed in Chronicle's sheet with its moment (M7, M9, NV18).
       await h.mapUp(p2);
@@ -190,6 +197,11 @@ async function checks(h) {
       const cardText = await p2.locator('[data-testid=day-card]').innerText();
       check(/^3 moments · 2 places$/.test(line) && /walked/.test(cardText) && !/streak|badge/i.test(cardText), `the day ends on a quiet card (${line})`);
       await shot(p2, '23-day-card');
+      // tend map T28, audit 28: on the day's map every pin says when: a pin of its one walk the minutes in (a day of
+      // several walks would say each one's part of the day), a moment outside a walk its part of the day.
+      const dayPins = await p2.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+      const said = /, (at the start|.+ minutes? in|from .+|this (morning|afternoon|evening)|tonight|late last night|yesterday night)\. Open$/;
+      check(dayPins.length >= 1 && dayPins.every((l) => said.test(l)), `tend map audit 28: the day replay's pins each say when (${dayPins.join(' / ')})`);
       // Watching again moves on by itself (M12).
       await p2.click('[data-testid=day-again]');
       check(await p2.waitForSelector('[data-testid=day-card]', { timeout: 90000 }).then(() => true, () => false), 'watching the day again reaches the card with no taps (M12)');
@@ -207,7 +219,7 @@ async function checks(h) {
       await p2.waitForSelector('[data-testid=day-title]');
       check(new URL(p2.url()).pathname === `${BASE}/`, 'the day replay closes back to Chronicle');
       await p2.click('[data-testid=sheet-map]');
-      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on the home map (M16)');
+      check(await p2.waitForSelector('.maplibregl-map [aria-label^="Note, "][aria-label$=". Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on the home map (M16)');
       await h.mapUp(p2);
       await p2.click('[data-testid=sheet-days]');
       await p2.click('[data-testid=day-row]');

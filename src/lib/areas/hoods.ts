@@ -270,6 +270,38 @@ export function groundOf(area: { level: string; name: string; at: LngLat }, cand
   return c ? hoodGround(c, cands, set) : null;
 }
 
+/** A neighborhood, as the outlines kept for it are filed (SS1). */
+export const hoodKeyOf = (hood: { name: string; at: LngLat }): string => `${hood.name}|${hood.at[0].toFixed(5)},${hood.at[1].toFixed(5)}`;
+
+/**
+ * What a neighborhood's outline was derived from (SS1): the neighborhood, how many tiles were read, and the candidates
+ * weighed, so a revisit with the same takes the outline kept, and a tile or a candidate since derives it again.
+ */
+export const groundKey = (hood: { name: string; at: LngLat }, tiles: number, near: readonly PlaceCandidate[]): string =>
+  `${hoodKeyOf(hood)}#${tiles}#${near.map((c) => `${c.level}:${c.name}:${c.at[0].toFixed(5)},${c.at[1].toFixed(5)}`).join('|')}`;
+
+/** An outline kept for a neighborhood (SS1); `ground` null where it has none (its ring stands). */
+export interface KeptGround {
+  hood: string;
+  key: string;
+  ground: Ground | null;
+}
+
+/** The outlines kept, with this one newest; the same key replaced, the oldest dropped past `max` (SS1). */
+export function keepGround(kept: readonly KeptGround[], entry: KeptGround, max = 24): KeptGround[] {
+  const out = [...kept.filter((k) => k.key !== entry.key), entry];
+  return out.length > max ? out.slice(out.length - max) : out;
+}
+
+/**
+ * The outline kept for a neighborhood (SS1): the one derived from exactly `key`, or with no key yet (its tiles still being
+ * looked up) its newest, so a revisit draws at once.
+ */
+export function groundFor(kept: readonly KeptGround[], hood: string, key: string | null): KeptGround | undefined {
+  for (let i = kept.length - 1; i >= 0; i--) if (kept[i].hood === hood && (key == null || kept[i].key === key)) return kept[i];
+  return undefined;
+}
+
 /** How many times, and how far apart, the cache is looked in for a neighborhood's tiles (audit 5). */
 export const LOOKS = 8;
 export const LOOK_MS = 1500;

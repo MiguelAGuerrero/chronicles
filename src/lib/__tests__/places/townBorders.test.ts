@@ -218,7 +218,7 @@ test('fix town-fit: a town selected in the row is framed whole each time, at its
   // A town whose border isn't known yet: its reach around its point, then its whole border once known.
   const u = townPicked(a.framed, { page: 'near', build: 'b1', town: null, key: 'cat', at: CAT, padM: 3000 });
   assert.deepEqual(u.bounds, boundsOf([CAT], 3000));
-  assert.deepEqual(nextFrame(u.framed, { page: 'near', build: 'b1', town: cat, points: PTS, from: ME, padM: 150 })?.bounds, cat.bounds);
+  assert.deepEqual(nextFrame(u.framed, { page: 'near', build: 'b1', town: cat, points: PTS, from: ME, padM: 150, lit: 'cat' })?.bounds, cat.bounds);
   // Unknown, it frames nothing more from the page's areas meanwhile.
   assert.equal(nextFrame(u.framed, { page: 'near', build: 'b1', town: null, points: PTS, from: ME, padM: 150 }), null);
   // On a town's page, its own card selected after a neighborhood: the whole town again.
@@ -255,4 +255,22 @@ test('fix town-fit audit 2: a town framed earlier, picked again before its outli
   assert.equal(nextFrame(whole!.framed, { page: 'near', build: 'b1', town: cat, points: PTS, from: ME, padM: 150, lit: 'cat' }), null);
   // Locate first, back to your town framed earlier: Locate's frame stands (audit 1), and the wait is over.
   assert.equal(nextFrame(u.framed, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150, lit: 'paw' }), null);
+});
+
+test('smooth-switches late border: a page\'s border that arrives after the reader picked an area never moves the camera', async () => {
+  const { readerTook } = (await import('../../atlas/atlas')) as unknown as { readerTook: (last: unknown, page: string, build: string | null) => Parameters<typeof nextFrame>[0] };
+  // A town's page framed by its areas while its border is unknown.
+  const a = nextFrame(null, { page: 'town:paw', build: 'b1', town: null, points: PTS, from: ME, padM: 150 })!;
+  // The reader picks a neighborhood (its card, a swipe): the camera is theirs now.
+  const took = readerTook(a.framed, 'town:paw', 'b1');
+  // The border arrives: nothing moves.
+  assert.equal(nextFrame(took, { page: 'town:paw', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150, lit: 'paw' }), null);
+  // Without the pick it frames the town, as TB11 says.
+  assert.deepEqual(nextFrame(a.framed, { page: 'town:paw', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150, lit: 'paw' })?.bounds, PAW.bounds);
+  // A town picked before its border is known still frames whole when it comes (fix town-fit audit 2).
+  const cat = { id: 'catasauqua', bounds: [-71.379, 41.822, -71.371, 41.832] as [number, number, number, number] };
+  const waiting = townPicked(took, { page: 'town:paw', build: 'b1', town: null, key: 'cat', at: [-71.375, 41.827], padM: 3000 });
+  assert.deepEqual(nextFrame(waiting.framed, { page: 'town:paw', build: 'b1', town: cat, points: PTS, from: ME, padM: 150, lit: 'cat' })?.bounds, cat.bounds);
+  // Another page starts its own visit.
+  assert.deepEqual(nextFrame(took, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150, lit: 'paw' })?.bounds, PAW.bounds);
 });

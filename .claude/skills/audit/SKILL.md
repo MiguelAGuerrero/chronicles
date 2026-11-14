@@ -53,7 +53,7 @@ the goal-to-control matrix), `docs/research/ui-teardown.md` and
 opinion; an opinion is triaged as one. Its findings are numbered on after the
 steward's.
 
-Before either of them is told where anything is, run the **cold find** (decision 0165): the `ux-reviewer`
+Before either of them is told where anything is, run the **cold find** (decision 0167): the `ux-reviewer`
 with the pictures and one sentence per task in the owner's words, and no spec, no plan and no names of
 controls. Where would it tap, or can it not tell? A task it cannot place is a `high` finding. Write the
 briefs for the passes above so that they do not answer this for the reviewer: describing "a small tag at

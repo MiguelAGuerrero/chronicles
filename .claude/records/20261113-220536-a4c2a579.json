@@ -1,0 +1,21 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the neighborhood's outline kept and derived after the move, unchanged Busy lines never resent, the names once at the settle, the lines held on a town's page, markers kept, a cut read retried; one Explore render per move, costing what the camera alone does; SS1-SS10, decision 0164) | built 2026-11-13, not deployed | `claude/trusting-cannon-f5wdhg` | `specs/smooth-switches/spec.md` | no (UI review: 1 finding, fixed) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Smooth neighborhood switches"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the outline kept and derived after the settle, unchanged Busy lines never resent, the names sent once at the settle, lines held on a town's page, markers not rebuilt, a cut read retried; SS1-SS10, after Explore in a dense city) | `claude/trusting-cannon-f5wdhg` | built 2026-11-13, test-first by history (10 of 10): unit tests (2344), typecheck, lint, docs and vision checks; the `switches` journey (at 4x CPU each switch paired with the camera alone's move) and the 16 journeys `check:affected` names pass on the merged build; steward read (S1-S3 accepted); UI review: U1 fixed (`smooth-switches ui 1`); SS9 amended on the owner's call (decision 0164); native unverified; not audited; not merged or deployed. Spec `specs/smooth-switches/spec.md` |\n",
+      "target": "sha256:0d5fb140a43b7a0b610010d36c8193e77f6133c013aff135bac76f4feba4fc19"
+    }
+  ]
+}

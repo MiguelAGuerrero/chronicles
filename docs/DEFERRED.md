@@ -107,6 +107,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] `.claude/rules/explore-and-discovery.md` is within about 50 characters of its 40,000-character budget (`check:docs`) after presence readers landed beside community parks; the next line added there fails the check. Split it into two rule files with narrower `paths:` (`/tend inbox T8`, Nov 11, low)
 - [loop] When that file is split, reword its lines on `ATLAS_CODE` (`a9.p2`, the a9 carry: now `a10.p2` over `a10.p1`) and on community parks' notable name (presence's `notableName`, read past a neighbourhood only just before a community word, and no "heritage"), as STATUS.md's "Open before the loop" says (`/tend inbox T9` review F5, Nov 12, low)
 - [arch] The neighbourhood read-past runs on the raw name, before `normalizeWords`: "Old-Town", "Old_Town", "Old.Town" and "Old&New" Playground stay parks where "Old Town" and "Old & New" Playground are community parks, and a museum splits the same way (`presence/notable.ts` `notableBeyondNeighbourhood`, `discovery/parkKind.ts` `NEIGHBOURHOOD`). It errs toward keeping; reading after `normalizeWords` changes the museum step, so it needs a `PRESENCE_CODE` bump (`/tend inbox T9` review F3, Nov 12, low)
+- [fix carousel-height audit] The area cards' height still follows a long name (`AtlasTile.tsx` name, no line cap), the system's text scale on a phone (the reserved lines are fixed pixels), and a town card's 4 px stack edge (the towns row is 4 px taller than a town's page); the row's height is otherwise the same for every card of a list. Read in the code, not pictured; native unverified.
 
 ## Activity density (AD1-AD16, decision 0080)
 
@@ -221,6 +222,14 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] The selected star is not told to a screen reader: the web's star is a raw button with an `aria-label` only (`WalkMap.web.tsx`, the star markers), and native's `pinHit` View has no `accessibilityState` (`WalkMap.native.tsx`); give the web button `aria-current="true"` and native `accessibilityState={{ selected }}` (WCAG 4.1.2; the T15 review's U4, low; before T15 too)
 - [loop] At the zoom where two places' stars merge, a lone pin's head can cover the merged star's lower half, and their targets overlap (about 21 x 43 px in the T15 probe's `after-merged-390`, a star at 131,282 and a note pin at 126,309; the same before T15): the stars and the pins are grouped apart, each within 44 px, never against each other. Draw the star's target above the pins, or space pins from stars as they are spaced from each other (WCAG 2.5.8; the T15 review's U5 and F5, low)
 - [loop] `formatDistance` joins a number and its unit with a plain space, so a line can break between them: the place sheet's header reads "175" at the end of one line and "m" on the next at 390 px (`09-home-place` in the `chronicle` journey, after `tend places T15`; the same before). A no-break space in `formatDistance` (`lib/format.ts`) and its siblings keeps them together (the T15 review's U6 and F4, low)
+- [owner] A pin's part of the day nests the long-ago line's own comma in its comma list: "Memories: a photo and a
+  note, March, two years ago, evening, reminder set. Open" (`dayPartLine`'s words, verbatim, since `tend map T28`;
+  the T28 review's ux 4, low, opinion). A clearer form needs new words ("three weeks ago, in the afternoon", or the
+  span's "three weeks ago" alone), which are yours.
+- [loop] No journey jumps the clock past a boundary on the walk screen: `tend map audit 29` renews the pins' `now` on
+  return to the front and at `nextDayPartBoundary`, unit-tested only, because the e2e harness installs no page clock
+  and installing one mid-journey would replace every timer the mocked walk runs on. A journey that opens the ready
+  screen under `page.clock` at 23:55 and reads a pin's name before and after midnight would hold it (low).
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -779,3 +788,9 @@ What the note types slice left out (`specs/note-types`, decision 0161).
   the moment on the journal page. `npm run e2e:baseline -- voicetrim` printed each of its three runs as failed, then
   "passed 3/3 on main": the baseline script's summary misreads a run that throws before a check.
 
+## Smooth neighborhood switches (SS1-SS10, decision 0164)
+
+- **Native's busy names at a switch's settle** (SS5 is the web's): on a phone the names still follow the selection at the move's start. MapLibre RN has no `moveend` the names can wait on in the same way; do it with `onRegionDidChange` if the phone shows the names flicker.
+  The slice's decision is 0165: 0164 went to the owner's answers to T28 and T29 on main first, and a section heading can't be renamed by an operation.
+  Now 0166: 0165 went to the owner's answers to T19-T22 on main first, too.
+- **The card, ring and name held until the camera settles** (the owner, Nov 13: not now, re-measure first). After the slice a switch's one Explore render, the selection's, is what it adds to the camera alone's cost (SS9); holding it would put the card about 0.4 s behind the camera.

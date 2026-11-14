@@ -173,7 +173,11 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       const release = await ensureOvertureRelease().catch(() => null);
       const [nb, tw] = await Promise.all([nearReads('neighborhood'), nearReads('town')]);
       if (stop) return;
-      setTownsKnown((k) => ({ build, listed: townsListedAfter(k.build === build ? k.listed : false, { reads: tw, at: from, build }) }));
+      // Kept as it was when nothing changed: each step of the loop set a new object and rendered Explore, mid-switch too (SS9).
+      setTownsKnown((k) => {
+        const listed = townsListedAfter(k.build === build ? k.listed : false, { reads: tw, at: from, build });
+        return k.build === build && k.listed === listed ? k : { build, listed };
+      });
       const nears: NearTarget[] = [
         town
           ? { level: 'neighborhood', at: town.at, radiusM: townReachM(town), reads: nb, town: town.key }

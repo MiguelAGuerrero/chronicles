@@ -6,7 +6,7 @@ import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
 import { readBusyAround, rememberedAreas } from './busy';
 import { perfCount, perfMark } from '../perfCount';
-import { busyReadDue, nearKey, needsBusyRead } from './state';
+import { busyReadDue, drawnAreas, needsBusyRead, needsListing, triedAfter, type BusyHold } from './state';
 
 /** Two listings of the remembered areas hold the same rows: the same keys, each read at the same time. */
 const sameRows = (a: readonly LandingRow[], b: readonly LandingRow[]) =>
@@ -26,7 +26,13 @@ const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
  */
 export type Stillness = () => { moving: boolean; settled: () => Promise<void> };
 
-export function useBusyLayer(centre: LngLat | null, on: boolean, stillness?: Stillness): { view: LandingView | null; reading: boolean; failed: boolean; reload: () => void } {
+export function useBusyLayer(
+  centre: LngLat | null,
+  on: boolean,
+  stillness?: Stillness,
+  /** A town's page (SS4): the areas within its reach stay drawn while its neighborhoods are switched. */
+  hold: BusyHold | null = null,
+): { view: LandingView | null; reading: boolean; failed: boolean; reload: () => void } {
   const release = useOvertureRelease();
   const [rows, setRows] = useState<LandingRow[]>([]);
   const [build, setBuild] = useState<string | null>(null);
@@ -41,6 +47,9 @@ export function useBusyLayer(centre: LngLat | null, on: boolean, stillness?: Sti
   const [failed, setFailed] = useState(false);
   const [tick, setTick] = useState(0);
   const tried = useRef(new Set<string>());
+  // SS8: which version of the remembered areas was listed (null: none yet); a finished read or a reload moves it on.
+  const listed = useRef<number | null>(null);
+  const version = useRef(0);
   // Read in the effect, never in render; the callback changes identity only if Explore's does.
   const stillnessRef = useRef(stillness);
   useEffect(() => {
@@ -48,18 +57,30 @@ export function useBusyLayer(centre: LngLat | null, on: boolean, stillness?: Sti
   });
   const key = centre ? areaKey(centre) : '';
   useEffect(() => {
-    if (!on) tried.current = new Set();
+    if (!on) {
+      tried.current = new Set();
+      listed.current = null;
+    }
   }, [on]);
   useEffect(() => {
     if (!on) return;
     let live = true;
     let started = false;
     void (async () => {
-      const [list, b] = await Promise.all([rememberedAreas(), ensureTileBuild().catch(() => null)]);
-      if (!live) return;
-      // DC12: the same rows (keys and when each was read) and build set no state, so a switch re-renders nothing here.
-      if (!sameRows(rowsNow.current, list)) setRows(list);
-      if (b !== buildNow.current) setBuild(b);
+      // SS8: listed when the layer comes on and after a read or a reload, never for a switch alone; and where nothing
+      // remembered covers the centre, since another read (What's good here, an exploring walk) may have since.
+      let list = rowsNow.current;
+      const v = version.current;
+      if (needsListing({ listed: listed.current, version: v }) || (!!centre && needsBusyRead(list, centre))) {
+        perfCount('busy:list');
+        const [fresh, b] = await Promise.all([rememberedAreas(), ensureTileBuild().catch(() => null)]);
+        if (!live) return;
+        listed.current = v;
+        list = fresh;
+        // DC12: the same rows (keys and when each was read) and build set no state, so a switch re-renders nothing here.
+        if (!sameRows(rowsNow.current, fresh)) setRows(fresh);
+        if (b !== buildNow.current) setBuild(b);
+      }
       const needs = !!centre && needsBusyRead(list, centre);
       // DC9: never while the map moves (a switch's ease, a drag): wait for it to settle, then decide again.
       const moving = () => stillnessRef.current?.().moving ?? false;
@@ -74,13 +95,21 @@ export function useBusyLayer(centre: LngLat | null, on: boolean, stillness?: Sti
         perfMark('mark:busy-read');
         setReading(true);
         const ok = await readBusyAround(centre, () => !live);
-        if (!live) return;
+        // SS7: a read a switch cut short leaves its place untried, so selecting it again reads it.
+        if (!live) {
+          if (!triedAfter('cut')) tried.current.delete(key);
+          return;
+        }
         started = false;
         setReading(false);
         setFailed(!ok);
         if (ok) {
+          version.current += 1;
+          perfCount('busy:list');
           const fresh = await rememberedAreas();
-          if (live && !sameRows(rowsNow.current, fresh)) setRows(fresh);
+          if (!live) return;
+          listed.current = version.current;
+          if (!sameRows(rowsNow.current, fresh)) setRows(fresh);
         }
       }
     })();
@@ -94,12 +123,16 @@ export function useBusyLayer(centre: LngLat | null, on: boolean, stillness?: Sti
   }, [on, key, tick]);
   // Keyed by which areas are near, never by the walker's fix: a few metres on is the same key, so the drawing and its labels are
   // not rebuilt once a fix (layers audit 2).
-  const nk = centre ? nearKey(rows, centre) : '';
+  // SS4: on a town's page, every area within its reach as well, the same for each of its neighborhoods.
+  const nk = centre ? drawnAreas(rows, centre, hold).map((r) => r.key).join('|') : '';
   const view = useMemo(() => {
     if (!on || !nk) return null;
     const keys = new Set(nk.split('|'));
     return landingView(rows.filter((r) => keys.has(r.key)), build, release);
   }, [on, nk, rows, build, release]);
-  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const reload = useCallback(() => {
+    version.current += 1;
+    setTick((t) => t + 1);
+  }, []);
   return { view, reading: on && reading, failed: on && failed && !view, reload };
 }

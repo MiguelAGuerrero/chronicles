@@ -1,4 +1,4 @@
-# 0165. A feature is found before it ships: the owner's task, every surface, a cold find, the live task
+# 0167. A feature is found before it ships: the owner's task, every surface, a cold find, the live task
 
 Date: 2026-11-13 · Status: accepted · Area: process, ui · Amends: decisions 0074 (the audit), 0114 (UI patterns), 0145 (the UI review)
 

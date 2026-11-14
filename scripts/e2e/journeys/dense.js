@@ -48,7 +48,15 @@ async function run(h) {
     const firstLongs = await pg.evaluate((a) => window.__longs.filter(([s]) => s >= a).map(([s, d]) => [Math.round(s - a), Math.round(d)]).sort((x, y) => y[1] - x[1]), first0);
     check((firstLongs[0]?.[1] ?? 0) <= 250, `explore-dense-city audit 2: the first Busy switch-on holds no task on the page past 250 ms (longest ${firstLongs.slice(0, 3).map(([at, d]) => `${d} ms at +${at}`).join(', ') || 'none'})`);
     // DC17 at street zoom (15): in this downtown the "?" pins cover the screen, and no name is drawn under any of them.
-    const mid = (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
+    // On the selected area's own point (its dot is the area point marker's top): where the map was left depended on
+    // whether the town's border arrived before the pick, which no longer moves the camera (smooth-switches late border).
+    const mid = await pg.evaluate(() => {
+      const el = document.querySelector('[data-testid=area-point][data-selected="1"]');
+      const canvas = document.querySelector('.maplibregl-canvas')?.getBoundingClientRect();
+      if (!el || !canvas || !window.__unproject) return null;
+      const r = el.getBoundingClientRect();
+      return window.__unproject([r.left + r.width / 2 - canvas.left, r.top + 6 - canvas.top]);
+    }) ?? (await safe(() => map().getAttribute('data-center'), '0,0')).split(',').map(Number);
     await pg.evaluate(([at]) => window.__zoomTo?.(at, 15), [mid]);
     await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-given') ?? '[]') !== '[]', null, { timeout: 30000 }));
     // The selected area's "?" pins come with its ring's read, computed off the page (audit 2): wait for them.

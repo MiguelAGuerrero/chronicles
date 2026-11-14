@@ -116,10 +116,16 @@ export interface WalkMapProps {
    */
   onBearingChange?: (bearing: number) => void;
   /**
-   * The walks of the pins' moments, with their pauses, so a pin of several says how far into its walk it was (tend map
-   * T14): "A photo and a note, twelve minutes in". Without its walk's clock, a pin says its kinds alone.
+   * The walks of the pins' moments, with their pauses, so a pin says how far into its walk it was (tend map
+   * T14): "A photo and a note, twelve minutes in". Without its walk's clock, a pin says the part of the day of its
+   * first moment (tend map T28): "A photo and a note, Tuesday evening".
    */
   clocks?: readonly WalkClock[];
+  /**
+   * The moment a pin's part of the day is said from (tend map audit 29): a screen that stays open renews it; without
+   * it, the time the map opened.
+   */
+  now?: number;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Faced[]) => void;
   /** Captures from earlier walks nearby, drawn as faint pins (Memories on revisit, MR1-MR3). */
@@ -165,6 +171,11 @@ export interface WalkMapProps {
   busyNamesNear?: { at: LngLat; m: number } | null;
   /** audit 11: the test ids of the screen's controls over the map, whose room no busy name takes (web). */
   busyNamesClearOf?: readonly string[];
+  /**
+   * SS5 (web): bumped by Explore as a switch's camera move begins: the busy names leave at once and the destination's are
+   * sent once, when that move settles. Any other move (a drag, a zoom, a follow camera) clears nothing (SS10).
+   */
+  busyNamesSwitch?: number;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
   /** Explore's areas: quiet dots, the selected one named (atlas round 3, fix pins-selected-only). */

@@ -93,8 +93,8 @@ export function Entry(props: {
             onPress={() => props.onType?.(written)}
             style={[styles.type, props.typeOpen && styles.typeOpen]}
           >
-            {/* A sign, not a word (NY26, decision 0166): a face with a plus while unmarked, the type's glyph once
-                marked. In ink: a muted tag was not found on the owner's phone (0165). */}
+            {/* A sign, not a word (NY26, decision 0168): a face with a plus while unmarked, the type's glyph once
+                marked. In ink: a muted tag was not found on the owner's phone (0167). */}
             <Icon name={(mark?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="type-slot-face" />
             {mark ? null : (
               <View style={styles.typeAdd} testID="type-slot-add">

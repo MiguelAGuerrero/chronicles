@@ -159,8 +159,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const alternates = useMemo(() => alternatesGeoJSON(props.alternates), [props.alternates]);
   const routeGrades = useMemo(() => routeGradesGeoJSON(props.routeGrades), [props.routeGrades]);
   const foundPins = useMemo(() => pinsGeoJSON(props.foundPins), [props.foundPins]);
-  const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
-  const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
+  // SS3: the lines and pockets are made again only when they change, never because the names near the selected area did.
+  const landingGraded = props.landing?.graded;
+  const landingPockets = props.landing?.pockets;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const pockets = useMemo(() => pocketsGeoJSON(props.landing), [landingPockets]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const strips = useMemo(() => stripsGeoJSON(props.landing), [landingGraded]);
   // The busy names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
   const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
   // DC17: every "?" pin keeps its room; re-made only when the pins move.
@@ -593,7 +598,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View
               accessible
               accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true, pinReminded(pin, reminded))}
+              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true, pinReminded(pin, reminded), undefined, props.now ?? openedAt)}
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} faint reminded={pinReminded(pin, reminded)} />
@@ -615,7 +620,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View
               accessible
               accessibilityRole={props.onPinPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded), props.clocks)}
+              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded), props.clocks, props.now ?? openedAt)}
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} reminded={pinReminded(pin, reminded)} />

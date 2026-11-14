@@ -461,7 +461,7 @@ async function run(h) {
   await toLine();
   await pg.keyboard.type('A page with a type', { delay: 10 });
   await pg.waitForTimeout(1300);
-  // Unmarked, the slot is the sign people know for adding a reaction: a face with a plus, in ink, and no word (0166).
+  // Unmarked, the slot is the sign people know for adding a reaction: a face with a plus, in ink, and no word (0168).
   const slot26 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=type-slot]'); if (!e) return null; const g = e.querySelector('[data-testid=type-slot-face]'); return { add: !!e.querySelector('[data-testid=type-slot-add]'), words: [...e.querySelectorAll('*')].filter((x) => x.children.length === 0 && /[A-Za-z]{3,}/.test(x.textContent ?? '')).length, ink: g ? getComputedStyle(g).color : null, w: Math.round(e.getBoundingClientRect().width), h: Math.round(e.getBoundingClientRect().height) }; });
   await pg.click('[data-testid=type-slot]').catch(() => {});
   await pg.waitForTimeout(400);

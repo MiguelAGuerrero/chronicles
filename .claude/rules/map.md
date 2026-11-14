@@ -68,6 +68,18 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     no data expression: maplibre refuses the layer with a console error (the
     `dense` journey's "no console errors" caught it). The style spec package
     is not a declared dependency, so no unit test can validate a layer.
+  - **A switch redraws nothing it already showed** (smooth-switches SS1-SS10, decision 0166; the `switches` journey on
+    the harness's `smallWorld`, at 4x CPU, each switch paired with the same move by the camera alone):
+    - The `strips` and `pockets` sources are sent only when `landing.graded` or `landing.pockets` change, never because
+      the names near the selected area did (web effect deps; native memo keys): each `setData` drops the source's tiles.
+    - Explore bumps `busyNamesSwitch` as a selection's move starts: the web map clears the names once and sends them once
+      at that move's `moveend`, a frame on (a move cut short by the next ends before that one starts). Nothing else
+      clears them (SS10). Native keeps the old timing (DEFERRED).
+    - Area markers (web) are kept by id and re-rendered in place; `marker:area` counts only new ones.
+    - **Traps the journey found:** a hook that sets state when nothing changed renders Explore mid-move (the atlas
+      loop's `townsKnown`, the complexes retry); and the row of cards changed height with the selection, resizing the map mid-move (fix carousel-height: every
+      card reserves its lines and footer). A move started from a script (`easeTo` in `page.evaluate`) got almost no frames in headless Chromium:
+      the journey's control is started by a key (`window.__easeNext`, then F9), as a switch is.
   - **E2E hooks** (only with `window.__perf`): `data-busy-names` (written at
     `idle`), `data-busy-given`, `data-busy-over`, `data-idle`,
     `window.__zoomTo`, `__busyNamesIn`, `__busyNamePoint` (only where the canvas
@@ -120,7 +132,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 ## Town borders (TB1-TB9, decision 0088)
 
 - `WalkMap`'s `borders` prop (`BorderView` from `areas/borders.ts`): one `borders` source, three layers (`border-fill` for tinted, `border-firm` for tinted and firm, `border-lined`), from `BORDER.minZoom` (8). On web the fill goes under the first base road layer (`source-layer` transportation, else the first line, else the first label) and the lines under the first label, over the streets, since a border often runs along a road (TB10: at 7% and under the streets the owner saw nothing on a phone); on native they are the first overlay (no road id to go below; unverified on a device).
-- Explore frames the tinted town's whole border (`townFrame`, TB11) through one rule, `nextFrame` (`atlas/atlas.ts`): each visit to a page (near you, a town's; opening one or going Back starts a visit) frames its areas until its town's border is known (150 m around them near you; a town's reach on its page, where its point may be all that is listed), then the whole town, and nothing undoes that within the visit (areas listed later, the borders null while the tab is blurred, Locate, a pan, coming back into a town it framed). Two separate frame-once effects raced and the areas' won, so a town's page never showed the whole town (fix explore-fit-area, Nov 4; the e2e reads the view from `data-bounds`). A town selected in the row is framed again each time (`townPicked`, fix town-fit, Nov 13: a town selected twice kept the last town's zoom); it writes the visit's record, adding the town and never dropping one, so Locate back into a town framed earlier keeps Locate's frame (audit 1). **Trap:** the outline set a pick reads holds only the z10 tiles under you and the last selection, so a town in another tile is picked before its border is known; the record waits for it by the area's key (`awaiting`, matched to `litKey`), never by outline id (audit 2). `useOutlineSet` retries a failed read every 30 s while mounted, and a z10 tile has 45 s (TB12).
+- Explore frames the tinted town's whole border (`townFrame`, TB11) through one rule, `nextFrame` (`atlas/atlas.ts`): each visit to a page (near you, a town's; opening one or going Back starts a visit) frames its areas until its town's border is known (150 m around them near you; a town's reach on its page, where its point may be all that is listed), then the whole town, and nothing undoes that within the visit (areas listed later, the borders null while the tab is blurred, Locate, a pan, coming back into a town it framed). Two separate frame-once effects raced and the areas' won, so a town's page never showed the whole town (fix explore-fit-area, Nov 4; the e2e reads the view from `data-bounds`). A town selected in the row is framed again each time (`townPicked`, fix town-fit, Nov 13: a town selected twice kept the last town's zoom); it writes the visit's record, adding the town and never dropping one, so Locate back into a town framed earlier keeps Locate's frame (audit 1). **Trap:** the outline set a pick reads holds only the z10 tiles under you and the last selection, so a town in another tile is picked before its border is known; the record waits for it by the area's key (`awaiting`, matched to `litKey`), never by outline id (audit 2). **Trap (smooth-switches late border):** a town's border that arrives after the reader picked or selected an area framed the whole town over their pick (the `dense` journey's DC17, a third of runs once the slice shifted the timing). A pick, a selection and an opened card mark the visit `held` (`readerTook`); `nextFrame` then frames no town's border, but for a town picked before its border was known (`awaiting`). `useOutlineSet` retries a failed read every 30 s while mounted, and a z10 tile has 45 s (TB12).
 - Data is sent again only when `borders.key` changes (the towns and their roles), never per fix or zoom; the web writes `data-borders` (`role:name|...`) for the e2e.
 - Screens: Explore (`index.tsx`, yours tinted by `outlineIdHere`, the open town's by `outlineOf`), Chronicle (walked towns, `lined: false`), the walk screen (`firm` by `outlineIdAt`, no fill), the replay and a day (`useWalkBorders`). `BORDER` colours are held by `colors.test.ts` (TB8).
 
@@ -166,6 +178,27 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     map audit 23`); its icons turn, never its discs, so a disc's box is its circle. On a pin of several the bell sits
     out from its corner (`bellRightFan`, `bellLeftFan`), clear of the discs (`tend map audit 24`). The `qol` journey's
     `pinsOfSeveral` walks its own pins of every shape and reads the heads, discs, opacities and bell boxes.
+- **When a pin says it** (`tend map T28`, decision 0164), every pin, one moment or several (`pinWhen`, `lib/pins.ts`):
+  with its walk's clock, its first moment's minutes in ("Photo, twelve minutes in. Open"), or, when its moments lie
+  more than `JUST_AFTER_MS` apart in walked time, the span ("A photo and a note, from the start to fifty-eight minutes
+  in. Open"); with none (no `clocks`, as on Chronicle's map and the ready screen; moments of two walks on a day; a
+  moment outside a walk; a memory pin, always), the part of the day of its first moment by `dayPartLine`, the moment's
+  own line's words ("Memories: a photo and a note, Tuesday evening"). `now` is the map's `openedAt`. This supersedes
+  the "kinds alone" cases in the two bullets above. The e2e finds a pin of one moment by its kind and ". Open"
+  (`[aria-label^="Photo, "][aria-label$=". Open"]`), never by its whole name, which holds the time.
+  - A pin no clock holds whose moments fall on different days (as `dayPartLine` reckons a day: the small hours are
+    the evening before's) says the span of their days, "from three weeks ago to Tuesday evening", an end whose line
+    has its own comma giving the part before it, and two ends that read alike said once (`dayWhen`, `tend map audit 27`).
+  - A map whose `clocks` hold more than one walk (a day's replay of several walks) says every pin's part of the day:
+    "ten minutes in" would not say which walk. A day of one walk keeps the minutes or the span (`tend map audit 28`).
+  - A map's `now` prop is what a pin's part of the day is said from; without it, `openedAt`, which stays the drop's
+    clock. The walk screen's one map lives from the ready screen through the walk, so `walk.tsx` passes `pinNow`,
+    renewed on each return to the front and at `nextDayPartBoundary` (`resurface/context.ts`); the web relabels in
+    place (`usePinMarkers`' deps), native re-renders its labels (unverified). Chronicle remounts its map on focus and
+    the replays mount on open, so they need none (`tend map audit 29`).
+  - The span is said in the minutes it names: only when the rounded minutes lie more than ten apart, both under an
+    hour sharing their unit ("from twelve to fifty minutes in"), else "from the start to ..." or the mixed units
+    (`tend map audit 30`). `pinInto` is gone: `pinWhen` is the one place a pin's time is worded.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

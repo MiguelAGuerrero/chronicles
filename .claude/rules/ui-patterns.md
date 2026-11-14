@@ -60,7 +60,7 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 
 ## Found before quiet
 
-- **A control a person must find is drawn to be found** **[app]** (decision 0165): in ink, at a target's size, with a
+- **A control a person must find is drawn to be found** **[app]** (decision 0167): in ink, at a target's size, with a
   word or a symbol people already know for that job. Muted grey is for status and for what the app says, never for
   the only way to do something. Restraint (VISION.md) is about colour, motion and copy, not about hiding controls: a
   faint, wordless glyph that nobody finds is a missing feature, however quiet it looks.
