@@ -90,7 +90,7 @@ Setting a reaction
 7. **RX7** Choosing is never a step: writing, the camera, the mic and Done stay in the bar while the reactions are open, the next character typed closes them, and a reaction chosen with the panel open leaves it open, so a second family can be chosen in the same visit.
 8. **RX8** A reaction chosen on the entry being written is kept at once on its moment and is there after Done and after the app is opened again; an entry that ends with no piece keeps nothing, whatever was chosen.
 9. **RX9** An entry kept today, of any kind (a photo, a memo, a video, a note, several), shows the sign at the end of its dateline: the face with a plus while it has no reaction, else the glyph of its first reaction in the families' order. One tap opens the reactions by themselves, and a choice is kept. An entry of an earlier day shows no sign there (as NY27).
-10. **RX10** Every entry's More offers "Reaction", which shows the three families in that same sheet, by themselves under the word Reaction; choosing one keeps it and leaves the sheet open for another family; Close or a tap outside closes it.
+10. **RX10** Every entry's More offers "Reaction", which shows the three families in that same sheet, by themselves under the word Reaction; choosing one keeps it and leaves the sheet open for another family; Done (in ink, at the sheet's top right, reactions ui 4) or a tap outside closes it.
 11. **RX11** The viewer's More offers "Reaction" for every moment, of any kind, opening the same three families; a choice is kept and shows in the viewer at once.
 12. **RX12** A note's page (from Edit, the viewer, the journal's line) has a Reaction tool in its bar where the Type tool was, showing the moment's first reaction's glyph or the face with a plus, and saying "Reaction, idea" or "Reaction, none"; it opens the three families; a choice is kept on the note's moment at once and never rewrites the note's words or format.
 13. **RX13** A new note's page (on a walk, from the ready screen, from the journal's line) carries the Reaction tool; reactions chosen before the first words wait and are kept on the moment when it is kept; a page left without words keeps nothing. Respond's page has no Reaction tool: a response has no reaction until the owner gives it one from the journal, the viewer or More (as NY15).
@@ -143,4 +143,38 @@ Storage and truth
 
 ## Record
 
-Not built.
+Built Nov 14, 2026, on `claude/trusting-gates-cd90zs`, test-first (the todos at `6016a8a`). RX1-RX36 pass: the model, the
+lens, the shell, both stores' migration and the Db contract (fake, IndexedDB, SQLite over `node:sqlite`), the bundle,
+pin reactions and the readers' guard in unit tests (`src/lib/__tests__/reactions/`, `map/pinReactions`, `dbContract`,
+`captures/bundle`); the screens in the `reactions` journey (new) and `journal`, `notepage`, `qol`, `threads`,
+`responses`. Note types retire whole (NY1-NY27 in `RETIRED`, decision 0172); their checks were carried to reactions
+or dropped with the feature (note-types audit 9, 56 and 63 carried; the Type menu's audit 8, 20 and 21 went with it).
+Typecheck, lint and `npm test` pass. Journeys run: `reactions`, `journal`, `notepage`, `qol`, `threads`, `responses`,
+`upgrade` (MT9 now expects IndexedDB 22). `journal`'s "fix entry-jitter 1" failed on the branch, passed 3 of 3 on
+`main` (`e2e:baseline`), and passed twice after the journal's sheet was made to wait for the reactions read; it failed
+once in between, so a race may remain. The other 29 journeys `check:affected` named only reach files whose change a
+unit test proves (`docs/TESTING.md`, "Choosing the journeys"). Native code has not run on a device: three items in
+`docs/NATIVE_UNVERIFIED.md`. Not audited yet.
+
+### The cold find (decision 0167)
+
+The UX reviewer, given three pictures and the three tasks in the owner's words and nothing else:
+- RX1 "React to a photo I took": found, with doubt (the sign is known from Slack and GitHub; its plus read faint).
+- RX2 "Gather all my ideas": found late, through Contents → Reactions ("Contents" reads as a book's table of contents).
+- RX3 "See on the map what I reacted to": found, with doubt (bubbles sat apart from their pins).
+Accepted: `reactions ui 1` (the bubbles lie across their own head's lower part, never over another pin) and
+`reactions ui 2` (the sign's plus a 16 pt ink disc). "Contents" as the way to the lenses is the owner's call (0172):
+put to the owner in `docs/STATUS.md`.
+
+### UI review (decision 0145)
+
+Thirteen pictures read by the `ux-reviewer` against the plan's goal-to-control lines. Nine findings:
+- U1 (a chosen reaction drawn like a selected tab): accept, `reactions ui 3` (a check beside the name, no rule).
+- U2 (three ways out of the reaction sheets): accept, `reactions ui 4` (one Done, in ink, top right).
+- U3 (the sign both adds and shows): the owner's (it changes RX9, RX12 and decision 0168's sign); in `docs/STATUS.md`.
+- U4 (the sign 10 px from More): reject; both are 44 px targets, and matrix 22's 12 pt is for the walking capture control.
+- U5 (Taste's two out of line): accept, `reactions ui 5` (three columns in every row).
+- U6 (no visible way out of the panel while writing): defer; the sign shows it open, typing and the sign close it.
+- U7 (the open line under the lenses): reject; it stays in every contents screen (HC7 carried), as Threads and Hidden.
+- U8 (More at the foot of a lens card): defer; it is `MomentCard`'s, shared with the thread screens.
+- U9 (faces alike at pin size): defer to a phone (opinion).

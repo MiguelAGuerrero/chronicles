@@ -1,0 +1,57 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Reactions (note types became reactions on any moment, at most one per family: Feeling, Taste, Thought; the face with a plus on the entry being written and today's entries, More's Reaction, the viewer's More and a note page's Reaction tool; marks under a dateline, the viewer's info line, a card and a bubble; ink bubbles across a single moment's pin; the journal's contents → Reactions → a lens per reaction, oldest first, no count; RX1-RX36, decision 0172) | built 2026-11-14, test-first (36 of 36): unit tests, typecheck, lint, docs and vision checks; e2e `reactions` (new), `journal`, `notepage`, `qol`, `threads`, `responses`, `upgrade`; cold find and UI review triaged (`reactions ui 1-5`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reactions/spec.md` | not yet (asked for, next) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Reactions slice (RX1-RX36"
+      ],
+      "body": "| Reactions slice (RX1-RX36, `specs/reactions/spec.md`, decision 0172) | `claude/trusting-gates-cd90zs` | built 2026-11-14 and green; the audit the owner asked for is next, then the deploy |\n",
+      "target": "sha256:a7f64b87a1cefa170ef21cef467f08591ba5d5f9359dc9f94add5a37a6f7e5a0"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /slice reactions"
+      ],
+      "intro": "What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reactions"
+      ],
+      "body": "- **The sign once a moment has a reaction** (UI review U3): today it turns into the first reaction's glyph, so a plain smiling face can mean \"no reaction yet\" or \"Happy\", and the reaction is also spelled out under the dateline. Recommended: keep the face with a plus as the sign always and let the line under the dateline say what is chosen. It changes RX9, RX12 and decision 0168's \"marked, the type's own glyph\".\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reactions"
+      ],
+      "body": "- **\"Contents\" as the way to the lenses** (the cold find, RX2): \"Gather all my ideas\" was found, but late: \"Contents\" reads as a book's table of contents, and Threads was tried first. Recommended: keep Contents (your call in 0172) and rename its spoken name and line only if the owner sees the same on a phone; the alternative is a reaction under a moment opening its lens, which you declined.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0172)"
+      ],
+      "body": "- [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.\n"
+    }
+  ]
+}
