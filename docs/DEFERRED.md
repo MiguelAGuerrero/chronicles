@@ -33,6 +33,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
 - Finding, fix remove-which-place: a moment with two or more unfound places within 60 m is tagged to none, on any walk; the "Which place is this moment about?" chip is gone (the owner, Nov 12), and a moment cannot be tagged to a place afterwards (Explore, E8). `specs/v1-discovery/spec.md` E8 still says "until the reader picks": the owner's doc wins, so it is theirs to edit
+- [loop] Navigate announces a route preview's count in digits, "3 routes to Fox Point" (`lib/nav/useNavigation.ts` l.209, `announceForAccessibility`), spoken only; `numberWord` says it "Three routes to Fox Point", as the cards and rows now say their counts (VISION.md Always, "Counts are words"; the T19 and T30 review's steward 8, Nov 14, low)
 
 ## Streets and snapping
 
@@ -139,6 +140,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
 - "Today" refreshing past midnight without a focus, `lib/days.ts` (Moments and days)
 - A day of only placeless moments replays over the world map, `dayStory` (Moments and days)
+- [owner] `.claude/rules/moments-and-days.md` l.54 still says the day's card reads "N moments · P places", places being spots 100 m apart; since `tend replay T19` and `audit 12` it says its moments as a clause, a named place or the day's area only when every moment has a place inside it, else the count alone, and `spotCount` is read only by tests. The loop adds rule lines and never rewords one (0135): reword or remove the old line (the T19 and T30 review's auditor 7, Nov 14, low)
 
 ## Captures, media and export
 
@@ -163,6 +165,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The viewer's player says "voice memo" where the journal's says "voice note": one noun for both (journal voice audit 16, opinion)
 - The journal's in-line voice note shows its pause glyph while the file is still resolving, before anything plays: a brief busy state would be honest (journal voice audit 19, opinion)
 - [loop] Every table of the kinds' words outside `lib/pins.ts` (`pinKindsWords`, `KIND_NAME`, which the reminders take since `tend explore T29`): `resurface/context.ts` `KIND` ("just after a photo"), `lib/format.ts` `formatCaptures` (T19 and T30 change its words), `deletion/core.ts` `KIND_NOUN` and `mediaRemoveText`'s nouns, `lib/captureBand.ts` l.10 `KIND_NAME`, `journal/lines.ts` l.70, `gallery/copy.ts` l.38, `components/chronicle/MomentCard.tsx` l.16, `components/threads/MomentPicker.tsx` l.13, `ResponseEntry.tsx` l.11, `AddToThread.tsx` l.16 and `NoteText.tsx` l.14, `notePage/useMentionCards.ts` l.9 and `space/core.ts` l.72 (lowercase); the same words today, so a later change can split them (cleanup, the T29 sibling lens and its review's auditor 2; low)
+  Since `tend replay T19` and `tend deletion T30` (Nov 14): `formatCaptures` (`lib/format.ts`) and `mediaRemoveText`'s nouns (`deletion/core.ts`) say their kinds through `kindsClause` in `lib/pins.ts`, the table `pinKindsWords` shares; the other tables named here are as they were, so the item stays open.
 
 ## Deletion
 
@@ -175,6 +178,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The home's reload after a delete reruns its whole load, `useOnDeleted` (Clearing walks and moments)
 - On the web, a hidden page counts as the background, so switching tabs stores a waiting delete at once, `deletion/pending.ts` (Clearing walks and moments)
 - A notification already shown for a deleted moment opens nothing (Clearing walks and moments)
+- [loop] At 320 px the walk delete confirm's "Delete walk" wraps in its action row, "Delete / walk" (pictures `27-walk-confirm-320` before and after `tend deletion T30`; there before this run): give the two buttons room at narrow widths, or stack the actions below about 340 px as the platforms' alerts do (`.claude/rules/ui-patterns.md`, "Nothing wraps on a 320 px phone at the default text size"; the T19 and T30 review's ux 6, Nov 14, medium)
 
 ## Map, walk screen and motion polish
 
