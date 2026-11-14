@@ -110,3 +110,18 @@ Open: none
 ## Open
 
 - None for this slice. The follow-ups are filed in `docs/STATUS.md` by the plan.
+
+## Record
+
+- **Built 2026-11-14**, test-first by history (15 of 15, `check:test-first`): CQ1, CQ4 and CQ6 already passed as
+  todos, since their analyzers were built in the report phase before the slice. Unit tests: the full suite (2,557)
+  green but `MT7` once, a timing test that failed under `check:affected`'s parallel load and passed alone twice.
+  Typecheck, lint (no errors; 5 warnings, none in the slice's files), docs, vision and records checks. The `hidden`
+  journey, the one `check:e2e` named (for `useLiveTrace.ts`), passed in one run.
+- **The baseline** was written from the tree as merged with `main` (849 entries); `main` had added 38 regressions
+  while the slice was built. `/refactor` on the slice's scope then moved `sameRuns` and `newestGap` from
+  `useLiveTrace.ts` into core (`refactor recording 1-2`, `src/lib/liveRuns.ts`), and the baseline tightened to 847.
+- **Deferred** (`docs/DEFERRED.md`, "Code quality"): errors handled by kind (0179), the palette (0180), the
+  decomposition slices for `walk.tsx` and `WalkMap.web.tsx`, the `map/types.ts` move, a coverage ratchet and mutation
+  testing, floating promises in `npm test`.
+- Native: none; the slice touched a comment in `recorder/index.native.ts`, and nothing here has run on a phone.

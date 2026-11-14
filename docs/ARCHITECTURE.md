@@ -165,6 +165,7 @@ Recording and traces
   walkMotion.ts              askMotion, restoreMotion, useWalkMotion (expo-sensors permission; samples through motionSource/)
   motionSource/              motion samples: DeviceMotion on native, the devicemotion event on web
   useLiveTrace.ts            the walk screen's live trace: reads raw fixes every 2 s, feeds the DotStore, reports gaps and rides
+  liveRuns.ts                its decisions, in core: sameRuns (ride lines unchanged), newestGap (the newest gap that isn't a pause)
   useGlidingWalker.ts        runs the glide as a render loop outside React
   traceEnds.ts               where a walk began and ended
   gpsLog.ts                  the raw readings as text for Share GPS log
@@ -399,6 +400,8 @@ Layers (functional core, imperative shell)
   (scripts/layers.js)        reads the layer tags and core's imports for layers.test.ts and eslint.config.js
   (scripts/affected.js)      what a change can break: changed files, the import graph, the tests (by feature) and e2e journeys to run, what nothing covers
   (scripts/features.js)      the feature map: each feature's sources, journeys, specs and rule; test:feature, check:specs and the rules read it
+  (scripts/quality/)         code-quality facts from the syntax tree and git, the limits, the ratchet's baseline (check:quality, decision 0178)
+  (scripts/refactor-commits.js) check:refactor: a refactor commit changes no existing test
 ```
 
 ## Invariants and boundaries

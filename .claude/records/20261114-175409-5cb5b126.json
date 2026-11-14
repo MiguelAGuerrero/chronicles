@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Code quality (facts from"
+      ],
+      "body": "| Code quality (facts from `npm run quality` become a ratchet: `check:quality` against a baseline that only shrinks, limits for new code, `check:refactor` keeping refactor commits behaviour-preserving, and `/refactor` after a slice is green and in each `/tend` sweep; CQ1-CQ15, decisions 0178-0180) | `claude/serene-sagan-ig8te6` | built 2026-11-14, test-first by history (15 of 15): unit tests, typecheck, lint, docs, vision and records checks; the `hidden` journey; the baseline 849 entries from the merged tree, 847 after the slice's own `/refactor` (`refactor recording 1-2`); `/audit` next (the owner asked), then the errors slice (0179). Spec `specs/code-quality/spec.md` |\n",
+      "target": "sha256:36bc8a77418aa81b998fd5e0ba9a201127e6136238c3d52676c3eb8193bfb818"
+    }
+  ]
+}
