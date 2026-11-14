@@ -873,6 +873,22 @@ async function run(h) {
   check(!!row34.photo && !!row34.voice && row34.voice.x - (row34.photo.x + row34.photo.w) >= 12,
     `chronicle-journal ui 11: the camera's and the mic's targets have 12 pt between them, for a thumb on foot (${JSON.stringify({ photo: row34.photo, voice: row34.voice })})`);
   check(!row34.bar && (await pg.locator('[data-testid=open-line]').count()) === 0, 'JN35: at rest with the row in view no bar is drawn above the tab bar');
+  // chronicle-journal audit 69: the "+" lies inside its parent's box (Android delivers no touch outside a parent's bounds).
+  const plus69 = await pg.evaluate(() => { const p = document.querySelector('[data-testid=line-plus]'); if (!p) return null; const r = p.getBoundingClientRect(); const q = p.parentElement.getBoundingClientRect(); return { r: [Math.round(r.left), Math.round(r.right)], q: [Math.round(q.left), Math.round(q.right)] }; });
+  check.todo(!!plus69 && plus69.r[0] >= plus69.q[0] && plus69.r[1] <= plus69.q[1], `chronicle-journal audit 69: the "+" is inside its parent's bounds (${JSON.stringify(plus69)})`);
+  // chronicle-journal audit 61: pulled back a pixel at a time across the row's edge, the controls change place at most once.
+  const flips61 = await pg.evaluate(async () => {
+    const root = document.querySelector('[data-testid=journal-page]');
+    const sc = root && [root, ...root.querySelectorAll('*')].find((x) => x.scrollHeight > x.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(x).overflowY));
+    if (!sc) return -1;
+    const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    let was = !!document.querySelector('[data-testid=open-line]'); let flips = 0;
+    for (let i = 0; i < 700 && sc.scrollTop > 0; i++) { sc.scrollTop -= 1; sc.dispatchEvent(new Event('scroll')); await frame(); const now = !!document.querySelector('[data-testid=open-line]'); if (now !== was) flips += 1; was = now; }
+    return flips;
+  });
+  check.todo(flips61 === 1, `chronicle-journal audit 61: scrolling back a pixel at a time across the row's edge moves the controls exactly once (${flips61} changes)`);
+  await scrollTo('foot');
+  await pg.waitForTimeout(1200);
   // JN36: the keyboard takes the row to the bar; writing stopped, it is back and nothing above the line moved.
   const before36 = { field: await box(pg, input), last: await box(pg, `${entries} >> nth=-1`) };
   await pg.click(input).catch(() => {});
@@ -902,6 +918,8 @@ async function run(h) {
   await scrollTo('top');
   await pg.waitForTimeout(1200);
   const back37 = { cam: await inBarNow('band-photo'), stop: await inBarNow('band-voice-save'), timer: await inBarNow('band-voice-timer') };
+  const rec64 = { pen: await inBarNow('bar-write'), done: await pg.locator('[data-testid=line-done]').filter({ visible: true }).count() };
+  check.todo(rec64.pen, `chronicle-journal audit 64: pulled back mid-note, the bar still holds the pen (${JSON.stringify(rec64)})`);
   await shot(pg, 'journal-37-pulled-back-recording');
   await scrollTo('foot');
   await pg.waitForTimeout(1200);
@@ -927,12 +945,34 @@ async function run(h) {
   await pg.evaluate(() => document.activeElement?.blur?.());
   await pg.waitForTimeout(1200);
   const open39 = { done: await box(pg, '[data-testid=line-done]'), inBar: await inBarNow('line-done'), mic: await box(pg, '[data-testid=band-voice]') };
+  const status77 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=line-row] [data-testid=line-status]'); return e ? e.innerText.trim() : null; });
+  check.todo(status77 === 'Kept as you write', `chronicle-journal audit 77: an entry left open says "Kept as you write" in the row, as the bar does (${status77})`);
   await shot(pg, 'journal-39-done-in-the-row');
   await pg.click('[data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(1500);
   const closed39 = { done: await pg.locator('[data-testid=line-done]').count(), cam: await box(pg, '[data-testid=band-photo]'), bar: await pg.locator('[data-testid=open-line]').count() };
   check(!!open39.done && !open39.inBar && !!open39.mic && open39.done.x > open39.mic.x && open39.done.y === open39.mic.y && closed39.done === 0 && !!closed39.cam && closed39.bar === 0,
     `JN39: an entry left open with the keyboard down offers Done at the row's end; after Done the row is the camera and the mic (${JSON.stringify({ open39, closed39 })})`);
+  await type('Open again, for a voice note.');
+  await pg.waitForTimeout(700);
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(1200);
+  // chronicle-journal audit 65: with the entry open, a voice note from the row: neither the row nor the bar (pulled back)
+  // offers Done while it records, and the pen stays in the bar.
+  await pg.click('[data-testid=band-voice]').catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const row65 = await pg.locator('[data-testid=line-done]').filter({ visible: true }).count();
+  await scrollTo('top');
+  await pg.waitForTimeout(1200);
+  const bar65 = { done: await pg.locator('[data-testid=line-done]').filter({ visible: true }).count(), pen: await inBarNow('bar-write') };
+  await scrollTo('foot');
+  await pg.waitForTimeout(1200);
+  await pg.click('[data-testid=band-voice-discard]').catch(() => {});
+  await pg.waitForTimeout(1200);
+  check.todo(row65 === 0 && bar65.done === 0 && bar65.pen, `chronicle-journal audit 65: with an entry open, while a voice note records neither the row nor the bar offers Done; the bar keeps its pen (${JSON.stringify({ row65, bar65 })})`);
+  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.waitForTimeout(1200);
   // JN40: at 320 px the row is one line.
   await pg.setViewportSize({ width: 320, height: 640 });
   await pg.waitForTimeout(1200);
@@ -943,6 +983,21 @@ async function run(h) {
   await shot(pg, 'journal-40-row-320');
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(1200);
+  // chronicle-journal audit 68: back from the threads, the camera is seen on every frame (a stale "opened" drew the row on
+  // a page not yet shown).
+  await h.toThreads(pg);
+  await pg.waitForTimeout(900);
+  await pg.evaluate(() => {
+    window.__cam68 = [];
+    const t0 = performance.now();
+    const seen = () => [...document.querySelectorAll('[data-testid=band-photo]')].some((e) => { const r = e.getBoundingClientRect(); if (!r.width) return false; for (let x = e; x; x = x.parentElement) if (Number(getComputedStyle(x).opacity) === 0) return false; return true; });
+    const tick = () => { window.__cam68.push(seen()); if (performance.now() - t0 < 3000) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+  await h.toJournal(pg);
+  await pg.waitForTimeout(3200);
+  const cam68 = await pg.evaluate(() => window.__cam68 ?? []);
+  check.todo(cam68.length > 10 && cam68.every(Boolean), `chronicle-journal audit 68: back from the threads, the camera is visible on every frame (${cam68.filter((x) => !x).length} of ${cam68.length} without)`);
 
   // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
   const pageEntry = pg.locator(entries).filter({ hasText: 'Smelled it two blocks off.' });

@@ -61,3 +61,28 @@ test('JN40: where no page is shown (a thread, the threads, Hidden) the controls 
   const { controlsAt } = await bar();
   assert.equal(controlsAt({ ...REST, inBar: true }), 'foot');
 });
+
+test('chronicle-journal audit 70: the one answer for every input, recordingIn included', { todo: 'test first' }, async () => {
+  const { controlsAt } = await bar();
+  const flags = ['inBar', 'opened', 'rowInView', 'typing', 'failed'] as const;
+  for (const recordingIn of [null, 'line', 'foot'] as const) {
+    for (let m = 0; m < 1 << flags.length; m++) {
+      const w = { ...(Object.fromEntries(flags.map((f, i) => [f, !!(m & (1 << i))])) as unknown as Where), recordingIn };
+      const line = !w.inBar && w.opened && w.rowInView && !w.typing && !w.failed && recordingIn !== 'foot';
+      assert.equal(controlsAt(w), line ? 'line' : 'foot', JSON.stringify(w));
+    }
+  }
+});
+
+test("chronicle-journal audit 62: the foot's room is the same whether the bar or the row is drawn, and holds a message taller than the bar", { todo: 'test first' }, async () => {
+  const { footRoom } = (await bar()) as unknown as { footRoom: (r: { barH: number; aboveH: number; under: number; lift: number }) => number };
+  assert.equal(footRoom({ barH: 61, aboveH: 114, under: 0, lift: 0 }), 114);
+  assert.equal(footRoom({ barH: 61, aboveH: 0, under: 0, lift: 0 }), 61);
+});
+
+test("chronicle-journal audit 63: the room kept for an iPhone's keyboard row counts only while the keyboard is up", { todo: 'test first' }, async () => {
+  const { footRoom } = (await bar()) as unknown as { footRoom: (r: { barH: number; aboveH: number; under: number; lift: number }) => number };
+  // barH is the bar's own height, measured without the accessory room; at rest under is 0 and nothing above moves.
+  assert.equal(footRoom({ barH: 61, aboveH: 0, under: 56, lift: 300 }), 61 + 56 + 300);
+  assert.equal(footRoom({ barH: 61, aboveH: 0, under: 0, lift: 0 }), 61);
+});
