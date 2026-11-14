@@ -40,7 +40,8 @@ class Usage extends Error {}
 // ---------------------------------------------------------------------------------------------------
 // next-decision
 
-const DECISION = /^(\d+)-.+\.md$/;
+// A decision file: its number, then a slug or nothing (`0175.md` holds 0175 too: bookkeeping audit 11).
+const DECISION = /^(\d+)(?:-.+)?\.md$/;
 
 /** The decision files' numbers: the highest, the width they are padded to, the next, and any held twice. */
 function decisionState(names) {
@@ -94,13 +95,19 @@ function checkDecision(names, number, file) {
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * "<prefix> audit N", "<prefix> audits N-M", "<prefix> audit 3, 4 and 5": the prefix begins a name (at a
- * line's start, or after a quote, bracket, comma, colon or comment mark), so "map" is neither
- * "tend map" nor "sitemap", and "transcripts" is not "memo-transcripts". Case is ignored.
+ * "<prefix> audit N", "<prefix> audits N-M", "audits 3, 4, and 5", "audits 27 to 31": the prefix begins a
+ * name (at a line's start, or after a quote, bracket, comma, colon or comment mark), so "map" is neither
+ * "tend map" nor "sitemap", and "transcripts" is not "memo-transcripts". Space, hyphen and underscore are
+ * one separator inside it ("note types" is "note-types": bookkeeping audit 3). Case is ignored. A number
+ * has at most three digits and a member followed by "-<digit>" outside a range is refused, so a date
+ * ("audit 2, 2026-11-14") is never read as an audit number (bookkeeping audit 4).
  */
 function auditRegex(prefix) {
-  const p = prefix.trim().split(/\s+/).map(escapeRe).join('\\s+');
-  return new RegExp(`(?<=^\\s*|[('"\`\\[{,;:/*>]\\s*)${p}\\s+audits?\\s+(\\d+(?:\\s*(?:[-–—,&]|and)\\s*\\d+)*)(?!\\d)`, 'gi');
+  const p = prefix.trim().split(/[\s_-]+/).filter(Boolean).map(escapeRe).join('[\\s_-]+');
+  const num = '\\d{1,3}(?!\\d)';
+  const item = `${num}(?:\\s*[-–—]\\s*${num}(?!\\s*[-–—]\\s*\\d)|\\s+(?:to|through)\\s+${num}|(?!\\s*[-–—]\\s*\\d))`;
+  const sep = '(?:\\s*,\\s*and\\s+|\\s*,\\s*|\\s*&\\s*|\\s+and\\s+)';
+  return new RegExp(`(?<=^\\s*|[('"\`\\[{,;:/*>]\\s*)${p}\\s+audits?\\s+(${item}(?:${sep}${item})*)`, 'gi');
 }
 
 /** The highest N any source names for the prefix, the next one, and every place a number was found. */
@@ -141,11 +148,18 @@ function groupOf(p) {
   return 'other';
 }
 
+/**
+ * A source file, as the size tripwire counts them ("more than about 8 source files", ship.md "Hard
+ * stops"): the app's own under src/ and the scripts' under scripts/; tests, journeys and the record
+ * documents are not (bookkeeping audit 7).
+ */
+const isSource = (p) => groupOf(p) === 'src' || (groupOf(p) === 'scripts' && /^scripts\//.test(p));
+
 function groupFiles(files) {
   const counts = Object.fromEntries(GROUPS.map(([k]) => [k, 0]));
   const listed = files.map((f) => ({ ...f, group: groupOf(f.path) })).sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   for (const f of listed) counts[f.group] += 1;
-  return { counts, total: listed.length, files: listed };
+  return { counts, sources: listed.filter((f) => isSource(f.path)).length, total: listed.length, files: listed };
 }
 
 /** `git diff --name-status -z` read as { status, path }; renames are off, so one is a D and an A. */
@@ -208,10 +222,10 @@ function absolutePaths(text, isRoot = rootDir) {
   return out.sort((a, b) => a.line - b.line || a.col - b.col).map(({ path: p, line }) => ({ path: p, line }));
 }
 
-/** Whether a named path exists: as written, without a ":12" or "#L12" reference, or up to a glob or a placeholder. */
+/** Whether a named path exists: as written, without a ":12" or "#L12" reference, or up to a glob or a `<placeholder>`. */
 function exists(p, test = fs.existsSync) {
   const tries = [p, p.replace(/(:\d+(-\d+)?)+$/, ''), p.replace(/#L\d+(-L?\d+)?$/, '')];
-  const glob = p.search(/[*?[\]{}]/);
+  const glob = p.search(/[*?[\]{}<]/);
   if (glob >= 0) tries.push(p.slice(0, p.lastIndexOf('/', glob) + 1) || '/');
   return tries.some((t) => t && test(t));
 }
@@ -284,6 +298,8 @@ const sha = (text) => `sha256:${crypto.createHash('sha256').update(text, 'utf8')
  */
 function listItems(kind, text, { tag, section } = {}) {
   const records = require('./records');
+  // records.js reads a CRLF document as LF (its apply()); so does this (bookkeeping audit 9).
+  text = String(text).replace(/\r\n/g, '\n');
   const doc = records.parse(text);
   const scope = {
     deferred: (b) => b.kind === 'item' && b.h2,
@@ -392,31 +408,62 @@ function nextDecision(argv) {
   return emit(f, result, [`${c.number} ${c.published ? 'is this file\'s' : 'is free'} ${head}${c.file ? ` for ${c.file}` : ''}`]);
 }
 
+/** Every line holding "audit" in a tree (`rev`), or in the working tree, untracked files included. */
+function grepAudit(rev, label) {
+  const args = ['grep', '-I', '-n', '--null', '-i', '-F', '-e', 'audit'];
+  if (rev) args.push(rev);
+  else args.push('--untracked');
+  const r = spawnSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 512 * 1024 * 1024 });
+  if (r.status !== 0 && r.status !== 1) throw new Usage(`git grep: ${r.stderr.trim()}`);
+  return r.stdout.split('\n').filter(Boolean).map((l) => {
+    const [file, line, ...text] = l.split('\0');
+    return { where: `${label}${rev ? file.slice(rev.length + 1) : file}:${line}`, text: text.join('\0') };
+  });
+}
+
+/**
+ * The places an audit number lives (bookkeeping audit 1, 2): origin/main's whole tree, HEAD's history and
+ * tree, the uncommitted working tree (untracked files too, ignored ones not), and the subjects and bodies
+ * of every commit on main or HEAD. A number a branch's first round gave, or a finding deferred or rejected
+ * into a record document, is taken.
+ */
+function auditSources() {
+  const sources = [];
+  const log = git('log', '--format=%x1e%h%x00%B', MAIN, 'HEAD');
+  for (const rec of log.split('\x1e').filter(Boolean)) {
+    const [h, body] = rec.split('\0');
+    sources.push({ where: `commit ${h}`, text: body ?? '' });
+  }
+  const head = tryGit('rev-parse', '--verify', '-q', 'HEAD^{commit}')?.trim();
+  sources.push(...grepAudit(MAIN, `${MAIN}:`));
+  if (head && head !== mainSha()) sources.push(...grepAudit('HEAD', 'HEAD:'));
+  sources.push(...grepAudit(null, 'working tree: '));
+  return sources;
+}
+
 function nextAudit(argv) {
   const { words, f } = flags(argv);
   const prefix = words.join(' ').trim();
   if (!prefix) throw new Usage('next-audit takes the prefix: next-audit "tend explore" | next-audit memo-transcripts');
   const sha = mainSha();
-  const sources = git('log', '--format=%h%x09%s', MAIN).split('\n').filter(Boolean).map((l) => {
-    const [h, ...s] = l.split('\t');
-    return { where: `commit ${h}`, text: s.join('\t') };
+  const a = auditNumbers(prefix, auditSources());
+  // One line per place: the same line in main's tree, HEAD's and the working tree is shown once.
+  const seen = new Set();
+  const top = a.hits.filter((h) => h.n === a.highest).filter((h) => {
+    const key = `${h.where.replace(/^(origin\/main:|HEAD:|working tree: )/, '')}\0${h.text}`;
+    return seen.has(key) ? false : (seen.add(key), true);
   });
-  // Every line under src/ and the journeys naming the prefix and "audit"; the regex reads them.
-  const grep = spawnSync('git', ['grep', '-I', '-n', '--null', '-i', '-F', '-e', prefix.split(/\s+/).pop(), '--and', '-e', 'audit', MAIN, '--', 'src', 'scripts/e2e/journeys'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-  if (grep.status !== 0 && grep.status !== 1) throw new Usage(`git grep: ${grep.stderr.trim()}`);
-  for (const l of grep.stdout.split('\n').filter(Boolean)) {
-    const [file, line, ...text] = l.split('\0');
-    sources.push({ where: `${file.replace(`${MAIN}:`, '')}:${line}`, text: text.join('\0') });
-  }
-  const a = auditNumbers(prefix, sources);
-  const top = a.hits.filter((h) => h.n === a.highest);
+  const read = `${MAIN} (${short(sha)}), HEAD and the working tree`;
   const lines = [String(a.next)];
-  if (a.highest === null) lines.push(`no "${prefix} audit N" on ${MAIN} (${short(sha)})`);
+  if (a.highest === null) lines.push(`no "${prefix} audit N" in ${read}`);
   else {
-    lines.push(`highest on ${MAIN} (${short(sha)}): ${prefix} audit ${a.highest}`);
-    for (const h of top) lines.push(`  ${h.where}: ${h.text.length > 100 ? `${h.text.slice(0, 99)}…` : h.text}`);
+    lines.push(`highest in ${read}: ${prefix} audit ${a.highest}`);
+    for (const h of top) {
+      const text = h.text.trim().split('\n').find((l) => auditRegex(prefix).test(l)) ?? h.text.trim().split('\n')[0];
+      lines.push(`  ${h.where}: ${text.length > 100 ? `${text.slice(0, 99)}…` : text}`);
+    }
   }
-  return emit(f, { ref: MAIN, sha, prefix, highest: a.highest, next: a.next, at: top.map(({ where, text }) => ({ where, text })) }, lines);
+  return emit(f, { ref: MAIN, sha, read: [MAIN, 'HEAD', 'working tree'], prefix, highest: a.highest, next: a.next, at: top.map(({ where, text }) => ({ where, text: text.trim() })) }, lines);
 }
 
 function files(argv) {
@@ -439,7 +486,7 @@ function files(argv) {
     what = `against ${spec}: merge base ${short(mb)}, committed, staged, unstaged and untracked`;
   }
   const g = groupFiles(changed);
-  const lines = [what, ...GROUPS.map(([k, label]) => `${label} ${g.counts[k]}`), `total ${g.total}`];
+  const lines = [what, ...GROUPS.map(([k, label]) => `${label} ${g.counts[k]}`), `total ${g.total}`, `sources ${g.sources} (src/ and scripts/, the tripwire's count)`];
   for (const [k, label] of GROUPS) {
     const fs2 = g.files.filter((x) => x.group === k);
     if (!fs2.length) continue;
@@ -449,9 +496,9 @@ function files(argv) {
   if (f['max-src'] !== undefined) {
     const max = Number(f['max-src']);
     if (!Number.isInteger(max) || max < 0) throw new Usage('--max-src takes a whole number');
-    if (g.counts.src > max) problems.push(`files: src: ${g.counts.src} files outside the tests, over --max-src ${max}`);
+    if (g.sources > max) problems.push(`files: ${g.sources} source files (src/ and scripts/, tests and journeys apart), over --max-src ${max}`);
   }
-  return emit(f, { spec, counts: g.counts, total: g.total, files: g.files }, lines, problems);
+  return emit(f, { spec, counts: g.counts, sources: g.sources, total: g.total, files: g.files }, lines, problems);
 }
 
 function fetchPage(url) {
@@ -465,23 +512,31 @@ function landed(argv) {
   const { words, f } = flags(argv, ['--branch', '--live']);
   const spec = words[0];
   const m = spec && /^(.+?)\.\.(.+)$/.exec(spec);
-  if (!m || words.length > 1 || f.branch === true || f.live === true) throw new Usage('landed <base>..<head> [--branch <name>] [--live <url>]');
+  // Two parts, run where each can (ship.md, "Clean up"): the range and the live page while the run's
+  // worktree is there, the branch once it is gone (bookkeeping audit 5, 6).
+  if ((spec && !m) || (!spec && !f.branch) || words.length > 1 || f.branch === true || f.live === true) throw new Usage('landed <base>..<pushed sha> [--live <url>] | landed --branch <name>, or both');
   const sha = mainSha();
   const lines = [];
   const problems = [];
-  const result = { ref: MAIN, sha, range: spec };
-  const commits = git('rev-list', '--reverse', spec).split('\n').filter(Boolean);
-  result.commits = commits;
-  if (!commits.length) problems.push(`landed: ${spec} holds no commits`);
-  const off = commits.filter((c) => spawnSync('git', ['merge-base', '--is-ancestor', c, MAIN], { cwd: ROOT }).status !== 0);
-  const cherry = off.length ? new Map(git('cherry', MAIN, m[2], m[1]).split('\n').filter(Boolean).map((l) => [l.slice(2), l[0]])) : new Map();
-  for (const c of off) {
-    const subject = git('show', '-s', '--format=%s', c).trim();
-    const again = cherry.get(c) === '-' ? ` (its patch is on ${MAIN} under another hash: report main's)` : '';
-    problems.push(`landed: not on ${MAIN}: ${short(c)} ${subject}${again}`);
+  const result = { ref: MAIN, sha, range: spec ?? null };
+  if (m) {
+    // A head named by a ref that is main's tip holds whatever landed, the run's or not: it can never fail.
+    if (!/^[0-9a-f]{7,40}$/i.test(m[2]) && tryGit('rev-parse', '--verify', '-q', `${m[2]}^{commit}`)?.trim() === sha) {
+      throw new Usage(`${m[2]} is ${MAIN}'s tip: give the run's pushed sha as the head (<base>..<pushed sha>), so the range holds the run's commits and nothing else`);
+    }
+    const commits = git('rev-list', '--reverse', spec).split('\n').filter(Boolean);
+    result.commits = commits;
+    if (!commits.length) problems.push(`landed: ${spec} holds no commits`);
+    const off = commits.filter((c) => spawnSync('git', ['merge-base', '--is-ancestor', c, MAIN], { cwd: ROOT }).status !== 0);
+    const cherry = off.length ? new Map(git('cherry', MAIN, m[2], m[1]).split('\n').filter(Boolean).map((l) => [l.slice(2), l[0]])) : new Map();
+    for (const c of off) {
+      const subject = git('show', '-s', '--format=%s', c).trim();
+      const again = cherry.get(c) === '-' ? ` (its patch is on ${MAIN} under another hash: report main's)` : '';
+      problems.push(`landed: not on ${MAIN}: ${short(c)} ${subject}${again}`);
+    }
+    result.notOnMain = off;
+    if (commits.length && !off.length) lines.push(`${spec}: ${commits.length} commit${commits.length === 1 ? '' : 's'}, each an ancestor of ${MAIN} (${short(sha)}, as last fetched)`);
   }
-  result.notOnMain = off;
-  if (commits.length && !off.length) lines.push(`${spec}: ${commits.length} commit${commits.length === 1 ? '' : 's'}, each an ancestor of ${MAIN} (${short(sha)}, as last fetched)`);
   if (f.branch) {
     const left = [];
     if (tryGit('show-ref', '--verify', '-q', `refs/heads/${f.branch}`) !== null) left.push(`the local branch ${f.branch}`);
@@ -516,7 +571,7 @@ function landed(argv) {
         else if (lb !== db) lines.push(`dist/: ${local}, exported for "${db || '/'}", not "${lb || '/'}": not compared (the Pages export is CHRONICLES_BASE_URL=/chronicles npx expo export --platform web)`);
         else if (local === live) lines.push(`dist/: ${local}, the same`);
         else problems.push(`landed: dist/ exports ${local}, the live page loads ${live}`);
-      } else lines.push('no dist/ here: the live bundle is not compared to an export');
+      } else lines.push('no dist/ here, so the live bundle was compared with nothing: it is only printed');
     }
   }
   lines.push('Pages: not seen here; the GitHub tools say whether its run is green (mcp__github__actions_list, mcp__github__actions_get)');
@@ -548,21 +603,30 @@ function reviewPaths(argv) {
   return emit(f, { prompts }, lines, problems);
 }
 
+/** A word the shell reads back as itself: single quotes, a quote inside written '\\''. */
+const shellQuote = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
+
 const ITEM_FILES = { deferred: 'docs/DEFERRED.md', native: 'docs/NATIVE_UNVERIFIED.md', inbox: 'docs/STATUS.md', open: 'docs/STATUS.md' };
 
 function items(argv) {
   const { words, f } = flags(argv, ['--tag', '--section']);
   const [kind, ...more] = words;
-  if (!ITEM_FILES[kind] || more.length) throw new Usage('items deferred|native|inbox|open [--tag <tag>|none] [--section <text>] [--worktree]');
+  if (!ITEM_FILES[kind] || more.length || (f.main && f.worktree)) throw new Usage('items deferred|native|inbox|open [--tag <tag>|none] [--section <text>] [--main | --worktree]');
   const file = ITEM_FILES[kind];
+  // records.js acts on the working tree (HEAD and the pending operations): a run that already changed the
+  // document reads its own copy; one that has not reads main's (bookkeeping audit 10).
+  const sha = mainSha();
+  const onMain = git('show', `${MAIN}:${file}`);
+  const local = path.join(ROOT, file);
+  const working = fs.existsSync(local) ? fs.readFileSync(local, 'utf8') : null;
   let text;
   let from;
-  if (f.worktree) {
-    text = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    from = `${file} in the working tree`;
+  if (f.worktree || (!f.main && working !== null && working !== onMain)) {
+    if (working === null) throw new Usage(`no ${file} in this working tree`);
+    text = working;
+    from = `${file} in the working tree${working !== onMain ? `, which differs from ${MAIN} (${short(sha)})` : ''}`;
   } else {
-    const sha = mainSha();
-    text = git('show', `${MAIN}:${file}`);
+    text = onMain;
     from = `${file} on ${MAIN} (${short(sha)})`;
   }
   const list = listItems(kind, text, { tag: typeof f.tag === 'string' ? f.tag : undefined, section: typeof f.section === 'string' ? f.section : undefined });
@@ -577,15 +641,17 @@ function items(argv) {
     const first = it.first.length > 110 ? `${it.first.slice(0, 109)}…` : it.first;
     lines.push(`- ${it.tag && !first.includes(`[${it.tag}]`) ? `[${it.tag}] ` : ''}${first} (line ${it.line})`);
     lines.push(`  match: ${it.match === null ? 'none: every part of it is in another item too' : JSON.stringify(it.match)}`);
+    // The match in single quotes, safe to paste: a backtick or a $ inside double quotes is the shell's (bookkeeping audit 8).
+    if (it.match !== null) lines.push(`  shell: ${shellQuote(it.match)}`);
   }
   if (lines.length) lines.push('');
   lines.push(`${list.length} items, from ${from}`);
   const problems = list.filter((it) => it.match === null).map((it) => `items: no match names "${it.first}" (line ${it.line}) alone: records.js cannot act on it until its text differs`);
-  return emit(f, { file, from, items: list }, lines, problems);
+  return emit(f, { file, from, items: list.map((it) => ({ ...it, shell: it.match === null ? null : shellQuote(it.match) })) }, lines, problems);
 }
 
 const COMMANDS = { 'next-decision': nextDecision, 'next-audit': nextAudit, files, landed, 'review-paths': reviewPaths, items };
-const USAGE = 'usage: node scripts/bookkeeping.js next-decision [--check <NNNN> [<file>]] | next-audit "<prefix>" | files [<rev> | <a>..<b>] [--max-src N] | landed <base>..<head> [--branch <name>] [--live <url>] | review-paths <prompt.md>... | items deferred|native|inbox|open [--tag <t>] [--section <s>] [--worktree]; each takes --json';
+const USAGE = 'usage: node scripts/bookkeeping.js next-decision [--check <NNNN> [<file>]] | next-audit "<prefix>" | files [<rev> | <a>..<b>] [--max-src N] | landed [<base>..<pushed sha>] [--live <url>] [--branch <name>] | review-paths <prompt.md>... | items deferred|native|inbox|open [--tag <t>] [--section <s>] [--main | --worktree]; each takes --json';
 
 function main(argv) {
   const [cmd, ...rest] = argv;

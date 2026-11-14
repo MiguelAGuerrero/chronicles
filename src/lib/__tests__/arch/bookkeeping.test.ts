@@ -123,7 +123,7 @@ test('bookkeeping: next-decision reads origin/main, not HEAD or the working tree
   assert.equal(usage.status, 2);
 });
 
-test('bookkeeping audit 11: a decision file with no slug holds its number', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 11: a decision file with no slug holds its number', () => {
   assert.equal(book.decisionState(['0174-a.md', '0175.md']).next, '0176');
   assert.equal(book.checkDecision(['0174-a.md', '0175.md'], '0175', '0175-mine.md').ok, false);
 });
@@ -135,99 +135,99 @@ const src = (text: string) => ({ where: 'commit', text });
 
 test('bookkeeping: next-audit reads "<prefix> audit N" in single numbers, ranges and lists, and no other prefix', () => {
   const subjects = [
-    'tend map audit 12: the pin',
-    'tend map audit 27-31: the pins\' time',
-    'Revert "tend map audit 32: x"',
-    'tend map: two fixes (tend map audits 33, 34 and 35)',
-    'tend map audit 7, no number of its own',
-    'tend explore audit 90: elsewhere',
-    'sitemap audit 99: not the map',
-    'Records: the third audit (records audit 41-54)',
-    'tend map audit 1–3: an en dash',
+    'tend zmap audit 12: the pin',
+    'tend zmap audit 27-31: the pins\' time',
+    'Revert "tend zmap audit 32: x"',
+    'tend zmap: two fixes (tend zmap audits 33, 34 and 35)',
+    'tend zmap audit 7, no number of its own',
+    'tend zexplore audit 90: elsewhere',
+    'sitezmap audit 99: not the map',
+    'Records: the third audit (zrecords audit 41-54)',
+    'tend zmap audit 1–3: an en dash',
   ];
-  const map = book.auditNumbers('tend map', subjects.map(src));
+  const map = book.auditNumbers('tend zmap', subjects.map(src));
   assert.equal(map.highest, 35);
   assert.equal(map.next, 36);
-  assert.equal(book.auditNumbers('map', subjects.map(src)).highest, null, '"map" is not "tend map" nor "sitemap"');
-  assert.equal(book.auditNumbers('records', subjects.map(src)).highest, 54);
-  assert.equal(book.auditNumbers('Tend Map', [src('tend map audit 3: x')]).highest, 3, 'case is ignored');
-  assert.equal(book.auditNumbers('transcripts', [src("test('memo-transcripts audit 4: x')")]).highest, null, 'part of a slug is not the slug');
-  assert.equal(book.auditNumbers('memo-transcripts', [src("test('memo-transcripts audit 4: x')"), src("step('memo-transcripts audit 6 the caption')")]).highest, 6);
+  assert.equal(book.auditNumbers('zmap', subjects.map(src)).highest, null, '"map" is not "tend zmap" nor "sitezmap"');
+  assert.equal(book.auditNumbers('zrecords', subjects.map(src)).highest, 54);
+  assert.equal(book.auditNumbers('Tend Zmap', [src('tend zmap audit 3: x')]).highest, 3, 'case is ignored');
+  assert.equal(book.auditNumbers('ztranscripts', [src("test('memo-ztranscripts audit 4: x')")]).highest, null, 'part of a slug is not the slug');
+  assert.equal(book.auditNumbers('memo-ztranscripts', [src("test('memo-ztranscripts audit 4: x')"), src("step('memo-ztranscripts audit 6 the caption')")]).highest, 6);
   assert.deepEqual(book.auditNumbers('rides', []), { highest: null, next: 1, hits: [] });
 });
 
-test('bookkeeping audit 1: next-audit takes the highest of origin/main, HEAD\'s history and tree, and the uncommitted working tree', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 1: next-audit takes the highest of origin/main, HEAD\'s history and tree, and the uncommitted working tree', () => {
   const r = repo('audits');
-  r.commit('rides audit 2: a subject');
-  r.write('src/lib/__tests__/rides/rides.test.ts', "test('rides audit 7: the ride', () => {});\n");
-  r.write('src/lib/__tests__/rides/with space/a b.test.ts', "test('Rides audit 8: a path with spaces', () => {});\n");
-  r.write('scripts/e2e/journeys/rides.js', "step('rides audit 9 the journey');\n");
+  r.commit('zrides audit 2: a subject');
+  r.write('src/lib/__tests__/rides/rides.test.ts', "test('zrides audit 7: the ride', () => {});\n");
+  r.write('src/lib/__tests__/rides/with space/a b.test.ts', "test('Zzrides audit 8: a path with spaces', () => {});\n");
+  r.write('scripts/e2e/journeys/rides.js', "step('zrides audit 9 the journey');\n");
   r.commit('tests');
   r.publish();
   const published = r.git('rev-parse', 'HEAD').trim();
-  const next = () => (json(r.run('next-audit', 'rides', '--json')) as { next: number }).next;
-  const plain = r.run('next-audit', 'rides');
+  const next = () => (json(r.run('next-audit', 'zrides', '--json')) as { next: number }).next;
+  const plain = r.run('next-audit', 'zrides');
   assert.equal(plain.status, 0, plain.stderr);
   assert.equal(plain.stdout.split('\n')[0], '10');
   assert.match(plain.stdout, /scripts\/e2e\/journeys\/rides\.js/);
-  r.commit('rides audit 12: a first round on the branch, not on main');
+  r.commit('zrides audit 12: a first round on the branch, not on main');
   assert.equal(next(), 13, "HEAD's history: a second round never reuses the first's numbers");
-  r.write('src/lib/__tests__/rides/round.test.ts', "test('rides audit 14: committed on the branch', () => {});\n");
+  r.write('src/lib/__tests__/rides/round.test.ts', "test('zrides audit 14: committed on the branch', () => {});\n");
   r.commit('a test on the branch');
   assert.equal(next(), 15, "HEAD's tree");
-  r.write('src/lib/__tests__/rides/later.test.ts', "test('rides audit 16: in the working tree', () => {});\n");
+  r.write('src/lib/__tests__/rides/later.test.ts', "test('zrides audit 16: in the working tree', () => {});\n");
   assert.equal(next(), 17, 'an untracked file');
-  r.write('src/lib/__tests__/rides/rides.test.ts', "test('rides audit 18: unstaged', () => {});\n");
+  r.write('src/lib/__tests__/rides/rides.test.ts', "test('zrides audit 18: unstaged', () => {});\n");
   assert.equal(next(), 19, 'an unstaged change');
   // main moves on meanwhile: its numbers count too.
   r.git('worktree', 'add', '-q', '--detach', join(tmp, 'audits-main'), published);
   writeFileSync(join(tmp, 'audits-main', 'x.txt'), 'x\n');
   spawnSync('git', ['add', '-A'], { cwd: join(tmp, 'audits-main'), env });
-  spawnSync('git', ['commit', '-qm', 'rides audit 20: another session, on main'], { cwd: join(tmp, 'audits-main'), env });
+  spawnSync('git', ['commit', '-qm', 'zrides audit 20: another session, on main'], { cwd: join(tmp, 'audits-main'), env });
   r.publish(spawnSync('git', ['rev-parse', 'HEAD'], { cwd: join(tmp, 'audits-main'), env, encoding: 'utf8' }).stdout.trim());
   assert.equal(next(), 21);
-  assert.match(r.run('next-audit', 'rides').stdout, /commit [0-9a-f]+: rides audit 20/);
-  const none = r.run('next-audit', 'tend walk');
+  assert.match(r.run('next-audit', 'zrides').stdout, /commit [0-9a-f]+: zrides audit 20/);
+  const none = r.run('next-audit', 'tend zwalk');
   assert.equal(none.status, 0);
   assert.equal(none.stdout.split('\n')[0], '1');
   assert.equal(r.run('next-audit').status, 2, 'a prefix is required');
 });
 
-test('bookkeeping audit 2: next-audit reads every file and commit body, not only subjects and tests: a deferred or rejected finding keeps its number', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 2: next-audit reads every file and commit body, not only subjects and tests: a deferred or rejected finding keeps its number', () => {
   const r = repo('audits-wide');
   r.write('.gitignore', 'ignored/\n');
-  r.write('src/lib/__tests__/rides/rides.test.ts', "test('rides audit 3: x', () => {});\n");
-  r.write('docs/DEFERRED.md', '- [loop] the ride ends early (deferred as rides audit 5)\n');
-  r.write('specs/rides/spec.md', 'Audit: rides audit 6 rejected; rides audit 4, 2026-11-14.\n');
-  r.write('ignored/notes.md', 'rides audit 90 in an ignored file\n');
-  r.commit('rides: the audit (rides audit 1-3)\n\nrides audit 7 filed as an owner\'s entry.');
+  r.write('src/lib/__tests__/rides/rides.test.ts', "test('zrides audit 3: x', () => {});\n");
+  r.write('docs/DEFERRED.md', '- [loop] the ride ends early (deferred as zrides audit 5)\n');
+  r.write('specs/rides/spec.md', 'Audit: zrides audit 6 rejected; zrides audit 4, 2026-11-14.\n');
+  r.write('ignored/notes.md', 'zrides audit 90 in an ignored file\n');
+  r.commit('rides: the audit (zrides audit 1-3)\n\nzrides audit 7 filed as an owner\'s entry.');
   r.publish();
-  const j = json(r.run('next-audit', 'rides', '--json')) as { highest: number; next: number; at: { where: string }[] };
+  const j = json(r.run('next-audit', 'zrides', '--json')) as { highest: number; next: number; at: { where: string }[] };
   assert.equal(j.highest, 7, 'the body of a commit, the record documents and the specs; never an ignored file or a date');
   assert.match(j.at[0].where, /^commit [0-9a-f]+$/);
 });
 
-test('bookkeeping audit 3: space, hyphen and underscore are one separator inside a prefix', { todo: 'the fix comes next' }, () => {
-  const lines = [src('note types audit 55-65: x'), src("test('note-types audit 66: y')"), src('note_types audit 67')];
-  assert.equal(book.auditNumbers('note-types', lines).highest, 67);
-  assert.equal(book.auditNumbers('note types', lines).highest, 67);
-  assert.equal(book.auditNumbers('note_types', lines).highest, 67);
-  assert.equal(book.auditNumbers('types', lines).highest, null, 'part of a name is still not the name');
+test('bookkeeping audit 3: space, hyphen and underscore are one separator inside a prefix', () => {
+  const lines = [src('note ztypes audit 55-65: x'), src("test('note-ztypes audit 66: y')"), src('note_ztypes audit 67')];
+  assert.equal(book.auditNumbers('note-ztypes', lines).highest, 67);
+  assert.equal(book.auditNumbers('note ztypes', lines).highest, 67);
+  assert.equal(book.auditNumbers('note_ztypes', lines).highest, 67);
+  assert.equal(book.auditNumbers('ztypes', lines).highest, null, 'part of a name is still not the name');
 });
 
-test('bookkeeping audit 4: "and", ", and", "to" and "through" join a list or a range; a date is never an audit number', { todo: 'the fix comes next' }, () => {
-  const at = (t: string) => book.auditNumbers('tend map', [src(t)]).highest;
-  assert.equal(at('tend map audits 3, 4, and 5'), 5);
-  assert.equal(at('tend map audits 4 and 5'), 5);
-  assert.equal(at('tend map audits 27 to 31'), 31);
-  assert.equal(at('tend map audits 27 through 31'), 31);
-  assert.equal(at('tend map audit 1-14, 16'), 16);
-  assert.equal(at('tend map audit 12-18 (13 and 16 are record notes)'), 18);
-  assert.equal(at('tend map audit 7 to the end'), 7);
-  assert.equal(at('tend map audit 2, 2026-11-14'), 2);
-  assert.equal(at('tend map audit 5 to 2026'), 5);
-  assert.equal(at('tend map audit 3, 11-14-2026'), 3);
-  assert.equal(at('tend map audit 2026: a year'), null);
+test('bookkeeping audit 4: "and", ", and", "to" and "through" join a list or a range; a date is never an audit number', () => {
+  const at = (t: string) => book.auditNumbers('tend zmap', [src(t)]).highest;
+  assert.equal(at('tend zmap audits 3, 4, and 5'), 5);
+  assert.equal(at('tend zmap audits 4 and 5'), 5);
+  assert.equal(at('tend zmap audits 27 to 31'), 31);
+  assert.equal(at('tend zmap audits 27 through 31'), 31);
+  assert.equal(at('tend zmap audit 1-14, 16'), 16);
+  assert.equal(at('tend zmap audit 12-18 (13 and 16 are record notes)'), 18);
+  assert.equal(at('tend zmap audit 7 to the end'), 7);
+  assert.equal(at('tend zmap audit 2, 2026-11-14'), 2);
+  assert.equal(at('tend zmap audit 5 to 2026'), 5);
+  assert.equal(at('tend zmap audit 3, 11-14-2026'), 3);
+  assert.equal(at('tend zmap audit 2026: a year'), null);
 });
 
 // ---------------------------------------------------------------------------------------------------
@@ -297,17 +297,19 @@ test('bookkeeping: files counts committed, staged, unstaged, deleted and untrack
   assert.match(plain.stdout, /^src 2$/m);
   assert.match(plain.stdout, /^skills and scripts 2$/m);
   assert.match(plain.stdout, /^total 6$/m);
-  const over = r.run('files', '--max-src', '1');
+  assert.match(plain.stdout, /^sources 3 /m);
+  // The tripwire counts source files: src/lib/a.ts, src/lib/old.ts and scripts/new file.js (bookkeeping audit 7).
+  const over = r.run('files', '--max-src', '2');
   assert.equal(over.status, 1);
-  assert.match(over.stderr, /2 .*--max-src 1/);
-  assert.equal(r.run('files', '--max-src', '2').status, 0);
+  assert.match(over.stderr, /3 source files.*--max-src 2/);
+  assert.equal(r.run('files', '--max-src', '3').status, 0);
   // A range counts what its commits changed, and nothing uncommitted.
   const range = json(r.run('files', 'origin/main..HEAD', '--json')) as { counts: Record<string, number> };
   assert.deepEqual(range.counts, { src: 1, tests: 0, journeys: 0, docs: 0, scripts: 0, other: 0 });
   assert.equal(r.run('files', 'nope..HEAD').status, 2);
 });
 
-test('bookkeeping audit 7: --max-src counts source files, src/ and scripts/, never tests, journeys or records', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 7: --max-src counts source files, src/ and scripts/, never tests, journeys or records', () => {
   const r = repo('sources');
   for (let k = 0; k < 7; k++) {
     r.write(`src/lib/m${k}.ts`, 'x\n');
@@ -397,7 +399,7 @@ test('bookkeeping: landed checks the range is on origin/main, the branch and its
   assert.equal(r.run('landed', `${base}..${head}`, '--live', `file://${join(tmp, 'gone.html')}`).status, 1, 'a page that cannot be read fails');
 });
 
-test('bookkeeping audit 6: landed refuses origin/main as the head, checks the branch alone after cleanup, and says when it compared nothing', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 6: landed refuses origin/main as the head, checks the branch alone after cleanup, and says when it compared nothing', () => {
   const r = repo('landed-head');
   const base = r.git('rev-parse', 'HEAD').trim();
   r.write('a.txt', '1\n');
@@ -465,7 +467,7 @@ test('bookkeeping: review-paths names each missing path and a missing prompt, an
   assert.equal(r.run('review-paths').status, 2);
 });
 
-test('bookkeeping audit 12: a backticked path with a <placeholder> is checked up to its directory', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 12: a backticked path with a <placeholder> is checked up to its directory', () => {
   const r = repo('placeholder');
   const dir = join(tmp, 'placeholder-scratch', 'reviews');
   mkdirSync(dir, { recursive: true });
@@ -603,26 +605,26 @@ test('bookkeeping: items reads origin/main with --main, the working tree with --
   assert.equal(r.run('items', 'nope').status, 2);
 });
 
-test('bookkeeping audit 8: each match is also printed in single quotes, safe to paste into a shell', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 8: each match is also printed in single quotes, safe to paste into a shell', () => {
   const r = repo('quoted');
   r.write('docs/DEFERRED.md', "# D\n\n## A\n\n- [loop] It's `x` here, $HOME and all.\n- [loop] It is not.\n");
   r.commit('d');
   r.publish();
   const out = r.run('items', 'deferred');
   assert.equal(out.status, 0, out.stderr);
-  assert.ok(out.stdout.includes("shell: 'It'\\''s `x`'"), out.stdout);
-  const pasted = spawnSync('sh', ['-c', `printf %s ${"'It'\\''s `x`'"}`], { encoding: 'utf8' });
-  assert.equal(pasted.stdout, "It's `x`", 'the shell reads back the match itself');
-  assert.equal(((json(r.run('items', 'deferred', '--json')) as { items: Item[] }).items[0]).match, "It's `x`");
+  assert.ok(out.stdout.includes("match: \"It's `x\"\n  shell: 'It'\\''s `x'"), out.stdout);
+  const pasted = spawnSync('sh', ['-c', `printf %s ${"'It'\\''s `x'"}`], { encoding: 'utf8' });
+  assert.equal(pasted.stdout, "It's `x", 'the shell reads back the match itself');
+  assert.equal(((json(r.run('items', 'deferred', '--json')) as { items: Item[] }).items[0]).match, "It's `x");
 });
 
-test('bookkeeping audit 9: a CRLF document lists the same items as its LF copy', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 9: a CRLF document lists the same items as its LF copy', () => {
   const crlf = book.listItems('deferred', DEFERRED.replace(/\n/g, '\r\n'));
   assert.equal(crlf.length, 8);
   assert.deepEqual(crlf, book.listItems('deferred', DEFERRED));
 });
 
-test('bookkeeping audit 10: items reads the working tree when its record document differs from main, and says which it read', { todo: 'the fix comes next' }, () => {
+test('bookkeeping audit 10: items reads the working tree when its record document differs from main, and says which it read', () => {
   const r = repo('items-where');
   r.write('docs/DEFERRED.md', DEFERRED);
   r.commit('records');
@@ -691,9 +693,9 @@ test('bookkeeping audit 5: every skill names where its bookkeeping command runs,
   const r = repo('via-tend');
   mkdirSync(join(r.dir, 'scripts'), { recursive: true });
   for (const f of ['tend.js', 'bookkeeping.js', 'records.js']) writeFileSync(join(r.dir, 'scripts', f), read(`scripts/${f}`));
-  r.commit('rides audit 4: x');
+  r.commit('zrides audit 4: x');
   r.publish();
-  const via = spawnSync(process.execPath, ['scripts/tend.js', 'next-audit', 'rides'], { cwd: r.dir, env, encoding: 'utf8' });
+  const via = spawnSync(process.execPath, ['scripts/tend.js', 'next-audit', 'zrides'], { cwd: r.dir, env, encoding: 'utf8' });
   assert.equal(via.status, 0, via.stderr);
   assert.equal(via.stdout.split('\n')[0], '5');
 });
