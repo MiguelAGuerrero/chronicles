@@ -22,3 +22,9 @@ test("tend tabs 11: a day's timeline says a walk's moments in words", () => {
 test("tend tabs 11: a walk's More is named by its title wherever the title is known", () => {
   assert.equal(moreFor('Plums by the bridge'), 'More for Plums by the bridge');
 });
+
+test('tend tabs audit 22: a day\'s walk that kept nothing says no count, never "zero moments"', () => {
+  assert.equal(timelineWalkLine('145 m', 0), 'Walk · 145 m');
+  assert.equal(timelineWalkLine(null, 0), 'Walk');
+  assert.equal(timelineWalkSpoken('4:12 PM', 'Plums', timelineWalkLine('145 m', 0)), '4:12 PM, Plums, Walk, 145 m. Replay it');
+});

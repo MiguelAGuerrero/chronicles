@@ -29,9 +29,12 @@ export function walkRowSpoken(title: string, meta: string, epilogue: string | nu
   return [`Replay ${title}`, meta.split(' · ').join(', '), line ? `“${line}”` : null].filter(Boolean).join('. ');
 }
 
-/** A day's timeline entry for a walk, under its title: "Walk · 1.2 km · three moments" (tend tabs 11, decision 0172). */
+/**
+ * A day's timeline entry for a walk, under its title: "Walk · 1.2 km · three moments" (tend tabs 11, decision 0172); a
+ * walk that kept nothing says no count, "Walk · 145 m" (tend tabs audit 22).
+ */
 export function timelineWalkLine(distance: string | null, moments: number): string {
-  return ['Walk', distance, `${numberWord(moments)} ${moments === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');
+  return ['Walk', distance, moments > 0 ? `${numberWord(moments)} ${moments === 1 ? 'moment' : 'moments'}` : null].filter(Boolean).join(' · ');
 }
 
 /** A walk's More, named by the title it shows wherever that title is known: its row, its timeline entry, its card (tend tabs 11). */
