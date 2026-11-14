@@ -97,3 +97,15 @@ test('SF14: decisions 0080 and 0127 and the shipped specs that pin the old words
     assert.match(text, /Amended by `specs\/storefronts`/, f);
   }
 });
+
+test('storefronts ui 1: the walk\'s Explore line says what Explore does with storefronts: a chip names the street you\'re on', { todo: 'test first' }, () => {
+  const walk = readFileSync(join(ROOT, 'src/app/walk.tsx'), 'utf8');
+  assert.ok(walk.includes('a chip names the storefront street you’re on'));
+});
+
+test('storefronts ui 2: the card says what counts under its Storefronts heading, in the layer tip\'s own words', { todo: 'test first' }, async () => {
+  const reg = (await import('../../layers/registry')) as unknown as { STOREFRONTS_WHAT?: string };
+  assert.ok(reg.STOREFRONTS_WHAT, 'one sentence, shared');
+  assert.equal(LAYERS.find((x) => x.id === 'storefronts')?.legend[0].tip, reg.STOREFRONTS_WHAT);
+  assert.ok(readFileSync(join(ROOT, 'src/components/atlas/AtlasCard.tsx'), 'utf8').includes('{STOREFRONTS_WHAT}'), 'the card shows it under the heading');
+});
