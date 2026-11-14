@@ -492,7 +492,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   // is above both.
   const [barH, setBarH] = useState(LINE_REST_H);
   // The camera and the mic are in the row under the line, or in the bar: one or the other, never both (JN35,
-  // decision 0172). Messages pad the sheet's foot, so they never cover the row (JN40).
+  // decision 0175). Messages pad the sheet's foot, so they never cover the row (JN40).
   // Where a voice note under way was begun: it stays there (JN38). Set by the press, read only while recording.
   const [voiceIn, setVoiceIn] = useState<ControlsAt | null>(null);
   const at = controlsAt({ inBar: props.inBar, opened: props.opened !== false, rowInView: !props.penInBar, typing, failed: pen.failed, recordingIn: recording ? voiceIn : null });

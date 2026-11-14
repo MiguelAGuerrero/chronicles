@@ -68,7 +68,7 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 ## The owner's answers to the second audit (audit 50-54, Nov 13)
 
 - **The bar holds a pen only while the empty page is out of view** (audit 50): `JournalPage` tells `onAway` from its scroll, `MemoriesScreen` passes `penInBar`. In view, the page is the pen.
-- **Done's place is kept in the bar** (audit 51): an unseen, untappable Done of the same width. Its rule that the camera and the mic never move is reversed by decision 0172: they move from the row to the keyboard bar while typing (JN36).
+- **Done's place is kept in the bar** (audit 51): an unseen, untappable Done of the same width. Its rule that the camera and the mic never move is reversed by decision 0175: they move from the row to the keyboard bar while typing (JN36).
 - **The held date has an edge** (audit 52): four bands of the page's ground under it, none fainter than a fifth. A fainter band is drawn a shade off the ground it lies on and shows as a line under every date.
 - **Writing on a walk, the bar keeps the recording's mark** (audit 53): the recording bar is folded with the tabs.
 - **An entry draws its note's type** (audit 54, `NoteMark`): the journal replaced the moment card, which drew it. The Type tool is on the note's page only.

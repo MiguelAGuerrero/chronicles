@@ -325,7 +325,7 @@ async function run(h) {
   check(grown.focused && !!grown.field && !!grown.last, `JN32: a tap on the empty page puts the caret on the page (${JSON.stringify(grown)})`);
   check(grown.focused && !!grown.last && Math.abs(grown.last.top - rest3.last.top) <= 2 && !!grown.field && grown.field.top >= grown.last.bottom - 2 && grown.field.top - grown.last.bottom < 80,
     `JN33: nothing slides away when writing begins: the last entry keeps its place and the caret is under it (${JSON.stringify({ rest: rest3.last, grown })})`);
-  // chronicle-journal audit 51 (the camera and the mic never move) is reversed by decision 0172: JN36 checks the move.
+  // chronicle-journal audit 51 (the camera and the mic never move) is reversed by decision 0175: JN36 checks the move.
   await shot(pg, 'journal-19-writing-under-the-last');
   await pg.keyboard.type('Stacked under the last.', { delay: 10 });
   await pg.waitForTimeout(1000);
@@ -845,7 +845,7 @@ async function run(h) {
   await pg.waitForTimeout(900);
   check((await pg.locator('[data-testid=bar-write]').count()) === 0, 'chronicle-journal audit 50: with the empty page in view the bar holds no pen: the page is the pen');
 
-  // JN34-JN40 (decision 0172): the camera and the mic sit in a row under the line, a "+" in ink before it; the bar
+  // JN34-JN40 (decision 0175): the camera and the mic sit in a row under the line, a "+" in ink before it; the bar
   // shows only when the row is out of view or the keyboard is up.
   await scrollTo('foot');
   await pg.waitForTimeout(900);

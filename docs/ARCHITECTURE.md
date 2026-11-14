@@ -91,7 +91,7 @@ The journal (specs/chronicle-journal, JN1-JN24, decision 0155): Memories as one 
   journal/target.ts          where an entry goes: the open walk, a moment of its own, or wait until the keeper knows
   journal/blocks.ts          noteBlocks (a page-written note's Markdown as blocks the sheet draws natively, mentions kept), sheetBlocks (the first twelve, and that it goes on)
   journal/rest.ts            blankHeight (the empty page's height, so the sheet's end shows the entry the page opened on under its date, and the stack since), anchorOf, peekStart (which rows that is)
-  journal/bar.ts             controlsAt: whether the camera and the mic are in the row under the line or in the bar at the foot, never both (JN35, decision 0172)
+  journal/bar.ts             controlsAt: whether the camera and the mic are in the row under the line or in the bar at the foot, never both (JN35, decision 0175)
   journal/keyboard.ts        keyboardLift: how far a browser's keyboard hides the foot (used by threads/useKeyboardHeight.web)
   components/journal/        JournalPage (the sheet: opens at the foot, older entries added above), Entry (dateline and pieces, no card; a page-written note as native blocks), Slip (the resurfaced moment), OpenLine (the field, camera and mic; runs the pen through useCaptures; Open as a page hands the entry to the note's page), type (the owner's serif)
 Media gallery (specs/media-gallery, MG1-MG22, decision 0139)

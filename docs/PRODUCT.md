@@ -331,7 +331,7 @@ recording, and a recording bar brings a minimized walk back.
     down to the tab bar. Pull down to read back; each day's date holds at the top while its entries pass.
   - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
     the page itself, in your serif, with no box and one muted placeholder ("What’s on your mind?"), a "+" in ink in the
-    margin before it and the camera and the mic in a row directly under it (decision 0172, the composer row). The day's entries stack: each new one, words, photo
+    margin before it and the camera and the mic in a row directly under it (decision 0175, the composer row). The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
     the line being written holding its place, as paper in a typewriter. At rest nothing sits above the tab bar; a bar
     comes up only when the row is out of view (pulled down: a pen, the camera and the mic), and while you write it holds "Kept as you

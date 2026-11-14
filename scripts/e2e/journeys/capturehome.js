@@ -43,7 +43,7 @@ async function run(h) {
   await c.addInitScript(COUNT_GEO);
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
-  // At rest the line's row under the placeholder (JN34, decision 0172); there is no bar at rest.
+  // At rest the line's row under the placeholder (JN34, decision 0175); there is no bar at rest.
   const band = '[data-testid=line-row]';
 
   // HC1, HC14: an empty app opens on Memories, at /, with one tab bar, no map, and no location read.

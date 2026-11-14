@@ -1,6 +1,6 @@
 // @layer core
 /**
- * Where the journal's capture controls are drawn (JN35, decision 0172): in the row under the open line, or in the
+ * Where the journal's capture controls are drawn (JN35, decision 0175): in the row under the open line, or in the
  * bar at the foot. Always one of the two, never both, so the camera and the mic are one tap away in every state.
  */
 export type ControlsAt = 'foot' | 'line';

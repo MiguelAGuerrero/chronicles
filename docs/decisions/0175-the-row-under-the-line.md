@@ -1,4 +1,4 @@
-# 0172. The camera and the mic sit under the open line
+# 0175. The camera and the mic sit under the open line
 
 Date: 2026-11-14 · Status: accepted · Area: memories · Amends: JN29, JN32, chronicle-journal audit 51; an exception to ui-patterns T7
 
