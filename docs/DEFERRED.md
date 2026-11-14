@@ -793,9 +793,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 What the note types slice left out (`specs/note-types`, decision 0161).
 
 - [owner] **Note types** (0161): a type chosen while a note is first written (a new note's page and Respond's start with no type; Edit sets one, so capture stays one tap); searching, lensing or threading notes by type; a type on a photo, video or memo. Any feature that reads types goes through the vision gate again.
-- [loop] **Note types** (0161, audit 2): a pin's marker is rebuilt, and web focus lost, when its note's type changes (the key includes the mark); the reminder bell keeps the element. No test reaches a single-note pin in the e2e (the replay's is always a group).
 - [loop] **Note types** (0161, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
-- [loop] **Note types** (0161, audit 22): the Type menu on the note page, in two columns, may wrap or crowd at 200% text or below 320 px wide; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).
 - [owner] **Note types** (0161, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.
 - **The voicetrim journey waits for a test id main no longer has** (found deploying video thumbnails, Nov 13): it waits
   for `[data-testid=memories-list] [data-testid=moment-card]`, and the journal page (`e43c64a`, JN1-JN24) dropped
@@ -818,3 +816,13 @@ What the note types slice left out (`specs/note-types`, decision 0161).
 - **Words that arrive after Chronicle opened** reach Memories through a refresh (`resurface.refresh` on the transcripts' store); a thread formed by new words appears at the next open, not while Memories is up (the owner's threads are untouched).
 - **Memo transcripts audit 5 (in part)**: the transcripts' store copies its map for every row written (O(n²) over a backfill of thousands of memos); a batch write per run would do. **Audit 20**: a long press on the caption selects its text (`selectable`) beside the viewer's swipe and tap-to-hide handlers; tried on a phone only. **Audit 21**: the caption does not set its language for a screen reader (WCAG 3.1.2), for a memo spoken in another language than the app's.
   Followed up (memo-transcripts-followups): the store half is fixed (the shell writes rows to a pending map and publishes once per run or every 50 rows; test "memo-transcripts audit 5b"). Left open: the rest of audit 5 is as recorded above.
+
+## Reactions (RX1-RX36, decision 0176)
+
+What the reactions slice left out (`specs/reactions`, decision 0176).
+
+- [owner] **Reactions** (0176): a lens narrowed by location ("my likes around here"), Emphasis offering a reminder and a Question asking again when you are back are each a later slice, gated at `/vision` first (the gate argued once that likes gathered by place must never become something said of a place).
+- [loop] **Reactions** (RX34): the panel at 200% text. The web build sets sizes in px; on a phone the rows of three may crowd at a large font scale. Carries note types' audit 22 (a one-column fallback above a font scale of about 1.5).
+- [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
+- [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.
+- [loop] **Reactions** (reactions audit 7, 11, 12, 15): a failed reaction write outside the viewer is silent (the journal's sign, More, a new page; as note-types audit 59); `keep` writes a row per family with no transaction, so a failure part-way keeps half a set; held reactions are dropped if a new page unmounts while its first save is in flight; on a video's pin the bubbles clear the play mark but sit mostly off the head (three cannot both touch the head and clear the mark: a design call).
