@@ -1065,10 +1065,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pins = useZoomPins(props.captures, view?.zoom ?? null, view?.lat ?? null);
   // One read of the reminders per map, for the bells on its pins (RB1, RB6).
   const reminded = useReminded();
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, props.clocks);
+  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, props.clocks, props.now);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded);
+  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, undefined, props.now);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -1452,6 +1452,7 @@ function usePinMarkers(
   memory: boolean,
   reminded: ReadonlySet<string>,
   clocks?: readonly WalkClock[],
+  now?: number,
 ) {
   const latest = useRef({ pins: new Map<string, CapturePin>(), onPress });
   useEffect(() => {
@@ -1477,8 +1478,10 @@ function usePinMarkers(
       // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
       const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${pinMark(pin)?.id ?? ''}`;
       const existing = markers.current.get(pin.id);
-      // Its walk's clock may come after the pin (tend map T14): the name follows in place.
-      const label = pinLabel(pin, interactive, memory, bell, clocks);
+      // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
+      // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
+      // audit 29); a new one relabels in place.
+      const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt);
       if (existing?.key === key && existing.bell === bell && existing.marker.getElement().getAttribute('aria-label') !== label) {
         existing.marker.getElement().setAttribute('aria-label', label);
       }
@@ -1526,7 +1529,7 @@ function usePinMarkers(
       drop(m);
       markers.current.delete(id);
     }
-  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, clocks]);
+  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, clocks, now]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

@@ -2,10 +2,12 @@
 import type { Faced } from './moment';
 import { distanceM, pausedMs, type PauseSpan } from './geo';
 import { markOf, type NoteTypeInfo } from './noteType';
-import { JUST_AFTER_MS, minutesInLine } from './resurface/context';
+import { dayPartLine, JUST_AFTER_MS, minutesInLine } from './resurface/context';
 import { numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
+
+const MIN = 60_000;
 
 /** Pins closer than this on screen merge into one, drawn with its kinds (tend map T14). */
 export const PIN_GROUP_PX = 44;
@@ -182,41 +184,85 @@ export function pinKindsWords(pin: CapturePin): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/**
- * How far into its walk a pin's first moment was, in walked time and in words, as the moment's own line says it
- * (MC3): "twelve minutes in", "at the start". Null unless every moment of the pin is of one walk whose clock is given,
- * and they lie within JUST_AFTER_MS of each other in walked time (tend map audit 19).
- */
-export function pinInto(pin: CapturePin, clocks: readonly WalkClock[] | undefined): string | null {
+/** The clock of the one walk every moment of a pin belongs to, if it is given; else null. */
+function clockOf(pin: CapturePin, clocks: readonly WalkClock[] | undefined): WalkClock | null {
   const walkId = pin.captures[0]?.walk_id;
   if (!walkId || pin.captures.some((c) => c.walk_id !== walkId)) return null;
-  const clock = clocks?.find((w) => w.id === walkId);
-  if (!clock) return null;
-  const walked = (t: number) => Math.max(0, t - clock.started_at - pausedMs(clock.pauses, clock.started_at, t));
-  const first = walked(pin.captures[0].t);
-  // Pins group by place, never time: moments far apart in the walk (a loop's start and end) share no one time (tend
-  // map audit 19), so the pin says its kinds alone.
-  if (walked(pin.captures[pin.captures.length - 1].t) - first > JUST_AFTER_MS) return null;
-  const line = minutesInLine(first);
-  return line.charAt(0).toLowerCase() + line.slice(1);
+  return clocks?.find((w) => w.id === walkId) ?? null;
+}
+
+/** Walked time into a walk at `t`: its pauses left out, as the moment's own line counts it (MC3). */
+function walkedAt(clock: WalkClock, t: number): number {
+  return Math.max(0, t - clock.started_at - pausedMs(clock.pauses, clock.started_at, t));
+}
+
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/** A day's part said after a comma: "Tuesday evening" keeps its capital, "This evening" is "this evening". */
+const NAMED = /^(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day\b|^(January|February|March|April|May|June|July|August|September|October|November|December)\b/;
+const afterComma = (line: string) => (NAMED.test(line) ? line : lower(line));
+
+/** The day a moment belongs to, as `dayPartLine` reckons it: the small hours (before five) are the evening before's. */
+function dayOf(t: number): string {
+  const d = new Date(new Date(t).getHours() < 5 ? t - 5 * 3_600_000 : t);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/**
+ * When a pin no walk clock holds was taken (tend map T28): its first moment's part of the day; when its moments fall on
+ * different days, the span of their days (tend map audit 27, the owner's answer to ux 1): "from three weeks ago to
+ * Tuesday evening", an end whose line carries its own comma ("three weeks ago, afternoon") giving the part before it.
+ */
+function dayWhen(pin: CapturePin, now: number): string {
+  const first = pin.captures[0].t;
+  const last = pin.captures[pin.captures.length - 1].t;
+  if (dayOf(first) === dayOf(last)) return afterComma(dayPartLine(first, now));
+  const end = (t: number) => afterComma(dayPartLine(t, now).replace(/, [^,]+$/, ''));
+  // Two days whose ends read alike ("three weeks ago") are said once.
+  return end(first) === end(last) ? end(first) : `from ${end(first)} to ${end(last)}`;
+}
+
+/**
+ * When a pin's moments were, in words (tend map T28, decision 0164): with its walk's clock, the first one's minutes in
+ * ("twelve minutes in"), or, when they lie more than JUST_AFTER_MS apart in walked time, the span ("from the start to
+ * fifty-eight minutes in"); with none (no clock given, moments of two walks, a moment outside a walk), the part of the
+ * day of its first moment as the moment's own line says it (MC4, `dayPartLine`): "Tuesday evening". Null with neither
+ * a clock nor `now`.
+ */
+export function pinWhen(pin: CapturePin, clocks: readonly WalkClock[] | undefined, now: number | undefined): string | null {
+  const first = pin.captures[0];
+  if (!first) return null;
+  // A map of several walks (a day's replay) says every pin's part of the day: "ten minutes in" would not say which
+  // walk (tend map audit 28, the owner's answer to ux 2).
+  const clock = clocks && clocks.length > 1 ? null : clockOf(pin, clocks);
+  if (!clock) return now == null ? null : dayWhen(pin, now);
+  const from = walkedAt(clock, first.t);
+  const to = walkedAt(clock, pin.captures[pin.captures.length - 1].t);
+  // In the minutes the words name: a span only when they lie more than ten apart (tend map audit 30).
+  const [a, b] = [Math.round(from / MIN), Math.round(to / MIN)];
+  if (b - a <= JUST_AFTER_MS / MIN) return lower(minutesInLine(from));
+  if (a === 0) return `from the start to ${lower(minutesInLine(to))}`;
+  // Both under an hour share their unit: "from twelve to fifty minutes in".
+  if (b < 60) return `from ${numberWord(a)} to ${numberWord(b)} minutes in`;
+  return `from ${lower(minutesInLine(from).replace(/ in$/, ''))} to ${lower(minutesInLine(to))}`;
 }
 
 const KIND_NAME: Record<CaptureKind, string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
 
 /**
- * What a screen reader hears of a pin's moments, before its bell and its "Open": one moment by its kind ("Photo",
- * "Note, idea", "Memory: Photo"); several by their kinds in words, with how far into the walk when it is known (tend
- * map T14): "A photo and a note, twelve minutes in"; a memory pin's "Memories: a photo and a note".
+ * What a screen reader hears of a pin's moments, before its stack, its bell and its "Open": one moment by its kind
+ * ("Photo", "Note, idea", "Memory: Photo"), several by their kinds in words (tend map T14), each followed by when
+ * (`pinWhen`, tend map T28): "Photo, twelve minutes in", "A photo and a note, from the start to fifty-eight minutes
+ * in", "Memories: a photo and a note, Tuesday evening". A memory pin's moments are of other walks, so it always says
+ * the part of the day.
  */
-export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: readonly WalkClock[] }): string {
-  if (pin.captures.length === 1) {
-    const kind = KIND_NAME[pin.captures[0].kind];
-    return o.memory ? `Memory: ${kind}` : pinNoteLabel(pin) ?? kind;
-  }
-  const kinds = pinKindsWords(pin);
-  if (o.memory) return `Memories: ${kinds.charAt(0).toLowerCase()}${kinds.slice(1)}`;
-  const into = pinInto(pin, o.clocks);
-  return into ? `${kinds}, ${into}` : kinds;
+export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: readonly WalkClock[]; now?: number }): string {
+  const kinds = pin.captures.length === 1 ? KIND_NAME[pin.captures[0].kind] : pinKindsWords(pin);
+  const what = o.memory
+    ? pin.captures.length === 1 ? `Memory: ${kinds}` : `Memories: ${lower(kinds)}`
+    : pin.captures.length === 1 ? pinNoteLabel(pin) ?? kinds : kinds;
+  const when = pinWhen(pin, o.memory ? undefined : o.clocks, o.now);
+  return when ? `${what}, ${when}` : what;
 }
 
 /**
@@ -230,7 +276,7 @@ export function pinKey(pin: CapturePin): string {
 /**
  * The walk screen's clocks (tend map audit 21): its walk's, with the open walk's pauses, only while the open walk is
  * that same walk. After Stop the open walk and its pauses are gone while the screen still shows the walk, and its
- * pins' minutes would count the pauses as walked; with no clock they say their kinds alone.
+ * pins' minutes would count the pauses as walked; with no clock they say their part of the day (tend map T28).
  */
 export function walkClocks(walk: { id: string; started_at: number } | null, open: { id: string } | null, pauses: PauseSpan[]): WalkClock[] | undefined {
   return walk && open?.id === walk.id ? [{ id: walk.id, started_at: walk.started_at, pauses }] : undefined;

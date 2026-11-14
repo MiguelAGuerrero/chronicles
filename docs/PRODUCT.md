@@ -307,7 +307,7 @@ recording, and a recording bar brings a minimized walk back.
   another name, a "?" pin, the selected area's name or one of Explore's buttons; where they crowd, the heavier streets (a
   current area's first) keep theirs and zooming in brings the rest. On Explore they take the room first; on the walk screen
   and Navigate the map's own street names do, the trace draws over them, and only those within 800 m of you are named.
-  Moving between neighborhoods redraws nothing already shown (decision 0165): on a town's page the lines stay put, a
+  Moving between neighborhoods redraws nothing already shown (decision 0166): on a town's page the lines stay put, a
   neighborhood's outline comes back at once, and the names leave as the map starts moving and come back once when it stops.
 - An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
   "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.

@@ -68,7 +68,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     no data expression: maplibre refuses the layer with a console error (the
     `dense` journey's "no console errors" caught it). The style spec package
     is not a declared dependency, so no unit test can validate a layer.
-  - **A switch redraws nothing it already showed** (smooth-switches SS1-SS10, decision 0165; the `switches` journey on
+  - **A switch redraws nothing it already showed** (smooth-switches SS1-SS10, decision 0166; the `switches` journey on
     the harness's `smallWorld`, at 4x CPU, each switch paired with the same move by the camera alone):
     - The `strips` and `pockets` sources are sent only when `landing.graded` or `landing.pockets` change, never because
       the names near the selected area did (web effect deps; native memo keys): each `setData` drops the source's tiles.
@@ -178,6 +178,27 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     map audit 23`); its icons turn, never its discs, so a disc's box is its circle. On a pin of several the bell sits
     out from its corner (`bellRightFan`, `bellLeftFan`), clear of the discs (`tend map audit 24`). The `qol` journey's
     `pinsOfSeveral` walks its own pins of every shape and reads the heads, discs, opacities and bell boxes.
+- **When a pin says it** (`tend map T28`, decision 0164), every pin, one moment or several (`pinWhen`, `lib/pins.ts`):
+  with its walk's clock, its first moment's minutes in ("Photo, twelve minutes in. Open"), or, when its moments lie
+  more than `JUST_AFTER_MS` apart in walked time, the span ("A photo and a note, from the start to fifty-eight minutes
+  in. Open"); with none (no `clocks`, as on Chronicle's map and the ready screen; moments of two walks on a day; a
+  moment outside a walk; a memory pin, always), the part of the day of its first moment by `dayPartLine`, the moment's
+  own line's words ("Memories: a photo and a note, Tuesday evening"). `now` is the map's `openedAt`. This supersedes
+  the "kinds alone" cases in the two bullets above. The e2e finds a pin of one moment by its kind and ". Open"
+  (`[aria-label^="Photo, "][aria-label$=". Open"]`), never by its whole name, which holds the time.
+  - A pin no clock holds whose moments fall on different days (as `dayPartLine` reckons a day: the small hours are
+    the evening before's) says the span of their days, "from three weeks ago to Tuesday evening", an end whose line
+    has its own comma giving the part before it, and two ends that read alike said once (`dayWhen`, `tend map audit 27`).
+  - A map whose `clocks` hold more than one walk (a day's replay of several walks) says every pin's part of the day:
+    "ten minutes in" would not say which walk. A day of one walk keeps the minutes or the span (`tend map audit 28`).
+  - A map's `now` prop is what a pin's part of the day is said from; without it, `openedAt`, which stays the drop's
+    clock. The walk screen's one map lives from the ready screen through the walk, so `walk.tsx` passes `pinNow`,
+    renewed on each return to the front and at `nextDayPartBoundary` (`resurface/context.ts`); the web relabels in
+    place (`usePinMarkers`' deps), native re-renders its labels (unverified). Chronicle remounts its map on focus and
+    the replays mount on open, so they need none (`tend map audit 29`).
+  - The span is said in the minutes it names: only when the rounded minutes lie more than ten apart, both under an
+    hour sharing their unit ("from twelve to fifty minutes in"), else "from the start to ..." or the mixed units
+    (`tend map audit 30`). `pinInto` is gone: `pinWhen` is the one place a pin's time is worded.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

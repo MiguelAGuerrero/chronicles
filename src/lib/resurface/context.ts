@@ -67,6 +67,22 @@ export function partOfDay(t: number): PartOfDay {
   return h < 5 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
 }
 
+/** The hours at which `dayPartLine`'s words can change: the day itself, the small hours' end, and `partOfDay`'s. */
+const DAY_PART_HOURS = [0, 5, 12, 17, 21];
+
+/**
+ * The next moment after `now` at which a part of the day said relative to it can change (tend map audit 29): the next
+ * of midnight, five, noon, five and nine by the phone's clock zone, so a screen left open renews its words then.
+ */
+export function nextDayPartBoundary(now: number): number {
+  const d = new Date(now);
+  for (const h of DAY_PART_HOURS) {
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h).getTime();
+    if (t > now) return t;
+  }
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0).getTime();
+}
+
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const weekdayName = (t: number): string => WEEKDAYS[new Date(t).getDay()];
