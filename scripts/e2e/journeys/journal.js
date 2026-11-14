@@ -859,7 +859,7 @@ async function run(h) {
   check(!!row34.field && !!row34.photo && !!row34.voice && !!row34.plus && !row34.bar
     && Math.abs(glyphLeft(row34.photo) - row34.field.x) <= 4 && row34.photo.y >= row34.field.bottom - 2 && row34.photo.y === row34.voice.y && row34.photo.x < row34.voice.x
     && [row34.photo, row34.voice].every((b) => b.w >= 44 && b.h >= 44 && b.ink) && row34.photo.label === 'Add a photo or video' && row34.voice.label === 'Record a voice note'
-    && row34.plus.ink && row34.plus.x + row34.plus.w <= row34.field.x + 12,
+    && row34.plus.ink && row34.plus.x >= 0 && row34.plus.w >= 44 && row34.plus.h >= 44,
     `JN34: at rest a "+" in ink before the line, and the camera and the mic in a row under it, from its first letter, in ink, named, each a thumb's target (${JSON.stringify(row34)})`);
   // A screen reader walks the page without focusing the field (focus would raise the keyboard and the bar): the
   // order is the document's order of what can be reached.

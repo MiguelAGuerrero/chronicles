@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, open Memories at rest; tap the camera under \"What’s on your mind?\", then the mic, then Stop; pull the page down and tap the bar's camera; tap the \"+\" before the line. **Expect:** no bar above the tab bar at rest; the camera and the mic sit under the placeholder's first letter; Stop takes the mic's place in the row; pulled down, the bar comes up with the pen, the camera and the mic; the \"+\" raises the keyboard with the caret on the line, and the row moves to the bar on the keyboard. (JN34-JN38)\n"
+    }
+  ]
+}

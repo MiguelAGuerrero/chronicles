@@ -52,7 +52,7 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 ## Writing on the page (JN28-JN30, Nov 13, from the owner's phone)
 
 - **The field is the page's last line, not a box at the foot** (JN28). `OpenLine` owns the pen, the captures and the bar, and takes the screen's body as a render prop: it hands the body the field (`children(field)`), and `JournalPage` draws it after its rows. Where no page shows (`inBar`: a thread, the threads, Hidden) the field sits in the bar. The first build put the field in a row at the foot; on the owner's iPhone it read as a chat box, small and boxed, with the recording bar, the tab bar and a blank band between it and the keyboard.
-- **One bar, one row** (JN29): at rest the camera and the mic (the pen left the bar with JN32: the empty page is the pen); while writing the status, Open as a page (an icon), the camera, the mic and Done. Its height never changes.
+- **One bar, one row** (JN29): while writing the status, Open as a page (an icon), the camera, the mic and Done. Its height never changes. At rest there is no bar (JN35, below).
 - **The tabs fold away while the field has the keyboard** (JN30): `hideTabs()` (`lib/tabsHidden`) for as long as `typing`, which takes the recording bar with them; the walk goes on recording. The lift is then measured from nothing (`lineLift(keyboard, 0)`), and `below` is never measured while typing.
 - **No focus frame on the field**: the app's `:focus-visible` ring is `!important`, so an inline `outlineStyle: 'none'` loses to it; the exception is in `webStyles.web.ts`, by test id.
 - **Room is kept for the dateline** (`datelineRoom`) above the field while no entry is open, so the line being written does not jump when its first character brings the dateline.
@@ -68,7 +68,7 @@ Memories is a journal page (decision 0155): one sheet in book order, opening at 
 ## The owner's answers to the second audit (audit 50-54, Nov 13)
 
 - **The bar holds a pen only while the empty page is out of view** (audit 50): `JournalPage` tells `onAway` from its scroll, `MemoriesScreen` passes `penInBar`. In view, the page is the pen.
-- **Done's place is kept at rest** (audit 51): an unseen, untappable Done of the same width, so the camera and the mic have one place each.
+- **Done's place is kept in the bar** (audit 51): an unseen, untappable Done of the same width. Its rule that the camera and the mic never move is reversed by decision 0172: they move from the row to the keyboard bar while typing (JN36).
 - **The held date has an edge** (audit 52): four bands of the page's ground under it, none fainter than a fifth. A fainter band is drawn a shade off the ground it lies on and shows as a line under every date.
 - **Writing on a walk, the bar keeps the recording's mark** (audit 53): the recording bar is folded with the tabs.
 - **An entry draws its note's type** (audit 54, `NoteMark`): the journal replaced the moment card, which drew it. The Type tool is on the note's page only.

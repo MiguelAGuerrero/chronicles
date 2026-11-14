@@ -850,8 +850,9 @@ const styles = StyleSheet.create({
   datelineRoom: { height: 58 },
   // 16 px or more, or iOS Safari zooms the page on focus; no outline: the placeholder and the caret say where.
   field: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 26, paddingVertical: 9, paddingHorizontal: 0, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
-  // In the margin, before the line's first letter (the page's 24 px gutter), level with its first line.
-  plus: { position: 'absolute', left: -34, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // The glyph in the margin, before the line's first letter (the page's 24 px gutter), level with its first line; its
+  // 44 pt target starts at the screen's edge and runs over the first letters, where a tap does the same (cold find).
+  plus: { position: 'absolute', left: -24, top: 0, width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 1 },
   // The glyphs line up with the line's first letter: a 44 pt target holds a 24 pt glyph 10 pt in.
   pageRow: { flexDirection: 'row', alignItems: 'center', marginLeft: -10, minHeight: 44 },
   rowTimer: { flexDirection: 'row', alignItems: 'center', flexGrow: 0, flexShrink: 0, gap: 4, marginLeft: 8 },

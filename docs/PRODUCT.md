@@ -328,16 +328,18 @@ recording, and a recording bar brings a minimized walk back.
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
-    down to the bar. Pull down to read back; each day's date holds at the top while its entries pass.
+    down to the tab bar. Pull down to read back; each day's date holds at the top while its entries pass.
   - **Writing on the page**: tap the empty page and the caret is there, under the last entry; the words are typed on
-    the page itself, in your serif, with no box and one muted placeholder ("What’s on your mind?"). The day's entries stack: each new one, words, photo
+    the page itself, in your serif, with no box and one muted placeholder ("What’s on your mind?"), a "+" in ink in the
+    margin before it and the camera and the mic in a row directly under it (decision 0172, the composer row). The day's entries stack: each new one, words, photo
     or voice note, lands under the one before and stays in view, and when the page is full it slides up as it grows,
-    the line being written holding its place, as paper in a typewriter. One bar is fixed at the foot: the camera and the mic, each always in the same place, and a pen at its left once
-    the page is pulled down and the empty page is out of view; while you write it holds "Kept as you
+    the line being written holding its place, as paper in a typewriter. At rest nothing sits above the tab bar; a bar
+    comes up only when the row is out of view (pulled down: a pen, the camera and the mic), and while you write it holds "Kept as you
     write", Open as a page, the camera, the mic and Done, and the tab bar and the recording bar fold away so it sits on
     the keyboard. Writing is the capture: the first character begins an entry with its time and one fix,
     and it is kept as you write, with no Save. A photo, the line under it and a voice note made right after each other
-    are one entry; Done ends it, as do two minutes without a piece. A note can carry a **type** by choice: a face with a small plus in the corner of the entry being written opens
+    are one entry; Done ends it (in the row, after a photo with no keyboard up), as do two minutes without a piece. A
+    voice note records where it was begun: from the row, Stop takes the mic's place there. A note can carry a **type** by choice: a face with a small plus in the corner of the entry being written opens
     the eight, named, just above the bar for one pick, and the mark then sits above the note's words; a note kept today
     offers the same sign on its row. It is never asked for. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the

@@ -13,7 +13,9 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 
 ## Where actions live
 
-- **Controls live in bars, menus and sheets; never as loose buttons on content** (T7, V2). Content may run under a
+- **Controls live in bars, menus and sheets; never as loose buttons on content** (T7, V2). One exception, the owner's
+  (decision 0172): the journal's camera and mic in a row under the open line, which belongs to the line (the composer
+  pattern), on the page's own ground with no container. Content may run under a
   bar (T7); a control may not float over it. A transient toast may cross content. M3 allows icon buttons with their
   own filled container over images; ours is stricter **[app]**, and an exception needs a container and 3:1 contrast.
 - **One primary action per bar or screen** (T-toolbar "only specify one primary action"; one FAB per screen).
