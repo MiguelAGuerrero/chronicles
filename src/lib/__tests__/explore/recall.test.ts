@@ -17,7 +17,8 @@ const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 31, 15);
 
 const capture = (id: string, over: Partial<Faced> = {}): Faced => facedOf({
-  id, walk_id: 'w0', t: Date.UTC(2026, 9, 20, 15), lat: O[1], lon: O[0], kind: 'text', file_path: null,
+  // Local time, so a moment's date reads Oct 20 in every zone (tend explore audit 5).
+  id, walk_id: 'w0', t: new Date(2026, 9, 20, 15).getTime(), lat: O[1], lon: O[0], kind: 'text', file_path: null,
   body: 'The bakery smelled of cardamom.', segment_id: null, caption: null, caption_y: null, ...over,
 });
 const recall = (captureId: string, over: Partial<Recall> = {}): Recall => ({
@@ -105,7 +106,7 @@ test('recall: two memories name their kinds (UI review)', () => {
 });
 
 test('tend explore T29: a reminder of several says its count and kinds in words, as the pins do', () => {
-  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: Date.UTC(2026, 9, 20, 15, min) });
+  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: new Date(2026, 9, 20, 15, min).getTime() });
   // The kinds in the order taken, whatever order the flags came due in (the pins' order, pinKindsWords).
   const three = [at('n', 'text', 9), at('p', 'photo', 5), at('v', 'voice', 1)];
   assert.deepEqual(reminderText(three), { title: 'Three memories here', body: 'A voice memo, a photo and a note' });
@@ -133,4 +134,18 @@ test('audit (moments 15): a moment made outside a walk does not come back on a w
   // Once it has rested, it comes back as any flagged capture does.
   const old = [capture('m', { walk_id: null, t: NOW - RECALL_RULES.looseRestMs - 1 })];
   assert.deepEqual(due({ recalls: [recall('m')], captures: old }), ['m']);
+});
+
+test('tend explore audit 5: a reminder says the same words in any time zone, for ties and every count', () => {
+  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: new Date(2026, 9, 20, 15, min).getTime() });
+  // A moment's own date, as the zone it was kept in reads it (run under TZ=Asia/Tokyo and TZ=Pacific/Kiritimati too).
+  assert.equal(reminderText([at('a', 'photo', 59)]).body, 'Photo, Oct 20');
+  // Taken in the same instant: by id, as the pins order them.
+  assert.equal(reminderText([at('b', 'text', 1), at('a', 'photo', 1)]).body, 'A photo and a note');
+  // A count of twenty to fifty-nine is hyphenated.
+  const photos = (n: number) => Array.from({ length: n }, (_, i) => at(`p${i}`, 'photo', i));
+  assert.deepEqual(reminderText(photos(21)), { title: 'Twenty-one memories here', body: 'Twenty-one photos' });
+  // Past fifty-nine the title says many while a body under sixty a kind still counts each.
+  const mixed = Array.from({ length: 61 }, (_, i) => at(`m${i}`, i % 2 ? 'text' : 'photo', i));
+  assert.deepEqual(reminderText(mixed), { title: 'Many memories here', body: 'Thirty-one photos and thirty notes' });
 });
