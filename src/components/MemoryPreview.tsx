@@ -5,7 +5,7 @@ import { thumbShown } from '../lib/thumbPlan';
 import { useStill } from '../lib/thumbs/useStill';
 import { VideoMark } from './VideoMark';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { previewLine } from '../lib/memories';
+import { moreHere, previewLine, previewSpoken } from '../lib/memories';
 
 import { useMediaUri } from '../lib/useMediaUri';
 import { Icon, KIND_ICON } from './icons';
@@ -13,7 +13,7 @@ import { LiftIn, theme } from './ui';
 
 /**
  * A memory pin's quick preview (MR4): the photo or the note's line, the date
- * and the walk, and "N more here". A tap on it opens the viewer (MR5).
+ * and the walk, and "and two more here" in words (tend memories T30). A tap on it opens the viewer (MR5).
  */
 export function MemoryPreview(props: {
   captures: Faced[];
@@ -39,7 +39,7 @@ export function MemoryPreview(props: {
       <Pressable
         testID="memory-open"
         accessibilityRole="button"
-        accessibilityLabel={`Memory from ${date}: ${line}${hasMore(first) ? `, ${STACK_SPOKEN}` : ''}${more > 0 ? `, and ${more} more here` : ''}. Open`}
+        accessibilityLabel={previewSpoken({ date, line, stack: hasMore(first) ? STACK_SPOKEN : null, more })}
         onPress={props.onOpen}
         style={styles.body}
       >
@@ -61,7 +61,7 @@ export function MemoryPreview(props: {
           <Text style={styles.meta} numberOfLines={1}>
             {[date, props.walkLine].filter(Boolean).join(' · ')}
           </Text>
-          {more > 0 && <Text style={styles.meta}>{`${more} more here`}</Text>}
+          {more > 0 && <Text testID="memory-more" style={styles.meta}>{moreHere(more)}</Text>}
         </View>
       </Pressable>
       <Pressable testID="memory-close" accessibilityRole="button" accessibilityLabel="Close the memory" onPress={props.onClose} style={styles.close} hitSlop={8}>

@@ -169,6 +169,31 @@ async function checks(h) {
     check(shownIds.length > 0 && /Fox Point|Cardamom/.test(preview) && viewerMemories === 1 && (await page.locator('[data-testid=viewer-close]').count()) >= 1,
       `MR9: on the web build, a later walk shows memory pins, previews one and opens its spot's memories (pins ${shownIds}, viewer ${viewerMemories})`);
     await page.click('[data-testid=viewer-close]');
+    // tend memories T30 (decision 0170, "All in words"): a memory pin of several previews the rest in words, shown and
+    // said, whole at 390 and 320 px.
+    const groupPin = page.locator('[data-testid=memory-pin][data-ids*=","]');
+    if (await groupPin.count()) {
+      const n = (await groupPin.first().getAttribute('data-ids')).split(',').length;
+      await groupPin.first().click();
+      await page.waitForSelector('[data-testid=memory-preview]');
+      for (const w of [390, 320]) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(400);
+        const more = await page.evaluate(() => {
+          const e = document.querySelector('[data-testid=memory-more]');
+          const r = e?.getBoundingClientRect();
+          return { text: e?.textContent ?? null, name: document.querySelector('[data-testid=memory-open]')?.getAttribute('aria-label') ?? null, whole: !!e && e.scrollWidth <= e.clientWidth + 1 && r.right <= window.innerWidth };
+        });
+        check(/^and [a-z-]+ more here$/.test(more.text ?? '') && !/\d/.test(more.text) && more.name?.includes(`, ${more.text}. Open`) && more.whole,
+          `tend memories T30: at ${w} px a memory preview of ${n} says the rest in words, shown and to a screen reader (${JSON.stringify(more)})`);
+        await shot(page, `15c-memory-preview-several-${w}`);
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.click('[data-testid=memory-close]');
+      await page.waitForTimeout(200);
+    } else {
+      check(false, `tend memories T30: a later walk shows a memory pin of several (${shownIds})`);
+    }
     // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
     // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
     const noteId = await page.evaluate(() => new Promise((resolve) => {
