@@ -258,9 +258,6 @@ What the reaction-links slice left for the owner (`specs/reaction-links/spec.md`
 
 What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).
 
-- **Gathering a reaction's moments was found late** (the audit's cold find, high, reactions audit 22): "Gather all my ideas" was placed only through Contents → Reactions, and called borderline not found ("Contents" reads as a table of contents, and an Idea is never seen as a reaction from the journal). Recommended: a reaction under an entry or in the viewer opens its lens (a second way in, beside Contents), which you set aside on Nov 14; or keep Contents and look on a phone first.
-  Answered Nov 14 (decision 0177): a reaction under a moment opens its lens, beside Contents; a follow-up slice after the deploy.
-
 ### From /slice: the row under the line
 
 From the UI review of JN34-JN40 (2026-11-14, `specs/chronicle-journal/spec.md`, "The row under the line: record"). Built on `claude/chronicles-action-button-layout-x4cg4k`, not deployed.
