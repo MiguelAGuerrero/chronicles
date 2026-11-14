@@ -317,3 +317,19 @@ export function noStills(p: number[], fills: number[]) {
     [15, 'stills'],
   ]);
 });
+
+test('EH12 a fallback without the handler is swallowed; one through it is not', { todo: 'test first' }, () => {
+  const root = tree({
+    'src/lib/reads.ts': `// @layer shell
+import { fallback } from './diagnostics/sink';
+export async function read(p: Promise<number[]>) {
+  const a = await p.catch(() => []);
+  const b = await p.catch(() => null);
+  const c = await p.catch(fallback('reads · read', [] as number[], 'the rows'));
+  const d = await p.catch((e: unknown) => [String(e).length]);
+  return [a, b, c, d];
+}
+`,
+  });
+  assert.equal(quality().collect(root).files['src/lib/reads.ts'].silentCatches, 2, 'the two that hand back a value without a word; the handler and a use of the error are not');
+});

@@ -25,12 +25,20 @@ const FEATURES = [
     specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'code-quality'],
   },
   {
+    name: 'diagnostics',
+    about: 'caught errors handled by kind, the diagnostics log and Share diagnostics',
+    rule: 'diagnostics',
+    source: ['src/lib/diagnostics/**'],
+    journeys: ['diagnostics'],
+    specs: ['errors-handled'],
+  },
+  {
     name: 'storage',
     about: 'the db adapters, migrations and media paths',
     rule: 'storage',
     source: ['src/lib/db/**', 'src/lib/media/**', 'src/lib/space/**', 'src/components/SpaceLine.tsx'],
     journeys: ['space', 'upgrade'],
-    specs: ['storage-awareness', 'moment-table', 'errors-handled'],
+    specs: ['storage-awareness', 'moment-table'],
   },
   {
     name: 'recording',

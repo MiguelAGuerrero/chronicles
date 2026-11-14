@@ -769,6 +769,19 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m3']);
     });
 
+    test('FC7 addDiagnostic, getDiagnostics, pruneDiagnostics, EH5 EH6: newest first; pruned by age and count', { todo: 'test first' }, async () => {
+      type D = { id: string; t: number; kind: string; place: string; message: string };
+      const db = await fresh() as unknown as { addDiagnostic(d: D): Promise<void>; getDiagnostics(): Promise<D[]>; pruneDiagnostics(before: number, keep: number): Promise<void> };
+      const d = (id: string, t: number): D => ({ id, t, kind: 'cache', place: 'x · y', message: id });
+      for (const [id, t] of [['a', 10], ['b', 30], ['c', 20], ['e', 40]] as const) await db.addDiagnostic(d(id, t));
+      assert.deepEqual((await db.getDiagnostics()).map((r) => r.id), ['e', 'b', 'c', 'a'], 'newest first');
+      await db.pruneDiagnostics(15, 10);
+      assert.deepEqual((await db.getDiagnostics()).map((r) => r.id), ['e', 'b', 'c'], 'older than the cutoff go');
+      await db.pruneDiagnostics(0, 2);
+      assert.deepEqual((await db.getDiagnostics()).map((r) => r.id), ['e', 'b'], 'beyond the newest few go');
+      assert.deepEqual(Object.keys((await db.getDiagnostics())[0]).sort(), ['id', 'kind', 'message', 'place', 't']);
+    });
+
     test('FC7 setTranscript, listTranscripts, clearTranscript, TX3: one row per capture, replaced by capture, cleared by capture', async () => {
       const db = await fresh() as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string; text: string }[] | void>>;
       const row = (capture_id: string, text: string) => ({ capture_id, text, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });

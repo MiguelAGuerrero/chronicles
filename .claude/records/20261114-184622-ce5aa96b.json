@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Errors handled by kind (no swallowed errors: a caught error handled by its kind and written to a diagnostics log on the device, shared as text from the walk settings; EH1-EH14, decision 0179) | `claude/serene-sagan-ig8te6` | started 2026-11-14 after code quality: spec and plan approved by the owner (one slice, codemod plus a hand pass; the row after Distances; 500 entries, 30 days); tests first next. Spec `specs/errors-handled/spec.md` |\n"
+    }
+  ]
+}
