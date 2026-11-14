@@ -17,12 +17,13 @@ Verb: return (a reaction becomes a way back to every moment that carries it); ho
 Touches: decision 0176 and its criteria RX16, RX24, RX30, RX35 (a lens is the only gathering, one list, oldest first, no count; nothing is said of a place); Always "A moment carries its context" (the lens shows moments in context); Never "Scores" and Always "Counts are words" (a link says the reaction's name, never how many); Always "Restraint" (ink, no new colour; a link is the mark already drawn, not a new chip); decision 0168, amended by 0177 (the sign's glyph); ui-patterns "Found before quiet" (the link must look like one).
 Verdict: aligned (the owner's calls of decision 0177; no rule is touched beyond what 0176 already holds)
 Shape: The marks under an entry and under the viewer's info line become links to their lens, drawn as they are, with a target's size and a link's spoken role. The sign and the page's Reaction tool always show the face with a plus, and say what is chosen. The first entry under a date starts below the date's edge. A reaction that cannot be kept is not shown as chosen, and its panel says so in words.
-Criteria: RL1-RL11 below.
-Open: three calls in the plan's "For the owner".
+Criteria: RL1-RL12 below.
+Open: none (the owner's calls of Nov 14, Decisions).
 
 ## Decisions
 
 - **Nov 14 (0177):** a reaction under a moment opens its lens, beside Contents → Reactions; the sign is always the face with a plus.
+- **Nov 14 (0177, the slice's calls):** outside Memories the reactions stay plain words; a video's pin wears its bubbles in an L; the sign is one size whatever is chosen (from the owner's phone: a marked sign read as another control, larger than its own mark under the time).
 
 ## Surfaces (decision 0167, from the code)
 
@@ -50,7 +51,7 @@ Links
 
 The sign
 
-6. **RL6** The sign on the entry being written and on an entry kept today is always the face with a plus, whatever is chosen; its spoken name says what is chosen ("Reaction, Happy, Idea", or "Reaction, none"). Amends RX9.
+6. **RL6** The sign on the entry being written and on an entry kept today is always the face with a plus, at the same size, whatever is chosen; its spoken name says what is chosen ("Reaction, Happy, Idea", or "Reaction, none"). Amends RX9.
 7. **RL7** A note page's Reaction tool is always the face with a plus; its spoken name says what is chosen. Amends RX12.
 
 The held date
@@ -62,6 +63,10 @@ Kept, or said not to be (the reactions audit 7, 11, 12)
 9. **RL9** A reaction that cannot be kept is not shown as chosen, and the panel it was chosen in (above the bar, More's sheet, the viewer, a page) says "Not kept yet" (the journal's words), one line, the viewer's own line for it replaced, until the next choice or the panel closes; nothing else is said or counted (steward 3).
 10. **RL10** A moment's reactions written together (a new page's held reactions, kept with its moment) are kept together or not at all: a failure leaves none of them.
 11. **RL11** Reactions chosen on a new page before its first words are kept on its moment even if the page closes while that first save is still on its way.
+
+Pins (the reactions audit 15)
+
+12. **RL12** A video's pin wears its reactions in an L: up to two along the head's bottom-left, the third above them at the head's left edge; every bubble touches the head, and none covers the play mark, the bell, the clock or another pin's head.
 
 ## Steward (Nov 14)
 
