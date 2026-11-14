@@ -3,21 +3,42 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, theme } from './ui';
 
 /**
- * Shown in place of a screen that threw while rendering, instead of a blank
- * page (bug, Nov 1: a white screen after Stop on an iPhone). The walk and its
- * captures are already stored; this only redraws the screen. The message is
- * kept on screen so a report can say what broke.
+ * How the error screen's "Back to Chronicle" reaches `/`. Over the tabs (a replay, a day, the walk screen) it
+ * dismisses down to Chronicle; inside the tab navigator `dismissTo('/')` is a POP_TO the tabs have not, and does
+ * nothing (the T20 review's auditor 1), so a tab navigates to Chronicle's tab instead.
  */
-export function ScreenError({ error, retry }: ErrorBoundaryProps) {
+type Exit = 'dismiss' | 'navigate';
+
+function ErrorScreen({ error, retry, exit }: ErrorBoundaryProps & { exit: Exit }) {
   return (
     <View style={styles.screen} testID="screen-error">
       <Text style={styles.title} accessibilityRole="header">Something went wrong showing this screen.</Text>
       <Text style={styles.body}>Your walk is saved.</Text>
       <Text style={styles.detail} selectable>{error?.message || String(error)}</Text>
       <Button label="Try again" onPress={() => void retry()} />
-      <Button label="Back to Chronicle" variant="secondary" onPress={() => router.dismissTo('/')} style={{ marginTop: 12 }} />
+      <Button
+        label="Back to Chronicle"
+        variant="secondary"
+        onPress={() => (exit === 'navigate' ? router.navigate('/') : router.dismissTo('/'))}
+        style={{ marginTop: 12 }}
+      />
     </View>
   );
+}
+
+/**
+ * Shown in place of a screen that threw while rendering, instead of a blank
+ * page (bug, Nov 1: a white screen after Stop on an iPhone). The walk and its
+ * captures are already stored; this only redraws the screen. The message is
+ * kept on screen so a report can say what broke.
+ */
+export function ScreenError(props: ErrorBoundaryProps) {
+  return <ErrorScreen {...props} exit="dismiss" />;
+}
+
+/** The same, on Explore and Navigate: its way back opens Chronicle's tab (tend replay audit 7). */
+export function TabScreenError(props: ErrorBoundaryProps) {
+  return <ErrorScreen {...props} exit="navigate" />;
 }
 
 const styles = StyleSheet.create({

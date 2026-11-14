@@ -46,17 +46,20 @@ async function checks(h) {
         await page.goto(url);
         await page.waitForSelector('[data-testid=memories]', { timeout: 15000 }).catch(() => {});
         // One read of the walks fails, the next ones read again: the day screen's load throws into its ErrorBoundary.
+        // Only a read made on the day's route fails, so Chronicle beneath never takes it (the T20 review's auditor 4).
         if (name === 'error') await page.evaluate(() => {
           const real = IDBObjectStore.prototype.getAll;
+          window.__t20Failed = false;
           IDBObjectStore.prototype.getAll = function (...a) {
-            if (this.name !== 'walk') return real.apply(this, a);
+            if (this.name !== 'walk' || !location.pathname.includes('/day/')) return real.apply(this, a);
             IDBObjectStore.prototype.getAll = real;
+            window.__t20Failed = true;
             throw new Error('tend replay T20: one read of the walks failed');
           };
         });
         await inApp(p);
         await page.waitForSelector(sign, { timeout: 15000 }).catch(() => {});
-        const shown = (await page.locator(sign).count()) === 1;
+        const shown = (await page.locator(sign).count()) === 1 && (name !== 'error' || (await page.evaluate(() => window.__t20Failed)));
         const at390 = await backBox();
         await h.shot(page, `t20-${name}-390`);
         let at320 = null;
@@ -79,6 +82,42 @@ async function checks(h) {
       }
       // The failed read is the step's own doing, and the boundary logs it: not the app's console error.
       for (let i = h.errors.length - 1; i >= 0; i--) if (/tend replay T20: one read of the walks failed/.test(h.errors[i])) h.errors.splice(i, 1);
+    }
+    // A tab's error screen (fix ios-video audit 1): the map's WebGL context refused while armed, on the paths named,
+    // so the map throws into that tab's own ErrorBoundary; the step's own errors are dropped from the console list.
+    const failMaps = (on) => page.evaluate((paths) => {
+      const proto = HTMLCanvasElement.prototype;
+      window.__glReal = window.__glReal ?? proto.getContext;
+      const real = window.__glReal;
+      proto.getContext = !paths ? real : function (kind, ...rest) {
+        if (/webgl/.test(String(kind)) && paths.some((q) => location.pathname.endsWith(q))) return null;
+        return real.call(this, kind, ...rest);
+      };
+    }, on);
+    const dropGlErrors = (from) => { for (let i = h.errors.length - 1; i >= from; i--) if (/WebGL|webgl|GPUInitialization/.test(h.errors[i])) h.errors.splice(i, 1); };
+    const screenErr = () => shownCount(page, '[data-testid=screen-error]');
+    const shownButton = (name) => page.getByRole('button', { name, exact: true }).filter({ visible: true }).count();
+    {
+      // tend replay audit 7 (the T20 review's auditor 1): inside the tabs dismissTo('/') did nothing, so Explore's
+      // "Back to Chronicle" goes by router.navigate('/') and opens Chronicle's tab.
+      const from = h.errors.length;
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=memories]', { timeout: 15000 }).catch(() => {});
+      // Memories draws no map (NV4), so every map refused from here on is Explore's, made as its tab opens.
+      await failMaps(['']);
+      await page.click('[data-testid=tab-explore]');
+      await page.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 15000 }).catch(() => {});
+      const errs = await screenErr();
+      const backs = await shownButton('Back to Chronicle');
+      const shown = errs === 1 && backs === 1;
+      await h.shot(page, 'audit7-explore-error-390');
+      await failMaps(null);
+      await page.getByRole('button', { name: 'Back to Chronicle', exact: true }).filter({ visible: true }).click({ timeout: 5000 }).catch(() => {});
+      await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]', { timeout: 10000 }).catch(() => {});
+      const home = new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
+        && (await screenErr()) === 0;
+      check(shown && home, `tend replay audit 7: Explore's error screen shows "Back to Chronicle", and it opens Chronicle's tab at / (${JSON.stringify({ errs, backs, home, url: page.url() })})`);
+      dropGlErrors(from);
     }
     await page.goto(`${url}explore`);
     await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 15000 }).catch(() => {});

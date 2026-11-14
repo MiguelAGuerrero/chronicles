@@ -6,7 +6,7 @@ import { entryPlan } from '../../lib/readyNav';
 import { showWalk } from '../../lib/walkNav';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
-export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+export { TabScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 /**
  * Navigate's route (`/navigate`): it has no view of its own any more (NR1).

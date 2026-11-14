@@ -66,7 +66,7 @@ import { useOpenWalkInfo } from '../../components/OpenWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
-export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+export { TabScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 const NONE: never[] = [];
 const NEW_FAM: Familiarity = { walks: 0, last: null };
