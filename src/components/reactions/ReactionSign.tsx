@@ -22,7 +22,7 @@ export function ReactionSign(props: { set: ReactionSet; open?: boolean; onPress:
       <Icon name={(first?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="reaction-sign-face" />
       {first ? null : (
         <View style={styles.add} testID="reaction-sign-add">
-          <Icon name="add" size={11} color={theme.bg} />
+          <Icon name="add" size={13} color={theme.bg} />
         </View>
       )}
     </Pressable>
@@ -35,5 +35,6 @@ const styles = StyleSheet.create({
   open: { borderColor: theme.ink },
   pressed: { opacity: 0.6 },
   // The plus that makes the face "add": a small ink disc at its shoulder.
-  add: { position: 'absolute', top: 6, right: 4, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.bg },
+  // 16 pt, so it reads as ink and not a faint badge (reactions ui 2); at the face's shoulder, clear of its eyes.
+  add: { position: 'absolute', top: 4, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: theme.bg },
 });

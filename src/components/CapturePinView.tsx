@@ -62,6 +62,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   const [failed, setFailed] = useState<string | null>(null);
   const picture = uri && uri !== failed ? uri : null;
   const painted = !!picture && picture === loaded;
+  const isVideo = n === 1 && pin.captures[0].kind === 'video';
   const view = (
     <View style={styles.wrap} pointerEvents="none">
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
@@ -85,10 +86,12 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
             order, clear of the bell and clock above and the video mark at the bottom right. Inside the pin, so on a
             memory they are as faint as it is (the owner, Nov 14). */}
         {reactions.length > 0 && (
-          <View style={styles.reactions} pointerEvents="none">
-            {reactions.map((r) => (
-              <View key={r.id} testID="pin-reaction" {...webData({ reaction: r.id })} style={styles.reaction}>
-                <Icon name={r.glyph as IconName} size={11} color="#ffffff" />
+          // Over the head's lower part, so each reads as this pin's and never lands on a neighbour (reactions ui 1); on a
+          // video's pin it sits further left, clear of the play mark (RX20).
+          <View style={[styles.reactions, isVideo && styles.reactionsVideo]} pointerEvents="none">
+            {reactions.map((r, i) => (
+              <View key={r.id} testID="pin-reaction" {...webData({ reaction: r.id })} style={[styles.reaction, i > 0 && styles.reactionNext]}>
+                <Icon name={r.glyph as IconName} size={10} color="#ffffff" />
               </View>
             ))}
           </View>
@@ -148,13 +151,15 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
 const NO_REACTIONS: readonly ReactionInfo[] = [];
 
 const styles = StyleSheet.create({
-  // The row's right end overlaps the head's bottom-left, so it reads as the pin's; it grows outward, to the left.
-  reactions: { position: 'absolute', right: 24, top: 22, flexDirection: 'row', gap: 1 },
-  // The bell's shape: an ink disc, a white glyph, a white edge, the clock's size (RX17).
+  // Across the head's lower part from just outside its left edge (reactions ui 1): every bubble on the head itself.
+  reactions: { position: 'absolute', left: -8, top: 22, flexDirection: 'row' },
+  reactionsVideo: { left: -20 },
+  // The bell's shape: an ink disc, a white glyph, a white edge (RX17); their white edges just meet.
   reaction: {
-    width: 18, height: 18, borderRadius: 9, backgroundColor: theme.ink,
+    width: 15, height: 15, borderRadius: 7.5, backgroundColor: theme.ink,
     borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
   },
+  reactionNext: { marginLeft: -2 },
   videoMark: { position: 'absolute', right: -3, top: 20, borderWidth: 1.5, borderColor: '#ffffff' },
   // The faint head shrinks to 75% toward its foot (its bottom right near x 31, y 38): the mark there, 2 px under the clock (ui 4).
   videoMarkFaint: { right: 1, top: 24 },

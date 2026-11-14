@@ -98,7 +98,7 @@ async function run(h) {
     const r = add.getBoundingClientRect();
     return { w: Math.round(r.width), bg: getComputedStyle(add).backgroundColor };
   });
-  check.todo(!!ui2 && ui2.w >= 16 && ui2.bg === INK, `reactions ui 2: the sign's plus is an ink disc of 16 px or more (${JSON.stringify(ui2)})`);
+  check(!!ui2 && ui2.w >= 16 && ui2.bg === INK, `reactions ui 2: the sign's plus is an ink disc of 16 px or more (${JSON.stringify(ui2)})`);
   const old9 = await entry('Nothing much on the way home').locator('[data-testid=reaction-sign]').count();
   check(old9 === 0, `RX9: an entry of an earlier day shows no sign on its row (${old9})`);
 
@@ -285,7 +285,7 @@ async function run(h) {
     });
     return { rows: rows.length, apart: rows.filter((r) => !r.touch).length, over: rows.filter((r) => r.over).length };
   });
-  check.todo(ui1.rows >= 2 && ui1.apart === 0 && ui1.over === 0, `reactions ui 1: every bubble touches its own pin's head, and none lies over another pin's head (${JSON.stringify(ui1)})`);
+  check(ui1.rows >= 2 && ui1.apart === 0 && ui1.over === 0, `reactions ui 1: every bubble touches its own pin's head, and none lies over another pin's head (${JSON.stringify(ui1)})`);
   const handle = await pg.$(pin);
   await pg.click(pin).catch(() => {});
   await there('[data-testid=capture-viewer]');
