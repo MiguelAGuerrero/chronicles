@@ -1,0 +1,42 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T20",
+        "--reason",
+        "the owner's yes, built in tend replay T20"
+      ],
+      "target": "sha256:9b8f245e15235bd6ebca3d63b46156305a4f7fa3fdc62aa86cba50eaf914a325"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Why Chronicle went white after Keep it"
+      ],
+      "body": "  - Since `tend replay T20` (Nov 14, decision 0165) the button reads \"Back to Chronicle\"; on Chronicle's own tab it still goes nowhere (Chronicle is already the route).\n",
+      "target": "sha256:3b3b1e02e26b25dfebc03fc1c5583eee3fb854be938fd68f62eb742922b87125"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay rhythm",
+        "--after",
+        "make a tab's screen throw"
+      ],
+      "body": "- [ ] **Do:** on an iPhone SE (320 pt wide) at the largest text size, open a replay whose walk was deleted from inside the app, a day with nothing kept, and a screen that throws (as above). **Expect:** each way back reads \"Back to Chronicle\", whole in its button, and opens Chronicle (`tend replay T20`; the web e2e checks one line at 320 px, where react-native-web sizes text in px).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 14, `/tend inbox T20 yes`** (from `da4226cd`; the owner's own answer, in person, Nov 12, decision 0165; T19, T21\nand T30, answered in decisions 0165 and 0170, wait for later runs, one build per run).\n- `tend replay T20`: the day replay's \"Back to the map\" (a day with nothing kept) and the replay's \"Back to walks\" (a walk\n  not found) read \"Back to Chronicle\", where `router.dismissTo('/')` already went (decision 0112). Sibling lens:\n  `ScreenError`'s \"Back to walks\" is the same control going to the same place, built with them; Chronicle's map pill,\n  said \"Back to the map\", goes to the map and is left. Where each goes is unchanged. The launch journey reaches all\n  three from inside the app and checks the words, the spoken name, one line at 390 and 320 px, and Chronicle at `/`.\nReview: waiting (one round of the auditor and the ux-reviewer, decision 0145).\nNot a sweep: no lens ran and no area changed state. Nothing here has run on a phone (`docs/NATIVE_UNVERIFIED.md`).\n"
+    }
+  ]
+}

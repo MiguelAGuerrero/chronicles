@@ -186,14 +186,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise: the numbers as words only ("Four moments · two places"); or leave it.
   **Answered** by the owner in person (Nov 12; decision 0165): "Clauses, one hint", the recommended shape. Recorded
   Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).
-- **T20 [owner] Replay: "Back to the map" and "Back to walks" both go to Chronicle** (2026-11-12)
-  Area: replay. Seen: `src/app/day/[key].tsx` (a day with nothing kept: "Back to the map"), `src/app/replay/[id].tsx`
-  (a walk not found: "Back to walks"); both `router.dismissTo('/')`, which is Chronicle since decision 0112. Rests on:
-  VISION.md, "Chronicle first ... the map is one view of it, not its home" (steward S4). New words, so yours.
-  Recommended: both read "Back to Chronicle". /vision: aligned (return; the place's own name, nothing new).
-  Otherwise: "Back" alone; or leave it.
-  **Answered** by the owner in person (Nov 12; decision 0165): "Back to Chronicle", the recommended shape. Recorded
-  Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).
 - **T21 [owner] Replay: the name step's only way on is Keep it** (2026-11-12)
   Area: replay (beat five). Seen: `probe-390r-name`, `probe-320r-name` (two fields and Keep it, no Cancel or back).
   Rests on: NN/g H3, "a clearly marked 'emergency exit'"; the goal-to-control matrix, row 18, "Text view in a sheet
@@ -283,33 +275,15 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 14, `/tend inbox T29 yes`** (from `a181030d`, rebased on `decae354`; the owner's own answer, in person, Nov 13,
-decision 0164; T19, T20 and T21, answered in decision 0165, wait for later runs, one build per run).
-- `tend explore T29`: a reminder of several says its count in words, "Two memories here" ("Many memories here" past
-  fifty-nine), and its body the pins' words for its kinds in the order taken ("A video and a photo"), from one table
-  (`pinKindsWords`, `KIND_NAME` in `lib/pins.ts`); recall's second copy is gone. The card, the notification, the
-  recording bar's line and both announcements say it. When and whether a reminder or its notification shows is
-  unchanged; "What happened here" keeps "12 min in". Sibling lens: built on the reminders and their announcements;
-  filed as T30 the memory preview's "2 more here", the walks row's "1 photo · 1 video" and a delete's "3 moments";
-  Chronicle's Memories already says its counts in words.
-The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend explore audit 5`: the reminder's tests build their moments in local time, so they pass in every zone (R4's
-  test failed east of UTC+9 since slice 4); the tie order, a hyphenated count and "Many" over a counted body pinned
-  (auditor 1).
-- `tend explore audit 6`: the walk screen and the recording bar announce the card's own title for all it holds
-  ("A note from here", "Three memories here"), not the count just due (`reminderHeld`; auditor 3, ux 2, ux 3).
-- `tend explore audit 7`: the journey step checks its setup, reads the card once it settles, removes its flags and
-  walks back; the minimized bar's line is checked and pictured; "the reminder opens its capture" can fail now
-  (auditor 4, auditor 5).
-Review: 6 accepted, 1 recorded (auditor 2: the cleanup item names every copy of the kinds' words), 3 deferred (ux 1
-with ux 6 `[owner]`, ux 4 and ux 5 `[loop]`), 0 rejected. New on the way: the walk screen and the bar race for the one
-reminder listener after a reload (`[loop]` medium, seen in three of four runs of the step). T30 was answered yes by the owner
-during the review (decision 0170) and waits for the next `/tend inbox`.
-Not a sweep: no lens ran and no area changed state. The memories journey green on the final code; the unit tests
-seen failing first (the T29 and audit 6 tests on the code before, audit 5's fixtures under `TZ=Asia/Tokyo`), the
-journey's T29 check on main's build. Nothing here has run on a phone (`docs/NATIVE_UNVERIFIED.md`). v1-discovery R7's
-example waits for your edit, and `.claude/rules/explore-and-discovery.md` for a split (both under "Open before the
-loop").
+**Nov 14, `/tend inbox T20 yes`** (from `da4226cd`; the owner's own answer, in person, Nov 12, decision 0165; T19, T21
+and T30, answered in decisions 0165 and 0170, wait for later runs, one build per run).
+- `tend replay T20`: the day replay's "Back to the map" (a day with nothing kept) and the replay's "Back to walks" (a walk
+  not found) read "Back to Chronicle", where `router.dismissTo('/')` already went (decision 0112). Sibling lens:
+  `ScreenError`'s "Back to walks" is the same control going to the same place, built with them; Chronicle's map pill,
+  said "Back to the map", goes to the map and is left. Where each goes is unchanged. The launch journey reaches all
+  three from inside the app and checks the words, the spoken name, one line at 390 and 320 px, and Chronicle at `/`.
+Review: waiting (one round of the auditor and the ux-reviewer, decision 0145).
+Not a sweep: no lens ran and no area changed state. Nothing here has run on a phone (`docs/NATIVE_UNVERIFIED.md`).
 
 ### Open before the loop
 
