@@ -50,7 +50,11 @@ commit's trailers and fails any other change.
 Known constraints (do not rediscover them): <from the notes, e.g.
 - read FORBIDDEN in scripts/tend.js before editing anything outside src/ and the journeys;
 - check:tend wants a named test for any src/ change, comments included;
-- audit numbering is not per run: number on from the highest on main;
+- audit numbers: `npm run book:next-audit -- "tend <area>"` (main's highest, ranges read), never by hand;
+- a decision record: `npm run book:next-decision -- --check <NNNN> <file>` after the last fetch;
+- the size tripwire: `npm run book:files -- --max-src 8` (untracked files counted);
+- DEFERRED and inbox matches: `npm run book:items -- deferred|inbox|open`, never shortened by hand;
+- your review prompts: `npm run book:review-paths -- <prompt>...` before handing back;
 - the largest text size cannot be pictured on web: a [phone] entry;
 - the balance reads <reading>: <no G entry | …>;
 - grep a rule line before citing it as a Source;

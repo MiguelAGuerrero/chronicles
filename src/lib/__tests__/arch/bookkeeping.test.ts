@@ -493,7 +493,7 @@ test('bookkeeping: items reads origin/main by default, the working tree with --w
 // ---------------------------------------------------------------------------------------------------
 // The commands' names, where the procedures use them.
 
-test('bookkeeping: package.json runs the commands, tend.js passes them on, and the skills name them where they did the work by hand', { todo: 'the skills come next' }, () => {
+test('bookkeeping: package.json runs the commands, tend.js passes them on, and the skills name them where they did the work by hand', () => {
   const pkg = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
   for (const s of ['next-decision', 'next-audit', 'files', 'landed', 'review-paths', 'items']) assert.equal(pkg.scripts[`book:${s}`], `node scripts/bookkeeping.js ${s}`, s);
   const via = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'next-audit', 'tend nothing-ever'], { cwd: ROOT, encoding: 'utf8' });

@@ -130,7 +130,7 @@ fix still gets its screens looked at.
 
 Triage each finding accept, defer or reject with a reason (as `/audit` does). An accepted one gets a
 regression test before its fix, named for the caller (`fix <name> audit N`, `tend <scope> audit N`,
-`<slug> audit N`). An architectural finding is a hard stop.
+`<slug> audit N`), N from `npm run book:next-audit -- "<prefix>"`. An architectural finding is a hard stop.
 
 Each round is: review, fix what was accepted, run the caller's checks again. Stop at the caller's
 round limit or at the first round with no new accepted finding. With accepted findings still open at
@@ -146,7 +146,9 @@ with the checks the calling skill names.
    then continue. On a conflict, stop and keep the branch. The checks include `node scripts/tend.js
    commits --loop-only origin/main..HEAD`, what CI runs: a commit of the branch made before the record
    gate landed and hand-editing the documents is refused there by name, with how to mend it ("The
-   record documents").
+   record documents"). A decision record of the branch: `npm run book:next-decision -- --check <NNNN>
+   <file>` now, after this fetch; if main took the number, renumber the file, its title, the README row
+   and what cites it, and check again.
 3. `main` is checked out elsewhere, so publish with `git push origin <branch>:main` (a fast-forward; no
    force, no history rewrite, no empty commits), once.
 4. Watch the Pages run with the GitHub MCP tools until it completes (`/deploy` section 3).
@@ -200,8 +202,11 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
 | Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
 | Nothing pushed by choice | delete after the patch is saved | none |
 
-5. `git worktree prune`, then `git worktree list` and `git branch --list '<family>/*'` to confirm
-   nothing of this run remains. If a removal failed, say what is left and its path.
+5. `git worktree prune`, then confirm nothing of this run remains: after a publish, `npm run
+   book:landed -- <base>..<pushed sha> --branch <branch> --live https://miguelaguerrero.github.io/chronicles/`
+   (every commit on `main`, no worktree or local branch left, the live entry bundle; it cannot see Pages,
+   which stays with the GitHub tools); otherwise `git worktree list` and `git branch --list '<family>/*'`.
+   If a removal failed, say what is left and its path.
 
 ## The result block
 

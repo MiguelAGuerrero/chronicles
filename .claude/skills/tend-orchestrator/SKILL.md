@@ -66,7 +66,9 @@ dead runs' leftovers, reported, never removed by you.
 2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
    a recommendation), every class 0157 keeps for the owner, and whatever `/vision` did not clear.
    One AskUserQuestion, the entry's recommended shape first, four entries at most, asked after the
-   next independent run has been launched so the owner's time to answer is not idle time.
+   next independent run has been launched so the owner's time to answer is not idle time. Read the
+   entries with `npm run book:items -- inbox` (and `open`, `deferred --tag owner`): number, tag and
+   title as `main` holds them.
 3. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
    `next` names none, the run is `/tend evolve` (`/tend`'s table), which files and builds nothing.
 4. **Stop** by section 0's rule.
@@ -104,7 +106,8 @@ prompt the run wrote. The pauses are:
 At the diff pause a screen change gets the `ux-reviewer` (0145), every reviewer gets the pictures
 (the auditor too: `ship.md` "Review"), and **a screen the proxy said yes to gets the `steward`** (0157).
 
-1. **Check the paths** a prompt names exist; fix a wrong one before forwarding.
+1. **Check the paths** a prompt names: `npm run book:review-paths -- <prompt>...` (every absolute
+   path, spaces and `:12` references read); fix each one it names missing before forwarding.
 2. **Spawn every reviewer of the pause in one message**, in the background, each with the relay text
    from `briefs.md`.
 3. **Save each report** to `reviews/<run branch>-<pause>-<agent>.md` as it arrives: each finding in
@@ -171,8 +174,10 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
 
 ## 7. When a run completes
 
-1. Verify cheaply: `git log --oneline <base>..origin/main` after a fetch; `git worktree list`. Take
-   commit hashes from `origin/main`, not the run's report (a rebase or amend renames them).
+1. Verify, after a fetch: `npm run book:landed -- <base>..origin/main --branch <run branch> --live
+   https://miguelaguerrero.github.io/chronicles/` (the commits on `main`, no worktree or local branch
+   left, the live bundle); Pages with the GitHub tools. Take commit hashes from `origin/main`, not the
+   run's report (a rebase or amend renames them).
 2. Update the notes.
 3. Tell the owner in a few lines: what landed and its Pages run, what you answered (as the proxy) and
    why, what needs them, with the one action named. An item that blocks the loop and waits only on
