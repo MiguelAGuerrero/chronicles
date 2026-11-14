@@ -1,4 +1,5 @@
 // @layer core
+import { KIND_NAME } from '../pins';
 import type { CaptureKind } from '../types';
 
 /** What a found place's pin wears: the kind of the moment that found it. */
@@ -37,4 +38,13 @@ export function facesToRead(
   asked: ReadonlySet<string>,
 ): string[] {
   return finds.filter((f) => shown.has(f.key) && !known.has(f.capture_id) && !asked.has(f.capture_id)).map((f) => f.capture_id);
+}
+
+/**
+ * A found place's spoken name (tend walk-screen audit 11; the owner, Nov 14, adding to 0172's O26: "Found with a video:
+ * …"): the kind of the moment that found it, in the pins' words, which the corner's glyph shows; left out while that
+ * moment is not known.
+ */
+export function foundLabel(name: string, category: string, kind: CaptureKind | undefined): string {
+  return kind ? `Found with a ${KIND_NAME[kind].toLowerCase()}: ${name}, ${category}` : `Found: ${name}, ${category}`;
 }

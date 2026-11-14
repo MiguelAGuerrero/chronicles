@@ -309,10 +309,13 @@ async function checks(h) {
         check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        // tend walk-screen audit 11 (the owner, Nov 14): the found pin is said with the kind of the moment that found it.
+        const foundSaid = await page.$$eval('.maplibregl-map [aria-label^="Found"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+        check(foundSaid.length === 1 && foundSaid[0] === 'Found with a video: Hessian Memorial, History',
+          `a capture within 60 m finds the place, which stays drawn as found; tend walk-screen audit 11: said "Found with a video: Hessian Memorial, History" (${JSON.stringify(foundSaid)})`);
         // tend walk-screen 9 (decision 0172, O26): the found place's pin wears the kept moment's own glyph, here the video's,
         // where it wore a tick (a checklist's "done"); its spoken name is as before. Pictured close at 390 and 320.
-        const foundPin = page.locator('[aria-label="Found: Hessian Memorial, History"]');
+        const foundPin = page.locator('[aria-label="Found with a video: Hessian Memorial, History"]');
         const glyphs = async () => foundPin.first().evaluate((e) => [...e.querySelectorAll('[data-testid^=found-kind-]')].map((g) => g.getAttribute('data-testid'))).catch(() => null);
         const closeUp = async (name) => {
           const b = await foundPin.first().boundingBox();
@@ -333,9 +336,9 @@ async function checks(h) {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(800);
         check(JSON.stringify(kinds390) === '["found-kind-videocam"]' && JSON.stringify(kinds320) === '["found-kind-videocam"]',
-          `tend walk-screen 9: the found place's pin shows the video's glyph, the moment that found it, in place of a tick, and is still said "Found: Hessian Memorial, History" (${JSON.stringify({ kinds390, kinds320 })})`);
+          `tend walk-screen 9: the found place's pin shows the video's glyph, the moment that found it, in place of a tick (${JSON.stringify({ kinds390, kinds320 })})`);
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
-        check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
+        check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found( with a \w+)?: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
       }
       if (k === 25) {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { facesToRead, foundFaces } from '../../explore/foundFace';
+import { facesToRead, foundFaces, foundLabel } from '../../explore/foundFace';
 
 // tend walk-screen 9 (decision 0172, O26, the owner's answer to "The green place pin carries a tick"): a found place's
 // pin wore a tick, which reads as a checklist's "done". It wears the kept moment's own glyph instead (a camera, a
@@ -52,9 +52,22 @@ test("tend walk-screen 9: the moments still to read are the shown finds' not kno
 test("tend walk-screen 9: the found pin draws the moment's glyph where the tick was, and the walk's pins pass it on", () => {
   const view = readFileSync(join(__dirname, '../../../components/MarkPinView.tsx'), 'utf8');
   assert.doesNotMatch(view, /name="checkmark"/, 'no tick on a found pin');
-  assert.match(view, /testID=\{`found-kind-\$\{pin\.foundGlyph\}`\}/);
-  assert.match(view, /pin\.foundGlyph \?\? ''/, 'a change of glyph redraws the pin');
+  assert.match(view, /testID=\{`found-kind-\$\{KIND_ICON\[pin\.foundKind\]\}`\}/);
+  assert.match(view, /pin\.foundKind \?\? ''/, 'a change of kind redraws the pin');
   const hook = readFileSync(join(__dirname, '../../explore/useExplore.ts'), 'utf8');
   assert.match(hook, /foundFaces\(/);
-  assert.match(hook, /foundGlyph: /);
+  assert.match(hook, /foundKind: /);
+});
+
+// tend walk-screen audit 11 (the review's ux 4; the owner, in person, Nov 14, adding to 0172's O26 answer: "Found with
+// a video: …"): the corner's glyph was seen and not said. The found pin's spoken name names the kind of the moment that
+// found it, in the pins' words (`KIND_NAME`); while that moment is not known the kind is left out.
+test('tend walk-screen audit 11: a found pin is said with the kind of the moment that found it', () => {
+  assert.equal(foundLabel('Hessian Memorial', 'History', 'video'), 'Found with a video: Hessian Memorial, History');
+  assert.equal(foundLabel('Prospect Park', 'Parks', 'photo'), 'Found with a photo: Prospect Park, Parks');
+  assert.equal(foundLabel('Prospect Park', 'Parks', 'voice'), 'Found with a voice memo: Prospect Park, Parks');
+  assert.equal(foundLabel('Prospect Park', 'Parks', 'text'), 'Found with a note: Prospect Park, Parks');
+  assert.equal(foundLabel('Hessian Memorial', 'History', undefined), 'Found: Hessian Memorial, History');
+  const view = readFileSync(join(__dirname, '../../../components/MarkPinView.tsx'), 'utf8');
+  assert.match(view, /if \(pin\.found\) return foundLabel\(pin\.name, pin\.category, pin\.foundKind\)/, 'the pin says it');
 });

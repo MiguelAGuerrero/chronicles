@@ -1,6 +1,5 @@
 // @layer view
 import { faced, type Faced } from '../moment';
-import { KIND_ICON } from '../../components/icons';
 import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';
@@ -299,13 +298,10 @@ export function useExplore(opts: {
       const c = categoryOf(item.category);
       return { id: item.key, at: item.at, revealed: false, icon: c.icon as MarkPin['icon'], name: item.name, category: c.label, ...o };
     };
-    const glyph = (key: string) => {
-      const face = faces.get(key);
-      // The kind's own glyph, never a note's type: note types wait for the owner's rework (decision 0172).
-      return face ? KIND_ICON[face.kind] : undefined;
-    };
+    // The kind, whose glyph and words the pin wears; never a note's type: note types wait for the owner's rework (0172).
+    const kind = (key: string) => faces.get(key)?.kind;
     return [
-      ...shown.map((s) => pin(s.item, { revealed: s.state !== 'unknown', found: s.state === 'found', foundGlyph: s.state === 'found' ? glyph(s.item.key) : undefined })),
+      ...shown.map((s) => pin(s.item, { revealed: s.state !== 'unknown', found: s.state === 'found', foundKind: s.state === 'found' ? kind(s.item.key) : undefined })),
       ...onTheWay.map((i) => pin(i, { faint: true })),
     ];
   }, [shown, onTheWay, faces]);

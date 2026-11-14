@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { EnterKind } from '../lib/enter';
+import { foundLabel } from '../lib/explore/foundFace';
+import type { CaptureKind } from '../lib/types';
 import { Enter } from './Enter';
 import type { IconName } from './icons';
-import { Icon } from './icons';
+import { Icon, KIND_ICON } from './icons';
 
 /** An explore mark on the map (E6-E8, E22): what the pin needs. */
 export interface MarkPin {
@@ -13,8 +15,8 @@ export interface MarkPin {
   revealed: boolean;
   /** Found by a capture (E8): the icon, at any distance, with the glyph of the moment that found it. */
   found?: boolean;
-  /** The glyph of the kept moment that found it (decision 0172, O26: never a tick); none until it is known. */
-  foundGlyph?: IconName;
+  /** The kind of the kept moment that found it: its glyph (decision 0172, O26: never a tick) and its words; none until known. */
+  foundKind?: CaptureKind;
   /** On the way, beyond your range (E22): a faint "?". */
   faint?: boolean;
   /** Its name would be written over another's (lib/markNames): the pin shows without it. */
@@ -58,9 +60,9 @@ function MarkBody({ pin }: { pin: MarkPin }) {
     <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
       <View style={[styles.head, pin.found && styles.headFound]}>
         {shown ? <Icon name={pin.icon} size={pin.found ? 13 : 18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
-        {pin.found && pin.foundGlyph && (
-          <View style={styles.badge} testID={`found-kind-${pin.foundGlyph}`}>
-            <Icon name={pin.foundGlyph} size={11} color={FOUND_COLOR} />
+        {pin.found && pin.foundKind && (
+          <View style={styles.badge} testID={`found-kind-${KIND_ICON[pin.foundKind]}`}>
+            <Icon name={KIND_ICON[pin.foundKind]} size={11} color={FOUND_COLOR} />
           </View>
         )}
       </View>
@@ -75,14 +77,14 @@ function MarkBody({ pin }: { pin: MarkPin }) {
 }
 
 export function markLabel(pin: MarkPin): string {
-  if (pin.found) return `Found: ${pin.name}, ${pin.category}`;
+  if (pin.found) return foundLabel(pin.name, pin.category, pin.foundKind);
   if (pin.faint) return 'A place on the way. Open';
   return pin.revealed ? `${pin.name}, ${pin.category}. Open` : 'A place to find. Open';
 }
 
 /** What changes a pin's look, for re-rendering a marker only when it changes. */
 export const markKey = (pin: MarkPin) =>
-  `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}${pin.foundGlyph ?? ''}`;
+  `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}${pin.foundKind ?? ''}`;
 
 /** Found places: the trace's green family, so a find reads as walked, not as a capture. */
 export const FOUND_COLOR = '#1f7a4d';
