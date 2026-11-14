@@ -1,0 +1,24 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Reactions (note types became reactions"
+      ],
+      "body": "| Reactions (note types became reactions on any moment, at most one per family: Feeling, Taste, Thought; the face with a plus on the entry being written and today's entries, More's Reaction, the viewer's More and a note page's Reaction tool; marks under a dateline, the viewer's info line, a card and a bubble; ink bubbles across a single moment's pin; the journal's contents → Reactions → a lens per reaction, oldest first, no count; RX1-RX36, decision 0176) | built and audited 2026-11-14, deployed to main 2026-11-14 (`28a6339`, Pages run 271; the owner's task done on the live build), test-first (36 of 36): unit tests, typecheck, lint, docs and vision checks; e2e `reactions` (new), `journal`, `notepage`, `qol`, `threads`, `responses`, `upgrade`; cold find and UI review triaged (`reactions ui 1-5`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reactions/spec.md` | yes (22 findings: 15 fixed, 4 deferred, 1 rejected, 1 merged, 1 for the owner; tests `reactions audit 1-6, 8-10, 13, 16-18, 20, 21`) |\n",
+      "target": "sha256:d70138efccfa3ce6a5a566fb3743eda4cbb09717eb91446ccc6ab222d97e4b21"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Reactions slice (RX1-RX36",
+        "--reason",
+        "merged to main and deployed 2026-11-14 (28a6339, Pages run 271)"
+      ],
+      "target": "sha256:479a2fcba386e557e05008b24d7298374e0eefdf653de875feeb3810aef5f63d"
+    }
+  ]
+}
