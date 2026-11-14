@@ -43,6 +43,20 @@ async function run(h) {
     // explore-carousel audit 4: a town card that is not selected makes no promise of a way in.
     const townFooters = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-level="town"]')].map((e) => ({ sel: e.dataset.selected, has: /See its neighborhoods/.test(e.innerText) })));
     check(townFooters.length > 0 && townFooters.every((t) => t.has === (t.sel === '1')), `explore-carousel audit 4: the footer shows only on the selected town card (${JSON.stringify(townFooters)})`);
+    // tend explore 9 (decision 0172, O3, the accent at rest): the selected card's border, its "See its neighborhoods" and its
+    // chevron are ink (#1d2430); the accent is only for a card's single primary action.
+    const inkOf = (sel) => pg.evaluate((q) => {
+      const tile = document.querySelector(q);
+      if (!tile) return null;
+      const label = [...tile.querySelectorAll('div')].find((e) => e.childElementCount === 0 && /^(See its neighborhoods|What’s here)$/.test(e.textContent));
+      const chevron = label?.nextElementSibling;
+      const cs = (e) => (e ? getComputedStyle(e) : null);
+      return { border: cs(tile)?.borderTopColor, label: cs(label)?.color, chevron: cs(chevron)?.color };
+    }, sel);
+    const INK = 'rgb(29, 36, 48)';
+    const atRest = await inkOf('[data-testid=atlas-tile][data-level="town"][data-selected="1"]');
+    check(atRest && atRest.border === INK && atRest.label === INK && atRest.chevron === INK,
+      `tend explore 9: the selected town card's border, "See its neighborhoods" and its chevron are ink, not the accent (${JSON.stringify(atRest)})`);
 
     // A tap on the selected town opens its page: the town's own card, then its neighborhoods; the pill goes back to the towns.
     await safe(() => pg.locator('[data-testid=atlas-tile][data-selected="1"]').first().click());
@@ -54,6 +68,9 @@ async function run(h) {
       `fix explore-town-scope: a town's page is titled with its name and its pill reads "Towns" (${townSel}, ${JSON.stringify(pillText)})`);
     const pageLevels = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-town-head], [data-testid=atlas-tile]')].map((e) => e.dataset.level));
     check(pageLevels[0] === 'town' && pageLevels.slice(1).every((l) => l === 'neighborhood'), `EC3: a town's page is its own card, then its neighborhoods (${pageLevels.join(', ')})`);
+    const headAtRest = await inkOf('[data-testid=atlas-town-head][data-selected="1"]');
+    check(headAtRest && headAtRest.border === INK && headAtRest.label === INK && headAtRest.chevron === INK,
+      `tend explore 9: on a town's page its selected card's border, "What’s here" and its chevron are ink (${JSON.stringify(headAtRest)})`);
     // The town's own card leads; step onto its first neighborhood for the gestures (the keys go to the canvas, audit 3).
     await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
     await pg.keyboard.press('ArrowRight');

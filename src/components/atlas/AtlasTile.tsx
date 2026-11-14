@@ -89,7 +89,7 @@ export const AtlasTile = memo(function AtlasTile(props: {
             {footer ? (
               <>
                 <Text style={styles.footerText}>{footer}</Text>
-                <Icon name="chevron-forward" size={16} color={theme.accent} />
+                <Icon name="chevron-forward" size={16} color={theme.ink} />
               </>
             ) : null}
           </View>
@@ -108,7 +108,9 @@ const styles = StyleSheet.create({
   // A town reads as a stack of places: a second card's edge shows beneath it.
   stack: { paddingBottom: 4, borderRadius: 18, backgroundColor: '#e8e4dc' },
   tile: { flexGrow: 1, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },
-  selected: { borderColor: theme.accent, borderWidth: 2 },
+  // Ink at rest (tend explore 9, decision 0172): the accent is only for a card's single primary action. Not by colour alone:
+  // the selected card's edge is twice as thick.
+  selected: { borderColor: theme.ink, borderWidth: 2 },
   pressed: { opacity: 0.85 },
   dim: { opacity: 0.4 },
   body: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, gap: 4 },
@@ -128,5 +130,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: theme.line,
   },
   footerEmpty: { borderTopColor: 'transparent' },
-  footerText: { fontSize: 13, fontWeight: '600', color: theme.accent },
+  footerText: { fontSize: 13, fontWeight: '600', color: theme.ink },
 });
