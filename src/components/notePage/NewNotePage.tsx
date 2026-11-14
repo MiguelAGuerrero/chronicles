@@ -41,6 +41,8 @@ export const NewNotePage = forwardRef<NotePageHandle, {
   const [held, setHeld] = useState<ReactionSet>(() => reactions.held(key));
   const [keptId, setKeptId] = useState<string | null>(null);
   const keptSet = useReactions(keptId);
+  // A page that joins an open moment shows and changes that moment's reactions at once (reactions audit 2).
+  const intoSet = useReactions(stamp.into);
   useEffect(() => () => {
     if (!kept.current) reactions.drop(key);
   }, [key]);
@@ -82,8 +84,9 @@ export const NewNotePage = forwardRef<NotePageHandle, {
       store={store}
       self={stamp.into ?? null}
       reaction={props.reactable ? {
-        set: keptId ? keptSet : held,
+        set: stamp.into ? intoSet : keptId ? keptSet : held,
         onPick: (id: ReactionId) => {
+          if (stamp.into ? reactions.choose(stamp.into, id).catch(() => {}) : null) return;
           if (kept.current) void reactions.choose(kept.current, id).catch(() => {});
           else setHeld(reactions.hold(key, id));
         },

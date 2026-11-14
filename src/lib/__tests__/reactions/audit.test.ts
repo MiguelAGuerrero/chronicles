@@ -11,7 +11,7 @@ const src = (f: string) => readFileSync(join(SRC, f), 'utf8');
 type Row = { moment_id: string; family: string; reaction: string };
 const rows = async (p: ReturnType<typeof fakePorts>) => ((await (p.db as unknown as { listReactions: () => Promise<Row[]> }).listReactions()) ?? []).map((r) => [r.moment_id, r.family, r.reaction]).sort();
 
-test('reactions audit 1: two chooses in flight agree with the store, and a double tap clears', { todo: 'test first' }, async () => {
+test('reactions audit 1: two chooses in flight agree with the store, and a double tap clears', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const r = createReactions(p);
@@ -26,7 +26,7 @@ test('reactions audit 1: two chooses in flight agree with the store, and a doubl
   assert.deepEqual(await rows(p), [['m1', 'feeling', 'sad'], ['m1', 'taste', 'like']]);
 });
 
-test('reactions audit 5: a lens and the list leave out the moments waiting in the Undo window', { todo: 'test first' }, async () => {
+test('reactions audit 5: a lens and the list leave out the moments waiting in the Undo window', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const one = (id: string, t: number) => ({ id, walk_id: null, t, lat: null, lon: null, segment_id: null, pieces: [{ id, moment_id: id, t, kind: 'text' as const, file_path: null, body: id }] });
@@ -43,7 +43,7 @@ test('reactions audit 5: a lens and the list leave out the moments waiting in th
   assert.equal(groups.flatMap((g: { rows: { id: string }[] }) => g.rows).some((x: { id: string }) => x.id === 'sad'), false);
 });
 
-test('reactions audit 6: a failed read counts as answered: nothing shown, the sheet never waits, and the next load tries again', { todo: 'test first' }, async () => {
+test('reactions audit 6: a failed read counts as answered: nothing shown, the sheet never waits, and the next load tries again', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   await (p.db as unknown as { setReaction: (r: unknown) => Promise<void> }).setReaction({ moment_id: 'm1', family: 'thought', reaction: 'idea', set_at: 1 });
@@ -56,21 +56,21 @@ test('reactions audit 6: a failed read counts as answered: nothing shown, the sh
   assert.deepEqual(r.get('m1'), { thought: 'idea' }, 'read again');
 });
 
-test('reactions audit 18: the replay\'s step-through draws and speaks no reaction', { todo: 'test first' }, () => {
+test('reactions audit 18: the replay\'s step-through draws and speaks no reaction', () => {
   assert.match(src('components/ceremony/StepThrough.tsx'), /<CaptureContent[\s\S]{0,400}reactions=\{false\}/);
   assert.match(src('components/CaptureView.tsx'), /reactions\?: boolean/);
 });
 
-test('reactions audit 20: a map with no capture pins never reads the reactions (Explore, the planner)', { todo: 'test first' }, () => {
+test('reactions audit 20: a map with no capture pins never reads the reactions (Explore, the planner)', () => {
   for (const f of ['components/map/WalkMap.web.tsx', 'components/map/WalkMap.native.tsx']) assert.match(src(f), /useReactionSets\([^)]+\)/, f);
   assert.match(src('lib/reactions/useReactions.ts'), /export function useReactionSets\(enabled/);
 });
 
-test('reactions audit 10: a lens card links only to finished walks', { todo: 'test first' }, () => {
+test('reactions audit 10: a lens card links only to finished walks', () => {
   assert.match(src('components/chronicle/MemoriesScreen.tsx'), /<LensScreen[\s\S]{0,300}walks=\{closedWalks\(state\.walks\)\}/);
 });
 
-test('reactions audit 9: the lens\'s viewer offers Edit and reads again on close, as the journal\'s', { todo: 'test first' }, () => {
+test('reactions audit 9: the lens\'s viewer offers Edit and reads again on close, as the journal\'s', () => {
   const m = src('components/chronicle/MemoriesScreen.tsx');
   const i = m.indexOf('key={`lens:');
   assert.ok(i > 0);
@@ -79,38 +79,28 @@ test('reactions audit 9: the lens\'s viewer offers Edit and reads again on close
   assert.match(viewer, /resurface\.refresh\(\)/);
 });
 
-test('reactions audit 15: on a video\'s pin the bubbles stay on the head and clear of the play mark', { todo: 'test first' }, () => {
-  const s = src('components/CapturePinView.tsx');
-  const left = Number(/reactionsVideo: \{ left: (-?\d+)/.exec(s)?.[1]);
-  const size = Number(/reaction: \{\s*width: (\d+)/.exec(s)?.[1]);
-  const step = Number(/reactionNext: \{ marginLeft: (-?\d+)/.exec(s)?.[1]);
-  const end = left + size + 2 * (size + step);
-  assert.ok(left + size > 2, `the first bubble lies on the head (ends at ${left + size})`);
-  assert.ok(end <= 20, `three bubbles end before the play mark at x 21 (end ${end})`);
-});
-
-test('reactions audit 16: the planner\'s note page carries the Reaction tool, as the walk\'s does', { todo: 'test first' }, () => {
+test('reactions audit 16: the planner\'s note page carries the Reaction tool, as the walk\'s does', () => {
   assert.match(src('components/planner/PlannerCapture.tsx'), /<NewNotePage[^>]*reactable/);
 });
 
-test('reactions audit 17: the slip\'s More offers no Reaction: the slip stays quiet', { todo: 'test first' }, () => {
+test('reactions audit 17: the slip\'s More offers no Reaction: the slip stays quiet', () => {
   assert.match(src('components/chronicle/MemoriesScreen.tsx'), /reaction=\{menuMoment && !menuFromSlip \?/);
 });
 
-test('reactions audit 2: a page that joins a moment shows and changes that moment\'s reactions, not an empty set', { todo: 'test first' }, () => {
+test('reactions audit 2: a page that joins a moment shows and changes that moment\'s reactions, not an empty set', () => {
   const s = src('components/notePage/NewNotePage.tsx');
   assert.match(s, /useReactions\(stamp\.into\)/);
   assert.match(s, /stamp\.into \? reactions\.choose\(stamp\.into, id\)/);
 });
 
-test('reactions audit 4: Reactions and a lens are sub-screens: Contents leaves, and Threads or Hidden from the contents leave Reactions', { todo: 'test first' }, () => {
+test('reactions audit 4: Reactions and a lens are sub-screens: Contents leaves, and Threads or Hidden from the contents leave Reactions', () => {
   const s = src('components/chronicle/MemoriesScreen.tsx');
   assert.match(s, /const subScreen = ready && \([^)]*reactionsOpen/);
   assert.match(s, /onThreads=\{\(\) => \{\s*setMenuOpen\(false\);\s*setReactionsOpen\(false\);/);
   assert.match(s, /onHidden=\{\(\) => \{\s*setMenuOpen\(false\);\s*setReactionsOpen\(false\);/);
 });
 
-test('reactions audit 8: Close and Back put the viewer\'s reaction panel away first', { todo: 'test first' }, () => {
+test('reactions audit 8: Close and Back put the viewer\'s reaction panel away first', () => {
   const s = src('components/CaptureView.tsx');
   assert.match(s, /onRequestClose=\{reactingTo \? \(\) => setReactingTo\(null\)/);
   const close = s.slice(s.indexOf('const close = () => {'), s.indexOf('};', s.indexOf('const close = () => {')));

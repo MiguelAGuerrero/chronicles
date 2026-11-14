@@ -214,6 +214,8 @@ function MediaArea(props: { onTap?: () => void; onLayout: (e: LayoutChangeEvent)
 export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   capture: Faced;
   autoPlay?: boolean;
+  /** False: the moment's reactions are neither drawn nor said (the replay's step-through, reactions audit 18). */
+  reactions?: boolean;
   onVoiceFinished?: () => void;
   footer?: string;
   /** The viewer's parts of the line, in order; it names the day first and keeps one thread status (audit 19, 21). */
@@ -245,7 +247,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const [box, setBox] = useState<LayoutRectangle | null>(null);
   const [now] = useState(() => Date.now());
   // The moment's reactions, under its info line, for every kind (RX15).
-  const reacted = useReactions(capture.id);
+  const reacted = useReactions(props.reactions === false ? null : capture.id);
   const meta = viewerLine({ kind: KIND_LABEL[capture.kind], t: capture.t, time: timeOf(capture), now, parts: props.parts ?? [props.footer] });
   // The responses' words come last, inside the info line: the viewer's only control for them (RT1, RT11).
   const responsesLink = (onDark: boolean) =>
@@ -608,6 +610,8 @@ export function CaptureViewer(props: {
   // Back to the note a mentioned moment was opened from (RF4).
   const back = () => setOpenedStack((s) => s.slice(0, -1));
   const close = () => {
+    // The reaction panel belongs to what was open: closing puts it away (reactions audit 8).
+    setReactingTo(null);
     setIndex(0);
     setOpenedStack([]);
     setMentionPick(false);
@@ -683,7 +687,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => setReminding(null) : openedStack.length ? back : close}
+      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => setReminding(null) : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}

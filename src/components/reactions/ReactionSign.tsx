@@ -35,6 +35,7 @@ const styles = StyleSheet.create({
   open: { borderColor: theme.ink },
   pressed: { opacity: 0.6 },
   // The plus that makes the face "add": a small ink disc at its shoulder.
-  // 16 pt, so it reads as ink and not a faint badge (reactions ui 2); at the face's shoulder, clear of its eyes.
-  add: { position: 'absolute', top: 4, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: theme.bg },
+  // 16 pt, so it reads as ink and not a faint badge (reactions ui 2); at the face's lower right, clear of the held
+  // date's edge, which lies over the top of the first entry's dateline (reactions audit 3).
+  add: { position: 'absolute', bottom: 4, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: theme.bg },
 });

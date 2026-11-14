@@ -97,7 +97,7 @@ test('RX32: the bundle keeps a moment\'s reactions with it, and none for a momen
   assert.equal(byId.plain.reactions ?? null, null);
 });
 
-test('reactions audit 13: the bundle carries no note_type: the reactions of a moment are its set alone', { todo: 'test first' }, async () => {
+test('reactions audit 13: the bundle carries no note_type: the reactions of a moment are its set alone', async () => {
   const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
   await p.db.createWalk(walk);
   const m = momentOf(cap('old', null));

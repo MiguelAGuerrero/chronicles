@@ -133,12 +133,13 @@ export function MemoriesScreen() {
   const [lens, setLens] = useState<ReactionId | null>(null);
   const [lensViews, setLensViews] = useState<MomentView[] | null>(null);
   const [lensAt, setLensAt] = useState<string | null>(null);
+  // A moment waiting in the Undo window is left out of both (reactions audit 5).
   const readGroups = useCallback(() => {
-    void reactions.groups().then(setGroups, () => setGroups([]));
-  }, []);
+    void reactions.groups(deletedIds).then(setGroups, () => setGroups([]));
+  }, [deletedIds]);
   const readLens = useCallback((id: ReactionId) => {
-    void reactions.lens(id).then((ms) => setLensViews(ms.map((m) => viewOf(faced(m)))), () => setLensViews([]));
-  }, []);
+    void reactions.lens(id, deletedIds).then((ms) => setLensViews(ms.map((m) => viewOf(faced(m)))), () => setLensViews([]));
+  }, [deletedIds]);
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
   // screen does; with a walk open, the walk screen opens it and this declines. Until the keeper knows, it declines.
   const [recalled, setRecalled] = useState<Faced[] | null>(null);
@@ -454,7 +455,8 @@ export function MemoriesScreen() {
         <LensScreen
           reaction={infoOf(lens)}
           moments={lensViews}
-          walks={state.walks}
+          // Only a finished walk's replay is offered, as on the thread screens (reactions audit 10).
+          walks={closedWalks(state.walks)}
           context={state.context}
           now={now}
           onBack={() => { setLens(null); setLensViews(null); readGroups(); }}
@@ -490,7 +492,8 @@ export function MemoriesScreen() {
     );
   }
 
-  const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
+  // Reactions and a lens are sub-screens too: Contents leaves while they are up (reactions audit 4).
+  const subScreen = ready && (reactionsOpen || !!thread || !!own || threadsOpen || hiddenOpen);
   const lineRef = useRef<OpenLineHandle>(null);
   // The empty page is out of view: the bar holds the pen (audit 50).
   const [away, setAway] = useState(false);
@@ -546,6 +549,7 @@ export function MemoriesScreen() {
         onClose={() => setMenuOpen(false)}
         onThreads={() => {
           setMenuOpen(false);
+          setReactionsOpen(false);
           setThreadsOpen(true);
         }}
         onReactions={() => {
@@ -557,6 +561,7 @@ export function MemoriesScreen() {
         }}
         onHidden={() => {
           setMenuOpen(false);
+          setReactionsOpen(false);
           setHiddenOpen(true);
         }}
         onToggle={() => {
@@ -571,7 +576,8 @@ export function MemoriesScreen() {
       <MemoryMenu
         open={!!menuMoment}
         onlyType={typeOnly}
-        reaction={menuMoment ? { set: menuSet, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(() => {}) } : undefined}
+        // The slip stays quiet: its More offers no Reaction (reactions audit 17).
+        reaction={menuMoment && !menuFromSlip ? { set: menuSet, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(() => {}) } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;
@@ -651,11 +657,18 @@ export function MemoriesScreen() {
         position={false}
         onClose={() => {
           setLensAt(null);
-          // What changed in the viewer (a reaction cleared, a moment deleted) shows when the lens is next shown (RX26).
+          // What changed in the viewer (a reaction cleared, a moment deleted) shows when the lens is next shown (RX26);
+          // a reply made there reaches the journal as the journal's own viewer's does (reactions audit 9).
           if (lens) readLens(lens);
+          void resurface.refresh();
+          threads.load().catch(() => {});
         }}
         heads={headsOf(lensViews?.map((v) => v.capture) ?? null)}
         remind
+        onSaveEdit={async (c, patch) => {
+          await captureEdits.save(c, patch);
+          resurface.patch(c.id, patch, c.piece_id);
+        }}
         onSaveNote={(c, body) => resurface.saveNote(c, body)}
       />
       <CaptureViewer

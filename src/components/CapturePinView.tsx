@@ -153,6 +153,8 @@ const NO_REACTIONS: readonly ReactionInfo[] = [];
 const styles = StyleSheet.create({
   // Across the head's lower part from just outside its left edge (reactions ui 1): every bubble on the head itself.
   reactions: { position: 'absolute', left: -8, top: 22, flexDirection: 'row' },
+  // A video's play mark is at the head's bottom right (from x 20): the row starts further out, clear of it (RX20);
+  // its first bubbles then sit off the head (reactions audit 15, deferred).
   reactionsVideo: { left: -20 },
   // The bell's shape: an ink disc, a white glyph, a white edge (RX17); their white edges just meet.
   reaction: {

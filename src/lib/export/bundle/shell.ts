@@ -82,7 +82,7 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
       moments: moments.map((m) => ({
         ...m,
         reactions: bundled(sets.get(m.id)),
-        pieces: m.pieces.map(({ thumb_path: _thumb, ...c }) => ({ ...c, media: media[c.id] ?? null, media_missing: !!c.file_path && !media[c.id] })),
+        pieces: m.pieces.map(({ thumb_path: _thumb, note_type: _type, ...c }: typeof m.pieces[number] & { note_type?: unknown }) => ({ ...c, media: media[c.id] ?? null, media_missing: !!c.file_path && !media[c.id] })),
       })),
       trace: points,
     };

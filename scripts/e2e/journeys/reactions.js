@@ -99,7 +99,7 @@ async function run(h) {
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     return { top: !!hit && add.contains(hit) };
   });
-  check.todo(!!ui3a && ui3a.top, `reactions audit 3: nothing lies over the sign's plus (${JSON.stringify(ui3a)})`);
+  check(!!ui3a && ui3a.top, `reactions audit 3: nothing lies over the sign's plus (${JSON.stringify(ui3a)})`);
   // reactions ui 2 (the cold find): the sign's plus reads as ink, not a faint grey badge: an ink disc of 16 px or more.
   const ui2 = await pg.evaluate(() => {
     const add = document.querySelector('[data-testid=reaction-sign-add]');

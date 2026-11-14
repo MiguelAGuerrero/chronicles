@@ -127,7 +127,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // One read of the reminders per map, for the bells on its pins (RB1, RB6).
   const reminded = useReminded();
   // One read of the reactions per map, for the bubbles on its pins (RX17); in the Marker key, as the bell is (unverified on a device).
-  const sets = useReactionSets();
+  const sets = useReactionSets(!!props.captures?.length || !!props.memories?.length);
   const rxOf = (pin: Parameters<typeof pinReactions>[0]) => pinReactions(pin, sets).map((r) => r.id).join(',');
   // What was on screen before this change, for the deferred four (M10-M12): a remounted pin's view
   // gets its entrance from here. Nothing animates on first render, nor for captures older than the screen.

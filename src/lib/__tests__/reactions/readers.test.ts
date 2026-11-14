@@ -75,7 +75,7 @@ test('RX36: every reaction glyph is drawn in the one ink colour, and the chosen 
   }
 });
 
-test('reactions audit 21: the bubbles on a pin and the lens screens are in ink too (RX36)', { todo: 'test first' }, () => {
+test('reactions audit 21: the bubbles on a pin and the lens screens are in ink too (RX36)', () => {
   for (const f of ['components/reactions/LensScreen.tsx', 'components/reactions/ReactionsScreen.tsx']) {
     const glyphs = [...readFileSync(join(SRC, f), 'utf8').matchAll(/<Icon name=\{[^}]*glyph[^}]*\}[^>]*color=\{([^}]+)\}/g)].map((m) => m[1].trim());
     assert.ok(glyphs.length > 0, `${f} draws a reaction's glyph`);

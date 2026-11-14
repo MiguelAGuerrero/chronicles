@@ -14,12 +14,17 @@ export function useReactions(momentId: string | null | undefined): ReactionSet {
   return useStore(reactions.store, select);
 }
 
-/** Every moment's reactions, for a map's pins (RX17): one read per map, never per pin. */
-export function useReactionSets(): ReadonlyMap<string, ReactionSet> {
+/**
+ * Every moment's reactions, for a map's pins (RX17): one read per map, never per pin. `enabled` is false on a map that
+ * draws no capture pins (Explore, the planner), which then never reads them (reactions audit 20, RX30).
+ */
+export function useReactionSets(enabled: boolean): ReadonlyMap<string, ReactionSet> {
   useEffect(() => {
-    void reactions.load().catch(() => {});
-  }, []);
-  return useStore(reactions.store, selectSets);
+    if (enabled) void reactions.load().catch(() => {});
+  }, [enabled]);
+  return useStore(reactions.store, enabled ? selectSets : selectNone);
 }
 
 const selectSets = (s: ReactionsState) => s.sets;
+const NO_SETS: ReadonlyMap<string, ReactionSet> = new Map();
+const selectNone = () => NO_SETS;

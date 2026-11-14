@@ -1068,7 +1068,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // One read of the reminders per map, for the bells on its pins (RB1, RB6).
   const reminded = useReminded();
   // One read of the reactions per map, for the bubbles on its pins (RX17, RX21).
-  const sets = useReactionSets();
+  const sets = useReactionSets(!!props.captures?.length || !!props.memories?.length);
   usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, sets, props.clocks, props.now);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);

@@ -14,20 +14,42 @@ export type ReactionsState = { sets: ReadonlyMap<string, ReactionSet>; loaded: b
 
 /** The set of a moment with none: one object, so a view's selector stays stable. */
 export const NO_REACTIONS: ReactionSet = Object.freeze({}) as ReactionSet;
+const NONE: ReadonlySet<string> = new Set();
 
 export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
   const store: Store<ReactionsState> = createStore<ReactionsState>({ sets: new Map(), loaded: false });
   const held = new Map<string, ReactionSet>();
   let loading: Promise<void> | null = null;
   let seq = 0;
+  // A read that failed still answers (reactions audit 6): Memories never waits on it, nothing is shown, and the next
+  // load reads again.
+  let failed = false;
+  // One write at a time, each from the set as the one before it left it (reactions audit 1): two quick taps never
+  // compute from the same old set.
+  let chain: Promise<unknown> = Promise.resolve();
+  const queued = <T>(fn: () => Promise<T>): Promise<T> => {
+    const run = chain.then(fn, fn);
+    chain = run.catch(() => {});
+    return run;
+  };
 
   const read = async () => {
     const mine = ++seq;
-    const sets = setsOf(await p.db.listReactions());
+    let rows;
+    try {
+      rows = await p.db.listReactions();
+    } catch (e) {
+      if (mine === seq) {
+        failed = true;
+        store.set((s) => (s.loaded ? s : { ...s, loaded: true }));
+      }
+      throw e;
+    }
     if (mine !== seq) return;
-    store.set({ sets, loaded: true });
+    failed = false;
+    store.set({ sets: setsOf(rows), loaded: true });
   };
-  const ready = () => (store.get().loaded ? Promise.resolve() : (loading ??= read().finally(() => { loading = null; })));
+  const ready = () => (store.get().loaded && !failed ? Promise.resolve() : (loading ??= read().finally(() => { loading = null; })));
 
   const write = async (momentId: string, next: ReactionSet) => {
     const before = get(momentId);
@@ -57,7 +79,7 @@ export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
     /** A tap on a reaction for a kept moment (RX5, RX8): written at once. */
     async choose(momentId: string, tapped: ReactionId) {
       await ready();
-      await write(momentId, pick(get(momentId), tapped));
+      await queued(() => write(momentId, pick(get(momentId), tapped)));
     },
     /** A tap on a reaction for a page whose moment is not kept yet (RX13): held under the page's key. */
     hold(key: string, tapped: ReactionId) {
@@ -73,24 +95,25 @@ export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
       held.delete(key);
       if (!set || !Object.keys(set).length) return;
       await ready();
-      await write(momentId, { ...get(momentId), ...set });
+      await queued(() => write(momentId, { ...get(momentId), ...set }));
     },
     /** A page left without words (RX13): nothing it held is kept. */
     drop(key: string) {
       held.delete(key);
     },
     /** The Reactions list (RX23): only reactions a kept moment has. */
-    async groups(): Promise<LensGroup[]> {
+    async groups(hidden: ReadonlySet<string> = NONE): Promise<LensGroup[]> {
       await read();
       const sets = store.get().sets;
-      const kept = await p.db.getMomentsByIds([...sets.keys()]);
+      // A moment waiting in the Undo window is not kept for a lens (reactions audit 5).
+      const kept = (await p.db.getMomentsByIds([...sets.keys()])).filter((m) => !hidden.has(m.id));
       return lensRows(sets, new Set(kept.map((m) => m.id)));
     },
     /** A lens (RX24, RX26): the kept moments with the reaction, oldest first, read fresh. */
-    async lens(reaction: ReactionId): Promise<Moment[]> {
+    async lens(reaction: ReactionId, hidden: ReadonlySet<string> = NONE): Promise<Moment[]> {
       await read();
       const sets = store.get().sets;
-      return lensMoments(sets, reaction, await p.db.getMomentsByIds(lensIds(sets, reaction)));
+      return lensMoments(sets, reaction, (await p.db.getMomentsByIds(lensIds(sets, reaction))).filter((m) => !hidden.has(m.id)));
     },
   };
 }
