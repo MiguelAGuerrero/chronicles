@@ -433,6 +433,9 @@ async function run(h) {
       };
     };
   }), re.source).catch(() => null);
+  await pg.goto(url);
+  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForTimeout(1200);
   await openPage();
   await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
   await pg.waitForTimeout(600);

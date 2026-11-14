@@ -70,6 +70,7 @@ async function run(h) {
   await pg.waitForTimeout(1500);
 
   // RX1, RX9: the photo's entry today offers the sign; one tap opens the reactions, and a choice is kept.
+  await shot(pg, 'reactions-00-journal');
   const sign = photoEntry().locator('[data-testid=reaction-sign]');
   const sign9 = { count: await sign.count(), label: await sign.getAttribute('aria-label').catch(() => null) };
   await sign.click({ timeout: 3000 }).catch(() => {});
@@ -185,6 +186,8 @@ async function run(h) {
   // RX2, RX22-RX25: the contents hold Reactions; Ideas gathers every moment with Idea, oldest first, in context, no numbers.
   await pg.click('[data-testid=memories-menu]').catch(() => {});
   await pg.waitForTimeout(500);
+  await pg.waitForTimeout(400);
+  await shot(pg, 'reactions-05b-contents');
   const items22 = await pg.locator('[data-testid=memories-menu-sheet] [role=button]').allInnerTexts().catch(() => []);
   await pg.click('[data-testid=menu-reactions]', { timeout: 3000 }).catch(() => {});
   await there('[data-testid=reactions-screen]');
