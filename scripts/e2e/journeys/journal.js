@@ -429,12 +429,11 @@ async function run(h) {
   await pg.click('[data-testid=type-slot]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(400);
   const up56 = await pg.locator('[data-testid=type-row]').count();
-  await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').first().locator('[data-testid=moment-more]').click({ force: true });
-  await pg.waitForTimeout(700);
-  await pg.click('[data-testid=menu-cancel]').catch(() => {});
+  // With the composer (JN47) the page behind cannot be reached while the eight are up: closing it is what lets go.
+  await done();
   await pg.waitForTimeout(900);
   const gone56 = { row: await pg.locator('[data-testid=type-row]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), mic: await pg.locator('[data-testid=band-voice]').count() };
-  check(up56 === 1 && gone56.row === 0 && gone56.cam === 1 && gone56.mic === 1, `note-types audit 56: the eight go when Memories loses focus, and the bar keeps the camera and the mic (${JSON.stringify({ up56, gone56 })})`);
+  check(up56 === 1 && gone56.row === 0 && gone56.cam === 1 && gone56.mic === 1, `note-types audit 56 (with JN48): the eight go when the composer closes, and the toolbar keeps the camera and the mic (${JSON.stringify({ up56, gone56 })})`);
   await pg.evaluate(() => document.activeElement?.blur?.());
   await done();
   await pg.waitForTimeout(900);
