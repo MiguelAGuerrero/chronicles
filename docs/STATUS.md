@@ -296,6 +296,15 @@ days, gaps and walk on the T20 build (their files unchanged since). Nothing here
 
 ### Open before the loop
 
+- **The spec wording the owner's answers of Nov 14 need** (Nov 14; decision 0172): the answers to the deferred list
+  change words or placements that shipped criteria pin. Amend, in the docs and their mirrors (the loop may not edit a
+  spec): QL3 (`specs/quality-of-life/spec.md` l.23), whose markers sit under the capture pins: a pin standing on a
+  start or end stops its stalk at the marker's edge (O13); QL11 (l.37): "Couldn't find your position" becomes
+  "Couldn't find your position. Try again in a moment.", in the quiet notice's tone (O21); M8's example
+  (`specs/moments-and-days/spec.md` l.34): "Walk · 2.1 km · 4 moments" becomes "Walk · 2.1 km · four moments" (O18,
+  ending 0052's carve-out there); and when the pins' examples after T14 and T28 are written into QL26, NY10 and RB7
+  (the item on them below), a pin of moments past a week says the span alone, "a photo and a note, two years ago"
+  (O16). No criterion pins the place sheet's walks line (O15). Until then the loop builds them, citing decision 0172.
 - **v1-discovery R7's example after T29** (Nov 14; decision 0164): since `tend explore T29` two or more reminders in
   reach show as one card that says its count in words, "Two memories here" (`numberWord`; "Many memories here" past
   fifty-nine), its body the pins' words for its kinds in the order taken ("A voice memo and two photos",
@@ -305,6 +314,7 @@ days, gaps and walk on the T20 build (their files unchanged since). Nothing here
   new: `.claude/rules/explore-and-discovery.md`, which holds "Remind me here", is at 39,957 of the 40,000 characters
   `check:docs` allows, so the loop could add no line; a split of it into two files is yours (the loop changes no
   line it did not write). Until then the words are in `reminderText`'s and `reminderHeld`'s comments (since `tend explore audit 6` the announcements say the card's own title, for all it holds).
+  O11's answer, Nov 14 (decision 0172): "Many memories here" from thirteen, not past fifty-nine.
 - **v0.5-places' "merge with a count" after T15** (Nov 13; decision 0154): since `tend places T15` every walked-place
   star is a white star on an ink disc, one size, and a merged star draws no numeral; its spoken name says its places
   and walks in words ("Two places, two walks. Zoom in"; a lone star "Fox Point, one walk. Open", `tend places audit
@@ -452,6 +462,7 @@ days, gaps and walk on the T20 build (their files unchanged since). Nothing here
   6. **Open question 5**, "nothing is ever calculated for you", against resurfacing and suggested threads (0098):
      where is the line?
   - Note: the commits `2a00092` and `29dac68` cite decisions 0112 and 0121 for the plain labels; the record is 0122.
+  Item 4 answered Nov 14 (decision 0172): the accent at rest is kept for a card's single primary action, app-wide (extending 0153); a label at rest is ink. The loop applies it to these in later runs.
 
 - **Remarkable and public in chronicles-data:** built on its `claude/gallant-maxwell-hp14jb` (RD1-RD14) and merged with the app's contract v2. Run the weekly build by hand once (Actions, "Weekly places build", Run workflow): until it publishes a v2 archive, the live v1 archive's `heritage_building` places (the Landmark buildings) are not shown by the app, which now reads v2's `building_structure`. The first run is also the first real OSM fetch; its `report` artifact is your review.
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
