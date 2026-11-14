@@ -9,6 +9,7 @@ import { DERIVED_STORES } from '../../db/stores';
 import { SEGMENT_BATCH, type Db } from '../../db/types';
 import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Place, Recall } from '../../discovery/types';
+import type { StoredReaction } from '../../reactions/core';
 import type { Transcript } from '../../transcript/core';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
@@ -149,6 +150,11 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const marks = new Table<Mark>((m) => m.id);
   const recalls = new Table<Recall>((r) => r.capture_id);
   const transcripts = new Table<Transcript>((r) => r.capture_id);
+  const reactions = new Table<StoredReaction>((r) => `${r.moment_id}|${r.family}`);
+  const dropReactions = (ids: string[]) => {
+    const gone = new Set(ids);
+    for (const r of reactions.all()) if (gone.has(r.moment_id)) reactions.delete(`${r.moment_id}|${r.family}`);
+  };
   const landings = new Table<LandingRow>((r) => r.key);
   const atlas = new Table<AtlasArea>((r) => r.key);
   const outlineTiles = new Table<OutlineTile>((r) => r.key);
@@ -281,6 +287,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
 
     async deleteWalk(walkId) {
       dropMoments(moments.where(walkOf, walkId).map((c) => c.id));
+      dropReactions(moments.where(walkOf, walkId).map((c) => c.id));
       for (const c of moments.where(walkOf, walkId)) {
         moments.delete(c.id);
         recalls.delete(c.id);
@@ -313,6 +320,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
         return c ? [c] : [];
       });
       dropMoments(got.map((c) => c.id));
+      dropReactions(got.map((c) => c.id));
       for (const c of got) {
         moments.delete(c.id);
         recalls.delete(c.id);
@@ -453,6 +461,13 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async listRecalls() {
       return out(recalls.all());
+    },
+    async setReaction(r) {
+      if (r.reaction == null) reactions.delete(`${r.moment_id}|${r.family}`);
+      else reactions.put({ ...r });
+    },
+    async listReactions() {
+      return out(reactions.all());
     },
     async setTranscript(t) {
       transcripts.put(t);

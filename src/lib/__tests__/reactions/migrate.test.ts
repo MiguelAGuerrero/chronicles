@@ -8,7 +8,7 @@ type Sqlite = { exec(sql: string): void; prepare(sql: string): { run(...a: unkno
 const req = <T>(r: IDBRequest<T>) => new Promise<T>((ok, fail) => { r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error); });
 const want = [['m1', 'feeling', 'happy'], ['m1', 'thought', 'idea'], ['m2', 'taste', 'like']];
 
-test('RX29: SQLite: the reaction table holds every kept note type on its moment, the earliest note winning its family; no earlier migration is edited', { todo: 'test first' }, async () => {
+test('RX29: SQLite: the reaction table holds every kept note type on its moment, the earliest note winning its family; no earlier migration is edited', async () => {
   const { MIGRATIONS } = (await import('../../db/migrations' + '')) as { MIGRATIONS: string[] };
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { DatabaseSync } = require('node:sqlite') as { DatabaseSync: new (p: string) => Sqlite };
@@ -26,7 +26,7 @@ test('RX29: SQLite: the reaction table holds every kept note type on its moment,
   assert.deepEqual(d.prepare('SELECT moment_id, family, reaction FROM reaction ORDER BY moment_id, family').all().map((r) => [r.moment_id, r.family, r.reaction]), want);
 });
 
-test('RX29: IndexedDB version 22: the reaction store holds every kept note type on its moment, the earliest note winning', { todo: 'test first' }, async () => {
+test('RX29: IndexedDB version 22: the reaction store holds every kept note type on its moment, the earliest note winning', async () => {
   (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
   const web = (await import('../../db/index.web' + '')) as { migrate: (d: IDBDatabase, tx: IDBTransaction, old: number, upTo: number) => void };
   const open = indexedDB.open('chronicles', 21);

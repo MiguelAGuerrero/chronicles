@@ -7,7 +7,7 @@ const shell = () => import('../../reactions/shell' as string) as Promise<Record<
 const rows = async (p: ReturnType<typeof fakePorts>) => ((await (p.db as unknown as { listReactions: () => Promise<{ moment_id: string; family: string; reaction: string }[]> }).listReactions()) ?? [])
   .map((r) => [r.moment_id, r.family, r.reaction]).sort();
 
-test('RX8: a reaction chosen is written at once, and is there for a fresh read (the app opened again)', { todo: 'test first' }, async () => {
+test('RX8: a reaction chosen is written at once, and is there for a fresh read (the app opened again)', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const r = createReactions(p);
@@ -22,7 +22,7 @@ test('RX8: a reaction chosen is written at once, and is there for a fresh read (
   assert.deepEqual(await rows(p), [['m1', 'feeling', 'happy']]);
 });
 
-test('RX8: a failed write leaves the reactions as they were and says so (a failure only the fake can produce)', { todo: 'test first' }, async () => {
+test('RX8: a failed write leaves the reactions as they were and says so (a failure only the fake can produce)', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const r = createReactions(p);
@@ -32,7 +32,7 @@ test('RX8: a failed write leaves the reactions as they were and says so (a failu
   assert.deepEqual(r.get('m1'), {});
 });
 
-test('RX13: a new page\'s reactions wait for its moment, are written when it is kept, and a page left without words writes none', { todo: 'test first' }, async () => {
+test('RX13: a new page\'s reactions wait for its moment, are written when it is kept, and a page left without words writes none', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const r = createReactions(p);

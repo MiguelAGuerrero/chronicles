@@ -12,6 +12,7 @@ paths:
   - "src/lib/useTranscript.ts"
   - "src/components/MemoTranscript.tsx"
   - "src/lib/__tests__/transcript/**"
+  - "src/lib/reactions/**"
   - "src/lib/__tests__/reactions/**"
   - "src/lib/notePage/**"
   - "src/components/notePage/**"

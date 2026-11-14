@@ -5,6 +5,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
+import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
@@ -154,6 +155,13 @@ export interface Db {
   /** Stop reminding me, or a "once" that fired (R6, R8). */
   clearRecall(captureId: string): Promise<void>;
   listRecalls(): Promise<Recall[]>;
+
+  /**
+   * A moment's reactions (RX28, decision 0172): truth, one row per moment and family, never a field of the moment.
+   * `reaction: null` deletes the family's row. `deleteMoments` and `deleteWalk` take a moment's rows; a piece split out takes none.
+   */
+  setReaction(r: StoredReaction): Promise<void>;
+  listReactions(): Promise<StoredReaction[]>;
 
   /** A memo's words, read on the phone (decision 0169): one per capture, replaced by capture. A cache beside the memo. */
   setTranscript(t: Transcript): Promise<void>;

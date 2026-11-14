@@ -9,6 +9,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
+import { migrateTypes, type StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -21,7 +22,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 21;
+const VERSION = 22;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -167,6 +168,19 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
   if (oldVersion < 21 && upTo >= 21) {
     // Memo transcripts (TX12, decision 0169): a memo's words, a cache beside the memo, keyed by its piece's id.
     d.createObjectStore('transcript', { keyPath: 'capture_id' });
+  }
+  if (oldVersion < 22 && upTo >= 22) {
+    // Reactions (RX28, RX29, decision 0172): their own records, one per moment and family. Every note type kept before
+    // moves onto its moment, the earliest note winning its family; the pieces' old field is left, never read again.
+    const reactions = d.createObjectStore('reaction', { keyPath: ['moment_id', 'family'] });
+    reactions.createIndex('moment_id', 'moment_id');
+    const cur = tx.objectStore('moment').openCursor();
+    cur.onsuccess = () => {
+      const c = cur.result;
+      if (!c) return;
+      for (const r of migrateTypes((c.value as MomentRecord).pieces)) reactions.put(r);
+      c.continue();
+    };
   }
 }
 
@@ -443,7 +457,7 @@ export const db: Db = {
   },
 
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link', 'transcript'];
+    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link', 'transcript', 'reaction'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
@@ -453,6 +467,7 @@ export const db: Db = {
         os('moment').delete(c.id);
         os('recall').delete(c.id);
         for (const piece of c.pieces) os('transcript').delete(piece.id);
+        await dropBy(os('reaction'), 'moment_id', c.id);
       }
       await dropBy(os('trace_point'), 'walk_id', walkId);
       await dropBy(os('pause'), 'walk_id', walkId);
@@ -480,7 +495,7 @@ export const db: Db = {
   },
   async deleteMoments(ids, opts = {}) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link', 'transcript'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link', 'transcript', 'reaction'], 'readwrite');
     return atomically(tx, async () => {
       const capStore = tx.objectStore('moment');
       const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<MomentRecord | undefined>))).filter((c): c is MomentRecord => !!c);
@@ -489,6 +504,7 @@ export const db: Db = {
         capStore.delete(c.id);
         tx.objectStore('recall').delete(c.id);
         for (const piece of c.pieces) tx.objectStore('transcript').delete(piece.id);
+        await dropBy(tx.objectStore('reaction'), 'moment_id', c.id);
       }
       if (!opts.keepFinds && got.length) {
         // The find store is indexed by walk only, and an index skips a loose moment's null walk.
@@ -764,6 +780,15 @@ export const db: Db = {
   },
   async listRecalls() {
     return (await done((await store('recall')).getAll())) as Recall[];
+  },
+  async setReaction(r) {
+    const tx = (await conn()).transaction('reaction', 'readwrite');
+    if (r.reaction == null) tx.objectStore('reaction').delete([r.moment_id, r.family]);
+    else tx.objectStore('reaction').put({ moment_id: r.moment_id, family: r.family, reaction: r.reaction, set_at: r.set_at });
+    await committed(tx);
+  },
+  async listReactions() {
+    return (await done((await store('reaction')).getAll())) as StoredReaction[];
   },
   async setTranscript(t) {
     const tx = (await conn()).transaction('transcript', 'readwrite');

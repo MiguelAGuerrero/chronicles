@@ -270,4 +270,20 @@ export const MIGRATIONS: readonly string[] = [
     capture_id TEXT PRIMARY KEY, text TEXT NOT NULL, lang TEXT NOT NULL, from_ms INTEGER, to_ms INTEGER, made_at INTEGER NOT NULL
   );
   `,
+  // Reactions (RX28, RX29, decision 0172): their own records, one per moment and family. Every note type kept before moves
+  // onto its moment, the earliest note winning its family (the first row in time order is kept, the rest ignored);
+  // capture.note_type is left, never read again.
+  `
+  CREATE TABLE reaction (
+    moment_id TEXT NOT NULL, family TEXT NOT NULL, reaction TEXT NOT NULL, set_at INTEGER NOT NULL,
+    PRIMARY KEY (moment_id, family)
+  );
+  INSERT OR IGNORE INTO reaction (moment_id, family, reaction, set_at)
+    SELECT moment_id,
+      CASE WHEN note_type IN ('happy', 'neutral', 'sad') THEN 'feeling' WHEN note_type IN ('like', 'dislike') THEN 'taste' ELSE 'thought' END,
+      note_type, t
+    FROM capture
+    WHERE note_type IN ('happy', 'neutral', 'sad', 'like', 'dislike', 'question', 'emphasis', 'idea')
+    ORDER BY t, id;
+  `,
 ];

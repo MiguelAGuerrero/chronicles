@@ -7,7 +7,7 @@ const core = () => import('../../reactions/core' as string) as Promise<Record<st
 
 const ORDER = ['happy', 'neutral', 'sad', 'like', 'dislike', 'question', 'emphasis', 'idea'];
 
-test('RX4: eight reactions in three families in a fixed order, each with a distinct glyph, name and family; the lows in it; a value outside the set is none', { todo: 'test first' }, async () => {
+test('RX4: eight reactions in three families in a fixed order, each with a distinct glyph, name and family; the lows in it; a value outside the set is none', async () => {
   const { REACTIONS, FAMILIES, reactionOf } = await core();
   assert.deepEqual(REACTIONS.map((r: { id: string }) => r.id), ORDER);
   assert.deepEqual(FAMILIES.map((f: { id: string; name: string }) => [f.id, f.name]), [['feeling', 'Feeling'], ['taste', 'Taste'], ['thought', 'Thought']]);
@@ -20,7 +20,7 @@ test('RX4: eight reactions in three families in a fixed order, each with a disti
   for (const bad of ['', 'angry', 42, {}, null, undefined, 'IDEA']) assert.equal(reactionOf(bad), null);
 });
 
-test('RX5: one per family: a reaction replaces its family\'s, the same one clears it, the other families are untouched', { todo: 'test first' }, async () => {
+test('RX5: one per family: a reaction replaces its family\'s, the same one clears it, the other families are untouched', async () => {
   const { pick } = await core();
   let s = pick({}, 'happy');
   assert.deepEqual(s, { feeling: 'happy' });
@@ -35,21 +35,21 @@ test('RX5: one per family: a reaction replaces its family\'s, the same one clear
   assert.deepEqual(before, { taste: 'like' }, 'the set given is not changed');
 });
 
-test('RX9: the sign is the face with a plus for none, else the first reaction in the families\' order', { todo: 'test first' }, async () => {
+test('RX9: the sign is the face with a plus for none, else the first reaction in the families\' order', async () => {
   const { signOf } = await core();
   assert.equal(signOf({}), null);
   assert.equal(signOf({ thought: 'idea', feeling: 'sad' })?.id, 'sad');
   assert.equal(signOf({ thought: 'question', taste: 'like' })?.id, 'like');
 });
 
-test('RX16, RX21: spoken in the families\' order, by name in lower case; none says nothing', { todo: 'test first' }, async () => {
+test('RX16, RX21: spoken in the families\' order, by name in lower case; none says nothing', async () => {
   const { spokenReactions, ordered } = await core();
   assert.deepEqual(spokenReactions({ thought: 'idea', feeling: 'happy' }), ['happy', 'idea']);
   assert.deepEqual(spokenReactions({}), []);
   assert.deepEqual(ordered({ taste: 'dislike', thought: 'emphasis', feeling: 'neutral' }).map((r: { id: string }) => r.id), ['neutral', 'dislike', 'emphasis']);
 });
 
-test('RX28: stored rows read as sets: one per moment and family; a bad value or a reaction in the wrong family is dropped', { todo: 'test first' }, async () => {
+test('RX28: stored rows read as sets: one per moment and family; a bad value or a reaction in the wrong family is dropped', async () => {
   const { setsOf } = await core();
   const sets = setsOf([
     { moment_id: 'm1', family: 'feeling', reaction: 'happy', set_at: 1 },
@@ -62,7 +62,7 @@ test('RX28: stored rows read as sets: one per moment and family; a bad value or 
   assert.equal(sets.has('m3'), false);
 });
 
-test('RX29: kept note types become their moment\'s reactions, the earliest note winning its family; nothing else is read', { todo: 'test first' }, async () => {
+test('RX29: kept note types become their moment\'s reactions, the earliest note winning its family; nothing else is read', async () => {
   const { migrateTypes } = await core();
   const rows = migrateTypes([
     { id: 'p2', moment_id: 'm1', t: 20, kind: 'text', note_type: 'sad' },
@@ -77,7 +77,7 @@ test('RX29: kept note types become their moment\'s reactions, the earliest note 
   ]);
 });
 
-test('RX33: nothing in the model takes a moment\'s words, picture, time or place: no function reads a body, a file or a fix', { todo: 'test first' }, async () => {
+test('RX33: nothing in the model takes a moment\'s words, picture, time or place: no function reads a body, a file or a fix', async () => {
   const mod = await core();
   const fns = Object.entries(mod).filter(([, v]) => typeof v === 'function') as [string, Fn][];
   assert.ok(fns.length > 0);

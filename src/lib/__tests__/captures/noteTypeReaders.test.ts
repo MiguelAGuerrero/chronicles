@@ -9,7 +9,7 @@ import { test } from 'node:test';
 
 const SRC = join(__dirname, '..', '..', '..');
 const ALLOWED = new Set([
-  'lib/noteType.ts', 'lib/noteEdit.ts', 'lib/moment.ts', 'lib/types.ts', 'lib/captureBus.ts', 'lib/pins.ts', 'lib/useCaptures.ts',
+  'lib/noteType.ts', 'lib/reactions/core.ts', 'lib/noteEdit.ts', 'lib/moment.ts', 'lib/types.ts', 'lib/captureBus.ts', 'lib/pins.ts', 'lib/useCaptures.ts',
   'lib/db/index.web.ts', 'lib/db/sqliteStore.ts', 'lib/db/migrations.ts', 'lib/resurface/shell.ts', 'lib/ready/shell.ts',
   'components/icons.tsx', 'components/NoteMark.tsx', 'components/notePage/NotePage.tsx', 'components/notePage/NoteTypeMenu.tsx', 'components/CaptureView.tsx',
   'components/CapturePinView.tsx', 'components/chronicle/MomentCard.tsx', 'components/chronicle/MomentPicture.tsx',

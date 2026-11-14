@@ -2,6 +2,7 @@
 import { strToU8, Zip, ZipPassThrough } from 'fflate';
 import type { Ports } from '../../ports/types';
 import type { Walk } from '../../types';
+import { bundled, setsOf } from '../../reactions/core';
 
 /** Raised when a keeper cannot leave the app; `openSettings` when a permission is off. */
 export class KeeperError extends Error {
@@ -31,12 +32,15 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
   async function writeWalkBundle(walkId: string, io: BundleIO): Promise<{ walk: Walk; missing: number }> {
     const walk = await p.db.getWalk(walkId);
     if (!walk) throw new Error('This walk could not be found.');
-    const [points, moments, pauses, summaries] = await Promise.all([
+    const [points, moments, pauses, summaries, reactionRows] = await Promise.all([
       p.db.getPoints(walkId),
       p.db.getMoments(walkId),
       p.db.getPauses(walkId),
       p.db.listSummaries(),
+      p.db.listReactions(),
     ]);
+    // A moment's reactions go with it (RX32), as one set per moment.
+    const sets = setsOf(reactionRows);
     let failed: Error | null = null;
     const zip = new Zip((err, chunk) => {
       if (err) failed = err;
@@ -77,6 +81,7 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
       // A photo's small copy isn't in the bundle: its path would dangle (audit 9).
       moments: moments.map((m) => ({
         ...m,
+        reactions: bundled(sets.get(m.id)),
         pieces: m.pieces.map(({ thumb_path: _thumb, ...c }) => ({ ...c, media: media[c.id] ?? null, media_missing: !!c.file_path && !media[c.id] })),
       })),
       trace: points,

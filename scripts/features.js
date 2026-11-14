@@ -278,7 +278,7 @@ const FEATURES = [
     name: 'reactions',
     about: 'reactions on any moment, one per family (Feeling, Taste, Thought): the sign, the panel, marks, pin bubbles and the lenses (decision 0172)',
     rule: 'captures-and-media',
-    source: ['src/lib/pins.ts'], // with src/lib/reactions/** and src/components/reactions/** once they exist
+    source: ['src/lib/reactions/**', 'src/lib/pins.ts'],
     journeys: ['reactions'],
     specs: ['reactions'],
   },

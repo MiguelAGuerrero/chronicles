@@ -94,7 +94,7 @@ test('NY14: the bundle keeps a note\'s type with the note, and says nothing for 
   assert.equal(byId.plain.note_type ?? null, null);
 });
 
-test('RX32: the bundle keeps a moment\'s reactions with it, and none for a moment with none', { todo: 'test first' }, async () => {
+test('RX32: the bundle keeps a moment\'s reactions with it, and none for a moment with none', async () => {
   const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
   const db = p.db as unknown as { setReaction: (r: unknown) => Promise<void> };
   await p.db.createWalk(walk);

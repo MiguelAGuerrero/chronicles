@@ -15,6 +15,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
+import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
@@ -273,6 +274,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         await dropMoments(t, (await t.getAllAsync<{ id: string }>('SELECT id FROM moment WHERE walk_id = ?', walkId)).map((r) => r.id));
         await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
         await t.runAsync('DELETE FROM transcript WHERE capture_id IN (SELECT id FROM capture WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?))', walkId);
+        await t.runAsync('DELETE FROM reaction WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
         await t.runAsync('DELETE FROM capture WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
         for (const table of ['moment', 'trace_point', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
           await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
@@ -297,6 +299,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         const got = await t.getAllAsync<Omit<Moment, 'pieces'>>(`SELECT * FROM moment WHERE id IN (${marks})`, ...ids);
         await dropMoments(t, got.map((c) => c.id));
         await t.runAsync(`DELETE FROM transcript WHERE capture_id IN (SELECT id FROM capture WHERE moment_id IN (${marks}))`, ...ids);
+        await t.runAsync(`DELETE FROM reaction WHERE moment_id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM capture WHERE moment_id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM moment WHERE id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM recall WHERE capture_id IN (${marks})`, ...ids);
@@ -657,6 +660,15 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     },
     async listRecalls() {
       return (await conn()).getAllAsync<Recall>('SELECT * FROM recall');
+    },
+    setReaction(r) {
+      return write((t) => (r.reaction == null
+        ? t.runAsync('DELETE FROM reaction WHERE moment_id = ? AND family = ?', r.moment_id, r.family)
+        : t.runAsync('INSERT OR REPLACE INTO reaction (moment_id, family, reaction, set_at) VALUES (?, ?, ?, ?)', r.moment_id, r.family, r.reaction, r.set_at)
+      ).then(() => {}));
+    },
+    async listReactions() {
+      return (await conn()).getAllAsync<StoredReaction>('SELECT moment_id, family, reaction, set_at FROM reaction');
     },
     setTranscript(r) {
       return write((t) =>

@@ -777,7 +777,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
     const rx = (db: Db) => db as unknown as { setReaction: (r: Rx) => Promise<void>; listReactions: () => Promise<Rx[]> };
     const rxRows = async (db: Db) => (await rx(db).listReactions()).map((r) => [r.moment_id, r.family, r.reaction]).sort();
 
-    test('FC7 setReaction, listReactions, RX28: one per moment and family; set, replaced, cleared; the moment\'s row is never touched', { todo: 'test first' }, async () => {
+    test('FC7 setReaction, listReactions, RX28: one per moment and family; set, replaced, cleared; the moment\'s row is never touched', async () => {
       const db = await planned();
       await db.addMoment(one('m1', 'a', 1));
       await db.addMoment(one('m2', 'a', 2));
@@ -793,7 +793,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.getMomentsByIds(['m1', 'm2']), before, 'no moment or piece changed');
     });
 
-    test('FC7 deleteMoments, deleteWalk, splitPiece, RX31: a moment\'s reactions go with it and its walk; a piece split out takes none', { todo: 'test first' }, async () => {
+    test('FC7 deleteMoments, deleteWalk, splitPiece, RX31: a moment\'s reactions go with it and its walk; a piece split out takes none', async () => {
       const db = await planned();
       await db.createWalk(walk('a', 1));
       await db.addMoment(one('m1', 'a', 1));
