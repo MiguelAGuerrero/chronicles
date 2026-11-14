@@ -73,6 +73,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     where a quiet read skipped them. One read at a time; a failure waits 2 min
     and 100 m (`retryAllowed`), route reads too. The build is checked at most
     every 10 min (`exploreBuild`), never per fix.
+    A read asked for another centre while one runs waits for it, then reads its own unless its caller stopped meanwhile; only the same centre (`readKey`) shares it (`readJoin`, `createReadQueue` in `explore/exploreQueue.ts`, tested with a fake read; tend explore 15, audit 13), so a route probe is never told a fix's read was its area's. A read its caller stopped says `stopped` and sets no failure's wait; a route's reads stop with the route.
   - **Membership:** nearest neighborhood point within 1 km inside the place's
     town, else the town whose outline holds it (TO11, decision 0083), else the
     town or city within its reach capped at 1.5 km (closer for its size). A
@@ -97,6 +98,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     Captures that already found a place are handled before any other is
     looked at, so a reload never finds a second place for them. A found pin is
     small, nameless and lets taps through to the capture beside it.
+    A capture with nothing in reach is not handled while a read runs or is on its way (`maybeRead` and the route loop hold the queue while they decide, `exploreHold`, `explorePending`): the items that read loads look at it again (`capturesToFind`, `createCaptureFinds`; tend explore 14, audits 11, 12). A place being recorded counts as taken until the finds hold it, so it is never reported twice.
   - **Web reads by latitude** (`checklist_item` index `lat`), never `getAll()`
     over the kept store.
   - **Deferred:** an unstamped capture can't find a place (it has no position
