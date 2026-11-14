@@ -21,6 +21,8 @@ export const MOTION = {
   nudgeGap: 120,
   /** A tooltip stays open this long when nothing closes it (WK22). */
   tip: 4000,
+  /** A toast stays this long, then goes by itself (Explore's "Zoom in to look closer"; decision 0172, O7). */
+  toast: 3000,
   /** The one spring: settles without a visible bounce. */
   spring: { damping: 28, stiffness: 240, mass: 1 },
 } as const;

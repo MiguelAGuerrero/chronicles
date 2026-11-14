@@ -53,6 +53,7 @@ import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
 import { watchLocatePermission } from '../../lib/locate/permission';
 import { useReducedMotion } from '../../lib/motion';
+import { MOTION } from '../../lib/motionTokens';
 import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
@@ -244,7 +245,7 @@ export default function Explore() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
+    const t = setTimeout(() => setToast(null), MOTION.toast);
     return () => clearTimeout(t);
   }, [toast]);
 
