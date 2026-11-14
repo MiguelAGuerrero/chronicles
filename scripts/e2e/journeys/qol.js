@@ -1371,6 +1371,21 @@ async function run(h) {
     // new words: the notice and the chip go. Nothing is stored for the off span: no pause row, so it reads as a gap.
     for (const [w, hgt] of [[390, 844], [320, 700]]) {
       const { c: c8, pg: pg8 } = await freshPage(`qol-location-back-${w}`);
+      // tend walk-screen audit 6: the screen's wake locks, counted (headless Chromium grants none of its own).
+      await c8.addInitScript(() => {
+        window.__locks = { held: 0, taken: 0 };
+        Object.defineProperty(navigator, 'wakeLock', {
+          configurable: true,
+          value: {
+            request: async () => {
+              window.__locks.held++;
+              window.__locks.taken++;
+              let released = false;
+              return { release: async () => { if (!released) { released = true; window.__locks.held--; } } };
+            },
+          },
+        });
+      });
       await pg8.setViewportSize({ width: w, height: hgt });
       await pg8.goto(navUrl);
       await pg8.waitForSelector('[data-testid=start]');
@@ -1404,6 +1419,10 @@ async function run(h) {
       await shot(pg8, `qol-13h-walk-location-back-${w}`);
       check(off.chip === 1 && off.notice === 1 && on.chip === 0 && on.notice === 0 && on.fixes > off.fixes && on.pauses === 0,
         `tend walk-screen 3: at ${w}, location turned off mid-walk says so quietly; turned back on, the walk records again by itself, the notice and chip gone, and no pause stored (${JSON.stringify({ off, on })})`);
+      // tend walk-screen audit 6 (the review's auditor 5): the restart took a second wake lock and never let go of the
+      // first, which kept the screen awake after the walk ended. One is held after a refusal and a return.
+      const locks = await pg8.evaluate(() => window.__locks);
+      check(locks.held === 1 && locks.taken >= 2, `tend walk-screen audit 6: at ${w}, one wake lock held after a refusal and a return (${JSON.stringify(locks)})`);
       await c8.close();
     }
 

@@ -45,6 +45,11 @@ function record(p: TracePoint) {
 }
 
 async function holdWakeLock() {
+  // One lock at a time: a restart (a return, the permission given back) takes a new one, so the old one goes first, or
+  // it would keep the screen awake after the walk ends (tend walk-screen audit 6).
+  const held = wakeLock;
+  wakeLock = null;
+  await held?.release().catch(() => {});
   try {
     const nav = navigator as Navigator & { wakeLock?: { request(type: 'screen'): Promise<{ release(): Promise<void> }> } };
     wakeLock = (await nav.wakeLock?.request('screen')) ?? null;
