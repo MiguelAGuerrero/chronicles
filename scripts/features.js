@@ -475,6 +475,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'reaction-links': { branch: 'claude/trusting-gates-cd90zs', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
