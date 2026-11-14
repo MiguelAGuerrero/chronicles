@@ -1,10 +1,10 @@
 // @layer core
 import type { Faced } from './moment';
 import { formatDistance } from './format';
-import { boundsOf, distanceM, type Bounds } from './geo';
+import { boundsOf, distanceM, distanceToLinesM, type Bounds } from './geo';
 import type { Units } from './units';
 import type { LngLat, StreetSegment, Walk } from './types';
-import { streetAt } from './resurface/context';
+import { STREET_REACH_M, streetAt } from './resurface/context';
 import { numberWord } from './resurface/lines';
 import { pinHint } from './replay';
 
@@ -157,8 +157,8 @@ export function momentPlace(c: Pick<Faced, 'id' | 'lat' | 'lon' | 'segment_id'>,
 
 /**
  * The day card's line, a clause (tend replay T19, decision 0165): "Four moments, around Wickenden Street and the Old
- * Mill" when every placed moment has a named place and there are one or two; else "Four moments around Fox Point",
- * the day's area; else "Four moments". Null with no moments.
+ * Mill" when every moment given has a named place and there are one or two; else "Four moments around Fox Point",
+ * the day's area; else "Four moments". Null with no moments. `dayPlaces` says which places and area it may use.
  */
 export function dayLine(moments: number, places: readonly (string | null)[], area: string | null): string | null {
   if (moments < 1) return null;
@@ -174,6 +174,29 @@ export function dayArea(day: Day): string | null {
   return areas.size === 1 ? [...areas][0] : null;
 }
 
+/**
+ * Where the day's card may say its moments were (the owner, Nov 14, "Only when all are placed"; tend replay audit 12):
+ * a named place for each moment, and the day's area, only when every moment of the day has a place inside it. A walk's
+ * moment is inside its walk; a loose one is checked against the streets the day's walks read: on a named one it is
+ * there, within reach of any it is inside the area, else outside. A moment with no place, or one outside, leaves the
+ * card its count alone (`names` empty, `area` null).
+ */
+export function dayPlaces(day: Day, walks: ReadonlyMap<string, WalkPlaces> | undefined): { names: (string | null)[]; area: string | null } {
+  const caps = dayCaptures(day);
+  const none = { names: [], area: null };
+  if (!caps.length || caps.some((c) => c.lat == null || c.lon == null)) return none;
+  const read = day.entries.flatMap((e) => {
+    const w = e.kind === 'walk' ? walks?.get(e.walk.id) : undefined;
+    return w ? [...w.walked, ...w.fog] : [];
+  });
+  const inside = (c: Faced) => read.some((s) => distanceToLinesM([c.lon!, c.lat!], s.geometry) <= STREET_REACH_M);
+  if (caps.some((c) => !c.walk_id && !inside(c))) return none;
+  const names = caps.map((c) =>
+    c.walk_id ? momentPlace(c, walks?.get(c.walk_id)) : streetAt([c.lon!, c.lat!], read, c.segment_id ?? null)?.name ?? null,
+  );
+  return { names, area: dayArea(day) };
+}
+
 const capWord = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
@@ -185,11 +208,11 @@ export function dayCard(day: Day, now: number, distanceByWalk: Map<string, numbe
   const label = dayLabel(day.key, now);
   const weekday = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
   const caps = dayCaptures(day);
-  const placed = caps.filter((c) => c.lat != null && c.lon != null);
+  const where = dayPlaces(day, walks);
   const metres = day.entries.reduce((m, e) => m + (e.kind === 'walk' ? distanceByWalk.get(e.walk.id) ?? 0 : 0), 0);
   return {
     title: label === 'Today' || label === 'Yesterday' ? `${label} · ${weekday}` : weekday,
-    line: dayLine(caps.length, placed.map((c) => momentPlace(c, c.walk_id ? walks?.get(c.walk_id) : null)), dayArea(day)),
+    line: dayLine(caps.length, where.names, where.area),
     walked: metres > 0 ? `${formatDistance(metres, units)} walked` : null,
     // No pin, no hint (tend replay audit 11).
     hint: pinHint(caps),

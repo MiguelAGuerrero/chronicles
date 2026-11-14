@@ -217,6 +217,9 @@ async function checks(h) {
       const line = await p2.locator('[data-testid=day-card-line]').innerText();
       const cardText = await p2.locator('[data-testid=day-card]').innerText();
       check(/^Three moments(, around .+| around .+)?$/.test(line) && /walked/.test(cardText) && !/streak|badge/i.test(cardText), `the day ends on a quiet card, its moments a clause (tend replay T19: ${line})`);
+      // tend replay audit 12 (the owner, Nov 14, "Only when all are placed"): the linen moment has no place, so the day
+      // names no place or area, only its count.
+      check(line === 'Three moments', `tend replay audit 12: a day with a moment that has no place says its count alone (${line})`);
       await shot(p2, '23-day-card');
       // tend map T28, audit 28: on the day's map every pin says when: a pin of its one walk the minutes in (a day of
       // several walks would say each one's part of the day), a moment outside a walk its part of the day.
