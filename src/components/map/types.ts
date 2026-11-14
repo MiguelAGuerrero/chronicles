@@ -707,11 +707,12 @@ export function walkabilityGeoJSON(t: WalkTint | null | undefined): GeoJSON.Feat
 
 /**
  * After dark (DK3, DK4; the plan's defaults): a lit way is a pale warm line of one width, no halo, blur or fill, warm because it
- * says light and no other layer is yellow; a place open after dark is a small ring in the map's ink with a white middle, quieter
+ * says light and no other layer is amber; a place open after dark is a small ring in the map's ink with a white middle, quieter
  * than a "?" and never a kind's colour, so it never reads as a find. Neither clusters or carries a label.
  */
 export const DARK_STYLE = {
-  lit: { color: '#e9c46a', width: 3, opacity: 0.45 },
+  // after-dark ui 2: a darker amber drawn whole, 3:1 or more against the ground and the streets (WCAG 1.4.11): thin, never faint.
+  lit: { color: '#a87400', width: 2.5, opacity: 1 },
   open: { radius: 4, stroke: '#2b2b2b', strokeWidth: 1.5, fill: '#ffffff' },
 } as const;
 

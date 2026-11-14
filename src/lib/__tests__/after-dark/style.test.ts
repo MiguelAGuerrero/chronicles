@@ -17,7 +17,7 @@ const contrast = (a: string, b: string) => {
 const GROUND = '#eeeae4';
 const STREET = '#ffffff';
 
-test('after-dark ui 2: the lit line is drawn whole, at 3:1 or more against the ground and the streets (WCAG 1.4.11)', { todo: 'test first' }, () => {
+test('after-dark ui 2: the lit line is drawn whole, at 3:1 or more against the ground and the streets (WCAG 1.4.11)', () => {
   assert.equal(DARK_STYLE.lit.opacity, 1, 'never faint: thin with contrast is restraint, faint is invisible');
   assert.ok(contrast(DARK_STYLE.lit.color, GROUND) >= 3, `against the ground: ${contrast(DARK_STYLE.lit.color, GROUND).toFixed(2)}`);
   assert.ok(contrast(DARK_STYLE.lit.color, STREET) >= 3, `against a street: ${contrast(DARK_STYLE.lit.color, STREET).toFixed(2)}`);

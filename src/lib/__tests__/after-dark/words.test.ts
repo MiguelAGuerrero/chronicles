@@ -108,10 +108,10 @@ test('DK17: no route module reads after-dark data; only the layer\'s screens, th
 
 test('after-dark ui 1: the After dark switch says under its name what it shows, so both tasks find it (the cold find)', () => {
   const d = dark();
-  assert.equal(d?.sub, 'Lit streets, places open');
+  assert.equal(d?.sub, 'Lit streets and open places');
   assert.ok(!BANNED.test(d?.sub ?? ''));
 });
 
-test('after-dark ui 3: the subtitle describes what is drawn and cannot read as a status', { todo: 'test first' }, () => {
+test('after-dark ui 3: the subtitle describes what is drawn and cannot read as a status', () => {
   assert.equal(dark()?.sub, 'Lit streets and open places');
 });

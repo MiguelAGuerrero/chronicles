@@ -45,7 +45,7 @@ async function run(h) {
     return { button: !!b && b.width >= 44 && b.top >= 0 && b.bottom <= innerHeight, word: !!r && /After dark/.test(r.textContent ?? '') && style?.opacity !== '0' && style?.visibility !== 'hidden' };
   });
   check(seen.button && seen.word, `DK2: the Layers button is in view and the row says After dark in ink (${JSON.stringify(seen)})`);
-  check(/Lit streets, places open/.test(rowText), `after-dark ui 1: the switch says under its name what it shows (${JSON.stringify(rowText)})`);
+  check(/Lit streets and open places/.test(rowText), `after-dark ui 1: the switch says under its name what it shows (${JSON.stringify(rowText)})`);
   await shot(pg, 'dark-panel');
   await pg.click('[data-testid=layers]').catch(() => {});
   const switched = await tryLayer(pg, 'dark');
@@ -83,7 +83,15 @@ async function run(h) {
   await h.drawerTo(pg, 'up').catch(() => {});
   const key = await pg.locator('[data-testid=layers-key]').innerText({ timeout: 5000 }).catch(() => '');
   check(/Lit streets/.test(key) && /Open after dark/.test(key) && /On a route after dark/.test(key) && /Only what is mapped: a street with no lighting mapped may still be lit\./.test(key), `DK12: the legend in Navigate's settings names the three and the note (${JSON.stringify(key.slice(0, 200))})`);
+  // The legend is below the walk's settings: brought into view for the picture (the UI review's U0).
+  await pg.locator('[data-testid=layers-key]').scrollIntoViewIfNeeded().catch(() => {});
+  await pg.waitForTimeout(400);
   await shot(pg, 'dark-legend');
+  const sw = await pg.evaluate(() => {
+    const box = (id) => { const e = document.querySelector(`[data-testid=${id}]`); if (!e) return null; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return { w: r.width, h: r.height, radius: parseFloat(cs.borderTopLeftRadius) }; };
+    return { lit: box('layer-swatch-lit'), open: box('layer-swatch-open') };
+  });
+  check.todo(!!sw.lit && sw.lit.h <= 4 && sw.lit.w >= 16 && !!sw.open && sw.open.radius >= sw.open.w / 2 - 0.5, `after-dark ui 4: the legend's swatches are drawn as the map draws them, a line and a ring (${JSON.stringify(sw)})`);
   await c.close();
 
   // DK14: Overpass refusing: no guess, and the panel says so.

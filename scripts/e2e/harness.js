@@ -177,8 +177,8 @@ wkSeg('far-b', { class: 'primary', '@name': 'Route 7', speed_limits: mph(55) }, 
 const overpassAnswer = { elements: [
   { type: 'way', id: 1, tags: { highway: 'secondary', 'sidewalk:both': 'no', maxspeed: '35 mph', name: 'Route 6' }, geometry: [{ lat: at(0, 3)[1], lon: at(-2, 3)[0] }, { lat: at(0, 3)[1], lon: at(2, 3)[0] }] },
 ] };
-// After dark (DK1-DK17): the Overpass answer to the after-dark query. 'mixed': Grid 0 and Grid 1 Street lit, Grid 2 Street
-// mapped as unlit, Grid 3 Street untagged; a bar open in the evening, a bookshop open by day, a place whose hours can't be read
+// After dark (DK1-DK17): the Overpass answer to the after-dark query. 'mixed': Arnold and Transit Street lit, Williams Street
+// mapped as unlit (each on the base map's own street, the UI review's U2); a bar open in the evening, a bookshop open by day, a place whose hours can't be read
 // and one with none. 'unlit': every grid street mapped as unlit (the heads-up). 'busy': a 429 for every after-dark query.
 const ll = (p) => ({ lat: p[1], lon: p[0] });
 const darkWorld = { mode: 'mixed' };
@@ -186,9 +186,9 @@ const darkAnswerOf = (mode) => ({ elements: mode === 'unlit'
   ? [...GRID.map((gy, i) => ({ type: 'way', id: 900 + i, tags: { highway: 'residential', lit: 'no', name: `Grid ${gy} Street` }, geometry: [ll(at(-5, gy)), ll(at(5, gy))] })),
     ...GRID.map((gx, i) => ({ type: 'way', id: 950 + i, tags: { highway: 'residential', lit: 'no' }, geometry: [ll(at(gx, -5)), ll(at(gx, 5))] }))]
   : [
-    { type: 'way', id: 801, tags: { highway: 'residential', lit: 'yes', name: 'Grid 0 Street' }, geometry: [ll(at(-5, 0)), ll(at(5, 0))] },
-    { type: 'way', id: 802, tags: { highway: 'residential', lit: 'automatic', name: 'Grid 1 Street' }, geometry: [ll(at(-5, 1)), ll(at(5, 1))] },
-    { type: 'way', id: 803, tags: { highway: 'residential', lit: 'no', name: 'Grid 2 Street' }, geometry: [ll(at(-5, 2)), ll(at(5, 2))] },
+    { type: 'way', id: 801, tags: { highway: 'residential', lit: 'yes', name: 'Arnold Street' }, geometry: [ll(at(-2, 0.5)), ll(at(4, 0.5))] },
+    { type: 'way', id: 802, tags: { highway: 'residential', lit: 'automatic', name: 'Transit Street' }, geometry: [ll(at(-2, -0.5)), ll(at(4, -0.5))] },
+    { type: 'way', id: 803, tags: { highway: 'residential', lit: 'no', name: 'Williams Street' }, geometry: [ll(at(-2, 1.5)), ll(at(4, 1.5))] },
     { type: 'node', id: 811, lat: at(0.2, 0.1)[1], lon: at(0.2, 0.1)[0], tags: { amenity: 'bar', opening_hours: 'Mo-Su 16:00-02:00', name: 'Night Bar' } },
     { type: 'node', id: 812, lat: at(0.6, 0.1)[1], lon: at(0.6, 0.1)[0], tags: { shop: 'books', opening_hours: 'Mo-Su 09:00-17:00' } },
     { type: 'node', id: 813, lat: at(1.0, 0.1)[1], lon: at(1.0, 0.1)[0], tags: { amenity: 'cafe', opening_hours: 'Jan-Mar Mo-Su 18:00-23:00' } },

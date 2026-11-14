@@ -69,7 +69,7 @@ export const LAYERS: readonly LayerDef[] = [
     // After dark (specs/after-dark DK1, DK12): what is mapped, never a grade (DK11).
     id: 'dark',
     name: 'After dark',
-    sub: 'Lit streets, places open',
+    sub: 'Lit streets and open places',
     icon: 'moon-outline',
     defaultOn: false,
     legend: [
