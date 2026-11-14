@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
 import { Image, StyleSheet, View } from 'react-native';
-import { pinHeadKinds, pinSpoken, pinThumb, type CapturePin, type WalkClock } from '../lib/pins';
+import { pinHeadKinds, pinSpoken, pinThumb, reactionSpots, type CapturePin, type WalkClock } from '../lib/pins';
 import type { ReactionInfo } from '../lib/reactions/core';
 import { VideoMark } from './VideoMark';
 import { webData } from './edit/EditedPhoto';
@@ -86,12 +86,12 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
             order, clear of the bell and clock above and the video mark at the bottom right. Inside the pin, so on a
             memory they are as faint as it is (the owner, Nov 14). */}
         {reactions.length > 0 && (
-          // Over the head's lower part, so each reads as this pin's and never lands on a neighbour (reactions ui 1); on a
-          // video's pin it sits further left, clear of the play mark (RX20).
-          <View style={[styles.reactions, isVideo && styles.reactionsVideo]} pointerEvents="none">
-            {reactions.map((r, i) => (
-              <View key={r.id} testID="pin-reaction" {...webData({ reaction: r.id })} style={[styles.reaction, i > 0 && styles.reactionNext]}>
-                <Icon name={r.glyph as IconName} size={10} color="#ffffff" />
+          // On the head's lower part, each on the head and never on a neighbour (reactions ui 1); on a video's pin an L,
+          // clear of its play mark (RL12).
+          <View style={styles.reactions} pointerEvents="none">
+            {reactionSpots(reactions.length, isVideo).map((spot, i) => (
+              <View key={reactions[i].id} testID="pin-reaction" {...webData({ reaction: reactions[i].id })} style={[styles.reaction, spot]}>
+                <Icon name={reactions[i].glyph as IconName} size={10} color="#ffffff" />
               </View>
             ))}
           </View>
@@ -151,17 +151,13 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
 const NO_REACTIONS: readonly ReactionInfo[] = [];
 
 const styles = StyleSheet.create({
-  // Across the head's lower part from just outside its left edge (reactions ui 1): every bubble on the head itself.
-  reactions: { position: 'absolute', left: -8, top: 22, flexDirection: 'row' },
-  // A video's play mark is at the head's bottom right (from x 20): the row starts further out, clear of it (RX20);
-  // its first bubbles then sit off the head (reactions audit 15, deferred).
-  reactionsVideo: { left: -20 },
+  // The bubbles' layer, the head's own box: `reactionSpots` places each bubble in it.
+  reactions: { position: 'absolute', left: 0, top: 0, width: 36, height: 36 },
   // The bell's shape: an ink disc, a white glyph, a white edge (RX17); their white edges just meet.
   reaction: {
-    width: 15, height: 15, borderRadius: 7.5, backgroundColor: theme.ink,
+    position: 'absolute', width: 15, height: 15, borderRadius: 7.5, backgroundColor: theme.ink,
     borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
   },
-  reactionNext: { marginLeft: -2 },
   videoMark: { position: 'absolute', right: -3, top: 20, borderWidth: 1.5, borderColor: '#ffffff' },
   // The faint head shrinks to 75% toward its foot (its bottom right near x 31, y 38): the mark there, 2 px under the clock (ui 4).
   videoMarkFaint: { right: 1, top: 24 },

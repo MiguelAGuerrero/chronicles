@@ -246,6 +246,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   // Each day's date is held at the top while its entries pass (JN31). Those before the peek are the sheet's own
   // children; a date inside the peek's box is held by the browser within the box (web), and not held on native.
   const dates = props.rows.slice(0, from).flatMap((r, i) => (r.k === 'day' ? [i] : []));
+  // An entry right under a date, and the peek's first entry under the date held over it, start below the date's edge (RL8).
+  const underDate = new Set(props.rows.flatMap((r, i) => (r.k === 'entry' && ((i > 0 && props.rows[i - 1].k === 'day') || (i === from && held != null)) ? [r.key] : [])));
   const row = (r: JournalRow, inBox: boolean) => {
     const onLayout = (e: { nativeEvent: { layout: { height: number } } }) => measured(r.key, Math.round(e.nativeEvent.layout.height));
     if (r.k === 'day') {
@@ -262,7 +264,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
       return inBox && Platform.OS === 'web' ? <View key={r.key} style={HELD}>{day}</View> : day;
     }
     if (r.k === 'slip') return <View key={r.key} onLayout={onLayout}>{props.slip}</View>;
-    return <View key={r.key} onLayout={onLayout}>{props.entry(r.m)}</View>;
+    return <View key={r.key} onLayout={onLayout} style={underDate.has(r.key) ? styles.underDate : undefined}>{props.entry(r.m)}</View>;
   };
   return (
     <ScrollView
@@ -330,6 +332,8 @@ const styles = StyleSheet.create({
   blank: { flexGrow: 1 },
   edge: { position: 'absolute', left: 0, right: 0, top: '100%' },
   edgeBand: { height: 4, backgroundColor: theme.bg },
+  // The edge's height: EDGE's bands of 4 (RL8).
+  underDate: { paddingTop: EDGE.length * 4 },
   scroll: { flex: 1 },
   // Laid out and measured, but not yet seen (fix entry-jitter).
   unopened: { opacity: 0 },

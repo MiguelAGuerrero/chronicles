@@ -664,6 +664,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             // The reactions, named, just above the bar (RX6, RX7): the bar below keeps its places, and a choice leaves
             // them open for another family; the caret stays on the page.
             <ReactionPanel
+              moment={asking.moment}
               set={askingSet}
               onPick={(id) => {
                 void reactions.choose(asking.moment, id).catch(() => {});
@@ -754,7 +755,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             head={noteHead({ t: page.entry.t, now: pageNow, time: timeOf(page.entry.t), context: null, placing: false, draft: null, placed: page.entry.placed, onWalk: walking })}
             self={page.entry.momentId}
             // The page's Reaction tool, on the moment the line was writing (RX12).
-            reaction={{ set: pageSet, onPick: (id) => void reactions.choose(page.entry!.momentId, id).catch(() => {}) }}
+            reaction={{ set: pageSet, moment: page.entry.momentId, onPick: (id) => void reactions.choose(page.entry!.momentId, id).catch(() => {}) }}
             onClose={closePage}
             onCamera={pageCamera}
             store={{

@@ -751,7 +751,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.getMomentsByIds(['m1', 'm2']), before, 'no moment or piece changed');
     });
 
-    test('FC7 setReactions, RL10: a moment\'s rows in one write: set, replaced, cleared; all or none', { todo: 'test first' }, async () => {
+    test('FC7 setReactions, RL10: a moment\'s rows in one write: set, replaced, cleared; all or none', async () => {
       const db = await planned();
       const many = db as unknown as { setReactions: (rs: unknown[]) => Promise<void> };
       await many.setReactions([]);

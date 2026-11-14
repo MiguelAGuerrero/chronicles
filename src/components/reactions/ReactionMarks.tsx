@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { ordered, type ReactionSet } from '../../lib/reactions/core';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ordered, type ReactionId, type ReactionSet } from '../../lib/reactions/core';
 import { Icon, type IconName } from '../icons';
 import { theme } from '../ui';
 
@@ -8,7 +8,7 @@ import { theme } from '../ui';
  * order, on one line that wraps. Nothing for a moment with none. Never a count, a colour or anyone else's reaction.
  * `quiet`: a parent already says them, so they are hidden from a screen reader.
  */
-export function ReactionMarks({ set, quiet = false, inverse = false, style }: { set: ReactionSet; quiet?: boolean; inverse?: boolean; style?: object }) {
+export function ReactionMarks({ set, quiet = false, inverse = false, style, onOpen }: { set: ReactionSet; quiet?: boolean; inverse?: boolean; style?: object; /** Each mark opens its reaction's lens (RL2, RL3): a link, drawn as the mark is. */ onOpen?: (id: ReactionId) => void }) {
   const rs = ordered(set);
   // On the viewer's dark strip the same marks are drawn in the page's white (`inverse`): one colour either way.
   const ink = inverse ? theme.bg : theme.ink;
@@ -17,16 +17,26 @@ export function ReactionMarks({ set, quiet = false, inverse = false, style }: { 
     <View
       style={[styles.row, style]}
       testID="reaction-marks"
-      accessible={!quiet}
-      accessibilityLabel={rs.map((r) => r.name).join(', ')}
+      accessible={!quiet && !onOpen}
+      accessibilityLabel={onOpen ? undefined : rs.map((r) => r.name).join(', ')}
       aria-hidden={quiet || undefined}
     >
-      {rs.map((r) => (
-        <View key={r.id} style={styles.mark} testID={`reaction-mark-${r.id}`} aria-label={r.name}>
-          <Icon name={r.glyph as IconName} size={16} color={ink} testID={`reaction-glyph-${r.id}`} />
-          <Text style={[styles.name, { color: ink }]} testID="reaction-name">{r.name}</Text>
-        </View>
-      ))}
+      {rs.map((r) => {
+        const mark = (
+          <View style={styles.mark} testID={`reaction-mark-${r.id}`} aria-label={onOpen ? undefined : r.name}>
+            <Icon name={r.glyph as IconName} size={16} color={ink} testID={`reaction-glyph-${r.id}`} />
+            <Text style={[styles.name, { color: ink }]} testID="reaction-name">{r.name}</Text>
+          </View>
+        );
+        // A link to the whole lens, named for it ("Ideas"); pressed, only the ink fades (RL5).
+        return onOpen ? (
+          <Pressable key={r.id} testID={`reaction-link-${r.id}`} role="link" accessibilityRole="link" accessibilityLabel={r.lens} onPress={() => onOpen(r.id)} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
+            {mark}
+          </Pressable>
+        ) : (
+          <View key={r.id}>{mark}</View>
+        );
+      })}
     </View>
   );
 }
@@ -35,4 +45,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12, rowGap: 4 },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { fontSize: 14, color: theme.ink },
+  link: { minHeight: 44, justifyContent: 'center' },
+  pressed: { opacity: 0.55 },
 });

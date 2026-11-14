@@ -49,6 +49,8 @@ export const NewNotePage = forwardRef<NotePageHandle, {
   const [store] = useState(() =>
     newNoteStore(
       async (body) => {
+        // Its first save is on its way: what the page holds outlives the page if it closes before the save lands (RL11).
+        reactions.saving(key);
         const k = await cap.keepNote(stamp, body);
         if (k) {
           kept.current = k.id;
@@ -85,6 +87,7 @@ export const NewNotePage = forwardRef<NotePageHandle, {
       self={stamp.into ?? null}
       reaction={props.reactable ? {
         set: stamp.into ? intoSet : keptId ? keptSet : held,
+        moment: stamp.into ?? keptId,
         onPick: (id: ReactionId) => {
           if (stamp.into ? reactions.choose(stamp.into, id).catch(() => {}) : null) return;
           if (kept.current) void reactions.choose(kept.current, id).catch(() => {});

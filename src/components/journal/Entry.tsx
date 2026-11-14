@@ -1,4 +1,5 @@
 import { useReactions } from '../../lib/reactions/useReactions';
+import type { ReactionId } from '../../lib/reactions/core';
 import { ReactionMarks } from '../reactions/ReactionMarks';
 import { ReactionSign } from '../reactions/ReactionSign';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
@@ -45,6 +46,8 @@ export function Entry(props: {
   /** The reactions are open for the entry being written: the sign shows it. */
   signOpen?: boolean;
   onOpenRef: (v: MomentView) => void;
+  /** A reaction under the dateline opens its lens (RL2). */
+  onLens?: (id: ReactionId) => void;
 }) {
   const { moment: m, walk } = props;
   const c = m.capture;
@@ -91,7 +94,7 @@ export function Entry(props: {
           <Icon name="ellipsis-horizontal" size={18} color={theme.muted} />
         </Pressable>
       </View>
-      <ReactionMarks set={reacted} style={styles.reactions} />
+      <ReactionMarks set={reacted} style={styles.reactions} onOpen={props.onLens} />
       {pieces.length > 0 && (
         <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
           {pieces.map((p) => (

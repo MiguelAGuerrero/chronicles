@@ -127,8 +127,8 @@ Home / tabs
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
   notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and the Reaction tool; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap; its reactions held until it is kept)
-  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a pin of one moment wears its reactions as ink bubbles from its bottom-left (`pinReactions`, RX17)
-  reactions/                 ReactionPanel (the three families, RX6), ReactionMarks (glyphs and names, RX14-RX16), ReactionSign (the face with a plus, RX9), ReactionsScreen and LensScreen (the contents' lenses, RX22-RX25)
+  CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a pin of one moment wears its reactions as ink bubbles from its bottom-left (`pinReactions`, RX17), an L on a video's pin (`reactionSpots`, RL12)
+  reactions/                 ReactionPanel (the three families, RX6), ReactionMarks (glyphs and names, RX14-RX16; links to their lens with `onOpen`, RL2-RL5), ReactionSign (the face with a plus, always, RL6), ReactionsScreen and LensScreen (the contents' lenses, RX22-RX25)
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
   Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
   Baker(.native|.web).tsx    renders a photo's edits and caption into a saved copy, or the lines and caption alone into a clear PNG for a video (Baker.types.ts): react-native-view-shot over EditedPicture on native, canvas on web
@@ -328,7 +328,7 @@ Memories, moments, days
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
-  reactions/                 reactions (decision 0176): core.ts (the eight in three families, `pick`, `ordered`, `setsOf`, `migrateTypes`), lens.ts (the only gathering by reaction), shell.ts (read whole, `choose`, `hold`/`keep` for a new page; index.ts the instance), useReactions.ts
+  reactions/                 reactions (decision 0176): core.ts (the eight in three families, `pick`, `ordered`, `setsOf`, `migrateTypes`), lens.ts (the only gathering by reaction), shell.ts (read whole, `choose`, `hold`/`keep` for a new page, `saving` so a keep under way is not dropped, `notKept`; index.ts the instance), useReactions.ts
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
   notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)

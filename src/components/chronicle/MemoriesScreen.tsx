@@ -137,9 +137,19 @@ export function MemoriesScreen() {
   const readGroups = useCallback(() => {
     void reactions.groups(deletedIds).then(setGroups, () => setGroups([]));
   }, [deletedIds]);
+  // A lens opened from a moment (RL2, RL3) is the whole lens; Back returns to where it was opened from, the Reactions
+  // list only when it was opened there.
+  const [lensFromList, setLensFromList] = useState(false);
   const readLens = useCallback((id: ReactionId) => {
     void reactions.lens(id, deletedIds).then((ms) => setLensViews(ms.map((m) => viewOf(faced(m)))), () => setLensViews([]));
   }, [deletedIds]);
+  const openLens = (id: ReactionId, fromList = false) => {
+    setLensFromList(fromList);
+    setReactionsOpen(true);
+    setLens(id);
+    setLensViews(null);
+    readLens(id);
+  };
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
   // screen does; with a walk open, the walk screen opens it and this declines. Until the keeper knows, it declines.
   const [recalled, setRecalled] = useState<Faced[] | null>(null);
@@ -257,7 +267,12 @@ export function MemoriesScreen() {
     setToast({ msg: withSaveNote(msg, change.saved), change });
     timer.current = setTimeout(() => setToast(null), TOAST_MS);
   };
-  const open = (m: MomentView) => setViewing([m.capture]);
+  // The slip's moment was brought back by the app: its viewer's reactions stay plain words (RL4, steward 2).
+  const [viewingSlip, setViewingSlip] = useState(false);
+  const open = (m: MomentView, fromSlip = false) => {
+    setViewingSlip(fromSlip);
+    setViewing([m.capture]);
+  };
   const relive = (m: MomentView) => router.push(m.walkId ? `/replay/${m.walkId}?ceremony=0` : `/day/${dayKey(m.t)}`);
   // The capture band (HC6-HC11): in front only while nothing is open over Memories, so opening a moment, a
   // menu, Relive or a replay mid-memo saves the memo first, and nothing plays over a recording.
@@ -357,6 +372,7 @@ export function MemoriesScreen() {
         signOpen={typeOpen}
         onReact={dayKey(m.t) === dayKey(now) ? () => { setMenuFromSlip(false); setTypeOnly(true); setMenuFor(m.id); } : undefined}
         onOpenRef={open}
+        onLens={(id) => openLens(id)}
       />
     );
   };
@@ -459,7 +475,12 @@ export function MemoriesScreen() {
           walks={closedWalks(state.walks)}
           context={state.context}
           now={now}
-          onBack={() => { setLens(null); setLensViews(null); readGroups(); }}
+          onBack={() => {
+            setLens(null);
+            setLensViews(null);
+            if (lensFromList) readGroups();
+            else setReactionsOpen(false);
+          }}
           onOpen={(m) => setLensAt(m.id)}
           onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
           onMore={(m) => { setMenuFromSlip(false); setTypeOnly(false); setMenuFor(m.id); }}
@@ -469,7 +490,7 @@ export function MemoriesScreen() {
   } else if (reactionsOpen) {
     body = (
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
-        <ReactionsScreen groups={groups} onBack={() => setReactionsOpen(false)} onOpen={(id) => { setLens(id); setLensViews(null); readLens(id); }} />
+        <ReactionsScreen groups={groups} onBack={() => setReactionsOpen(false)} onOpen={(id) => openLens(id, true)} />
       </ScrollView>
     );
   }
@@ -523,7 +544,7 @@ export function MemoriesScreen() {
           pick={pick}
           context={state.context[pick.moment.id]}
           now={now}
-          onOpen={() => open(pick.moment)}
+          onOpen={() => open(pick.moment, true)}
           onMore={() => { setMenuFromSlip(true); setTypeOnly(false); setMenuFor(pick.moment.id); }}
         />
       ) : null}
@@ -580,7 +601,7 @@ export function MemoriesScreen() {
         open={!!menuMoment}
         onlyType={typeOnly}
         // The slip stays quiet: its More offers no Reaction (reactions audit 17).
-        reaction={menuMoment && !menuFromSlip ? { set: menuSet, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(() => {}) } : undefined}
+        reaction={menuMoment && !menuFromSlip ? { set: menuSet, moment: menuMoment.id, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(() => {}) } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;
@@ -600,7 +621,7 @@ export function MemoriesScreen() {
         onOpen={() => {
           const m = menuMoment;
           setMenuFor(null);
-          if (m) open(m);
+          if (m) open(m, menuFromSlip);
         }}
         onMap={menuMoment && menuMoment.capture.lat != null && menuMoment.capture.lon != null ? () => {
           const c = menuMoment.capture;
@@ -637,6 +658,8 @@ export function MemoriesScreen() {
       <CaptureViewer
         key={`memory:${viewing?.[0]?.id ?? 'none'}`}
         captures={!memoOn && viewing ? viewing.map((v) => inThreadById.get(v.id)?.capture ?? v) : null}
+        // From an entry, a thread or Hidden a reaction opens its lens (RL3); from the slip it is plain words (RL4).
+        onLens={viewingSlip ? undefined : (id) => openLens(id)}
         onClose={() => {
           setViewing(null);
           // A reply made from the viewer is a new moment: Memories and the threads read again.
@@ -658,6 +681,8 @@ export function MemoriesScreen() {
         captures={!memoOn && lensAt && lensViews ? lensViews.map((v) => v.capture) : null}
         startAt={lensAt ? { id: lensAt } : null}
         position={false}
+        // The lens it was opened from only closes the viewer; another opens in its place (RL3).
+        onLens={(id) => { if (id !== lens) openLens(id, lensFromList); }}
         onClose={() => {
           setLensAt(null);
           // What changed in the viewer (a reaction cleared, a moment deleted) shows when the lens is next shown (RX26);

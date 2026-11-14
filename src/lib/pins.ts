@@ -130,6 +130,19 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
  * video's file: while the copy is being made, or for one that won't decode, the
  * pin keeps its icon, so a map never decodes full media. A pin of several shows its kinds (`pinHeadKinds`, tend map T14).
  */
+/** Where a pin's reaction bubbles sit, from the head's top left (a 36 pt head; 15 pt bubbles whose white edges meet). */
+const BUBBLE_STEP = 13;
+/**
+ * The bubbles' places on a pin of one moment (RX17, reactions ui 1, RL12): a row across the head's lower part from just
+ * outside its left edge; on a video's pin, whose play mark takes the bottom right, an L: two along the bottom-left and
+ * the third above them at the head's left edge, each on the head and clear of the mark (the owner, Nov 14, 0177).
+ */
+export function reactionSpots(count: number, video: boolean): { left: number; top: number }[] {
+  const row = (i: number) => ({ left: -8 + i * BUBBLE_STEP, top: 22 });
+  if (!video) return Array.from({ length: count }, (_, i) => row(i));
+  return Array.from({ length: count }, (_, i) => (i < 2 ? row(i) : { left: -8, top: 22 - BUBBLE_STEP }));
+}
+
 /**
  * The reactions a pin wears as bubbles (RX17, RX19): a pin of exactly one moment, its reactions in the families' order;
  * a pin of several, none. The head is never one of them (RX18).

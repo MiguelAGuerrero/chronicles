@@ -35,11 +35,10 @@ test('RX5: one per family: a reaction replaces its family\'s, the same one clear
   assert.deepEqual(before, { taste: 'like' }, 'the set given is not changed');
 });
 
-test('RX9: the sign is the face with a plus for none, else the first reaction in the families\' order', async () => {
-  const { signOf } = await core();
-  assert.equal(signOf({}), null);
-  assert.equal(signOf({ thought: 'idea', feeling: 'sad' })?.id, 'sad');
-  assert.equal(signOf({ thought: 'question', taste: 'like' })?.id, 'like');
+test('RX9 (as RL6 changed it): the sign is the face with a plus whatever is chosen, and says what is chosen', async () => {
+  const c = await core();
+  assert.equal(c.signOf, undefined, 'no glyph is picked for the sign');
+  assert.equal(c.signLabel({ thought: 'idea', feeling: 'sad' }), 'Reaction, Sad, Idea');
 });
 
 test('RX16, RX21: spoken in the families\' order, by name in lower case; none says nothing', async () => {

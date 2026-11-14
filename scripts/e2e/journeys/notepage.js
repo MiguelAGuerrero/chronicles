@@ -462,7 +462,7 @@ async function run(h) {
   const tool12 = await pg.locator('[data-testid=note-reaction-tool]').getAttribute('aria-label').catch(() => null);
   const typeTool12 = await pg.locator('[data-testid=note-type-row]').count();
   const face7 = await pg.locator('[data-testid=note-reaction-tool] [data-testid=note-reaction-face]').count();
-  check.todo(face7 === 1, `RL7: the page's Reaction tool is the face with a plus, whatever is chosen (${face7})`);
+  check(face7 === 1, `RL7: the page's Reaction tool is the face with a plus, whatever is chosen (${face7})`);
   await pg.click('[data-testid=note-reaction-tool]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-sad]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
@@ -470,8 +470,8 @@ async function run(h) {
   await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForTimeout(1000);
   const got12 = await rxOf(/A page reacted to before its words/);
-  check(tool12 === 'Reaction, Like' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
-    `RX12: a note's page has a Reaction tool in place of Type, showing the first reaction; a choice is kept on the moment and leaves the words alone (${JSON.stringify({ tool12, typeTool12, got12 })})`);
+  check(tool12 === 'Reaction, Like, Emphasis' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
+    `RX12: a note's page has a Reaction tool in place of Type, saying what is chosen (RL7); a choice is kept on the moment and leaves the words alone (${JSON.stringify({ tool12, typeTool12, got12 })})`);
 
   await c.close();
 }

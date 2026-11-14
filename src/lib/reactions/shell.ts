@@ -10,15 +10,18 @@ import { createStore, type Store } from '../store';
 import { pick, rowsFor, setsOf, type ReactionId, type ReactionSet } from './core';
 import { lensIds, lensMoments, lensRows, type LensGroup } from './lens';
 
-export type ReactionsState = { sets: ReadonlyMap<string, ReactionSet>; loaded: boolean };
+/** `notKept`: the moment whose last choice could not be kept, until the next choice or its panel closes (RL9). */
+export type ReactionsState = { sets: ReadonlyMap<string, ReactionSet>; loaded: boolean; notKept: string | null };
 
 /** The set of a moment with none: one object, so a view's selector stays stable. */
 export const NO_REACTIONS: ReactionSet = Object.freeze({}) as ReactionSet;
 const NONE: ReadonlySet<string> = new Set();
 
 export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
-  const store: Store<ReactionsState> = createStore<ReactionsState>({ sets: new Map(), loaded: false });
+  const store: Store<ReactionsState> = createStore<ReactionsState>({ sets: new Map(), loaded: false, notKept: null });
   const held = new Map<string, ReactionSet>();
+  // Pages whose first save is on its way: their held reactions outlive the page (RL11).
+  const saving = new Set<string>();
   let loading: Promise<void> | null = null;
   let seq = 0;
   // A read that failed still answers (reactions audit 6): Memories never waits on it, nothing is shown, and the next
@@ -47,20 +50,27 @@ export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
     }
     if (mine !== seq) return;
     failed = false;
-    store.set({ sets: setsOf(rows), loaded: true });
+    store.set((s) => ({ sets: setsOf(rows), loaded: true, notKept: s.notKept }));
   };
   const ready = () => (store.get().loaded && !failed ? Promise.resolve() : (loading ??= read().finally(() => { loading = null; })));
 
   const write = async (momentId: string, next: ReactionSet) => {
     const before = get(momentId);
-    for (const row of rowsFor(momentId, before, next, p.clock.now())) await p.db.setReaction(row);
+    // One write for the moment's changed rows: all of them are kept, or none (RL10).
+    try {
+      await p.db.setReactions(rowsFor(momentId, before, next, p.clock.now()));
+    } catch (e) {
+      // Not shown as chosen, and said where it was chosen (RL9).
+      store.set((s) => ({ ...s, notKept: momentId }));
+      throw e;
+    }
     // Only after the write: a failed one leaves what is shown as it was (RX8).
     seq++;
     store.set((s) => {
       const sets = new Map(s.sets);
       if (Object.keys(next).length) sets.set(momentId, next);
       else sets.delete(momentId);
-      return { sets, loaded: s.loaded };
+      return { sets, loaded: s.loaded, notKept: s.notKept === momentId ? null : s.notKept };
     });
   };
 
@@ -78,6 +88,8 @@ export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
     get,
     /** A tap on a reaction for a kept moment (RX5, RX8): written at once. */
     async choose(momentId: string, tapped: ReactionId) {
+      // A new choice clears what the last one said (RL9).
+      if (store.get().notKept === momentId) store.set((s) => ({ ...s, notKept: null }));
       await ready();
       await queued(() => write(momentId, pick(get(momentId), tapped)));
     },
@@ -93,13 +105,23 @@ export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
     async keep(key: string, momentId: string) {
       const set = held.get(key);
       held.delete(key);
+      saving.delete(key);
       if (!set || !Object.keys(set).length) return;
       await ready();
       await queued(() => write(momentId, { ...get(momentId), ...set }));
     },
-    /** A page left without words (RX13): nothing it held is kept. */
+    /** The page's first save has begun: what it holds is kept for it even if the page closes before it lands (RL11). */
+    saving(key: string) {
+      saving.add(key);
+    },
+    /** A page left without words (RX13): nothing it held is kept, unless its first save is on its way (RL11). */
     drop(key: string) {
+      if (saving.has(key)) return;
       held.delete(key);
+    },
+    /** A panel closed: what it said of a reaction not kept goes with it (RL9). */
+    closed(momentId: string | null | undefined) {
+      if (momentId && store.get().notKept === momentId) store.set((s) => ({ ...s, notKept: null }));
     },
     /** The Reactions list (RX23): only reactions a kept moment has. */
     async groups(hidden: ReadonlySet<string> = NONE): Promise<LensGroup[]> {

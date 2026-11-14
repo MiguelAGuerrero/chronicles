@@ -9,6 +9,7 @@ import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet
 import { Modal } from './Modal';
 import { reactions } from '../lib/reactions';
 import { useReactions } from '../lib/reactions/useReactions';
+import type { ReactionId } from '../lib/reactions/core';
 import { ReactionMarks } from './reactions/ReactionMarks';
 import { ReactionPanel } from './reactions/ReactionPanel';
 import { MemoTranscript } from './MemoTranscript';
@@ -216,6 +217,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   autoPlay?: boolean;
   /** False: the moment's reactions are neither drawn nor said (the replay's step-through, reactions audit 18). */
   reactions?: boolean;
+  /** A reaction under the info line opens its lens (RL3): given only by Memories' viewers. */
+  onLens?: (id: ReactionId) => void;
   onVoiceFinished?: () => void;
   footer?: string;
   /** The viewer's parts of the line, in order; it names the day first and keeps one thread status (audit 19, 21). */
@@ -337,7 +340,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
             <Text style={styles.stripMeta} numberOfLines={props.responses ? 3 : 2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(true)}</Text>
             {actions(true)}
           </View>
-          <ReactionMarks set={reacted} inverse style={styles.stripReactions} />
+          <ReactionMarks set={reacted} inverse style={styles.stripReactions} onOpen={props.onLens} />
         </View>
         )}
       </View>
@@ -354,7 +357,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
           {actions(false)}
         </View>
-        <ReactionMarks set={reacted} style={styles.pageReactions} />
+        <ReactionMarks set={reacted} style={styles.pageReactions} onOpen={props.onLens} />
         </View>
       </View>
     );
@@ -375,7 +378,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
             <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
             {actions(false)}
           </View>
-          <ReactionMarks set={reacted} />
+          <ReactionMarks set={reacted} onOpen={props.onLens} />
         </View>
       </View>
     </View>
@@ -389,6 +392,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 export function CaptureViewer(props: {
   captures: Faced[] | null;
   onClose: () => void;
+  /** A reaction under the info line opens its lens (RL3): the viewer closes first. Memories' viewers alone pass it (RL4). */
+  onLens?: (id: ReactionId) => void;
   /** Extra words per capture, e.g. which walk it came from. */
   context?: Map<string, string>;
   /** A note's page head line per moment, where the screen has one (note pages NP2), without touching the info line. */
@@ -737,6 +742,7 @@ export function CaptureViewer(props: {
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
+            onLens={props.onLens ? (id) => { close(); props.onLens!(id); } : undefined}
             note={
               current.kind === 'text'
                 ? {
@@ -901,7 +907,7 @@ export function CaptureViewer(props: {
             body={noting.body ?? ''}
             bodyFormat={noting.body_format ?? null}
             // The page's Reaction tool, on the moment shown (RX12): kept at once, never touching the words.
-            reaction={{ set: notingSet, onPick: (id) => void reactions.choose(noting.id, id).catch(() => setSaveState({ id: noting.id, text: 'The reaction could not be saved' })) }}
+            reaction={{ set: notingSet, moment: noting.id, onPick: (id) => void reactions.choose(noting.id, id).catch(() => {}) }}
             head={headOf(noting)}
             self={noting.id}
             onClose={() => setNoting(null)}
@@ -977,7 +983,8 @@ export function CaptureViewer(props: {
                 <Text style={styles.reactDoneText}>Done</Text>
               </Pressable>
             </View>
-            <ReactionPanel set={reactingSet} onPick={(id) => void reactions.choose(reactingTo, id).catch(() => setSaveState({ id: reactingTo, text: 'The reaction could not be saved' }))} />
+            {/* A choice not kept is said in the panel, the one line for it (RL9). */}
+            <ReactionPanel set={reactingSet} moment={reactingTo} onPick={(id) => void reactions.choose(reactingTo, id).catch(() => {})} />
           </View>
         )}
         {menu && current && (

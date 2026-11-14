@@ -13,20 +13,20 @@ const src = (f: string) => readFileSync(join(SRC, f), 'utf8');
 type Row = { moment_id: string; family: string; reaction: string };
 const rows = async (p: ReturnType<typeof fakePorts>) => ((await (p.db as unknown as { listReactions: () => Promise<Row[]> }).listReactions()) ?? []).map((r) => [r.moment_id, r.family, r.reaction]).sort();
 
-test('RL6, RL7: the sign and the page\'s tool say everything chosen, in the families\' order, or none', { todo: 'test first' }, async () => {
+test('RL6, RL7: the sign and the page\'s tool say everything chosen, in the families\' order, or none', async () => {
   const { signLabel } = await core();
   assert.equal(signLabel({}), 'Reaction, none');
   assert.equal(signLabel({ thought: 'idea', feeling: 'happy' }), 'Reaction, Happy, Idea');
 });
 
-test('RL6: the sign is drawn as the face with a plus at one size, whatever is chosen', { todo: 'test first' }, () => {
+test('RL6: the sign is drawn as the face with a plus at one size, whatever is chosen', () => {
   const s = src('components/reactions/ReactionSign.tsx');
   assert.doesNotMatch(s, /signOf\(/, 'the sign never takes a reaction\'s glyph');
   assert.match(s, /name="happy-outline"/);
   assert.doesNotMatch(s, /first \? null :/, 'the plus is always drawn');
 });
 
-test('RL7: the page\'s Reaction tool is the face with a plus, whatever is chosen', { todo: 'test first' }, () => {
+test('RL7: the page\'s Reaction tool is the face with a plus, whatever is chosen', () => {
   const s = src('components/notePage/NotePage.tsx');
   const i = s.indexOf('testID="note-reaction-tool"');
   assert.ok(i > 0);
@@ -35,7 +35,7 @@ test('RL7: the page\'s Reaction tool is the face with a plus, whatever is chosen
   assert.match(tool, /happy-outline/);
 });
 
-test('RL9: a choice that cannot be kept leaves the set as it was and marks it not kept, until the next choice or the panel closes', { todo: 'test first' }, async () => {
+test('RL9: a choice that cannot be kept leaves the set as it was and marks it not kept, until the next choice or the panel closes', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const r = createReactions(p);
@@ -52,7 +52,7 @@ test('RL9: a choice that cannot be kept leaves the set as it was and marks it no
   assert.equal(r.store.get().notKept, null, 'closing the panel clears it');
 });
 
-test('RL10: a moment\'s reactions written together are kept together or not at all', { todo: 'test first' }, async () => {
+test('RL10: a moment\'s reactions written together are kept together or not at all', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const r = createReactions(p);
@@ -64,7 +64,7 @@ test('RL10: a moment\'s reactions written together are kept together or not at a
   assert.deepEqual(await rows(p), [], 'none of them');
 });
 
-test('RL11: reactions held by a new page survive the page closing while its first save is on its way', { todo: 'test first' }, async () => {
+test('RL11: reactions held by a new page survive the page closing while its first save is on its way', async () => {
   const { createReactions } = await shell();
   const p = fakePorts();
   const r = createReactions(p);
@@ -80,7 +80,7 @@ test('RL11: reactions held by a new page survive the page closing while its firs
   assert.deepEqual((await rows(p)).filter((x) => x[0] === 'm2'), [], 'a page left without words still keeps nothing');
 });
 
-test('RL12: a video\'s pin wears its reactions in an L, each on the head and clear of the play mark', { todo: 'test first' }, async () => {
+test('RL12: a video\'s pin wears its reactions in an L, each on the head and clear of the play mark', async () => {
   const { reactionSpots } = await pins();
   const SIZE = 15;
   const HEAD = [0, 0, 36, 36];

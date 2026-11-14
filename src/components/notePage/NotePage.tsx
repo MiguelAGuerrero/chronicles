@@ -8,7 +8,7 @@ import { fits, roomOfCount } from '../../lib/notePage/room';
 import type { BodyFormat } from '../../lib/notePage/schema';
 import { refLabel } from '../../lib/threads/lines';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
-import { signLabel, signOf, type ReactionId, type ReactionSet } from '../../lib/reactions/core';
+import { signLabel, type ReactionId, type ReactionSet } from '../../lib/reactions/core';
 import { Icon, type IconName } from '../icons';
 import { ReactionPanel } from '../reactions/ReactionPanel';
 import { MomentPicker } from '../threads/MomentPicker';
@@ -162,7 +162,7 @@ export const NotePage = forwardRef<NotePageHandle, {
    * The moment's reactions and a tap on one (RX12, RX13): with it the page offers the Reaction tool in its bar, where
    * the Type tool was. A response's page has none (RX13).
    */
-  reaction?: { set: ReactionSet; onPick: (id: ReactionId) => void };
+  reaction?: { set: ReactionSet; onPick: (id: ReactionId) => void; moment?: string | null };
 }>(function NotePage(props, ref) {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -246,7 +246,7 @@ export const NotePage = forwardRef<NotePageHandle, {
       )}
       {typePanel && props.reaction ? (
         // A choice keeps the panel open, so a second family is one more tap (RX5); the tool closes it.
-        <ReactionPanel set={props.reaction.set} onPick={props.reaction.onPick} />
+        <ReactionPanel set={props.reaction.set} onPick={props.reaction.onPick} moment={props.reaction.moment} />
       ) : null}
       <View style={[styles.bar, { paddingBottom: (keyboard && Platform.OS !== 'ios' ? 0 : insets.bottom) + 6, marginBottom: bottom }]} testID="note-bar" accessibilityRole="toolbar">
         <Tool testID="note-format" label="Format" caption="Format" on={panel} onPress={() => { setTypePanel(false); setPanel((p) => !p); }}>
@@ -257,7 +257,7 @@ export const NotePage = forwardRef<NotePageHandle, {
         </Tool>
         {props.reaction ? (
           <Tool testID="note-reaction-tool" label={signLabel(props.reaction.set)} caption="Reaction" on={typePanel} onPress={() => { setPanel(false); setTypePanel((o) => !o); }}>
-            <Icon name={(signOf(props.reaction.set)?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} />
+            <Icon name="happy-outline" size={22} color={theme.ink} testID="note-reaction-face" />
           </Tool>
         ) : null}
         {camera ? (
