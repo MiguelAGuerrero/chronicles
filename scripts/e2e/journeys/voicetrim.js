@@ -21,9 +21,11 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 });
   await pg.waitForTimeout(4200);
   await pg.click('[data-testid=band-voice-save]');
-  await pg.waitForSelector('[data-testid=memories-list] [data-testid=moment-card]', { timeout: 15000 });
-  const whole = await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').first().innerText();
-  await pg.locator('[data-testid=memories-list] [data-testid=moment-open]').first().click();
+  await pg.waitForSelector('[data-testid=journal-page] [data-testid=moment-card]', { timeout: 15000 });
+  // The journal's voice line carries the memo's length as its clock (0:04), not a card sentence.
+  const clockOf = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').first().locator('[data-testid=entry-voice-time]').innerText().catch(() => '');
+  const whole = await clockOf();
+  await pg.locator('[data-testid=journal-page] [data-testid=moment-open]').first().click();
   await there('[data-testid=capture-viewer]');
   await pg.waitForTimeout(900);
 
@@ -112,8 +114,8 @@ async function run(h) {
 
   // VT10: the card says the kept length.
   await pg.waitForTimeout(600);
-  const card = await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').first().innerText();
-  const len = (t) => (/Voice memo, (\d+:\d\d)/.exec(t) ?? [])[1];
+  const card = await clockOf();
+  const len = (t) => (t.match(/\d+:\d\d/g) ?? []).pop();
   check(len(whole) && len(card) && len(card) !== len(whole), `VT10: the moment card says the kept length ("${len(whole)}" → "${len(card)}")`);
   await c.close();
 }

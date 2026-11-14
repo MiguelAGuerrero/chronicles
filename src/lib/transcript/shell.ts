@@ -76,7 +76,24 @@ export function createTranscripts(p: TranscriptPorts) {
       store.set(new Map(rows.map((r) => [r.capture_id, r])));
     })());
 
-  const put = (row: Transcript) => store.set((prev) => new Map(prev).set(row.capture_id, row));
+  // Rows stored during a run wait here and are published together (audit 5b): copying the whole map per row is
+  // O(n^2) over a backfill. `words()` reads them at once, so what a view says never lags what is stored.
+  const pending = new Map<string, Transcript>();
+  const PUBLISH_EVERY = 50;
+  const publish = () => {
+    if (!pending.size) return;
+    const rows = [...pending];
+    pending.clear();
+    store.set((prev) => {
+      const next = new Map(prev);
+      for (const [id, row] of rows) next.set(id, row);
+      return next;
+    });
+  };
+  const put = (row: Transcript) => {
+    pending.set(row.capture_id, row);
+    if (pending.size >= PUBLISH_EVERY) publish();
+  };
 
   /** How a read ended: carry on, or stop the queue for a reason that holds for every memo. */
   type Outcome = 'next' | 'stop' | 'drop-backfill';
@@ -152,6 +169,7 @@ export function createTranscripts(p: TranscriptPorts) {
       if (out === 'stop') queue = [];
       else if (out === 'drop-backfill') queue = queue.filter((i) => i.kept);
     }
+    publish();
     if (wrote) {
       wrote = false;
       for (const l of [...settledListeners]) l();
@@ -173,7 +191,7 @@ export function createTranscripts(p: TranscriptPorts) {
     await load();
     if (off) return;
     const waiting = new Set(queue.map((i) => i.memo.id));
-    const fresh = needsTranscript(memos, [...store.get().values()]).filter((m) => !waiting.has(m.id));
+    const fresh = needsTranscript(memos, [...new Map([...store.get(), ...pending]).values()]).filter((m) => !waiting.has(m.id));
     queue = [...queue, ...fresh.map((memo) => ({ memo, kept }))].sort((a, b) => b.memo.t - a.memo.t);
     await kick();
   }
@@ -206,7 +224,7 @@ export function createTranscripts(p: TranscriptPorts) {
     },
     /** A memo's words for Chronicle and the caption: none while unread, empty, or read from another span (TX10, TX13). */
     words(id: string, memo?: MemoRef): string | null {
-      const row = store.get().get(id);
+      const row = pending.get(id) ?? store.get().get(id);
       if (!row) return null;
       if (memo) {
         const s = spanOf(memo);
@@ -218,6 +236,7 @@ export function createTranscripts(p: TranscriptPorts) {
     async forget(ids: string[]) {
       await load();
       for (const id of ids) await p.db.clearTranscript(id);
+      for (const id of ids) pending.delete(id);
       store.set((prev) => {
         const next = new Map(prev);
         for (const id of ids) next.delete(id);

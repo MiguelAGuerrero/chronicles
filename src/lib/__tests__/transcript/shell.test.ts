@@ -292,3 +292,17 @@ test('memo-transcripts audit 10: the web engine says it is unavailable, so nothi
   const { engine } = await import('../../transcript/engine');
   assert.equal(await engine.permission(), 'unavailable');
 });
+
+test('memo-transcripts audit 5b: a backfill of 200 memos publishes the store a handful of times, not once per row', async () => {
+  const r = rig({ permission: 'granted' });
+  const { t } = await make(r);
+  let notified = 0;
+  t.store.subscribe(() => { notified++; });
+  await t.backfill(Array.from({ length: 200 }, (_, i) => memo(`m${i}`, i + 1)));
+  await t.settled();
+  assert.equal(r.reqs.length, 200);
+  assert.ok(notified <= 5, `the store was published ${notified} times`);
+  assert.equal(t.words('m0'), 'words of file:///memo-m0.m4a');
+  assert.equal(t.words('m199'), 'words of file:///memo-m199.m4a');
+  assert.equal(t.store.get().size, 200);
+});
