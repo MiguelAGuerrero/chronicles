@@ -82,9 +82,11 @@ Open: none
 - 2026-11-14 (the owner, decision 0179): no swallowed errors; handled by kind; a local diagnostics log, shared as
   text from the walk settings ("Share sheet, as text").
 - 2026-11-14 (the owner): this slice follows code quality on the same branch.
+- 2026-11-14 (the owner, on the plan): one slice, the codemod for the mechanical sites and a hand pass for the saves
+  and refusals; the row in the walk settings after Distances (0179's "settings dialog"); the log keeps 500 entries and
+  30 days.
 
 ## Open
 
-- The plan's defaults for the owner: retention (500 entries, 30 days), the row's place (after Distances).
-- The steward's questions: the "settings dialog" of 0179 read as the walk settings (there is no Settings screen); with
-  EH3a an entry names no walk or moment, so deleting one leaves nothing in the log to remove.
+- None: the owner answered the plan's questions (Decisions). With EH3a an entry names no walk or moment, so deleting
+  one leaves nothing in the log to remove.
