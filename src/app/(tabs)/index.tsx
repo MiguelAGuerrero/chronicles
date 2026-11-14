@@ -45,7 +45,7 @@ import { WalkActions } from '../../components/WalkActions';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
-export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+export { HomeScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 const NONE: never[] = [];
 /** With nothing walked yet: the world, and one line. */

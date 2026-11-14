@@ -18,3 +18,12 @@ test("tend replay audit 7: Explore's and Navigate's error screens leave by the t
     [['explore.tsx', 'TabScreenError'], ['navigate.tsx', 'TabScreenError']],
   );
 });
+
+test("tend replay audit 8: Chronicle's tab and the tabs' layout show Try again alone, with no way back that goes nowhere", () => {
+  // On Chronicle's own tab a way back to Chronicle stays where it is, and the layout's boundary stands in for the
+  // whole tab navigator, tab bar included, where it did nothing either (the T20 review's ux 1, auditor 2).
+  assert.deepEqual(
+    ['index.tsx', '_layout.tsx'].map((f) => [f, boundaryOf(f)]),
+    [['index.tsx', 'HomeScreenError'], ['_layout.tsx', 'HomeScreenError']],
+  );
+});

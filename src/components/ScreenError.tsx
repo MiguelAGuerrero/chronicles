@@ -5,9 +5,10 @@ import { Button, theme } from './ui';
 /**
  * How the error screen's "Back to Chronicle" reaches `/`. Over the tabs (a replay, a day, the walk screen) it
  * dismisses down to Chronicle; inside the tab navigator `dismissTo('/')` is a POP_TO the tabs have not, and does
- * nothing (the T20 review's auditor 1), so a tab navigates to Chronicle's tab instead.
+ * nothing (the T20 review's auditor 1), so a tab navigates to Chronicle's tab instead. On Chronicle's own tab, and
+ * in the tabs' layout that stands in for them all, there is nowhere to go back to: Try again alone (`none`).
  */
-type Exit = 'dismiss' | 'navigate';
+type Exit = 'dismiss' | 'navigate' | 'none';
 
 function ErrorScreen({ error, retry, exit }: ErrorBoundaryProps & { exit: Exit }) {
   return (
@@ -16,12 +17,14 @@ function ErrorScreen({ error, retry, exit }: ErrorBoundaryProps & { exit: Exit }
       <Text style={styles.body}>Your walk is saved.</Text>
       <Text style={styles.detail} selectable>{error?.message || String(error)}</Text>
       <Button label="Try again" onPress={() => void retry()} />
-      <Button
-        label="Back to Chronicle"
-        variant="secondary"
-        onPress={() => (exit === 'navigate' ? router.navigate('/') : router.dismissTo('/'))}
-        style={{ marginTop: 12 }}
-      />
+      {exit !== 'none' && (
+        <Button
+          label="Back to Chronicle"
+          variant="secondary"
+          onPress={() => (exit === 'navigate' ? router.navigate('/') : router.dismissTo('/'))}
+          style={{ marginTop: 12 }}
+        />
+      )}
     </View>
   );
 }
@@ -39,6 +42,11 @@ export function ScreenError(props: ErrorBoundaryProps) {
 /** The same, on Explore and Navigate: its way back opens Chronicle's tab (tend replay audit 7). */
 export function TabScreenError(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} exit="navigate" />;
+}
+
+/** The same, on Chronicle's own tab and in the tabs' layout: Try again alone (tend replay audit 8). */
+export function HomeScreenError(props: ErrorBoundaryProps) {
+  return <ErrorScreen {...props} exit="none" />;
 }
 
 const styles = StyleSheet.create({
