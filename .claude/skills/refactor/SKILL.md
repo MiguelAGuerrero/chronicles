@@ -82,8 +82,10 @@ Commit the tightened `scripts/quality.baseline.json` with the move that earned i
 ## 6. File the rest
 
 Anything taken off the queue as behavioural or architectural goes to the owner: from `/slice`, a "From /slice
-<slug>" item in `docs/STATUS.md`, "Needs the owner"; from `/tend`, an inbox entry, `[arch]` when architectural. Use
-`npm run records` for both (decision 0156). A move left for later is not filed: the queue keeps it.
+<slug>" item in `docs/STATUS.md`, "Needs the owner" (`npm run records -- section item add "From /slice <slug>" --file
+<item>`); from `/tend`, an inbox entry (`npm run records -- inbox add`), `[arch]` when architectural. Then `npm run
+check:records -- origin/main` before the commit, whose message carries `npm run records -- trailers` (decision 0156).
+A move left for later is not filed: the queue keeps it.
 
 ## Report
 
