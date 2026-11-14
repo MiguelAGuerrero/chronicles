@@ -1,8 +1,10 @@
 // @layer adapter
 import { db } from '../db';
 import { startOffNotice } from '../locate/notice';
+import { watchLocatePermission } from '../locate/permission.web';
 import type { TracePoint } from '../types';
 import { emit, setStatus, subscribe, subscribeStatus } from './emitter';
+import { refusalFollower } from './followPermission';
 import { RecorderError, type Recorder } from './types';
 
 /**
@@ -22,6 +24,15 @@ let lastFixAt = 0;
 const WAITING_AFTER_MS = 10_000;
 let pending: Promise<void> | null = null;
 let wakeLock: { release(): Promise<void> } | null = null;
+/**
+ * Following the site's permission after a refusal, so the walk records again once it is given back (O22): only for the
+ * walk the store holds open and not paused (tend walk-screen audit 2-4). `recorder` is read when it resumes.
+ */
+const follower = refusalFollower({ watch: watchLocatePermission, walks: db, resume: (id) => recorder.resume(id) });
+
+function unfollowPermission() {
+  follower.stop();
+}
 
 function record(p: TracePoint) {
   db.appendPoints([p]).then(
@@ -34,6 +45,11 @@ function record(p: TracePoint) {
 }
 
 async function holdWakeLock() {
+  // One lock at a time: a restart (a return, the permission given back) takes a new one, so the old one goes first, or
+  // it would keep the screen awake after the walk ends (tend walk-screen audit 6).
+  const held = wakeLock;
+  wakeLock = null;
+  await held?.release().catch(() => {});
   try {
     const nav = navigator as Navigator & { wakeLock?: { request(type: 'screen'): Promise<{ release(): Promise<void> }> } };
     wakeLock = (await nav.wakeLock?.request('screen')) ?? null;
@@ -64,6 +80,8 @@ function watch(id: string): Promise<void> {
     return Promise.reject(new RecorderError('This browser has no location access, so it cannot record a walk.'));
   }
   stopWatch();
+  // A start for another walk ends the following; the followed walk's own restart keeps it (audit 7).
+  if (follower.following() !== id) unfollowPermission();
   walkId = id;
   lastFixAt = 0;
   setStatus({ kind: 'waiting' });
@@ -103,6 +121,9 @@ function watch(id: string): Promise<void> {
         // Refused: Locate's line with the recorder's own end, as a quiet notice (T26).
         const { message, tone } = startOffNotice('web');
         setStatus({ kind: 'error', message, tone });
+        // Location given back, the walk records again by itself (decision 0172, O22): nothing is stored meanwhile, so
+        // the off span reads in the trace as lost GPS does, a gap over a minute (never a pause).
+        void follower.refused(id);
         settle(() => reject(new RecorderError(message, false, tone)));
       },
       { enableHighAccuracy: true, maximumAge: 0 },
@@ -125,6 +146,7 @@ export const recorder: Recorder = {
   },
   async stop() {
     stopWatch();
+    unfollowPermission();
     walkId = null;
     setStatus({ kind: 'idle' });
     await wakeLock?.release().catch(() => {});

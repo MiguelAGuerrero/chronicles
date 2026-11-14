@@ -295,32 +295,33 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 14, `/tend explore --cap=8 --deploy=main`, the ledger lens** (from `e6bdfc6a`, rebased on `00e0bbe9`; the owner's
-answers of decision 0172 for Explore first, then Explore's medium `[loop]` items).
-- `tend explore 8`: one way to find you (O6, O20): no edge Locate beside Find me; no Find me after a refusal until the
-  permission changes (`findYou`, `locate/permission.*`, native unverified).
-- `tend explore 9`: the selected card's border and footer link in ink (O3, the accent at rest).
-- `tend explore 10`: "You're in Fox Point" a status line in ink (O10).
-- `tend explore 11`: the far town's question says "Not now" in words, no second name line (O2).
-- `tend explore 12`: Explore's toast dwell a motion token (O7; O23, the walk screen's, waits for its run).
-- `tend explore 13`: a look cancelled while its area is written says nothing (`runLook`).
-- `tend explore 14`: a capture made during its area's read waits for that read (`capturesToFind`).
-- `tend explore 15`: a read for another centre waits for the running one, never told it was its own (`readJoin`).
-- The review (auditor and ux-reviewer, one round, decision 0145): fourteen findings accepted, shipped as
-  `tend explore audit 8-17`: blocked location shows no edge Locate either (audit 8); the owner's answer, in person,
-  Nov 14, during the review, "Say where to turn it on", added to 0172's O6 and O20: while blocked the empty card says
-  "Location is off. Turn it on in your browser's or your phone's settings to see the areas around you." (on a phone,
-  the phone notice's words: "Location is turned off for Chronicles. Turn it on in Settings to see the areas around
-  you."), muted, no crosshair, the notice still closable (audit 9); the refusal's notice goes once allowed (10); the
-  explore reads' queue a tested shell (`explore/exploreQueue.ts`) with a pending hold (11), places being recorded taken
-  (12), stopped waiters and reads (13); `MOTION.exploreToast` (14); the compass hands focus to Move map (15); "Not now"
-  below the choices, which stack under 360 px (16); "You're in" in regular weight (17); the run's own rule line on the
-  edge Locate reworded (auditor 7). Five filed `[loop]` low: the accent at rest on "How the marks work" and the map's
-  selected name, the kind rows cut at 320, the toast over the credits, Move map alone in its column.
-Left by the cap, `[loop]` as they were: "A near read whose write fails is retried every 1.5 s", "A failed
-`listAtlasAreas` in `readNear`". Entries filed: none (the answers were the owner's). Lenses not run: 1-6 (a ledger run;
-only the screens the answers changed were pictured, at 390 and 320). Explore stays rough (capped). Nothing here has run
-on a phone.
+**Nov 14, `/tend walk-screen --cap=8 --deploy=main`, the ledger lens** (from `85cffce8`; the owner's answers of
+decision 0172 for the walk and its recording first, with the `[loop]` item O22 is built with).
+- `tend walk-screen 2`: a refused walk's quiet notice goes once the walk records again, whatever restarted it
+  (`raisedAfter`; the `[loop]` item of the T26 review).
+- `tend walk-screen 3`: on the web, a walk whose location is turned back on records again by itself (O22): the recorder
+  follows the site's permission after a refusal; nothing is stored meanwhile, so the off span reads as a gap over a
+  minute, never a pause.
+- `tend walk-screen 4`: the web refusal names "your browser's or your phone's settings" (O19).
+- `tend walk-screen 5`: Locate's timeout says "Couldn't find your position. Try again in a moment." quietly (O21);
+  `LocateError.refused` says a refusal, not the tone.
+- `tend walk-screen 6`: the walk screen's error says "Your walk is still recording." (O35).
+- `tend walk-screen 7`: the strip's Pause shows "Pause" / "Resume" under its icon (O27).
+- `tend walk-screen 8`: the walk screen's dwell times are named motion tokens (O23).
+- `tend walk-screen 9`: a found place's pin wears its finding moment's kind glyph, not a tick (O26).
+- The review (auditor and ux-reviewer, one round, decision 0145): eleven findings accepted, shipped as
+  `tend walk-screen audit 2-11`: the follower resumes only the walk the store holds open and unpaused, never after a
+  refused Start or Resume, nor a walk ended in another tab (audits 2-4, run against session state); the walk route's
+  error line follows the open walk and its pause (5); one wake lock after a return (6); the follower lives for the
+  walk's refusals (7); the walk's own moment wins for a find's glyph (8); Hold 48 high beside Pause on the walk's strip
+  (9); the owner's answers, in person, Nov 14, during the review, added to 0172: "Card only on Explore" (O6, O20: no
+  refusal banner while Explore's card says location is blocked, 10) and "Found with a video: …" (O26: the found pin
+  said with its kind, 11). Two filed `[loop]` low (the too-long video's fault beside "Video saved here"; the toast
+  wrapping at 320).
+Left by the cap, `[loop]` as they were: the "Navigate, ready" memo items (a null `uri`, a save lost on unmount,
+`dropTemp` in an updater), the `space` step's setup, "Add to this moment" at 320. The journal's 450 ms settle stays
+noted (not built with O23). Entries filed: none. Lenses not run: 1-6 (a ledger run; only the screens the answers
+changed were pictured, at 390 and 320). The walk screen stays rough (capped). Nothing here has run on a phone.
 
 ### Open before the loop
 
@@ -401,6 +402,7 @@ on a phone.
   record a walk.", as the same quiet notice on the ready screen and in the walk's "Not recording" notice. So QL19 and
   the map rule's "Denied says what the recorder's start says" hold on the web again, the two lines sharing their
   beginning and each its own end. QL11's and QL5's wording still wait for your edit.
+  Since `tend walk-screen 4` (Nov 14; decision 0172, O19) the web's lines say "Turn it on in your browser’s or your phone’s settings to see where you are." (Locate) and "… to record a walk." (Start); and since `tend walk-screen 5` (O21) a Locate that finds nothing in time says "Couldn’t find your position. Try again in a moment." in the quiet notice's tone, not red: use these words when you amend QL11 (the O21 bullet above names its wording too).
 - **Since Nov 13, 2026 (decision 0156): the record gate is on `main`.** Agents change `docs/STATUS.md`,
   `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` only through `npm run records -- <op>`, and CI replays every
   agent commit (a `Claude-Session:` or `Co-Authored-By: Claude` trailer); your own hand edits are not gated. A

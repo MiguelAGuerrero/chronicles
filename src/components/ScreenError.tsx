@@ -1,5 +1,7 @@
 import { router, type ErrorBoundaryProps } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
+import { walkErrorLine } from '../lib/readyNav';
+import { useOpenWalkInfo } from './OpenWalk';
 import { Button, theme } from './ui';
 
 /**
@@ -10,11 +12,11 @@ import { Button, theme } from './ui';
  */
 type Exit = 'dismiss' | 'navigate' | 'none';
 
-function ErrorScreen({ error, retry, exit }: ErrorBoundaryProps & { exit: Exit }) {
+function ErrorScreen({ error, retry, exit, body = 'Your walk is saved.' }: ErrorBoundaryProps & { exit: Exit; body?: string | null }) {
   return (
     <View style={styles.screen} testID="screen-error">
       <Text style={styles.title} accessibilityRole="header">Something went wrong showing this screen.</Text>
-      <Text style={styles.body}>Your walk is saved.</Text>
+      {body != null && <Text style={styles.body}>{body}</Text>}
       <Text style={styles.detail} selectable>{error?.message || String(error)}</Text>
       <Button label="Try again" onPress={() => void retry()} />
       {exit !== 'none' && (
@@ -37,6 +39,16 @@ function ErrorScreen({ error, retry, exit }: ErrorBoundaryProps & { exit: Exit }
  */
 export function ScreenError(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} exit="dismiss" />;
+}
+
+/**
+ * The same, on the walk screen: the recorder goes on behind it, so a walk recording is "still recording", never saved,
+ * which can read as ended (decision 0172, O35); a paused walk is saved, and Navigate with no walk open says nothing of a
+ * walk (tend walk-screen audit 5). The way back is the walk's own, as `ScreenError`'s.
+ */
+export function WalkScreenError(props: ErrorBoundaryProps) {
+  const line = walkErrorLine(useOpenWalkInfo());
+  return <ErrorScreen {...props} exit="dismiss" body={line} />;
 }
 
 /** The same, on Explore and Navigate: its way back opens Chronicle's tab (tend replay audit 7). */

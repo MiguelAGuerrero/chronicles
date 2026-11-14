@@ -43,3 +43,12 @@ export const BLOCKED_LINE = {
 export function refusalLifted(was: PermissionSeen | null, state: LocatePermission): boolean {
   return was != null && state !== was.state && state !== 'denied';
 }
+
+/**
+ * Explore's banner for an error (tend walk-screen audit 10; the owner, in person, Nov 14, adding to 0172's O6/O20 answer:
+ * "Card only on Explore"): while the empty card says location is blocked, a refusal raises no banner over it, since the
+ * card says it. A fault (no tone, or `error`) keeps its banner; the walk and the other screens keep theirs.
+ */
+export function exploreBanner<E extends { tone?: 'info' | 'error' }>(error: E | null, blocked: boolean): E | null {
+  return error && blocked && error.tone === 'info' ? null : error;
+}

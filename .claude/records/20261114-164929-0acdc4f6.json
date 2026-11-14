@@ -1,0 +1,66 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A refused",
+        "--reason",
+        "the [loop] item O22 is built with (decision 0172), built in tend walk-screen 2: a refused walk's quiet notice goes once the walk records again"
+      ],
+      "target": "sha256:e1e479278a5abd6d767015def725bbf3c5d3f5c467797d2064166c95611c6779"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "On the walk",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend walk-screen 3: on the web, a walk whose location is turned back on records again by itself (guarded by tend walk-screen audit 2-4, 6 and 7)"
+      ],
+      "target": "sha256:875ee04ded02d5b75924dd01ca4aaa58df29775da1594f181eb61d832375d821"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The strip",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend walk-screen 7: the strip's Pause says \"Pause\" under its icon, and \"Resume\" while paused (Hold level with it since tend walk-screen audit 9)"
+      ],
+      "target": "sha256:404bb627f3cd4bf621ef7a250a5aa5401059c6b44fb85c975ef8d22fea8d2510"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 14, `/tend walk-screen --cap=8 --deploy=main`, the ledger lens** (from `85cffce8`; the owner's answers of\ndecision 0172 for the walk and its recording first, with the `[loop]` item O22 is built with).\n- `tend walk-screen 2`: a refused walk's quiet notice goes once the walk records again, whatever restarted it\n  (`raisedAfter`; the `[loop]` item of the T26 review).\n- `tend walk-screen 3`: on the web, a walk whose location is turned back on records again by itself (O22): the recorder\n  follows the site's permission after a refusal; nothing is stored meanwhile, so the off span reads as a gap over a\n  minute, never a pause.\n- `tend walk-screen 4`: the web refusal names \"your browser's or your phone's settings\" (O19).\n- `tend walk-screen 5`: Locate's timeout says \"Couldn't find your position. Try again in a moment.\" quietly (O21);\n  `LocateError.refused` says a refusal, not the tone.\n- `tend walk-screen 6`: the walk screen's error says \"Your walk is still recording.\" (O35).\n- `tend walk-screen 7`: the strip's Pause shows \"Pause\" / \"Resume\" under its icon (O27).\n- `tend walk-screen 8`: the walk screen's dwell times are named motion tokens (O23).\n- `tend walk-screen 9`: a found place's pin wears its finding moment's kind glyph, not a tick (O26).\n- The review (auditor and ux-reviewer, one round, decision 0145): eleven findings accepted, shipped as\n  `tend walk-screen audit 2-11`: the follower resumes only the walk the store holds open and unpaused, never after a\n  refused Start or Resume, nor a walk ended in another tab (audits 2-4, run against session state); the walk route's\n  error line follows the open walk and its pause (5); one wake lock after a return (6); the follower lives for the\n  walk's refusals (7); the walk's own moment wins for a find's glyph (8); Hold 48 high beside Pause on the walk's strip\n  (9); the owner's answers, in person, Nov 14, during the review, added to 0172: \"Card only on Explore\" (O6, O20: no\n  refusal banner while Explore's card says location is blocked, 10) and \"Found with a video: …\" (O26: the found pin\n  said with its kind, 11). Two filed `[loop]` low (the too-long video's fault beside \"Video saved here\"; the toast\n  wrapping at 320).\nLeft by the cap, `[loop]` as they were: the \"Navigate, ready\" memo items (a null `uri`, a save lost on unmount,\n`dropTemp` in an updater), the `space` step's setup, \"Add to this moment\" at 320. The journal's 450 ms settle stays\nnoted (not built with O23). Entries filed: none. Lenses not run: 1-6 (a ledger run; only the screens the answers\nchanged were pictured, at 390 and 320). The walk screen stays rough (capped). Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready",
+        "--reason",
+        "the review of tend walk-screen 2-9 (ux, out of the run's scope), a new [loop] low item; none of the [owner] items this range removed moves here, each answered by the owner (decision 0172) and built: \"Locate's web refusal names only the brow\"; \"Locate's timeout, \"Couldn’t find your po\"; \"Dwell times hard-coded in the walk scree\"; \"The green place pin carries a tick; conf\"; \"**The walk screen's error mid-walk** (th\"; \"On the walk, \"Location is off for this s\"; \"The strip mixes an icon-only Pause with \""
+      ],
+      "body": "- [loop] A video turned away as too long leaves its red fault (\"Videos can be up to 15 seconds here. That one was 20 s.\") on screen for its whole dwell (`MOTION.walkNotice`, 6 s) after a shorter clip picked at once is kept, so the fault and \"Video saved here\" show together (pictures `03h-found-pin-390-screen`, `-320-screen`, before and after the run). Checked, not a harness artefact: the journey's two picks come within the dwell, as a person retrying at once does; the camera's tap clears `useCaptures`' error, but the walk screen's notice is its own copy (`onCaptureError`, `walk.tsx`), which a kept capture does not take down (`tend walk-screen`'s review, ux, Nov 14, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready",
+        "--reason",
+        "the review of tend walk-screen 2-9 (ux, out of the run's scope), a new [loop] low item; none of the [owner] items this range removed moves here, each answered by the owner (decision 0172) and built: \"Locate's web refusal names only the brow\"; \"Locate's timeout, \"Couldn’t find your po\"; \"Dwell times hard-coded in the walk scree\"; \"The green place pin carries a tick; conf\"; \"**The walk screen's error mid-walk** (th\"; \"On the walk, \"Location is off for this s\"; \"The strip mixes an icon-only Pause with \""
+      ],
+      "body": "- [loop] At 320 px the walk's \"Video saved here\" toast wraps onto two lines (`03h-found-pin-320-screen`; ui-patterns, a one-line toast at 320) (`tend walk-screen`'s review, ux, Nov 14, low)\n"
+    }
+  ]
+}

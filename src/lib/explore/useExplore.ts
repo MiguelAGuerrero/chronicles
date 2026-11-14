@@ -1,5 +1,5 @@
 // @layer view
-import type { Faced } from '../moment';
+import { faced, type Faced } from '../moment';
 import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';
@@ -28,6 +28,7 @@ import {
 import { placesArchive } from '../discovery/archive';
 import { exploreBuild, exploreBusy, exploreHold, explorePending, exploreRead, itemBounds } from './exploreRun';
 import { createCaptureFinds } from './exploreQueue';
+import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
 /** Items are read again around you after this much walking. */
@@ -67,6 +68,11 @@ export function useExplore(opts: {
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [routeItems, setRouteItems] = useState<ChecklistItem[]>([]);
   const [found, setFound] = useState<Set<string> | null>(null);
+  // Which moment found each place, so its pin wears that moment's glyph (decision 0172, O26).
+  const [finds, setFinds] = useState<{ key: string; capture_id: string }[]>([]);
+  // Moments of other walks (or loose) that found a place on the map: read once each.
+  const [elsewhere, setElsewhere] = useState<Faced[]>([]);
+  const asked = useRef(new Set<string>());
   const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
   const mounted = useRef(true);
   const latest = useRef(opts);
@@ -87,6 +93,7 @@ export function useExplore(opts: {
     await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
     if (!mounted.current) return;
     setFound((f) => new Set([...(f ?? []), item.key]));
+    setFinds((fs) => [...fs.filter((x) => x.key !== item.key), { key: item.key, capture_id: captureId }]);
     latest.current.onFound(item);
   }, []);
   const [finder] = useState(() => createCaptureFinds({ pending: explorePending }));
@@ -101,6 +108,7 @@ export function useExplore(opts: {
         // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
         finder.seen(f.map((x) => x.capture_id));
         setFound(new Set(f.map((x) => x.key)));
+        setFinds(f.map((x) => ({ key: x.key, capture_id: x.capture_id })));
       }, () => alive && setFound((was) => was ?? new Set()));
     readFinds();
     // A deleted moment takes its find: the place can be found again on this walk (deletion audit 6).
@@ -270,16 +278,33 @@ export function useExplore(opts: {
     if (nudge) feedback('nudge');
   }, [exploring, settings.haptic, riding, previewing, shown, opts.walkId]);
 
+  // The found places on the map wear the glyph of the moment that found each (O26): this walk's captures, else read.
+  const shownFound = useMemo(() => new Set(shown.filter((s) => s.state === 'found').map((s) => s.item.key)), [shown]);
+  useEffect(() => {
+    const known = new Set([...opts.captures, ...elsewhere].map((c) => c.id));
+    const ids = facesToRead(finds, shownFound, known, asked.current);
+    if (!ids.length) return;
+    for (const id of ids) asked.current.add(id);
+    let alive = true;
+    db.getMomentsByIds(ids).then((ms) => alive && mounted.current && setElsewhere((e) => [...e, ...ms.map(faced)]), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [finds, shownFound, opts.captures, elsewhere]);
+  const faces = useMemo(() => foundFaces(finds, opts.captures, elsewhere), [finds, opts.captures, elsewhere]);
+
   const pins = useMemo<MarkPin[]>(() => {
     const pin = (item: ChecklistItem, o: Partial<MarkPin>): MarkPin => {
       const c = categoryOf(item.category);
       return { id: item.key, at: item.at, revealed: false, icon: c.icon as MarkPin['icon'], name: item.name, category: c.label, ...o };
     };
+    // The kind, whose glyph and words the pin wears; never a note's type: note types wait for the owner's rework (0172).
+    const kind = (key: string) => faces.get(key)?.kind;
     return [
-      ...shown.map((s) => pin(s.item, { revealed: s.state !== 'unknown', found: s.state === 'found' })),
+      ...shown.map((s) => pin(s.item, { revealed: s.state !== 'unknown', found: s.state === 'found', foundKind: s.state === 'found' ? kind(s.item.key) : undefined })),
       ...onTheWay.map((i) => pin(i, { faint: true })),
     ];
-  }, [shown, onTheWay]);
+  }, [shown, onTheWay, faces]);
 
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);

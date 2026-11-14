@@ -54,11 +54,12 @@ import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } fr
 import { MemoryPreview } from '../components/MemoryPreview';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { feedback } from '../lib/motion';
+import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
 import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
-import { retryRecorder } from '../lib/recorderRetry';
+import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
 import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
@@ -115,7 +116,6 @@ function midpointOf(s: StreetSegment): LngLat {
 }
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
-const NOTICE_MS = 6000;
 /** The screen's own clock: weak GPS (20 s) and the pause reminder (10 min) need no finer. */
 const SLOW_TICK_MS = 5000;
 
@@ -139,8 +139,7 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
 /** The walk that has had its dead-zone nudge (L15): once a walk. */
 const NUDGED_KEY = 'deadzone_walk';
 
-/** A reminder's card goes after this long, or this far walked on. */
-const REMINDER_MS = 30_000;
+/** A reminder's card goes after `MOTION.reminder`, or this far walked on. */
 const REMINDER_AWAY_M = 100;
 
 type Notice = {
@@ -160,8 +159,9 @@ type Notice = {
 };
 
 
-// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
-export { ScreenError as ErrorBoundary } from '../components/ScreenError';
+// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1); here, that the walk is still
+// recording (decision 0172, O35).
+export { WalkScreenError as ErrorBoundary } from '../components/ScreenError';
 
 /**
  * The walk screen, and Navigate itself (NR1-NR6): ready with no walk open,
@@ -343,6 +343,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
   // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
   const raisedError = useRef<string | null>(null);
+  // The words of the refusal's notice, until the walk records again and takes it down (QL25).
+  const shownError = useRef<string | null>(null);
   // Each quiet refusal raised, for the live region's repeat (tend recording audit 4).
   const saidCount = useRef(0);
   const retrying = useRef(false);
@@ -352,11 +354,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // The recorder reports "recording" with every fix: only a change re-renders the screen (perf).
         setStatus((prev) => (prev.kind === s.kind && JSON.stringify(prev) === JSON.stringify(s) ? prev : s));
         if (s.kind !== 'error') {
-          if (!retrying.current) raisedError.current = null;
+          // Recording again takes the refusal's notice down, whatever restarted it, even mid-retry (QL25).
+          const next = raisedAfter(raisedError.current, shownError.current, s.kind, retrying.current);
+          raisedError.current = next.raised;
+          shownError.current = next.shown;
+          const words = next.clear;
+          if (words != null) setNotice((n) => (n?.sticky && n.message === words ? null : n));
           return;
         }
         if (raisedError.current === s.message) return;
         raisedError.current = s.message;
+        shownError.current = s.message;
         // Location refused is a quiet notice (T26), said as Navigate's is (tend map audit 12): the live region below on
         // web, the call on a phone.
         const quiet = s.tone === 'info';
@@ -445,12 +453,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   useEffect(() => {
     if (!rawNotice || rawNotice.sticky) return;
-    const t = setTimeout(() => setNotice(null), NOTICE_MS);
+    const t = setTimeout(() => setNotice(null), MOTION.walkNotice);
     return () => clearTimeout(t);
   }, [rawNotice]);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 1500);
+    const t = setTimeout(() => setToast(null), MOTION.walkToast);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -621,7 +629,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [arrived, setArrived] = useState<string | null>(null);
   useEffect(() => {
     if (!arrived) return;
-    const t = setTimeout(() => setArrived(null), 4000);
+    const t = setTimeout(() => setArrived(null), MOTION.arrival);
     return () => clearTimeout(t);
   }, [arrived]);
   const navigation = useNavigation({
@@ -850,7 +858,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (!reminder) return;
     const walkedOn = reminder.at && live.here && distanceM(reminder.at, live.here) > REMINDER_AWAY_M;
-    const t = setTimeout(() => setReminder(null), walkedOn ? 0 : Math.max(0, reminder.shownAt + REMINDER_MS - Date.now()));
+    const t = setTimeout(() => setReminder(null), walkedOn ? 0 : Math.max(0, reminder.shownAt + MOTION.reminder - Date.now()));
     return () => clearTimeout(t);
   }, [reminder, live.here]);
   // A tapped reminder notification opens its captures, playing (R4).
@@ -956,7 +964,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       db.setMeta(NUDGED_KEY, walk.id).catch(() => {});
       AccessibilityInfo.announceForAccessibility(nudge!.text);
     }
-    const t = setTimeout(() => setNudge(null), 20_000);
+    const t = setTimeout(() => setNudge(null), MOTION.deadZoneNudge);
     return () => clearTimeout(t);
   }, [nudgeShown, walk, nudge]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
@@ -1059,6 +1067,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // status raised it already; on a phone the start throws before any status, so it is raised here.
         if (raisedError.current !== fail.message) {
           raisedError.current = fail.message;
+          shownError.current = fail.message;
           setNotice({ message: fail.message, tone: 'info', openSettings: fail.openSettings, sticky: true, said: ++saidCount.current });
           AccessibilityInfo.announceForAccessibility(fail.message);
         }
@@ -1116,7 +1125,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     if (Platform.OS === 'web') window.addEventListener('beforeunload', warn);
     // Focus moves to Save, which replaced the mic the person just tapped.
-    const t = setTimeout(() => focusOn(saveRef), 300);
+    const t = setTimeout(() => focusOn(saveRef), MOTION.saveFocus);
     return () => {
       sub.remove();
       clearTimeout(t);
@@ -1403,6 +1412,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onPress={() => {
               if (status.kind !== 'error') return;
               raisedError.current = status.message;
+              shownError.current = status.message;
               const quiet = status.tone === 'info';
               setNotice({ message: status.message, tone: status.tone ?? 'error', openSettings: status.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
               if (quiet) AccessibilityInfo.announceForAccessibility(status.message);
@@ -1567,7 +1577,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
               disabled={pausing || stopping || !walk}
               style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
             >
-              <Icon name={paused ? 'play' : 'pause'} size={20} color={paused ? '#ffffff' : theme.ink} />
+              {/* Its word under its icon, as Hold shows its own (decision 0172, O27); the spoken name stays the button's. */}
+              <Icon name={paused ? 'play' : 'pause'} size={18} color={paused ? '#ffffff' : theme.ink} />
+              <Text style={[styles.pauseText, paused && styles.pauseTextOn]} numberOfLines={1} selectable={false}>
+                {paused ? 'Resume' : 'Pause'}
+              </Text>
             </Pressable>
             <HoldButton
               testID="stop"
@@ -1577,6 +1591,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               onTap={() => setToast('Hold to stop the walk')}
               busy={stopping}
               disabled={!walk || pausing}
+              style={styles.stopBtn}
             >
               <View style={styles.stopInner}>
                 <Icon name="stop" size={18} color={theme.ink} />
@@ -2001,12 +2016,18 @@ const styles = StyleSheet.create({
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  // The strip's height holds it: 48 high, its word under its icon, in Hold's frame (O27). Pause stays 48 wide and Resume
+  // about 53, so the walk's numbers keep their room at 320.
   pauseBtn: {
-    width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
+    minWidth: 48, height: 48, paddingHorizontal: 4, borderRadius: theme.radius, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: theme.ink, backgroundColor: theme.surface,
   },
   // Resume is the one thing to do while paused.
   pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
+  pauseText: { color: theme.ink, fontSize: 11, lineHeight: 14, fontWeight: '600' },
+  // As high as Pause beside it, so the two share a top and a bottom (tend walk-screen audit 9); the walk's strip only.
+  stopBtn: { minHeight: 48 },
+  pauseTextOn: { color: '#ffffff' },
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
