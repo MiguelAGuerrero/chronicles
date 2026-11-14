@@ -33,6 +33,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
 - Finding, fix remove-which-place: a moment with two or more unfound places within 60 m is tagged to none, on any walk; the "Which place is this moment about?" chip is gone (the owner, Nov 12), and a moment cannot be tagged to a place afterwards (Explore, E8). `specs/v1-discovery/spec.md` E8 still says "until the reader picks": the owner's doc wins, so it is theirs to edit
+- [loop] Navigate announces a route preview's count in digits, "3 routes to Fox Point" (`lib/nav/useNavigation.ts` l.209, `announceForAccessibility`), spoken only; `numberWord` says it "Three routes to Fox Point", as the cards and rows now say their counts (VISION.md Always, "Counts are words"; the T19 and T30 review's steward 8, Nov 14, low)
 
 ## Streets and snapping
 
@@ -139,6 +140,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
 - "Today" refreshing past midnight without a focus, `lib/days.ts` (Moments and days)
 - A day of only placeless moments replays over the world map, `dayStory` (Moments and days)
+- [owner] `.claude/rules/moments-and-days.md` l.54 still says the day's card reads "N moments · P places", places being spots 100 m apart; since `tend replay T19` and `audit 12` it says its moments as a clause, a named place or the day's area only when every moment has a place inside it, else the count alone, and `spotCount` is read only by tests. The loop adds rule lines and never rewords one (0135): reword or remove the old line (the T19 and T30 review's auditor 7, Nov 14, low)
 
 ## Captures, media and export
 
@@ -163,6 +165,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The viewer's player says "voice memo" where the journal's says "voice note": one noun for both (journal voice audit 16, opinion)
 - The journal's in-line voice note shows its pause glyph while the file is still resolving, before anything plays: a brief busy state would be honest (journal voice audit 19, opinion)
 - [loop] Every table of the kinds' words outside `lib/pins.ts` (`pinKindsWords`, `KIND_NAME`, which the reminders take since `tend explore T29`): `resurface/context.ts` `KIND` ("just after a photo"), `lib/format.ts` `formatCaptures` (T19 and T30 change its words), `deletion/core.ts` `KIND_NOUN` and `mediaRemoveText`'s nouns, `lib/captureBand.ts` l.10 `KIND_NAME`, `journal/lines.ts` l.70, `gallery/copy.ts` l.38, `components/chronicle/MomentCard.tsx` l.16, `components/threads/MomentPicker.tsx` l.13, `ResponseEntry.tsx` l.11, `AddToThread.tsx` l.16 and `NoteText.tsx` l.14, `notePage/useMentionCards.ts` l.9 and `space/core.ts` l.72 (lowercase); the same words today, so a later change can split them (cleanup, the T29 sibling lens and its review's auditor 2; low)
+  Since `tend replay T19` and `tend deletion T30` (Nov 14): `formatCaptures` (`lib/format.ts`) and `mediaRemoveText`'s nouns (`deletion/core.ts`) say their kinds through `kindsClause` in `lib/pins.ts`, the table `pinKindsWords` shares; the other tables named here are as they were, so the item stays open.
 
 ## Deletion
 
@@ -175,6 +178,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The home's reload after a delete reruns its whole load, `useOnDeleted` (Clearing walks and moments)
 - On the web, a hidden page counts as the background, so switching tabs stores a waiting delete at once, `deletion/pending.ts` (Clearing walks and moments)
 - A notification already shown for a deleted moment opens nothing (Clearing walks and moments)
+- [loop] At 320 px the walk delete confirm's "Delete walk" wraps in its action row, "Delete / walk" (pictures `27-walk-confirm-320` before and after `tend deletion T30`; there before this run): give the two buttons room at narrow widths, or stack the actions below about 340 px as the platforms' alerts do (`.claude/rules/ui-patterns.md`, "Nothing wraps on a 320 px phone at the default text size"; the T19 and T30 review's ux 6, Nov 14, medium)
 
 ## Map, walk screen and motion polish
 
@@ -209,8 +213,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] No test runs the web's in-place relabel of a pin (`usePinMarkers` in `WalkMap.web.tsx`, the name set again when a walk clock comes or goes after the pin was drawn): every journey's clock arrives with or before the pins (the T14 review's test finding; `tend map audit 21` makes the clock go at Stop, and the walk screen leaves for the replay at once)
 - [owner] A merged star looks like an unnamed lone star: since `tend places T15` it draws no numeral, and only the eight busiest lone stars carry their name, so a tap that zooms in looks like one that opens a place (the T15 review's U2, low: a wrong guess only zooms in). One shape: two star glyphs fanned in the one 36 px disc, as T14's pins say "several" with two discs; no numeral, one size (decision 0154)
   Answered Nov 14 (the owner, in person; decision 0172): two stars fanned in one disc; no numeral, one size. The loop's to build in a `/tend places` run, one commit; it leaves with the decision's reason.
-- [owner] The place sheet under a selected star says its walks in digits ("Providence, Rhode Island · 1 walk · 175 m", `HomeSheet.tsx`'s place header) while the star now says "Fox Point, one walk. Open" (`tend places T15`): two voices for one count on one screen. The sheet's line keeps the meta lines' digits (decision 0052 kept the walks list's "date, distance, time and captures"), and T19 asks the same of the replay's cards; in words ("one walk") would be new copy, so yours, beside T19 (the T15 review's F4 and U6, low)
-  Answered Nov 14 (the owner, in person; decision 0172): in words, "one walk", built with T19 and T30 (with O18; amends 0052's carve-out for meta lines, as 0170 did). The loop's to build in a `/tend tabs` run, one commit; it leaves with the decision's reason.
 - [loop] The selected star is not told to a screen reader: the web's star is a raw button with an `aria-label` only (`WalkMap.web.tsx`, the star markers), and native's `pinHit` View has no `accessibilityState` (`WalkMap.native.tsx`); give the web button `aria-current="true"` and native `accessibilityState={{ selected }}` (WCAG 4.1.2; the T15 review's U4, low; before T15 too)
 - [loop] At the zoom where two places' stars merge, a lone pin's head can cover the merged star's lower half, and their targets overlap (about 21 x 43 px in the T15 probe's `after-merged-390`, a star at 131,282 and a note pin at 126,309; the same before T15): the stars and the pins are grouped apart, each within 44 px, never against each other. Draw the star's target above the pins, or space pins from stars as they are spaced from each other (WCAG 2.5.8; the T15 review's U5 and F5, low)
 - [loop] `formatDistance` joins a number and its unit with a plain space, so a line can break between them: the place sheet's header reads "175" at the end of one line and "m" on the next at 390 px (`09-home-place` in the `chronicle` journey, after `tend places T15`; the same before). A no-break space in `formatDistance` (`lib/format.ts`) and its siblings keeps them together (the T15 review's U6 and F4, low)
@@ -243,8 +245,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 14. [loop] A figure breaks from its unit or noun at a line's end: "589 / m" in a place's header, "1 / video" in a walks row (pictures `09-home-place`, `10-home-walks`). A no-break space inside each figure fixes it, but `walkRowMeta`'s test pins the plain space, so it waits for that test to be restated (ui-patterns, "content must not be lost"; `/tend chronicle`, Nov 11, medium)
 15. [owner] Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first (NN/g H4; A1; `/tend chronicle`, Nov 11, low)
     Answered Nov 14 (the owner, in person; decision 0172): ask before a tap outside drops a walk's changed name. The loop's to build in a `/tend chronicle` run, one commit; it leaves with the decision's reason.
-16. [owner] One walk, described three ways: a walks row says date, distance, time and kinds; a day's timeline "Walk · distance · N moments"; the card's More "More for this walk", the row's "More for <title>" (NN/g H4; `/tend chronicle`, Nov 11, low)
-    Answered Nov 14 (the owner, in person; decision 0172): counts in words, "Walk · 1.2 km · three moments", and More is "More for <title>" wherever the title is known; built with T19 and T30 (with O15; amends 0052's carve-out). The loop's to build in a `/tend tabs` run, one commit; it leaves with the decision's reason.
 17. [loop] A backup bundle of a walk with no stored title is named by its area, not by the title it shows (`bundleName` reads `walk.title ?? walk.area`, `export/bundle/shell.ts`): since T1, a walk kept with its suggestion is such a walk (`/tend inbox` review F5, Nov 11, low)
 18. [kept] A walk kept with its suggestion shows the suggestion as the device reads it now, so a walk started at 01:00 in Lisbon reads "Tuesday evening" back in New York; walks left unnamed with Not now did already. The timezone item under Functional core is its fix (`/tend inbox` review F4, Nov 11, low)
 19. [loop] The section bar's checks miss the long press that lowers the sheet (SB1) and a bar press clearing a selected star or a Walk here card (SB2); only the drags, the switch and Map are checked (section-bar audit 3, Nov 11, low)
@@ -297,6 +297,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Rows of old builds stay until a purge, and every row (with its sketch) is read whole on each focus (explore-atlas audit 13)
 - Ring reads fetch overlapping tiles again for neighbouring areas: no tile-level de-duplication (explore-atlas audit 6)
 - Highlighting an area's dot on the small map as its tile scrolls to the top of the grid (atlas round 3, from the design review)
+- **The area card's Walk to is a text button beside "Suggest a walk"'s bordered one** (`storefronts ui 3`, Nov 14): both start a walk, drawn differently (H4; 0167's "drawn to be found"). It is the card's row pattern, the complexes' rows too, so a restyle is card-wide, beyond the storefronts slice.
+- **Storefronts' pictures for review** (`storefronts ui 5`, Nov 14): a card listing several storefront streets (the e2e world has one, Thayer Street), the layer's legend open, and the walk settings' Storefronts leaning (the scenic journey stops at main's failing "fix preview-clutter audit 1" before it). Nearest first is held by SF3's unit test.
 
 ## Navigate, ready
 
@@ -460,7 +462,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The thresholds rest on five places** (`walk/form.ts`); a sixth can disagree. A way to look at the cells (a debug overlay of the signals) is not built.
 - **Cells are 250 m squares**: coarse at close zoom. Smoothing or a finer grid is a look-and-feel call for the owner once seen on a phone.
 - **The tint reads about 1.5 km around the map's centre** (a cell needs its whole neighbourhood read), so it fades out near that edge.
-- **Busy streets draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
+- **Storefronts draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
 - **The unwalked-streets toggle, fog, "?" marks and routes are not layers yet** (the owner chose only walkability, busy streets and town borders).
 - **Layer options** (a busy-grade slider, a tint choice), **ordering and opacity** are not built.
 - **The long press on a drawn stretch (specs/walkability WK14) is retired**: the layer draws areas, not stretches. A long press on a tint is its own call.
@@ -764,6 +766,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **Neutral is a minus in a circle, which reads as "remove", and the eight above the bar have no "No type"** (ux 13; the glyph is note-types audit 23, already deferred): clearing is a tap on the marked one, shown by its tint, rule and heavier name. Fix: a flat-mouthed face when the icon set has one; a ninth "No type" if the owner wants the two pickers alike.
 - **A row that crosses the peek's box is remounted** (fix entry-jitter 2, audit F2, the auditor's): the rows from the anchor on and the empty page share one box (`restBox`), so a row that moves in or out of it changes parent. That happens when the anchor moves: coming back to Memories (audit 42) moves the entries kept this sitting out of the box, and deleting the anchor entry moves rows into it. A voice note playing in such a row stops and its bar resets (`MemoLine`'s player is released). The open line's field is not affected: it stays in the box. Left because it needs a note to be playing across leaving and coming back to Memories; keeping one parent for every row would mean measuring the rows above the peek again, which is what jittered.
 - **The top entry's reaction sign is half under the held date's edge at rest** (the row under the line's UI review, 4; from audit 52's fade, before decision 0175): the date's faded bands lie over the first entry's header, so its sign reads clipped. Recommended: start the peek's first entry below the edge.
+  Audit 76 (Nov 14): worse than ux 4 said: in the resting pictures the face itself is half gone, not only its sign, and an earlier day's dateline is cut by the held date. Reopen with these pictures.
+- **A walk starting or ending remounts the open line, and its Undo can take over the viewer's** (chronicle-journal audit 67): since the delete's `UndoToast` sits in the line's column (JN40), `Line`'s remount (keyed by the walk) registers it again as the newest host, so a walk stopped from the notification while a moment's viewer is open can hide the viewer's Undo. Recommended: keep the host registered across the remount (a host id held above `Line`).
+- **The failed page says nothing was read, then shows today's entries** (chronicle-journal audit 75; the row's audit U1, H9): "Couldn't read your moments." sits under today's date above the entries kept this sitting, so it reads as today's state. Recommended: "Couldn't read your earlier days.", above the date.
 
 ## Explore in a dense city (decision 0156)
 
@@ -781,9 +786,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 What the note types slice left out (`specs/note-types`, decision 0161).
 
 - [owner] **Note types** (0161): a type chosen while a note is first written (a new note's page and Respond's start with no type; Edit sets one, so capture stays one tap); searching, lensing or threading notes by type; a type on a photo, video or memo. Any feature that reads types goes through the vision gate again.
-- [loop] **Note types** (0161, audit 2): a pin's marker is rebuilt, and web focus lost, when its note's type changes (the key includes the mark); the reminder bell keeps the element. No test reaches a single-note pin in the e2e (the replay's is always a group).
 - [loop] **Note types** (0161, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.
-- [loop] **Note types** (0161, audit 22): the Type menu on the note page, in two columns, may wrap or crowd at 200% text or below 320 px wide; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).
 - [owner] **Note types** (0161, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.
 - **The voicetrim journey waits for a test id main no longer has** (found deploying video thumbnails, Nov 13): it waits
   for `[data-testid=memories-list] [data-testid=moment-card]`, and the journal page (`e43c64a`, JN1-JN24) dropped
@@ -806,3 +809,13 @@ What the note types slice left out (`specs/note-types`, decision 0161).
 - **Words that arrive after Chronicle opened** reach Memories through a refresh (`resurface.refresh` on the transcripts' store); a thread formed by new words appears at the next open, not while Memories is up (the owner's threads are untouched).
 - **Memo transcripts audit 5 (in part)**: the transcripts' store copies its map for every row written (O(n²) over a backfill of thousands of memos); a batch write per run would do. **Audit 20**: a long press on the caption selects its text (`selectable`) beside the viewer's swipe and tap-to-hide handlers; tried on a phone only. **Audit 21**: the caption does not set its language for a screen reader (WCAG 3.1.2), for a memo spoken in another language than the app's.
   Followed up (memo-transcripts-followups): the store half is fixed (the shell writes rows to a pending map and publishes once per run or every 50 rows; test "memo-transcripts audit 5b"). Left open: the rest of audit 5 is as recorded above.
+
+## Reactions (RX1-RX36, decision 0176)
+
+What the reactions slice left out (`specs/reactions`, decision 0176).
+
+- [owner] **Reactions** (0176): a lens narrowed by location ("my likes around here"), Emphasis offering a reminder and a Question asking again when you are back are each a later slice, gated at `/vision` first (the gate argued once that likes gathered by place must never become something said of a place).
+- [loop] **Reactions** (RX34): the panel at 200% text. The web build sets sizes in px; on a phone the rows of three may crowd at a large font scale. Carries note types' audit 22 (a one-column fallback above a font scale of about 1.5).
+- [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
+- [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.
+- [loop] **Reactions** (reactions audit 7, 11, 12, 15): a failed reaction write outside the viewer is silent (the journal's sign, More, a new page; as note-types audit 59); `keep` writes a row per family with no transaction, so a failure part-way keeps half a set; held reactions are dropped if a new page unmounts while its first save is in flight; on a video's pin the bubbles clear the play mark but sit mostly off the head (three cannot both touch the head and clear the mark: a design call).

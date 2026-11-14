@@ -124,3 +124,11 @@ export function timedRuns(fixes: TracePoint[], pauses: PauseSpan[] = []): TimedR
   });
   return runs;
 }
+
+/**
+ * The cards' one hint (tend replay T19, decision 0165), and only while the map has a pin to tap: a moment with no
+ * place draws none (tend replay audit 11). Null without a placed moment.
+ */
+export function pinHint(captures: readonly Pick<Faced, 'lat' | 'lon'>[]): string | null {
+  return captures.some((c) => c.lat != null && c.lon != null) ? 'Tap a pin to open it' : null;
+}

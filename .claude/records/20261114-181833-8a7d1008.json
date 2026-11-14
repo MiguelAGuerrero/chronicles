@@ -1,0 +1,51 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Chronicle journal, cut 1 ("
+      ],
+      "body": "| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; a voice note plays in line with its bar; since Nov 14 a toolbar at the foot (\"What’s on your mind?\", the camera, the mic) opens a composer sheet where an entry is written, the page for reading (the row under the line of 0175 built, deployed and replaced the same day); JN1-JN51, decisions 0155, 0175-0177) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, audited 2026-11-13 with the owner's answers built (the pen in the bar when the page is pulled down, fixed places for the camera and the mic, an edge under the held date, the recording's mark while writing); the in-line voice note built and audited 2026-11-13 from the owner's request; JN34-JN40 built 2026-11-14 on `claude/chronicles-action-button-layout-x4cg4k` from the owner's mock-up review, test-first (7 of 7), the UI review's 8 findings: 1 fixed, 1 deferred, 3 to the owner, 3 rejected as before this slice; deployed by `/deploy` 2026-11-14 after a rebase onto main, the decision renumbered 0175 (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page`, `claude/determined-heisenberg-b894d7`, `fix/journal-audit-2`, `claude/chronicles-action-button-layout-x4cg4k` | `specs/chronicle-journal/spec.md` ; the toolbar and the composer built 2026-11-14 from three mock-ups, not deployed | yes (the row under the line, 18: 10 fixed, 3 deferred, 5 rejected; 39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred; JN28-JN33, 23: 15 fixed, 4 deferred, 4 rejected; the in-line voice note, 19: 12 fixed, 3 deferred, 3 rejected, 1 a pass) |\n",
+      "target": "sha256:a71851e32da98c1dac24f9055c793df016d01236658a337fd80238096ce015e5"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "A toolbar at the foot",
+        "--reason",
+        "built on the branch, with the composer (0177)"
+      ],
+      "target": "sha256:6e12244b4cfb1f90c940da548127f9ecc16119921b3ade8d84ee52d52d51d132"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, tap \"What’s on your mind?\" in the journal's toolbar, type two lines, take a photo from the composer, then press Android Back (or tap the dimmed edge on iPhone). **Expect:** the composer rises to the keyboard with the caret in it, the photo joins the entry, Back or the edge closes it with the words kept, and the entry is on the page; the toolbar never sits behind the keyboard. (JN41, JN47-JN50)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice: the row under the line"
+      ],
+      "body": "- **The Type sign reads as \"add a reaction\"** (the composer's cold find, task 4, and its UI review U2): a person asked to mark a note as an idea did not find it; the face with a plus is your call (decision 0168) and nothing about a type shows before the first word (NY rule). Recommended: in the composer, once there are words, the sign shows the type's word (\"Idea\") once chosen, and \"Type\" beside the face before.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice: the row under the line"
+      ],
+      "body": "- **A photo from the toolbar leaves Done beside the field, with nothing saying what it finishes** (UI review U4). Recommended: a photo taken from the toolbar opens the composer with it in, so the entry is finished where it is written.\n"
+    }
+  ]
+}

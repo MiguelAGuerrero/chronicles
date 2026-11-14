@@ -2,7 +2,7 @@
 import { computeRing, type RingInput } from '../atlas/ringCompute';
 import { handleComputeMessage, type ComputeInput } from './compute';
 
-/** The jobs the read's worker runs (explore-dense-city DC7, audit 2): a Busy or walk read, or an atlas ring. */
+/** The jobs the read's worker runs (explore-dense-city DC7, audit 2): a Storefronts or walk read, or an atlas ring. */
 export type WorkerJob = { job: 'read'; input: ComputeInput } | { job: 'ring'; input: RingInput };
 
 /** The worker's side of the exchange: a job in, its result or an error out; never throws. */

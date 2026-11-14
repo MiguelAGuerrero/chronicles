@@ -3,7 +3,7 @@ import type { WalkMapProps } from '../../components/map/types';
 
 /**
  * What the live map draws while a route preview is open (fix preview-clutter): only the routes, in blue. The walked trace, the faint
- * stretches across gaps, the fog and the walked streets, the busy streets' shading, the town borders, the walkability tint, after dark's lines and marks and the "unwalked" veil stacked
+ * stretches across gaps, the fog and the walked streets, the storefront streets' shading, the town borders, the walkability tint, after dark's lines and marks and the "unwalked" veil stacked
  * under them and made the routes hard to tell apart. They come back the moment the preview closes.
  */
 export type ClutterLayers = Pick<WalkMapProps, 'trace' | 'rides' | 'walked' | 'fog' | 'faint' | 'gapLinks' | 'landing' | 'borders' | 'walkability' | 'afterDark' | 'veil' | 'fogEmphasis'>;

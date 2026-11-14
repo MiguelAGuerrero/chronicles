@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { liveReport, busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -120,24 +120,24 @@ const view = (): LandingView => ({
     { lines: [[east(5000), east(5100)]], name: 'Main Street', at: east(5000), stale: false },
   ],
   graded: [{ lines: [[east(0), east(100)]], grade: 2, stale: false }],
-  labels: [{ name: 'A busy pocket', at: east(200) }, { name: 'Far pocket', at: east(6000) }],
+  labels: [{ name: 'A pocket of storefronts', at: east(200) }, { name: 'Far pocket', at: east(6000) }],
 });
 
 test('EC7: the Busy names inside the selected area\'s ring stay, from zoom 13; its streets always draw', () => {
   const v = view();
-  const near = busyNamesNear(v, O, 14, 800, 13)!;
+  const near = storefrontNamesNear(v, O, 14, 800, 13)!;
   assert.deepEqual(near.strips.map((s) => s.name), ['Wickenden Street'], 'the street 5 km away is not named');
-  assert.deepEqual(near.labels.map((l) => l.name), ['A busy pocket']);
+  assert.deepEqual(near.labels.map((l) => l.name), ['A pocket of storefronts']);
   assert.deepEqual(near.graded, v.graded, 'the drawn busy streets are untouched');
   assert.deepEqual(near.pockets, v.pockets);
-  const far = busyNamesNear(v, O, 12.9, 800, 13)!;
+  const far = storefrontNamesNear(v, O, 12.9, 800, 13)!;
   assert.deepEqual([far.strips.length, far.labels.length], [0, 0], 'zoomed out: no names at all');
   assert.deepEqual(far.graded, v.graded, 'the lines stay at any zoom');
 });
 
 test('EC7: with no view or no selected area there are no names, and no view stays none', () => {
-  assert.equal(busyNamesNear(null, O, 15, 800, 13), null);
-  const none = busyNamesNear(view(), null, 15, 800, 13)!;
+  assert.equal(storefrontNamesNear(null, O, 15, 800, 13), null);
+  const none = storefrontNamesNear(view(), null, 15, 800, 13)!;
   assert.deepEqual([none.strips.length, none.labels.length], [0, 0]);
   assert.equal(none.graded.length, 1);
 });
@@ -152,15 +152,15 @@ test('explore-carousel audit 2: a settle mid-way through the row\'s own scroll n
 });
 
 test('explore-carousel audit 3: the names are on or off by one boolean, so the map is not sent a new Busy view on every camera move', () => {
-  assert.equal(busyNamesOn(13, 13), true);
-  assert.equal(busyNamesOn(15.7, 13), true);
-  assert.equal(busyNamesOn(12.99, 13), false);
-  assert.equal(busyNamesOn(0, 13), false, 'before the first view event there is no zoom: off');
-  assert.equal(busyNamesOn(11, 13), busyNamesOn(12, 13), 'zoomed out, every zoom is the same state');
+  assert.equal(storefrontNamesOn(13, 13), true);
+  assert.equal(storefrontNamesOn(15.7, 13), true);
+  assert.equal(storefrontNamesOn(12.99, 13), false);
+  assert.equal(storefrontNamesOn(0, 13), false, 'before the first view event there is no zoom: off');
+  assert.equal(storefrontNamesOn(11, 13), storefrontNamesOn(12, 13), 'zoomed out, every zoom is the same state');
   const v = view();
   const empty: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
-  assert.equal(busyNamesNear(empty, O, 14, 800, 13), empty, 'a view with no names to drop is returned as it is');
-  assert.equal(busyNamesNear(v, O, 14, 800, 13)!.strips.length, 1, 'and one with names inside the ring keeps them');
+  assert.equal(storefrontNamesNear(empty, O, 14, 800, 13), empty, 'a view with no names to drop is returned as it is');
+  assert.equal(storefrontNamesNear(v, O, 14, 800, 13)!.strips.length, 1, 'and one with names inside the ring keeps them');
 });
 
 test('explore-carousel audit 4: a card\'s footer shows only on the selected card, a town\'s and a town page head\'s', () => {
@@ -178,9 +178,9 @@ test('explore-carousel audit 12: the note over a town with no neighborhoods says
 });
 
 test('explore-carousel audit 16: the Busy names reach a neighborhood\'s ring and a town\'s own reach, never an unseen 800 m', () => {
-  assert.equal(busyRadiusM('neighborhood', 800, 5000), 800);
-  assert.equal(busyRadiusM('town', 800, 5000), 5000);
-  assert.equal(busyRadiusM('town', 800, 300), 800, 'a small town is never less than the ring');
+  assert.equal(storefrontRadiusM('neighborhood', 800, 5000), 800);
+  assert.equal(storefrontRadiusM('town', 800, 5000), 5000);
+  assert.equal(storefrontRadiusM('town', 800, 300), 800, 'a small town is never less than the ring');
 });
 
 test('explore-carousel audit 7: a card\'s name is never cut to a number of lines (EC4: shown in full)', () => {

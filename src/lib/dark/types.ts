@@ -31,7 +31,7 @@ export interface DarkFacts {
 }
 
 export interface DarkSource {
-  /** The tile's facts, or null when they can't be had now (busy, paused, capped, offline). */
+  /** The tile's facts, or null when they can't be had now (overloaded, paused, capped, offline). */
   read(x: number, y: number, signal?: AbortSignal): Promise<DarkFacts | null>;
 }
 

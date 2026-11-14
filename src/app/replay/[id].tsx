@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, FOG_MS } from '../../lib/replay';
+import { backFrom, beatWords, FOG_MS, pinHint } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -45,7 +45,7 @@ import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
-import { newStreetsLine } from '../../lib/quietLines';
+import { moreFor, newStreetsLine } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
 
@@ -538,9 +538,9 @@ export default function Replay() {
           await captureEdits.save(c, patch);
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch, c.piece_id) });
         }}
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
@@ -553,9 +553,9 @@ export default function Replay() {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
@@ -627,7 +627,8 @@ export default function Replay() {
                     <Pressable
                       testID="card-more"
                       accessibilityRole="button"
-                      accessibilityLabel="More for this walk"
+                      // Named by the title the card shows, as the walk's row names it (tend tabs 11).
+                      accessibilityLabel={moreFor(data.walk.title ?? suggestTitle(data.walk))}
                       onPress={() => setActionsOpen(true)}
                       style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
                       hitSlop={4}
@@ -644,11 +645,15 @@ export default function Replay() {
                 </Text>
                 {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
                 {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
-                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
+                {/* What was kept, a clause (tend replay T19). */}
+                {s && formatCaptures(s) ? <Text testID="card-kept" style={styles.cardMuted}>{formatCaptures(s)}</Text> : null}
                 {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
                 {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
                 {passed ? <Text testID="card-low" style={styles.cardMuted}>{passed}</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
+                {/* The one hint, the card's last line before its buttons, as on the day's card (tend replay T19, audit 10);
+                    no pin, no hint (audit 11). */}
+                {pinHint(pinned) ? <Text style={styles.cardMuted}>{pinHint(pinned)}</Text> : null}
                 <View style={styles.row}>
                   <Button
                     variant="secondary"

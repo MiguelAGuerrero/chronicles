@@ -7,17 +7,17 @@ import { fakePorts } from '../fakes';
 
 test('SR1: all three leanings are on by default', async () => {
   const r = createRouteLeanings(fakePorts());
-  assert.deepEqual(r.store.get(), ['green', 'sights', 'busy'], 'before the load');
+  assert.deepEqual(r.store.get(), ['green', 'sights', 'storefronts'], 'before the load');
   await r.load();
-  assert.deepEqual(r.store.get(), ['green', 'sights', 'busy'], 'nothing saved yet');
+  assert.deepEqual(r.store.get(), ['green', 'sights', 'storefronts'], 'nothing saved yet');
 });
 
 test('SR1: a change is kept across a reload, in leaning order', async () => {
   const p = fakePorts();
-  await createRouteLeanings(p).save(['busy', 'green']);
+  await createRouteLeanings(p).save(['storefronts', 'green']);
   const again = createRouteLeanings(p);
   await again.load();
-  assert.deepEqual(again.store.get(), ['green', 'busy']);
+  assert.deepEqual(again.store.get(), ['green', 'storefronts']);
 });
 
 test('SR1: all off is kept as all off, not read back as the default', async () => {
@@ -35,12 +35,12 @@ test('SR1: an unreadable value or a failed read gives the defaults', async () =>
   await p.db.setMeta(ROUTE_LEANINGS_KEY, '["purple"');
   const r = createRouteLeanings(p);
   await r.load();
-  assert.deepEqual(r.store.get(), ['green', 'sights', 'busy']);
+  assert.deepEqual(r.store.get(), ['green', 'sights', 'storefronts']);
   await p.db.setMeta(ROUTE_LEANINGS_KEY, '["purple","sights"]');
   await r.load();
   assert.deepEqual(r.store.get(), ['sights'], 'unknown leanings are dropped');
   p.db.failNext('getMeta', new Error('disk'));
   const s = createRouteLeanings(p);
   await s.load();
-  assert.deepEqual(s.store.get(), ['green', 'sights', 'busy']);
+  assert.deepEqual(s.store.get(), ['green', 'sights', 'storefronts']);
 });

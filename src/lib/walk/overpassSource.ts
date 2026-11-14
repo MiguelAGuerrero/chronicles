@@ -22,7 +22,7 @@ export { CAP_WINDOW_MS, MAX_PAUSE_MS, OVERPASS_SESSION_CAP, RATE_PAUSE_MS } from
 export function createOverpassSource(o: { fetch: typeof fetch; now: () => number; url?: string; gate?: OverpassGate }): WalkSource {
   const gate = o.gate ?? createOverpassGate({ now: o.now });
   const busy = (retryAfter: number | null = null) => {
-    gate.busy(retryAfter);
+    gate.pause(retryAfter);
     return null;
   };
   return {

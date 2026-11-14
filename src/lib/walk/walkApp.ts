@@ -25,7 +25,7 @@ export const walkReader = createWalkReader(ports, chain(overture, overpass));
 export { ensureOvertureRelease as walkBuild };
 
 /**
- * UF6, UF17: the places the area already reads (Overture's, by the same tiles and cache as the busy streets), as weighted
+ * UF6, UF17: the places the area already reads (Overture's, by the same tiles and cache as the storefront streets), as weighted
  * points; null when they can't be read, and the cells are then judged on form alone.
  */
 export async function walkPlaces(tiles: [number, number][], shouldStop?: () => boolean): Promise<PlacePoint[] | null> {

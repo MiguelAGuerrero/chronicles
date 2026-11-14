@@ -233,7 +233,7 @@ export default function DayReplay() {
   const cardAt = onCard ? phase.t0 : 0;
   // In the units setting, redrawn when it changes (tend replay 3).
   const units = useUnits();
-  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance, units) : null), [data, day, cardAt, units]);
+  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data, units) : null), [data, day, cardAt, units]);
   // Each walk's clock, so a pin of several from one walk says how far in it was (tend map T14).
   const clocks = useMemo(() => (data ? [...data.walks.values()].map((r) => ({ id: r.walk.id, started_at: r.walk.started_at, pauses: r.pauses })) : undefined), [data]);
 
@@ -332,9 +332,9 @@ export default function DayReplay() {
         captures={viewing}
         onClose={() => setViewing(null)}
         remind
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setData((d) => d && withNote(d, c.id, change, c.piece_id));
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
@@ -342,7 +342,7 @@ export default function DayReplay() {
       />
 
       {onCard && card && (
-        // Quiet (M13): the day, its moments and places, and any distance walked. No streaks or badges.
+        // Quiet (M13): the day, its moments and named places in a clause (tend replay T19), and any distance walked. No streaks or badges.
         <View
           testID="day-card"
           style={[styles.sheet, { paddingBottom: 16 + insets.bottom }]}
@@ -356,9 +356,10 @@ export default function DayReplay() {
         >
           <View style={styles.sheetContent}>
             <Text style={styles.cardTitle} accessibilityRole="header">{card.title}</Text>
-            <Text testID="day-card-line" style={styles.cardLine}>{card.line}</Text>
+            {card.line ? <Text testID="day-card-line" style={styles.cardLine}>{card.line}</Text> : null}
             {card.walked ? <Text style={styles.cardMuted}>{card.walked}</Text> : null}
-            <Text style={styles.cardMuted}>Tap a pin to open it</Text>
+            {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint (audit 11). */}
+            {card.hint ? <Text style={styles.cardMuted}>{card.hint}</Text> : null}
             <View style={styles.row}>
               <Button
                 testID="day-again"

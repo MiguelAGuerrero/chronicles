@@ -92,6 +92,8 @@ export function StepThrough(props: {
         key={`${capture.id}:${capture.piece_id}`}
         ref={continueRef}
         capture={capture}
+        // The ceremony is the content's: no reaction is drawn or said here (reactions audit 18).
+        reactions={false}
         autoPlay
         topInset={props.topInset}
         onVoiceFinished={props.auto ? () => advance(true) : undefined}

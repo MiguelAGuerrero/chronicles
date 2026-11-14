@@ -167,7 +167,7 @@ async function run(h) {
     check(ringOn, 'EC5, HB9: the selected area has its ring, or its own ground, on the map');
     // The Busy layer's names are DOM markers that are not area points. This world has no busy streets to name, so what
     // the journey can show is that zoomed out the map carries none; the distance and zoom rule is `carousel.test.ts` (EC7).
-    const busyNames = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => !m.matches('[data-testid=area-point]') && !m.querySelector('[data-testid=area-point]') && /Street|Avenue|Road/.test(m.textContent ?? '')).length);
+    const storefrontNames = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => !m.matches('[data-testid=area-point]') && !m.querySelector('[data-testid=area-point]') && /Street|Avenue|Road/.test(m.textContent ?? '')).length);
     const mb = await map.boundingBox();
     await pg.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2);
     for (let i = 0; i < 6 && Number(await map.getAttribute('data-zoom')) >= 12.5; i++) {
@@ -176,7 +176,7 @@ async function run(h) {
     }
     await pg.waitForTimeout(800);
     const zOut = Number(await map.getAttribute('data-zoom'));
-    check(zOut < 13 && (await busyNames()) === 0, `EC7: zoomed out (${zOut.toFixed(1)}) the map carries no Busy street names`);
+    check(zOut < 13 && (await storefrontNames()) === 0, `EC7: zoomed out (${zOut.toFixed(1)}) the map carries no Busy street names`);
 
     // EC18: a card names its busiest street; EC20: the area's card still holds Walk to.
     const busiest = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].filter((e) => /Street|Avenue|Road/.test(e.innerText)).length);

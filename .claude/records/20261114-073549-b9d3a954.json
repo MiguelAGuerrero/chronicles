@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Reactions (note types became reactions"
+      ],
+      "body": "| Reactions (note types became reactions on any moment, at most one per family: Feeling, Taste, Thought; the face with a plus on the entry being written and today's entries, More's Reaction, the viewer's More and a note page's Reaction tool; marks under a dateline, the viewer's info line, a card and a bubble; ink bubbles across a single moment's pin; the journal's contents → Reactions → a lens per reaction, oldest first, no count; RX1-RX36, decision 0172) | built and audited 2026-11-14, test-first (36 of 36): unit tests, typecheck, lint, docs and vision checks; e2e `reactions` (new), `journal`, `notepage`, `qol`, `threads`, `responses`, `upgrade`; cold find and UI review triaged (`reactions ui 1-5`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reactions/spec.md` | yes (22 findings: 15 fixed, 4 deferred, 1 rejected, 1 merged, 1 for the owner; tests `reactions audit 1-6, 8-10, 13, 16-18, 20, 21`) |\n",
+      "target": "sha256:cfd8d0101ca05a65bfb276cc6e520827a478b943270e47f42a245e3385cc7daa"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Reactions slice (RX1-RX36"
+      ],
+      "body": "| Reactions slice (RX1-RX36, `specs/reactions/spec.md`, decision 0172) | `claude/trusting-gates-cd90zs` | built and audited 2026-11-14, all green; the deploy the owner asked for is next |\n",
+      "target": "sha256:6cff3e721f00f4072dfcda4ab5b1fe6a09384eae9279157a136917b93eaea9d4"
+    }
+  ]
+}

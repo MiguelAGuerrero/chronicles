@@ -24,7 +24,7 @@ export interface OverpassGate {
   /** Whether `who` may send a request now; a yes counts it. */
   take(who: 'walk' | 'dark'): boolean;
   /** A busy answer (429, 502-504, a runtime error, a throw): pause both, `retryAfterS` honoured. */
-  busy(retryAfterS?: number | null): void;
+  pause(retryAfterS?: number | null): void;
   /** A good answer: the streak starts over. */
   ok(): void;
 }
@@ -48,7 +48,7 @@ export function createOverpassGate(o: { now: () => number }): OverpassGate {
       if (who === 'dark') dark++;
       return true;
     },
-    busy(retryAfterS = null) {
+    pause(retryAfterS = null) {
       strikes++;
       pausedUntil = o.now() + overpassPause(strikes, RATE_PAUSE_MS, MAX_PAUSE_MS, retryAfterS);
     },

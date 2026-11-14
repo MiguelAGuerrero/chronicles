@@ -216,48 +216,6 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal(parseEdit((flats(await db.getMoments('a')))[0].edit), null);
     });
 
-    test('NY4: a note keeps its type: set, changed, cleared; one kept before reads as no type', async () => {
-      const db = await fresh();
-      await db.addMoment(momentOf(capture('n1', 'a', 1)));
-      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null, 'a note kept before has none');
-      await db.updatePiece('n1', { note_type: 'question' });
-      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'question');
-      await db.updatePiece('n1', { note_type: 'sad', body: 'new words' });
-      const [got] = flats(await db.getMoments('a'));
-      assert.equal(got.note_type, 'sad');
-      assert.equal(got.body, 'new words');
-      await db.updatePiece('n1', { note_type: null });
-      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type ?? null, null);
-    });
-
-    test('NY4: a note added with a type is read back with it', async () => {
-      const db = await fresh();
-      await db.addMoment(momentOf(capture('n1', 'a', 1, { note_type: 'idea' })));
-      assert.equal(flats(await db.getMomentsByIds(['n1']))[0].note_type, 'idea');
-    });
-
-    test('note-types audit 14: a cleared type reads the same on every store: no field at all', async () => {
-      const db = await fresh();
-      await db.addMoment(momentOf(capture('n1', 'a', 1, { note_type: 'idea' })));
-      await db.updatePiece('n1', { note_type: null });
-      const [m] = await db.getMomentsByIds(['n1']);
-      assert.equal(m.pieces[0].note_type, undefined);
-      assert.equal('note_type' in m.pieces[0], false);
-    });
-
-    test('NY5: the type belongs to its piece: two notes of one moment hold different types', async () => {
-      const db = await fresh();
-      await db.addMoment(momentOf(capture('m1', 'a', 1)));
-      await db.addPiece('m1', { id: 'p2', moment_id: 'm1', t: 2, kind: 'text', file_path: null, body: 'second', note_type: 'happy' });
-      await db.updatePiece('m1', { note_type: 'question' });
-      const [m] = await db.getMomentsByIds(['m1']);
-      const byId = Object.fromEntries(m.pieces.map((x) => [x.id, x.note_type ?? null]));
-      assert.deepEqual(byId, { m1: 'question', p2: 'happy' });
-      await db.updatePiece('p2', { note_type: null });
-      const [again] = await db.getMomentsByIds(['m1']);
-      assert.deepEqual(Object.fromEntries(again.pieces.map((x) => [x.id, x.note_type ?? null])), { m1: 'question', p2: null });
-    });
-
     test('NP7: a note keeps the mark that its body is Markdown, through addMoment and updatePiece; an older note has none', async () => {
       const db = await fresh();
       await db.addMoment(momentOf({ ...capture('old', null, 1), kind: 'text', body: '# 3 buses' }));
@@ -769,6 +727,46 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       await db.clearRecall('c2');
       await db.clearRecall('missing');
       assert.deepEqual(await db.listRecalls(), [recall('c1', 2)]);
+    });
+
+    // ---- reactions (specs/reactions, decision 0176): their own records, never fields of the moment
+
+    type Rx = { moment_id: string; family: string; reaction: string | null; set_at: number };
+    const rx = (db: Db) => db as unknown as { setReaction: (r: Rx) => Promise<void>; listReactions: () => Promise<Rx[]> };
+    const rxRows = async (db: Db) => (await rx(db).listReactions()).map((r) => [r.moment_id, r.family, r.reaction]).sort();
+
+    test('FC7 setReaction, listReactions, RX28: one per moment and family; set, replaced, cleared; the moment\'s row is never touched', async () => {
+      const db = await planned();
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      const before = await db.getMomentsByIds(['m1', 'm2']);
+      await rx(db).setReaction({ moment_id: 'm1', family: 'feeling', reaction: 'happy', set_at: 10 });
+      await rx(db).setReaction({ moment_id: 'm1', family: 'thought', reaction: 'idea', set_at: 11 });
+      await rx(db).setReaction({ moment_id: 'm1', family: 'feeling', reaction: 'sad', set_at: 12 });
+      await rx(db).setReaction({ moment_id: 'm2', family: 'taste', reaction: 'like', set_at: 13 });
+      await rx(db).setReaction({ moment_id: 'm2', family: 'taste', reaction: null, set_at: 14 });
+      await rx(db).setReaction({ moment_id: 'missing', family: 'taste', reaction: null, set_at: 15 });
+      assert.deepEqual(await rxRows(db), [['m1', 'feeling', 'sad'], ['m1', 'thought', 'idea']]);
+      assert.equal((await rx(db).listReactions()).find((r) => r.family === 'feeling')?.set_at, 12);
+      assert.deepEqual(await db.getMomentsByIds(['m1', 'm2']), before, 'no moment or piece changed');
+    });
+
+    test('FC7 deleteMoments, deleteWalk, splitPiece, RX31: a moment\'s reactions go with it and its walk; a piece split out takes none', async () => {
+      const db = await planned();
+      await db.createWalk(walk('a', 1));
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      await db.addMoment(one('m3', null, 3));
+      await db.addPiece('m3', { id: 'p3', moment_id: 'm3', t: 4, kind: 'text', file_path: null, body: 'two' });
+      for (const id of ['m1', 'm2', 'm3']) await rx(db).setReaction({ moment_id: id, family: 'thought', reaction: 'idea', set_at: 1 });
+      await db.splitPiece('p3', { id: 'p3', walk_id: null, t: 4, lat: null, lon: null, segment_id: null });
+      await db.addPiece('m2', { id: 'p2', moment_id: 'm2', t: 3, kind: 'text', file_path: null, body: 'more' });
+      await db.deletePieces(['p2']);
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m1', 'm2', 'm3'], 'the split piece\'s new moment has none; m3 keeps its own; m2 keeps its own when one of its pieces goes');
+      await db.deleteMoments(['m1']);
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m2', 'm3']);
+      await db.deleteWalk('a');
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m3']);
     });
 
     test('FC7 setTranscript, listTranscripts, clearTranscript, TX3: one row per capture, replaced by capture, cleared by capture', async () => {

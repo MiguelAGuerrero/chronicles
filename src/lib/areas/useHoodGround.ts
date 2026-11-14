@@ -1,6 +1,6 @@
 // @layer view
 import { useEffect, useRef, useState } from 'react';
-import type { Stillness } from '../layers/useBusyLayer';
+import type { Stillness } from '../layers/useStorefrontsLayer';
 import { perfCount, perfMark } from '../perfCount';
 import type { LngLat } from '../types';
 import { groundFor, groundKey, groundOf, hoodKeyOf, hoodProbe, keepGround, LOOK_MS, lookAgain, type Ground, type KeptGround } from './hoods';

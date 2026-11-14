@@ -15,9 +15,13 @@ export function newStreetsLine(names: string[]): string | null {
   return `${names.length} streets new to you`;
 }
 
-/** A walks list row's line: the date, distance and time, then what was kept. */
+/**
+ * A walks list row's line: the date, distance and time, then what was kept, its clause lowercase after its dot (the
+ * owner, Nov 14, "Lowercase after a dot"; tend tabs audit 23): a capital only where a clause starts a line.
+ */
 export function walkRowMeta(date: string, s: { distance_m: number; duration_ms: number; photos: number; videos?: number; voices: number; notes: number }): string {
-  return [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), formatCaptures(s)].filter(Boolean).join(' · ');
+  const kept = formatCaptures(s);
+  return [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), kept.charAt(0).toLowerCase() + kept.slice(1)].filter(Boolean).join(' · ');
 }
 
 /**
@@ -28,6 +32,18 @@ export function walkRowSpoken(title: string, meta: string, epilogue: string | nu
   const line = epilogue?.trim();
   return [`Replay ${title}`, meta.split(' · ').join(', '), line ? `“${line}”` : null].filter(Boolean).join('. ');
 }
+
+/**
+ * A day's timeline entry for a walk, under its title: "Walk · 1.2 km · three moments" (tend tabs 11, decision 0172); a
+ * walk that kept nothing says no count, "Walk · 145 m" (tend tabs audit 22).
+ */
+export function timelineWalkLine(distance: string | null, moments: number): string {
+  // The count keeps to its noun when the line wraps, "one / moment" never split (tend tabs audit 24).
+  return ['Walk', distance, moments > 0 ? `${numberWord(moments)}\u00a0${moments === 1 ? 'moment' : 'moments'}` : null].filter(Boolean).join(' · ');
+}
+
+/** A walk's More, named by the title it shows wherever that title is known: its row, its timeline entry, its card (tend tabs 11). */
+export const moreFor = (title: string): string => `More for ${title}`;
 
 /** A day's timeline entry for a walk as a screen reader says it (tend chronicle 3): its time, the title it shows, its line. */
 export function timelineWalkSpoken(clock: string, title: string, line: string): string {
@@ -48,6 +64,14 @@ export function emptyPeek(walkOpen: boolean): { line: string; navigate: boolean 
 
 const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const walksWord = (n: number) => `${numberWord(n)} ${n === 1 ? 'walk' : 'walks'}`;
+
+/**
+ * The place sheet's line under a selected star: its parents, its walks in words as the star says them, and the
+ * distance walked there, "Providence, Rhode Island · one walk · 175 m" (tend tabs 10, decision 0172).
+ */
+export function placeSheetLine(subtitle: string | null | undefined, walks: number, distance: string): string {
+  return [subtitle, walksWord(walks), distance].filter(Boolean).join(' · ');
+}
 
 /**
  * A walked place's star as a screen reader says it (tend places T15, decision 0154: the star draws no numeral): one

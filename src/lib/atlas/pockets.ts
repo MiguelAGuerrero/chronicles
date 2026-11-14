@@ -3,9 +3,9 @@ import { projector } from '../geo';
 import type { LngLat } from '../types';
 
 /*
- * TP4: the pockets of activity inside a town. The weighted points of busy streets (OSM and Overture
+ * TP4: the pockets of activity inside a town. The weighted points of storefront streets (OSM and Overture
  * merged, AD1-AD2) are binned into cells, each cell is smoothed over its 3 x 3 neighbours, and peaks
- * are taken busiest first, a minimum distance apart. Connected dense cells would join a whole city
+ * are taken densest first, a minimum distance apart. Connected dense cells would join a whole city
  * into one mass (Allentown's 137 cells), so a pocket is a peak, not a region.
  */
 
@@ -28,11 +28,11 @@ export interface PocketPoint {
 export interface Pocket {
   /** The weighted middle of the peak's 3 x 3 cells: where Walk to goes. */
   at: LngLat;
-  /** The busiest street through it, filled by the shell from the strips; null when none. */
+  /** The densest storefront street through it, filled by the shell from the strips; null when none. */
   name: string | null;
 }
 
-/** TP4: the pockets of a set of weighted points, busiest first. */
+/** TP4: the pockets of a set of weighted points, densest first. */
 export function findPockets(points: PocketPoint[], rules: typeof POCKET_RULES = POCKET_RULES): Pocket[] {
   if (!points.length) return [];
   const origin = points[0].at;

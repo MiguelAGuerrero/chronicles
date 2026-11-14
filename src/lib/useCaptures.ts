@@ -652,9 +652,9 @@ export function useCaptures(
    * walk's other views (the walk screen, Navigate's live walk) show it too.
    * Its find and reminder hang on its id, so they stay.
    */
-  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string, type?: string | null, typeOnly = false) {
+  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string) {
     const id = c.id;
-    const change = notePatch(body, type, typeOnly);
+    const change = notePatch(body);
     await db.updatePiece(c.piece_id, change);
     // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, change, c.piece_id));

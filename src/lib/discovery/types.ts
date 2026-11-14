@@ -28,7 +28,7 @@ export interface Place {
   generic: boolean;
   build: string;
   /**
-   * False for a place that counts toward busy streets but is never a mark
+   * False for a place that counts toward storefront streets but is never a mark
    * (S19, S20): a cinema, a dog park, a church without a notable name.
    * Missing on rows cached before it: judged by category alone.
    */

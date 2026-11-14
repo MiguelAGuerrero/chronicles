@@ -223,12 +223,12 @@ async function run(h) {
         await pg.mouse.up();
       }
       {
-        // tabs audit U6: What's good here? is the filled button; Walk here the secondary one.
+        // tabs audit U6: What's here? is the filled button; Walk here the secondary one.
         await pg.waitForSelector('[data-testid=look-here]');
         const bg = (sel) => pg.locator(sel).evaluate((e) => getComputedStyle(e).backgroundColor);
         const look = await bg('[data-testid=look-here]');
         const walkHere = await bg('[data-testid=walk-here]');
-        check(look === 'rgb(194, 65, 12)' && walkHere !== look, `tabs audit U6: on Explore's card, What's good here? is primary and Walk here secondary (${look}, ${walkHere})`);
+        check(look === 'rgb(194, 65, 12)' && walkHere !== look, `tabs audit U6: on Explore's card, What's here? is primary and Walk here secondary (${look}, ${walkHere})`);
       }
       await pg.click('[data-testid=walk-here]');
       await pg.waitForURL(/\/walk/, { timeout: 15000 });

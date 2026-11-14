@@ -6,7 +6,7 @@ import { test } from 'node:test';
 
 interface Gate {
   take(who: 'walk' | 'dark'): boolean;
-  busy(retryAfterS?: number | null): void;
+  pause(retryAfterS?: number | null): void;
   ok(): void;
 }
 interface GateApi {
@@ -36,7 +36,7 @@ test('DK8: one cap of sixty across both sources, after dark stopping at forty; o
   now += 24 * 3600_000;
   assert.equal(g.take('walk'), true);
   // A busy answer pauses both, for walkability as before (60 s first).
-  g.busy();
+  g.pause();
   assert.equal(g.take('dark'), false);
   assert.equal(g.take('walk'), false);
   now += 60_000;
@@ -65,7 +65,7 @@ test('DK8: the after-dark source posts the tile\'s box and nothing else, and ask
   assert.equal(sent[0].init?.headers, undefined, 'no custom headers, key or identifier');
   const body = decodeURIComponent(String(sent[0].init?.body).replace(/^data=/, ''));
   assert.ok(/\(-?\d+\.\d+,-?\d+\.\d+,-?\d+\.\d+,-?\d+\.\d+\)/.test(body), body);
-  gate.busy();
+  gate.pause();
   assert.equal(await src.read(4823, 6164), null);
   assert.equal(sent.length, 1, 'nothing asked while paused');
 });

@@ -1,7 +1,7 @@
 // @layer view
 import { nextShown } from './shown';
 import { useEffect, useRef, useState } from 'react';
-import type { Stillness } from '../layers/useBusyLayer';
+import type { Stillness } from '../layers/useStorefrontsLayer';
 import { ensureOvertureRelease } from '../activity/overture';
 import type { LngLat } from '../types';
 import { retryIn } from './extent';

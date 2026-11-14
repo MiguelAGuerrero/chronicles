@@ -76,7 +76,7 @@ async function run(h) {
     check(/arrow keys pan/i.test((await safe(() => pg.locator('.maplibregl-canvas').first().getAttribute('aria-label'), '')) || ''),
       'FL13: with Move map on the map\'s label says the arrow keys pan it');
 
-    // FL10: a long press on a panned spot offers What's good here and Walk here; a drag never starts one.
+    // FL10: a long press on a panned spot offers What's here and Walk here; a drag never starts one.
     const { x: lx, y: ly } = await h.bareMapPoint(pg);
     await pg.mouse.move(lx, ly);
     await pg.mouse.down();

@@ -68,7 +68,7 @@ const allCaptures = () => db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(fac
 /**
  * Chronicle (NV11-NV13): review. Stars where you have walked, a sheet that
  * peeks with a summary and lists walks and days, and the replays. Start,
- * Explore, What's good here and quick capture live on the other tabs. It reads
+ * Explore, What's here and quick capture live on the other tabs. It reads
  * only walks, summaries, Area, WalkArea and capture rows; placing old walks
  * (which reads their traces) lives in lib/backlog.
  */
@@ -413,9 +413,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         onClose={() => setRecalled(null)}
         autoPlay
         remind
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
@@ -431,9 +431,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           await captureEdits.save(c, patch);
           setCaptures((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);

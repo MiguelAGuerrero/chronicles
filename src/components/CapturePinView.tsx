@@ -3,12 +3,14 @@ import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
 import { Image, StyleSheet, View } from 'react-native';
 import { pinHeadKinds, pinSpoken, pinThumb, type CapturePin, type WalkClock } from '../lib/pins';
+import type { ReactionInfo } from '../lib/reactions/core';
 import { VideoMark } from './VideoMark';
+import { webData } from './edit/EditedPhoto';
 import { useStill } from '../lib/thumbs/useStill';
 import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
-import { captureIcon, Icon, KIND_ICON } from './icons';
+import { captureIcon, Icon, KIND_ICON, type IconName } from './icons';
 import { theme } from './ui';
 
 /** A neutral for pins holding several kinds, distinct from the trace's navy. */
@@ -34,12 +36,14 @@ const THUMB_SIZE = 36 - 2 * 2 - 2 * THUMB_RING;
  * short stem, so the point it marks, and the walker's dot there, stay visible
  * beneath it. A pin with a reminder wears a bell in its corner (RB1).
  */
-export function CapturePinView({ pin, faint = false, drop: dropNow = false, reminded = false }: {
+export function CapturePinView({ pin, faint = false, drop: dropNow = false, reminded = false, reactions = NO_REACTIONS }: {
   pin: CapturePin;
   faint?: boolean;
   drop?: boolean;
   /** Any of its captures has a live reminder (`pinReminded`). */
   reminded?: boolean;
+  /** A pin of one moment's reactions (`pinReactions`, RX17): bubbles from its head's bottom-left corner. */
+  reactions?: readonly ReactionInfo[];
 }) {
   // Kept from mount, so a later render can't cut the drop short.
   const [drop] = useState(dropNow);
@@ -58,6 +62,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
   const [failed, setFailed] = useState<string | null>(null);
   const picture = uri && uri !== failed ? uri : null;
   const painted = !!picture && picture === loaded;
+  const isVideo = n === 1 && pin.captures[0].kind === 'video';
   const view = (
     <View style={styles.wrap} pointerEvents="none">
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
@@ -77,6 +82,20 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
           )}
         </View>
         <View style={[styles.stem, { backgroundColor: color }]} />
+        {/* Its reactions (RX17, RX20): a row of ink bubbles out from the head's bottom-left corner, in the families'
+            order, clear of the bell and clock above and the video mark at the bottom right. Inside the pin, so on a
+            memory they are as faint as it is (the owner, Nov 14). */}
+        {reactions.length > 0 && (
+          // Over the head's lower part, so each reads as this pin's and never lands on a neighbour (reactions ui 1); on a
+          // video's pin it sits further left, clear of the play mark (RX20).
+          <View style={[styles.reactions, isVideo && styles.reactionsVideo]} pointerEvents="none">
+            {reactions.map((r, i) => (
+              <View key={r.id} testID="pin-reaction" {...webData({ reaction: r.id })} style={[styles.reaction, i > 0 && styles.reactionNext]}>
+                <Icon name={r.glyph as IconName} size={10} color="#ffffff" />
+              </View>
+            ))}
+          </View>
+        )}
       </View>
       {/* A pin of several: its kinds fanned over the head, outside a memory's fade at its size, as its clock is (tend
           map audit 23, MR10). */}
@@ -119,9 +138,9 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
  * A pin's spoken name: its moments in words and when (`pinSpoken`: its minutes in with its walk's clock, else the part
  * of the day by `now`, tend map T28), its stack, its bell, "Open".
  */
-export function pinLabel(pin: CapturePin, interactive = true, memory = false, reminded = false, clocks?: readonly WalkClock[], now?: number): string {
+export function pinLabel(pin: CapturePin, interactive = true, memory = false, reminded = false, clocks?: readonly WalkClock[], now?: number, reactions?: readonly ReactionInfo[]): string {
   const n = pin.captures.length;
-  const kind = pinSpoken(pin, { memory, clocks, now });
+  const kind = pinSpoken(pin, { memory, clocks, now, reactions });
   // One moment with more than one piece says so in words, never how many (MS8, MS9).
   const stacked = n === 1 && hasMore(pin.captures[0]) ? `, ${STACK_SPOKEN}` : '';
   // The bell said in words (RB7).
@@ -129,7 +148,20 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
   return interactive ? `${what}. Open` : what;
 }
 
+const NO_REACTIONS: readonly ReactionInfo[] = [];
+
 const styles = StyleSheet.create({
+  // Across the head's lower part from just outside its left edge (reactions ui 1): every bubble on the head itself.
+  reactions: { position: 'absolute', left: -8, top: 22, flexDirection: 'row' },
+  // A video's play mark is at the head's bottom right (from x 20): the row starts further out, clear of it (RX20);
+  // its first bubbles then sit off the head (reactions audit 15, deferred).
+  reactionsVideo: { left: -20 },
+  // The bell's shape: an ink disc, a white glyph, a white edge (RX17); their white edges just meet.
+  reaction: {
+    width: 15, height: 15, borderRadius: 7.5, backgroundColor: theme.ink,
+    borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
+  },
+  reactionNext: { marginLeft: -2 },
   videoMark: { position: 'absolute', right: -3, top: 20, borderWidth: 1.5, borderColor: '#ffffff' },
   // The faint head shrinks to 75% toward its foot (its bottom right near x 31, y 38): the mark there, 2 px under the clock (ui 4).
   videoMarkFaint: { right: 1, top: 24 },

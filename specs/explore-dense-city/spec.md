@@ -2,6 +2,8 @@
 
 # Explore in a dense city: names the map can place, and a page that keeps up
 
+> Amended by `specs/storefronts` (Nov 14, 2026): the Busy layer's names are the Storefronts layer's, its ids `storefront-names*` (SF13).
+
 Nov 12, 2026 · @Miguel Guerrero
 
 ## Vision

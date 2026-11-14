@@ -32,7 +32,7 @@ import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { layerNotes } from '../../lib/layers/notes';
-import { useBusyLayer } from '../../lib/layers/useBusyLayer';
+import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { useAfterDark } from '../../lib/dark/useAfterDark';
@@ -215,14 +215,14 @@ export function useReady(props: {
   const layers = useLayers();
   const wk = useWalkability(fix, !!layers.on.walkability);
   const dk = useAfterDark(fix, !!layers.on.dark, fix);
-  const busy = useBusyLayer(fix, !!layers.on.busy);
+  const storefronts = useStorefrontsLayer(fix, !!layers.on.storefronts);
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
     walkability: wk.draw,
     afterDark: dk.draw,
-    landing: busy.view,
+    landing: storefronts.view,
     // DC18: names only near you.
-    busyNamesNear: namesNearYou(fix),
+    storefrontNamesNear: namesNearYou(fix),
     /** A tap on the map closes the Layers panel (ML4). */
     onPress: () => layers.closePanel(),
     trace: NONE,
@@ -297,7 +297,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, dark: dk.status, darkWords: dk.words })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, dark: dk.status, darkWords: dk.words })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 
@@ -349,9 +349,9 @@ export function useReady(props: {
           await captureEdits.save(c, patch);
           setMoments((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
-        onSaveNote={async (c, body, type, only) => {
-          const change = notePatch(body, type, only);
-          await ready.saveNote(c.piece_id, body, type, only);
+        onSaveNote={async (c, body) => {
+          const change = notePatch(body);
+          await ready.saveNote(c.piece_id, body);
           setMoments((prev) => applyPatch(prev, c.id, change, c.piece_id));
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}

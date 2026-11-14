@@ -70,7 +70,7 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
         </View>
       ) : null}
       <Modal visible={page > 0} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
-        {page > 0 ? <NewNotePage key={page} ref={pageRef} cap={cap} into={null} onWalk camera onKept={() => setMessage('Note saved here')} onClose={() => setPage(0)} /> : null}
+        {page > 0 ? <NewNotePage key={page} ref={pageRef} cap={cap} into={null} onWalk reactable camera onKept={() => setMessage('Note saved here')} onClose={() => setPage(0)} /> : null}
       </Modal>
     </View>
   );

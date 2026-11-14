@@ -14,7 +14,9 @@ import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinMark, pinReminded, pinThumb, type CapturePin, type WalkClock } from '../../lib/pins';
+import { metersPerPixel, pinReactions, pinReminded, pinThumb, type CapturePin, type WalkClock } from '../../lib/pins';
+import type { ReactionSet } from '../../lib/reactions/core';
+import { useReactionSets } from '../../lib/reactions/useReactions';
 import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
@@ -31,7 +33,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, DARK_STYLE, darkGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, DARK_STYLE, darkGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -154,15 +156,15 @@ function addOverlay(map: MapLibreMap) {
       'circle-stroke-color': '#ffffff',
       'circle-stroke-width': 2,
     } });
-  // The Busy layer's names (DC1-DC6, DC14): the map's own text, colliding with each other and the base map's labels. Where
-  // the layer sits in the stack is set by busyNamesOver (DC16); added on top here.
-  map.addSource('busy-names', { type: 'geojson', data: empty });
-  const names = busyNameLayers();
-  map.addLayer({ id: 'busy-names', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.filter, layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
+  // The Storefronts layer's names (DC1-DC6, DC14): the map's own text, colliding with each other and the base map's labels. Where
+  // the layer sits in the stack is set by storefrontNamesOver (DC16); added on top here.
+  map.addSource('storefront-names', { type: 'geojson', data: empty });
+  const names = storefrontNameLayers();
+  map.addLayer({ id: 'storefront-names', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.filter, layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
   // A turned name, centred or left out, never slid across its street (audit 1).
-  map.addLayer({ id: 'busy-names-turned', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.turned.filter, layout: names.turned.layout, paint: names.turned.paint } as unknown as SymbolLayerSpecification);
+  map.addLayer({ id: 'storefront-names-turned', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.turned.filter, layout: names.turned.layout, paint: names.turned.paint } as unknown as SymbolLayerSpecification);
   // The room the selected area's name and each "?" pin keep (DC14, DC17): above the names, so it is placed first.
-  map.addLayer({ id: 'busy-names-room', type: 'symbol', source: 'busy-names', minzoom: names.minzoom, filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
+  map.addLayer({ id: 'storefront-names-room', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
 }
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
@@ -419,17 +421,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         };
         // A two-finger turn can't be made headless: the e2e turns the newest map in code (CP1-CP5).
         (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
-        // Explore in a dense city (DC5, DC6, DC14, DC15): the e2e moves the newest map in code and asks which busy names are
+        // Explore in a dense city (DC5, DC6, DC14, DC15): the e2e moves the newest map in code and asks which storefront names are
         // drawn, where; names the map placed, never the reserved room (DC14).
-        const BUSY = ['busy-names', 'busy-names-turned'];
-        const busyIn = (box?: [[number, number], [number, number]]) =>
-          [...new Set((box ? map.queryRenderedFeatures(box, { layers: BUSY }) : map.queryRenderedFeatures({ layers: BUSY }))
+        const NAMES = ['storefront-names', 'storefront-names-turned'];
+        const storefrontsIn = (box?: [[number, number], [number, number]]) =>
+          [...new Set((box ? map.queryRenderedFeatures(box, { layers: NAMES }) : map.queryRenderedFeatures({ layers: NAMES }))
             .filter((f) => !f.properties?.reserve).map((f) => String(f.properties?.name)))];
         const canvasXY = (x: number, y: number): [number, number] => {
           const r = map.getCanvas().getBoundingClientRect();
           return [x - r.left, y - r.top];
         };
-        const w = window as { __zoomTo?: unknown; __busyNamesIn?: unknown; __busyNamePoint?: unknown };
+        const w = window as { __zoomTo?: unknown; __storefrontNamesIn?: unknown; __storefrontNamePoint?: unknown };
         w.__zoomTo = (at: LngLat, zoom: number) => map.jumpTo({ center: at, zoom });
         // smooth-switches SS9: the same move with the app idle, the bare camera's cost to measure a switch against. Started by a
         // key, as a switch is (`__easeNext`, then F9): a move started from a script got almost no frames in headless Chromium.
@@ -438,14 +440,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           if (e.key !== 'F9' || !next) return;
           map.easeTo({ center: next[0], duration: next[1] });
         });
-        w.__busyNamesIn = (x0: number, y0: number, x1: number, y1: number) => busyIn([canvasXY(x0, y0), canvasXY(x1, y1)]);
-        w.__busyNamePoint = () => {
+        w.__storefrontNamesIn = (x0: number, y0: number, x1: number, y1: number) => storefrontsIn([canvasXY(x0, y0), canvasXY(x1, y1)]);
+        w.__storefrontNamePoint = () => {
           const r = map.getCanvas().getBoundingClientRect();
           for (let y = 60; y < r.height - 60; y += 8)
             for (let x = 30; x < r.width - 30; x += 8) {
               // Only where the name is what a finger meets: no pin or control over it.
               if (document.elementFromPoint(r.left + x, r.top + y) !== map.getCanvas()) continue;
-              const hit = busyIn([[x - 1, y - 1], [x + 1, y + 1]]);
+              const hit = storefrontsIn([[x - 1, y - 1], [x + 1, y + 1]]);
               if (hit.length) return { x: r.left + x, y: r.top + y, name: hit[0] };
             }
           return null;
@@ -453,7 +455,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         map.on('movestart', () => container.current?.setAttribute('data-idle', '0'));
         map.on('idle', () => {
           container.current?.setAttribute('data-idle', '1');
-          container.current?.setAttribute('data-busy-names', JSON.stringify(busyIn()));
+          container.current?.setAttribute('data-storefront-names', JSON.stringify(storefrontsIn()));
         });
       }
     });
@@ -679,14 +681,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('moveend', () => {
       northAsked.current = false;
     });
-    // explore-dense-city ui 3: the busy names fold upright for the bearing the map settles on (a turn, resetNorth).
+    // explore-dense-city ui 3: the storefront names fold upright for the bearing the map settles on (a turn, resetNorth).
     let namesBearing = 0;
     const uprightNames = () => {
       const b = Math.round(map.getBearing());
-      if (b === namesBearing || !map.getLayer('busy-names')) return;
+      if (b === namesBearing || !map.getLayer('storefront-names')) return;
       namesBearing = b;
-      map.setLayoutProperty('busy-names', 'text-rotate', busyNameRotate(b) as never);
-      map.setLayoutProperty('busy-names-turned', 'text-rotate', busyNameRotate(b) as never);
+      map.setLayoutProperty('storefront-names', 'text-rotate', storefrontNameRotate(b) as never);
+      map.setLayoutProperty('storefront-names-turned', 'text-rotate', storefrontNameRotate(b) as never);
     };
     map.on('rotateend', uprightNames);
     map.on('moveend', uprightNames);
@@ -707,7 +709,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     credits.onOpen = (open) => onCreditsOpen.current?.(open);
     creditsRef.current = credits;
     map.addControl(credits, props.attributionTop ? 'top-right' : 'bottom-left');
-    // DC9: the camera's moves, once at their start and once at their settle (Explore's busy read waits for the settle).
+    // DC9: the camera's moves, once at their start and once at their settle (Explore's storefronts read waits for the settle).
     map.on('movestart', () => {
       perfMark('mark:moved');
       onMoveState.current?.(true);
@@ -809,16 +811,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready) return;
     setData('pockets', pocketsGeoJSON(props.landing));
     setData('strips', stripsGeoJSON(props.landing));
-    // The e2e reads whether busy streets are drawn (the Busy streets layer).
-    container.current?.setAttribute('data-busy', props.landing ? `strips:${stripsGeoJSON(props.landing).features.length}` : '');
+    // The e2e reads whether storefront streets are drawn (the Storefront streets layer).
+    container.current?.setAttribute('data-storefronts', props.landing ? `strips:${stripsGeoJSON(props.landing).features.length}` : '');
     // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
-    container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
+    container.current?.setAttribute('data-storefronts-sets', String(Number(container.current?.getAttribute('data-storefronts-sets') ?? 0) + 1));
     // The view is read whole; what it draws is in `graded` and `pockets`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, graded, pockets]);
-  // The busy names (DC1, DC14): sent when the areas or the reserved name change, never per fix or zoom.
-  const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
-  const reserveRef = useRef(props.busyNamesReserve);
+  // The storefront names (DC1, DC14): sent when the areas or the reserved name change, never per fix or zoom.
+  const reserveKey = props.storefrontNamesReserve ? `${props.storefrontNamesReserve.name}|${props.storefrontNamesReserve.at.join(',')}` : '';
+  const reserveRef = useRef(props.storefrontNamesReserve);
   // DC17: every "?" pin keeps its room; sent again only when the pins move, never per render.
   const pinsAt = (props.discoveries ?? []).map((d) => d.at);
   const pinsKey = props.landing ? pinsAt.map((a) => a.join(',')).join('|') : '';
@@ -827,20 +829,20 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     pinsRef.current = (props.discoveries ?? []).map((d) => d.at);
   });
   useEffect(() => {
-    reserveRef.current = props.busyNamesReserve;
+    reserveRef.current = props.storefrontNamesReserve;
   });
   // DC18: the walk maps' names near you, re-sent only when you move about 100 m.
-  const nearRef = useRef(props.busyNamesNear);
-  const nearKey = props.busyNamesNear ? `${props.busyNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.busyNamesNear.m}` : '';
-  const clearOfRef = useRef(props.busyNamesClearOf);
+  const nearRef = useRef(props.storefrontNamesNear);
+  const nearKey = props.storefrontNamesNear ? `${props.storefrontNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.storefrontNamesNear.m}` : '';
+  const clearOfRef = useRef(props.storefrontNamesClearOf);
   const landingRef = useRef(props.landing);
   useEffect(() => {
-    nearRef.current = props.busyNamesNear;
-    clearOfRef.current = props.busyNamesClearOf;
+    nearRef.current = props.storefrontNamesNear;
+    clearOfRef.current = props.storefrontNamesClearOf;
     landingRef.current = props.landing;
   });
   // audit 11: the screen's controls over the map, and the map's edge, as room cells where the map now stands. Read from
-  // the page each time the map settles (a control never moves with the map); none while the Busy layer is off.
+  // the page each time the map settles (a control never moves with the map); none while the Storefronts layer is off.
   const roomOnScreen = (map: MapLibreMap): LngLat[] => {
     const canvas = map.getCanvas().getBoundingClientRect();
     const rects: { x: number; y: number; w: number; h: number }[] = [
@@ -862,26 +864,26 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     sendNames.current = () => {
       const map = mapRef.current;
-      if (!map || !map.getSource('busy-names')) return;
+      if (!map || !map.getSource('storefront-names')) return;
       const landing = landingRef.current;
-      const names = busyNamesGeoJSON(landing, reserveRef.current ?? null, pinsRef.current, nearRef.current ?? null, landing ? roomOnScreen(map) : []);
-      setData('busy-names', names);
+      const names = storefrontNamesGeoJSON(landing, reserveRef.current ?? null, pinsRef.current, nearRef.current ?? null, landing ? roomOnScreen(map) : []);
+      setData('storefront-names', names);
       // The e2e reads what the map was given (only when it is measuring): each name and where it goes.
       if ((window as { __perf?: unknown }).__perf && container.current) {
-        container.current.dataset.busyGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
+        container.current.dataset.storefrontsGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
       }
     };
   });
   // SS5: a switch's move holds the names: cleared at once, sent once when that move settles (the moveend below).
   const namesHeld = useRef(false);
-  const switchSeen = useRef(props.busyNamesSwitch);
+  const switchSeen = useRef(props.storefrontNamesSwitch);
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || props.busyNamesSwitch === switchSeen.current) return;
-    switchSeen.current = props.busyNamesSwitch;
+    if (!ready || !map || props.storefrontNamesSwitch === switchSeen.current) return;
+    switchSeen.current = props.storefrontNamesSwitch;
     namesHeld.current = true;
-    perfCount('busy-names:clear');
-    (map.getSource('busy-names') as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData({ type: 'FeatureCollection', features: [] });
+    perfCount('storefront-names:clear');
+    (map.getSource('storefront-names') as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData({ type: 'FeatureCollection', features: [] });
     // A switch that moves nothing (the camera already there) lets them go once its move would have ended.
     const t = setTimeout(() => {
       if (namesHeld.current && !map.isMoving()) {
@@ -890,7 +892,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       }
     }, MOTION.camera + MOTION.ease);
     return () => clearTimeout(t);
-  }, [ready, props.busyNamesSwitch]);
+  }, [ready, props.storefrontNamesSwitch]);
   useEffect(() => {
     if (ready && !namesHeld.current) sendNames.current();
   }, [ready, props.landing, reserveKey, pinsKey, nearKey]);
@@ -919,16 +921,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready]);
   // DC16: over every layer on Explore, so its names are placed before the base map's; elsewhere under the base map's labels
   // (placed after them, so a road keeps its own name) and so under the trace and the route.
-  const namesOver = !!props.busyNamesOver;
+  const namesOver = !!props.storefrontNamesOver;
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    const firstSymbol = (map.getStyle().layers as { type: string; id: string }[]).find((l) => l.type === 'symbol' && !l.id.startsWith('busy-names'))?.id;
+    const firstSymbol = (map.getStyle().layers as { type: string; id: string }[]).find((l) => l.type === 'symbol' && !l.id.startsWith('storefront-names'))?.id;
     const below = namesOver ? undefined : firstSymbol ?? 'alternates-edge';
-    map.moveLayer('busy-names', below);
-    map.moveLayer('busy-names-turned', below);
-    map.moveLayer('busy-names-room', below);
-    container.current?.setAttribute('data-busy-over', namesOver ? '1' : '0');
+    map.moveLayer('storefront-names', below);
+    map.moveLayer('storefront-names-turned', below);
+    map.moveLayer('storefront-names-room', below);
+    container.current?.setAttribute('data-storefronts-over', namesOver ? '1' : '0');
   }, [ready, namesOver]);
   useEffect(() => {
     if (!ready) return;
@@ -1089,10 +1091,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pins = useZoomPins(props.captures, view?.zoom ?? null, view?.lat ?? null);
   // One read of the reminders per map, for the bells on its pins (RB1, RB6).
   const reminded = useReminded();
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, props.clocks, props.now);
+  // One read of the reactions per map, for the bubbles on its pins (RX17, RX21).
+  const sets = useReactionSets(!!props.captures?.length || !!props.memories?.length);
+  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, sets, props.clocks, props.now);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, undefined, props.now);
+  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, sets, undefined, props.now);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -1475,6 +1479,7 @@ function usePinMarkers(
   onPress: ((pin: CapturePin) => void) | undefined,
   memory: boolean,
   reminded: ReadonlySet<string>,
+  sets: ReadonlyMap<string, ReactionSet>,
   clocks?: readonly WalkClock[],
   now?: number,
 ) {
@@ -1482,7 +1487,7 @@ function usePinMarkers(
   useEffect(() => {
     latest.current = { pins: new Map(pins.map((p) => [p.id, p])), onPress };
   });
-  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; drops: boolean }>());
+  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; rx: string; drops: boolean }>());
   const interactive = !!onPress;
   // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
   const [openedAt] = useState(() => Date.now());
@@ -1499,23 +1504,26 @@ function usePinMarkers(
       live.add(pin.id);
       const ids = pin.captures.map((c) => c.id).join(',');
       const bell = pinReminded(pin, reminded);
+      const reactions = pinReactions(pin, sets);
+      const rx = reactions.map((r) => r.id).join(',');
       // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${pinMark(pin)?.id ?? ''}`;
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
       const existing = markers.current.get(pin.id);
       // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
       // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
       // audit 29); a new one relabels in place.
-      const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt);
-      if (existing?.key === key && existing.bell === bell && existing.marker.getElement().getAttribute('aria-label') !== label) {
+      const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt, reactions);
+      if (existing?.key === key && existing.bell === bell && existing.rx === rx && existing.marker.getElement().getAttribute('aria-label') !== label) {
         existing.marker.getElement().setAttribute('aria-label', label);
       }
       if (existing?.key === key) {
-        // A reminder set or stopped (RB5) redraws the same element in place: focus returns to it when
-        // the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
-        if (existing.bell !== bell) {
+        // A reminder set or stopped (RB5), or a reaction changed (RX21), redraws the same element in place: focus
+        // returns to it when the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
+        if (existing.bell !== bell || existing.rx !== rx) {
           existing.marker.getElement().setAttribute('aria-label', label);
-          existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} />);
+          existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} reactions={reactions} />);
           existing.bell = bell;
+          existing.rx = rx;
         }
         continue;
       }
@@ -1541,19 +1549,19 @@ function usePinMarkers(
       const root = createRoot(el);
       const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
       for (const c of pin.captures) seen.current.add(c.id);
-      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} />);
+      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} reactions={reactions} />);
       // Anchored at the stem's foot, so the marked point stays visible.
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
       // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
       marker.getElement().style.zIndex = memory ? '0' : '1';
-      markers.current.set(pin.id, { marker, root, key, bell, drops });
+      markers.current.set(pin.id, { marker, root, key, bell, rx, drops });
     }
     for (const [id, m] of markers.current) {
       if (live.has(id)) continue;
       drop(m);
       markers.current.delete(id);
     }
-  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, clocks, now]);
+  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

@@ -15,7 +15,7 @@ const dark = () => LAYERS.find((l) => l.id === 'dark');
 const unlit = 'unlit' as unknown as Stretch['kind'];
 
 test('DK1: the registry lists After dark with a moon, off by default, beside the other three, as one setting for every map', async () => {
-  assert.deepEqual(LAYERS.map((l) => l.id), ['walkability', 'busy', 'borders', 'dark']);
+  assert.deepEqual(LAYERS.map((l) => l.id), ['walkability', 'storefronts', 'borders', 'dark']);
   const d = dark();
   assert.ok(d);
   assert.equal(d.name, 'After dark');
@@ -47,7 +47,7 @@ test('DK11: no number, comparison, safety or grade word in anything the layer sa
   const said: string[] = [d.name, d.note ?? '', ...d.legend.flatMap((r) => [r.text, r.tip ?? ''])];
   for (const status of ['reading', 'ready', 'unavailable', 'waiting'] as const) {
     for (const words of ['Open now', 'Open after sunset', 'No dark tonight', 'Hours read only near you', null]) {
-      said.push(layerNotes({ walkability: 'off', busyReading: false, busyFailed: false, dark: status, darkWords: words } as Parameters<typeof layerNotes>[0]).dark ?? '');
+      said.push(layerNotes({ walkability: 'off', storefrontsReading: false, storefrontsFailed: false, dark: status, darkWords: words } as Parameters<typeof layerNotes>[0]).dark ?? '');
     }
   }
   const { READING_WORDS } = (await import('../../dark/sun' as string)) as { READING_WORDS: readonly string[] };
@@ -58,7 +58,7 @@ test('DK11: no number, comparison, safety or grade word in anything the layer sa
 });
 
 test('DK1, DK5: while on, the panel line says the reading and ends "Only what is mapped"', () => {
-  const note = (darkWords: string | null, dark = 'ready') => layerNotes({ walkability: 'off', busyReading: false, busyFailed: false, dark, darkWords } as Parameters<typeof layerNotes>[0]).dark;
+  const note = (darkWords: string | null, dark = 'ready') => layerNotes({ walkability: 'off', storefrontsReading: false, storefrontsFailed: false, dark, darkWords } as Parameters<typeof layerNotes>[0]).dark;
   assert.equal(note('Open now'), 'Open now. Only what is mapped.');
   assert.equal(note('Open after sunset'), 'Open after sunset. Only what is mapped.');
   assert.equal(note('Hours read only near you'), 'Hours read only near you. Only what is mapped.');

@@ -20,20 +20,20 @@ export function createDarkSource(o: { fetch: typeof fetch; gate: OverpassGate; u
       try {
         const res = await o.fetch(o.url ?? OVERPASS_URL, { method: 'POST', body: `data=${encodeURIComponent(darkQuery(r.s, r.w, r.n, r.e))}`, signal });
         if (OVERPASS_BUSY.includes(res.status)) {
-          o.gate.busy(retryAfterS(res.headers?.get?.('retry-after'), now()));
+          o.gate.pause(retryAfterS(res.headers?.get?.('retry-after'), now()));
           return null;
         }
         if (!res.ok) return null;
         const json = await res.json();
         if (overpassRuntimeError(json)) {
-          o.gate.busy();
+          o.gate.pause();
           return null;
         }
         o.gate.ok();
         return { x, y, ...darkFromOverpass(json) };
       } catch {
         // Offline, a page the browser hides, a body that isn't JSON, or the reader giving up at its deadline.
-        o.gate.busy();
+        o.gate.pause();
         return null;
       }
     },

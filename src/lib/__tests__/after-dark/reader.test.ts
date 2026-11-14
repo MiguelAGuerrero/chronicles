@@ -54,7 +54,7 @@ test('DK9: a kept tile is used until thirty days old, then read again; the raw t
   assert.ok(!JSON.stringify(kept).includes('"open"'), 'whether a place is open is never stored');
 });
 
-test('DK14: a busy or failed source draws no guess, keeps what was kept and waits two minutes before asking again', async () => {
+test('DK14: an overloaded or failed source draws no guess, keeps what was kept and waits two minutes before asking again', async () => {
   const { createDarkReader, DARK_RETRY_MS, DARK_KEEP_MS } = await api();
   assert.equal(DARK_RETRY_MS, 2 * 60_000);
   const p = fakePorts();

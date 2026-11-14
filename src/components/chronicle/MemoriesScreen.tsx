@@ -1,4 +1,10 @@
-import { noteTypeOf } from '../../lib/noteType';
+import { reactions } from '../../lib/reactions';
+import { useReactions } from '../../lib/reactions/useReactions';
+import { infoOf, type ReactionId } from '../../lib/reactions/core';
+import type { LensGroup } from '../../lib/reactions/lens';
+import { faced } from '../../lib/moment';
+import { ReactionsScreen } from '../reactions/ReactionsScreen';
+import { LensScreen } from '../reactions/LensScreen';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -45,6 +51,7 @@ import { ThreadMomentMenu } from '../threads/ThreadMomentMenu';
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
 const NO_IDS: string[] = [];
+const selectLoaded = (s: { loaded: boolean }) => s.loaded;
 
 /** A moment kept in this sitting, as the page draws it before (or without) a read of the store (JN9). */
 const viewOf = (c: Faced): MomentView => ({ id: c.id, t: c.t, kind: c.kind, walkId: c.walk_id, words: wordsOf(c), place: null, hasMedia: c.kind === 'text' ? true : !!c.file_path, capture: c });
@@ -72,6 +79,8 @@ export function MemoriesScreen() {
   const [menuFromSlip, setMenuFromSlip] = useState(false);
   // The piece the open line is writing: drawn there, not on the page.
   const [writing, setWriting] = useState<string | null>(null);
+  // The composer is open (JN47): the entry being written shows no Type sign of its own behind it.
+  const [composing, setComposing] = useState(false);
   // Why a moment kept in this sitting has no place, when the line was told (JN5), and those moments themselves,
   // so they are drawn while the page is loading or could not be read (JN9).
   const [reasons, setReasons] = useState<Record<string, NoFix>>({});
@@ -120,6 +129,19 @@ export function MemoriesScreen() {
   };
   const [menuOpen, setMenuOpen] = useState(false);
   const [hiddenOpen, setHiddenOpen] = useState(false);
+  // Reactions in the contents (RX22-RX26): the list, a lens, and the lens's own viewer. Each is read fresh when shown.
+  const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [groups, setGroups] = useState<LensGroup[] | null>(null);
+  const [lens, setLens] = useState<ReactionId | null>(null);
+  const [lensViews, setLensViews] = useState<MomentView[] | null>(null);
+  const [lensAt, setLensAt] = useState<string | null>(null);
+  // A moment waiting in the Undo window is left out of both (reactions audit 5).
+  const readGroups = useCallback(() => {
+    void reactions.groups(deletedIds).then(setGroups, () => setGroups([]));
+  }, [deletedIds]);
+  const readLens = useCallback((id: ReactionId) => {
+    void reactions.lens(id, deletedIds).then((ms) => setLensViews(ms.map((m) => viewOf(faced(m)))), () => setLensViews([]));
+  }, [deletedIds]);
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
   // screen does; with a walk open, the walk screen opens it and this declines. Until the keeper knows, it declines.
   const [recalled, setRecalled] = useState<Faced[] | null>(null);
@@ -205,6 +227,11 @@ export function MemoriesScreen() {
   useEffect(() => {
     if (threadIds.length) void resurface.contextFor(threadIds, deletedIds);
   }, [threadIds, deletedIds, state.version]);
+  // A lens's moments are on screen too: each arrives with its context line (RX24, MC6).
+  const lensIds = useMemo(() => (lensViews ? lensViews.map((v) => v.id) : NO_IDS), [lensViews]);
+  useEffect(() => {
+    if (lensIds.length) void resurface.contextFor(lensIds, deletedIds);
+  }, [lensIds, deletedIds, state.version]);
   const hidden = useMemo(() => hiddenItems(state.prefs, feed.moments), [state.prefs, feed.moments]);
   // A delete began: the lines of the walks it touches are read again, so none names the capture that is going (audit 9).
   useEffect(() => {
@@ -237,7 +264,7 @@ export function MemoriesScreen() {
   // The capture band (HC6-HC11): in front only while nothing is open over Memories, so opening a moment, a
   // menu, Relive or a replay mid-memo saves the memo first, and nothing plays over a recording.
   const isFocused = useIsFocused();
-  const bandFocused = isFocused && !viewing && !recalled && !menuFor && !ownMenuFor && !menuOpen;
+  const bandFocused = isFocused && !viewing && !recalled && !lensAt && !menuFor && !ownMenuFor && !menuOpen;
   // A viewer opened mid-memo waits until the memo has stopped, so nothing plays over a recording (audit 8).
   const [memoOn, setMemoOn] = useState(false);
   // A moment kept from the band heads Lately at once, and gains its place when its fix comes (HC9).
@@ -275,6 +302,8 @@ export function MemoriesScreen() {
     setOwnId(null);
     setThreadsOpen(false);
     setHiddenOpen(false);
+    setReactionsOpen(false);
+    setLens(null);
     pageRef.current?.toFoot();
   }, []);
   // Every list scrolls its last entry clear above the open line (JN9), and messages sit above it (JN18).
@@ -301,9 +330,9 @@ export function MemoriesScreen() {
         </View>
   ) : null;
   const menuMoment = menuFor ? inThreadById.get(menuFor) ?? null : null;
-  // The moment's first note: what Type in More marks (note types NY23).
-  // The note that has a type, else the first (audit 57): what the sheet shows is what the page shows.
-  const menuNote = menuMoment?.capture.pieces.find((p) => p.kind === 'text' && noteTypeOf(p.note_type)) ?? menuMoment?.capture.pieces.find((p) => p.kind === 'text') ?? null;
+  // The moment's reactions: what Reaction in More shows and sets (RX10).
+  const menuSet = useReactions(menuMoment?.id);
+  const reactionsLoaded = useStore(reactions.store, selectLoaded);
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   // A reply says what it answers wherever it is listed (audit 1).
   const answerLine = (m: MomentView) => {
@@ -321,13 +350,13 @@ export function MemoriesScreen() {
         now={now}
         reason={reasons[m.id] ?? null}
         answering={answerLine(m)}
-        writing={writing}
+        writing={composing ? null : writing}
         onOpen={() => open(m)}
         onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
         onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
         onMore={() => { setMenuFromSlip(false); setTypeOnly(false); setMenuFor(m.id); }}
-        onType={(piece) => lineRef.current?.pickType({ piece: piece.id, type: piece.note_type, onPick: (t) => void resurface.saveNote({ ...c, piece_id: piece.id }, '', t, true).catch(() => {}) })}
-        typeOpen={typeOpen}
+        onSign={() => lineRef.current?.react({ moment: c.id })}
+        signOpen={typeOpen}
         onReact={dayKey(m.t) === dayKey(now) ? () => { setMenuFromSlip(false); setTypeOnly(true); setMenuFor(m.id); } : undefined}
         onOpenRef={open}
       />
@@ -422,6 +451,31 @@ export function MemoriesScreen() {
     body = null;
   }
 
+  if (reactionsOpen && lens) {
+    body = (
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
+        <LensScreen
+          reaction={infoOf(lens)}
+          moments={lensViews}
+          // Only a finished walk's replay is offered, as on the thread screens (reactions audit 10).
+          walks={closedWalks(state.walks)}
+          context={state.context}
+          now={now}
+          onBack={() => { setLens(null); setLensViews(null); readGroups(); }}
+          onOpen={(m) => setLensAt(m.id)}
+          onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
+          onMore={(m) => { setMenuFromSlip(false); setTypeOnly(false); setMenuFor(m.id); }}
+        />
+      </ScrollView>
+    );
+  } else if (reactionsOpen) {
+    body = (
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
+        <ReactionsScreen groups={groups} onBack={() => setReactionsOpen(false)} onOpen={(id) => { setLens(id); setLensViews(null); readLens(id); }} />
+      </ScrollView>
+    );
+  }
+
   if (hiddenOpen && state.status === 'ready') {
     body = (
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
@@ -440,12 +494,9 @@ export function MemoriesScreen() {
     );
   }
 
-  const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
+  // Reactions and a lens are sub-screens too: Contents leaves while they are up (reactions audit 4).
+  const subScreen = ready && (reactionsOpen || !!thread || !!own || threadsOpen || hiddenOpen);
   const lineRef = useRef<OpenLineHandle>(null);
-  // The row under the line is out of view: the bar holds the pen, the camera and the mic (audit 50, JN37).
-  const [away, setAway] = useState(false);
-  // The sheet has opened: until it has, the bar holds the camera and the mic (JN35).
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const journal = (line: { field: ReactNode; writing: boolean; entryOpen: boolean }) => (
     <JournalPage
@@ -456,14 +507,13 @@ export function MemoriesScreen() {
       onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
       footPad={lineH + FOOT_GAP}
       notice={failedNotice}
-      loaded={state.status !== 'loading'}
+      // The reactions are read with the moments: marks that arrive after the sheet opens would move its entries (fix entry-jitter).
+      loaded={state.status !== 'loading' && reactionsLoaded}
       entry={entry}
       field={line.field}
       onWrite={() => lineRef.current?.write()}
       writing={line.writing}
       focused={isFocused}
-      onAway={setAway}
-      onOpen={setSheetOpen}
       slip={pick ? (
         <Slip
           pick={pick}
@@ -480,7 +530,7 @@ export function MemoriesScreen() {
     <View style={styles.screen} testID="memories">
       {ready && !subScreen && (
         <View style={styles.bar}>
-          <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Contents: threads, hidden and options" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
+          <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Contents: threads, reactions, hidden and options" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
             <Text style={styles.menuText}>Contents</Text>
           </Pressable>
         </View>
@@ -489,7 +539,7 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine ref={lineRef} inBar={body != null} penInBar={away} opened={sheetOpen} onTypeOpen={setTypeOpen} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
+      <OpenLine ref={lineRef} inBar={body != null} onTypeOpen={setTypeOpen} onComposing={setComposing} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
         {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu
@@ -498,10 +548,19 @@ export function MemoriesScreen() {
         onClose={() => setMenuOpen(false)}
         onThreads={() => {
           setMenuOpen(false);
+          setReactionsOpen(false);
           setThreadsOpen(true);
+        }}
+        onReactions={() => {
+          setMenuOpen(false);
+          setLens(null);
+          setGroups(null);
+          setReactionsOpen(true);
+          readGroups();
         }}
         onHidden={() => {
           setMenuOpen(false);
+          setReactionsOpen(false);
           setHiddenOpen(true);
         }}
         onToggle={() => {
@@ -516,7 +575,8 @@ export function MemoriesScreen() {
       <MemoryMenu
         open={!!menuMoment}
         onlyType={typeOnly}
-        type={menuNote && menuMoment ? { chosen: noteTypeOf(menuNote.note_type), onChoose: (t) => { const m = menuMoment; setMenuFor(null); void resurface.saveNote({ ...m.capture, piece_id: menuNote.id }, '', t, true).catch(() => {}); } } : undefined}
+        // The slip stays quiet: its More offers no Reaction (reactions audit 17).
+        reaction={menuMoment && !menuFromSlip ? { set: menuSet, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(() => {}) } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;
@@ -586,7 +646,29 @@ export function MemoriesScreen() {
           await captureEdits.save(c, patch);
           resurface.patch(c.id, patch, c.piece_id);
         }}
-        onSaveNote={(c, body, type, only) => resurface.saveNote(c, body, type, only)}
+        onSaveNote={(c, body) => resurface.saveNote(c, body)}
+      />
+      {/* A lens's moment (RX25): the viewer steps through the lens in its order, with no position; Back is the lens. */}
+      <CaptureViewer
+        key={`lens:${lens ?? ''}:${lensAt ?? 'none'}`}
+        captures={!memoOn && lensAt && lensViews ? lensViews.map((v) => v.capture) : null}
+        startAt={lensAt ? { id: lensAt } : null}
+        position={false}
+        onClose={() => {
+          setLensAt(null);
+          // What changed in the viewer (a reaction cleared, a moment deleted) shows when the lens is next shown (RX26);
+          // a reply made there reaches the journal as the journal's own viewer's does (reactions audit 9).
+          if (lens) readLens(lens);
+          void resurface.refresh();
+          threads.load().catch(() => {});
+        }}
+        heads={headsOf(lensViews?.map((v) => v.capture) ?? null)}
+        remind
+        onSaveEdit={async (c, patch) => {
+          await captureEdits.save(c, patch);
+          resurface.patch(c.id, patch, c.piece_id);
+        }}
+        onSaveNote={(c, body) => resurface.saveNote(c, body)}
       />
       <CaptureViewer
         key={recalled?.[0]?.id ?? 'none'}
@@ -595,7 +677,7 @@ export function MemoriesScreen() {
         onClose={() => setRecalled(null)}
         autoPlay
         remind
-        onSaveNote={(c, body, type, only) => resurface.saveNote(c, body, type, only)}
+        onSaveNote={(c, body) => resurface.saveNote(c, body)}
       />
       {/* Above the open line, whatever its height: a delete's Undo waits, and must never cover the line or sit under it (fix journal-note-pages audit 1). */}
     </View>
