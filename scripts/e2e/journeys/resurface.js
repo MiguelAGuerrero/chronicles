@@ -213,7 +213,7 @@ async function contextRun(h) {
   await tabTo(empty.pg, 'chronicle', 'memories');
   const emptyOk = await attempt(async () => {
     await empty.pg.waitForSelector('[data-testid=day-heading]', { timeout: 15000 });
-    // The page itself: the toolbar's one hint, "What’s on your mind?", is the only question allowed (0171, 0176).
+    // The page itself: the toolbar's one hint, "What’s on your mind?", is the only question allowed (0171, 0178).
     const said = await empty.pg.locator('[data-testid=journal-page]').innerText();
     return (await empty.pg.locator('[data-testid=day-heading]').count()) === 1 && !/walk somewhere|nothing kept/i.test(said) && !/\?/.test(said);
   });

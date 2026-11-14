@@ -462,7 +462,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
   // A voice note begun from the writing row keeps Done's unseen place, so the camera does not move as it starts (JN14).
   const [recTyping, setRecTyping] = useState(false);
-  // The composer (JN47, decision 0177): on the page an entry is written in a sheet with room to type, never on the page.
+  // The composer (JN47, decision 0179): on the page an entry is written in a sheet with room to type, never on the page.
   const [composing, setComposing] = useState(false);
   const { onComposing } = props;
   useEffect(() => {
@@ -674,7 +674,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               // At rest the empty page is the pen (JN32); pulled out of view, the bar holds one, so words stay one
               // tap away from anywhere on the sheet (JN9, audit 50).
               <View style={styles.lead}>
-                {/* The toolbar (JN41, decision 0176): the field says it and starts writing on the page; Done takes the pen's
+                {/* The toolbar (JN41, decision 0178): the field says it and starts writing on the page; Done takes the pen's
                     place while an entry is open (JN44). */}
                 <Pressable testID="bar-compose" accessibilityRole="button" accessibilityLabel={LINE_PLACEHOLDER} onPress={() => setComposing(true)} disabled={props.disabled} style={styles.compose}>
                   <Text style={styles.composeText} numberOfLines={1}>{LINE_PLACEHOLDER}</Text>

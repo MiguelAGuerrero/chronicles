@@ -43,7 +43,7 @@ async function run(h) {
   await c.addInitScript(COUNT_GEO);
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
-  // The journal's toolbar at the foot (JN41, decision 0176).
+  // The journal's toolbar at the foot (JN41, decision 0178).
   const band = '[data-testid=open-line]';
 
   // HC1, HC14: an empty app opens on Memories, at /, with one tab bar, no map, and no location read.

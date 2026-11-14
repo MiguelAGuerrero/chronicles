@@ -212,7 +212,7 @@ None. No truth, no cache, no migration.
 
 - The row under a native `TextInput`'s placeholder, the bar appearing when pulled back, and recording from the row: web only until a phone runs it.
 
-## A toolbar at the foot (JN41-JN46, Nov 14, decision 0176)
+## A toolbar at the foot (JN41-JN46, Nov 14, decision 0178)
 
 The owner approved this from two mock-ups of the real app ("Tighten, then build"). It replaces JN34-JN40's row.
 
@@ -222,7 +222,7 @@ The owner approved this from two mock-ups of the real app ("Tighten, then build"
 - `src/components/journal/JournalPage.tsx`: `onOpen`, `lineRoom` and the row-in-view threshold go; `onAway` returns to "the empty page is out of view" (it no longer moves anything; kept only if a reader needs it, else removed).
 - `src/components/chronicle/MemoriesScreen.tsx`: `sheetOpen` and `penInBar` go.
 - `scripts/e2e/journeys/journal.js`: the JN34-JN40 block and its audit checks (61, 64, 65, 68, 69, 77) are replaced by JN41-JN46; the checks amended for "no bar at rest" go back to reading the bar.
-- Docs: 0176, the rule files (`journal-rest.md`, `ui-patterns.md` T7's exception becomes T8's), `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`.
+- Docs: 0178, the rule files (`journal-rest.md`, `ui-patterns.md` T7's exception becomes T8's), `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`.
 
 ### Tests per criterion
 | Id | Test |
@@ -241,12 +241,12 @@ The owner approved this from two mock-ups of the real app ("Tighten, then build"
 | Add a photo or a voice note | The camera and the mic beside them | The same bar | 22, 5 |
 | Finish | Done in the pen's place | The bar's trailing group | 23 |
 
-T8 (a toolbar with the tab bar) is departed from by the owner's call (0176), as 0112's stack was.
+T8 (a toolbar with the tab bar) is departed from by the owner's call (0178), as 0112's stack was.
 
 ### Native paths not run on a device
 The toolbar over the tab bar on an iPhone with a home indicator; the keyboard taking it up from the field's tap.
 
-## The composer (JN47-JN51, Nov 14, decision 0177)
+## The composer (JN47-JN51, Nov 14, decision 0179)
 
 Approved from a mock-up of the real app ("Build it"), with: the sheet to the keyboard, keep-and-close on a tap outside
 or Back, Open as a page in its tools.

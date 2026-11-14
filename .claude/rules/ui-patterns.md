@@ -46,15 +46,15 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
   prefers symbols); icon-only buttons carry a spoken name (X4).
 - **A moment's responses sheet** (decision 0131) departs from matrix 11 and 24 on the owner's call: a full-height sheet whose entries open a moment on the viewer's stack, Back returning to the sheet, as iMessage's reply view.
 - **A bottom toolbar and the tab bar never show together** (T8): a toolbar belongs to a screen that covers the tabs.
-  One exception, the owner's (decision 0176): the journal's capture toolbar ("What’s on your mind?", the camera, the
-  mic; the pen went with 0177), fixed above the tab bar as Day One's and Facebook's composers are.
+  One exception, the owner's (decision 0178): the journal's capture toolbar ("What’s on your mind?", the camera, the
+  mic; the pen went with 0179), fixed above the tab bar as Day One's and Facebook's composers are.
 - **Targets 44 pt on iOS, 48 dp on Android** (X0); WCAG 2.5.8's minimum is 24 px, so the platform sizes govern.
   Controls used while walking are bigger than the minimum (X0d).
 - **Text over a picture needs its own solid ground** (V4, X1): 3:1 for controls and 4.5:1 for text.
 - **Never colour alone to show state** (X3).
 - **Nothing wraps on a 320 px phone at the default text size** **[app]**: a row that can't fit has too many
   controls. At 200% text, labels may wrap (M3, WCAG 1.4.4); content must not be lost.
-- **The journal's toolbar carries one muted hint, "What’s on your mind?"** (decision 0171, moved to the toolbar by 0176; matrix 17 asks for a hint): the owner's call, reversing 0155's no-hint rule. Nothing else on the line prompts. It keeps a spoken name ("Write an entry") and an edge at 3:1; the still mark is gone, the placeholder says where writing begins.
+- **The journal's toolbar carries one muted hint, "What’s on your mind?"** (decision 0171, moved to the toolbar by 0178; matrix 17 asks for a hint): the owner's call, reversing 0155's no-hint rule. Nothing else on the line prompts. It keeps a spoken name ("Write an entry") and an edge at 3:1; the still mark is gone, the placeholder says where writing begins.
 - **Inputs are 16 px or more on the web** **[app]** (iOS zooms otherwise; `react-native-web.md`).
 - **In the moment viewer, a tap on a photo hides the bars** (T7, V1; UC7) and the photo fills the screen; it is
   centred in the whole screen in both states and never moves, the bars sitting over its margins (T7; UC7, audit 28). A screen reader keeps them up (T2; UC8). A video's own controls

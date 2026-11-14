@@ -1,9 +1,9 @@
 # 0179. An entry is written in a composer sheet, not on the page
 
-Date: 2026-11-14 · Status: accepted · Area: memories · Amends: 0176 (the pen goes); retires writing on the page (JN28-JN30, JN32, JN33)
+Date: 2026-11-14 · Status: accepted · Area: memories · Amends: 0178 (the pen goes); retires writing on the page (JN28-JN30, JN32, JN33)
 
 ## Context
-With the toolbar of 0176, "What’s on your mind?" put the caret on the journal page, among the day's entries. The
+With the toolbar of 0178, "What’s on your mind?" put the caret on the journal page, among the day's entries. The
 owner: "the what's on your mind entry should also pop out to expand out to be a note entry so that there's room to
 type and not necessarily be bogged by a page full of context."
 

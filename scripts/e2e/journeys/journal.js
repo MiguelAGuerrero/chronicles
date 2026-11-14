@@ -76,7 +76,7 @@ async function run(h) {
   const line = '[data-testid=open-line]';
   const input = '[data-testid=line-input]';
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
-  // On the page an entry is written in the composer (JN47, decision 0177): "What's on your mind?" opens it with the
+  // On the page an entry is written in the composer (JN47, decision 0179): "What's on your mind?" opens it with the
   // caret in its field; where no page shows (a thread, Hidden) the field is in the bar itself.
   const toLine = async () => {
     if ((await pg.locator('[data-testid=composer]').count()) === 0 && (await pg.locator('[data-testid=bar-compose]').filter({ visible: true }).count()) > 0) {
@@ -249,7 +249,7 @@ async function run(h) {
   check(!!headRow && Math.abs(headRow.dateline - headRow.more) <= 22 && headRow.w >= 44 && headRow.h >= 44,
     `chronicle-journal ui 4: More trails the dateline on the entry's first row, a thumb's target (${JSON.stringify(headRow)})`);
 
-  // JN28-JN30 are retired by the composer (decision 0177): their checks are JN47-JN51's.
+  // JN28-JN30 are retired by the composer (decision 0179): their checks are JN47-JN51's.
 
   // JN31, JN32: at rest the last entry is on top under its date with the empty page below; a tap on the empty page
   // grows it into the new entry, and Done brings the page back with that entry on top.
@@ -278,7 +278,7 @@ async function run(h) {
     && (!rest3.prev || rest3.prev.bottom <= headBottom + 2) && !!rest3.blank && rest3.blank.top >= rest3.last.bottom - 2 && rest3.blank.h >= rest3.vh * 0.3 && !!rest3.bar && rest3.blank.bottom <= rest3.bar.top + 2,
     `JN31: at rest the last entry is on top under its date, nothing older shows, and the empty page fills the rest above the toolbar (JN41) (${JSON.stringify(rest3)})`);
   await shot(pg, 'journal-18-at-rest-peek');
-  // JN32, JN33 (writing on the page) are retired by the composer (decision 0177). Entries are still made to fill the page:
+  // JN32, JN33 (writing on the page) are retired by the composer (decision 0179). Entries are still made to fill the page:
   // NY27 below reads "Stack 5", and the held date's edge needs entries passing under it.
   for (let i = 0; i < 5; i++) {
     await toLine();
@@ -648,7 +648,7 @@ async function run(h) {
   await done();
   await pg.waitForTimeout(900);
 
-  // JN41-JN46 (decision 0176): the capture is a toolbar fixed at the foot: a grey "What's on your mind?" field, the
+  // JN41-JN46 (decision 0178): the capture is a toolbar fixed at the foot: a grey "What's on your mind?" field, the
   // pen, the camera and the mic; the words are written on the page.
   await scrollTo('foot');
   await pg.waitForTimeout(900);
@@ -683,7 +683,7 @@ async function run(h) {
   // JN43: the page has no placeholder, no "+" and no row of its own.
   const page43 = await pg.evaluate(() => ({ placeholder: document.querySelector('[data-testid=journal-page] [data-testid=line-input]')?.getAttribute('placeholder') ?? null, plus: document.querySelectorAll('[data-testid=line-plus]').length, row: document.querySelectorAll('[data-testid=line-row]').length }));
   check(!page43.placeholder && page43.plus === 0 && page43.row === 0, `JN43: the page carries no placeholder, "+" or row; the toolbar says it (${JSON.stringify(page43)})`);
-  // JN42 is retired by the composer (decision 0177): JN47 opens it from the field.
+  // JN42 is retired by the composer (decision 0179): JN47 opens it from the field.
   // JN45: a voice note from the toolbar: pen, timer and Discard lead, the camera keeps its place, Stop in the mic's, no Done.
   const before45 = await tool();
   await pg.click('[data-testid=open-line] [data-testid=band-voice]').catch(() => {});
@@ -728,7 +728,7 @@ async function run(h) {
   check(narrowRest.cut === false && oneRow(narrowRest) && !!narrowRec && narrowRec.h <= 64 && !narrowRec.over,
     `JN46: at 320 px "What’s on your mind?" is whole and the toolbar is one row, at rest and while a note records (${JSON.stringify({ narrowRest, narrowRec })})`);
 
-  // JN47-JN51 (decision 0177): an entry is written in the composer, a sheet over the journal with room to type.
+  // JN47-JN51 (decision 0179): an entry is written in the composer, a sheet over the journal with room to type.
   const sheetState = () => pg.evaluate(() => {
     const c = document.querySelector('[data-testid=composer]');
     const r = (sel) => { const e = c?.querySelector(sel); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
