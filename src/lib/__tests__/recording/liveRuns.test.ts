@@ -16,3 +16,13 @@ test('refactor recording 1: the same ride lines are the same, so the map is not 
   assert.equal(sameRuns([], []), true);
   assert.equal(sameRuns([run()], [run()]), true, 'empty lines');
 });
+
+test('refactor recording 2: the newest gap in the kept trace is the app closed or the page hidden, never a pause', async () => {
+  const { newestGap } = await import('../../liveRuns');
+  const fix = (t: number) => ({ walk_id: 'w', t, lat: 0, lon: 0, accuracy_m: 5, speed: null, course: null });
+  const kept = [fix(0), fix(1_000), fix(200_000), fix(201_000), fix(500_000)];
+  assert.deepEqual(newestGap(kept, []), { ms: 299_000, at: 500_000 }, 'the newest of two gaps');
+  assert.deepEqual(newestGap(kept, [{ started_at: 210_000, ended_at: 490_000 }]), { ms: 199_000, at: 200_000 }, 'a gap across a pause is the pause');
+  assert.equal(newestGap(kept.slice(0, 2), []), null, 'no gap');
+  assert.equal(newestGap([], []), null);
+});

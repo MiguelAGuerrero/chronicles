@@ -546,8 +546,6 @@
  "pure-outside-core:src/lib/store.ts#createStore": 19,
  "pure-outside-core:src/lib/units.ts#deviceLocale": 7,
  "pure-outside-core:src/lib/units.ts#unitsForLocale": 6,
- "pure-outside-core:src/lib/useLiveTrace.ts#newestGap": 8,
- "pure-outside-core:src/lib/useLiveTrace.ts#sameRuns": 9,
  "pure-outside-core:src/lib/videoEdit/index.web.ts#once": 13,
  "pure-outside-core:src/lib/walk/overpassSource.ts#createOverpassSource": 34,
  "pure-outside-core:src/lib/walk/overtureSource.ts#createOvertureSource": 20,

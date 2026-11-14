@@ -2,14 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { db } from './db';
-import { isBreak, type PauseSpan } from './geo';
+import type { PauseSpan } from './geo';
 import { DotStore } from './liveDot';
 import { headingOf } from './nav/navigator';
 import { landingOf } from './nav/wayBack';
 import { recorder } from './recorder';
 import { gapKey, gapsOf, type Gap } from './gaps/infer';
 import { HiddenLog } from './hiddenLog';
-import { sameRuns } from './liveRuns';
+import { newestGap, sameRuns } from './liveRuns';
 import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, withFilled, type ReadTrace } from './rides';
 import type { Fill, LngLat, TracePoint } from './types';
 
@@ -54,16 +54,6 @@ if (AppState.currentState !== 'active') hiddenLog.hide(Date.now());
 AppState.addEventListener('change', (st) => (st === 'active' ? hiddenLog.show(Date.now()) : hiddenLog.hide(Date.now())));
 
 const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, landing: null, heading: null, dot: null };
-
-/** The newest gap in the kept trace that isn't a pause: the app was closed or the page hidden. */
-function newestGap(kept: TracePoint[], pauses: PauseSpan[]): { ms: number; at: number } | null {
-  for (let i = kept.length - 1; i > 0; i--) {
-    const a = kept[i - 1];
-    const b = kept[i];
-    if (isBreak(a, b, pauses) && !isBreak(a, b, pauses, Infinity)) return { ms: b.t - a.t, at: b.t };
-  }
-  return null;
-}
 
 /**
  * The open walk's trace. Raw fixes are collected as they come; every couple
