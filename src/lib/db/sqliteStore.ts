@@ -12,6 +12,7 @@ import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
+import type { DarkTile } from '../dark/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
@@ -603,6 +604,24 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       type Row = { key: string; x: number; y: number; build: string; code: string; source: WalkTile['from']; read_at: number; ways: string; junctions: string | null };
       const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM walk_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
       return rows.map(({ source, ways, junctions, ...r }) => ({ ...r, from: source, ways: JSON.parse(ways), junctions: junctions ? JSON.parse(junctions) : [] }));
+    },
+    putDarkTiles(tiles) {
+      if (!tiles.length) return Promise.resolve();
+      return write(async (t) => {
+        for (const r of tiles) {
+          await t.runAsync(
+            'INSERT OR REPLACE INTO dark_tile (key, x, y, code, read_at, ways, places) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            r.key, r.x, r.y, r.code, r.read_at, JSON.stringify(r.ways), JSON.stringify(r.places),
+          );
+        }
+      });
+    },
+    async getDarkTiles(keys) {
+      if (!keys.length) return [];
+      const want = [...new Set(keys)].sort();
+      type Row = Omit<DarkTile, 'ways' | 'places'> & { ways: string; places: string };
+      const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM dark_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
+      return rows.map(({ ways, places, ...r }) => ({ ...r, ways: JSON.parse(ways), places: JSON.parse(places) }));
     },
     async listLandings() {
       const rows = await (await conn()).getAllAsync<Omit<LandingRow, 'centre' | 'analysis'> & { lon: number; lat: number; analysis: string }>('SELECT * FROM landing');

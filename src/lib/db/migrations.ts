@@ -270,4 +270,10 @@ export const MIGRATIONS: readonly string[] = [
     capture_id TEXT PRIMARY KEY, text TEXT NOT NULL, lang TEXT NOT NULL, from_ms INTEGER, to_ms INTEGER, made_at INTEGER NOT NULL
   );
   `,
+  // After dark (DK9): what each read z14 tile held, the tags as given (ways and places as JSON); cache, cleared with the derived stores.
+  `
+  CREATE TABLE dark_tile (
+    key TEXT PRIMARY KEY, x INTEGER NOT NULL, y INTEGER NOT NULL, code TEXT NOT NULL, read_at INTEGER NOT NULL, ways TEXT NOT NULL, places TEXT NOT NULL
+  );
+  `,
 ];

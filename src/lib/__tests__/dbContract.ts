@@ -839,7 +839,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(keys(await db.getWalkTiles(['3/4', '1/2'])), ['1/2', '3/4']);
     });
 
-    test('DK9 putDarkTiles, getDarkTiles: the same key replaces; only the keys asked for come back, in key order; empty is a no-op; purgeDerived clears them', { todo: 'test first' }, async () => {
+    test('DK9 putDarkTiles, getDarkTiles: the same key replaces; only the keys asked for come back, in key order; empty is a no-op; purgeDerived clears them', async () => {
       type DarkTile = { key: string; x: number; y: number; code: string; read_at: number; ways: { id: string; lit: string; name?: string; line: [number, number][] }[]; places: { id: string; at: [number, number]; hours: string }[] };
       const db = (await fresh()) as unknown as Db & { putDarkTiles(t: DarkTile[]): Promise<void>; getDarkTiles(k: string[]): Promise<DarkTile[]> };
       const darkTile = (key: string, read_at = 1): DarkTile => {

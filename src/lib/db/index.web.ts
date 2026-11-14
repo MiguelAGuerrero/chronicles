@@ -6,6 +6,7 @@ import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
+import type { DarkTile } from '../dark/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
@@ -21,7 +22,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 21;
+const VERSION = 22;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -167,6 +168,10 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
   if (oldVersion < 21 && upTo >= 21) {
     // Memo transcripts (TX12, decision 0169): a memo's words, a cache beside the memo, keyed by its piece's id.
     d.createObjectStore('transcript', { keyPath: 'capture_id' });
+  }
+  if (oldVersion < 22 && upTo >= 22) {
+    // After dark (DK9): what each read z14 tile held, the tags as given; cache, cleared with the derived stores.
+    d.createObjectStore('dark_tile', { keyPath: 'key' });
   }
 }
 
@@ -724,6 +729,18 @@ export const db: Db = {
     const s = await store('walk_tile');
     const got = await Promise.all([...new Set(keys)].sort().map((k) => done(s.get(k)) as Promise<WalkTile | undefined>));
     return got.filter((t): t is WalkTile => !!t);
+  },
+  async putDarkTiles(tiles) {
+    if (!tiles.length) return;
+    const tx = (await conn()).transaction('dark_tile', 'readwrite');
+    for (const t of tiles) tx.objectStore('dark_tile').put(t);
+    await committed(tx);
+  },
+  async getDarkTiles(keys) {
+    if (!keys.length) return [];
+    const s = await store('dark_tile');
+    const got = await Promise.all([...new Set(keys)].sort().map((k) => done(s.get(k)) as Promise<DarkTile | undefined>));
+    return got.filter((t): t is DarkTile => !!t);
   },
   async getMeta(key) {
     const r = (await done((await store('meta')).get(key))) as { value: string } | undefined;

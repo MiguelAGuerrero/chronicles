@@ -16,7 +16,7 @@ Lit streets and places open after dark, as a fourth map layer, and a heads-up be
 - **No route reads it** (DK17): only the three screens with a Layers button, the map's types, `layers/notes.ts` and `walk/useRouteWarning.ts` import `lib/dark/`. `words.test.ts` fails on any other importer.
 - **Sun** (`sun.ts`, core): the sunrise equation on the device, no library. `isDark` between sunset and sunrise; `readingAt` judges hours now after dark, an hour after tonight's sunset by day, nothing in a polar day ("No dark tonight").
 - **Hours** (`hours.ts`, core): the common forms only (DK7); anything else is unknown, never open. The weekday and minute are arguments: the view reads the clock, core reads no timezone. `hoursReadHere` leaves the marks out where the map is likely another zone (45 min of solar time from you, or 150 from the device's offset with no position).
-- **Truth vs cache:** `dark_tile` (SQLite migration 57, IndexedDB v22) keeps the tags as given, `DARK_CODE` and `read_at`; open is judged on read, never stored. Read again after 30 days (DK9); in `DERIVED_STORES`.
+- **Truth vs cache:** `dark_tile` (SQLite migration 29, IndexedDB v22) keeps the tags as given, `DARK_CODE` and `read_at`; open is judged on read, never stored. Read again after 30 days (DK9); in `DERIVED_STORES`.
 
 ## Where the facts come from
 
@@ -27,4 +27,4 @@ Lit streets and places open after dark, as a fourth map layer, and a heads-up be
 ## Traps
 
 - The e2e's fake Overpass answers the after-dark query by its body (`opening_hours` in it): `darkWorld.mode` is `mixed`, `unlit` or `busy`. The journey sets the browser's clock (`pg.clock.setSystemTime`) and a New York timezone.
-- **Native, unverified:** the line and circle layers on MapLibre RN, migration 57, the Overpass read on a phone, the unlit line on a navigated walk.
+- **Native, unverified:** the line and circle layers on MapLibre RN, migration 29, the Overpass read on a phone, the unlit line on a navigated walk.

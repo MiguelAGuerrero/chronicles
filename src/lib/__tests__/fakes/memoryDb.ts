@@ -3,6 +3,7 @@ import type { Area, WalkArea } from '../../areas/types';
 import type { OutlineTile } from '../../areas/outlines';
 import type { Complex } from '../../complexes/types';
 import type { WalkTile } from '../../walk/types';
+import type { DarkTile } from '../../dark/types';
 import type { AtlasArea } from '../../atlas/atlas';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from '../../db/segmentBounds';
 import { DERIVED_STORES } from '../../db/stores';
@@ -22,7 +23,7 @@ export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
-  'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
+  'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'getDarkTiles', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
 
@@ -154,6 +155,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const outlineTiles = new Table<OutlineTile>((r) => r.key);
   const complexes = new Table<Complex>((r) => r.id);
   const walkTiles = new Table<WalkTile>((r) => r.key);
+  const darkTiles = new Table<DarkTile>((r) => r.key);
   const checklistAreas = new Table<ChecklistArea>((a) => a.key);
   const checklistItems = new Table<ChecklistItem>((i) => i.key);
   const finds = new Table<Find>((f) => f.key);
@@ -501,6 +503,13 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       return out([...new Set(keys)].sort().flatMap((k) => walkTiles.all().filter((t) => t.key === k)));
     },
 
+    async putDarkTiles(tiles) {
+      for (const t of tiles) darkTiles.put(t);
+    },
+    async getDarkTiles(keys) {
+      return out([...new Set(keys)].sort().flatMap((k) => darkTiles.all().filter((t) => t.key === k)));
+    },
+
     async saveChecklists({ areas: built, items, read }) {
       // A rebuilt area's old items go first (E4); keys gone from the new list don't linger.
       for (const a of built) checklistItems.dropWhere((x) => x.area_key, a.key);
@@ -532,7 +541,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       meta.put({ key, value });
     },
     async purgeDerived() {
-      const stores: Record<string, { clear(): void }> = { street_segment: segments, place: places, explore_read: exploreReads, atlas_area: atlas, outline_tile: outlineTiles, walk_tile: walkTiles, complex: complexes };
+      const stores: Record<string, { clear(): void }> = { street_segment: segments, place: places, explore_read: exploreReads, atlas_area: atlas, outline_tile: outlineTiles, walk_tile: walkTiles, complex: complexes, dark_tile: darkTiles };
       for (const name of DERIVED_STORES) {
         // A new derived store must be added here too, or the fake would keep it.
         if (!stores[name]) throw new Error(`memoryDb: no store for derived store '${name}'`);

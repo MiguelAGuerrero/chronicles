@@ -20,7 +20,7 @@ interface SourceApi {
 const gateApi = async () => (await import('../../net/overpassGate' as string)) as GateApi;
 const sourceApi = async () => (await import('../../dark/source' as string)) as SourceApi;
 
-test('DK8: one cap of sixty across both sources, after dark stopping at forty; one back-off pauses both', { todo: 'test first' }, async () => {
+test('DK8: one cap of sixty across both sources, after dark stopping at forty; one back-off pauses both', async () => {
   const { createOverpassGate, OVERPASS_SESSION_CAP, DARK_CAP } = await gateApi();
   assert.equal(OVERPASS_SESSION_CAP, 60);
   assert.equal(DARK_CAP, 40);
@@ -48,7 +48,7 @@ test('DK8: one cap of sixty across both sources, after dark stopping at forty; o
   assert.equal(all, 60);
 });
 
-test('DK8: the after-dark source posts the tile\'s box and nothing else, and asks nothing when the gate is shut', { todo: 'test first' }, async () => {
+test('DK8: the after-dark source posts the tile\'s box and nothing else, and asks nothing when the gate is shut', async () => {
   const { createOverpassGate } = await gateApi();
   const { createDarkSource } = await sourceApi();
   const sent: { url: string; init?: RequestInit }[] = [];

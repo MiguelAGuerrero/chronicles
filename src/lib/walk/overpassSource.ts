@@ -1,6 +1,7 @@
 // @layer adapter
 import { tileRect } from '../tileMath';
-import { OVERPASS_BUSY, OVERPASS_URL, junctionsFromWays, overpassPause, overpassQuery, overpassRuntimeError, retryAfterS, waysFromOverpass } from './overpass';
+import { createOverpassGate, type OverpassGate } from '../net/overpassGate';
+import { OVERPASS_BUSY, OVERPASS_URL, junctionsFromWays, overpassQuery, overpassRuntimeError, retryAfterS, waysFromOverpass } from './overpass';
 import type { WalkSource } from './types';
 
 /*
@@ -15,31 +16,18 @@ import type { WalkSource } from './types';
  * assumes it.
  */
 
-/** The first pause after a busy answer. */
-export const RATE_PAUSE_MS = 60_000;
-/** Pauses in a row double up to this. */
-export const MAX_PAUSE_MS = 16 * 60_000;
-/** Requests one app session (until a restart) may send, refused ones too: a few full reads (12 tiles each), far under the instance's guidance. */
-export const OVERPASS_SESSION_CAP = 60;
-/** The cap starts over this long after the first request of its window (the owner, Nov 5: daily). */
-export const CAP_WINDOW_MS = 24 * 3600_000;
+export { CAP_WINDOW_MS, MAX_PAUSE_MS, OVERPASS_SESSION_CAP, RATE_PAUSE_MS } from '../net/overpassGate';
 
-export function createOverpassSource(o: { fetch: typeof fetch; now: () => number; url?: string }): WalkSource {
-  let pausedUntil = 0;
-  let strikes = 0;
-  let asked = 0;
-  let windowStart = 0;
+/** `gate`: the app's one Overpass gate, shared with after dark (DK8); a test without one gets a gate of its own. */
+export function createOverpassSource(o: { fetch: typeof fetch; now: () => number; url?: string; gate?: OverpassGate }): WalkSource {
+  const gate = o.gate ?? createOverpassGate({ now: o.now });
   const busy = (retryAfter: number | null = null) => {
-    strikes++;
-    pausedUntil = o.now() + overpassPause(strikes, RATE_PAUSE_MS, MAX_PAUSE_MS, retryAfter);
+    gate.busy(retryAfter);
     return null;
   };
   return {
     async read(x, y, signal) {
-      if (asked > 0 && o.now() - windowStart >= CAP_WINDOW_MS) asked = 0;
-      if (o.now() < pausedUntil || asked >= OVERPASS_SESSION_CAP) return null;
-      if (asked === 0) windowStart = o.now();
-      asked++;
+      if (!gate.take('walk')) return null;
       const r = tileRect(x, y);
       try {
         const res = await o.fetch(o.url ?? OVERPASS_URL, { method: 'POST', body: `data=${encodeURIComponent(overpassQuery(r.s, r.w, r.n, r.e))}`, signal });
@@ -47,7 +35,7 @@ export function createOverpassSource(o: { fetch: typeof fetch; now: () => number
         if (!res.ok) return null;
         const json = await res.json();
         if (overpassRuntimeError(json)) return busy();
-        strikes = 0;
+        gate.ok();
         const ways = waysFromOverpass(json);
         return { x, y, from: 'overpass', ways, junctions: junctionsFromWays(ways) };
       } catch {

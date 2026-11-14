@@ -2,6 +2,7 @@
 import type { Area, WalkArea } from '../areas/types';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
+import type { DarkTile } from '../dark/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
@@ -182,6 +183,11 @@ export interface Db {
   putWalkTiles(tiles: WalkTile[]): Promise<void>;
   /** The tiles of these keys that were read, in key order. */
   getWalkTiles(keys: string[]): Promise<WalkTile[]>;
+
+  /** After dark (DK9): what each read z14 tile held, the tags as given, a cache keyed `x/y`; the same key replaces a tile. */
+  putDarkTiles(tiles: DarkTile[]): Promise<void>;
+  /** The tiles of these keys that were read, in key order. */
+  getDarkTiles(keys: string[]): Promise<DarkTile[]>;
 
   /**
    * One explore read in one transaction (E2, E4): each built area's items are
