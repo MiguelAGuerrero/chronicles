@@ -297,6 +297,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Rows of old builds stay until a purge, and every row (with its sketch) is read whole on each focus (explore-atlas audit 13)
 - Ring reads fetch overlapping tiles again for neighbouring areas: no tile-level de-duplication (explore-atlas audit 6)
 - Highlighting an area's dot on the small map as its tile scrolls to the top of the grid (atlas round 3, from the design review)
+- **The area card's Walk to is a text button beside "Suggest a walk"'s bordered one** (`storefronts ui 3`, Nov 14): both start a walk, drawn differently (H4; 0167's "drawn to be found"). It is the card's row pattern, the complexes' rows too, so a restyle is card-wide, beyond the storefronts slice.
+- **Storefronts' pictures for review** (`storefronts ui 5`, Nov 14): a card listing several storefront streets (the e2e world has one, Thayer Street), the layer's legend open, and the walk settings' Storefronts leaning (the scenic journey stops at main's failing "fix preview-clutter audit 1" before it). Nearest first is held by SF3's unit test.
 
 ## Navigate, ready
 
@@ -460,7 +462,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The thresholds rest on five places** (`walk/form.ts`); a sixth can disagree. A way to look at the cells (a debug overlay of the signals) is not built.
 - **Cells are 250 m squares**: coarse at close zoom. Smoothing or a finer grid is a look-and-feel call for the owner once seen on a phone.
 - **The tint reads about 1.5 km around the map's centre** (a cell needs its whole neighbourhood read), so it fades out near that edge.
-- **Busy streets draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
+- **Storefronts draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
 - **The unwalked-streets toggle, fog, "?" marks and routes are not layers yet** (the owner chose only walkability, busy streets and town borders).
 - **Layer options** (a busy-grade slider, a tint choice), **ordering and opacity** are not built.
 - **The long press on a drawn stretch (specs/walkability WK14) is retired**: the layer draws areas, not stretches. A long press on a tint is its own call.
