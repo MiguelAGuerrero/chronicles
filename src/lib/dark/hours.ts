@@ -10,7 +10,7 @@
 /** Minutes of the day, from and to; `to` at or before `from` runs past midnight. */
 type Span = readonly [number, number];
 /** Per weekday (0 Sunday ... 6 Saturday), the spans it opens; an empty list is closed. */
-export type HoursRules = readonly (readonly Span[])[];
+export type HoursRules = readonly (readonly Span[])[] & { readonly setBy?: readonly number[] };
 
 const DAY_NAMES = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] as const;
 const D = '(?:Mo|Tu|We|Th|Fr|Sa|Su)';
@@ -57,6 +57,8 @@ export function parseHours(text: string): HoursRules | null {
   const value = text.trim();
   if (!value || /["|+]/.test(value)) return null;
   const week: (Span[] | undefined)[] = Array(7).fill(undefined);
+  /** Which rule last set each day: a later rule's day takes no hours run on from an earlier rule's evening (after-dark audit 3). */
+  const setBy: number[] = Array(7).fill(-1);
   const rules = value
     .replace(/\s*-\s*/g, '-')
     .replace(/\s*,\s*/g, ',')
@@ -64,9 +66,12 @@ export function parseHours(text: string): HoursRules | null {
     .map((r) => r.trim())
     .filter(Boolean);
   if (!rules.length) return null;
-  for (const rule of rules) {
+  for (const [index, rule] of rules.entries()) {
     if (rule === '24/7') {
-      for (const d of ALL_DAYS) week[d] = [[0, 1440]];
+      for (const d of ALL_DAYS) {
+        week[d] = [[0, 1440]];
+        setBy[d] = index;
+      }
       continue;
     }
     const tokens = rule.split(/\s+/);
@@ -84,9 +89,12 @@ export function parseHours(text: string): HoursRules | null {
     else if (TIMES_RE.test(what)) spans = spansOf(what);
     else return null;
     if (!spans) return null;
-    for (const d of days) week[d] = spans;
+    for (const d of days) {
+      week[d] = spans;
+      setBy[d] = index;
+    }
   }
-  return week.map((s) => s ?? []);
+  return Object.assign(week.map((s) => s ?? []), { setBy });
 }
 
 /** DK7: open, closed or unknown at a minute of a weekday (0 Sunday ... 6 Saturday), in the place's own time. */
@@ -95,8 +103,10 @@ export function openAt(rules: HoursRules | null, day: number, minute: number): '
   for (const [from, to] of rules[day]) {
     if (to > from ? minute >= from && minute < to : minute >= from) return 'open';
   }
-  // A range past midnight on the day before runs into this one.
-  for (const [from, to] of rules[(day + 6) % 7]) {
+  // A range past midnight on the day before runs into this one, unless a later rule set this day (after-dark audit 3).
+  const before = (day + 6) % 7;
+  if (rules.setBy && rules.setBy[day] > rules.setBy[before]) return 'closed';
+  for (const [from, to] of rules[before]) {
     if (to <= from && minute < to) return 'open';
   }
   return 'closed';

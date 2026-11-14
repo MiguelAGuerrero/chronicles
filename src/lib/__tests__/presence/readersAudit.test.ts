@@ -50,10 +50,9 @@ const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
   // taxonomy): neither is a source tag read for what a place is
   shopping: ['complexes/'],
   parking: ['complexes/rule.ts'],
-  // after dark (DK3, DK8): `shop` is OpenStreetMap's key asked of Overpass, any shop with hours; `disused` a value of the `lit` tag.
+  // after dark (DK3, DK8): `shop` is OpenStreetMap's key asked of Overpass, any shop with hours.
   // The kinds of `amenity` it asks for are read from presence's rules.
   shop: ['dark/overpass.ts'],
-  disused: ['dark/overpass.ts', 'dark/ahead.ts'],
 };
 const plainIn = (w: string, rel: string) => !!PLAIN_IN[w]?.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p));
 

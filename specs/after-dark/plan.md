@@ -51,8 +51,8 @@ You review this before any code. The architecture is settled by your answers of 
 ## Data
 
 - **New cache, no new truth.** A `dark_tile` store, keyed `x/y` at z14: the tile's lit ways (line, raw `lit`, name), its places (point, raw `opening_hours`), `read_at` and `code` (`DARK_CODE`, bumped when the query or parser changes). It is listed in `DERIVED_STORES`, so it is cleared with them.
-- **SQLite:** migration 29 (`CREATE TABLE dark_tile`, ways and places as JSON text).
-- **IndexedDB:** `VERSION` 22, with an `oldVersion < 22` step creating `dark_tile`.
+- **SQLite:** migration 30 (`CREATE TABLE dark_tile`, ways and places as JSON text).
+- **IndexedDB:** `VERSION` 23, with an `oldVersion < 23` step creating `dark_tile`.
 - **`Db` gains** `putDarkTiles` and `getDarkTiles`. Each gets a contract case first (FC7), and the fake db, IndexedDB and SQLite implement them.
 - Whether a place is open is never stored (DK9).
 
@@ -91,7 +91,7 @@ New test folder `src/lib/__tests__/after-dark/`, new e2e journey `dark` (a fake 
 ## Native, never run on a device
 
 - MapLibre RN's line and circle layers for the new source.
-- SQLite migration 29 and the `dark_tile` reads and writes.
+- SQLite migration 30 and the `dark_tile` reads and writes.
 - The Overpass read through `net.fetch` on a phone.
 - The heads-up's unlit line on a navigated walk.
 

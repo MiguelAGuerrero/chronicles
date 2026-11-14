@@ -72,12 +72,12 @@ export const LAYERS: readonly LayerDef[] = [
     // After dark (specs/after-dark DK1, DK12): what is mapped, never a grade (DK11).
     id: 'dark',
     name: 'After dark',
-    sub: 'Lit streets and open places',
+    sub: 'Lit streets, open places and a line on a route',
     icon: 'moon-outline',
     defaultOn: false,
     legend: [
       { key: 'lit', text: 'Lit streets', swatch: 'lit', tip: 'Lit streets: streets OpenStreetMap marks as having street lights.' },
-      { key: 'open', text: 'Open after dark', swatch: 'open', tip: 'Open after dark: places whose hours, as mapped, say they are open at the time above.' },
+      { key: 'open', text: 'Open after dark', swatch: 'open', tip: 'Open after dark: places whose hours, as mapped, say they are open now after sunset, or an hour after sunset by day.' },
       { key: 'dark-route', text: 'On a route after dark', icon: 'moon-outline', tip: 'On a route after dark: a line before a street mapped as unlit.' },
     ],
     note: 'From OpenStreetMap. Only what is mapped: a street with no lighting mapped may still be lit.',

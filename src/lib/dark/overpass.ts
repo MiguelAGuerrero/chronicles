@@ -1,6 +1,6 @@
 // @layer core
 import type { LngLat } from '../types';
-import { CLASSES, OSM_RULES, type PresenceClass } from '../presence/presence';
+import { CLASSES, classesOfOsm, OSM_RULES, type PresenceClass } from '../presence/presence';
 import { OVERPASS_TIMEOUT_S } from '../walk/overpass';
 import type { DarkPlace, DarkWay } from './types';
 
@@ -35,11 +35,18 @@ export function darkQuery(s: number, w: number, n: number, e: number): string {
 export function litOf(v: string | undefined): 'lit' | 'unlit' | 'unknown' {
   const t = (v ?? '').trim().toLowerCase();
   if (['yes', '24/7', 'automatic', 'limited', 'interval', 'sunset-sunrise', 'dusk-dawn'].includes(t) || /^\d{1,2}:\d{2}\s*-/.test(t)) return 'lit';
-  if (t === 'no' || t === 'disused') return 'unlit';
+  // Only `no` is unlit (after-dark audit 11): a light mapped as out of use says nothing about tonight.
+  if (t === 'no') return 'unlit';
   return 'unknown';
 }
 
 type Tags = Record<string, string>;
+
+/**
+ * A shop worth a mark after dark (after-dark audit 10): one presence puts in the Shops category (a place to browse), or one
+ * that sells food it counts as eating; never an errand shop, a chemist, a convenience store or a supermarket, which read as havens.
+ */
+const openShop = (v: string | undefined) => !!v && (OPEN_AMENITIES.includes(v) || classesOfOsm('shop', v).some((c) => CLASSES[c].category === 'shops'));
 interface El {
   type: string;
   id: number;
@@ -67,7 +74,7 @@ export function darkFromOverpass(json: unknown): { ways: DarkWay[]; places: Dark
       const line: LngLat[] = e.geometry.map((g) => [g.lon, g.lat]);
       ways.push({ id, lit: t.lit, ...(t.name ? { name: t.name } : {}), line });
       seen.add(id);
-    } else if (t.opening_hours && (t.shop || OPEN_AMENITIES.includes(t.amenity))) {
+    } else if (t.opening_hours && (openShop(t.shop) || OPEN_AMENITIES.includes(t.amenity))) {
       const p = e.type === 'node' ? (e.lat !== undefined && e.lon !== undefined ? { lat: e.lat, lon: e.lon } : null) : e.center ?? null;
       if (!p) continue;
       places.push({ id, at: [p.lon, p.lat], hours: t.opening_hours });

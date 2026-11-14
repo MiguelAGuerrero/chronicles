@@ -1,0 +1,59 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [owner] **After dark** (after-dark audit 13): with no position, a town up to 150 minutes of solar time from the phone's offset is judged on the phone's clock (Chicago on an Eastern phone: an hour off); with a position, a phone whose clock is set to another zone than where it is draws marks on that clock. A time zone by position would settle both; until then 45 minutes from you, 150 from the offset.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [owner] **After dark** (after-dark audit 14, steward S2): with the panel closed the map shows the amber lines and the rings with no words; \"Only what is mapped\" and the reading's time are said only in the panel (the panel holds the words, Nov 5). A quiet line at the map's edge while the layer is on would carry them.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "After dark (DK1-DK17, decision 0181)"
+      ],
+      "body": "- [owner] **After dark** (after-dark audit 15, steward S6): the lit line's amber (#a87400, chosen for 3:1 on the ground) sits about 20° of hue from the accent; a lighter yellow with a dark casing would keep the contrast without the gold.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the after-dark audit (Nov 14)"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the after-dark audit (Nov 14)"
+      ],
+      "body": "- **After dark** (decision 0181): three calls deferred from the audit, in `docs/DEFERRED.md` under After dark: the \"near you\" rule for hours (audit 13), words on the map while the panel is closed (audit 14), and the amber's nearness to the accent (audit 15). Also: VISION.md is at its byte budget, so 0181 has no Precedents row yet; and the panel's ground and the heads-up's width were rejected as older shared components.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "on a phone set to another time zone",
+        "--reason",
+        "after-dark audit 13: with a position, the rule compares the map to where you are"
+      ],
+      "body": "- [ ] **Do:** on a phone in Allentown after sunset, turn on After dark on Explore and browse to a town 2,000 km west. **Expect:** near you the rings show; over the far town no rings, and the line under the switch says \"Hours read only near you\" (DK4, after-dark audit 13)\n",
+      "target": "sha256:e4f3200f363f1655b6f8e61ac7ad9cff4d2109e928152485c342a3624a50bb97"
+    }
+  ]
+}

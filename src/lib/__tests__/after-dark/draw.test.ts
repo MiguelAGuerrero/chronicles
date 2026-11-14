@@ -30,8 +30,9 @@ const MO = 1;
 test('DK3: only ways tagged lit draw; no tag and lit=no draw nothing; one line per lit way, never an area', async () => {
   const { litOf } = await overpass();
   for (const v of ['yes', '24/7', 'automatic', 'limited', 'interval', 'sunset-sunrise', 'dusk-dawn', '18:00-06:00']) assert.equal(litOf(v), 'lit', v);
-  for (const v of ['no', 'disused']) assert.equal(litOf(v), 'unlit', v);
-  for (const v of [undefined, '', 'maybe']) assert.equal(litOf(v), 'unknown', String(v));
+  assert.equal(litOf('no'), 'unlit');
+  // A light mapped as out of use says nothing about tonight (after-dark audit 11).
+  for (const v of [undefined, '', 'maybe', 'disused']) assert.equal(litOf(v), 'unknown', String(v));
   const { darkDraw } = await draw();
   const got = darkDraw([{ ways: [way('a', 'yes', 0), way('b', 'no', 100), way('c', 'maybe', 200), way('d', 'automatic', 300)], places: [] }], null);
   assert.equal(got.lit.length, 2);

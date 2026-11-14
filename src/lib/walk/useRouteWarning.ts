@@ -4,7 +4,7 @@ import { tilesNear } from '../tileMath';
 import type { LngLat } from '../types';
 import { useStore } from '../useStore';
 import { alongRoute, areaStretches, carStretches, mergeStretches, warningLine, type Stretch } from './ahead';
-import { headsUp, unlitStretches, withUnlit } from '../dark/ahead';
+import { aheadReads, headsUp, unlitStretches, watchKeys } from '../dark/ahead';
 import { darkApp } from '../dark/darkApp';
 import { isDark } from '../dark/sun';
 import { cellsFor } from './cells';
@@ -34,7 +34,10 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
   }, [on.dark]);
   const plan = headsUp({ walkOn: on.walk, darkOn: on.dark, dark: start ? isDark(start, now) : false });
   const reads = `${plan.readWalk ? 'w' : ''}${plan.readDark ? 'd' : ''}`;
-  const key = reads && route && route.length > 1 ? `${route[0].join(',')}>${route[route.length - 1].join(',')}#${route.length}|${reads}` : null;
+  const keys = reads && route && route.length > 1 ? watchKeys(route, reads) : null;
+  // The read's key holds what is read; the heads-up remembers lines by the route alone, so sunset never clears one (after-dark audit 5).
+  const key = keys?.read ?? null;
+  const watchKey = keys?.watch ?? null;
   /** The distance last found along this route, so a route that retraces itself is read on the leg being walked. */
   const lastAlong = useRef<number | null>(null);
   useEffect(() => {
@@ -45,36 +48,35 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
     }
     // At once, before the tiles are read: the old route's stretches are never judged against the new route's metres
     // (walkability audit 7).
-    aheadWatch.route(key);
+    aheadWatch.route(watchKey);
     let live = true;
     const reads = key.slice(key.lastIndexOf('|') + 1);
     const readWalk = reads.includes('w');
     const readDark = reads.includes('d');
-    void (async () => {
-      const tiles = tilesNear([...route], ROUTE_TILE_M, MAX_TILES);
-      let walk: Stretch[] = [];
-      if (readWalk) {
-        const build = await walkBuild().catch(() => null);
-        const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);
-        if (!live) return;
-        if (read.tiles.size) {
-          const { segments, bands } = routeSegments(read.tiles);
-          // Two reasons to speak (UF15): a stretch of fast road, and ground built around cars the route enters.
-          const places = await walkPlaces(tiles, () => !live);
-          if (!live) return;
-          const areas = areaStretches(route, cellsFor(read.tiles, read.junctions, places));
-          walk = mergeStretches(carStretches(route, segments, bands), areas);
-        }
-      }
-      let unlit: Stretch[] = [];
-      if (readDark) {
+    const tiles = tilesNear([...route], ROUTE_TILE_M, MAX_TILES);
+    // Walkability's stretches go on as soon as they are had; the after-dark read never holds them (after-dark audit 2).
+    void aheadReads(
+      {
+        walk: readWalk
+          ? async () => {
+              const build = await walkBuild().catch(() => null);
+              const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);
+              if (!live || !read.tiles.size) return [];
+              const { segments, bands } = routeSegments(read.tiles);
+              // Two reasons to speak (UF15): a stretch of fast road, and ground built around cars the route enters.
+              const places = await walkPlaces(tiles, () => !live);
+              if (!live) return [];
+              const areas = areaStretches(route, cellsFor(read.tiles, read.junctions, places));
+              return mergeStretches(carStretches(route, segments, bands), areas);
+            }
+          : null,
         // After dark (DK10): streets mapped as unlit, said only where walkability has nothing to say.
-        const read = await darkApp.reader.read(tiles, () => !live);
-        if (!live) return;
-        unlit = unlitStretches(route, read.tiles.flatMap((t) => t.ways));
-      }
-      aheadWatch.stretches(key, withUnlit(walk, unlit));
-    })();
+        dark: readDark ? async () => unlitStretches(route, (await darkApp.reader.read(tiles, () => !live)).tiles.flatMap((t) => t.ways)) : null,
+      },
+      (list) => {
+        if (live) aheadWatch.stretches(watchKey, list);
+      },
+    );
     return () => {
       live = false;
     };

@@ -18,6 +18,8 @@ export interface AfterDark {
   draw: DarkDraw | null;
   /** The panel's words while drawn (DK5): "Open now", "Open after sunset", "No dark tonight", "Hours read only near you". */
   words: string | null;
+  /** Some tiles could not be read; the rest are drawn (after-dark audit 4). */
+  partial: boolean;
 }
 
 const localWhen = (t: number): When => {
@@ -33,7 +35,7 @@ const localWhen = (t: number): When => {
  */
 export function useAfterDark(centre: LngLat | null, on: boolean, you: LngLat | null): AfterDark {
   const tilesKey = centre ? tilesAround(centre, DARK_RADIUS_M).map((t) => t.join('/')).join(',') : '';
-  const [result, setResult] = useState<{ key: string; draw: DarkTile[] | null } | null>(null);
+  const [result, setResult] = useState<{ key: string; draw: DarkTile[] | null; failed?: number } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!on || !tilesKey) return;
@@ -42,7 +44,7 @@ export function useAfterDark(centre: LngLat | null, on: boolean, you: LngLat | n
       const tiles = tilesKey.split(',').map((t) => t.split('/').map(Number) as [number, number]);
       const read = await darkApp.reader.read(tiles, () => !live);
       if (!live) return;
-      setResult({ key: tilesKey, draw: read.tiles.length || !read.failed ? read.tiles : null });
+      setResult({ key: tilesKey, draw: read.tiles.length || !read.failed ? read.tiles : null, failed: read.failed });
       setNow(Date.now());
     })();
     return () => {
@@ -62,5 +64,5 @@ export function useAfterDark(centre: LngLat | null, on: boolean, you: LngLat | n
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const draw = useMemo(() => (tiles ? darkDraw(tiles, when) : null), [tiles, whenKey]);
   const words = !reading ? null : reading.at !== null && !near ? 'Hours read only near you' : reading.words;
-  return { status, draw, words };
+  return { status, draw, words, partial: status === 'ready' && !!result?.failed };
 }

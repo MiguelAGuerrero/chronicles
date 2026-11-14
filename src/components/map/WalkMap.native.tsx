@@ -481,7 +481,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* After dark (DK3, DK4): lit ways as plain lines, open places as small ink rings; no clustering, no labels (unverified on a device). */}
         <GeoJSONSource id="dark" data={afterDark}>
           <Layer id="dark-lit" type="line" filter={['==', ['get', 'role'], 'lit']} layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': DARK_STYLE.lit.color, 'line-width': DARK_STYLE.lit.width, 'line-opacity': DARK_STYLE.lit.opacity }} />
+            paint={{ 'line-color': DARK_STYLE.lit.color, 'line-width': DARK_STYLE.lit.width, 'line-opacity': ['interpolate', ['linear'], ['zoom'], ...DARK_STYLE.lit.opacityByZoom.flat()] as unknown as number }} />
           <Layer id="dark-open" type="circle" filter={['==', ['get', 'role'], 'open']}
             paint={{ 'circle-radius': DARK_STYLE.open.radius, 'circle-color': DARK_STYLE.open.fill, 'circle-stroke-color': DARK_STYLE.open.stroke, 'circle-stroke-width': DARK_STYLE.open.strokeWidth }} />
         </GeoJSONSource>

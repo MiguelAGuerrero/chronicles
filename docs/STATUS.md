@@ -247,6 +247,10 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   name. /vision: aligned (return; "Counts are words"); it amends M7's example (`specs/moments-and-days/spec.md` l.33).
   Otherwise: leave it (a list's meta line keeps its digits, as 0052 carved out).
 
+### From the after-dark audit (Nov 14)
+
+- **After dark** (decision 0181): three calls deferred from the audit, in `docs/DEFERRED.md` under After dark: the "near you" rule for hours (audit 13), words on the map while the panel is closed (audit 14), and the amber's nearness to the accent (audit 15). Also: VISION.md is at its byte budget, so 0181 has no Precedents row yet; and the panel's ground and the heads-up's width were rejected as older shared components.
+
 ### From /slice reactions
 
 What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).

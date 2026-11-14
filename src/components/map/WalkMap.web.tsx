@@ -76,7 +76,7 @@ function addOverlay(map: MapLibreMap) {
   // places as small ink rings. No clustering, no labels.
   map.addSource('dark', { type: 'geojson', data: empty, tolerance: 1 });
   map.addLayer({ id: 'dark-lit', type: 'line', source: 'dark', filter: ['==', ['get', 'role'], 'lit'], layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': DARK_STYLE.lit.color, 'line-width': DARK_STYLE.lit.width, 'line-opacity': DARK_STYLE.lit.opacity } }, firstSymbol);
+    paint: { 'line-color': DARK_STYLE.lit.color, 'line-width': DARK_STYLE.lit.width, 'line-opacity': ['interpolate', ['linear'], ['zoom'], ...DARK_STYLE.lit.opacityByZoom.flat()] as unknown as number } }, firstSymbol);
   map.addLayer({ id: 'dark-open', type: 'circle', source: 'dark', filter: ['==', ['get', 'role'], 'open'],
     paint: { 'circle-radius': DARK_STYLE.open.radius, 'circle-color': DARK_STYLE.open.fill, 'circle-stroke-color': DARK_STYLE.open.stroke, 'circle-stroke-width': DARK_STYLE.open.strokeWidth } }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to

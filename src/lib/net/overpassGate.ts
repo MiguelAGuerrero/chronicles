@@ -6,7 +6,7 @@ import { overpassPause } from '../walk/overpass';
  * fallback and after dark's tiles share one back-off and one daily count, so two layers never ask more than one would have. A busy
  * answer pauses both, for longer each time in a row, until a good answer; every request sent counts toward OVERPASS_SESSION_CAP,
  * which starts over a day after its window's first request; after dark stops at DARK_CAP of it, so walkability's fallback always
- * has the rest. One request at a time across both: each source's reader queues its own, and the streak assumes it.
+ * has the rest. Each source's reader keeps one request at a time; the two may each have one out, so a busy answer inside a pause is no new strike.
  */
 
 /** The first pause after a busy answer. */
@@ -49,6 +49,9 @@ export function createOverpassGate(o: { now: () => number }): OverpassGate {
       return true;
     },
     pause(retryAfterS = null) {
+      // A second busy answer inside a pause already set is the same strike (after-dark audit 6): walkability's fallback and after
+      // dark can each have a request out.
+      if (o.now() < pausedUntil) return;
       strikes++;
       pausedUntil = o.now() + overpassPause(strikes, RATE_PAUSE_MS, MAX_PAUSE_MS, retryAfterS);
     },

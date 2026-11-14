@@ -33,7 +33,7 @@ test('DK12: the legend says Lit streets, Open after dark and On a route after da
   assert.ok(d);
   assert.deepEqual(d.legend.map((r) => [r.text, r.tip]), [
     ['Lit streets', 'Lit streets: streets OpenStreetMap marks as having street lights.'],
-    ['Open after dark', 'Open after dark: places whose hours, as mapped, say they are open at the time above.'],
+    ['Open after dark', 'Open after dark: places whose hours, as mapped, say they are open now after sunset, or an hour after sunset by day.'],
     ['On a route after dark', 'On a route after dark: a line before a street mapped as unlit.'],
   ]);
   assert.equal(d.note, 'From OpenStreetMap. Only what is mapped: a street with no lighting mapped may still be lit.');
@@ -108,10 +108,10 @@ test('DK17: no route module reads after-dark data; only the layer\'s screens, th
 
 test('after-dark ui 1: the After dark switch says under its name what it shows, so both tasks find it (the cold find)', () => {
   const d = dark();
-  assert.equal(d?.sub, 'Lit streets and open places');
+  assert.equal(d?.sub, 'Lit streets, open places and a line on a route');
   assert.ok(!BANNED.test(d?.sub ?? ''));
 });
 
 test('after-dark ui 3: the subtitle describes what is drawn and cannot read as a status', () => {
-  assert.equal(dark()?.sub, 'Lit streets and open places');
+  assert.equal(dark()?.sub, 'Lit streets, open places and a line on a route');
 });

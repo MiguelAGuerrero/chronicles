@@ -712,7 +712,9 @@ export function walkabilityGeoJSON(t: WalkTint | null | undefined): GeoJSON.Feat
  */
 export const DARK_STYLE = {
   // after-dark ui 2: a darker amber drawn whole, 3:1 or more against the ground and the streets (WCAG 1.4.11): thin, never faint.
-  lit: { color: '#a87400', width: 2.5, opacity: 1 },
+  lit: { color: '#a87400', width: 2.5, opacity: 1,
+    // after-dark audit 8: below z15 it fades to half, so a densely mapped centre seen whole never reads as a lit zone.
+    opacityByZoom: [[14, 0.45], [16, 1]] as readonly (readonly [number, number])[] },
   open: { radius: 4, stroke: '#2b2b2b', strokeWidth: 1.5, fill: '#ffffff' },
 } as const;
 
