@@ -75,7 +75,8 @@ function watch(id: string): Promise<void> {
     return Promise.reject(new RecorderError('This browser has no location access, so it cannot record a walk.'));
   }
   stopWatch();
-  unfollowPermission();
+  // A start for another walk ends the following; the followed walk's own restart keeps it (audit 7).
+  if (follower.following() !== id) unfollowPermission();
   walkId = id;
   lastFixAt = 0;
   setStatus({ kind: 'waiting' });

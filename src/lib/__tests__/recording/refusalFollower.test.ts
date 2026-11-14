@@ -87,3 +87,29 @@ test('tend walk-screen audit 4: a walk ended elsewhere is not resumed; its open 
   await settle();
   assert.equal(again.p.recorder.walkId, 'w2');
 });
+
+test('tend walk-screen audit 7: denied then granted before a new follower\'s first report still resumes', async () => {
+  // Given back, the walk resumed; refused again, and given back again before the browser's answer to a new follower's
+  // first question: that answer reads granted, which a new follower takes as where it stood, so the walk stayed off.
+  // The follower lives for the walk's refusals, so what it has seen carries over: denied, then granted, resumes.
+  const p = fakePorts();
+  const w = fakeWatch();
+  await p.db.createWalk(walk('w1'));
+  let resumes = 0;
+  const counted = refusalFollower({ watch: w.watch, walks: p.db, resume: async (id) => { resumes++; await p.recorder.resume(id); } });
+  await counted.refused('w1');
+  w.tell('denied');
+  w.tell('granted');
+  await settle();
+  assert.equal(resumes, 1);
+  // Blocked again: the browser says denied as the resumed watch is refused; then given back at once, so a follower
+  // made only now would first hear granted, where it stood. The walk's follower heard denied, and resumes.
+  w.tell('denied');
+  await counted.refused('w1');
+  w.tell('granted');
+  await settle();
+  assert.equal(resumes, 2, 'the second return resumes too');
+  assert.equal(counted.following(), 'w1');
+  counted.stop();
+  assert.equal(w.live(), false, 'a stop ends it');
+});

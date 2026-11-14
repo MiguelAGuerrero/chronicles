@@ -29,7 +29,7 @@ function fakeWatch() {
   return { watch, tell: (s: LocatePermission) => on?.(s), stopped: () => stopped, live: () => on != null };
 }
 
-test('tend walk-screen 3: after a refusal, the permission changing to granted resumes the walk, once', () => {
+test('tend walk-screen 3: after a refusal, the permission changing to granted resumes the walk, once per change', () => {
   const w = fakeWatch();
   let resumed = 0;
   followPermission(w.watch, () => resumed++);
@@ -37,9 +37,13 @@ test('tend walk-screen 3: after a refusal, the permission changing to granted re
   assert.equal(resumed, 0);
   w.tell('granted');
   assert.equal(resumed, 1, 'location given back: the walk records again by itself');
-  assert.equal(w.live(), false, 'and stops following: the restart follows again if it is refused again');
   w.tell('granted');
-  assert.equal(resumed, 1);
+  assert.equal(resumed, 1, 'granted again is no change');
+  // tend walk-screen audit 7: the following goes on, so blocked and given back again resumes again.
+  assert.equal(w.live(), true);
+  w.tell('denied');
+  w.tell('granted');
+  assert.equal(resumed, 2);
 });
 
 test('tend walk-screen 3: a reset to ask, or no permissions API, resumes nothing', () => {
@@ -107,5 +111,5 @@ test('tend walk-screen 3: the web recorder follows the permission after a refusa
   const stopBody = src.slice(src.indexOf('async stop()'), src.indexOf('async resume('));
   assert.match(stopBody, /unfollowPermission\(\)/, 'a stop (End, or Pause) stops following');
   const watchHead = src.slice(src.indexOf('function watch('), src.indexOf('return new Promise'));
-  assert.match(watchHead, /unfollowPermission\(\)/, 'a start stops the following it supersedes');
+  assert.match(watchHead, /if \(follower\.following\(\) !== id\) unfollowPermission\(\)/, 'a start for another walk stops the following it supersedes');
 });
