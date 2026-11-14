@@ -450,6 +450,9 @@ async function run(h) {
   check(pen60 === 1 && back60 === 1 && foot60, `chronicle-journal audit 60 (with JN47): back from Threads the page is at its foot and the toolbar keeps its field (${pen60} -> ${back60}, ${foot60})`);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
+  // The field is the composer's (JN47): opened to read its face, then closed with nothing typed.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(900);
   const look = await pg.evaluate((sel) => {
     const e = document.querySelector(sel);
     if (!e) return null;
@@ -464,6 +467,8 @@ async function run(h) {
       field: field ? getComputedStyle(field).fontFamily : null, heading: head ? getComputedStyle(head).fontFamily : null,
     };
   }, entries);
+  await done();
+  await pg.waitForTimeout(900);
   const serif = (f) => !!f && /serif/i.test(f) && !/sans-serif/i.test(f.replace(/ui-serif|serif\b(?!-)/gi, '')) && /(ui-serif|Georgia|(^|,\s*)serif)/i.test(f);
   check(!!look && look.border === 0 && look.radius === 0 && look.image === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(look.bg),
     `JN3: an entry has no card, border or tile around it (${JSON.stringify(look)})`);
