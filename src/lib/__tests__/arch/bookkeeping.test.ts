@@ -123,11 +123,17 @@ test('bookkeeping: next-decision reads origin/main, not HEAD or the working tree
   assert.equal(usage.status, 2);
 });
 
+test('bookkeeping audit 11: a decision file with no slug holds its number', { todo: 'the fix comes next' }, () => {
+  assert.equal(book.decisionState(['0174-a.md', '0175.md']).next, '0176');
+  assert.equal(book.checkDecision(['0174-a.md', '0175.md'], '0175', '0175-mine.md').ok, false);
+});
+
 // ---------------------------------------------------------------------------------------------------
 // next-audit
 
+const src = (text: string) => ({ where: 'commit', text });
+
 test('bookkeeping: next-audit reads "<prefix> audit N" in single numbers, ranges and lists, and no other prefix', () => {
-  const src = (text: string) => ({ where: 'commit', text });
   const subjects = [
     'tend map audit 12: the pin',
     'tend map audit 27-31: the pins\' time',
@@ -150,28 +156,78 @@ test('bookkeeping: next-audit reads "<prefix> audit N" in single numbers, ranges
   assert.deepEqual(book.auditNumbers('rides', []), { highest: null, next: 1, hits: [] });
 });
 
-test('bookkeeping: next-audit searches origin/main\'s subjects and the tests under src and the journeys, nothing else', () => {
+test('bookkeeping audit 1: next-audit takes the highest of origin/main, HEAD\'s history and tree, and the uncommitted working tree', { todo: 'the fix comes next' }, () => {
   const r = repo('audits');
   r.commit('rides audit 2: a subject');
   r.write('src/lib/__tests__/rides/rides.test.ts', "test('rides audit 7: the ride', () => {});\n");
   r.write('src/lib/__tests__/rides/with space/a b.test.ts', "test('Rides audit 8: a path with spaces', () => {});\n");
   r.write('scripts/e2e/journeys/rides.js', "step('rides audit 9 the journey');\n");
-  r.write('docs/notes.md', 'rides audit 99 in a doc is not a test\n');
   r.commit('tests');
   r.publish();
-  r.commit('rides audit 12: on the branch, not on main');
-  r.write('src/lib/__tests__/rides/later.test.ts', "test('rides audit 13: in the working tree', () => {});\n");
+  const published = r.git('rev-parse', 'HEAD').trim();
+  const next = () => (json(r.run('next-audit', 'rides', '--json')) as { next: number }).next;
   const plain = r.run('next-audit', 'rides');
   assert.equal(plain.status, 0, plain.stderr);
   assert.equal(plain.stdout.split('\n')[0], '10');
   assert.match(plain.stdout, /scripts\/e2e\/journeys\/rides\.js/);
-  const j = json(r.run('next-audit', 'rides', '--json'));
-  assert.equal(j.highest, 9);
-  assert.equal(j.next, 10);
+  r.commit('rides audit 12: a first round on the branch, not on main');
+  assert.equal(next(), 13, "HEAD's history: a second round never reuses the first's numbers");
+  r.write('src/lib/__tests__/rides/round.test.ts', "test('rides audit 14: committed on the branch', () => {});\n");
+  r.commit('a test on the branch');
+  assert.equal(next(), 15, "HEAD's tree");
+  r.write('src/lib/__tests__/rides/later.test.ts', "test('rides audit 16: in the working tree', () => {});\n");
+  assert.equal(next(), 17, 'an untracked file');
+  r.write('src/lib/__tests__/rides/rides.test.ts', "test('rides audit 18: unstaged', () => {});\n");
+  assert.equal(next(), 19, 'an unstaged change');
+  // main moves on meanwhile: its numbers count too.
+  r.git('worktree', 'add', '-q', '--detach', join(tmp, 'audits-main'), published);
+  writeFileSync(join(tmp, 'audits-main', 'x.txt'), 'x\n');
+  spawnSync('git', ['add', '-A'], { cwd: join(tmp, 'audits-main'), env });
+  spawnSync('git', ['commit', '-qm', 'rides audit 20: another session, on main'], { cwd: join(tmp, 'audits-main'), env });
+  r.publish(spawnSync('git', ['rev-parse', 'HEAD'], { cwd: join(tmp, 'audits-main'), env, encoding: 'utf8' }).stdout.trim());
+  assert.equal(next(), 21);
+  assert.match(r.run('next-audit', 'rides').stdout, /commit [0-9a-f]+: rides audit 20/);
   const none = r.run('next-audit', 'tend walk');
   assert.equal(none.status, 0);
   assert.equal(none.stdout.split('\n')[0], '1');
   assert.equal(r.run('next-audit').status, 2, 'a prefix is required');
+});
+
+test('bookkeeping audit 2: next-audit reads every file and commit body, not only subjects and tests: a deferred or rejected finding keeps its number', { todo: 'the fix comes next' }, () => {
+  const r = repo('audits-wide');
+  r.write('.gitignore', 'ignored/\n');
+  r.write('src/lib/__tests__/rides/rides.test.ts', "test('rides audit 3: x', () => {});\n");
+  r.write('docs/DEFERRED.md', '- [loop] the ride ends early (deferred as rides audit 5)\n');
+  r.write('specs/rides/spec.md', 'Audit: rides audit 6 rejected; rides audit 4, 2026-11-14.\n');
+  r.write('ignored/notes.md', 'rides audit 90 in an ignored file\n');
+  r.commit('rides: the audit (rides audit 1-3)\n\nrides audit 7 filed as an owner\'s entry.');
+  r.publish();
+  const j = json(r.run('next-audit', 'rides', '--json')) as { highest: number; next: number; at: { where: string }[] };
+  assert.equal(j.highest, 7, 'the body of a commit, the record documents and the specs; never an ignored file or a date');
+  assert.match(j.at[0].where, /^commit [0-9a-f]+$/);
+});
+
+test('bookkeeping audit 3: space, hyphen and underscore are one separator inside a prefix', { todo: 'the fix comes next' }, () => {
+  const lines = [src('note types audit 55-65: x'), src("test('note-types audit 66: y')"), src('note_types audit 67')];
+  assert.equal(book.auditNumbers('note-types', lines).highest, 67);
+  assert.equal(book.auditNumbers('note types', lines).highest, 67);
+  assert.equal(book.auditNumbers('note_types', lines).highest, 67);
+  assert.equal(book.auditNumbers('types', lines).highest, null, 'part of a name is still not the name');
+});
+
+test('bookkeeping audit 4: "and", ", and", "to" and "through" join a list or a range; a date is never an audit number', { todo: 'the fix comes next' }, () => {
+  const at = (t: string) => book.auditNumbers('tend map', [src(t)]).highest;
+  assert.equal(at('tend map audits 3, 4, and 5'), 5);
+  assert.equal(at('tend map audits 4 and 5'), 5);
+  assert.equal(at('tend map audits 27 to 31'), 31);
+  assert.equal(at('tend map audits 27 through 31'), 31);
+  assert.equal(at('tend map audit 1-14, 16'), 16);
+  assert.equal(at('tend map audit 12-18 (13 and 16 are record notes)'), 18);
+  assert.equal(at('tend map audit 7 to the end'), 7);
+  assert.equal(at('tend map audit 2, 2026-11-14'), 2);
+  assert.equal(at('tend map audit 5 to 2026'), 5);
+  assert.equal(at('tend map audit 3, 11-14-2026'), 3);
+  assert.equal(at('tend map audit 2026: a year'), null);
 });
 
 // ---------------------------------------------------------------------------------------------------
@@ -251,6 +307,27 @@ test('bookkeeping: files counts committed, staged, unstaged, deleted and untrack
   assert.equal(r.run('files', 'nope..HEAD').status, 2);
 });
 
+test('bookkeeping audit 7: --max-src counts source files, src/ and scripts/, never tests, journeys or records', { todo: 'the fix comes next' }, () => {
+  const r = repo('sources');
+  for (let k = 0; k < 7; k++) {
+    r.write(`src/lib/m${k}.ts`, 'x\n');
+    r.write(`src/lib/__tests__/x/m${k}.test.ts`, 'x\n');
+  }
+  r.write('scripts/e2e/journeys/a.js', 'x\n');
+  r.write('scripts/e2e/journeys/b.js', 'x\n');
+  r.write('docs/STATUS.md', 'x\n');
+  r.write('.claude/skills/x/SKILL.md', 'x\n');
+  const ok = r.run('files', '--max-src', '8');
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.equal((json(r.run('files', '--json')) as { sources: number }).sources, 7);
+  r.write('scripts/one.js', 'x\n');
+  r.write('scripts/two.js', 'x\n');
+  const over = r.run('files', '--max-src', '8');
+  assert.equal(over.status, 1);
+  assert.match(over.stderr, /9 source files/);
+  assert.match(r.run('files').stdout, /^sources 9 \(src\/ and scripts\/, the tripwire's count\)$/m);
+});
+
 // ---------------------------------------------------------------------------------------------------
 // landed
 
@@ -320,6 +397,30 @@ test('bookkeeping: landed checks the range is on origin/main, the branch and its
   assert.equal(r.run('landed', `${base}..${head}`, '--live', `file://${join(tmp, 'gone.html')}`).status, 1, 'a page that cannot be read fails');
 });
 
+test('bookkeeping audit 6: landed refuses origin/main as the head, checks the branch alone after cleanup, and says when it compared nothing', { todo: 'the fix comes next' }, () => {
+  const r = repo('landed-head');
+  const base = r.git('rev-parse', 'HEAD').trim();
+  r.write('a.txt', '1\n');
+  const head = r.commit('one');
+  r.publish();
+  const refused = r.run('landed', `${base}..origin/main`);
+  assert.equal(refused.status, 2, 'a range ending at origin/main holds whatever landed and can never fail');
+  assert.match(refused.stderr, /pushed sha/);
+  assert.equal(r.run('landed', `${base}..HEAD`).status, 2, 'HEAD at origin/main is the same trap');
+  assert.equal(r.run('landed', `${base}..${head}`).status, 0, 'the run\'s own sha, even when it is main\'s tip');
+  assert.equal(r.run('landed', `${base}..${head.slice(0, 8)}`).status, 0);
+  r.git('branch', 'tooling/y');
+  assert.equal(r.run('landed', '--branch', 'tooling/y').status, 1, 'the cleanup part alone, with no range');
+  r.git('branch', '-D', 'tooling/y');
+  const gone = r.run('landed', '--branch', 'tooling/y');
+  assert.equal(gone.status, 0, gone.stderr);
+  const live = join(tmp, 'live-head.html');
+  writeFileSync(live, '<script src="/chronicles/_expo/static/js/web/index-aaa.js" defer></script>');
+  const seen = r.run('landed', `${base}..${head}`, '--live', `file://${live}`);
+  assert.match(seen.stdout, /compared with nothing/);
+  assert.equal(r.run('landed').status, 2);
+});
+
 // ---------------------------------------------------------------------------------------------------
 // review-paths
 
@@ -362,6 +463,18 @@ test('bookkeeping: review-paths names each missing path and a missing prompt, an
   const j = json(r.run('review-paths', bad, '--json')) as { prompts: { prompt: string; missing: { path: string }[] }[] };
   assert.equal(j.prompts[0].missing.length, 2);
   assert.equal(r.run('review-paths').status, 2);
+});
+
+test('bookkeeping audit 12: a backticked path with a <placeholder> is checked up to its directory', { todo: 'the fix comes next' }, () => {
+  const r = repo('placeholder');
+  const dir = join(tmp, 'placeholder-scratch', 'reviews');
+  mkdirSync(dir, { recursive: true });
+  const prompt = join(tmp, 'placeholder-scratch', 'prompt.md');
+  writeFileSync(prompt, `Write it to \`${dir}/<your branch>-diff-auditor-prompt.md\`.\n`);
+  const ok = r.run('review-paths', prompt);
+  assert.equal(ok.status, 0, ok.stderr);
+  writeFileSync(prompt, `Write it to \`${join(tmp, 'placeholder-scratch', 'nope')}/<your branch>-x.md\`.\n`);
+  assert.equal(r.run('review-paths', prompt).status, 1);
 });
 
 // ---------------------------------------------------------------------------------------------------
@@ -467,14 +580,14 @@ test('bookkeeping: items lists the inbox by number and the items open before the
   for (const it of inbox) assert.ok(accepted('inbox', STATUS, it), it.first);
 });
 
-test('bookkeeping: items reads origin/main by default, the working tree with --worktree, and fails when an item has no match', () => {
+test('bookkeeping: items reads origin/main with --main, the working tree with --worktree, and fails when an item has no match', () => {
   const r = repo('items');
   r.write('docs/DEFERRED.md', DEFERRED);
   r.write('docs/STATUS.md', STATUS);
   r.commit('records');
   r.publish();
   r.write('docs/DEFERRED.md', DEFERRED.replace('- [arch] Export, a GPX file.\n- [arch] Export, a GPX file.\n', '- [arch] Export, a GPX file.\n- [loop] A later item.\n'));
-  const main = r.run('items', 'deferred');
+  const main = r.run('items', 'deferred', '--main');
   assert.equal(main.status, 1, 'origin/main holds twin items no match names');
   assert.match(main.stderr, /"Export, a GPX file\." \(line 20\)/);
   assert.match(main.stdout, /^## Explore and discovery$/m);
@@ -486,27 +599,101 @@ test('bookkeeping: items reads origin/main by default, the working tree with --w
   const j = json(r.run('items', 'inbox', '--tag', 'owner', '--json')) as { items: Item[] };
   assert.deepEqual(j.items.map((i) => i.match), ['T21']);
   assert.equal(r.run('items', 'open').status, 0);
-  assert.equal(r.run('items', 'deferred', '--tag', 'loop').status, 0, 'the filter leaves the unmatched item out');
+  assert.equal(r.run('items', 'deferred', '--main', '--tag', 'loop').status, 0, 'the filter leaves the unmatched item out');
   assert.equal(r.run('items', 'nope').status, 2);
+});
+
+test('bookkeeping audit 8: each match is also printed in single quotes, safe to paste into a shell', { todo: 'the fix comes next' }, () => {
+  const r = repo('quoted');
+  r.write('docs/DEFERRED.md', "# D\n\n## A\n\n- [loop] It's `x` here, $HOME and all.\n- [loop] It is not.\n");
+  r.commit('d');
+  r.publish();
+  const out = r.run('items', 'deferred');
+  assert.equal(out.status, 0, out.stderr);
+  assert.ok(out.stdout.includes("shell: 'It'\\''s `x`'"), out.stdout);
+  const pasted = spawnSync('sh', ['-c', `printf %s ${"'It'\\''s `x`'"}`], { encoding: 'utf8' });
+  assert.equal(pasted.stdout, "It's `x`", 'the shell reads back the match itself');
+  assert.equal(((json(r.run('items', 'deferred', '--json')) as { items: Item[] }).items[0]).match, "It's `x`");
+});
+
+test('bookkeeping audit 9: a CRLF document lists the same items as its LF copy', { todo: 'the fix comes next' }, () => {
+  const crlf = book.listItems('deferred', DEFERRED.replace(/\n/g, '\r\n'));
+  assert.equal(crlf.length, 8);
+  assert.deepEqual(crlf, book.listItems('deferred', DEFERRED));
+});
+
+test('bookkeeping audit 10: items reads the working tree when its record document differs from main, and says which it read', { todo: 'the fix comes next' }, () => {
+  const r = repo('items-where');
+  r.write('docs/DEFERRED.md', DEFERRED);
+  r.commit('records');
+  r.publish();
+  const same = r.run('items', 'deferred', '--tag', 'loop');
+  assert.match(same.stdout, /from docs\/DEFERRED\.md on origin\/main \([0-9a-f]+\)/);
+  r.write('docs/DEFERRED.md', DEFERRED.replace('- [arch] Export, a GPX file.\n- [arch] Export, a GPX file.\n', '- [arch] Export, a GPX file.\n- [loop] A later item.\n'));
+  const tree = r.run('items', 'deferred');
+  assert.equal(tree.status, 0, tree.stderr);
+  assert.match(tree.stdout, /match: "A later"/);
+  assert.match(tree.stdout, /from docs\/DEFERRED\.md in the working tree, which differs from origin\/main/);
+  assert.match(r.run('items', 'deferred', '--main').stdout, /on origin\/main/);
 });
 
 // ---------------------------------------------------------------------------------------------------
 // The commands' names, where the procedures use them.
 
-test('bookkeeping: package.json runs the commands, tend.js passes them on, and the skills name them where they did the work by hand', () => {
-  const pkg = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
-  for (const s of ['next-decision', 'next-audit', 'files', 'landed', 'review-paths', 'items']) assert.equal(pkg.scripts[`book:${s}`], `node scripts/bookkeeping.js ${s}`, s);
-  const via = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'next-audit', 'tend nothing-ever'], { cwd: ROOT, encoding: 'utf8' });
-  assert.equal(via.status, 0, via.stderr);
-  assert.equal(via.stdout.split('\n')[0], '1');
-  const names = (rel: string, ...what: RegExp[]) => {
-    const text = read(rel);
-    for (const re of what) assert.match(text, re, `${rel} names ${re}`);
+/**
+ * The units of a skill a reader acts on: a list item, a table row or a paragraph, inside a fence or not.
+ * A unit that names a bookkeeping command must name where it runs.
+ */
+function units(text: string) {
+  const out: string[] = [];
+  let cur: string[] = [];
+  const flush = () => {
+    if (cur.length) out.push(cur.join('\n'));
+    cur = [];
   };
-  names('.claude/skills/tend/SKILL.md', /book:next-audit/, /book:next-decision -- --check/, /book:files -- HEAD --max-src/, /book:items/);
-  names('.claude/skills/slice/SKILL.md', /book:next-decision/, /book:next-audit/);
-  names('.claude/skills/ship.md', /book:next-decision -- --check/, /book:landed/);
-  names('.claude/skills/tend-orchestrator/SKILL.md', /book:review-paths/, /book:landed/, /book:items/);
-  names('.claude/skills/tend-orchestrator/briefs.md', /book:next-audit/, /book:next-decision -- --check/, /book:files -- HEAD --max-src/);
-  names('.claude/skills/audit/SKILL.md', /book:next-audit/);
+  for (const line of text.split('\n')) {
+    if (!line.trim() || /^\s*(```|~~~)/.test(line)) flush();
+    else if (/^\s*([-*+]|\d+\.)\s|^\s*\|/.test(line)) {
+      flush();
+      cur.push(line);
+    } else cur.push(line);
+  }
+  flush();
+  return out;
+}
+const PLACES = /in the worktree|in your worktree|in the run's worktree|<main-tools>|<main-scripts>/;
+
+test('bookkeeping audit 5: every skill names where its bookkeeping command runs, and each place holds the script', { todo: 'the fix comes next' }, () => {
+  const skills = ['.claude/skills/tend/SKILL.md', '.claude/skills/slice/SKILL.md', '.claude/skills/audit/SKILL.md', '.claude/skills/ship.md', '.claude/skills/tend-orchestrator/SKILL.md', '.claude/skills/tend-orchestrator/briefs.md'];
+  const unplaced: string[] = [];
+  const named = new Set<string>();
+  for (const f of skills) {
+    for (const u of units(read(f))) {
+      if (!/book:|bookkeeping\.js/.test(u)) continue;
+      for (const m of u.matchAll(/book:([\w-]+)|bookkeeping\.js ([\w-]+)/g)) named.add(m[1] ?? m[2]);
+      if (!PLACES.test(u)) unplaced.push(`${f}: ${u.trim().split('\n')[0]}`);
+    }
+  }
+  assert.deepEqual(unplaced, [], 'each of these names a bookkeeping command and not where it runs');
+  for (const c of ['next-decision', 'next-audit', 'files', 'landed', 'review-paths', 'items']) assert.ok(named.has(c), `a skill names ${c}`);
+  // The places: the run's worktree is cut from origin/main, which holds the script; the orchestrator keeps a
+  // detached worktree at origin/main; ship.md's cleanup reads main's scripts once the worktree is gone.
+  const orchestrator = read('.claude/skills/tend-orchestrator/SKILL.md');
+  assert.match(orchestrator, /git -C <primary> worktree add --detach <main-tools> origin\/main/);
+  assert.match(orchestrator, /git -C <main-tools> fetch -q origin main && git -C <main-tools> checkout -q --detach origin\/main/);
+  assert.doesNotMatch(orchestrator, /npm run book:/, 'the orchestrator sits in the primary checkout, which may predate the script');
+  assert.doesNotMatch(read('.claude/skills/tend-orchestrator/briefs.md'), /<main-tools>[^\n]*book:/);
+  assert.match(read('.claude/skills/ship.md'), /git -C <primary> archive origin\/main scripts \| tar -x -C <main-scripts>/);
+  for (const f of skills) assert.doesNotMatch(read(f), /book:landed -- <base>\.\.origin\/main/, `${f}: a range ending at origin/main can never fail`);
+  // npm's aliases run the script that exists; tend.js passes the commands on, in a repository of its own.
+  const pkg = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
+  for (const c of ['next-decision', 'next-audit', 'files', 'landed', 'review-paths', 'items']) assert.equal(pkg.scripts[`book:${c}`], `node scripts/bookkeeping.js ${c}`, c);
+  const r = repo('via-tend');
+  mkdirSync(join(r.dir, 'scripts'), { recursive: true });
+  for (const f of ['tend.js', 'bookkeeping.js', 'records.js']) writeFileSync(join(r.dir, 'scripts', f), read(`scripts/${f}`));
+  r.commit('rides audit 4: x');
+  r.publish();
+  const via = spawnSync(process.execPath, ['scripts/tend.js', 'next-audit', 'rides'], { cwd: r.dir, env, encoding: 'utf8' });
+  assert.equal(via.status, 0, via.stderr);
+  assert.equal(via.stdout.split('\n')[0], '5');
 });
