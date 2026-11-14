@@ -93,11 +93,13 @@ async function run(h) {
     `RX9, RX14: marked, the sign is the first reaction's glyph; the entry spells its reactions under the dateline (${JSON.stringify({ marked9, marks14 })})`);
   // reactions audit 3 (the cold find): nothing lies over the sign's plus (the held date's edge bands washed it out).
   const ui3a = await pg.evaluate(() => {
-    const add = [...document.querySelectorAll('[data-testid=reaction-sign-add]')][0];
+    const adds = [...document.querySelectorAll('[data-testid=reaction-sign-add]')].filter((e) => { const r = e.getBoundingClientRect(); return r.top > 0 && r.bottom < window.innerHeight; });
+    const add = adds[adds.length - 1];
     if (!add) return null;
     const r = add.getBoundingClientRect();
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    return { top: !!hit && add.contains(hit) };
+    const sign = add.closest('[data-testid=reaction-sign]');
+    return { top: !!hit && (add.contains(hit) || hit === sign), hit: hit?.closest('[data-testid]')?.getAttribute('data-testid') ?? hit?.tagName, y: Math.round(r.top) };
   });
   check(!!ui3a && ui3a.top, `reactions audit 3: nothing lies over the sign's plus (${JSON.stringify(ui3a)})`);
   // reactions ui 2 (the cold find): the sign's plus reads as ink, not a faint grey badge: an ink disc of 16 px or more.
