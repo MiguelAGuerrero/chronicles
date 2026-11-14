@@ -252,6 +252,10 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   `formatCaptures`; a confirm "Its trace, three moments and twelve streets walked go.", "Two photos and a voice memo
   go." /vision: aligned (honour; "Counts are words"); it amends MR4's "N more here" and D4's example.
   Otherwise: the memory preview alone (it sits where the reminder card does); or leave them.
+  **Answered yes** by the owner in person (Nov 14, during the T29 review; decision 0170): "All in words", the
+  recommended shape: the memory preview "and two more here"; the walks row's captures T19's clause, built with T19
+  since they share `formatCaptures`; a delete's confirm "Its trace, three moments and twelve streets walked go." and
+  "Two photos and a voice memo go." Waits for the next `/tend inbox`, one build per run (T29 was built first).
 
 ### Next evolutions
 
@@ -279,35 +283,33 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 13, `/tend inbox T28 yes, T19 yes, T20 yes, T21 yes, T22 swatches`** (from `63cf0214`, rebased on `da529bad`; the
-owner's own answers, in person: T28 on Nov 13 in decision 0164; T19-T22 on Nov 12 and the T28 review's ux 1 and ux 2
-on Nov 13, recorded in decision 0165; one build per run, so T19, T20 and T21 wait, marked answered, and T22 waits for
-its swatches).
-- `tend map T28`: every pin says when: a pin of one moment its minutes too ("Photo, twelve minutes in. Open"); a pin
-  whose moments lie more than ten walked minutes apart the span ("A photo and a note, from the start to fifty-eight
-  minutes in. Open"); a pin no walk clock holds the part of the day of its first moment, in the moment's own line's
-  words ("A photo and a note, Tuesday evening. Open"). Nothing drawn changed. Sibling lens: the walk screen and the
-  replay have a clock; the walk screen after Stop, the ready screen, Chronicle's map and memory pins have none; a day
-  replay's pin of two walks, or of a moment outside a walk, has none either; Explore and the planner draw no pins of
-  moments.
+**Nov 14, `/tend inbox T29 yes`** (from `a181030d`, rebased on `decae354`; the owner's own answer, in person, Nov 13,
+decision 0164; T19, T20 and T21, answered in decision 0165, wait for later runs, one build per run).
+- `tend explore T29`: a reminder of several says its count in words, "Two memories here" ("Many memories here" past
+  fifty-nine), and its body the pins' words for its kinds in the order taken ("A video and a photo"), from one table
+  (`pinKindsWords`, `KIND_NAME` in `lib/pins.ts`); recall's second copy is gone. The card, the notification, the
+  recording bar's line and both announcements say it. When and whether a reminder or its notification shows is
+  unchanged; "What happened here" keeps "12 min in". Sibling lens: built on the reminders and their announcements;
+  filed as T30 the memory preview's "2 more here", the walks row's "1 photo · 1 video" and a delete's "3 moments";
+  Chronicle's Memories already says its counts in words.
 The review's fixes (one round of the auditor and the ux-reviewer, decision 0145):
-- `tend map audit 27`: a pin whose moments fall on different days says the span of their days ("from three weeks ago
-  to Tuesday evening"; the owner's answer to ux 1).
-- `tend map audit 28`: on a map of several walks every pin says its part of the day (the owner's answer to ux 2).
-- `tend map audit 29`: the walk screen renews its pins' `now` on return to the front and at the next boundary the
-  words turn on (`nextDayPartBoundary`; auditor 1, ux 3); the e2e for it is a `[loop]` item in `docs/DEFERRED.md`.
-- `tend map audit 30`: the span is said in the minutes it names, its unit once ("from twelve to fifty minutes in");
-  `pinInto` deleted (auditor 3, ux 5, auditor 6).
-- `tend map audit 31`: `qol` reads a one-photo pin's minutes whole; the `days` checks keep to the map and take
-  "yesterday night" (auditor 4, auditor 7).
-Review: 9 accepted, 2 recorded (auditor 2: a native check for the new names, the two old checks noted superseded;
-auditor 5: the map rule's "kinds alone" lines, noted under "Open before the loop"), 1 deferred `[owner]` (ux 4, the
-long-ago line's comma), 0 rejected. Each check was seen failing first: the unit tests on the code before each fix,
-the journeys' T28 and audit 31 checks on main's build (`E2E_SOFT`).
-Not a sweep: no lens ran and no area changed state. Journeys green on the final code: `days`, `qol`, `walk`, `edit`,
-`launch`, `ready`. Nothing here has run on a phone; the spoken names on native are unverified
-(`docs/NATIVE_UNVERIFIED.md`). QL26's, NY10's, MR2's and RB7's words, and the map rule's "kinds alone" lines, wait for
-your edit (noted under "Open before the loop").
+- `tend explore audit 5`: the reminder's tests build their moments in local time, so they pass in every zone (R4's
+  test failed east of UTC+9 since slice 4); the tie order, a hyphenated count and "Many" over a counted body pinned
+  (auditor 1).
+- `tend explore audit 6`: the walk screen and the recording bar announce the card's own title for all it holds
+  ("A note from here", "Three memories here"), not the count just due (`reminderHeld`; auditor 3, ux 2, ux 3).
+- `tend explore audit 7`: the journey step checks its setup, reads the card once it settles, removes its flags and
+  walks back; the minimized bar's line is checked and pictured; "the reminder opens its capture" can fail now
+  (auditor 4, auditor 5).
+Review: 6 accepted, 1 recorded (auditor 2: the cleanup item names every copy of the kinds' words), 3 deferred (ux 1
+with ux 6 `[owner]`, ux 4 and ux 5 `[loop]`), 0 rejected. New on the way: the walk screen and the bar race for the one
+reminder listener after a reload (`[loop]` medium, seen in three of four runs of the step). T30 was answered yes by the owner
+during the review (decision 0170) and waits for the next `/tend inbox`.
+Not a sweep: no lens ran and no area changed state. The memories journey green on the final code; the unit tests
+seen failing first (the T29 and audit 6 tests on the code before, audit 5's fixtures under `TZ=Asia/Tokyo`), the
+journey's T29 check on main's build. Nothing here has run on a phone (`docs/NATIVE_UNVERIFIED.md`). v1-discovery R7's
+example waits for your edit, and `.claude/rules/explore-and-discovery.md` for a split (both under "Open before the
+loop").
 
 ### Open before the loop
 
@@ -319,7 +321,7 @@ your edit (noted under "Open before the loop").
   R7's "Two reminders in reach show as one: "2 memories here"". No rule line said the old words, and none says the
   new: `.claude/rules/explore-and-discovery.md`, which holds "Remind me here", is at 39,957 of the 40,000 characters
   `check:docs` allows, so the loop could add no line; a split of it into two files is yours (the loop changes no
-  line it did not write). Until then the words are in `reminderText`'s and `reminderSpoken`'s comments.
+  line it did not write). Until then the words are in `reminderText`'s and `reminderHeld`'s comments (since `tend explore audit 6` the announcements say the card's own title, for all it holds).
 - **v0.5-places' "merge with a count" after T15** (Nov 13; decision 0154): since `tend places T15` every walked-place
   star is a white star on an ink disc, one size, and a merged star draws no numeral; its spoken name says its places
   and walks in words ("Two places, two walks. Zoom in"; a lone star "Fox Point, one walk. Open", `tend places audit
