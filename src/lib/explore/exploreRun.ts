@@ -13,7 +13,7 @@ import { sweepCovered } from '../landing/view';
 import { ensureTileBuild } from '../tiles';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
-import { archiveStale, buildChecklists, EXPLORE_RULES, type ChecklistArea, type ExploreRead } from './explore';
+import { archiveStale, buildChecklists, EXPLORE_RULES, readJoin, readKey, type ChecklistArea, type ExploreRead } from './explore';
 
 /** The tile build, checked at most every 10 min: never a TileJSON fetch per fix (audit 1, 6). */
 const BUILD_MS = 10 * 60_000;
@@ -32,16 +32,21 @@ const TOWNS_M = 3000;
 export type ExploreResult = { ok: true; areas: ChecklistArea[] } | { ok: false };
 
 let running: Promise<ExploreResult> | null = null;
+let runningAt: LngLat | null = null;
 
 /**
  * One explore read (E2): the z14 tiles of the 1.5 km around `centre`, decoded
  * in code with no camera moves, plus a z11 read for the towns. That one read
  * builds the checklists of the areas it saw whole and, as information, the
  * busy streets (remembered like "What's good here"). Never two at once. A
- * failed or cancelled read stores nothing (E5).
+ * failed or cancelled read stores nothing (E5). A read asked for while one runs shares it only for the same centre;
+ * another centre waits for it, then reads its own (`readJoin`, tend explore 15).
  */
 export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldStop: () => boolean = () => false): Promise<ExploreResult> {
-  if (running) return running;
+  const join = readJoin(running ? runningAt : null, centre);
+  if (running && join === 'join') return running;
+  if (running && join === 'wait') return running.then(() => exploreRead(centre, opts, shouldStop));
+  runningAt = centre;
   running = (async (): Promise<ExploreResult> => {
     try {
       const build = await exploreBuild();
@@ -73,7 +78,7 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
         finds,
         known: reads.filter((r) => r.build === build).flatMap((r) => r.candidates),
       });
-      const record: ExploreRead = { key: `${centre[0].toFixed(5)},${centre[1].toFixed(5)}`, centre, build, read_at: now, candidates };
+      const record: ExploreRead = { key: readKey(centre), centre, build, read_at: now, candidates };
       await db.saveChecklists({ ...built, read: record });
       // The busy streets from the same read (E2), on an exploring walk only (the owner's call: quiet walks
       // keep checklists, not magenta), unless a current area here is already remembered.
@@ -86,6 +91,7 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       return { ok: false };
     } finally {
       running = null;
+      runningAt = null;
     }
   })();
   return running;

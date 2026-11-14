@@ -355,6 +355,19 @@ export function findFor(at: LngLat, items: ChecklistItem[], found: Set<string>):
   return c.length === 1 ? c[0] : null;
 }
 
+/** An explore read's key: its centre to five places (about a metre). */
+export const readKey = (centre: LngLat): string => `${centre[0].toFixed(5)},${centre[1].toFixed(5)}`;
+
+/**
+ * What an explore read asked for while another may run does (E5, E22; tend explore 15): with none running it starts; for
+ * the running read's own centre it shares that read; for another centre it waits for that read to end, then reads its own,
+ * never told that the running read was its area's.
+ */
+export function readJoin(runningAt: LngLat | null, centre: LngLat): 'start' | 'join' | 'wait' {
+  if (!runningAt) return 'start';
+  return readKey(runningAt) === readKey(centre) ? 'join' : 'wait';
+}
+
 /**
  * What fresh captures find now (E8, E9; tend explore 14): each finds the one unfound place in reach, in order, never a place
  * an earlier one took. A capture that finds nothing is done with only while no read is running: a running read may bring
