@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BLOCKED_LINE, findYou, type PermissionSeen } from '../../atlas/findYou';
+import { BLOCKED_LINE, findYou, refusalLifted, type PermissionSeen } from '../../atlas/findYou';
 
 // tend explore 8 (decision 0172, O6 and O20): with no fix, Explore showed Locate at the map's edge and Find me in the
 // empty card, the same crosshair twice; after a refusal Find me stayed under the notice, a button that could only be
@@ -60,4 +60,19 @@ test('tend explore audit 8: never blocked without a refusal, or with areas in th
 test('tend explore audit 9: the blocked card says where to turn location on, in the owner\'s words on the web', () => {
   assert.equal(BLOCKED_LINE.web, 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.');
   assert.equal(BLOCKED_LINE.native, 'Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.');
+});
+
+// tend explore audit 10 (auditor 2, ux 3): allowed afterwards, Find me came back under the refusal's stale "Location is
+// off" notice: only its ✕ or a fix cleared it. A permission that leaves "denied" (or changes from how it was refused to
+// anything but "denied") ends the refusal, and its notice goes with it.
+test('tend explore audit 10: a change to an answer that is not "denied" lifts the refusal', () => {
+  assert.equal(refusalLifted({ state: 'denied', changes: 1 }, 'granted'), true);
+  assert.equal(refusalLifted({ state: 'denied', changes: 1 }, 'prompt'), true, 'a reset to ask again');
+  assert.equal(refusalLifted({ state: 'prompt', changes: 0 }, 'granted'), true);
+});
+
+test('tend explore audit 10: the refusal\'s own change to "denied", the same answer again, or the first reading lift nothing', () => {
+  assert.equal(refusalLifted({ state: 'prompt', changes: 0 }, 'denied'), false);
+  assert.equal(refusalLifted({ state: 'denied', changes: 2 }, 'denied'), false);
+  assert.equal(refusalLifted(null, 'granted'), false);
 });

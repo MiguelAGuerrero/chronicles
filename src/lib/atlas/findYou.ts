@@ -34,3 +34,12 @@ export const BLOCKED_LINE = {
   web: 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.',
   native: 'Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.',
 } as const;
+
+/**
+ * Whether a new reading of the permission ends a refusal (tend explore audit 10): a change to anything but "denied", as
+ * `findYou` stops waiting on it. The refusal's notice goes with it, so "Location is off" never stands over Find me. The
+ * first reading (`was` null) is no change.
+ */
+export function refusalLifted(was: PermissionSeen | null, state: LocatePermission): boolean {
+  return was != null && state !== was.state && state !== 'denied';
+}

@@ -1446,8 +1446,10 @@ async function run(h) {
           await c4.grantPermissions(['geolocation']);
           await pg4.waitForTimeout(1500);
           const allowed = await ways();
-          check(allowed.findMe === 1 && allowed.edge === 0,
-            `tend explore 8: Explore at ${w}, once the permission changes Find me comes back and the edge Locate steps aside (${JSON.stringify(allowed)})`);
+          // tend explore audit 10: the refusal's notice goes with the refusal: "Location is off" no longer stands over Find me.
+          const stale = (await readNotice(pg4, T17_WORDS)).banner != null;
+          check(allowed.findMe === 1 && allowed.edge === 0 && !stale,
+            `tend explore 8, tend explore audit 10: Explore at ${w}, once the permission changes Find me comes back, the edge Locate steps aside and the refusal's notice goes (${JSON.stringify({ ...allowed, stale })})`);
           await shot(pg4, `qol-14-explore-allowed-${w}`);
         }
         await c4.close();

@@ -8,7 +8,7 @@ import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
-import { BLOCKED_LINE, findYou, type PermissionSeen } from '../../lib/atlas/findYou';
+import { BLOCKED_LINE, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
@@ -236,7 +236,12 @@ export default function Explore() {
     permissionNow.current = permission;
   }, [permission]);
   useEffect(
-    () => watchLocatePermission((state) => setPermission((p) => (!p ? { state, changes: 0 } : p.state === state ? p : { state, changes: p.changes + 1 }))),
+    () =>
+      watchLocatePermission((state) => {
+        // tend explore audit 10: allowed (or reset) after a refusal, the refusal's quiet notice goes with it.
+        if (refusalLifted(permissionNow.current, state)) setLocError((e) => (e?.tone === 'info' ? null : e));
+        setPermission((p) => (!p ? { state, changes: 0 } : p.state === state ? p : { state, changes: p.changes + 1 }));
+      }),
     [],
   );
   // tend explore 2: each look has its own token, so a cancelled one never speaks for a newer one.
