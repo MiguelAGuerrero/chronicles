@@ -472,8 +472,57 @@ async function checks(h) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
+        // tend walk-screen 7 (decision 0172, O27): Pause shows its word under its icon, as Hold shows its own, and Resume
+        // while paused; the spoken name is as before. At 390 and 320 the strip keeps every word whole on one line, its
+        // buttons 44 or more and on screen, and its height (`BAR_H`, 69).
+        const strip = (id) => page.evaluate((id) => {
+          const b = document.querySelector(`[data-testid=${id}]`);
+          const hold = document.querySelector('[data-testid=stop]');
+          const stats = document.querySelector('[data-testid=walk-stats]');
+          const bar = document.querySelector('[data-testid=walk-bar]');
+          if (!b || !hold || !stats) return null;
+          const oneLine = (el) => {
+            const r = document.createRange();
+            r.selectNodeContents(el);
+            const lines = new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+            return lines.size === 1 && el.scrollWidth <= el.clientWidth + 1;
+          };
+          const leaf = (root) => [...root.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim());
+          const words = leaf(b);
+          const icon = [...b.querySelectorAll('div')].find((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText));
+          const wr = words.find((d) => /[A-Za-z]/.test(d.innerText))?.getBoundingClientRect();
+          const ir = icon?.getBoundingClientRect();
+          const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+          return {
+            said: b.getAttribute('aria-label'), word: words.map((d) => d.innerText.trim()).filter((t) => /[A-Za-z]/.test(t)).join(' '),
+            under: !!(wr && ir && wr.top >= ir.bottom - 1), whole: words.every(oneLine) && leaf(hold).every(oneLine) && oneLine(stats.querySelector('div') ?? stats),
+            btn: box(b), hold: box(hold), barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
+          };
+        }, id);
+        const fits = (m) => !!m && m.whole && m.under && m.btn.w >= 44 && m.btn.h >= 44 && m.hold.h >= 44 && m.btn.l >= 0 && m.hold.r <= m.vw && m.btn.r <= m.hold.l;
+        const seenStrip = {};
+        seenStrip.walking390 = await strip('pause-walk');
+        await shot(page, '03f-strip-walking-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(600);
+        seenStrip.walking320 = await strip('pause-walk');
+        await shot(page, '03f-strip-walking-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(600);
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
+        await page.waitForTimeout(400);
+        seenStrip.paused390 = await strip('resume-walk');
+        await shot(page, '03g-strip-paused-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(600);
+        seenStrip.paused320 = await strip('resume-walk');
+        await shot(page, '03g-strip-paused-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(600);
+        check(seenStrip.walking390?.word === 'Pause' && seenStrip.walking390.said === 'Pause the walk' && seenStrip.paused390?.word === 'Resume' && seenStrip.paused390.said === 'Resume the walk'
+          && Object.values(seenStrip).every((m) => fits(m) && m.barH === 69),
+          `tend walk-screen 7: the strip's Pause says "Pause" under its icon, and "Resume" while paused, its spoken name unchanged; at 390 and 320 every word whole on one line, 44 or more, on screen, the strip 69 high (${JSON.stringify(seenStrip)})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+ m$/').first().innerText();

@@ -1578,7 +1578,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
               disabled={pausing || stopping || !walk}
               style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
             >
-              <Icon name={paused ? 'play' : 'pause'} size={20} color={paused ? '#ffffff' : theme.ink} />
+              {/* Its word under its icon, as Hold shows its own (decision 0172, O27); the spoken name stays the button's. */}
+              <Icon name={paused ? 'play' : 'pause'} size={18} color={paused ? '#ffffff' : theme.ink} />
+              <Text style={[styles.pauseText, paused && styles.pauseTextOn]} numberOfLines={1} selectable={false}>
+                {paused ? 'Resume' : 'Pause'}
+              </Text>
             </Pressable>
             <HoldButton
               testID="stop"
@@ -2012,12 +2016,16 @@ const styles = StyleSheet.create({
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  // The strip's height holds it: 48 high, its word under its icon, in Hold's frame (O27). Pause stays 48 wide and Resume
+  // about 53, so the walk's numbers keep their room at 320.
   pauseBtn: {
-    width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
+    minWidth: 48, height: 48, paddingHorizontal: 4, borderRadius: theme.radius, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: theme.ink, backgroundColor: theme.surface,
   },
   // Resume is the one thing to do while paused.
   pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
+  pauseText: { color: theme.ink, fontSize: 11, lineHeight: 14, fontWeight: '600' },
+  pauseTextOn: { color: '#ffffff' },
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
