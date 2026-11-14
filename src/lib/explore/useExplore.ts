@@ -15,7 +15,6 @@ import {
   alertedFor,
   alertKeys,
   EXPLORE_RULES,
-  capturesToFind,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -28,6 +27,7 @@ import {
 } from './explore';
 import { placesArchive } from '../discovery/archive';
 import { exploreBuild, exploreBusy, exploreHold, explorePending, exploreRead, itemBounds } from './exploreRun';
+import { createCaptureFinds } from './exploreQueue';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
 /** Items are read again around you after this much walking. */
@@ -80,6 +80,17 @@ export function useExplore(opts: {
     };
   }, []);
 
+  // Captures finding places (E8, E9): `finder` (exploreQueue.ts) records each find through `record`.
+  const record = useCallback(async (item: ChecklistItem, captureId: string) => {
+    const walkId = latest.current.walkId;
+    if (!walkId) return;
+    await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
+    if (!mounted.current) return;
+    setFound((f) => new Set([...(f ?? []), item.key]));
+    latest.current.onFound(item);
+  }, []);
+  const [finder] = useState(() => createCaptureFinds({ pending: explorePending }));
+
   useEffect(() => {
     let alive = true;
     loadSettings().then((s) => alive && setSettings(s), () => {});
@@ -88,7 +99,7 @@ export function useExplore(opts: {
       db.listFinds().then((f) => {
         if (!alive) return;
         // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
-        for (const x of f) handled.current.add(x.capture_id);
+        finder.seen(f.map((x) => x.capture_id));
         setFound(new Set(f.map((x) => x.key)));
       }, () => alive && setFound((was) => was ?? new Set()));
     readFinds();
@@ -99,7 +110,7 @@ export function useExplore(opts: {
       off();
       offDeleted();
     };
-  }, []);
+  }, [finder]);
 
   // What is known: checklists and reads, kept in memory and refreshed after each read.
   const known = useRef<{ areas: ChecklistArea[]; reads: ExploreRead[] } | null>(null);
@@ -226,32 +237,16 @@ export function useExplore(opts: {
 
   // A capture within 60 m finds the one place in reach, on any walk, whatever its kind (E8, E9, E18).
   // With two or more in reach nothing is found: the walker taps a mark to make a moment about it, never a guess.
-  // Each capture is handled once; an unstamped one has no place until stop.
-  const handled = useRef(new Set<string>());
-  const record = useCallback(async (item: ChecklistItem, captureId: string) => {
-    const walkId = latest.current.walkId;
-    if (!walkId) return;
-    await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
-    if (!mounted.current) return;
-    setFound((f) => new Set([...(f ?? []), item.key]));
-    latest.current.onFound(item);
-  }, []);
+  // Each capture is handled once; an unstamped one has no place until stop. `finder` (exploreQueue.ts) keeps which are
+  // handled, holds one with nothing in reach while a read is pending (tend explore 14, audit 11) and a place being
+  // recorded as taken (audit 12).
   useEffect(() => {
-    const walkId = opts.walkId;
     // Not before the finds are known: they say which captures already found something (audit 4).
-    if (!found) return;
-    const fresh = opts.captures.filter((c) => !handled.current.has(c.id) && c.lat != null && c.lon != null);
-    if (!walkId || !fresh.length || !items.length) return;
-    // tend explore 14, audit 11: a capture with nothing in reach waits while a read runs or is on its way; its read's items look at it again.
-    const { handled: done, finds } = capturesToFind({ captures: fresh.map((c) => ({ id: c.id, at: [c.lon!, c.lat!] as LngLat })), items: [...items, ...routeItems], taken: found, reading: explorePending() });
-    for (const id of done) handled.current.add(id);
-    (async () => {
-      for (const f of finds) {
-        await record(f.item, f.captureId);
-        if (!mounted.current) return;
-      }
-    })();
-  }, [opts.captures, opts.walkId, items, routeItems, found, record]);
+    if (!found || !opts.walkId || !items.length) return;
+    const fresh = opts.captures.filter((c) => !finder.isHandled(c.id) && c.lat != null && c.lon != null);
+    if (!fresh.length) return;
+    void finder.look(fresh.map((c) => ({ id: c.id, at: [c.lon!, c.lat!] as LngLat })), [...items, ...routeItems], found, record, () => mounted.current);
+  }, [opts.captures, opts.walkId, items, routeItems, found, finder, record]);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;
   const foundSet = useMemo(() => found ?? new Set<string>(), [found]);

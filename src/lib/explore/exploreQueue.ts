@@ -1,5 +1,5 @@
 // @layer shell
-import { readJoin, type ChecklistArea } from './explore';
+import { capturesToFind, readJoin, type ChecklistArea, type ChecklistItem } from './explore';
 import type { LngLat } from '../types';
 
 export type ExploreResult = { ok: true; areas: ChecklistArea[] } | { ok: false };
@@ -43,6 +43,38 @@ export function createReadQueue(read: Read) {
         return await fn();
       } finally {
         held--;
+      }
+    },
+  };
+}
+
+/**
+ * The walk screen's captures finding places (E8, E9; tend explore 14, audits 11 and 12), the record passed in, so a test
+ * runs it with a fake: each capture is handled once; one with nothing in reach waits while a read is `pending`; and a
+ * place being recorded counts as taken until the finds say so, so a capture looked at meanwhile never reports it again.
+ */
+export function createCaptureFinds(p: { pending: () => boolean }) {
+  const handled = new Set<string>();
+  const recording = new Set<string>();
+  return {
+    /** Captures that already found a place (a reload's finds): never looked at again (audit 4). */
+    seen(ids: Iterable<string>) {
+      for (const id of ids) handled.add(id);
+    },
+    isHandled: (id: string) => handled.has(id),
+    async look(
+      captures: { id: string; at: LngLat }[], items: ChecklistItem[], found: ReadonlySet<string>,
+      record: (item: ChecklistItem, captureId: string) => Promise<void>, alive: () => boolean = () => true,
+    ) {
+      for (const k of [...recording]) if (found.has(k)) recording.delete(k);
+      const fresh = captures.filter((c) => !handled.has(c.id));
+      if (!fresh.length) return;
+      const { handled: done, finds } = capturesToFind({ captures: fresh, items, taken: new Set([...found, ...recording]), reading: p.pending() });
+      for (const id of done) handled.add(id);
+      for (const f of finds) recording.add(f.item.key);
+      for (const f of finds) {
+        await record(f.item, f.captureId);
+        if (!alive()) return;
       }
     },
   };
