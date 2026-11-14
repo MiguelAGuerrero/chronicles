@@ -475,6 +475,8 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  // Storefronts: the shops as data (a pack family from chronicles-data) and an off-by-default layer (SF1-SF18, the owner, Nov 14).
+  storefronts: { branch: 'claude/nice-hopper-nvpwap', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
