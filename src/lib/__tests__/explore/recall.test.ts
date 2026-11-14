@@ -2,7 +2,8 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderText } from '../../discovery/recall';
+import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderSpoken, reminderText } from '../../discovery/recall';
+import { pinKindsWords } from '../../pins';
 import type { Recall } from '../../discovery/types';
 import type { LngLat } from '../../types';
 
@@ -63,7 +64,7 @@ test('recall: two in reach show as one; quiet walk silences (R7, R8)', () => {
   const c = [capture('a'), capture('b', { lat: m(0, 30)[1] })];
   const both = dueRecalls({ here: m(0, 10), walkId: 'w1', now: NOW, quiet: false, recalls: [recall('a'), recall('b')], captures: c });
   assert.equal(both.length, 2);
-  assert.equal(reminderText(both.map((d) => d.capture)).title, '2 memories here');
+  assert.equal(reminderText(both.map((d) => d.capture)).title, 'Two memories here', 'in words since tend explore T29');
   assert.deepEqual(due({ recalls: [recall('a')], captures: c, quiet: true }), []);
 });
 
@@ -99,8 +100,31 @@ test('recall: any accepted fix of a batch can bring it back (audit 10)', () => {
 
 test('recall: two memories name their kinds (UI review)', () => {
   const t = reminderText([capture('a', { kind: 'photo', body: null }), capture('b')]);
-  assert.deepEqual(t, { title: '2 memories here', body: 'A photo and a note' });
-  assert.equal(reminderText([capture('a', { kind: 'voice', body: null }), capture('b', { kind: 'voice', body: null }), capture('c')]).body, '2 voice memos and a note');
+  assert.deepEqual(t, { title: 'Two memories here', body: 'A photo and a note' });
+  assert.equal(reminderText([capture('a', { kind: 'voice', body: null }), capture('b', { kind: 'voice', body: null }), capture('c')]).body, 'Two voice memos and a note');
+});
+
+test('tend explore T29: a reminder of several says its count and kinds in words, as the pins do', () => {
+  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: Date.UTC(2026, 9, 20, 15, min) });
+  // The kinds in the order taken, whatever order the flags came due in (the pins' order, pinKindsWords).
+  const three = [at('n', 'text', 9), at('p', 'photo', 5), at('v', 'voice', 1)];
+  assert.deepEqual(reminderText(three), { title: 'Three memories here', body: 'A voice memo, a photo and a note' });
+  // The words are the pins' own, from one table.
+  const pinOf = [...three].sort((a, b) => a.t - b.t);
+  assert.equal(reminderText(three).body, pinKindsWords({ captures: pinOf }));
+  // Two of one kind, said in words.
+  assert.deepEqual(reminderText([at('a', 'photo', 1), at('b', 'photo', 2)]), { title: 'Two memories here', body: 'Two photos' });
+  // Very many: never a numeral.
+  const many = Array.from({ length: 64 }, (_, i) => at(`m${i}`, i === 0 ? 'text' : 'photo', i));
+  const said = reminderText(many);
+  assert.deepEqual(said, { title: 'Many memories here', body: 'A note and many photos' });
+  assert.doesNotMatch(`${said.title} ${said.body}`, /\d/);
+  // The announcements say the reminder's own words; one memory keeps "A memory from here".
+  assert.equal(reminderSpoken(three), 'Three memories here');
+  assert.equal(reminderSpoken([at('a', 'photo', 1), at('b', 'text', 2)]), 'Two memories here');
+  assert.equal(reminderSpoken([at('a', 'text', 1)]), 'A memory from here');
+  // One memory's body keeps its kind's name and date ("Voice memo, Oct 20"), from the pins' table too.
+  assert.deepEqual(reminderText([at('a', 'voice', 1)]), { title: 'A memory from here', body: 'Voice memo, Oct 20' });
 });
 
 test('audit (moments 15): a moment made outside a walk does not come back on a walk started right after, at the spot', () => {

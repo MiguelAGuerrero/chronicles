@@ -9,7 +9,7 @@ import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
 import { stopWalk } from '../lib/session';
-import { reminderText } from '../lib/discovery/recall';
+import { reminderSpoken, reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { perfCount } from '../lib/perfCount';
@@ -103,7 +103,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     () =>
       onRecallFired((due) => {
         setReminder((r) => [...(r ?? []), ...due.filter((c) => !r?.some((x) => x.id === c.id))]);
-        AccessibilityInfo.announceForAccessibility(due.length > 1 ? `${due.length} memories here` : 'A memory from here');
+        AccessibilityInfo.announceForAccessibility(reminderSpoken(due));
       }),
     [],
   );

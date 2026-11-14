@@ -155,8 +155,13 @@ export interface WalkClock {
   pauses: PauseSpan[];
 }
 
+/** Moments in the order they were taken, by kind: a pin's, or a reminder's put in that order (tend explore T29). */
+interface KindsTaken {
+  captures: readonly { kind: CaptureKind }[];
+}
+
 /** Its kinds in the order first taken, each once. */
-function kindsInOrder(pin: CapturePin): CaptureKind[] {
+function kindsInOrder(pin: KindsTaken): CaptureKind[] {
   return [...new Set(pin.captures.map((c) => c.kind))];
 }
 
@@ -174,8 +179,12 @@ export function pinHeadKinds(pin: CapturePin): CaptureKind[] | null {
 const ONE: Record<CaptureKind, string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
 const MANY: Record<CaptureKind, string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
 
-/** A pin's moments by kind, in words, in the order first taken: "A photo and a note", "Two photos and a voice memo" (VISION.md, "Counts are words"). */
-export function pinKindsWords(pin: CapturePin): string {
+/**
+ * A pin's moments by kind, in words, in the order first taken: "A photo and a note", "Two photos and a voice memo"
+ * (VISION.md, "Counts are words"). The one table of the kinds' words: a reminder of several says its kinds with it
+ * too (tend explore T29), its moments put in the order taken first.
+ */
+export function pinKindsWords(pin: KindsTaken): string {
   const parts = kindsInOrder(pin).map((k) => {
     const n = pin.captures.filter((c) => c.kind === k).length;
     return n === 1 ? ONE[k] : `${numberWord(n)} ${MANY[k]}`;
@@ -247,7 +256,8 @@ export function pinWhen(pin: CapturePin, clocks: readonly WalkClock[] | undefine
   return `from ${lower(minutesInLine(from).replace(/ in$/, ''))} to ${lower(minutesInLine(to))}`;
 }
 
-const KIND_NAME: Record<CaptureKind, string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
+/** One moment's kind by name: "Photo", "Voice memo"; a pin's and a reminder's (tend explore T29). */
+export const KIND_NAME: Readonly<Record<CaptureKind, string>> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
 
 /**
  * What a screen reader hears of a pin's moments, before its stack, its bell and its "Open": one moment by its kind

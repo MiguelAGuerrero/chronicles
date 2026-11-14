@@ -4,6 +4,8 @@ import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import type { Recall, RecallFrequency } from './types';
 import { plainNote } from '../refs';
+import { KIND_NAME, pinKindsWords } from '../pins';
+import { numberWord } from '../resurface/lines';
 
 /** Remind me here's numbers (R2, R4, R5). */
 export const RECALL_RULES = {
@@ -92,11 +94,22 @@ export function newRecall(captureId: string, frequency: RecallFrequency, until: 
 export const editedRecall = (fresh: Recall, frequency: RecallFrequency, until: number | null): Recall => ({ ...fresh, frequency, until });
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const KIND_WORD: Record<Faced['kind'], string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
 
-/** The reminder's words, carrying the content (R4); two or more in reach are one (R7). */
+/** "Two memories here", "Many memories here": a count in words (VISION.md, "Counts are words"; tend explore T29). */
+function severalHere(n: number): string {
+  const w = numberWord(n);
+  return `${w.charAt(0).toUpperCase()}${w.slice(1)} memories here`;
+}
+
+/**
+ * The reminder's words, carrying the content (R4); two or more in reach are one (R7): "Two memories here", its body
+ * the pins' words for its kinds, in the order taken ("A voice memo and two photos", tend explore T29).
+ */
 export function reminderText(captures: Faced[]): { title: string; body: string } {
-  if (captures.length > 1) return { title: `${captures.length} memories here`, body: kindsOf(captures) };
+  if (captures.length > 1) {
+    const taken = [...captures].sort((a, b) => a.t - b.t || a.id.localeCompare(b.id));
+    return { title: severalHere(captures.length), body: pinKindsWords({ captures: taken }) };
+  }
   const c = captures[0];
   if (c.kind === 'text' && c.body) {
     const text = (plainNote(c.body, c.body_format) ?? '').trim();
@@ -104,19 +117,8 @@ export function reminderText(captures: Faced[]): { title: string; body: string }
   }
   if (c.caption) return { title: 'A memory from here', body: c.caption };
   const d = new Date(c.t);
-  return { title: 'A memory from here', body: `${KIND_WORD[c.kind]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` };
+  return { title: 'A memory from here', body: `${KIND_NAME[c.kind]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` };
 }
 
-const ONE: Record<Faced['kind'], string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
-const MANY: Record<Faced['kind'], string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
-
-/** "A photo and a note", "2 voice memos and a note". */
-function kindsOf(captures: Faced[]): string {
-  const order: Faced['kind'][] = ['photo', 'video', 'voice', 'text'];
-  const parts = order
-    .map((k) => [k, captures.filter((c) => c.kind === k).length] as const)
-    .filter(([, n]) => n > 0)
-    .map(([k, n]) => (n === 1 ? ONE[k] : `${n} ${MANY[k]}`));
-  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
+/** What the walk screen and the recording bar announce as reminders come: the reminder's own count, in words (tend explore T29). */
+export const reminderSpoken = (captures: Faced[]): string => (captures.length > 1 ? severalHere(captures.length) : 'A memory from here');

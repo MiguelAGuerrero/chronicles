@@ -10,7 +10,7 @@ import { theme } from './ui';
 /**
  * A flagged capture come back (R3, R4): its own words, a photo's thumbnail,
  * or "Voice memo, Oct 20". Open shows it in the viewer, where a memo or video
- * plays; two or more in reach are one card, "2 memories here" (R7).
+ * plays; two or more in reach are one card, "Two memories here" (R7, tend explore T29).
  */
 export function ReminderCard(props: { captures: Faced[]; onOpen: () => void; onDismiss: () => void }) {
   const text = reminderText(props.captures);

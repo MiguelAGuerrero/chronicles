@@ -191,6 +191,48 @@ async function checks(h) {
     check(viewers === 1, `it opens once, on the walk: the home beneath doesn't open it too (${viewers} viewers)`);
     await page.click('[data-testid=viewer-close]');
 
+    // tend explore T29 (decision 0164): a reminder of several says its count in words, and its kinds in the pins'
+    // words. Two more of the first walk's moments near here are flagged once, then the page is read again (the
+    // flags are kept in memory between checks) and the walker moves on a few steps, so both come due together.
+    const several = await page.evaluate(([noteKey, lon, lat]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const db = req.result;
+        const g = db.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => {
+          const note = g.result.find((m) => m.id === noteKey);
+          const metres = (m) => Math.hypot((m.lon - lon) * 111320 * Math.cos((lat * Math.PI) / 180), (m.lat - lat) * 111320);
+          const near = g.result.filter((m) => m.id !== noteKey && m.walk_id === note?.walk_id && m.lat != null && m.lon != null)
+            .sort((a, b) => metres(a) - metres(b)).slice(0, 2);
+          const tx = db.transaction('recall', 'readwrite');
+          for (const m of near) tx.objectStore('recall').put({ capture_id: m.id, frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+          tx.oncomplete = () => resolve(near.map((m) => ({ kind: m.pieces[0].kind, m: Math.round(metres(m)) })));
+        };
+      };
+    }), [noteId, pts[25][0], pts[25][1]]);
+    await page.goto(url);
+    await page.waitForSelector('[data-testid=recording-return], [data-testid=stop]', { timeout: 20000 });
+    if (await page.locator('[data-testid=recording-return]').count()) await page.click('[data-testid=recording-return]');
+    await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    for (let j = 1; j <= 6 && !(await page.locator('[data-testid=reminder]').count()); j++) {
+      await ctx.setGeolocation({ longitude: pts[25][0], latitude: pts[25][1] + j * 0.00005, accuracy: 6 });
+      await page.waitForTimeout(1000);
+    }
+    const severalUp = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
+    // The card's text, its clock and ✕ glyphs (the icon font's) at its ends.
+    const severalSaid = severalUp ? (await page.locator('[data-testid=reminder]').innerText()).replace(/\s+/g, ' ').trim() : '';
+    const severalName = severalUp ? await page.locator('[data-testid=reminder-open]').getAttribute('aria-label') : '';
+    check(several.length === 2 && severalUp && /(^|[^A-Za-z])Two memories here [A-Z]/.test(severalSaid) && /\b(photo|video|voice memo|note)s?\b/i.test(severalSaid) && !/\d/.test(severalSaid)
+      && /^Two memories here: [A-Z][a-z ,]+\. Open$/.test(severalName ?? ''),
+      `tend explore T29: a reminder of several says its count and kinds in words, the pins' words, on the card and to a screen reader (${JSON.stringify(several)}: "${severalSaid}", "${severalName}")`);
+    await shot(page, '15-reminder-several');
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page.waitForTimeout(400);
+    await shot(page, '15b-reminder-several-320');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(400);
+    if (severalUp) await page.click('[data-testid=reminder-dismiss]');
+
     // Rides (R5, R6, R11): a bus leg at 12 m/s, one fix a second, is drawn dashed and reads "On a ride",
     // never "Weak GPS" (the bug, Nov 1: a bus kept its first fix and showed Weak GPS); the card shows
     // walked and ridden distance apart.
