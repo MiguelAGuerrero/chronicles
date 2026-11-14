@@ -280,7 +280,7 @@ async function run(h) {
       const card = e && e.closest('[data-testid=card-kept]')?.parentElement;
       return { kept: e?.textContent ?? null, hint: !!card && [...card.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it'), lower: !!card && /tap a pin to open(?! it)/.test(card.textContent) };
     });
-    check(/^(A|An|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten) /.test(keptLine.kept ?? '') && /photo|video|voice memo|note/.test(keptLine.kept) && !/\d|·/.test(keptLine.kept) && keptLine.hint && !keptLine.lower,
+    check(/^(A|An|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)[ \u00a0]/.test(keptLine.kept ?? '') && /photo|video|voice memo|note/.test(keptLine.kept) && !/\d|·/.test(keptLine.kept) && keptLine.hint && !keptLine.lower,
       `tend replay T19: the walk's card says what it kept as one clause in words, the hint "Tap a pin to open it" on its own line (${JSON.stringify(keptLine)})`);
     // tend tabs 11 (decision 0172, O18): the card's More is named by the title the card shows, as the walk's row is.
     const cardMore = await pg.evaluate(() => {

@@ -58,5 +58,5 @@ export function formatDuration(ms: number): string {
  * 0170): "Two photos, a video, a voice memo and a note", leaving out kinds with none; empty when nothing was kept.
  */
 export function formatCaptures(c: { photos: number; videos?: number; voices: number; notes: number }): string {
-  return kindsClause([['photo', c.photos], ['video', c.videos ?? 0], ['voice', c.voices], ['text', c.notes]]);
+  return kindsClause([['photo', c.photos], ['video', c.videos ?? 0], ['voice', c.voices], ['text', c.notes]], { bind: true });
 }

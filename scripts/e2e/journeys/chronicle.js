@@ -351,8 +351,8 @@ async function checks(h) {
       });
       const meta = row.texts.find((t) => / · /.test(t)) ?? '';
       const kept = meta.split(' · ').slice(3).join(' · ');
-      check(/^(A|An|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten) .*(photo|video|voice memo|note)s?$/.test(kept) && !/\d/.test(kept) && /^More for .+/.test(row.more ?? '') && row.texts.includes(row.more.replace(/^More for /, '')) && row.right <= w,
-        `tend tabs 11: at ${w} px the walks row says what it kept in words and names its More by its title (${JSON.stringify({ meta, more: row.more })})`);
+      check(/^(a|an|one|two|three|four|five|six|seven|eight|nine|ten)[ \u00a0].*(photo|video|voice memo|note)s?$/.test(kept) && !/\d/.test(kept) && /^More for .+/.test(row.more ?? '') && row.texts.includes(row.more.replace(/^More for /, '')) && row.right <= w,
+        `tend tabs 11, tend tabs audit 23: at ${w} px the walks row says what it kept in words, lowercase after its dot, and names its More by its title (${JSON.stringify({ meta, more: row.more })})`);
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(300);

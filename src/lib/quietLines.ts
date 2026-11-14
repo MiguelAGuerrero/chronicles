@@ -15,9 +15,13 @@ export function newStreetsLine(names: string[]): string | null {
   return `${names.length} streets new to you`;
 }
 
-/** A walks list row's line: the date, distance and time, then what was kept. */
+/**
+ * A walks list row's line: the date, distance and time, then what was kept, its clause lowercase after its dot (the
+ * owner, Nov 14, "Lowercase after a dot"; tend tabs audit 23): a capital only where a clause starts a line.
+ */
 export function walkRowMeta(date: string, s: { distance_m: number; duration_ms: number; photos: number; videos?: number; voices: number; notes: number }): string {
-  return [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), formatCaptures(s)].filter(Boolean).join(' · ');
+  const kept = formatCaptures(s);
+  return [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), kept.charAt(0).toLowerCase() + kept.slice(1)].filter(Boolean).join(' · ');
 }
 
 /**

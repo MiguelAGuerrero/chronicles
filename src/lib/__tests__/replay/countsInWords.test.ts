@@ -24,9 +24,9 @@ const street = (id: string, name: string | null, lon0: number, lon1: number): St
 });
 
 test('tend replay T19: the walk card says what was kept as one clause in the pins\' words', () => {
-  assert.equal(formatCaptures({ photos: 2, videos: 1, voices: 1, notes: 1 }), 'Two photos, a video, a voice memo and a note');
-  assert.equal(formatCaptures({ photos: 1, voices: 0, notes: 3 }), 'A photo and three notes');
-  assert.equal(formatCaptures({ photos: 0, videos: 0, voices: 1, notes: 0 }), 'A voice memo');
+  assert.equal(formatCaptures({ photos: 2, videos: 1, voices: 1, notes: 1 }), 'Two photos, a\u00a0video, a\u00a0voice memo and a\u00a0note');
+  assert.equal(formatCaptures({ photos: 1, voices: 0, notes: 3 }), 'A\u00a0photo and three notes');
+  assert.equal(formatCaptures({ photos: 0, videos: 0, voices: 1, notes: 0 }), 'A\u00a0voice memo');
   assert.equal(formatCaptures({ photos: 0, voices: 0, notes: 0 }), '');
   // One table: the pins say a group the same way.
   assert.equal(kindsClause([['photo', 2], ['voice', 1]]), pinKindsWords({ captures: [{ kind: 'photo' }, { kind: 'voice' }, { kind: 'photo' }] }));
@@ -34,8 +34,8 @@ test('tend replay T19: the walk card says what was kept as one clause in the pin
 
 test('tend replay T19: the walks row takes the walk card\'s clause, no digit among what was kept', () => {
   const meta = walkRowMeta('Nov 2, 2026', { distance_m: 1234, duration_ms: 25 * 60_000, photos: 1, videos: 1, voices: 1, notes: 1 });
-  assert.equal(meta, 'Nov 2, 2026 · 1.2 km · 25 min · A photo, a video, a voice memo and a note');
-  assert.equal(walkRowSpoken('Plums', meta, null), 'Replay Plums. Nov 2, 2026, 1.2 km, 25 min, A photo, a video, a voice memo and a note');
+  assert.equal(meta, 'Nov 2, 2026 · 1.2 km · 25 min · a\u00a0photo, a\u00a0video, a\u00a0voice memo and a\u00a0note');
+  assert.equal(walkRowSpoken('Plums', meta, null), 'Replay Plums. Nov 2, 2026, 1.2 km, 25 min, a\u00a0photo, a\u00a0video, a\u00a0voice memo and a\u00a0note');
 });
 
 test('tend replay T19: the day card names one or two places its moments were at', () => {
