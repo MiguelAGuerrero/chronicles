@@ -1191,9 +1191,9 @@ async function run(h) {
   await toLine();
   await pg.waitForTimeout(700);
   const rec53 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=line-recording]'); return e ? e.getAttribute('aria-label') : null; });
-  check(rec53 === 'Walk recording', `chronicle-journal audit 53: writing on a walk, the bar keeps the recording's mark (${rec53})`);
+  check(rec53 === 'Walk recording', `chronicle-journal audit 53 (with JN47): writing on a walk, the composer keeps the recording's mark (${rec53})`);
   await shot(pg, 'journal-21-writing-on-a-walk');
-  await pg.evaluate(() => document.activeElement?.blur?.());
+  await done();
   await pg.waitForTimeout(900);
   await pg.click('[data-testid=recording-return]').catch(() => {});
   await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 }).catch(() => {});
