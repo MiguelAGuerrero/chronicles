@@ -550,6 +550,10 @@ async function checks(h) {
         check(seenStrip.walking390?.word === 'Pause' && seenStrip.walking390.said === 'Pause the walk' && seenStrip.paused390?.word === 'Resume' && seenStrip.paused390.said === 'Resume the walk'
           && Object.values(seenStrip).every((m) => fits(m) && m.barH === 69),
           `tend walk-screen 7: the strip's Pause says "Pause" under its icon, and "Resume" while paused, its spoken name unchanged; at 390 and 320 every word whole on one line, 44 or more, on screen, the strip 69 high (${JSON.stringify(seenStrip)})`);
+        // tend walk-screen audit 9 (the review's ux 1): Hold stood 44 high beside the 48 pt Pause, their tops and bottoms 2 px
+        // apart; on the walk's strip both are 48 and share a top and a bottom.
+        check(Object.values(seenStrip).every((m) => m && m.hold.h === 48 && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5),
+          `tend walk-screen audit 9: on the walk's strip Hold is 48 high, level with Pause at top and bottom, walking and paused, at 390 and 320 (${JSON.stringify(Object.values(seenStrip).map((m) => m && [m.btn.t, m.btn.b, m.hold.t, m.hold.b]))})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+ m$/').first().innerText();

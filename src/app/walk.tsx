@@ -1591,6 +1591,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               onTap={() => setToast('Hold to stop the walk')}
               busy={stopping}
               disabled={!walk || pausing}
+              style={styles.stopBtn}
             >
               <View style={styles.stopInner}>
                 <Icon name="stop" size={18} color={theme.ink} />
@@ -2024,6 +2025,8 @@ const styles = StyleSheet.create({
   // Resume is the one thing to do while paused.
   pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
   pauseText: { color: theme.ink, fontSize: 11, lineHeight: 14, fontWeight: '600' },
+  // As high as Pause beside it, so the two share a top and a bottom (tend walk-screen audit 9); the walk's strip only.
+  stopBtn: { minHeight: 48 },
   pauseTextOn: { color: '#ffffff' },
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
