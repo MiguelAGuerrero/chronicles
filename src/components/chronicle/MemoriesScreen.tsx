@@ -454,7 +454,7 @@ export function MemoriesScreen() {
       onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
       footPad={lineH + 16}
       notice={failedNotice}
-      loaded={ready}
+      loaded={state.status !== 'loading'}
       entry={entry}
       field={line.field}
       onWrite={() => lineRef.current?.write()}

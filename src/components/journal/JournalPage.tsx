@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type Comp
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
-import { anchorOf, blankHeight, peekMeasured, peekStart, stickyDay } from '../../lib/journal/rest';
+import { anchorOf, blankHeight, peekMeasured, peekStart, sheetOpens, stickyDay } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
 import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
@@ -13,8 +13,10 @@ export type JournalPageHandle = { toFoot: (animated?: boolean) => void };
 const NEAR_TOP = 240;
 /** How long the sheet's end is held while the empty page grows or comes back (the bars fold in about this long). */
 const SETTLE_MS = 450;
-/** The sheet is shown after this long at most, whether or not its rows have reported their heights. */
+/** The sheet is shown this long after the read answered at most, whether or not its rows have reported their heights. */
 const OPEN_WAIT_MS = 600;
+/** And this long after it mounted, whether or not the read has answered. */
+const OPEN_HARD_MS = 3000;
 /** A day's date before it has been measured. */
 const DATE_H = 66;
 
@@ -51,7 +53,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   focused?: boolean;
   /** Said under today's date when the page could not be read. */
   notice?: ReactNode;
-  /** The entries have been read: until they have, and their heights are in, the sheet is not drawn or taken to its end. */
+  /** The read of the entries has answered, well or not: until it has, and their heights are in, the sheet is not seen or taken to its end. */
   loaded?: boolean;
 }>(function JournalPage(props, ref) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -93,14 +95,21 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const blank = view > 0 ? blankHeight({ view, foot: props.footPad, sticky, peek }) : 0;
   // The sheet opens once, when what sizes the empty page is known (fix entry-jitter). Taken to its end before that,
   // the entry sat above its resting place and slid down as each height arrived, on a page seen for the first time.
-  // A row that never reports (a reused view on the web) cannot keep it hidden: `waited` opens it regardless.
-  const [waited, setWaited] = useState(false);
+  // The read must have answered (a slow one would show today's date alone); a row that never reports (a reused view on the web) is waited for `OPEN_WAIT_MS`, a read that never answers `OPEN_HARD_MS`.
+  const [slack, setSlack] = useState(false);
+  const [hard, setHard] = useState(false);
+  const answered = props.loaded !== false;
   useEffect(() => {
-    const t = setTimeout(() => setWaited(true), OPEN_WAIT_MS);
+    const t = setTimeout(() => setHard(true), OPEN_HARD_MS);
     return () => clearTimeout(t);
   }, []);
+  useEffect(() => {
+    if (!answered) return;
+    const t = setTimeout(() => setSlack(true), OPEN_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [answered]);
   const [open, setOpen] = useState(false);
-  if (!open && view > 0 && (waited || (props.loaded !== false && peekMeasured(props.rows, from, heights)))) setOpen(true);
+  if (!open && sheetOpens({ view, answered, measured: peekMeasured(props.rows, from, heights), slack, hard })) setOpen(true);
   // Callbacks read it from a ref; once open, the page is taken to its end the once.
   const armed = useRef(false);
   useEffect(() => {
