@@ -100,8 +100,10 @@ test('tend walk-screen 3: the web recorder follows the permission after a refusa
   // The recorder loads the app's db, which no Node test can: its wiring is read from its source.
   const src = readFileSync(join(__dirname, '../../recorder/index.web.ts'), 'utf8');
   const denied = src.slice(src.indexOf('err.PERMISSION_DENIED'), src.indexOf('{ enableHighAccuracy'));
-  assert.match(denied, /followPermission\(watchLocatePermission,/, 'a refusal follows the permission');
-  assert.match(denied, /recorder\.resume\(id\)/, 'and granted resumes the same walk');
+  // tend walk-screen audit 2-4: through the follower that resumes only the store's open, unpaused walk (its behaviour is
+  // run against session state in refusalFollower.test.ts).
+  assert.match(denied, /follower\.refused\(id\)/, 'a refusal is handed to the follower');
+  assert.match(src, /refusalFollower\(\{ watch: watchLocatePermission, walks: db, resume: \(id\) => recorder\.resume\(id\) \}\)/, 'which follows the permission and resumes the same walk');
   const stopBody = src.slice(src.indexOf('async stop()'), src.indexOf('async resume('));
   assert.match(stopBody, /unfollowPermission\(\)/, 'a stop (End, or Pause) stops following');
   const watchHead = src.slice(src.indexOf('function watch('), src.indexOf('return new Promise'));

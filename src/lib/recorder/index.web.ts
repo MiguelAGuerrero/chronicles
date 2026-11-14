@@ -4,7 +4,7 @@ import { startOffNotice } from '../locate/notice';
 import { watchLocatePermission } from '../locate/permission.web';
 import type { TracePoint } from '../types';
 import { emit, setStatus, subscribe, subscribeStatus } from './emitter';
-import { followPermission } from './followPermission';
+import { refusalFollower } from './followPermission';
 import { RecorderError, type Recorder } from './types';
 
 /**
@@ -24,12 +24,14 @@ let lastFixAt = 0;
 const WAITING_AFTER_MS = 10_000;
 let pending: Promise<void> | null = null;
 let wakeLock: { release(): Promise<void> } | null = null;
-/** Following the site's permission after a refusal, so the walk records again once it is given back (O22). */
-let unfollow: (() => void) | null = null;
+/**
+ * Following the site's permission after a refusal, so the walk records again once it is given back (O22): only for the
+ * walk the store holds open and not paused (tend walk-screen audit 2-4). `recorder` is read when it resumes.
+ */
+const follower = refusalFollower({ watch: watchLocatePermission, walks: db, resume: (id) => recorder.resume(id) });
 
 function unfollowPermission() {
-  unfollow?.();
-  unfollow = null;
+  follower.stop();
 }
 
 function record(p: TracePoint) {
@@ -115,11 +117,7 @@ function watch(id: string): Promise<void> {
         setStatus({ kind: 'error', message, tone });
         // Location given back, the walk records again by itself (decision 0172, O22): nothing is stored meanwhile, so
         // the off span reads in the trace as lost GPS does, a gap over a minute (never a pause).
-        unfollowPermission();
-        unfollow = followPermission(watchLocatePermission, () => {
-          unfollow = null;
-          recorder.resume(id).catch(() => {});
-        });
+        void follower.refused(id);
         settle(() => reject(new RecorderError(message, false, tone)));
       },
       { enableHighAccuracy: true, maximumAge: 0 },

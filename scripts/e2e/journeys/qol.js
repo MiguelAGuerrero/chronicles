@@ -1271,6 +1271,25 @@ async function run(h) {
       check(isQuiet(startSeen.banner) && startSeen.lines >= 1 && startSeen.cut === 0 && startSaid.length === 1 && startSaid[0].text === T26_WORDS
         && (await pg2.getByText(/Location permission was denied/).count()) === 0,
         `tend recording T26: Navigate at 390, Start refused says "${T26_WORDS}" as a quiet notice, not an alert in red, every line whole, and the live region says it (${JSON.stringify({ ...startSeen, said: startSaid })})`);
+      // tend walk-screen audit 2 (the review's auditor 1): a refused Start has no walk, so location given back after it
+      // records nothing: no position is stored, and no walk opens.
+      await c2.grantPermissions(['geolocation']);
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c2.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg2.waitForTimeout(1000);
+      }
+      const afterStart = await pg2.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['trace_point', 'walk'], 'readonly');
+          const f = tx.objectStore('trace_point').count();
+          const w = tx.objectStore('walk').getAll();
+          tx.oncomplete = () => resolve({ fixes: f.result, open: w.result.filter((x) => x.open).length });
+        };
+      }));
+      check(afterStart.fixes === 0 && afterStart.open === 0,
+        `tend walk-screen audit 2: after a refused Start, location given back stores no position and opens no walk (${JSON.stringify(afterStart)})`);
       await c2.close();
     }
 
