@@ -870,6 +870,8 @@ async function run(h) {
   });
   check(next34 === 'band-photo', `JN34: for a screen reader the row comes right after the field (${next34})`);
   await shot(pg, 'journal-34-row-at-rest');
+  check.todo(!!row34.photo && !!row34.voice && row34.voice.x - (row34.photo.x + row34.photo.w) >= 12,
+    `chronicle-journal ui 11: the camera's and the mic's targets have 12 pt between them, for a thumb on foot (${JSON.stringify({ photo: row34.photo, voice: row34.voice })})`);
   check(!row34.bar && (await pg.locator('[data-testid=open-line]').count()) === 0, 'JN35: at rest with the row in view no bar is drawn above the tab bar');
   // JN36: the keyboard takes the row to the bar; writing stopped, it is back and nothing above the line moved.
   const before36 = { field: await box(pg, input), last: await box(pg, `${entries} >> nth=-1`) };
