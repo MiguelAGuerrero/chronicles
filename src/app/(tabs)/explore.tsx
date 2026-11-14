@@ -250,7 +250,7 @@ export default function Explore() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), MOTION.toast);
+    const t = setTimeout(() => setToast(null), MOTION.exploreToast);
     return () => clearTimeout(t);
   }, [toast]);
 

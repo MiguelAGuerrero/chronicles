@@ -571,7 +571,7 @@ async function cardFooter(h) {
   }
 }
 
-// tend explore 12 (decision 0172, O7): a long press below zoom 10 says "Zoom in to look closer" for MOTION.toast (3 s), then
+// tend explore 12 (decision 0172, O7): a long press below zoom 10 says "Zoom in to look closer" for MOTION.exploreToast (3 s), then
 // the toast goes by itself; nothing else about it changed. At 390 and 320, pictured.
 async function toastDwell(h) {
   const { exploreUrl, check, freshPage, shot } = h;
@@ -597,7 +597,7 @@ async function toastDwell(h) {
       await shot(pg, `carousel-toast-${w}`);
       await pg.waitForTimeout(3300);
       const gone = await pg.getByText('Zoom in to look closer').count();
-      check(up === 1 && gone === 0, `tend explore 12: at ${w}, the toast shows, then goes by itself within its dwell, MOTION.toast (${JSON.stringify({ up, gone })})`);
+      check(up === 1 && gone === 0, `tend explore 12: at ${w}, the toast shows, then goes by itself within its dwell, MOTION.exploreToast (${JSON.stringify({ up, gone })})`);
     } finally {
       await c.close();
     }
