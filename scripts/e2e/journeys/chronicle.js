@@ -105,6 +105,22 @@ async function checks(h) {
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
+    // tend tabs 10 (decision 0172, O15): the sheet says the place's walks in words, as its star does, at 390 and 320 px.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        await shot(page, `09-home-place-${w}`);
+      }
+      const meta = await page.evaluate(() => {
+        const e = document.querySelector('[data-testid=place-meta]');
+        return { text: e?.textContent ?? null, right: e ? Math.round(e.getBoundingClientRect().right) : null };
+      });
+      check(/ · one walk · /.test(meta.text ?? '') && !/\d+ walks?\b/.test(meta.text) && meta.right <= w,
+        `tend tabs 10: at ${w} px the place sheet says its walks in words, as its star does (${JSON.stringify(meta)})`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
     // tend places audit 2: read once the selection's bounce has settled.
     await page.waitForSelector('[data-testid=enter-bounce]', { state: 'detached', timeout: 5000 }).catch(() => {});
     const chosen = await starLook();

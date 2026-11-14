@@ -50,6 +50,14 @@ const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const walksWord = (n: number) => `${numberWord(n)} ${n === 1 ? 'walk' : 'walks'}`;
 
 /**
+ * The place sheet's line under a selected star: its parents, its walks in words as the star says them, and the
+ * distance walked there, "Providence, Rhode Island · one walk · 175 m" (tend tabs 10, decision 0172).
+ */
+export function placeSheetLine(subtitle: string | null | undefined, walks: number, distance: string): string {
+  return [subtitle, walksWord(walks), distance].filter(Boolean).join(' · ');
+}
+
+/**
  * A walked place's star as a screen reader says it (tend places T15, decision 0154: the star draws no numeral): one
  * place by its name and its walks in words, then what a tap does, "Fox Point, two walks. Open" (tend places audit 5);
  * places merged at this zoom by how many, in words, "Three places, two walks. Zoom in", as a pin says its kinds

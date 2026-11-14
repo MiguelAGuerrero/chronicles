@@ -10,7 +10,7 @@ import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
-import { emptyPeek, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
+import { emptyPeek, placeSheetLine, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
@@ -290,8 +290,8 @@ export function HomeSheet(props: {
           ) : place ? (
             <View style={styles.headerText}>
               <Text testID="place-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{place.title}</Text>
-              <Text style={styles.meta} numberOfLines={2}>
-                {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
+              <Text testID="place-meta" style={styles.meta} numberOfLines={2}>
+                {placeSheetLine(place.subtitle, place.walks.length, formatDistance(place.metres))}
               </Text>
             </View>
           ) : noWalks && !expanded ? (
