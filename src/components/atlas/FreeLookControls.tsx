@@ -1,4 +1,5 @@
 // @layer view
+import { forwardRef, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { moveMapLabel, showHereLabel } from '../../lib/atlas/freeLook';
 import { Icon } from '../icons';
@@ -9,12 +10,13 @@ import { theme } from '../ui';
  * mark at that middle. The toggle is a button that behaves like a toggle (matrix 14, outside a list); its state is a fill and a
  * pressed state for a screen reader, never colour alone. The pill and the mark are there only while Move map is on.
  */
-export function MoveMapToggle(props: { on: boolean; onPress: () => void; bottom: number; right?: number }) {
+export const MoveMapToggle = forwardRef<ComponentRef<typeof Pressable>, { on: boolean; onPress: () => void; bottom: number; right?: number }>(function MoveMapToggle(props, ref) {
   const { width } = useWindowDimensions();
   const right = props.right ?? Math.max(12, (width - 640) / 2 + 12);
   const words = moveMapLabel(props.on);
   return (
     <Pressable
+      ref={ref}
       testID="atlas-move-map"
       accessibilityRole="button"
       accessibilityLabel={words.label}
@@ -27,7 +29,7 @@ export function MoveMapToggle(props: { on: boolean; onPress: () => void; bottom:
       <Icon name={props.on ? 'move' : 'move-outline'} size={22} color={props.on ? theme.surface : theme.ink} />
     </Pressable>
   );
-}
+});
 
 /** "Show areas here": low on the map, in the bottom-left stack above the Towns pill (`exploreSlots`). */
 export function ShowAreasPill(props: { onPress: () => void; bottom: number }) {

@@ -187,6 +187,8 @@ export default function Explore() {
   const mapRef = useRef<WalkMapHandle>(null);
   // Where the compass hands the focus once it leaves (tend map 6).
   const locateRef = useRef<ComponentRef<typeof Pressable>>(null);
+  // tend explore audit 15: with no edge Locate, the compass hands the focus to Move map, the column's next button.
+  const moveMapRef = useRef<ComponentRef<typeof Pressable>>(null);
   // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
   const [plan, setPlan] = useState<CategoryId | null>(null);
   // The map's credits are open (web), and the hint steps aside for them (tend map audit 1).
@@ -810,9 +812,9 @@ export default function Explore() {
       ) : null}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
       {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
-      {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={locateRef} />}
+      {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
-      {focused && !plan && <MoveMapToggle on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
+      {focused && !plan && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
       {focused && !plan && free && <CentreMark />}
       {focused && !plan && free && <ShowAreasPill onPress={showHere} bottom={slots.showBottom ?? 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}

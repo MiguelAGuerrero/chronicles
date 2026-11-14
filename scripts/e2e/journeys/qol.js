@@ -1393,6 +1393,8 @@ async function run(h) {
     for (const [screen, url] of [['Navigate', navUrl], ['Explore', exploreUrl]]) {
       for (const [w, hgt] of [[390, 844], [320, 700]]) {
         const { c: c4, pg: pg4 } = await freshPage(`qol-denied-${screen}-${w}`, { permissions: [] });
+        // tend explore audit 15: the map turned in code needs the e2e's measuring hooks.
+        if (screen === 'Explore') await c4.addInitScript(() => { window.__perf = {}; });
         await c4.route('https://tiles.openfreemap.org/**', (r) => {
           const u = r.request().url();
           if (/\.pbf$/.test(u) || u.endsWith('/planet')) return r.fallback();
@@ -1443,6 +1445,24 @@ async function run(h) {
           });
           check(card && card.text === BLOCKED_WORDS && card.color === 'rgb(89, 98, 115)' && card.glyphs === 0,
             `tend explore audit 9: Explore at ${w}, while location is blocked the card says where to turn it on, muted, with no crosshair (${JSON.stringify(card)})`);
+          // tend explore audit 15: with no edge Locate, the compass pressed from the keyboard hands the focus to a control on
+          // screen (Move map, the column's next button), never to the page.
+          await pg4.evaluate(() => window.__turn?.(90));
+          await pg4.waitForTimeout(500);
+          const compass = pg4.locator('[data-testid=compass]').filter({ visible: true });
+          let handed = null;
+          if (await compass.count()) {
+            await compass.first().focus();
+            await pg4.keyboard.press('Enter');
+            await pg4.waitForTimeout(1500);
+            handed = await pg4.evaluate(() => {
+              const a = document.activeElement;
+              const r = a?.getBoundingClientRect();
+              return { id: a?.getAttribute('data-testid') ?? a?.tagName ?? null, shown: !!r && r.width > 0 };
+            });
+          }
+          check(handed && handed.id === 'atlas-move-map' && handed.shown,
+            `tend explore audit 15: Explore at ${w}, with no edge Locate the compass hands the focus to Move map, on screen (${JSON.stringify(handed)})`);
           await c4.grantPermissions(['geolocation']);
           await pg4.waitForTimeout(1500);
           const allowed = await ways();
