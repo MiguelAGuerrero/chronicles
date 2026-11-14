@@ -357,7 +357,8 @@ const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S
 
 const RETIRED = {
   // The row under the line (decision 0175) was replaced by a toolbar at the foot the same day (decision 0176, the owner).
-  'chronicle-journal': ['JN34', 'JN35', 'JN36', 'JN37', 'JN38', 'JN39', 'JN40'],
+  // The composer (decision 0177) retired writing on the page: JN28-JN30, JN32, JN33, and the toolbar's pen (JN42).
+  'chronicle-journal': ['JN28', 'JN29', 'JN30', 'JN32', 'JN33', 'JN34', 'JN35', 'JN36', 'JN37', 'JN38', 'JN39', 'JN40', 'JN42'],
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
   // of Places worth the stop went with them.

@@ -941,6 +941,72 @@ async function run(h) {
   check(narrowRest.cut === false && oneRow(narrowRest) && narrowOpen.cut === false && oneRow(narrowOpen),
     `JN46: at 320 px "What’s on your mind?" is whole and the toolbar is one row, at rest and with an entry open (${JSON.stringify({ narrowRest, narrowOpen })})`);
 
+  // JN47-JN51 (decision 0177): an entry is written in the composer, a sheet over the journal with room to type.
+  const sheetState = () => pg.evaluate(() => {
+    const c = document.querySelector('[data-testid=composer]');
+    const r = (sel) => { const e = c?.querySelector(sel); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
+    const sheet = c?.querySelector('[data-testid=composer-sheet]')?.getBoundingClientRect();
+    return {
+      open: !!c, sheet: sheet ? { y: Math.round(sheet.y), h: Math.round(sheet.height) } : null, vh: window.innerHeight,
+      title: c ? (c.innerText.match(/New entry/) ? 'New entry' : null) : null, done: r('[data-testid=sheet-done]'),
+      focused: !!c && c.contains(document.activeElement) && document.activeElement?.getAttribute('data-testid') === 'line-input',
+      photo: r('[data-testid=sheet-photo]'), voice: r('[data-testid=sheet-voice]'), page: r('[data-testid=sheet-page]'),
+      status: c?.querySelector('[data-testid=sheet-status]')?.innerText.trim() ?? null,
+    };
+  });
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(1200);
+  const open47 = await sheetState();
+  await shot(pg, 'journal-47-composer');
+  check.todo(open47.open && !!open47.sheet && open47.sheet.h >= open47.vh * 0.75 && open47.title === 'New entry' && !!open47.done && open47.focused && !!open47.photo && !!open47.voice && !!open47.page,
+    `JN47: "What’s on your mind?" opens the composer, filling the room, with "New entry", Done, the caret in its field, the camera, the mic and Open as a page (${JSON.stringify(open47)})`);
+  // JN48: kept as typed; Done closes; the entry is at the end of today.
+  await pg.keyboard.type('Written in the composer.', { delay: 10 });
+  await pg.waitForTimeout(1500);
+  const typed48 = { status: (await sheetState()).status, kept: (await stored(pg)).moments.some((m) => m.pieces.some((p) => p.body === 'Written in the composer.')) };
+  await shot(pg, 'journal-48-composer-writing');
+  await pg.click('[data-testid=sheet-done]').catch(() => {});
+  await pg.waitForTimeout(1500);
+  const closed48 = { open: (await sheetState()).open, last: await pg.locator(entries).last().innerText().catch(() => '') };
+  // A tap outside keeps and closes too.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(1000);
+  await pg.keyboard.type('Kept by a tap outside.', { delay: 10 });
+  await pg.waitForTimeout(800);
+  await pg.mouse.click(195, 30);
+  await pg.waitForTimeout(1500);
+  const outside48 = { open: (await sheetState()).open, last: await pg.locator(entries).last().innerText().catch(() => '') };
+  check.todo(typed48.status === 'Kept as you write' && typed48.kept && !closed48.open && /Written in the composer\./.test(closed48.last) && !outside48.open && /Kept by a tap outside\./.test(outside48.last),
+    `JN48: the composer keeps words as they are typed and says so; Done or a tap outside closes it, the entry at the end of today (${JSON.stringify({ typed48, closed48, outside48 })})`);
+  // JN49: the page is for reading; a tap on the empty page opens the composer, never a caret on the page.
+  const field49 = await pg.locator('[data-testid=journal-page] [data-testid=line-input]').count();
+  await pg.click('[data-testid=line-write]', { position: { x: 40, y: 60 }, force: true }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const tap49 = await sheetState();
+  check.todo(field49 === 0 && tap49.open && tap49.focused, `JN49: the page has no field; a tap on the empty page opens the composer (${JSON.stringify({ field49, open: tap49.open, focused: tap49.focused })})`);
+  // JN50: a voice note from the composer records there, Stop in the mic's place, the camera still working.
+  const mic50 = tap49.voice;
+  await pg.click('[data-testid=sheet-voice]').catch(() => {});
+  await pg.waitForSelector('[data-testid=sheet-voice-save]', { timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const rec50 = { stop: await box(pg, '[data-testid=composer] [data-testid=sheet-voice-save]'), camOff: await pg.locator('[data-testid=sheet-photo]').getAttribute('aria-disabled').catch(() => 'missing') };
+  await shot(pg, 'journal-50-composer-recording');
+  check.todo(!!mic50 && !!rec50.stop && rec50.stop.x === mic50.x && rec50.camOff !== 'true', `JN50: a voice note records in the composer, Stop where the mic was, the camera still working (${JSON.stringify({ mic50, rec50 })})`);
+  await pg.click('[data-testid=composer] [data-testid=band-voice-discard]').catch(() => {});
+  await pg.waitForTimeout(1200);
+  // JN51: Open as a page carries the words to the note's page; closing it returns to the journal.
+  await pg.keyboard.type('Long enough for a page.', { delay: 10 });
+  await pg.waitForTimeout(1000);
+  await pg.click('[data-testid=sheet-page]').catch(() => {});
+  const page51 = await there('[data-testid=note-page] [data-testid=note-input]', 8000);
+  await pg.waitForTimeout(800);
+  const carried51 = (await pg.locator('[data-testid=note-page] [data-testid=note-input]').innerText().catch(() => '')).trim();
+  await pg.click('[data-testid=note-done]').catch(() => {});
+  await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1200);
+  const back51 = { composer: (await sheetState()).open, journal: await shown('[data-testid=journal-page]') };
+  check.todo(page51 && carried51 === 'Long enough for a page.' && !back51.composer && back51.journal, `JN51: Open as a page carries the words to the note's page, and closing it returns to the journal (${JSON.stringify({ page51, carried51, back51 })})`);
+
   // JN26, JN27: an entry the page wrote is drawn in its own shape, natively, and a long one is cut with a line that says so.
   const pageEntry = pg.locator(entries).filter({ hasText: 'Smelled it two blocks off.' });
   await pageEntry.scrollIntoViewIfNeeded().catch(() => {});

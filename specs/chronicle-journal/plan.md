@@ -245,3 +245,20 @@ T8 (a toolbar with the tab bar) is departed from by the owner's call (0176), as 
 
 ### Native paths not run on a device
 The toolbar over the tab bar on an iPhone with a home indicator; the keyboard taking it up from the field's tap.
+
+## The composer (JN47-JN51, Nov 14, decision 0177)
+
+Approved from a mock-up of the real app ("Build it"), with: the sheet to the keyboard, keep-and-close on a tap outside
+or Back, Open as a page in its tools.
+
+- `src/components/journal/OpenLine.tsx`: `composing` state; the field is drawn only in the composer (`composer`, a
+  transparent `components/Modal` sliding up, filling the room above the keyboard): "New entry" and Done (`sheet-done`)
+  at its top, the status (`sheet-status`), the field, and `sheet-photo`, `sheet-voice` (`sheet-voice-save` while it
+  records, with the timer and Discard), `sheet-page` at its foot. `bar-compose` and the page's `write()` open it; Done,
+  the scrim and `onRequestClose` run `done()` and close. The toolbar loses the pen. In a thread the field stays in the
+  bar as before.
+- `src/components/journal/JournalPage.tsx`: no field on the page (`field` is null there).
+- `scripts/e2e/journeys/journal.js`: JN47-JN51; every step that typed on the page (`type()`, `toLine`) goes through the
+  composer; the checks of retired criteria (JN28-JN30, JN32, JN33, JN42 and the audits that measured the field on the
+  page: 40, 43, 45) are removed.
+- Native, unverified: the sheet over the keyboard, Android Back closing it.
