@@ -477,6 +477,7 @@ export function MemoriesScreen() {
           walks={closedWalks(state.walks)}
           context={state.context}
           now={now}
+          backTo={lensFromList ? 'reactions' : 'journal'}
           onBack={() => {
             setLens(null);
             setLensViews(null);

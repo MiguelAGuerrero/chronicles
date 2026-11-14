@@ -103,3 +103,11 @@ Nine pictures against the plan's goal-to-control lines. Six findings:
 - U5 (the circled minus of Neutral reads as "remove"): defer; Ionicons has no neutral face (`reactions/core`).
 - U6 (Back from a lens opened from the viewer returns to the journal, not the moment): the owner's (RL3); in
   `docs/STATUS.md`.
+
+### The deploy's live check (decision 0167)
+
+Done on the live build at iPhone size (`a892a8f`, Pages run 278): a note written in the composer, Happy and Idea
+chosen there (the sign said "Reaction, Happy, Idea" and stayed the face with a plus), "Idea" under the entry opened
+Ideas, Back returned to the journal, and "Happy" in the viewer closed it and opened Happy moments. One defect: the
+lens's Back said "Reactions" when it went to the journal. Fixed forward: `reaction-links live 1` (Back says "Journal",
+spoken "Back to the journal", from an entry or the viewer; "Reactions" from the list).
