@@ -195,8 +195,8 @@ paths right.
 ## 7. Docs as you go
 
 - A new rule or trap: the matching `.claude/rules/<area>.md`. A slice with its own decision record and its own
-  code folder gets its own `.claude/rules/<topic>.md` instead, `paths:` narrowed to that folder and a line in
-  AGENTS.md's "Rule areas", rather than appending to its area's file. A rule file past the warning size
+  code folder gets its own `.claude/rules/<topic>.md` instead, `paths:` narrowed to that folder, rather than
+  appending to its area's file. A rule file past the warning size
   (`check:docs` warns at 20,000 characters) is split by topic before more is added (decision 0173).
 - An owner's call made during the slice: `docs/decisions/` (date, the call, why).
 - What was left out: `docs/DEFERRED.md` (`npm run records -- deferred item add

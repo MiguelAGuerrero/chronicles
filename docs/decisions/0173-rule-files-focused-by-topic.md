@@ -16,13 +16,19 @@ The owner, in person on Nov 14:
 - **The split.** The file becomes five, each with `paths:` narrowed to its code and every line moved word for word:
   `presence.md` (what a place is, its readers, the kinds and community parks), `explore-marks.md` (places of
   interest, marks, checklists, finds, Remind me here), `explore-atlas.md` (the Explore tab), `explore-towns.md`
-  (towns and neighborhoods on the atlas) and `explore-places-archive.md` (the places archive). AGENTS.md's rule
-  areas name them `explore-*` and `presence`.
+  (towns and neighborhoods on the atlas) and `explore-places-archive.md` (the places archive).
+- **The three other files past the warning are split the same way** (the owner's second answer, Nov 14):
+  `map.md` into `map.md`, `map-reactivity.md` and `map-staples.md`; `captures-and-media.md` into
+  `captures-and-media.md`, `media-editing.md`, `note-pages.md` and `memo-transcripts.md`; `journal.md` into
+  `journal.md`, `journal-rest.md` and `journal-note-types.md`.
+- **AGENTS.md points at the folder** (the owner's choice, Nov 14): its "Rule areas" list is replaced by one line,
+  "Each area's rules are in `.claude/rules/<area>.md` and load by themselves when you read or edit that area's files;
+  `ls .claude/rules/` lists them." A new rule file needs no line in AGENTS.md, and the list can no longer go stale.
 - **A warning.** `scripts/check-docs.js` warns, without failing, for a rule file past `ruleWarnChars` (20,000),
   naming the file and its size; `ruleChars` (40,000) stays the failure.
 - **`/slice`:** a slice with its own decision record and its own code folder gets its own `.claude/rules/<topic>.md`,
-  `paths:` narrowed to that folder and a line in AGENTS.md's rule areas, rather than appending to its area's file;
-  a rule file past the warning size is split by topic before more is added.
+  `paths:` narrowed to that folder, rather than appending to its area's file; a rule file past the warning size is
+  split by topic before more is added.
 - **`/docs-gc`:** lists rule files past the warning size and splits them, or in a loop run files a `T [owner]` entry.
 - **`/tend`:** a rule file past the warning size is never a `[loop]` item (the loop only adds to rule files, 0135);
   it is a `T [owner]` entry, so it is asked rather than left in the ledger.
@@ -30,6 +36,6 @@ The owner, in person on Nov 14:
   question at the next report, not merely listed.
 
 ## Consequences
-- After the split no rule file it made is over 20,000 characters; `captures-and-media.md`, `journal.md` and `map.md`
-  are, and the warning names them.
-- AGENTS.md is within a few bytes of its 12 KB budget, so a new rule area's line there needs room made first.
+- No rule file is over 20,000 characters after the splits, so `check:docs` prints no warning.
+- Records that name a rule file by a line it held (in `docs/STATUS.md`) may now find that line in one of the new
+  files; the paths they name still exist.
