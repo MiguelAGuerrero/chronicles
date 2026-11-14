@@ -15,6 +15,7 @@ import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES, walkViaLine } from '../../lib/atlas/atlas';
+import { STOREFRONTS_WHAT } from '../../lib/layers/registry';
 import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
 import { hideTabs } from '../../lib/tabsHidden';
@@ -257,6 +258,8 @@ export function AtlasCard(props: {
           {props.storefronts.length > 0 && (
             <View style={styles.sec}>
               <Text style={styles.secTitle} accessibilityRole="header">Storefronts</Text>
+              {/* storefronts ui 2: what counts, in the layer tip's own words, so "Shops" above and this list never read as one thing. */}
+              <Text style={styles.muted} testID="atlas-storefronts-what">{STOREFRONTS_WHAT}</Text>
               <View testID="atlas-storefronts">
                 {props.storefronts.map((b) => {
                   const at = b.at;

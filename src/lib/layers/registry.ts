@@ -10,6 +10,9 @@ import { bandWhy } from '../walk/bandWords';
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
 export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line';
 
+/** SF1, storefronts ui 2: what counts as a storefront, one sentence: the layer's tip and the line under the card's Storefronts heading. */
+export const STOREFRONTS_WHAT = 'Streets lined with shops, food, drink, services and offices you walk into.';
+
 export interface LegendRow {
   key: string;
   /** In words, never a number (ML6). */
@@ -49,7 +52,7 @@ export const LAYERS: readonly LayerDef[] = [
     name: 'Storefronts',
     icon: 'storefront-outline',
     defaultOn: false,
-    legend: [{ key: 'places', text: 'Storefronts', swatch: 'hotspot', tip: 'Streets lined with shops, food, drink, services and offices you walk into.' }],
+    legend: [{ key: 'places', text: 'Storefronts', swatch: 'hotspot', tip: STOREFRONTS_WHAT }],
   },
   {
     id: 'borders',

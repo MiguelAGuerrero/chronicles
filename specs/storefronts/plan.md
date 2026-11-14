@@ -46,7 +46,7 @@ No new truth, no schema change. Cache: landing rows (`LANDING_VERSION` holds `PR
 ## Screens, goals and controls
 
 - **Layers panel** (Explore, the walk, Navigate): goal "see where the shops are", occasional, before or while walking; the control is the existing layer switch, now worded Storefronts (matrix row "toggle an overlay": a switch row in a sheet). Where the owner looks first: the map's layers button; they see "Storefronts" with the storefront icon. Nothing quieter than before.
-- **Area card**: goal "where are the shops in this area, and walk there", occasional; the rows' Walk to (matrix "act on a list item": a trailing text button). Where they look: the card, under the kinds; one "Storefronts" heading. Default taken: one section instead of two.
+- **Area card**: goal "where are the shops in this area, and walk there", occasional; the rows' Walk to: no matrix row of its own (the nearest, 11, is navigating to a related item); it keeps the card's existing row pattern (the complexes' rows, CX4), a trailing text button. Where they look: the card, under the kinds; one "Storefronts" heading. Default taken: one section instead of two.
 - **Walk settings, Scenic routes**: goal "lean my route along the shops"; the switch row, now "Storefronts". Default taken: the label changes from "Streets with life".
 
 ## Deferred

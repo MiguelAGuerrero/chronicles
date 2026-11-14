@@ -33,7 +33,7 @@ test('SF1: the Layers panel lists Storefronts, with the storefront icon and a ti
 
 test('SF7: the walk\'s Explore help line says storefronts', () => {
   const walk = readFileSync(join(ROOT, 'src/app/walk.tsx'), 'utf8');
-  assert.ok(walk.includes('with storefronts and reminders'));
+  assert.ok(walk.includes('storefront street you’re on'), 'the line says storefronts (storefronts ui 1 says what Explore does with them)');
 });
 
 /** A string literal's text, from quotes or backticks on one line. */
@@ -98,13 +98,13 @@ test('SF14: decisions 0080 and 0127 and the shipped specs that pin the old words
   }
 });
 
-test('storefronts ui 1: the walk\'s Explore line says what Explore does with storefronts: a chip names the street you\'re on', { todo: 'test first' }, () => {
+test('storefronts ui 1: the walk\'s Explore line says what Explore does with storefronts: a chip names the street you\'re on', () => {
   const walk = readFileSync(join(ROOT, 'src/app/walk.tsx'), 'utf8');
   assert.ok(walk.includes('a chip names the storefront street you’re on'));
 });
 
-test('storefronts ui 2: the card says what counts under its Storefronts heading, in the layer tip\'s own words', { todo: 'test first' }, async () => {
-  const reg = (await import('../../layers/registry')) as unknown as { STOREFRONTS_WHAT?: string };
+test('storefronts ui 2: the card says what counts under its Storefronts heading, in the layer tip\'s own words', async () => {
+  const reg = await import('../../layers/registry');
   assert.ok(reg.STOREFRONTS_WHAT, 'one sentence, shared');
   assert.equal(LAYERS.find((x) => x.id === 'storefronts')?.legend[0].tip, reg.STOREFRONTS_WHAT);
   assert.ok(readFileSync(join(ROOT, 'src/components/atlas/AtlasCard.tsx'), 'utf8').includes('{STOREFRONTS_WHAT}'), 'the card shows it under the heading');

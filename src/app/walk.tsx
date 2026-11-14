@@ -1608,7 +1608,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <Text style={styles.optionLabel}>Explore</Text>
                 <Text style={styles.markSub}>
                   {exploring
-                    ? 'Places to find show as “?” when they’re close, with storefronts and reminders.'
+                    ? 'Places to find show as “?” when they’re close, a chip names the storefront street you’re on, and reminders are on.'
                     : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
                 </Text>
               </View>

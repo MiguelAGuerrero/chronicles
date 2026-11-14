@@ -35,7 +35,7 @@ The map layer, the area card, What's good here?, the walk's help line and the ro
 4. **SF4** Walk to's line reads "Starts you on {street}", with no superlative.
 5. **SF5** What's good here? says "Where storefronts gather: {street or pocket}. A best guess from the map.", never "Busiest area".
 6. **SF6** A pocket of storefronts with no street and no neighborhood near is named "A pocket of storefronts", never "A busy pocket".
-7. **SF7** The walk's Explore help line says "with storefronts and reminders"; a tile's spoken line says "Storefronts along {street}."; a whole town's marks line says where its storefronts gather is listed apart.
+7. **SF7** The walk's Explore help line says storefronts ("a chip names the storefront street you’re on", storefronts ui 1); a tile's spoken line says "Storefronts along {street}."; a whole town's marks line says where its storefronts gather is listed apart.
 8. **SF8** The route leaning is "Storefronts" ("Along streets of shops and cafés, the high street"), a route leaning on it is titled "Along storefronts", and the streets it names are in the order you pass them, never by how many storefronts they have.
 9. **SF9** No line or label of this concept says busy, busiest or most, and none counts storefronts; walkability's "Streets far apart and busy" (traffic) is unchanged.
 10. **SF10** Presence says which classes are storefronts; only a storefront weighs toward the layer's density, What's good here?, a town's pockets and the route leaning. Parks, reserves, green amenities, open space, monuments, memorials, public art, viewpoints, curiosities, listed structures and cemeteries weigh nothing; every other class weighs what it did.
@@ -46,4 +46,10 @@ The map layer, the area card, What's good here?, the walk's help line and the ro
 
 ## Record
 
-Built Nov 14 (see `docs/STATUS.md`).
+Built Nov 14, test-first by history (14 of 14, `check:test-first`), on `claude/wonderful-mendel-jfw77q`; not merged or deployed; not audited (decision 0074).
+
+- **Passed:** SF1-SF14 (unit tests in `layers/`, `presence/`, `navigation/`, `explore/`, `landing/`); typecheck, lint, `npm test`, `check:docs`, `check:vision`, `check:records`. E2E: `layers`, `switches`, `dense`, `carousel`, `walk` pass; `atlas` passes but for AT9, a recorded flake on main (`scripts/e2e/flaky.json`, 2 of 3 there); `scenic` passes but for "fix preview-clutter audit 1", which fails 3 of 3 on main (83d509eb, `e2e:baseline`), and stops the journey there on main too, so its later checks (SR1 all off, SR10) did not run. Reached and not run: the 20 other journeys `check:affected` names, which hold no check on the change (`docs/TESTING.md`, "Choosing the journeys").
+- **Steward:** S1, S2, S4 accepted into SF8, SF2, SF1; S3 rejected and filed for the owner ("What's here?").
+- **Cold find** (decision 0167): the layer found (medium-high), the card's list found late (medium), the walk's Explore line not understood.
+- **UI review** (decision 0145): `storefronts ui 1` [high] accepted, the Explore line says what Explore does (a chip names the storefront street you're on); `storefronts ui 2` [medium] accepted, the card says what counts under its heading, the layer tip's own words (`STOREFRONTS_WHAT`); `storefronts ui 3` [medium] deferred, Walk to is the card's existing row pattern (the complexes' too), a card-wide restyle; `storefronts ui 4` [low] rejected, the dash is an empty View a screen reader skips; `storefronts ui 5` [medium] deferred, pictures of a list of several rows and of the leaning's row (nearest first is held by SF3's test; scenic's leaning step waits on main's failing check).
+- **Native:** nothing native beyond the renamed map layer ids and props in `WalkMap.native.tsx`, never run on a device (`docs/NATIVE_UNVERIFIED.md`).
