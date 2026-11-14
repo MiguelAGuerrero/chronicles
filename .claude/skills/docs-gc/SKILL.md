@@ -31,6 +31,18 @@ path the docs name exists (short names like `lib/quietLines` included). CI and
 the Stop hook run it too; each failure says how to fix it. Fix the reference,
 not the check.
 
+## 2a. Rule files past the warning size (decision 0173)
+
+```bash
+npm run check:docs 2>&1 | grep 'warning:'
+```
+
+Each line names a rule file past 20,000 characters. In a session that is not
+the loop, split it by topic (one file per slice or sub-topic, `paths:` narrowed
+to its code, every line moved word for word, AGENTS.md's "Rule areas" updated).
+In a loop run, which only adds to rule files (0135), file a `T [owner]` inbox
+entry to split it instead (`/tend` section 5).
+
 ## 2b. The vision (decision 0094)
 
 ```bash

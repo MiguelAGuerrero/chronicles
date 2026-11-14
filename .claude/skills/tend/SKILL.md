@@ -169,6 +169,10 @@ entry per finding, written so a yes or no is enough:
 - `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
 - An addition too large for one commit is not a `T` entry: shape it as a `G`
   entry with criteria (section 9's form), so a yes has something to hold it to.
+- A rule file past the warning size (`check:docs` warns at 20,000 characters) is
+  never a `[loop]` item: the loop only adds to rule files (0135), so it cannot split
+  one. File it as a `T [owner]` entry asking to split it by topic, so it is asked,
+  not left in the ledger (decision 0173).
 - Findings that are real but not worth the owner's time now go to the area's
   section of `docs/DEFERRED.md`, tagged: `npm run records -- deferred item add
   "<section>" --file <item>` (`--after <match>` beside its kin; `--new` for a
@@ -181,7 +185,7 @@ Give every untagged bullet in `docs/DEFERRED.md` (or the named section's) one
 tag at its start, by the table in section 1, keeping its words
 (`npm run records -- deferred item tag <match> <tag>`):
 
-- `[loop]`: the loop may ship it;
+- `[loop]`: the loop may ship it (never a rule file's split: section 5);
 - `[owner]`: an addition, a product question, or an owner's call already
   named as one;
 - `[arch]`: needs an architectural decision;

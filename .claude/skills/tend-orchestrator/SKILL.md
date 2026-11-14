@@ -175,7 +175,9 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
    commit hashes from `origin/main`, not the run's report (a rebase or amend renames them).
 2. Update the notes.
 3. Tell the owner in a few lines: what landed and its Pages run, what you answered (as the proxy) and
-   why, what needs them, with the one action named.
+   why, what needs them, with the one action named. An item that blocks the loop and waits only on
+   the owner (a rule file to split, a rule line to reword) is put to them as a question with
+   AskUserQuestion at this report, not merely listed (decision 0173).
 4. Choose the next run (section 2).
 
 ## 8. When a run stops early
