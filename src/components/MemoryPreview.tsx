@@ -36,47 +36,64 @@ export function MemoryPreview(props: {
   const line = previewLine(first);
   return (
     <LiftIn testID="memory-preview" style={styles.card}>
-      <Pressable
-        testID="memory-open"
-        accessibilityRole="button"
-        accessibilityLabel={previewSpoken({ date, line, stack: hasMore(first) ? STACK_SPOKEN : null, more })}
-        onPress={props.onOpen}
-        style={styles.body}
-      >
-        <View style={styles.thumb}>
-          {uri && broken !== uri ? (
-            <Image
-              source={{ uri }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="cover"
-              onError={() => (ref === row.thumb_path && ref !== row.file_path && row.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
-            />
-          ) : (
-            <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
-          )}
-          {row.kind === 'video' && uri && broken !== uri ? <VideoMark size={10} style={styles.mark} /> : null}
-        </View>
-        <View style={styles.text}>
-          <Text style={styles.line} numberOfLines={2}>{line}</Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {[date, props.walkLine].filter(Boolean).join(' · ')}
-          </Text>
-          {more > 0 && <Text testID="memory-more" style={styles.meta}>{moreHere(more)}</Text>}
-        </View>
-      </Pressable>
-      <Pressable testID="memory-close" accessibilityRole="button" accessibilityLabel="Close the memory" onPress={props.onClose} style={styles.close} hitSlop={8}>
-        <Icon name="close" size={22} color={theme.ink} />
-      </Pressable>
+      <View style={styles.top}>
+        <Pressable
+          testID="memory-open"
+          accessibilityRole="button"
+          accessibilityLabel={previewSpoken({ date, line, stack: hasMore(first) ? STACK_SPOKEN : null, more })}
+          onPress={props.onOpen}
+          style={styles.body}
+        >
+          <View style={styles.thumb}>
+            {uri && broken !== uri ? (
+              <Image
+                source={{ uri }}
+                style={StyleSheet.absoluteFill}
+                resizeMode="cover"
+                onError={() => (ref === row.thumb_path && ref !== row.file_path && row.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
+              />
+            ) : (
+              <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
+            )}
+            {row.kind === 'video' && uri && broken !== uri ? <VideoMark size={10} style={styles.mark} /> : null}
+          </View>
+          <View style={styles.text}>
+            <Text style={styles.line} numberOfLines={2}>{line}</Text>
+            <Text style={styles.meta} numberOfLines={1}>
+              {[date, props.walkLine].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable testID="memory-close" accessibilityRole="button" accessibilityLabel="Close the memory" onPress={props.onClose} style={styles.close} hitSlop={8}>
+          <Icon name="close" size={22} color={theme.ink} />
+        </Pressable>
+      </View>
+      {/* The rest of the group, across the card's whole width so "and one more here" holds one line at 320 px (tend
+          memories audit 3). A tap opens, as the card does; a screen reader has it in the card's name already. */}
+      {more > 0 && (
+        <Pressable
+          onPress={props.onOpen}
+          focusable={false}
+          aria-hidden
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={styles.moreRow}
+        >
+          <Text testID="memory-more" style={styles.meta} numberOfLines={1}>{moreHere(more)}</Text>
+        </Pressable>
+      )}
     </LiftIn>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 6,
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 4,
     width: '100%', maxWidth: 520,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  moreRow: { paddingLeft: 2 },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
   mark: { position: 'absolute', right: 3, bottom: 3 },
   thumb: { width: 56, height: 56, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },

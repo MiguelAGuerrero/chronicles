@@ -182,8 +182,16 @@ async function checks(h) {
         const more = await page.evaluate(() => {
           const e = document.querySelector('[data-testid=memory-more]');
           const r = e?.getBoundingClientRect();
-          return { text: e?.textContent ?? null, name: document.querySelector('[data-testid=memory-open]')?.getAttribute('aria-label') ?? null, whole: !!e && e.scrollWidth <= e.clientWidth + 1 && r.right <= window.innerWidth };
+          // One line: a wrapped line is "whole" by its widths too (tend memories audit 3).
+          let lines = 0;
+          if (e) {
+            const range = document.createRange();
+            range.selectNodeContents(e);
+            lines = new Set([...range.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size;
+          }
+          return { text: e?.textContent ?? null, lines, name: document.querySelector('[data-testid=memory-open]')?.getAttribute('aria-label') ?? null, whole: !!e && e.scrollWidth <= e.clientWidth + 1 && r.right <= window.innerWidth };
         });
+        check(more.lines === 1, `tend memories audit 3: at ${w} px "${more.text}" holds one line (${more.lines} lines)`);
         check(/^and [a-z-]+ more here$/.test(more.text ?? '') && !/\d/.test(more.text) && more.name?.includes(`, ${more.text}. Open`) && more.whole,
           `tend memories T30: at ${w} px a memory preview of ${n} says the rest in words, shown and to a screen reader (${JSON.stringify(more)})`);
         await shot(page, `15c-memory-preview-several-${w}`);
