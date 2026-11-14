@@ -9,7 +9,7 @@ import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
 import { findYou, type PermissionSeen } from '../../lib/atlas/findYou';
-import { cancelLook, endLook, IDLE, isLive, startLook, type Look } from '../../lib/atlas/look';
+import { cancelLook, endLook, IDLE, isLive, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
@@ -480,19 +480,13 @@ export default function Explore() {
     const stopped = () => !isLive(look.current, started.token);
     setLooking(true);
     try {
-      const r = await readArea(at, stopped);
-      if (stopped()) return;
-      if (!r.ok) {
-        if (r.reason === 'failed') setNotice({ message: 'Couldn’t read the map here', tone: 'error' });
-        return;
+      // tend explore 13: stopped is asked after each step, the area's write included.
+      const end = await runLook({ read: () => readArea(at, stopped), tileBuild: () => db.getMeta('tile_build'), remember: rememberArea }, stopped);
+      if (end.kind === 'failed') setNotice({ message: 'Couldn’t read the map here', tone: 'error' });
+      else if (end.kind === 'line') {
+        setNotice({ message: end.message });
+        AccessibilityInfo.announceForAccessibility(end.message);
       }
-      const tile = await db.getMeta('tile_build').catch(() => null);
-      if (stopped()) return;
-      await rememberArea(r.centre, r.analysis, tile ?? 'unknown', r.overture);
-      const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
-      const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
-      setNotice({ message });
-      AccessibilityInfo.announceForAccessibility(message);
     } finally {
       if (!stopped()) {
         look.current = endLook(look.current, started.token);
