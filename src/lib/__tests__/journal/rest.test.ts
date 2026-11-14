@@ -110,3 +110,24 @@ test('fix entry-jitter 2 1: the empty page the platform lays out in the rest box
     }
   }
 });
+
+const SNAP = { web: true, armed: true, pinned: true, writing: false, moving: false, sliding: false };
+
+test('fix entry-jitter 2 audit 1: a pinned page is taken to its end before paint whether or not older entries were asked for', () => {
+  // An older page that brought no rows left the ask standing for the sitting; the snap no longer depends on it.
+  assert.equal(rs.snapsToEnd(SNAP), true);
+  assert.equal(rs.snapsToEnd({ ...SNAP, pinned: false }), false);
+  assert.equal(rs.snapsToEnd({ ...SNAP, armed: false }), false);
+  // Native keeps its place itself.
+  assert.equal(rs.snapsToEnd({ ...SNAP, web: false }), false);
+});
+
+test('fix entry-jitter 2 audit 2: the keyboard\'s slide is not snapped away before it starts', () => {
+  // JN33: the stack slides up as the keyboard comes and goes; an animated move pending or under way is left alone.
+  assert.equal(rs.snapsToEnd({ ...SNAP, moving: true }), false);
+  assert.equal(rs.snapsToEnd({ ...SNAP, sliding: true }), false);
+});
+
+test('fix entry-jitter 2 audit 3: while the field has the keyboard, a keystroke does not pull the page to its end', () => {
+  assert.equal(rs.snapsToEnd({ ...SNAP, writing: true }), false);
+});

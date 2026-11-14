@@ -101,3 +101,13 @@ export function restBox(o: Omit<RestInput, 'peek'>): { room: number; blankMin: n
   const room = Math.max(0, o.view - o.foot - o.sticky);
   return { room, blankMin: blankHeight({ ...o, peek: Number.POSITIVE_INFINITY }) };
 }
+
+/**
+ * Whether a commit takes the sheet to its end before it is painted (fix entry-jitter 2): on the web (iOS Safari keeps no
+ * scroll anchor; native has `maintainVisibleContentPosition`), once open, with the reader at the end. Never while the
+ * field has the keyboard (a keystroke would pull a finger reading back; `onContentSizeChange` keeps the line in view,
+ * audit 3) or while the keyboard's slide is pending or under way (JN33, audit 2).
+ */
+export function snapsToEnd(o: { web: boolean; armed: boolean; pinned: boolean; writing: boolean; moving: boolean; sliding: boolean }): boolean {
+  return o.web && o.armed && o.pinned && !o.writing && !o.moving && !o.sliding;
+}

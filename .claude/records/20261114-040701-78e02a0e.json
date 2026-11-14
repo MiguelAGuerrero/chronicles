@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **A row that crosses the peek's box is remounted** (fix entry-jitter 2, audit F2, the auditor's): the rows from the anchor on and the empty page share one box (`restBox`), so a row that moves in or out of it changes parent. That happens when the anchor moves: coming back to Memories (audit 42) moves the entries kept this sitting out of the box, and deleting the anchor entry moves rows into it. A voice note playing in such a row stops and its bar resets (`MemoLine`'s player is released). The open line's field is not affected: it stays in the box. Left because it needs a note to be playing across leaving and coming back to Memories; keeping one parent for every row would mean measuring the rows above the peek again, which is what jittered.\n"
+    }
+  ]
+}

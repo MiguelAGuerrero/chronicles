@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, us
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent, type ViewStyle } from 'react-native';
 import { dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
-import { anchorOf, peekMeasured, peekStart, restBox, sheetOpens, stickyDay } from '../../lib/journal/rest';
+import { anchorOf, peekMeasured, peekStart, restBox, sheetOpens, snapsToEnd, stickyDay } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
 import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
@@ -170,10 +170,10 @@ export const JournalPage = forwardRef<JournalPageHandle, {
 
   // At rest at the end, every change is taken to the end before it is painted (fix entry-jitter 2). iOS Safari keeps no
   // scroll anchor: an entry above that grew as its place was read pushed the one in view down for a frame, and
-  // `onContentSizeChange` brought it back only after. Not while the stack slides with the keyboard (`sliding`) or older
-  // entries are coming. Native keeps its place with `maintainVisibleContentPosition`.
+  // `onContentSizeChange` brought it back only after. `snapsToEnd` says when (lib/journal/rest).
   useLayoutEffect(() => {
-    if (Platform.OS !== 'web' || !armed.current || !pinned.current || sliding.current || adding.current) return;
+    const web = Platform.OS === 'web';
+    if (!snapsToEnd({ web, armed: armed.current, pinned: pinned.current, writing, moving: moving.current, sliding: sliding.current })) return;
     scroll.current?.scrollToEnd({ animated: false });
   });
 
