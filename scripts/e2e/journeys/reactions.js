@@ -71,6 +71,19 @@ async function run(h) {
 
   // RX1, RX9: the photo's entry today offers the sign; one tap opens the reactions, and a choice is kept.
   await shot(pg, 'reactions-00-journal');
+  // RL8: at rest, nothing lies over the first entry under a date: its dateline and its sign, at 390 and at 320.
+  const clearOf = () => pg.evaluate(() => {
+    const first = document.querySelector('[data-testid=journal-page] [data-testid=moment-card]');
+    const pts = ['entry-dateline', 'reaction-sign'].map((id) => first?.querySelector(`[data-testid=${id}]`)).filter(Boolean);
+    return pts.map((e) => { const r = e.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + Math.min(8, r.width / 2), r.top + 2); return !!hit && (e.contains(hit) || hit.contains(e)); });
+  });
+  const rl8 = { at390: await clearOf() };
+  await pg.setViewportSize({ width: 320, height: 720 });
+  await pg.waitForTimeout(700);
+  rl8.at320 = await clearOf();
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(700);
+  check.todo(rl8.at390.length === 2 && rl8.at390.every(Boolean) && rl8.at320.every(Boolean), `RL8: nothing lies over the first entry's dateline or sign at rest, at 390 and 320 (${JSON.stringify(rl8)})`);
   // reactions audit 3 (the cold find): nothing lies over the sign's plus (the held date's edge bands washed it out).
   const ui3a = await pg.evaluate(() => {
     // The plus nearest the top of the sheet, just under the held date: where the date's edge would lie over it.
@@ -328,10 +341,69 @@ async function run(h) {
   await pg.click('[data-testid=viewer-reaction]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
+  const plain4 = await pg.locator('[data-testid=capture-viewer] [data-testid^=reaction-link-]').count();
+  const marks4 = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').count();
+  check.todo(plain4 === 0 && marks4 === 1, `RL4: a viewer opened from Chronicle's Map shows the reactions as plain words (${JSON.stringify({ plain4, marks4 })})`);
   const behind21 = handle ? await handle.evaluate((e) => ({ connected: e.isConnected, n: e.querySelectorAll('[data-testid=pin-reaction]').length })).catch(() => null) : null;
   await pg.click('[data-testid=reaction-done]').catch(() => {});
   await pg.click('[data-testid=viewer-close]').catch(() => {});
   check(!!behind21 && behind21.connected && behind21.n === 2, `RX21: a change of reaction shows on the same pin behind the viewer at once (${JSON.stringify(behind21)})`);
+
+  // Reaction links (specs/reaction-links, RL1-RL3, RL5, RL6, RL9).
+  await pg.click('[data-testid=section-memories]').catch(() => {});
+  await there(entries, 15000);
+  await pg.waitForTimeout(1500);
+  // RL6: once marked, the sign is still the face with a plus at the same size, and says all that is chosen.
+  const sign6 = await pg.evaluate(() => {
+    const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')];
+    const marked = cards.find((c) => c.querySelector('img') && c.querySelector('[data-testid=reaction-sign]'));
+    const plain = cards.find((c) => !c.querySelector('[data-testid=reaction-marks]') && c.querySelector('[data-testid=reaction-sign]'));
+    const box = (c) => { const g = c?.querySelector('[data-testid=reaction-sign-face]')?.getBoundingClientRect(); return g ? [Math.round(g.width), Math.round(g.height)] : null; };
+    return { label: marked?.querySelector('[data-testid=reaction-sign]')?.getAttribute('aria-label'), plus: !!marked?.querySelector('[data-testid=reaction-sign-add]'), size: box(marked), plainSize: box(plain) };
+  });
+  check.todo(sign6.label === 'Reaction, Happy, Idea' && sign6.plus && !!sign6.size && JSON.stringify(sign6.size) === JSON.stringify(sign6.plainSize),
+    `RL6: a marked entry's sign is still the face with a plus at the same size, and says what is chosen (${JSON.stringify(sign6)})`);
+  // RL1, RL2, RL5: "Idea" under the photo's entry is a link to Ideas; Back returns to the journal.
+  const link5 = await photoEntry().locator('[data-testid=reaction-link-idea]').evaluate((e) => { const r = e.getBoundingClientRect(); return { role: e.getAttribute('role'), label: e.getAttribute('aria-label'), h: Math.round(r.height) }; }).catch(() => null);
+  check.todo(!!link5 && link5.role === 'link' && link5.label === 'Ideas' && link5.h >= 44, `RL5: a reaction under an entry is a link named for its lens, 44 px tall (${JSON.stringify(link5)})`);
+  await shot(pg, 'reactions-09-links-under-entry');
+  await photoEntry().locator('[data-testid=reaction-link-idea]').click().catch(() => {});
+  const lens2 = await there('[data-testid=lens-screen]');
+  const title2 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
+  const count2 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').count();
+  await pg.click('[data-testid=lens-back]').catch(() => {});
+  await pg.waitForTimeout(800);
+  const back2 = { journal: await pg.locator('[data-testid=journal-page]').count(), list: await pg.locator('[data-testid=reactions-screen]').count() };
+  check.todo(lens2 && title2 === 'Ideas' && count2 >= 3 && back2.journal === 1 && back2.list === 0,
+    `RL1, RL2: "Idea" under an entry opens the whole Ideas lens, and Back returns to the journal (${JSON.stringify({ lens2, title2, count2, back2 })})`);
+  // RL3: in the viewer opened from an entry, "Happy" is a link: the viewer closes, Happy moments opens; Back, the journal.
+  await photoEntry().locator('[data-testid=moment-open]').click().catch(() => {});
+  await there('[data-testid=capture-viewer]');
+  await pg.waitForTimeout(800);
+  await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-link-happy]').click().catch(() => {});
+  await pg.waitForTimeout(1000);
+  const viewer3 = await pg.locator('[data-testid=capture-viewer]').count();
+  const title3 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
+  await pg.click('[data-testid=lens-back]').catch(() => {});
+  await pg.waitForTimeout(800);
+  const back3 = await pg.locator('[data-testid=journal-page]').count();
+  check.todo(viewer3 === 0 && title3 === 'Happy moments' && back3 === 1, `RL3: a reaction in the viewer opened from an entry closes it and opens its lens; Back, the journal (${JSON.stringify({ viewer3, title3, back3 })})`);
+  // RL9: a reaction that cannot be kept is not shown as chosen, and the panel says "Not kept yet".
+  await pg.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    window.__unbreak = () => { IDBObjectStore.prototype.put = put; };
+    IDBObjectStore.prototype.put = function (...a) { if (this.name === 'reaction') throw new DOMException('broken for the test', 'UnknownError'); return put.apply(this, a); };
+  });
+  await entry('Nothing much on the way home').locator('[data-testid=moment-more]').click().catch(() => {});
+  await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(900);
+  const fail9 = { line: await pg.locator('[data-testid=reaction-not-kept]').innerText().catch(() => null), chosen: await pg.locator('[data-testid=reaction-pick-like]').getAttribute('aria-checked').catch(() => null) };
+  await shot(pg, 'reactions-10-not-kept');
+  await pg.evaluate(() => window.__unbreak?.());
+  await pg.click('[data-testid=reaction-done]').catch(() => {});
+  await pg.waitForTimeout(600);
+  check.todo(fail9.line === 'Not kept yet' && fail9.chosen === 'false', `RL9: a reaction not kept is not shown as chosen, and the panel says so in words (${JSON.stringify(fail9)})`);
 
   await c.close();
 }
