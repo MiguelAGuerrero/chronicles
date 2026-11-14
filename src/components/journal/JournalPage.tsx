@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type Comp
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
-import { anchorOf, blankHeight, peekStart, stickyDay } from '../../lib/journal/rest';
+import { anchorOf, blankHeight, peekMeasured, peekStart, stickyDay } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
 import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
@@ -13,6 +13,8 @@ export type JournalPageHandle = { toFoot: (animated?: boolean) => void };
 const NEAR_TOP = 240;
 /** How long the sheet's end is held while the empty page grows or comes back (the bars fold in about this long). */
 const SETTLE_MS = 450;
+/** The sheet is shown after this long at most, whether or not its rows have reported their heights. */
+const OPEN_WAIT_MS = 600;
 /** A day's date before it has been measured. */
 const DATE_H = 66;
 
@@ -49,6 +51,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   focused?: boolean;
   /** Said under today's date when the page could not be read. */
   notice?: ReactNode;
+  /** The entries have been read: until they have, and their heights are in, the sheet is not drawn or taken to its end. */
+  loaded?: boolean;
 }>(function JournalPage(props, ref) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const at = useRef({ y: 0, height: 0, view: 0 });
@@ -87,6 +91,22 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const held = stickyDay(props.rows, from);
   const sticky = held == null ? 0 : heights[held] || DATE_H;
   const blank = view > 0 ? blankHeight({ view, foot: props.footPad, sticky, peek }) : 0;
+  // The sheet opens once, when what sizes the empty page is known (fix entry-jitter). Taken to its end before that,
+  // the entry sat above its resting place and slid down as each height arrived, on a page seen for the first time.
+  // A row that never reports (a reused view on the web) cannot keep it hidden: `waited` opens it regardless.
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWaited(true), OPEN_WAIT_MS);
+    return () => clearTimeout(t);
+  }, []);
+  const [open, setOpen] = useState(false);
+  if (!open && view > 0 && (waited || (props.loaded !== false && peekMeasured(props.rows, from, heights)))) setOpen(true);
+  // Callbacks read it from a ref; once open, the page is taken to its end the once.
+  const armed = useRef(false);
+  useEffect(() => {
+    armed.current = open;
+    if (open && pinned.current) scroll.current?.scrollToEnd({ animated: false });
+  }, [open]);
   // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
   // changes the sheet's length while the reader is at its end just keeps the end in view.
   const moving = useRef(false);
@@ -150,6 +170,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     }
   };
   const toEnd = () => {
+    if (!armed.current) return;
     const animated = moving.current;
     moving.current = false;
     scroll.current?.scrollToEnd({ animated });
@@ -177,7 +198,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     <ScrollView
       ref={scroll}
       testID="journal-page"
-      style={styles.scroll}
+      style={[styles.scroll, !open && styles.unopened]}
       contentContainerStyle={[styles.page, { paddingBottom: props.footPad }]}
       stickyHeaderIndices={dates}
       onScroll={onScroll}
@@ -187,7 +208,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
         const h = Math.round(e.nativeEvent.layout.height);
         at.current.view = h;
         setView(h);
-        if (pinned.current) scroll.current?.scrollToEnd({ animated: false });
+        if (pinned.current && armed.current) scroll.current?.scrollToEnd({ animated: false });
       }}
       maintainVisibleContentPosition={Platform.OS === 'web' ? undefined : { minIndexForVisible: 0 }}
       keyboardShouldPersistTaps="handled"
@@ -238,6 +259,8 @@ const styles = StyleSheet.create({
   edge: { position: 'absolute', left: 0, right: 0, top: '100%' },
   edgeBand: { height: 4, backgroundColor: theme.bg },
   scroll: { flex: 1 },
+  // Laid out and measured, but not yet seen (fix entry-jitter).
+  unopened: { opacity: 0 },
   page: { flexGrow: 1, paddingHorizontal: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   // Its own ground: entries pass under the date held at the top.
   day: { paddingTop: 28, paddingBottom: 10, gap: 10, backgroundColor: theme.bg, zIndex: 2 },
