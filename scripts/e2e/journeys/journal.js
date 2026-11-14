@@ -622,7 +622,8 @@ async function run(h) {
     words: e.innerText.includes('Starts in the line'), bullets: e.querySelectorAll('[data-testid=entry-block-bullet]').length,
     inView: e.getBoundingClientRect().bottom <= window.innerHeight, raw: /(^|\n)- rye/.test(e.innerText),
   })).catch(() => null);
-  const lineEmpty = await pg.locator(input).inputValue().catch(() => null);
+  // With the composer closed there is no field to hold words (JN49): that is an empty line.
+  const lineEmpty = (await pg.locator(input).count()) === 0 ? '' : await pg.locator(input).inputValue().catch(() => null);
   check(!!pageBtn && pageBtn.label === 'Open as a page' && pageBtn.w >= 44 && pageBtn.h >= 44 && pageUp && carried === 'Starts in the line',
     `JN25: while writing, the line offers Open as a page, and the page opens with what was typed (${JSON.stringify({ pageBtn, pageUp, carried })})`);
   check(afterPage.length === beforePage + 1 && pagedPiece?.body_format === 'md' && /- rye/.test(pagedPiece?.body ?? '') && !!onSheet && onSheet.words && onSheet.bullets === 2 && onSheet.inView && !onSheet.raw && lineEmpty === '',
