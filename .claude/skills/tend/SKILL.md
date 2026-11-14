@@ -136,9 +136,9 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    Test: tend memories 3 (src/lib/__tests__/memories/undo.test.ts)
    Source: WCAG 2.2, 4.1.2 Name, Role, Value (docs/research/ui-references.md, section 4)
    ```
-2. **Checks per commit:** `npm run check:affected`, and the size tripwire
-   `npm run book:files -- --max-src 8` (it counts untracked files too; past
-   it, "Hard stops"). For storage, the
+2. **Checks per commit:** `npm run check:affected`, and before committing,
+   the size tripwire `npm run book:files -- HEAD --max-src 8` (the finding's
+   own files, untracked included; past it, "Hard stops"). For storage, the
    recorder, the walk screen, the replay, and any change to what a screen
    shows: `npm test` and the journey that covers it, once, with a before and
    after picture kept for the report.

@@ -52,7 +52,8 @@ Known constraints (do not rediscover them): <from the notes, e.g.
 - check:tend wants a named test for any src/ change, comments included;
 - audit numbers: `npm run book:next-audit -- "tend <area>"` (main's highest, ranges read), never by hand;
 - a decision record: `npm run book:next-decision -- --check <NNNN> <file>` after the last fetch;
-- the size tripwire: `npm run book:files -- --max-src 8` (untracked files counted);
+- the size tripwire: `npm run book:files -- HEAD --max-src 8` before each commit (its own files,
+  untracked counted); `npm run book:files` for the run's whole change;
 - DEFERRED and inbox matches: `npm run book:items -- deferred|inbox|open`, never shortened by hand;
 - your review prompts: `npm run book:review-paths -- <prompt>...` before handing back;
 - the largest text size cannot be pictured on web: a [phone] entry;

@@ -503,10 +503,10 @@ test('bookkeeping: package.json runs the commands, tend.js passes them on, and t
     const text = read(rel);
     for (const re of what) assert.match(text, re, `${rel} names ${re}`);
   };
-  names('.claude/skills/tend/SKILL.md', /book:next-audit/, /book:next-decision -- --check/, /book:files -- --max-src/, /book:items/);
+  names('.claude/skills/tend/SKILL.md', /book:next-audit/, /book:next-decision -- --check/, /book:files -- HEAD --max-src/, /book:items/);
   names('.claude/skills/slice/SKILL.md', /book:next-decision/, /book:next-audit/);
   names('.claude/skills/ship.md', /book:next-decision -- --check/, /book:landed/);
   names('.claude/skills/tend-orchestrator/SKILL.md', /book:review-paths/, /book:landed/, /book:items/);
-  names('.claude/skills/tend-orchestrator/briefs.md', /book:next-audit/, /book:next-decision -- --check/, /book:files -- --max-src/);
+  names('.claude/skills/tend-orchestrator/briefs.md', /book:next-audit/, /book:next-decision -- --check/, /book:files -- HEAD --max-src/);
   names('.claude/skills/audit/SKILL.md', /book:next-audit/);
 });
