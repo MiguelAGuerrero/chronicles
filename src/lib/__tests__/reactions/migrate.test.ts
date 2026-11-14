@@ -13,7 +13,7 @@ test('RX29: SQLite: the reaction table holds every kept note type on its moment,
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { DatabaseSync } = require('node:sqlite') as { DatabaseSync: new (p: string) => Sqlite };
   const d = new DatabaseSync(':memory:');
-  assert.equal(MIGRATIONS.length, 29);
+  assert.equal(MIGRATIONS.length, 30);
   for (const m of MIGRATIONS.slice(0, 28)) d.exec(m);
   d.exec("INSERT INTO moment (id, walk_id, t, lat, lon, segment_id) VALUES ('m1', NULL, 1, NULL, NULL, NULL), ('m2', NULL, 2, NULL, NULL, NULL), ('m3', NULL, 3, NULL, NULL, NULL)");
   const put = d.prepare('INSERT INTO capture (id, moment_id, t, kind, file_path, body, note_type) VALUES (?, ?, ?, ?, NULL, ?, ?)');
@@ -43,6 +43,6 @@ test('RX29: IndexedDB version 22: the reaction store holds every kept note type 
   const got = (await mod.db.listReactions()).map((r) => [r.moment_id, r.family, r.reaction]).sort();
   assert.deepEqual(got, want);
   const after = await req(indexedDB.open('chronicles'));
-  assert.equal(after.version, 22);
+  assert.equal(after.version, 23); // 23: diagnostic (errors handled EH5)
   after.close();
 });

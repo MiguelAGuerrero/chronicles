@@ -769,7 +769,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m3']);
     });
 
-    test('FC7 addDiagnostic, getDiagnostics, pruneDiagnostics, EH5 EH6: newest first; pruned by age and count', { todo: 'test first' }, async () => {
+    test('FC7 addDiagnostic, getDiagnostics, pruneDiagnostics, EH5 EH6: newest first; pruned by age and count', async () => {
       type D = { id: string; t: number; kind: string; place: string; message: string };
       const db = await fresh() as unknown as { addDiagnostic(d: D): Promise<void>; getDiagnostics(): Promise<D[]>; pruneDiagnostics(before: number, keep: number): Promise<void> };
       const d = (id: string, t: number): D => ({ id, t, kind: 'cache', place: 'x · y', message: id });

@@ -15,7 +15,7 @@ beforeEach(() => resetSink());
 
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
-test('EH5 every handler records; a store that fails keeps the entry in memory and shares it', { todo: 'test first' }, async () => {
+test('EH5 every handler records; a store that fails keeps the entry in memory and shares it', async () => {
   const p = fakePorts({ now: 1_000 });
   const d = createDiagnostics(p);
   report('unexpected', 'walk · stop', new Error('boom'));
@@ -33,7 +33,7 @@ test('EH5 every handler records; a store that fails keeps the entry in memory an
   assert.doesNotThrow(() => report('cache', 'x', undefined), 'reporting never throws');
 });
 
-test('EH5 what is reported before the log attaches is written when it does', { todo: 'test first' }, async () => {
+test('EH5 what is reported before the log attaches is written when it does', async () => {
   report('cache', 'early · boot', new Error('first'));
   const p = fakePorts({ now: 5 });
   const d = createDiagnostics(p);
@@ -41,7 +41,7 @@ test('EH5 what is reported before the log attaches is written when it does', { t
   assert.deepEqual((await d.entries()).map((e) => e.message), ['first']);
 });
 
-test('EH7 a failed save is one line with Retry; Retry saves and the line goes', { todo: 'test first' }, async () => {
+test('EH7 a failed save is one line with Retry; Retry saves and the line goes', async () => {
   const p = fakePorts();
   createDiagnostics(p);
   let tries = 0;
@@ -58,7 +58,7 @@ test('EH7 a failed save is one line with Retry; Retry saves and the line goes', 
   assert.ok((await logDb(p).getDiagnostics()).some((e) => e.kind === 'save' && e.place === 'nav · saveNav'), 'recorded as a failed save');
 });
 
-test('EH8 a refusal is recorded and shows no message', { todo: 'test first' }, async () => {
+test('EH8 a refusal is recorded and shows no message', async () => {
   const p = fakePorts();
   createDiagnostics(p);
   caught('refused', 'audioMode · set')(new Error('NotAllowedError'));
@@ -67,7 +67,7 @@ test('EH8 a refusal is recorded and shows no message', { todo: 'test first' }, a
   assert.ok((await logDb(p).getDiagnostics()).some((e) => e.kind === 'refused'));
 });
 
-test('EH9 cache work is recorded only', { todo: 'test first' }, async () => {
+test('EH9 cache work is recorded only', async () => {
   const p = fakePorts();
   createDiagnostics(p);
   await Promise.reject(new Error('tile 404')).catch(caught('cache', 'tiles · read'));
@@ -76,7 +76,7 @@ test('EH9 cache work is recorded only', { todo: 'test first' }, async () => {
   assert.equal((await logDb(p).getDiagnostics())[0].kind, 'cache');
 });
 
-test('EH10 a fallback returns its value and says what it stood in for', { todo: 'test first' }, async () => {
+test('EH10 a fallback returns its value and says what it stood in for', async () => {
   const p = fakePorts();
   createDiagnostics(p);
   const stills = await Promise.reject<number[]>(new Error('closed')).catch(fallback('summary · loadReplay', [] as number[], 'the walk’s still spells'));

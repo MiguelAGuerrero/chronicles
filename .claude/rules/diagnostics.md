@@ -2,6 +2,7 @@
 paths:
   - "src/lib/diagnostics/**"
   - "src/lib/__tests__/diagnostics/**"
+  - "src/components/ShareDiagnostics.tsx"
 ---
 # Diagnostics: every caught error, handled by its kind
 

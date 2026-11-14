@@ -1,4 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { failedLine } from '../lib/diagnostics/core';
+import { failedSaves, retryFailed } from '../lib/diagnostics/sink';
 import { space } from '../lib/space';
 import { useStore } from '../lib/useStore';
 import { theme } from './ui';
@@ -9,12 +11,39 @@ import { theme } from './ui';
  */
 export function SpaceLine() {
   const line = useStore(space.store, (s) => s.line);
-  if (!line) return null;
+  return (
+    <>
+      <SaveFailedLine />
+      {line ? <RoomLine line={line} /> : null}
+    </>
+  );
+}
+
+function RoomLine({ line }: { line: string }) {
   return (
     <View testID="space-line" style={styles.pill} accessibilityLiveRegion="polite">
       <Text style={styles.text}>{line}</Text>
       <Pressable testID="space-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => space.dismiss()} hitSlop={10} style={styles.btn}>
         <Text style={styles.btnText}>OK</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * Saves of the walker's that failed, in one line in words with Retry (EH7, decision 0179): the same ink pill, in the
+ * same place, beside the capture buttons and never over them (EH14); no count, no alarm, announced politely (EH13).
+ * It stays until the saves succeed.
+ */
+function SaveFailedLine() {
+  const list = useStore(failedSaves, (s) => s);
+  const line = failedLine(list);
+  if (!line) return null;
+  return (
+    <View testID="save-failed-line" style={styles.pill} accessibilityLiveRegion="polite">
+      <Text style={styles.text}>{line}</Text>
+      <Pressable testID="save-failed-retry" accessibilityRole="button" accessibilityLabel="Retry" onPress={() => void retryFailed()} hitSlop={10} style={styles.btn}>
+        <Text style={styles.btnText}>Retry</Text>
       </Pressable>
     </View>
   );

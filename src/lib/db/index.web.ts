@@ -9,7 +9,9 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
-import { migrateTypes, type StoredReaction } from '../reactions/core';
+import type { StoredReaction } from '../reactions/core';
+import { copyNoteTypes } from './noteTypesStep';
+import { idbLogs } from './idbLogs';
 import type { Transcript } from '../transcript/core';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -22,7 +24,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 22;
+const VERSION = 23;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -36,6 +38,8 @@ export class BlockedByOtherTabError extends Error {
  * 17 run whatever `upTo` is: a database is never opened below 17 but by the frozen copy of these steps.
  */
 export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, upTo: number = VERSION) {
+  /** The step to version `v` runs when the store is older and the upgrade reaches it. */
+  const at = (v: number) => oldVersion < v && upTo >= v;
   if (oldVersion < 1) {
     d.createObjectStore('walk', { keyPath: 'id' });
     d.createObjectStore('trace_point', { autoIncrement: true }).createIndex('walk_id', 'walk_id');
@@ -137,7 +141,7 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     links.createIndex('from_id', 'from_id');
     links.createIndex('to_id', 'to_id');
   }
-  if (oldVersion < 18 && upTo >= 18) {
+  if (at(18)) {
     // The moment table (MT1, decision 0123): one record per moment, its pieces inside it, so a read is one request
     // and a moment with its pieces is one write. Every capture becomes a one-piece moment under its own id, so
     // threads, replies, reminders and finds keep pointing at it. The capture store goes in the same upgrade.
@@ -157,32 +161,28 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
       c.continue();
     };
   }
-  if (oldVersion < 19 && upTo >= 19) {
+  if (at(19)) {
     // Complexes (CX14, specs/complexes): derived rows, one per named building made of other places; cleared with the derived stores.
     d.createObjectStore('complex', { keyPath: 'id' });
   }
-  if (oldVersion < 20 && upTo >= 20) {
+  if (at(20)) {
     // Note types (NY4, decision 0161): a piece's `note_type` lives inside its moment's record, so there is nothing to move;
     // the version marks the first build that writes it, and a note kept before reads as no type.
   }
-  if (oldVersion < 21 && upTo >= 21) {
+  if (at(21)) {
     // Memo transcripts (TX12, decision 0169): a memo's words, a cache beside the memo, keyed by its piece's id.
     d.createObjectStore('transcript', { keyPath: 'capture_id' });
   }
-  if (oldVersion < 22 && upTo >= 22) {
+  if (at(22)) {
     // Reactions (RX28, RX29, decision 0176): their own records, one per moment and family. Every note type kept before
     // moves onto its moment, the earliest note winning its family; the pieces' old field is left, never read again.
     const reactions = d.createObjectStore('reaction', { keyPath: ['moment_id', 'family'] });
     reactions.createIndex('moment_id', 'moment_id');
-    const cur = tx.objectStore('moment').openCursor();
-    cur.onsuccess = () => {
-      const c = cur.result;
-      if (!c) return;
-      // Read raw: the pieces' old `note_type` is no longer part of a capture's type.
-      for (const r of migrateTypes((c.value as { pieces: { id: string; moment_id: string; t: number; note_type?: string | null }[] }).pieces)) reactions.put(r);
-      c.continue();
-    };
+    copyNoteTypes(tx.objectStore('moment'), reactions);
   }
+  // The diagnostics log (decision 0179, EH5): every caught error, kept on the device; the newest first by `t`.
+  if (at(23)) d.createObjectStore('diagnostic', { keyPath: 'id' }).createIndex('t', 't');
+
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -784,19 +784,7 @@ export const db: Db = {
   async listReactions() {
     return (await done((await store('reaction')).getAll())) as StoredReaction[];
   },
-  async setTranscript(t) {
-    const tx = (await conn()).transaction('transcript', 'readwrite');
-    tx.objectStore('transcript').put(t);
-    await committed(tx);
-  },
-  async clearTranscript(captureId) {
-    const tx = (await conn()).transaction('transcript', 'readwrite');
-    tx.objectStore('transcript').delete(captureId);
-    await committed(tx);
-  },
-  async listTranscripts() {
-    return (await done((await store('transcript')).getAll())) as Transcript[];
-  },
+  ...idbLogs({ conn, store, done, committed }),
   async purgeDerived() {
     const tx = (await conn()).transaction([...DERIVED_STORES, 'walk'], 'readwrite');
     for (const s of DERIVED_STORES) tx.objectStore(s).clear();

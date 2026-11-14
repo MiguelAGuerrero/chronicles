@@ -16,7 +16,7 @@ import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
-import type { Transcript } from '../transcript/core';
+import { sqliteLogs } from './sqliteLogs';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
@@ -670,20 +670,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     async listReactions() {
       return (await conn()).getAllAsync<StoredReaction>('SELECT moment_id, family, reaction, set_at FROM reaction');
     },
-    setTranscript(r) {
-      return write((t) =>
-        t.runAsync(
-          'INSERT OR REPLACE INTO transcript (capture_id, text, lang, from_ms, to_ms, made_at) VALUES (?, ?, ?, ?, ?, ?)',
-          r.capture_id, r.text, r.lang, r.from_ms, r.to_ms, r.made_at,
-        ).then(() => {}),
-      );
-    },
-    clearTranscript(captureId) {
-      return write((t) => t.runAsync('DELETE FROM transcript WHERE capture_id = ?', captureId).then(() => {}));
-    },
-    async listTranscripts() {
-      return (await conn()).getAllAsync<Transcript>('SELECT * FROM transcript');
-    },
+    ...sqliteLogs(write, conn),
     purgeDerived() {
       const clear = DERIVED_STORES.map((s) => `DELETE FROM ${s};`).join(' ');
       return write((t) => t.execAsync(`${clear} UPDATE walk SET snapped_build = NULL;`));

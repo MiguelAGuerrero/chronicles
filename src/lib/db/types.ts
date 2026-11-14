@@ -7,6 +7,7 @@ import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
+import type { Diagnostic } from '../diagnostics/core';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { ThreadsChange, ThreadsData } from '../threads/types';
@@ -167,6 +168,13 @@ export interface Db {
   setTranscript(t: Transcript): Promise<void>;
   clearTranscript(captureId: string): Promise<void>;
   listTranscripts(): Promise<Transcript[]>;
+
+  /** The diagnostics log (decision 0179, EH5): every caught error, kept on the device. The app's, not the walker's data. */
+  addDiagnostic(d: Diagnostic): Promise<void>;
+  /** Every entry, newest first. */
+  getDiagnostics(): Promise<Diagnostic[]>;
+  /** Drops entries older than `before`, then all but the newest `keep` (EH6). */
+  pruneDiagnostics(before: number, keep: number): Promise<void>;
 
   /** Remembers an analyzed area (L11); the same key replaces it (L12). */
   putLanding(row: LandingRow): Promise<void>;

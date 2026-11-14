@@ -14,6 +14,8 @@ import { LayersKey } from './LayersControl';
 import type { useLayers } from '../lib/layers/useLayers';
 import { NotificationSettings } from './NotificationSettings';
 import { RouteLeaningSettings } from './RouteLeaningSettings';
+import { ShareDiagnostics } from './ShareDiagnostics';
+import { failedSave } from '../lib/diagnostics/sink';
 import { SwitchRow } from './SwitchRow';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
@@ -138,13 +140,14 @@ export function StartSettings(props: {
             accessibilityState={{ checked: units === u }}
             aria-checked={units === u}
             accessibilityLabel={u === 'km' ? 'Kilometres and metres' : 'Miles and feet'}
-            onPress={() => void saveUnits(u)}
+            onPress={() => saveUnits(u).catch(failedSave('StartSettings · Distances', 'a setting', () => saveUnits(u)))}
             style={[styles.segmentBtn, units === u && styles.segmentOn]}
           >
             <Text style={[styles.segmentText, units === u && styles.segmentTextOn]}>{u === 'km' ? 'km' : 'miles'}</Text>
           </Pressable>
         ))}
       </View>
+      <ShareDiagnostics />
     </View>
   );
 }

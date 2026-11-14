@@ -9,9 +9,9 @@ export const deviceName = (): string => (Platform.OS === 'web' ? navigator.userA
  * desktop). Call it straight from a tap, with the text already read: a
  * browser opens the share sheet only from one. Nothing is sent by the app.
  */
-export async function shareLogText(text: string): Promise<'shared' | 'copied' | 'failed'> {
+export async function shareLogText(text: string, title = 'Chronicles GPS log'): Promise<'shared' | 'copied' | 'failed'> {
   try {
-    await Share.share({ message: text, title: 'Chronicles GPS log' });
+    await Share.share({ message: text, title });
     return 'shared';
   } catch {
     const clip = Platform.OS === 'web' ? navigator.clipboard : undefined;

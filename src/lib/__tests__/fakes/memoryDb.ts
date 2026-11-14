@@ -11,6 +11,7 @@ import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Place, Recall } from '../../discovery/types';
 import type { StoredReaction } from '../../reactions/core';
 import type { Transcript } from '../../transcript/core';
+import type { Diagnostic } from '../../diagnostics/core';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
@@ -24,7 +25,7 @@ export const DB_READS = [
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
   'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
-  'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
+  'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta', 'getDiagnostics',
 ] as const;
 
 /** An IndexedDB key, as the web store's keys are: a number, a string, or an array of them. */
@@ -144,6 +145,8 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const marks = new Table<Mark>((m) => m.id);
   const recalls = new Table<Recall>((r) => r.capture_id);
   const transcripts = new Table<Transcript>((r) => r.capture_id);
+  const diagnostics = new Table<Diagnostic>((d) => d.id);
+  const newestFirst = (a: Diagnostic, b: Diagnostic) => b.t - a.t || (a.id < b.id ? 1 : -1);
   const reactions = new Table<StoredReaction>((r) => `${r.moment_id}|${r.family}`);
   const dropReactions = (ids: string[]) => {
     const gone = new Set(ids);
@@ -471,6 +474,18 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async listTranscripts() {
       return out(transcripts.all());
+    },
+    async addDiagnostic(d) {
+      diagnostics.put(d);
+    },
+    async getDiagnostics() {
+      return out(diagnostics.all().sort(newestFirst));
+    },
+    async pruneDiagnostics(before, keep) {
+      const rows = diagnostics.all().sort(newestFirst);
+      rows.forEach((d, i) => {
+        if (d.t < before || i >= keep) diagnostics.delete(d.id);
+      });
     },
 
     async putLanding(r) {

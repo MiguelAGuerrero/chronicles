@@ -28,7 +28,7 @@ const FEATURES = [
     name: 'diagnostics',
     about: 'caught errors handled by kind, the diagnostics log and Share diagnostics',
     rule: 'diagnostics',
-    source: ['src/lib/diagnostics/**'],
+    source: ['src/lib/diagnostics/**', 'src/components/ShareDiagnostics.tsx'],
     journeys: ['diagnostics'],
     specs: ['errors-handled'],
   },

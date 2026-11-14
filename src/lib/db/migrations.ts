@@ -286,4 +286,9 @@ export const MIGRATIONS: readonly string[] = [
     WHERE note_type IN ('happy', 'neutral', 'sad', 'like', 'dislike', 'question', 'emphasis', 'idea')
     ORDER BY t, id;
   `,
+  // The diagnostics log (decision 0179, EH5): every caught error, kept on the device; the app's, not the walker's data.
+  `
+  CREATE TABLE diagnostic (id TEXT PRIMARY KEY, t INTEGER NOT NULL, kind TEXT NOT NULL, place TEXT NOT NULL, message TEXT NOT NULL);
+  CREATE INDEX diagnostic_t ON diagnostic (t);
+  `,
 ];
