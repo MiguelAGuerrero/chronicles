@@ -30,6 +30,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await pg.waitForTimeout(3000);
   check(darkAsked() === 0 && !(await attr(pg, 'data-dark')), `DK13: with the layer off nothing is asked and nothing drawn (${darkAsked()} requests)`);
+  await shot(pg, 'dark-rest');
   await pg.click('[data-testid=layers]');
   const row = pg.locator('[data-testid=layer-dark]');
   const rowText = (await row.innerText({ timeout: 5000 }).catch(() => '')).trim();
