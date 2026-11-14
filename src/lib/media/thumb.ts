@@ -7,6 +7,7 @@ import { thumbJob } from '../thumbJob';
 import { editedThumbName, frameAt, THUMB } from '../thumbPlan';
 import type { MediaEdit } from '../mediaEdit';
 import { keepFile, releaseMedia, resolveMedia, videoFrame } from './index';
+import { fallback } from '../diagnostics/sink';
 
 /**
  * The photo's crop and rotation on the bounded copy (ME20): a copy made
@@ -46,7 +47,7 @@ export function makeThumb(c: Faced, name?: string): Promise<string | null> {
       const ctx = frame ? ImageManipulator.manipulate(frame.source) : ImageManipulator.manipulate(uri, { maxWidth: max, maxHeight: max });
       try {
         const loaded = await ctx.renderAsync();
-        const ref = await withCropAndRotation(loaded, c).catch(() => loaded);
+        const ref = await withCropAndRotation(loaded, c).catch(fallback('lib/media/thumb · render', loaded, 'what withCropAndRotation read'));
         try {
           const saved = await ref.saveAsync({ compress: THUMB.compress, format: SaveFormat.JPEG });
           return { uri: saved.uri, release: () => {} };

@@ -2,6 +2,7 @@
 import { initial, openId, step, target, OPEN_MS, type OpenEvent, type OpenState } from '../openMoment';
 import type { Ports } from '../ports/types';
 import { createStore, type Store } from '../store';
+import { fallback } from '../diagnostics/sink';
 
 /** Group captures into one moment, kept in meta (declared in `META`). */
 const GROUP_KEY = 'group_captures';
@@ -68,7 +69,7 @@ export function createMomentPill(
     asked: () => store.set({ ...store.get(), ask: null }),
     /** Reads the Group captures setting kept on the device (MS18); off when none was kept. */
     async loadGrouping(): Promise<boolean> {
-      const on = (await p.db.getMeta(GROUP_KEY).catch(() => null)) === '1';
+      const on = (await p.db.getMeta(GROUP_KEY).catch(fallback('lib/momentPill/shell · loadGrouping', null, 'what getMeta read'))) === '1';
       store.set({ ...store.get(), grouping: on });
       return on;
     },

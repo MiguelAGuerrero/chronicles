@@ -37,6 +37,7 @@ import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { BAR_H, CAP, raisedHeight, useStackLayout } from './layout';
 import { ReadyBar } from './ReadyBar';
+import { caught, fallback } from '../../lib/diagnostics/sink';
 
 const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
@@ -102,7 +103,7 @@ export function useReady(props: {
       if (!active) return;
       let live = true;
       (async () => {
-        const [choices, d, s] = await Promise.all([ready.load(), loadPendingDest(), loadSettings().catch(() => DEFAULT_SETTINGS)]);
+        const [choices, d, s] = await Promise.all([ready.load(), loadPendingDest(), loadSettings().catch(fallback('components/walk/useReady · useReady', DEFAULT_SETTINGS, 'what loadSettings read'))]);
         if (!live) return;
         if (choices.captures) setMoments(placedMoments(choices.captures));
         setModeState(choices.mode);
@@ -110,7 +111,7 @@ export function useReady(props: {
         setSettings(s);
         setFirstWalk(choices.firstWalk);
         setWebNoteOff(choices.webNoteOff);
-      })().catch(() => {});
+      })().catch(caught('cache', 'components/walk/useReady · useReady'));
       // One fix, which ends its own watch (NV17): the first frames the map around you.
       locateOnce().then((r) => {
         if (!live || !r.at) return;
@@ -120,7 +121,7 @@ export function useReady(props: {
         centred.current = true;
         const box = boundsOf([r.at], OPEN_FIT_M);
         if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
-      }, () => {});
+      }, caught('cache', 'components/walk/useReady · useReady'));
       return () => {
         live = false;
       };
@@ -129,7 +130,7 @@ export function useReady(props: {
 
   const pickMode = (m: StartMode) => {
     setModeState(m);
-    ready.setMode(m).catch(() => {});
+    ready.setMode(m).catch(caught('cache', 'components/walk/useReady · pickMode'));
   };
   const changeSettings = (next: ExploreSettings) => {
     setSettings(next);
@@ -147,11 +148,11 @@ export function useReady(props: {
   };
   const dismissWebNote = () => {
     setWebNoteOff(true);
-    ready.dismissWebNote().catch(() => {});
+    ready.dismissWebNote().catch(caught('cache', 'components/walk/useReady · dismissWebNote'));
   };
   const onMoment = useCallback((c: Faced, state: MomentState) => {
     if (state !== 'placed') return;
-    findForMoment(c).catch(() => {});
+    findForMoment(c).catch(caught('cache', 'components/walk/useReady · useReady'));
     if (placedMoments([c]).length) setMoments((prev) => upsertMoment(prev, c));
   }, []);
   const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setMomentError(e), []);

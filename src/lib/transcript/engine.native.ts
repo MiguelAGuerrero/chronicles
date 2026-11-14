@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import { ExpoSpeechRecognitionModule as Speech } from 'expo-speech-recognition';
 import { onDeviceReady } from './core';
 import type { Engine } from './shell';
+import { report } from '../diagnostics/sink';
 
 /** A read that has not ended this long after it began is given up, so a stuck recognizer never holds the queue. */
 const READ_LIMIT_MS = 120_000;
@@ -34,9 +35,7 @@ export const engine: Engine = {
   abort() {
     try {
       Speech.abort();
-    } catch {
-      // Already ended.
-    }
+    } catch (caughtError) { report('cache', 'lib/transcript/engine · abort', caughtError); }
   },
   recognize({ uri, lang }) {
     return new Promise<string | null>((resolve, reject) => {

@@ -5,6 +5,7 @@ import { cellsFor } from './cells';
 import { drawNow, tilesAround, type WalkStatus } from './layer';
 import { tintOf, type WalkTint } from './tint';
 import { walkBuild, walkPlaces, walkReader } from './walkApp';
+import { fallback } from '../diagnostics/sink';
 
 /** How far around the centre the layer reads (WK4): enough tiles that a cell's whole neighbourhood is inside them (UF1). */
 export const LAYER_RADIUS_M = 1500;
@@ -30,7 +31,7 @@ export function useWalkability(centre: LngLat | null, on: boolean): Walkability 
     if (!on || !tilesKey) return;
     let live = true;
     void (async () => {
-      const build = await walkBuild().catch(() => null);
+      const build = await walkBuild().catch(fallback('lib/walk/useWalkability · useWalkability', null, 'what walkBuild read'));
       const tiles = tilesKey.split(',').map((t) => t.split('/').map(Number) as [number, number]);
       // A read this screen has moved on from does not queue its remaining tiles (walkability audit 6).
       const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);

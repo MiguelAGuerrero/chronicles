@@ -1,5 +1,6 @@
 // @layer shell
 import type { WalkSource } from './types';
+import { report } from '../diagnostics/sink';
 
 /*
  * WK1b: Overture first, the fallback when it can't answer (null, a throw, or too slow). Both failing is `null`,
@@ -27,9 +28,7 @@ export function chain(primary: WalkSource, fallback: WalkSource, o: { primaryMs?
           }, primaryMs);
         }),
       ]);
-    } catch {
-      return null;
-    } finally {
+    } catch (caughtError) { report('cache', 'lib/walk/chain · first', caughtError); return null; } finally {
       clearTimeout(timer);
       outer?.removeEventListener('abort', stop);
     }
@@ -37,9 +36,7 @@ export function chain(primary: WalkSource, fallback: WalkSource, o: { primaryMs?
   const second = async (x: number, y: number, signal?: AbortSignal) => {
     try {
       return await fallback.read(x, y, signal);
-    } catch {
-      return null;
-    }
+    } catch (caughtError) { report('cache', 'lib/walk/chain · second', caughtError); return null; }
   };
   return {
     async read(x, y, signal) {

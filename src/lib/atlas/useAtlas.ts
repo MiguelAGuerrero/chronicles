@@ -15,6 +15,7 @@ import { nearReads, readNear, readRing } from './read';
 import { townsListedAfter } from './carousel';
 import { borderReach } from './hoods';
 import { placesArchive } from '../discovery/archive';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** Another read is running (the walk's, or the other level's): look again shortly. */
 const BUSY_MS = 1500;
@@ -78,7 +79,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
 
   useEffect(() => {
     let alive = true;
-    loadSettings().then((s) => alive && setHidden(s.hidden), () => {});
+    loadSettings().then((s) => alive && setHidden(s.hidden), caught('cache', 'lib/atlas/useAtlas · useAtlas'));
     const off = onSettings((s) => setHidden(s.hidden));
     return () => {
       alive = false;
@@ -92,12 +93,12 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
     let live = true;
     (async () => {
       const [r, areas, walkAreas, finds, walked, b] = await Promise.all([
-        db.listAtlasAreas().catch(() => [] as AtlasArea[]),
-        db.listAreas().catch(() => [] as Area[]),
-        db.listWalkAreas().catch(() => [] as WalkArea[]),
-        db.listFinds().catch(() => [] as Find[]),
-        db.visitedSegmentIds().catch(() => new Set<string>()),
-        exploreBuild().catch(() => 'unknown'),
+        db.listAtlasAreas().catch(fallback('lib/atlas/useAtlas · useAtlas', [] as AtlasArea[], 'what listAtlasAreas read')),
+        db.listAreas().catch(fallback('lib/atlas/useAtlas · useAtlas', [] as Area[], 'what listAreas read')),
+        db.listWalkAreas().catch(fallback('lib/atlas/useAtlas · useAtlas', [] as WalkArea[], 'what listWalkAreas read')),
+        db.listFinds().catch(fallback('lib/atlas/useAtlas · useAtlas', [] as Find[], 'what listFinds read')),
+        db.visitedSegmentIds().catch(fallback('lib/atlas/useAtlas · useAtlas', new Set<string>(), 'what visitedSegmentIds read')),
+        exploreBuild().catch(fallback('lib/atlas/useAtlas · useAtlas', 'unknown', 'what exploreBuild read')),
       ]);
       if (!live) return;
       rowsRef.current = r;
@@ -106,7 +107,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       // An unknown build (offline) leaves the last known one; the loop checks again (audit 4).
       if (b !== 'unknown') setBuild(b);
       else setStatus('offline');
-    })().catch(() => {});
+    })().catch(caught('cache', 'lib/atlas/useAtlas · useAtlas'));
     return () => {
       live = false;
     };
@@ -128,7 +129,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       if (!live) return;
       if (read.complete) setBorders(await outlines.known(points));
       else failedRef.current = { key: tileKey, t: Date.now() };
-    })().catch(() => {});
+    })().catch(caught('cache', 'lib/atlas/useAtlas · useAtlas'));
     return () => {
       live = false;
     };
@@ -168,9 +169,9 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       timer = setTimeout(() => !stop && setTick((t) => t + 1), ms);
     };
     (async () => {
-      const latest = await exploreBuild().catch(() => 'unknown');
+      const latest = await exploreBuild().catch(fallback('lib/atlas/useAtlas · useAtlas', 'unknown', 'what exploreBuild read'));
       // Checked at most once a day (AD6): rings measured with another release, or none, are read again.
-      const release = await ensureOvertureRelease().catch(() => null);
+      const release = await ensureOvertureRelease().catch(fallback('lib/atlas/useAtlas · useAtlas', null, 'what ensureOvertureRelease read'));
       const [nb, tw] = await Promise.all([nearReads('neighborhood'), nearReads('town')]);
       if (stop) return;
       // Kept as it was when nothing changed: each step of the loop set a new object and rendered Explore, mid-switch too (SS9).

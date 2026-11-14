@@ -20,6 +20,7 @@ import { clearNav, loadNav, saveNav } from './store';
 import { streetRouteSource, type StreetSource } from './streetRoute';
 import { traceRouteSource } from './traceRoute';
 import type { Route, RouteSource, Waypoint } from './types';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** Streets are read this far around both ends of a route. */
 const AREA_PAD_M = 300;
@@ -119,7 +120,7 @@ export function useNavigation(opts: {
     previewRead.current = null;
     pending.current = null;
     sources.current = [];
-    clearNav().catch(() => {});
+    clearNav().catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
   }, []);
 
   /** Streets for an area, read from the map now (cancellable) and from the cache. */
@@ -133,16 +134,16 @@ export function useNavigation(opts: {
       // One map read at a time: a scan in progress holds the camera, and the cache stands in.
       const features = await mapReads
         .run(() => withTimeout(m.collect(views, () => cancelled.current), ms, 'The map'))
-        .catch(() => null);
+        .catch(fallback('lib/nav/useNavigation · readStreets', null, 'what run read'));
       if (features) read = deriveSegments(features.roads, features.names);
     }
-    const cached = await db.getSegmentsIn(bounds).catch(() => [] as StreetSegment[]);
+    const cached = await db.getSegmentsIn(bounds).catch(fallback('lib/nav/useNavigation · readStreets', [] as StreetSegment[], 'what getSegmentsIn read'));
     return streetRouteSource([...new Map([...cached, ...read].map((s) => [s.id, s])).values()]);
   };
 
   /** The streets already cached between two points: no camera moves. */
   const cachedStreets = async (bounds: Bounds): Promise<RouteSource> => {
-    const segs = await db.getSegmentsIn(bounds).catch(() => [] as StreetSegment[]);
+    const segs = await db.getSegmentsIn(bounds).catch(fallback('lib/nav/useNavigation · cachedStreets', [] as StreetSegment[], 'what getSegmentsIn read'));
     const s = streetRouteSource(segs);
     return { ...s, id: 'cached-streets' };
   };
@@ -165,12 +166,12 @@ export function useNavigation(opts: {
     previewRead.current = null;
     const fail = async (message: string) => {
       // A destination that can't be reached is forgotten, so a reload doesn't try it again.
-      clearNav().catch(() => {});
+      clearNav().catch(caught('cache', 'lib/nav/useNavigation · fail'));
       latest.current.onError(message, dest);
     };
     try {
       const pauses = await db.getPauses(walk.id);
-      const stills = await db.getStills(walk.id).catch(() => []);
+      const stills = await db.getStills(walk.id).catch(fallback('lib/nav/useNavigation · useNavigation', [], 'what getStills read'));
       const points = await db.getPoints(walk.id);
       const last = points[points.length - 1];
       const from: LngLat | null = here ?? (last ? [last.lon, last.lat] : null);
@@ -191,10 +192,10 @@ export function useNavigation(opts: {
       const plan = dest.suggested ? { scenic: false as const, notice: null } : scenicPlan(dest, from, leanings, getUnits());
       if (!plan.scenic && plan.notice) latest.current.onNotice(plan.notice);
       if (plan.scenic) {
-        const read = await withTimeout(scenicRead.read(from, dest.at, () => cancelled.current), SCENIC_READ_MS, 'The scenic read').catch(() => null);
+        const read = await withTimeout(scenicRead.read(from, dest.at, () => cancelled.current), SCENIC_READ_MS, 'The scenic read').catch(fallback('lib/nav/useNavigation · useNavigation', null, 'what withTimeout read'));
         if (cancelled.current) return;
         if (read) {
-          const cached = await db.getSegmentsIn(boundsOf([from, dest.at], AREA_PAD_M)!).catch(() => [] as StreetSegment[]);
+          const cached = await db.getSegmentsIn(boundsOf([from, dest.at], AREA_PAD_M)!).catch(fallback('lib/nav/useNavigation · useNavigation', [] as StreetSegment[], 'what getSegmentsIn read'));
           const streets = streetRouteSource([...new Map([...cached, ...read.segments].map((x) => [x.id, x])).values()]);
           if (!(await db.getWalk(walk.id))?.open) return;
           if (dest.leanings) {
@@ -249,7 +250,7 @@ export function useNavigation(opts: {
   const cancel = useCallback(() => {
     cancelled.current = true;
     pending.current = null;
-    clearNav().catch(() => {});
+    clearNav().catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
   }, []);
 
   /** SR8: highlights one of the preview's routes. */
@@ -276,7 +277,7 @@ export function useNavigation(opts: {
   const dismiss = useCallback(() => {
     setPreview(null);
     previewRead.current = null;
-    clearNav().catch(() => {});
+    clearNav().catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
   }, []);
 
   // A reload resumes where you were heading, with the route computed again (N13).
@@ -285,7 +286,7 @@ export function useNavigation(opts: {
     if (!walkId) return;
     let alive = true;
     loadNav(walkId).then((dest) => {
-      if (alive && dest && !navRef.current) goTo(dest).catch(() => {});
+      if (alive && dest && !navRef.current) goTo(dest).catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
     });
     return () => {
       alive = false;
@@ -301,7 +302,7 @@ export function useNavigation(opts: {
     queueMicrotask(() => {
       if (!alive) return;
       if (pending.current && !navRef.current && !busy.current) {
-        goTo(pending.current).catch(() => {});
+        goTo(pending.current).catch(caught('cache', 'lib/nav/useNavigation · useNavigation'));
         return;
       }
       const s = navRef.current;
@@ -339,7 +340,7 @@ export function useNavigation(opts: {
             .then((streets) => {
               sources.current = [...sources.current.filter((x) => x.id !== streets.id), streets];
             })
-            .catch(() => {})
+            .catch(caught('cache', 'lib/nav/useNavigation · useNavigation'))
             .finally(() => {
               busy.current = false;
             });

@@ -1,6 +1,5 @@
-import { facedAll } from '../../lib/moment';
+import { facedAll, type Faced } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
-import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -43,6 +42,7 @@ import { useTabMap, type Camera } from '../../lib/useTabMap';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
+import { caught, fallback } from '../../lib/diagnostics/sink';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
 export { HomeScreenError as ErrorBoundary } from '../../components/ScreenError';
@@ -193,15 +193,15 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         if (!live) return null;
         // A reminder notification tapped with no walk open lands here (R4, NV13).
         // With a walk open, a tapped reminder waiting from a cold start opens on the walk (audit 2).
-        if (openWalk && (await recallWaiting().catch(() => false))) {
+        if (openWalk && (await recallWaiting().catch(fallback('app/(tabs)/index · load', false, 'what recallWaiting read')))) {
           showWalk();
           return null;
         }
-        const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Faced[]);
+        const recalled = openWalk ? [] : await takeRecallOpen().catch(fallback('app/(tabs)/index · load', [] as Faced[], 'what takeRecallOpen read'));
         if (!live) return null;
-        setChecklists(await db.listChecklistAreas().catch(() => [] as ChecklistArea[]));
-        setFinds(await db.listFinds().catch(() => [] as Find[]));
-        const caps = await allCaptures().catch(() => [] as Faced[]);
+        setChecklists(await db.listChecklistAreas().catch(fallback('app/(tabs)/index · load', [] as ChecklistArea[], 'what listChecklistAreas read')));
+        setFinds(await db.listFinds().catch(fallback('app/(tabs)/index · load', [] as Find[], 'what listFinds read')));
+        const caps = await allCaptures().catch(fallback('app/(tabs)/index · load', [] as Faced[], 'what allCaptures read'));
         setCaptures(caps);
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
@@ -234,10 +234,10 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         return { walks, rows };
       };
       reload.current = () => {
-        load().catch(() => {});
+        load().catch(caught('cache', 'app/(tabs)/index · ChronicleMap'));
       };
       quietLoad.current = () => {
-        load(false).catch(() => {});
+        load(false).catch(caught('cache', 'app/(tabs)/index · ChronicleMap'));
       };
       // Walks placed while Chronicle was away are followed quietly too: the map stays where it was left (audit 9).
       const away = backlogStatus.get().placed !== placedSeen.n;

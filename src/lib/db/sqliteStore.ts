@@ -4,7 +4,7 @@
  * over Node's built-in SQLite under the same Db contract as the web store (MT11). The app's instance is
  * `db/index.native.ts`.
  */
-import type { SQLiteBindValue, SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from 'expo-sqlite';
 import { MIGRATIONS } from './migrations';
 import { areaFromRow, areaToRow, findFromRow, findToRow, itemFromRow, itemToRow, readFromRow, readToRow, type AreaRow, type FindRow, type ItemRow, type ReadRow } from './exploreRow';
 import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
@@ -17,6 +17,7 @@ import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import { sqliteLogs } from './sqliteLogs';
+import { setClause } from './setClause';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
@@ -27,6 +28,7 @@ import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
 import { SEGMENT_BATCH, type Db } from './types';
 import { serializeEdit } from '../mediaEdit';
 import { foldRows, type JoinedRow } from '../moment';
+import { caught } from '../diagnostics/sink';
 
 
 /** Drops the threads, among `ids`, that fewer than two moments belong to, with their memberships (OT15). */
@@ -69,15 +71,6 @@ const MOMENT_SELECT =
   'FROM moment m JOIN capture c ON c.moment_id = m.id';
 const ORDER = ' ORDER BY m.t, m.id, c.t';
 
-/** UPDATE ... SET for the given patch; only known column names reach the SQL. */
-function setClause(patch: Record<string, unknown>, allowed: readonly string[]) {
-  const keys = Object.keys(patch).filter((k) => allowed.includes(k));
-  const values = keys.map((k) => {
-    const v = patch[k];
-    return typeof v === 'boolean' ? (v ? 1 : 0) : (v as SQLiteBindValue);
-  });
-  return { sql: keys.map((k) => `${k} = ?`).join(', '), values };
-}
 
 export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
   let dbPromise: Promise<SQLiteDatabase> | null = null;
@@ -107,7 +100,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
   let queue: Promise<unknown> = Promise.resolve();
   function write(task: (txn: SQLiteDatabase) => Promise<void>): Promise<void> {
     const run = queue.then(async () => (await conn()).withExclusiveTransactionAsync(task));
-    queue = run.catch(() => {});
+    queue = run.catch(caught('cache', 'lib/db/sqliteStore · write'));
     return run;
   }
 

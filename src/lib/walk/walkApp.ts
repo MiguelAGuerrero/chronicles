@@ -10,6 +10,7 @@ import { createOverpassSource } from './overpassSource';
 import { createOvertureSource } from './overtureSource';
 import { createWalkReader } from './reader';
 import { net } from '../net';
+import { fallback } from '../diagnostics/sink';
 
 /**
  * Walkability's instance (WK1-WK4): Overture first, Overpass when it can't answer, read through the device's
@@ -26,7 +27,7 @@ export { ensureOvertureRelease as walkBuild };
  * points; null when they can't be read, and the cells are then judged on form alone.
  */
 export async function walkPlaces(tiles: [number, number][], shouldStop?: () => boolean): Promise<PlacePoint[] | null> {
-  const got = await readOverture(tiles, shouldStop).catch(() => null);
+  const got = await readOverture(tiles, shouldStop).catch(fallback('lib/walk/walkApp · walkPlaces', null, 'what readOverture read'));
   return got ? got.points.map((p) => ({ at: p.at, weight: p.weight })) : null;
 }
 

@@ -16,6 +16,7 @@ import { alsoPasses, type Also } from './exposure';
 import { planRoutes, type Leg, type PlannedRoute, type Reason } from './planner';
 import { CONSIDERED } from './presets';
 import { mergePlaces } from '../discovery/archiveMerge';
+import { fallback } from '../diagnostics/sink';
 
 /*
  * The planner's reads (WP1, WP3, WP19, WP22): when the page opens, the tiles around the area, the routes, what lies on each for
@@ -97,7 +98,7 @@ export function createPlanner(deps: PlannerDeps) {
     async plan(i: PlanRequest): Promise<PlannerResult> {
       if (!i.from) return { routes: [], reasons: ['noPosition'], found: [] };
       const radiusM = Math.min(i.area.reachM, READ_M);
-      const read = await deps.read(i.area.at, radiusM).catch(() => null);
+      const read = await deps.read(i.area.at, radiusM).catch(fallback('lib/walkPlanner/service · plan', null, 'what read read'));
       if (!read || !read.segments.length) return { routes: [], reasons: ['noRoute'], found: [] };
       // The same rule for every kind, the opened one too: a kind that can be found counts only places that could be, by the atlas's
       // own rule (`countsToward`, PS5), so a cell of churches that cannot be found is not dense (walk planner audit 5).
@@ -129,14 +130,14 @@ export function createPlanner(deps: PlannerDeps) {
       for (const k of ATLAS_ORDER) if (k !== i.kind) cellsByKind[k] = densestCells(inRange.filter((p) => barsOf(p).includes(k)), i.area.at);
       const withReach = await Promise.all(planned.routes.map(async (r): Promise<PlannerRoute> => ({
         ...r,
-        reach: await deps.reach(r.path).catch((): Reach => ({ cars: [], unknown: true })),
+        reach: await deps.reach(r.path).catch(fallback('lib/walkPlanner/service · plan', ({ cars: [], unknown: true }), 'what reach read')),
         also: alsoPasses(r.path, cellsByKind, ATLAS_ORDER, i.kind),
       })));
       // With "don't suggest", a route with a stretch built around cars is left out, not swapped for another (KW11).
       const routes = i.prefs.pref === 'skip' ? withReach.filter((r) => !r.reach.cars.length) : withReach;
       const reasons = [...planned.reasons];
       if (routes.length < withReach.length) reasons.push('cars');
-      const found = await deps.found(i.kind).catch(() => []);
+      const found = await deps.found(i.kind).catch(fallback('lib/walkPlanner/service · plan', [], 'what found read'));
       return { routes, reasons: routes.length ? reasons : [...new Set<Reason>([...reasons, ...(reasons.length ? [] : ['noRoute' as const])])], found };
     },
   };

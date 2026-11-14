@@ -3,6 +3,7 @@ import { strToU8, Zip, ZipPassThrough } from 'fflate';
 import type { Ports } from '../../ports/types';
 import type { Walk } from '../../types';
 import { bundled, setsOf } from '../../reactions/core';
+import { fallback } from '../../diagnostics/sink';
 
 /** Raised when a keeper cannot leave the app; `openSettings` when a permission is off. */
 export class KeeperError extends Error {
@@ -52,7 +53,7 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
     const pieces = moments.flatMap((m) => m.pieces);
     for (const c of pieces) {
       if (!c.file_path) continue;
-      const chunks = await io.readMedia(c.file_path).catch(() => null);
+      const chunks = await io.readMedia(c.file_path).catch(fallback('lib/export/bundle/shell · writeWalkBundle', null, 'what readMedia read'));
       if (!chunks) {
         missing++;
         continue;

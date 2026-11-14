@@ -5,6 +5,7 @@ import { MAX_TILES } from './limits';
 import { walkTileKey } from './match';
 import type { LngLat } from '../types';
 import type { TileFacts, WalkSource, WalkTile, WayFacts } from './types';
+import { fallback, report } from '../diagnostics/sink';
 
 /*
  * Reading walkability tiles robustly (WK2-WK4, WK18): the device's cache first, one source request at a
@@ -58,9 +59,7 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
           }, tileMs);
         }),
       ]);
-    } catch {
-      return null;
-    } finally {
+    } catch (caughtError) { report('cache', 'lib/walk/reader · request', caughtError); return null; } finally {
       clearTimeout(timer);
     }
   };
@@ -80,7 +79,7 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
     async read(tiles, build, shouldStop) {
       const want = tiles.slice(0, MAX_TILES);
       const keys = want.map(([x, y]) => walkTileKey(x, y));
-      const kept = await p.db.getWalkTiles(keys).catch(() => [] as WalkTile[]);
+      const kept = await p.db.getWalkTiles(keys).catch(fallback('lib/walk/reader · read', [] as WalkTile[], 'what getWalkTiles read'));
       const byKey = new Map(kept.filter((t) => t.code === WALK_CODE).map((t) => [t.key, t]));
       const out = new Map<string, WayFacts[]>();
       const junctions = new Map<string, LngLat[]>();

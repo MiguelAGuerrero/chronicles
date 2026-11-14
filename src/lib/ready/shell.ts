@@ -4,6 +4,7 @@ import { type Faced, facedAll } from '../moment';
 import type { Ports } from '../ports/types';
 import { parseStartMode, START_MODE_KEY, type StartMode } from '../startPlan';
 import type { Walk } from '../types';
+import { fallback } from '../diagnostics/sink';
 
 /** Meta: the web's "keep this page open" note was dismissed (U9). */
 const WEB_NOTE_KEY = 'web_note_dismissed';
@@ -27,10 +28,10 @@ export function createReady(p: Pick<Ports, 'db' | 'recorder'>) {
   return {
     async load(): Promise<ReadyChoices> {
       const [mode, walks, note, captures] = await Promise.all([
-        p.db.getMeta(START_MODE_KEY).catch(() => null),
-        p.db.listWalks().catch(() => [] as Walk[]),
-        p.db.getMeta(WEB_NOTE_KEY).catch(() => null),
-        p.db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(facedAll).catch(() => null),
+        p.db.getMeta(START_MODE_KEY).catch(fallback('lib/ready/shell · load', null, 'what getMeta read')),
+        p.db.listWalks().catch(fallback('lib/ready/shell · load', [] as Walk[], 'what listWalks read')),
+        p.db.getMeta(WEB_NOTE_KEY).catch(fallback('lib/ready/shell · load', null, 'what getMeta read')),
+        p.db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(facedAll).catch(fallback('lib/ready/shell · load', null, 'what then read')),
       ]);
       return { mode: parseStartMode(mode), firstWalk: walks.length === 0, webNoteOff: !!note, captures };
     },

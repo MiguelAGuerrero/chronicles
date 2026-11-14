@@ -8,6 +8,7 @@ import { filesOf, filesOfMoments, isMedia, mediaRemoveText, pieceDeleteText, sta
 import { createPending } from './pending';
 import { createDeleteRunner } from './runner';
 import { isPendingJob, isPendingJobs } from './saved';
+import { caught, fallback } from '../diagnostics/sink';
 
 /**
  * Clearing walks and moments (D1-D11): the app's one Undo window, wired to
@@ -38,7 +39,7 @@ void db
     const jobs = isPendingJobs(saved) ? saved : isPendingJob(saved) ? [saved] : [];
     return jobs.length ? deletions.resume(jobs) : undefined;
   })
-  .catch(() => {});
+  .catch(caught('cache', 'lib/deletion/index · module'));
 
 /** What a walk's actions would take, for the confirm (D4, D11). */
 export interface WalkPlan {
@@ -86,7 +87,7 @@ export function removeWalkMedia(plan: WalkPlan) {
 
 /** What deleting one moment would say (D4). */
 export async function planMoment(c: Faced): Promise<ConfirmText> {
-  const bytes = await mediaBytes(filesOfMoments([c])).catch(() => 0);
+  const bytes = await mediaBytes(filesOfMoments([c])).catch(fallback('lib/deletion/index · planMoment', 0, 'what mediaBytes read'));
   // A moment holding more than one piece is named as the moment, with every piece's size (MS13).
   return hasMore(c) ? stackDeleteText(bytes) : momentDeleteText(c.kind, bytes);
 }
@@ -108,7 +109,7 @@ export function deletePiece(m: Faced, pieceId: string, kind: CaptureKind) {
 /** What deleting one piece, or a stacked moment, would say (MS13). */
 export async function planPiece(m: Faced, pieceId: string): Promise<ConfirmText> {
   const p = m.pieces.find((x) => x.id === pieceId);
-  return pieceDeleteText(p?.kind ?? m.kind, await mediaBytes(filesOf(p ? [p] : [])).catch(() => 0));
+  return pieceDeleteText(p?.kind ?? m.kind, await mediaBytes(filesOf(p ? [p] : [])).catch(fallback('lib/deletion/index · planPiece', 0, 'what mediaBytes read')));
 }
 
 /**

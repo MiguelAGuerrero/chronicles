@@ -2,7 +2,7 @@ import { type Faced, faced, facedAt, hasMore, pieceKey } from '../lib/moment';
 import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
-import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
@@ -55,6 +55,8 @@ import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
+import { caught } from '../lib/diagnostics/sink';
+import { pausePlayer as pauseMemo, seekPlayer as seekMemo } from '../lib/playerControls';
 
 export { useMediaUri };
 
@@ -78,13 +80,6 @@ const REFUSED_MOVE_ON_MS = 4000;
 
 /** A trimmed memo's player reports every 100 ms, so it stops at the end handle, not up to half a second late (VT6). */
 const TRIMMED_PLAYER = { updateInterval: 100 };
-// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
-function seekMemo(player: AudioPlayer, s: number) {
-  void player.seekTo(s);
-}
-function pauseMemo(player: AudioPlayer) {
-  player.pause();
-}
 
 /**
  * A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. A trimmed memo
@@ -507,7 +502,7 @@ export function CaptureViewer(props: {
     if (!props.remind || !listKey) return;
     let alive = true;
     // Only live ones: a reminder past its end shows as none, as on its pin (audit 1).
-    db.listRecalls().then((rs) => alive && setRecalls(new Map(liveRecalls(rs, Date.now()).map((r) => [r.capture_id, r]))), () => {});
+    db.listRecalls().then((rs) => alive && setRecalls(new Map(liveRecalls(rs, Date.now()).map((r) => [r.capture_id, r]))), caught('cache', 'components/CaptureView · CaptureViewer'));
     return () => {
       alive = false;
     };
@@ -1121,7 +1116,7 @@ export function CaptureViewer(props: {
                     setMenu(false);
                     const m = moment;
                     const { piece_id: _f, ...rest } = m;
-                    void split.split({ id: rest.id, walk_id: rest.walk_id, t: rest.t, lat: rest.lat, lon: rest.lon, segment_id: rest.segment_id, pieces: rest.pieces }, current.piece_id).catch(() => {});
+                    void split.split({ id: rest.id, walk_id: rest.walk_id, t: rest.t, lat: rest.lat, lon: rest.lon, segment_id: rest.segment_id, pieces: rest.pieces }, current.piece_id).catch(caught('cache', 'components/CaptureView · CaptureViewer'));
                     setPieceAt({ moment: m.id, i: Math.max(0, pi - 1) });
                   }}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}

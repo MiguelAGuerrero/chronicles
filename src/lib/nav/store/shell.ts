@@ -4,6 +4,7 @@ import { NAV_KEY, navValue, pendingDest } from '../../startPlan';
 import { leaningsIn } from '../scenic';
 import type { LngLat } from '../../types';
 import type { Waypoint } from '../types';
+import { fallback, report } from '../../diagnostics/sink';
 
 /** Meta: the spot chosen with Walk back here, for one walk (DW7). */
 const WAY_BACK_KEY = 'way_back';
@@ -27,16 +28,14 @@ export function createNavStore(p: Pick<Ports, 'db'>) {
         const { leanings, ...dest } = v.dest;
         const kept = leaningsIn(leanings);
         return kept.length ? { ...dest, leanings: kept } : dest;
-      } catch {
-        return null;
-      }
+      } catch (caughtError) { report('cache', 'lib/nav/store/shell · loadNav', caughtError); return null; }
     },
     async clearNav(): Promise<void> {
       await p.db.setMeta(NAV_KEY, '');
     },
     /** The drawer's destination, before a walk (NV23); null clears it. */
     async loadPendingDest(): Promise<Waypoint | null> {
-      return pendingDest(await p.db.getMeta(NAV_KEY).catch(() => null));
+      return pendingDest(await p.db.getMeta(NAV_KEY).catch(fallback('lib/nav/store/shell · loadPendingDest', null, 'what getMeta read')));
     },
     async savePendingDest(dest: Waypoint | null): Promise<void> {
       await p.db.setMeta(NAV_KEY, dest ? navValue(null, dest) : '');
@@ -56,9 +55,7 @@ export function createNavStore(p: Pick<Ports, 'db'>) {
       try {
         const v = JSON.parse((await p.db.getMeta(WAY_BACK_KEY)) || 'null') as { walk_id: string; at: LngLat } | null;
         return v && v.walk_id === walkId && Array.isArray(v.at) && v.at.length === 2 && v.at.every(Number.isFinite) ? v.at : null;
-      } catch {
-        return null;
-      }
+      } catch (caughtError) { report('cache', 'lib/nav/store/shell · loadWayBack', caughtError); return null; }
     },
     /** Stop clears it (DW7). */
     async clearWayBack(): Promise<void> {

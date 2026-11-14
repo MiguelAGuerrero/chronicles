@@ -1,5 +1,6 @@
 // @layer shell
 import { THUMB, thumbEdge, thumbName, type ThumbCapture } from './thumbPlan';
+import { fallback } from './diagnostics/sink';
 
 /**
  * Making a photo's small copy (TH1-TH5): the job, with its platform parts
@@ -31,7 +32,7 @@ export function thumbJob(c: ThumbCapture, deps: ThumbDeps, name: string = thumbN
   if (running) return running;
   const job = (async () => {
     if (!c.file_path) return null;
-    const uri = await deps.resolve(c.file_path).catch(() => null);
+    const uri = await deps.resolve(c.file_path).catch(fallback('lib/thumbJob · thumbJob', null, 'what resolve read'));
     if (!uri) return null;
     let out: { uri: string; release(): void } | null = null;
     try {

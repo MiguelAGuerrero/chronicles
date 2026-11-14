@@ -15,6 +15,7 @@ import type { StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
+import { useReducedMotion } from '../../lib/motion';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { ceremonyFor } from '../../lib/ceremony/registry';
@@ -28,6 +29,7 @@ import { useHidden } from '../../lib/deletion/useDeletions';
 import { useUnits } from '../../lib/useUnits';
 import { UndoToast } from '../../components/UndoToast';
 import type { LngLat } from '../../lib/types';
+import { caught, fallback } from '../../lib/diagnostics/sink';
 
 /** The drawn trace is rebuilt at most this often; the walker moves every frame. */
 const TRACE_STEP_MS = 66;
@@ -57,7 +59,7 @@ export default function DayReplay() {
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
   // A load that threw is shown by the screen's error boundary, never as an empty day (NV2).
   const [failure, setFailure] = useState<unknown>(null);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const reduceMotion = useReducedMotion();
   const [srMode, setSrMode] = useState(false);
   // The beat and its start time change together, as the walk replay's do.
   const [phase, setPhase] = useState<{ beat: 'loading' | 'path' | 'card'; t0: number }>(() => ({ beat: 'loading', t0: Date.now() }));
@@ -70,10 +72,7 @@ export default function DayReplay() {
   const hidden = useHidden();
 
   useEffect(() => {
-    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
-    const a = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => a.remove();
+    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(caught('refused', 'app/day/[key] · DayReplay'));
   }, []);
 
   useEffect(() => {
@@ -83,7 +82,7 @@ export default function DayReplay() {
       const [walks, inDay, summaries] = await Promise.all([
         db.listWalks(),
         db.momentsBetween(dayStart(key), nextDayStart(key)).then(facedAll),
-        db.listSummaries().catch(() => []),
+        db.listSummaries().catch(fallback('app/day/[key] · DayReplay', [], 'what listSummaries read')),
       ]);
       const from = dayStart(key);
       const to = nextDayStart(key);
@@ -105,11 +104,11 @@ export default function DayReplay() {
       const plays = new Map<string, ReplayData>();
       for (const e of day.entries) {
         if (e.kind !== 'walk') continue;
-        const r = await loadReplay(e.walk.id).catch(() => null);
+        const r = await loadReplay(e.walk.id).catch(fallback('app/day/[key] · DayReplay', null, 'what loadReplay read'));
         if (!r) continue;
         plays.set(e.walk.id, r);
       }
-      const watched = (await db.getMeta(watchedKey(day.key)).catch(() => null)) != null;
+      const watched = (await db.getMeta(watchedKey(day.key)).catch(fallback('app/day/[key] · DayReplay', null, 'what getMeta read'))) != null;
       if (!alive) return;
       setData({
         day,

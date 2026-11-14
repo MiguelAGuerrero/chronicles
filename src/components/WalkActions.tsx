@@ -10,6 +10,7 @@ import { ConfirmCard } from './ConfirmCard';
 import { Icon } from './icons';
 import { Modal } from './Modal';
 import { Button, theme } from './ui';
+import { caught } from '../lib/diagnostics/sink';
 
 export type RenamePatch = { title: string | null; epilogue: string | null };
 
@@ -50,7 +51,7 @@ export function WalkActions(props: {
         setFailed(!p);
         if (p) void walkLogText(walkId, p.walk.started_at).then((text) => {
           if (live) logText.current = text;
-        }, () => {});
+        }, caught('cache', 'components/WalkActions · WalkActions'));
       })
       .catch(() => live && setFailed(true));
     return () => {

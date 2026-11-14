@@ -12,6 +12,7 @@ import { fromLine, toMomentViews } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
+import { fallback } from '../../lib/diagnostics/sink';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 const PAGE = 40;
@@ -72,11 +73,11 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
   const candidates = found.shown.map((i) => byId.get(i.id)).filter((v): v is MomentView => !!v);
 
   const addTo = async (threadId: string) => {
-    const ok = await threads.addToThread(threadId, props.moment.id).catch(() => false);
+    const ok = await threads.addToThread(threadId, props.moment.id).catch(fallback('components/threads/AddToThread · addTo', false, 'what addToThread read'));
     props.onDone(ok ? 'Connected' : 'Could not connect', ok);
   };
   const joinWith = async (other: MomentView) => {
-    const id = await threads.startThread([props.moment.id, other.id]).catch(() => null);
+    const id = await threads.startThread([props.moment.id, other.id]).catch(fallback('components/threads/AddToThread · joinWith', null, 'what startThread read'));
     props.onDone(id ? 'Connected' : 'Could not connect', !!id);
   };
   return (

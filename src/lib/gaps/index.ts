@@ -7,6 +7,7 @@ import { deriveSegments, type RoadFeature } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { GapDecision } from '../types';
 import { decisionFor, GAP_RULES, gapKey, gapsOf, inferGap, readBounds, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
+import { fallback } from '../diagnostics/sink';
 
 /**
  * Filling gaps' reads (G8, G10, G12). A gap's streets are read in code from
@@ -38,7 +39,7 @@ export async function readGap(walkId: string, g: Gap): Promise<Inference | null 
   const job = (async () => {
     const want = readBounds(g);
     const padded = boundsOf([[want[0], want[1]], [want[2], want[3]]], PIECE_PAD_M)!;
-    const features = await fetchTiles(url, tilesIn(padded)).catch(() => null);
+    const features = await fetchTiles(url, tilesIn(padded)).catch(fallback('lib/gaps/index · readGap', null, 'what fetchTiles read'));
     if (!features) return undefined;
     const segments = deriveSegments(features.roads, features.names, build);
     // The pieces read are cached like any other street read (fog, navigation).
@@ -73,7 +74,7 @@ export interface WalkStretches {
 export async function walkStretches(walkId: string, tr: ReadTrace, opts: { read: boolean }): Promise<WalkStretches> {
   const gaps = gapsOf(tr);
   if (!gaps.length) return { stretches: [], gaps, unread: false };
-  const decisions = await db.getGapDecisions(walkId).catch(() => [] as GapDecision[]);
+  const decisions = await db.getGapDecisions(walkId).catch(fallback('lib/gaps/index · walkStretches', [] as GapDecision[], 'what getGapDecisions read'));
   const undecided = gaps.filter((g) => !decisionFor(g, decisions));
   const inferred: Inference[] = [];
   let unread = false;
@@ -91,7 +92,7 @@ export async function walkStretches(walkId: string, tr: ReadTrace, opts: { read:
 export async function readDrawTiles(tiles: [number, number][]): Promise<{ roads: RoadFeature[]; names: RoadFeature[]; build: string } | null> {
   const [build, url] = await Promise.all([db.getMeta('tile_build'), db.getMeta('tile_url')]);
   if (!build || !url || !tiles.length) return null;
-  const f = await fetchTiles(url, tiles).catch(() => null);
+  const f = await fetchTiles(url, tiles).catch(fallback('lib/gaps/index · readDrawTiles', null, 'what fetchTiles read'));
   return f ? { roads: f.roads, names: f.names, build } : null;
 }
 

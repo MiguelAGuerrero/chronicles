@@ -2,6 +2,7 @@
 import type { Archive } from '../activity/release';
 import { junctionsFromOvertureTile, waysFromOvertureTile } from './overtureSegments';
 import type { WalkSource } from './types';
+import { fallback } from '../diagnostics/sink';
 
 /*
  * Overture's transportation tiles, the primary walkability source (WK1): the network side. One release's
@@ -17,7 +18,7 @@ export function createOvertureSource(o: { release: () => Promise<string | null>;
   let archive: { release: string; file: Archive } | null = null;
   return {
     async read(x, y, signal) {
-      const release = await o.release().catch(() => null);
+      const release = await o.release().catch(fallback('lib/walk/overtureSource · read', null, 'what release read'));
       if (!release) return null;
       if (archive?.release !== release) archive = { release, file: o.open(release) };
       const file = archive.file;

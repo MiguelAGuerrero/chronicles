@@ -9,6 +9,7 @@ import { startErrorFrom, type StartError } from './recorder/types';
 import { startWalk } from './session';
 import { parseStartMode, START_MODE_KEY, startPlan, walkHerePlan, type StartMode } from './startPlan';
 import { showWalk } from './walkNav';
+import { fallback } from './diagnostics/sink';
 
 export type { StartError };
 
@@ -44,14 +45,14 @@ export function useStartWalk() {
         setError({ message: 'A voice memo is recording. Save it first.' });
         return null;
       }
-      const open = await db.getOpenWalk().catch(() => null);
+      const open = await db.getOpenWalk().catch(fallback('lib/useStartWalk · start', null, 'what getOpenWalk read'));
       const here = walkHerePlan(open?.id ?? null, dest);
       if (here.kind !== 'start') {
         if (here.kind === 'route') for (const [k, v] of here.meta) await db.setMeta(k, v);
         if (!opts?.inPlace) showWalk();
         return {};
       }
-      const chosen = mode ?? parseStartMode(await db.getMeta(START_MODE_KEY).catch(() => null));
+      const chosen = mode ?? parseStartMode(await db.getMeta(START_MODE_KEY).catch(fallback('lib/useStartWalk · start', null, 'what getMeta read')));
       const { walk, warning } = await startWalk();
       const plan = startPlan({ walkId: walk.id, now: Date.now(), mode: chosen, dest, warning });
       for (const [k, v] of plan.meta) await db.setMeta(k, v);
@@ -64,7 +65,7 @@ export function useStartWalk() {
       setError(said);
       opts?.onError?.(said);
       // In place, a walk that opened before its plan failed shows the error on the walk (audit 10).
-      if (opts?.inPlace && (await db.getOpenWalk().catch(() => null))) return { error: said.message };
+      if (opts?.inPlace && (await db.getOpenWalk().catch(fallback('lib/useStartWalk · start', null, 'what getOpenWalk read')))) return { error: said.message };
       return null;
     } finally {
       setStarting(false);

@@ -3,6 +3,7 @@ import type { Collector } from '../finish';
 import { placeAll, withTimeout } from '../placeAll';
 import { createStore, type Store } from '../store';
 import type { Walk } from '../types';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** A walk's street tiles, then its wider read of places; past these the tiles are not answering. */
 const LIMITS = { collect: 60_000, places: 20_000 };
@@ -49,7 +50,7 @@ export function createBacklog(d: BacklogDeps): { placeBacklog: PlaceBacklog; sta
   const begun = new Set<string>();
   const run: PlaceBacklog = async (all, opts) => {
     const walks = all.filter((w) => !begun.has(w.id));
-    if ((await d.tileBuild().catch(() => 'unknown')) === 'unknown') return { placed: [], failed: walks.map((w) => w.id) };
+    if ((await d.tileBuild().catch(fallback('lib/backlog/shell · run', 'unknown', 'what tileBuild read'))) === 'unknown') return { placed: [], failed: walks.map((w) => w.id) };
     const byId = new Map(walks.map((w) => [w.id, w]));
     return placeAll(
       walks.map((w) => w.id),
@@ -76,7 +77,7 @@ export function createBacklog(d: BacklogDeps): { placeBacklog: PlaceBacklog; sta
   let last: Promise<unknown> = Promise.resolve();
   const placeBacklog: PlaceBacklog = (walks, opts) => {
     // A pass whose screen left while it waited places nothing (audit 10).
-    const pass = last.catch(() => {}).then(() => (opts.stopped?.() ? { placed: [], failed: [] } : run(walks, opts)));
+    const pass = last.catch(caught('cache', 'lib/backlog/shell · placeBacklog')).then(() => (opts.stopped?.() ? { placed: [], failed: [] } : run(walks, opts)));
     last = pass;
     return pass;
   };

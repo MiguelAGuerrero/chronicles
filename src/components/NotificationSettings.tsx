@@ -4,6 +4,7 @@ import { db } from '../lib/db';
 import { loadNoticePrefs, NOTICE_KINDS, notifier, saveNoticePrefs, type NoticePrefs, type Permission } from '../lib/notify';
 import { SwitchRow } from './SwitchRow';
 import { Button, theme } from './ui';
+import { caught } from '../lib/diagnostics/sink';
 
 /** What the section says about permission (NT5), per platform; nothing when it is granted. */
 function permissionNote(p: Permission | null, dismissed: boolean): string | null {
@@ -41,7 +42,7 @@ export function NotificationSettings(props: { heading?: boolean } = {}) {
   useEffect(() => {
     let alive = true;
     notifier.permission().then((p) => alive && setPerm(p), () => {});
-    loadNoticePrefs().then((p) => alive && setPrefs(p), () => {});
+    loadNoticePrefs().then((p) => alive && setPrefs(p), caught('cache', 'components/NotificationSettings · NotificationSettings'));
     return () => {
       alive = false;
     };
@@ -57,7 +58,7 @@ export function NotificationSettings(props: { heading?: boolean } = {}) {
   const set = (next: NoticePrefs) => {
     setPrefs(next);
     saveNoticePrefs(next).catch(() => {});
-    db.getOpenWalk().then((w) => notifier.prefsChanged(next, w?.id ?? null), () => {});
+    db.getOpenWalk().then((w) => notifier.prefsChanged(next, w?.id ?? null), caught('cache', 'components/NotificationSettings · set'));
   };
   if (!prefs) return null;
   const blocked = perm === 'unsupported' || perm === 'denied';

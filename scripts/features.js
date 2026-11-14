@@ -65,7 +65,7 @@ const FEATURES = [
     name: 'streets',
     about: 'streets derived from tiles, the fog, snapping, tile builds',
     rule: 'streets-fog-snapping',
-    source: ['src/lib/{streets,snapper,finish,tiles,tileMath,tileBuild,mapReads}.ts', 'src/lib/discovery/{tileDecode,tileFetch}.ts', 'src/lib/db/segmentBounds.ts'],
+    source: ['src/lib/{streets,streetMidpoint,snapper,finish,tiles,tileMath,tileBuild,mapReads}.ts', 'src/lib/discovery/{tileDecode,tileFetch}.ts', 'src/lib/db/segmentBounds.ts'],
     journeys: [],
     specs: ['concept'],
   },
@@ -235,6 +235,7 @@ const FEATURES = [
       'src/components/Capture*.tsx',
       'src/components/{Caption,Baker}*.tsx',
       'src/lib/media/**',
+      'src/lib/playerControls.ts',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
       'src/lib/split/**',
       // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.

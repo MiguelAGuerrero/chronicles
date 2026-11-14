@@ -21,6 +21,7 @@ import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
 import { SEGMENT_BATCH, type Db } from './types';
 import { parseEdit } from '../mediaEdit';
 import { momentOf, type Flat } from '../moment';
+import { caught, report } from '../diagnostics/sink';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
@@ -199,7 +200,7 @@ function conn(): Promise<IDBDatabase> {
           d.close();
           // This tab's code is older than the database now: it cannot open it again.
           dbPromise = Promise.reject(new Error('A newer version of Chronicles is open in another tab. Reload this page to keep going.'));
-          dbPromise.catch(() => {});
+          dbPromise.catch(caught('cache', 'lib/db/index · conn'));
         };
         d.onclose = () => {
           dbPromise = null;
@@ -245,12 +246,10 @@ async function atomically(tx: IDBTransaction, body: () => Promise<void>): Promis
   try {
     await body();
   } catch (e) {
-    finished.catch(() => {});
+    finished.catch(caught('cache', 'lib/db/index · atomically'));
     try {
       tx.abort();
-    } catch {
-      // already finished
-    }
+    } catch (caughtError) { report('cache', 'lib/db/index · atomically', caughtError); }
     throw e;
   }
   return finished;
@@ -676,7 +675,7 @@ export const db: Db = {
     const tx = (await conn()).transaction('find', 'readwrite');
     // The first find of a place stands.
     tx.objectStore('find').add(f).onerror = (e) => e.preventDefault();
-    return committed(tx).catch(() => {});
+    return committed(tx).catch(caught('cache', 'lib/db/index · addFind'));
   },
   async listFinds(walkId) {
     return (walkId ? await byWalk<Find>('find', walkId) : ((await done((await store('find')).getAll())) as Find[]));

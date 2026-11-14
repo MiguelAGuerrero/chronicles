@@ -9,6 +9,7 @@ import type { Moment } from '../types';
 import { createStore, type Store } from '../store';
 import { pick, rowsFor, setsOf, type ReactionId, type ReactionSet } from './core';
 import { lensIds, lensMoments, lensRows, type LensGroup } from './lens';
+import { caught } from '../diagnostics/sink';
 
 export type ReactionsState = { sets: ReadonlyMap<string, ReactionSet>; loaded: boolean };
 
@@ -29,7 +30,7 @@ export function createReactions(p: Pick<Ports, 'db' | 'clock'>) {
   let chain: Promise<unknown> = Promise.resolve();
   const queued = <T>(fn: () => Promise<T>): Promise<T> => {
     const run = chain.then(fn, fn);
-    chain = run.catch(() => {});
+    chain = run.catch(caught('cache', 'lib/reactions/shell · queued'));
     return run;
   };
 

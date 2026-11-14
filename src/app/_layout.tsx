@@ -19,6 +19,7 @@ import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
 import { loadUnits } from '../lib/unitsStore';
 import { routeLeanings } from '../lib/routeLeanings';
+import { caught } from '../lib/diagnostics/sink';
 
 /** The tabs are the stack's first screen, so a walk or a replay always has them beneath. */
 export const unstable_settings = { initialRouteName: '(tabs)' };
@@ -53,13 +54,13 @@ export default function RootLayout() {
     // Memos and videos play with the ringer switch off, wherever they are opened.
     setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
     // Notices a new map build early, so the fog on the walk screen is never stale.
-    ensureTileBuild().catch(() => {});
+    ensureTileBuild().catch(caught('cache', 'app/_layout · RootLayout'));
     // The km or miles setting (QL13); until it loads, the locale's default shows.
-    loadUnits().catch(() => {});
+    loadUnits().catch(caught('cache', 'app/_layout · RootLayout'));
     // The scenic routes' leanings (SR1); until they load, all three are on.
-    routeLeanings.load().catch(() => {});
+    routeLeanings.load().catch(caught('cache', 'app/_layout · RootLayout'));
     // Memos kept before are read in the background, once the phone can and nothing records (TX2).
-    backfillTranscripts().catch(() => {});
+    backfillTranscripts().catch(caught('cache', 'app/_layout · RootLayout'));
     openWalkAtLaunch({
       findOpen: () => db.getOpenWalk(),
       showWalk: () =>

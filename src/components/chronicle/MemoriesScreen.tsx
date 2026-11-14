@@ -2,10 +2,9 @@ import { reactions } from '../../lib/reactions';
 import { useReactions } from '../../lib/reactions/useReactions';
 import { infoOf, type ReactionId } from '../../lib/reactions/core';
 import type { LensGroup } from '../../lib/reactions/lens';
-import { faced } from '../../lib/moment';
+import { faced, type Faced } from '../../lib/moment';
 import { ReactionsScreen } from '../reactions/ReactionsScreen';
 import { LensScreen } from '../reactions/LensScreen';
-import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -47,6 +46,7 @@ import { useThreads } from '../../lib/threads/useThreads';
 import { MyThreads, type MyThreadRow } from '../threads/MyThreads';
 import { OwnThreadScreen } from '../threads/OwnThreadScreen';
 import { ThreadMomentMenu } from '../threads/ThreadMomentMenu';
+import { caught, fallback } from '../../lib/diagnostics/sink';
 
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
@@ -169,13 +169,13 @@ export function MemoriesScreen() {
       (async () => {
         const open = await resurface.openWalk();
         if (!live) return;
-        if (open && (await recallWaiting().catch(() => false))) {
+        if (open && (await recallWaiting().catch(fallback('components/chronicle/MemoriesScreen · MemoriesScreen', false, 'what recallWaiting read')))) {
           showWalk();
           return;
         }
-        const found = open ? [] : await takeRecallOpen().catch(() => [] as Faced[]);
+        const found = open ? [] : await takeRecallOpen().catch(fallback('components/chronicle/MemoriesScreen · MemoriesScreen', [] as Faced[], 'what takeRecallOpen read'));
         if (live && found.length) setRecalled(found);
-      })().catch(() => {});
+      })().catch(caught('cache', 'components/chronicle/MemoriesScreen · MemoriesScreen'));
       return () => {
         live = false;
       };
@@ -381,7 +381,7 @@ export function MemoriesScreen() {
           onOpen={open}
           onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
           onMore={(m) => setOwnMenuFor(m.id)}
-          onRename={(name) => void threads.rename(own.id, name).catch(() => {})}
+          onRename={(name) => void threads.rename(own.id, name).catch(caught('cache', 'components/chronicle/MemoriesScreen · MemoriesScreen'))}
           onDelete={() => {
             // At once, with Undo (UC4): a thread can be brought back until the pill is closed.
             setOwnId(null);
@@ -415,7 +415,7 @@ export function MemoriesScreen() {
                 setThreadTerm(null);
                 setOwnId(id);
               }
-            }).catch(() => {}).finally(() => {
+            }).catch(caught('cache', 'components/chronicle/MemoriesScreen · MemoriesScreen')).finally(() => {
               keeping.current = false;
             });
           }}
@@ -641,7 +641,7 @@ export function MemoriesScreen() {
           setViewing(null);
           // A reply made from the viewer is a new moment: Memories and the threads read again.
           void resurface.refresh();
-          threads.load().catch(() => {});
+          threads.load().catch(caught('cache', 'components/chronicle/MemoriesScreen · MemoriesScreen'));
         }}
         thread={own ? { id: own.id, name: own.name } : null}
         heads={headsOf(viewing)}
@@ -664,7 +664,7 @@ export function MemoriesScreen() {
           // a reply made there reaches the journal as the journal's own viewer's does (reactions audit 9).
           if (lens) readLens(lens);
           void resurface.refresh();
-          threads.load().catch(() => {});
+          threads.load().catch(caught('cache', 'components/chronicle/MemoriesScreen · MemoriesScreen'));
         }}
         heads={headsOf(lensViews?.map((v) => v.capture) ?? null)}
         remind

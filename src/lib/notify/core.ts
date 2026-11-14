@@ -1,4 +1,5 @@
 // @layer core
+import type { DiagnosticKind } from '../diagnostics/core';
 /*
  * Notifications, the platform-neutral part (v1 slice 6, NT3). The app says
  * what to notify; a NoticeTransport says how, on its platform:
@@ -112,27 +113,41 @@ export interface Notifier {
   test(): Promise<{ permission: Permission; shown: boolean }>;
 }
 
+/** Where a refusal or a fallback is recorded (the diagnostics sink in the app, decision 0179). */
+type Report = (kind: DiagnosticKind, place: string, e: unknown) => void;
+const noReport: Report = () => undefined;
+/** A refusal from the platform, recorded; the caller carries on (EH8). */
+const refused = (r: Report, what: string) => (e: unknown) => r('refused', `notify · ${what}`, e);
+/** A value in place of what the platform would not say, recorded (EH10). */
+const instead = <T,>(r: Report, what: string, value: T) => (e: unknown): T => {
+  r('fallback', `notify · ${what}`, e);
+  return value;
+};
+/** The notice Test shows. */
+const TEST_NOTICE: Notice = { kind: 'test', id: 'test', title: 'A memory from here', body: 'This is how a reminder looks when you pass a flagged capture.', inFront: true };
+
 export function createNotifier(o: {
   transport: NoticeTransport;
   prefs: () => Promise<NoticePrefs>;
   onOpen: (captureIds: string[]) => void;
   onStop: (captureIds: string[]) => void;
+  report?: Report;
 }): Notifier {
-  const t = o.transport;
-  t.onResponse((r) => {
-    const route = routeResponse(r);
-    t.cancel(r.id).catch(() => {});
+  const { transport: t, report: r = noReport } = o;
+  t.onResponse((res) => {
+    const route = routeResponse(res);
+    t.cancel(res.id).catch(refused(r, 'cancel'));
     if (route?.kind === 'stop') o.onStop(route.captureIds);
     else if (route?.kind === 'open') o.onOpen(route.captureIds);
   });
   /** Granted now, asking first only when `ask` (a tap in front). */
   const allowed = async (ask: boolean) => {
-    const p = await t.permission().catch((): Permission => 'unsupported');
+    const p = await t.permission().catch(instead<Permission>(r, 'permission', 'unsupported'));
     if (p === 'granted') return true;
     if (!ask || p !== 'default') return false;
-    return (await t.request().catch((): Permission => 'denied')) === 'granted';
+    return (await t.request().catch(instead<Permission>(r, 'request', 'denied'))) === 'granted';
   };
-  const on = async (kind: keyof NoticePrefs) => (await o.prefs().catch(() => DEFAULT_NOTICE_PREFS))[kind];
+  const on = async (kind: keyof NoticePrefs) => (await o.prefs().catch(instead(r, 'prefs', DEFAULT_NOTICE_PREFS)))[kind];
   return {
     async pauseStarted(walkId) {
       if (!(await on('pause')) || !(await allowed(true))) return;
@@ -142,7 +157,7 @@ export function createNotifier(o: {
       );
     },
     async pauseEnded(walkId) {
-      await t.cancel(pauseId(walkId)).catch(() => {});
+      await t.cancel(pauseId(walkId)).catch(refused(r, 'cancel'));
     },
     async recall(text, captureIds, walkId) {
       // From the background (the location task, a hidden page): never a prompt.
@@ -157,28 +172,22 @@ export function createNotifier(o: {
       });
     },
     async walkEnded(walkId) {
-      for (const id of [recallId(walkId), pauseId(walkId)]) await t.cancel(id).catch(() => {});
+      for (const id of [recallId(walkId), pauseId(walkId)]) await t.cancel(id).catch(refused(r, 'cancel'));
     },
     async ask(kind) {
       if (!kind || (await on(kind))) await allowed(true);
-      return t.permission().catch((): Permission => 'unsupported');
+      return t.permission().catch(instead<Permission>(r, 'permission', 'unsupported'));
     },
     async prefsChanged(prefs, openWalkId) {
-      if (!prefs.pause && openWalkId) await t.cancel(pauseId(openWalkId)).catch(() => {});
+      if (!prefs.pause && openWalkId) await t.cancel(pauseId(openWalkId)).catch(refused(r, 'cancel'));
     },
-    permission: () => t.permission().catch((): Permission => 'unsupported'),
+    permission: () => t.permission().catch(instead<Permission>(r, 'permission', 'unsupported')),
     async test() {
       let shown = false;
       if (await allowed(true)) {
-        shown = await t.show({
-          kind: 'test',
-          id: 'test',
-          title: 'A memory from here',
-          body: 'This is how a reminder looks when you pass a flagged capture.',
-          inFront: true,
-        }).catch(() => false);
+        shown = await t.show(TEST_NOTICE).catch(instead(r, 'show', false));
       }
-      return { permission: await t.permission().catch((): Permission => 'unsupported'), shown };
+      return { permission: await t.permission().catch(instead<Permission>(r, 'permission', 'unsupported')), shown };
     },
   };
 }

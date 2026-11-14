@@ -4,6 +4,7 @@ import { facedAll, facedAt, type Faced } from '../moment';
 import type { Ports } from '../ports/types';
 import { createStore } from '../store';
 import { editedThumbName, THUMB, wantsThumb, type MadeStill } from '../thumbPlan';
+import { caught, fallback } from '../diagnostics/sink';
 
 /**
  * Every preview's small copies (video thumbnails VS2, VS6, VS9; the audit's 1-4, 9): a photo's copy or a video's
@@ -28,7 +29,7 @@ export function createThumbs(p: Pick<Ports, 'db'>, deps: ThumbsDeps) {
   const put = (pieceId: string, still: MadeStill) => store.set((s) => ({ made: { ...s.made, [pieceId]: still } }));
   const drop = (refs: (string | null | undefined)[]) => {
     const files = refs.filter((r): r is string => !!r && r !== THUMB.none && !r.startsWith('data:'));
-    if (files.length) void deps.remove(files).catch(() => {});
+    if (files.length) void deps.remove(files).catch(caught('cache', 'lib/thumbs/shell · drop'));
   };
   const pieceOf = async (momentId: string, pieceId: string): Promise<Faced | null> => {
     const fresh = (await p.db.getMomentsByIds([momentId]).then(facedAll))[0];
@@ -77,7 +78,7 @@ export function createThumbs(p: Pick<Ports, 'db'>, deps: ThumbsDeps) {
      */
     remake(momentId: string, pieceId: string, edit: MediaEdit | null): Promise<void> {
       return enqueue(async () => {
-        const piece = await pieceOf(momentId, pieceId).catch(() => null);
+        const piece = await pieceOf(momentId, pieceId).catch(fallback('lib/thumbs/shell · remake', null, 'what pieceOf read'));
         if (!piece || piece.kind !== 'video') return;
         const old = piece.thumb_path ?? null;
         let ref: string | null = null;

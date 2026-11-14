@@ -7,6 +7,7 @@ import type { LngLat } from '../types';
 import { readBusyAround, rememberedAreas } from './busy';
 import { perfCount, perfMark } from '../perfCount';
 import { busyReadDue, drawnAreas, needsBusyRead, needsListing, triedAfter, type BusyHold } from './state';
+import { fallback } from '../diagnostics/sink';
 
 /** Two listings of the remembered areas hold the same rows: the same keys, each read at the same time. */
 const sameRows = (a: readonly LandingRow[], b: readonly LandingRow[]) =>
@@ -73,7 +74,7 @@ export function useBusyLayer(
       const v = version.current;
       if (needsListing({ listed: listed.current, version: v }) || (!!centre && needsBusyRead(list, centre))) {
         perfCount('busy:list');
-        const [fresh, b] = await Promise.all([rememberedAreas(), ensureTileBuild().catch(() => null)]);
+        const [fresh, b] = await Promise.all([rememberedAreas(), ensureTileBuild().catch(fallback('lib/layers/useBusyLayer · useBusyLayer', null, 'what ensureTileBuild read'))]);
         if (!live) return;
         listed.current = v;
         list = fresh;

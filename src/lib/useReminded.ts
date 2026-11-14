@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { nextExpiry, remindedIds } from './discovery/recall';
 import { onRecallsChanged, readRecalls } from './discovery/recallCheck';
+import { caught } from './diagnostics/sink';
 
 const NONE: ReadonlySet<string> = new Set();
 /** setTimeout's ceiling (about 24.8 days); a later end re-arms from there. */
@@ -31,7 +32,7 @@ export function useReminded(): ReadonlySet<string> {
         const end = nextExpiry(rs, now);
         // `until` is the last live moment: re-read just after it.
         timer = end == null ? null : setTimeout(read, Math.min(end - now + 1, MAX_DELAY_MS));
-      }, () => {});
+      }, caught('cache', 'lib/useReminded · read'));
     };
     read();
     const off = onRecallsChanged(read);

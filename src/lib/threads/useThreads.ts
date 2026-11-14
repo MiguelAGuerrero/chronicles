@@ -5,6 +5,7 @@ import { useStore } from '../useStore';
 import { threads } from './index';
 import { visibleThreads } from './rules';
 import type { ThreadsData } from './types';
+import { caught } from '../diagnostics/sink';
 
 /**
  * The owner's threads as a screen shows them: read when a screen mounts, read again once a delete reached
@@ -16,9 +17,9 @@ export function useThreads(): { data: ThreadsData; loaded: boolean; reload: () =
   const hidden = useHidden();
   // Read once: every write goes through the shell, which keeps the store, and a delete reloads it (owner-threads audit 10).
   useEffect(() => {
-    if (!threads.store.get().loaded) void threads.load().catch(() => {});
+    if (!threads.store.get().loaded) void threads.load().catch(caught('cache', 'lib/threads/useThreads · useThreads'));
   }, []);
-  useOnDeleted(() => void threads.load().catch(() => {}));
+  useOnDeleted(() => void threads.load().catch(caught('cache', 'lib/threads/useThreads · useThreads')));
   const data = useMemo(() => visibleThreads(raw, hidden), [raw, hidden]);
-  return { data, loaded, reload: () => void threads.load().catch(() => {}) };
+  return { data, loaded, reload: () => void threads.load().catch(caught('cache', 'lib/threads/useThreads · reload')) };
 }

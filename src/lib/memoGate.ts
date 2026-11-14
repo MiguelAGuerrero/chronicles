@@ -1,4 +1,5 @@
 // @layer shell
+import { caught } from './diagnostics/sink';
 /**
  * Whether a voice memo is recording anywhere (Navigate's row, the walk
  * screen), and the saves still under way (tabs audit 3). A walk never starts
@@ -18,7 +19,7 @@ export function createMemoGate() {
     keep(p: Promise<unknown>) {
       const settled = p.then(
         () => {},
-        () => {},
+        caught('cache', 'lib/memoGate · keep'),
       );
       keeps.add(settled);
       void settled.then(() => keeps.delete(settled));
@@ -40,10 +41,15 @@ export function createMemoGate() {
     track(p: Promise<unknown>) {
       const settled = p.then(
         () => {},
-        () => {},
+        caught('cache', 'lib/memoGate · track'),
       );
       saves.add(settled);
       void settled.then(() => saves.delete(settled));
+    },
+    /** Tracks a save and hands it back, for a caller that awaits it (tabs audit 3). */
+    tracked<T>(p: Promise<T>): Promise<T> {
+      this.track(p);
+      return p;
     },
     /** True once every save under way has ended and no memo records. */
     async readyToStart(): Promise<boolean> {

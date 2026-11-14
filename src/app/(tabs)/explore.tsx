@@ -67,6 +67,8 @@ import { COMPLEX_STYLE, complexMap } from '../../lib/complexes/mapLayer';
 import { useComplexes, useHiddenKinds } from '../../lib/complexes/useComplexes';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
 import { useTabMap } from '../../lib/useTabMap';
+import { caught } from '../../lib/diagnostics/sink';
+import { usePressHint } from '../../lib/atlas/usePressHint';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
 export { TabScreenError as ErrorBoundary } from '../../components/ScreenError';
@@ -74,14 +76,10 @@ export { TabScreenError as ErrorBoundary } from '../../components/ScreenError';
 const NONE: never[] = [];
 const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
-/** Meta: the long press was used once, so its hint stops showing (atlas round 3). */
-const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const BUSY_NAMES_ZOOM = 13;
 /** audit 11: Explore's controls over the map, whose room no busy name takes. */
 const NAMES_CLEAR_OF = ['atlas-title-card', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
-/** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
-const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
 const SPOT_H = 68;
 /** From this width the area's card opens as a side panel beside the map; narrower, as a full-screen drawer. */
@@ -126,7 +124,7 @@ export default function Explore() {
     nearReads('neighborhood').then((n) => {
       const mine = listedAround(n, ATLAS_RULES.nearNeighborhoodM);
       if (live && mine) setYou((f) => f ?? mine.at);
-    }, () => {});
+    }, caught('cache', 'app/(tabs)/explore · Explore'));
     return () => {
       live = false;
     };
@@ -164,24 +162,7 @@ export default function Explore() {
   // `ask` is a far Walk here's question, asked before anything starts (FL12, decision 0121).
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number; ask?: 'ask' | 'later' } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [pressSeen, setPressSeen] = useState(true);
-  // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not.
-  const hintShown = !pressSeen && !spot && !!from;
-  useEffect(() => {
-    if (!hintShown) return;
-    const t = setTimeout(() => {
-      setPressSeen(true);
-      db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
-    }, HINT_MS);
-    return () => clearTimeout(t);
-  }, [hintShown]);
-  useEffect(() => {
-    let live = true;
-    db.getMeta(PRESS_HINT_KEY).then((v) => live && setPressSeen(v === '1'), () => {});
-    return () => {
-      live = false;
-    };
-  }, []);
+  const pressHint = usePressHint(db, !spot && !!from);
   // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
   const fixSeen = useRef(getLastFix()?.t ?? 0);
   const mapRef = useRef<WalkMapHandle>(null);
@@ -296,7 +277,7 @@ export default function Explore() {
       setStale(false);
       // FL17: a fix that arrives while Move map is on or a look stands only becomes `you`; it moves nothing.
       if (!lookedRef.current && !freeRef.current) frame([r.at], ATLAS_RULES.ringM);
-    }, () => {});
+    }, caught('cache', 'app/(tabs)/explore · Explore'));
   }, [focused, frame]);
 
   const ownTown: Listed | null = useMemo(() => {
@@ -640,7 +621,7 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : !pressSeen && !spot && from && !creditsOpen ? (
+  ) : pressHint.shown && !creditsOpen ? (
     // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1).
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
@@ -686,10 +667,7 @@ export default function Explore() {
               return;
             }
             setSpot({ at, zoom: view?.zoom ?? 0 });
-            if (!pressSeen) {
-              setPressSeen(true);
-              db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
-            }
+            if (!pressHint.seen) pressHint.markSeen();
           }}
           onPress={(at) => {
             // One thing a tap (whole-towns audit 9): close the Layers panel, else the long press's choices, else zoom

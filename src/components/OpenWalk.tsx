@@ -9,6 +9,7 @@ import { useLiveStretches, type LiveStretches } from '../lib/gaps/useLiveStretch
 import { createLatestLoader } from '../lib/openWalkLoad';
 import { onWalkChange } from '../lib/walkEvents';
 import { useWalkMotion } from '../lib/walkMotion';
+import { caught } from '../lib/diagnostics/sink';
 
 /**
  * The open walk, kept above the tabs and the walk screen (NV8): a minimized
@@ -86,7 +87,7 @@ export function OpenWalkProvider(props: { children: ReactNode }) {
   useEffect(() => {
     const at = live.here;
     if (!walkId || !at || Platform.OS !== 'web') return;
-    checkRecalls(walkId, [at]).catch(() => {});
+    checkRecalls(walkId, [at]).catch(caught('cache', 'components/OpenWalk · OpenWalkProvider'));
   }, [walkId, live.here]);
 
   const value = useMemo<OpenWalkState>(() => ({ ...open, live, gaps }), [open, live, gaps]);

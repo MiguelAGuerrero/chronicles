@@ -2,6 +2,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { createVideoPlayer, type VideoPlayer } from 'expo-video';
 import type { SharedRef } from 'expo-modules-core/types';
+import { report } from '../diagnostics/sink';
 
 /**
  * Moves a captured file into the app's Documents folder, which iOS backs up
@@ -36,9 +37,7 @@ export function dropTemp(tempUri: string | null) {
   try {
     const f = new File(tempUri);
     if (f.exists) f.delete();
-  } catch {
-    // already gone
-  }
+  } catch (caughtError) { report('cache', 'lib/media/index · dropTemp', caughtError); }
 }
 
 const fileOf = (ref: string) => (ref.startsWith('file://') ? new File(ref) : new File(Paths.document, ref));
@@ -78,18 +77,14 @@ export async function mediaBytes(refs: string[], walkFolders: string[] = []): Pr
   for (const id of walkFolders) {
     try {
       n += folderOf(id)?.size ?? 0;
-    } catch {
-      // unreadable: not counted
-    }
+    } catch (caughtError) { report('cache', 'lib/media/index · mediaBytes', caughtError); }
   }
   for (const ref of refs) {
     if (inFolder(ref)) continue;
     try {
       const f = fileOf(ref);
       if (f.exists) n += f.size;
-    } catch {
-      // unreadable: not counted
-    }
+    } catch (caughtError) { report('cache', 'lib/media/index · mediaBytes', caughtError); }
   }
   return n;
 }
@@ -138,9 +133,7 @@ export async function probeVideoSize(uri: string): Promise<{ w: number; h: numbe
     await whenReady(player);
     const [frame] = await player.generateThumbnailsAsync([0]);
     return frame?.width && frame.height ? { w: frame.width, h: frame.height } : null;
-  } catch {
-    return null;
-  } finally {
+  } catch (caughtError) { report('cache', 'lib/media/index · probeVideoSize', caughtError); return null; } finally {
     player.release();
   }
 }

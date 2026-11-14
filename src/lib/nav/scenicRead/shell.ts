@@ -12,6 +12,7 @@ import { tilesIn } from '../../tileMath';
 import type { LngLat, StreetSegment } from '../../types';
 import { SCENIC } from '../rules';
 import { corridorBounds, greenFromTiles, sightsFrom, type Signals } from '../scenicSignals';
+import { fallback } from '../../diagnostics/sink';
 
 /** One read of the corridor: its streets, and what a scenic route leans toward. */
 export interface ScenicRead {
@@ -42,7 +43,7 @@ export function createScenicRead(p: Pick<Ports, 'db'>, io: ScenicIo) {
         if (tiles.length > SCENIC.maxTiles) return null;
         const [features, overture] = await Promise.all([
           io.fetchTiles(url, tiles, undefined, shouldStop),
-          io.readOverture(tiles, shouldStop).catch(() => null),
+          io.readOverture(tiles, shouldStop).catch(fallback('lib/nav/scenicRead/shell · read', null, 'what readOverture read')),
         ]);
         if (shouldStop()) return null;
         const segments = deriveSegments(features.roads, features.names, build);
@@ -53,9 +54,9 @@ export function createScenicRead(p: Pick<Ports, 'db'>, io: ScenicIo) {
         const centre: LngLat = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
         const busy = gradeStreets({ centre, points, segments }).graded.map((g) => ({ name: g.name, grade: g.grade, lines: g.lines }));
         // PK18: read as the switches read it, so a choice saved before a kind existed hides what it hid.
-        const [off, known] = await Promise.all([meta.get('explore_hidden').catch(() => null), meta.get('explore_kinds_known').catch(() => null)]);
+        const [off, known] = await Promise.all([meta.get('explore_hidden').catch(fallback('lib/nav/scenicRead/shell · read', null, 'what get read')), meta.get('explore_kinds_known').catch(fallback('lib/nav/scenicRead/shell · read', null, 'what get read'))]);
         const hidden = parseHidden(off ? JSON.stringify(off) : null, known ? JSON.stringify(known) : null);
-        const found = new Set((await p.db.listFinds().catch(() => [])).map((f) => f.key));
+        const found = new Set((await p.db.listFinds().catch(fallback('lib/nav/scenicRead/shell · read', [], 'what listFinds read'))).map((f) => f.key));
         const green = greenFromTiles(features.landcover ?? [], places.filter((x) => x.category === 'parks'));
         if (shouldStop()) return null;
         return { segments, signals: { green, sights: sightsFrom(places, hidden, found), busy } };

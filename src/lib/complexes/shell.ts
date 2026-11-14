@@ -6,6 +6,7 @@ import { inArea } from './mapLayer';
 import { complexAt, COMPLEX_NEAR_DEG } from './place';
 import { complexesFrom, hasIncomplete } from './rule';
 import type { BuildingPiece, Complex, ComplexSource, ComplexStore, PlaceIn } from './types';
+import { fallback } from '../diagnostics/sink';
 
 /**
  * Reads, judges and keeps complexes (CX12, CX14, CX16). `readArea` is the only thing that touches the network (through the
@@ -60,7 +61,7 @@ export function createComplexes(p: { source: ComplexSource; store: ComplexStore;
       const complexes = complexesFrom(allPieces, held.flatMap(([, v]) => v.places), readTiles, release);
       const fresh = complexes.filter((c) => !stored.has(`${release}/${c.id}/${c.code}`));
       if (fresh.length) {
-        const ok = await p.store.putComplexes(fresh).then(() => true, () => false);
+        const ok = await p.store.putComplexes(fresh).then(() => true, fallback('lib/complexes/shell · readArea', false, 'what putComplexes read'));
         if (ok) for (const c of fresh) stored.add(`${release}/${c.id}/${c.code}`);
       }
       // Partial when the budget cut the tiles, a wanted tile did not read, or a building needs a tile that was never read (complexes audit 2).

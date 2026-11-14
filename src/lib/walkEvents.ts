@@ -1,4 +1,5 @@
 // @layer shell
+import { caught } from './diagnostics/sink';
 /**
  * The open walk changed (NV8): started, paused, resumed or stopped. The
  * keeper of the open walk, mounted above the tabs, reads it again, so the
@@ -17,5 +18,5 @@ export function onWalkChange(fn: Listener): () => void {
 
 /** Resolves once every listener has read the change. */
 export async function notifyWalkChanged(): Promise<void> {
-  await Promise.all([...listeners].map((l) => Promise.resolve(l()).catch(() => {})));
+  await Promise.all([...listeners].map((l) => Promise.resolve(l()).catch(caught('cache', 'lib/walkEvents · notifyWalkChanged'))));
 }

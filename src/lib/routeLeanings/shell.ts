@@ -2,6 +2,7 @@
 import { LEANINGS, leaningsIn, type Leaning } from '../nav/scenic';
 import type { Ports } from '../ports/types';
 import { createStore } from '../store';
+import { fallback } from '../diagnostics/sink';
 
 /** Meta: the leanings switched on for scenic routes (SR1). Unset, all three are on. */
 export const ROUTE_LEANINGS_KEY = 'route_leanings';
@@ -15,7 +16,7 @@ export function createRouteLeanings(p: Pick<Ports, 'db'>) {
   return {
     store,
     async load(): Promise<void> {
-      const raw = await p.db.getMeta(ROUTE_LEANINGS_KEY).catch(() => null);
+      const raw = await p.db.getMeta(ROUTE_LEANINGS_KEY).catch(fallback('lib/routeLeanings/shell · load', null, 'what getMeta read'));
       let v: unknown = null;
       try {
         v = raw ? JSON.parse(raw) : null;

@@ -2,6 +2,7 @@
 import type { Ports } from '../ports/types';
 import { createStore } from '../store';
 import { persistLine, shouldSay, spaceLevel, spaceLine, type SpaceLevel, type SpaceProbe } from './core';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** Meta: the level last said beside the captures (SA4); cleared when the room is back above low. */
 export const SAID_KEY = 'space_said';
@@ -34,7 +35,7 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
   let chain: Promise<unknown> = Promise.resolve();
   const serial = <T>(fn: () => Promise<T>): Promise<T> => {
     const next = chain.then(fn, fn);
-    chain = next.catch(() => {});
+    chain = next.catch(caught('cache', 'lib/space/shell · serial'));
     return next;
   };
 
@@ -45,14 +46,14 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
   // Meta read once, then kept here; an unreadable or failed read is nothing said, nothing asked.
   const loadSaid = async () => {
     if (said === undefined) {
-      const v = await p.db.getMeta(SAID_KEY).catch(() => null);
+      const v = await p.db.getMeta(SAID_KEY).catch(fallback('lib/space/shell · loadSaid', null, 'what getMeta read'));
       said = v === 'low' || v === 'very-low' ? v : null;
     }
     return said;
   };
   const loadPersist = async () => {
     if (persist === undefined) {
-      const v = await p.db.getMeta(PERSIST_KEY).catch(() => null);
+      const v = await p.db.getMeta(PERSIST_KEY).catch(fallback('lib/space/shell · loadPersist', null, 'what getMeta read'));
       persist = v === 'due' || v === 'refused' || v === 'asked' ? v : null;
     }
     return persist;
@@ -98,7 +99,7 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
   /** Asks the browser once to keep the app's data (SA10); a phone has nothing to ask. */
   async function ask() {
     await setPersist('asked');
-    const granted = await probe.persist().catch(() => null);
+    const granted = await probe.persist().catch(fallback('lib/space/shell · ask', null, 'what persist read'));
     if (granted === false) await setPersist('refused');
   }
 

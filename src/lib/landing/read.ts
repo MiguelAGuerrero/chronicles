@@ -11,6 +11,7 @@ import { centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyz
 import { keyFor, LANDING_VERSION, replacesRow, type LandingRow } from './view';
 import { placesArchive } from '../discovery/archive';
 import { offPage } from './runOffPage';
+import { fallback } from '../diagnostics/sink';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
@@ -28,7 +29,7 @@ export async function readAround(url: string, build: string, at: LngLat, shouldS
   const [bodies, overture, archive] = await Promise.all([
     fetchTileBodies(url, tiles, undefined, shouldStop),
     withOverture ? readOverture(tiles, shouldStop) : null,
-    placesArchive.read(tiles, at, shouldStop).catch(() => null),
+    placesArchive.read(tiles, at, shouldStop).catch(fallback('lib/landing/read · readAround', null, 'what read read')),
   ]);
   if (shouldStop()) throw new Cancelled();
   // Decoding, the streets, the places and the measure run off the page on the web (DC7, DC13), between turns on native (DC11).
@@ -54,12 +55,12 @@ export async function readAround(url: string, build: string, at: LngLat, shouldS
  */
 export async function readArea(pressed: LngLat, shouldStop: () => boolean): Promise<AreaRead> {
   try {
-    const build = await ensureTileBuild().catch(() => 'unknown');
+    const build = await ensureTileBuild().catch(fallback('lib/landing/read · readArea', 'unknown', 'what ensureTileBuild read'));
     const url = await db.getMeta('tile_url');
     if (!url || build === 'unknown') return { ok: false, reason: 'failed' };
     // The towns first, from a coarse z11 read of the 3 km around: a z14 read of the area alone
     // would miss a city 2-3 km off (audit). Without it, the pressed spot is the centre.
-    const wide = await fetchTiles(url, tilesIn(boundsOf([pressed], LANDING_RULES.townM)!, TOWNS_ZOOM), TOWNS_ZOOM, shouldStop).catch(() => null);
+    const wide = await fetchTiles(url, tilesIn(boundsOf([pressed], LANDING_RULES.townM)!, TOWNS_ZOOM), TOWNS_ZOOM, shouldStop).catch(fallback('lib/landing/read · readArea', null, 'what fetchTiles read'));
     if (shouldStop()) return { ok: false, reason: 'cancelled' };
     const centre = centreFor(pressed, wide ? placesFromTiles(wide.places) : []);
     const read = await readAround(url, build, centre, shouldStop, true, centre);
@@ -72,7 +73,7 @@ export async function readArea(pressed: LngLat, shouldStop: () => boolean): Prom
 
 /** Saves an analyzed area as a remembered one, replacing any centred within 1 km (L12). */
 export async function rememberArea(centre: LngLat, analysis: AreaAnalysis, build: string, overture: string | null): Promise<LandingRow> {
-  const known = await db.listLandings().catch(() => []);
+  const known = await db.listLandings().catch(fallback('lib/landing/read · rememberArea', [], 'what listLandings read'));
   const key = keyFor(known, centre);
   const existing = known.find((r) => r.key === key);
   if (existing && !replacesRow(existing, overture)) return existing;

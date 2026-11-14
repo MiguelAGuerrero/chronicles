@@ -10,6 +10,7 @@ import { isPendingJobs } from './deletion/saved';
 import type { PendingJob } from './deletion/pending';
 import { isGalleryView } from './gallery/view';
 import type { GalleryView } from './gallery/types';
+import { report } from './diagnostics/sink';
 
 /**
  * Every key in the meta store, with its owner and how its value is encoded.
@@ -57,9 +58,7 @@ function json<T>(valid: (v: unknown) => boolean): Codec<T> {
       try {
         const v: unknown = JSON.parse(raw);
         return valid(v) ? (v as T) : null;
-      } catch {
-        return null;
-      }
+      } catch (caughtError) { report('cache', 'lib/meta · decode', caughtError); return null; }
     },
   };
 }

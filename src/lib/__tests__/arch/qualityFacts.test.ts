@@ -318,7 +318,7 @@ export function noStills(p: number[], fills: number[]) {
   ]);
 });
 
-test('EH12 a fallback without the handler is swallowed; one through it is not', { todo: 'test first' }, () => {
+test('EH12 a fallback without the handler is swallowed; one through it is not', () => {
   const root = tree({
     'src/lib/reads.ts': `// @layer shell
 import { fallback } from './diagnostics/sink';

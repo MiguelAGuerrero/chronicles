@@ -1,4 +1,5 @@
 // @layer shell
+import { caught } from './diagnostics/sink';
 /**
  * Placing walks in their areas one pass at a time (v0.5 places, criterion 25),
  * and a time limit on a promise. A shell: it keeps the pass under way and sets
@@ -57,6 +58,6 @@ export function placeAll(
   running = pass;
   pass.finally(() => {
     if (running === pass) running = null;
-  }).catch(() => {});
+  }).catch(caught('cache', 'lib/placeAll · placeAll'));
   return pass;
 }

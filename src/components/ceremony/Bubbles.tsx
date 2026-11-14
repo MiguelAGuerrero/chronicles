@@ -1,4 +1,4 @@
-import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BubbleOverlay } from '../../lib/ceremony/types';
@@ -11,6 +11,7 @@ import { Skeleton } from './Skeleton';
 import { useMediaWait } from './useMediaWait';
 import { plainNote } from '../../lib/refs';
 import { memoLengthMs, memoLengthText, voiceClock, voiceSpan, voiceState, wholeMs } from '../../lib/voiceTrim';
+import { seekPlayer as seekMemo } from '../../lib/playerControls';
 
 const BARS = 22;
 /** A waveform's bar heights, fixed per memo: a picture of a voice, not a measurement. */
@@ -24,10 +25,6 @@ function bars(id: string): number[] {
 
 /** A trimmed memo reports every 100 ms, so it stops at its end handle, not up to half a second late (VT7). */
 const TRIMMED_PLAYER = { updateInterval: 100 };
-// Module level: the compiler lint does not see a player mutated in a component.
-function seekMemo(player: AudioPlayer, s: number) {
-  void player.seekTo(s);
-}
 
 /** A memo plays while its bubble says so, and stops when held (RR10, RR7). A refused start leaves the play button to tap. */
 function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {

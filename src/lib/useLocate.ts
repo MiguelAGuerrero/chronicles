@@ -6,6 +6,7 @@ import { locateOnce } from './locate';
 import { locateNotice, type LocateError } from './locate/notice';
 import type { LocateResult } from './locate/types';
 import type { LngLat } from './types';
+import { fallback } from './diagnostics/sink';
 
 export type { LocateError } from './locate/notice';
 
@@ -43,7 +44,7 @@ export function useLocate(handlers: { onFix: (at: LngLat) => void; onError: (e: 
     running.current = true;
     setBusy(true);
     locateOnce(undefined, { fresh: true })
-      .catch(() => ({ at: null, reason: 'unavailable' as const }))
+      .catch(fallback('lib/useLocate · useLocate', ({ at: null, reason: 'unavailable' as const }), 'what locateOnce read'))
       .then((r) => {
         running.current = false;
         if (!alive.current) return;

@@ -25,6 +25,7 @@ import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import { stampFor } from './pieceStamp';
 import type { Capture, CaptureKind, LngLat, Moment } from './types';
+import { caught, fallback } from './diagnostics/sink';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
 /** A voice memo shorter than this was an accidental tap. */
@@ -194,7 +195,7 @@ export function useCaptures(
     const left = spare.current;
     spare.current = null;
     // Aged from when it was read, never from when its entry was emptied (audit 5).
-    s.locating = left && spareFresh(left.at, clockNow()) ? left.fix : locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    s.locating = left && spareFresh(left.at, clockNow()) ? left.fix : locateOnce().catch(fallback('lib/useCaptures · startLocating', ({ at: null, reason: 'unavailable' as const }), 'what locateOnce read'));
   };
   /** The location read of the moment begun last, on its way or answered, and the moments an emptied line removed (JN12, JN13). */
   const lastLocate = useRef<{ id: string; fix: Promise<LocateResult>; at: number } | null>(null);
@@ -234,7 +235,7 @@ export function useCaptures(
     const c = faced(m);
     // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
     const answers = stamp.replyTo !== undefined ? stamp.replyTo : replyTo.current;
-    if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
+    if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(caught('cache', 'lib/useCaptures · add'));
     // Without a fresh fix, it is stored unplaced (the trace places it at
     // stop), but pinned meanwhile at the last known position.
     const last = pos.current.here;
@@ -355,7 +356,7 @@ export function useCaptures(
       void db.getMomentsByIds([momentId]).then(([m]) => {
         const row = m?.pieces.find((x) => x.id === id) ?? null;
         if (!captureThumbStillWanted(row)) {
-          if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
+          if (thumb !== THUMB.none) void removeMedia([thumb]).catch(caught('cache', 'lib/useCaptures · thumbFor'));
           return;
         }
         const isFace = !!m && faced(m).piece_id === id;
@@ -367,7 +368,7 @@ export function useCaptures(
           },
           () => {},
         );
-      }, () => {});
+      }, caught('cache', 'lib/useCaptures · thumbFor'));
     });
   }
 
@@ -425,13 +426,8 @@ export function useCaptures(
   const voiceOn = useRef(false);
   const enqueue = <T,>(fn: () => Promise<T>): Promise<T> => {
     const run = queue.current.then(fn, fn);
-    queue.current = run.catch(() => {});
+    queue.current = run.catch(caught('cache', 'lib/useCaptures · enqueue'));
     return run;
-  };
-  /** A walk never starts while this memo is stopping and saving (tabs audit 3). */
-  const trackMemo = <T,>(p: Promise<T>): Promise<T> => {
-    memoGate.track(p);
-    return p;
   };
   const withBusy = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setBusy('voice');
@@ -510,7 +506,7 @@ export function useCaptures(
     const status = voice.getStatus();
     const wasRecording = voice.isRecording;
     if (wasRecording) {
-      await Promise.race([voice.stop(), new Promise((r) => setTimeout(r, STOP_TIMEOUT_MS))]).catch(() => {});
+      await Promise.race([voice.stop(), new Promise((r) => setTimeout(r, STOP_TIMEOUT_MS))]).catch(caught('cache', 'lib/useCaptures · stopRecorder'));
     }
     voiceOn.current = false;
     memoGate.recording(self, false);
@@ -529,7 +525,7 @@ export function useCaptures(
     const body = String(Math.round(m.ms));
     const id = await add('voice', m.stamp, kept, body);
     // Its words are read in the background, when the phone can; the memo is already kept and never waits (TX1).
-    if (id) void transcripts.enqueue({ id, moment_id: m.stamp.into ?? id, t: m.stamp.t, file_path: kept, body, edit: null }).catch(() => {});
+    if (id) void transcripts.enqueue({ id, moment_id: m.stamp.into ?? id, t: m.stamp.t, file_path: kept, body, edit: null }).catch(caught('cache', 'lib/useCaptures · saveMemo'));
   }
 
   /**
@@ -538,7 +534,7 @@ export function useCaptures(
    * dropped. A memo that fails to save is kept for retrySave.
    */
   const finishVoice = (): Promise<VoiceResult> =>
-    trackMemo(enqueue(() =>
+    memoGate.tracked(enqueue(() =>
       withBusy(async () => {
         if (!voiceOn.current) return 'none';
         const m = await stopRecorder();
@@ -581,7 +577,7 @@ export function useCaptures(
 
   /** Stops the memo in progress and sets it aside; it is deleted after UNDO_MS unless undone. */
   const discardVoice = (): Promise<VoiceResult> =>
-    trackMemo(enqueue(() =>
+    memoGate.tracked(enqueue(() =>
       withBusy(async () => {
         if (!voiceOn.current) return 'none';
         const m = await stopRecorder();
@@ -629,7 +625,7 @@ export function useCaptures(
     alive.current = true;
     return () => {
       alive.current = false;
-      if (voiceOn.current) finishRef.current().catch(() => {});
+      if (voiceOn.current) finishRef.current().catch(caught('cache', 'lib/useCaptures · useCaptures'));
     };
   }, []);
 
@@ -644,7 +640,7 @@ export function useCaptures(
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, c.piece_id));
     captureBus.patch(walkId, id, patch, self, c.piece_id);
     // A trim changed or reverted: the memo's words are for another span now, so they are read again (audit 4).
-    if ('edit' in patch) void rereadTranscript(id, c.piece_id).catch(() => {});
+    if ('edit' in patch) void rereadTranscript(id, c.piece_id).catch(caught('cache', 'lib/useCaptures · setEdit'));
   }
 
   /**

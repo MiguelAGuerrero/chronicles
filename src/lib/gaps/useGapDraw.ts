@@ -7,6 +7,7 @@ import type { LngLat } from '../types';
 import { addPoint, drawnLine, startDraw, undoPoint, type Draw, type DrawnLine } from './draw';
 import { readDrawTiles } from './index';
 import type { Gap } from './infer';
+import { fallback } from '../diagnostics/sink';
 
 /** The paths are read this far around each tap and each end of the gap (GW7). */
 const AROUND_M = 300;
@@ -61,7 +62,7 @@ export function useGapDraw(onKeep: (gap: Gap, line: DrawnLine) => Promise<void>,
     const mine = session.current;
     setReading((n) => n + 1);
     void readDrawTiles(want)
-      .catch(() => null)
+      .catch(fallback('lib/gaps/useGapDraw · useGapDraw', null, 'what readDrawTiles read'))
       .then((f) => {
         if (mine !== session.current) return;
         setReading((n) => Math.max(0, n - 1));

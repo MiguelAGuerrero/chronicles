@@ -6,6 +6,7 @@ import { boundsOf } from '../geo';
 import type { Ports } from '../ports/types';
 import { tileAt, tileRect, tilesIn, tilesNear } from '../tileMath';
 import type { LngLat } from '../types';
+import { fallback } from '../diagnostics/sink';
 
 /** Place points are read this far around the walk's middle, as the map's own wide read covers about a z10 view. */
 const PLACES_M = 10_000;
@@ -37,7 +38,7 @@ export function tileCollectorOf(p: Pick<Ports, 'db'> & { fetchTiles: typeof fetc
       return p.fetchTiles(await url(), tiles);
     },
     collectPlaces: async (center) => {
-      const f = await p.fetchTiles(await url(), tilesIn(boundsOf([center], PLACES_M)!, PLACES_ZOOM), PLACES_ZOOM).catch(() => null);
+      const f = await p.fetchTiles(await url(), tilesIn(boundsOf([center], PLACES_M)!, PLACES_ZOOM), PLACES_ZOOM).catch(fallback('lib/tileCollector/shell · collectPlaces', null, 'what fetchTiles read'));
       return f ? f.places : null;
     },
   };

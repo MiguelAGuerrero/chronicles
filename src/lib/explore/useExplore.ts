@@ -30,6 +30,7 @@ import { exploreBuild, exploreBusy, exploreHold, explorePending, exploreRead, it
 import { createCaptureFinds } from './exploreQueue';
 import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** Items are read again around you after this much walking. */
 const RELOAD_M = 500;
@@ -100,7 +101,7 @@ export function useExplore(opts: {
 
   useEffect(() => {
     let alive = true;
-    loadSettings().then((s) => alive && setSettings(s), () => {});
+    loadSettings().then((s) => alive && setSettings(s), caught('cache', 'lib/explore/useExplore · useExplore'));
     const off = onSettings((s) => setSettings(s));
     const readFinds = () =>
       db.listFinds().then((f) => {
@@ -123,14 +124,14 @@ export function useExplore(opts: {
   // What is known: checklists and reads, kept in memory and refreshed after each read.
   const known = useRef<{ areas: ChecklistArea[]; reads: ExploreRead[] } | null>(null);
   const loadKnown = useCallback(async () => {
-    known.current = { areas: await db.listChecklistAreas().catch(() => []), reads: await db.listExploreReads().catch(() => []) };
+    known.current = { areas: await db.listChecklistAreas().catch(fallback('lib/explore/useExplore · useExplore', [], 'what listChecklistAreas read')), reads: await db.listExploreReads().catch(fallback('lib/explore/useExplore · useExplore', [], 'what listExploreReads read')) };
     return known.current;
   }, []);
 
   const itemsAt = useRef<LngLat | null>(null);
   const loadItems = useCallback(async (at: LngLat) => {
     itemsAt.current = at;
-    const got = await db.checklistItemsIn(itemBounds(at)).catch(() => null);
+    const got = await db.checklistItemsIn(itemBounds(at)).catch(fallback('lib/explore/useExplore · useExplore', null, 'what checklistItemsIn read'));
     if (got && mounted.current) setItems(got);
   }, []);
 
@@ -166,9 +167,9 @@ export function useExplore(opts: {
       await placesArchive.refresh();
       let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
       if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
-        const rows = await db.listLandings().catch(() => []);
+        const rows = await db.listLandings().catch(fallback('lib/explore/useExplore · useExplore', [], 'what listLandings read'));
         // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
-        if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
+        if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(fallback('lib/explore/useExplore · useExplore', null, 'what ensureOvertureRelease read')))) centre = fix;
       }
       if (!centre) return false;
       if (latest.current.exploring) sweptAt.current.push(centre);
@@ -181,11 +182,11 @@ export function useExplore(opts: {
   const riding = !!opts.riding;
   useEffect(() => {
     if (!here || !opts.walkId) return;
-    if (!itemsAt.current || distanceM(itemsAt.current, here) >= RELOAD_M) loadItems(here).catch(() => {});
+    if (!itemsAt.current || distanceM(itemsAt.current, here) >= RELOAD_M) loadItems(here).catch(caught('cache', 'lib/explore/useExplore · useExplore'));
     if (riding) return;
     if (checkedAt.current && distanceM(checkedAt.current, here) < CHECK_M) return;
     checkedAt.current = here;
-    maybeRead(here).catch(() => {});
+    maybeRead(here).catch(caught('cache', 'lib/explore/useExplore · useExplore'));
   }, [here, riding, opts.walkId, loadItems, maybeRead]);
 
   // Switched to exploring: check at once, so busy streets a quiet read skipped come in now, not 25 m on.
@@ -193,7 +194,7 @@ export function useExplore(opts: {
     const at = latest.current.here;
     if (!exploring || !at || latest.current.riding) return;
     checkedAt.current = at;
-    maybeRead(at).catch(() => {});
+    maybeRead(at).catch(caught('cache', 'lib/explore/useExplore · useExplore'));
   }, [exploring, maybeRead]);
 
   // On the way (E22, E23): the areas along a new route are read, one each, then its items loaded.
@@ -220,7 +221,7 @@ export function useExplore(opts: {
         }
       });
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);
-      const got = box ? await db.checklistItemsIn(box).catch(() => []) : [];
+      const got = box ? await db.checklistItemsIn(box).catch(fallback('lib/explore/useExplore · useExplore', [], 'what checklistItemsIn read')) : [];
       if (alive && mounted.current) setRouteItems(got);
     })();
     return () => {
@@ -286,7 +287,7 @@ export function useExplore(opts: {
     if (!ids.length) return;
     for (const id of ids) asked.current.add(id);
     let alive = true;
-    db.getMomentsByIds(ids).then((ms) => alive && mounted.current && setElsewhere((e) => [...e, ...ms.map(faced)]), () => {});
+    db.getMomentsByIds(ids).then((ms) => alive && mounted.current && setElsewhere((e) => [...e, ...ms.map(faced)]), caught('cache', 'lib/explore/useExplore · useExplore'));
     return () => {
       alive = false;
     };

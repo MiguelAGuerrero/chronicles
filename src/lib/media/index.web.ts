@@ -1,5 +1,6 @@
 // @layer adapter
 import { mediaStore } from '../db/index.web';
+import { fallback } from '../diagnostics/sink';
 
 /**
  * The web fallback has no Documents folder. Captured media is kept as Blobs
@@ -72,7 +73,7 @@ export async function removeMedia(refs: string[], walkFolders: string[] = []): P
 
 /** Bytes the keys and walk folders hold, for "Frees about N MB" (D11). */
 export async function mediaBytes(refs: string[], walkFolders: string[] = []): Promise<number> {
-  return mediaStore.bytes(refs, folderKeys(walkFolders)).catch(() => 0);
+  return mediaStore.bytes(refs, folderKeys(walkFolders)).catch(fallback('lib/media/index · mediaBytes', 0, 'what bytes read'));
 }
 
 /**

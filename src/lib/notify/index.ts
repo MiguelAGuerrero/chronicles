@@ -4,6 +4,7 @@ import { db } from '../db';
 import { createNotifier } from './core';
 import { createNoticePrefs } from './prefs';
 import { transport } from './transport';
+import { caught, fallback, report } from '../diagnostics/sink';
 
 export { NOTICE_KINDS, PAUSE_REMIND_MS, type Notifier, type NoticePrefs, type Permission } from './core';
 export { NOTIFY_OFF_KEY } from './prefs';
@@ -19,13 +20,14 @@ export const { loadNoticePrefs, saveNoticePrefs } = createNoticePrefs({ db });
  */
 export const notifier = createNotifier({
   transport,
+  report,
   prefs: loadNoticePrefs,
   onOpen: (ids) => {
     // The screen in front opens it at once (audit 1); else it waits in meta for the next screen.
     (async () => {
       const { openRecall } = await import('../discovery/recallCheck');
       if (await openRecall(ids)) return;
-      const open = await db.getOpenWalk().catch(() => null);
+      const open = await db.getOpenWalk().catch(fallback('lib/notify/index · onOpen', null, 'what getOpenWalk read'));
       if (open) {
         // One walk screen, however many taps (tabs audit 1).
         const { showWalk } = await import('../walkNav');
@@ -34,9 +36,9 @@ export const notifier = createNotifier({
       }
       const { router } = await import('expo-router');
       router.navigate('/');
-    })().catch(() => {});
+    })().catch(caught('cache', 'lib/notify/index · onOpen'));
   },
   onStop: (ids) => {
-    import('../discovery/recallCheck').then(({ stopRecall }) => Promise.all(ids.map(stopRecall))).catch(() => {});
+    import('../discovery/recallCheck').then(({ stopRecall }) => Promise.all(ids.map(stopRecall))).catch(caught('cache', 'lib/notify/index · onStop'));
   },
 });

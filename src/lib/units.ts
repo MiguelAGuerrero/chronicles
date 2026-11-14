@@ -1,4 +1,5 @@
 // @layer shell
+import { report } from './diagnostics/sink';
 /**
  * Distances in km or miles (QL13): one setting, read synchronously by every
  * formatter. Pure: no React, no React Native, no db. `unitsStore.ts` loads
@@ -22,9 +23,7 @@ export function unitsForLocale(locale: string | undefined): Units {
 export function deviceLocale(): string | undefined {
   try {
     return Intl.DateTimeFormat().resolvedOptions().locale;
-  } catch {
-    return undefined;
-  }
+  } catch (caughtError) { report('cache', 'lib/units · deviceLocale', caughtError); return undefined; }
 }
 
 // km until the app's launch reads the saved setting or the device's region (`unitsStore.loadUnits`),

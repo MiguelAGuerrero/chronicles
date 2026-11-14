@@ -8,13 +8,14 @@ import { retryIn } from './extent';
 import { complexes } from './index';
 import { loadHiddenKinds, onHiddenKinds, saveHiddenKinds } from './settings';
 import type { Complex, ComplexKind } from './types';
+import { fallback } from '../diagnostics/sink';
 
 /** CX10: the kinds switched off, saved as they change. */
 export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKind[]) => void } {
   const [hidden, setHidden] = useState<ComplexKind[]>([]);
   useEffect(() => {
     let live = true;
-    void loadHiddenKinds().then((h) => live && setHidden(h), () => undefined);
+    void loadHiddenKinds().then((h) => live && setHidden(h), fallback('lib/complexes/useComplexes · useHiddenKinds', undefined, 'what loadHiddenKinds read'));
     const off = onHiddenKinds((h) => live && setHidden(h));
     return () => {
       live = false;
@@ -67,9 +68,9 @@ export function useComplexes(
         await still().settled();
         if (!live) return;
       }
-      const release = await ensureOvertureRelease().catch(() => null);
+      const release = await ensureOvertureRelease().catch(fallback('lib/complexes/useComplexes · useComplexes', null, 'what ensureOvertureRelease read'));
       if (!live) return;
-      const r = release ? await complexes.readArea({ at: [lon, lat], reachM }, release, () => !live).catch(() => null) : null;
+      const r = release ? await complexes.readArea({ at: [lon, lat], reachM }, release, () => !live).catch(fallback('lib/complexes/useComplexes · useComplexes', null, 'what readArea read')) : null;
       if (!live) return;
       if (!r || r.failed) {
         // Asked again when due, by the timer alone: a render now would only set it (smooth-switches SS9).

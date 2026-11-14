@@ -9,6 +9,7 @@ import { keptFixes, readTrace } from '../rides';
 import type { LngLat, TracePoint } from '../types';
 import { currentStatus, emit, setStatus, subscribe, subscribeStatus } from './emitter';
 import { RecorderError, type Recorder } from './types';
+import { caught, fallback } from '../diagnostics/sink';
 
 /**
  * Background recording through expo-location's task API.
@@ -43,7 +44,7 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
   if (!walk || !walk.open) {
     // In a headless relaunch with no open walk, updates outlived their walk
     // (the app died between stop and stopping updates): turn them off.
-    if (!currentWalk) await Location.stopLocationUpdatesAsync(TASK).catch(() => {});
+    if (!currentWalk) await Location.stopLocationUpdatesAsync(TASK).catch(caught('cache', 'lib/recorder/index · module'));
     return;
   }
   const points: TracePoint[] = data.locations
@@ -66,7 +67,7 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
     // the batch (the fix filter, outside pauses); in the background it is a
     // notification, in front the walk screen's card.
     // Read with the last two minutes before it, so a bus's fixes are a ride, not jumps (rides, R12).
-    const pauses = await db.getPauses(walk.id).catch(() => []);
+    const pauses = await db.getPauses(walk.id).catch(fallback('lib/recorder/index · module', [], 'what getPauses read'));
     if (tail.walkId !== walk.id) tail = { walkId: walk.id, points: [] };
     const newest = points.reduce((t, p) => Math.max(t, p.t), 0);
     tail.points = [...tail.points, ...points].filter((p) => p.t > newest - TAIL_MS);
@@ -75,7 +76,7 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
     const accepted = keptFixes(readTrace(tail.points, walk.started_at, pauses))
       .filter((p) => inBatch.has(p.t))
       .map((p) => [p.lon, p.lat] as LngLat);
-    if (accepted.length) await checkRecalls(walk.id, accepted).catch(() => false);
+    if (accepted.length) await checkRecalls(walk.id, accepted).catch(fallback('lib/recorder/index · module', false, 'what checkRecalls read'));
   } catch (e) {
     setStatus({ kind: 'error', message: `Positions could not be saved: ${e instanceof Error ? e.message : e}` });
   }
@@ -123,7 +124,7 @@ async function startUpdates() {
 
 // Location turned back on in Settings: pick the open walk back up on return.
 AppState.addEventListener('change', (state) => {
-  if (state === 'active' && currentWalk && currentStatus().kind === 'error') recorder.resume(currentWalk).catch(() => {});
+  if (state === 'active' && currentWalk && currentStatus().kind === 'error') recorder.resume(currentWalk).catch(caught('cache', 'lib/recorder/index · module'));
 });
 
 export const recorder: Recorder = {

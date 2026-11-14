@@ -12,6 +12,7 @@ import { walkBuild, walkReader } from '../walk/walkApp';
 import { deriveSegments } from '../streets';
 import { tilesIn, tilesNear } from '../tileMath';
 import { createPlanner } from './service';
+import { fallback } from '../diagnostics/sink';
 
 /** Tiles within this of a route are read for what lies on it (WK4), as for a route's heads-up. */
 const WAY_TILE_M = 100;
@@ -23,11 +24,11 @@ export const planner = createPlanner({
     // A little past the radius, so a street beside a cell at its edge is read too.
     const tiles = tilesIn(boundsOf([at], radiusM + 300)!);
     // presence-and-kinds audit 1: the places archive's places too, as the atlas ring reads them; any failure is none (PW3).
-    const [f, archive] = await Promise.all([fetchTiles(url, tiles), placesArchive.read(tiles, at, () => false).catch(() => null)]);
+    const [f, archive] = await Promise.all([fetchTiles(url, tiles), placesArchive.read(tiles, at, () => false).catch(fallback('lib/walkPlanner/app · read', null, 'what read read'))]);
     return { places: placesFromTilePois(f.pois, build ?? ''), archive: archive?.places ?? null, segments: deriveSegments(f.roads, f.names, build ?? '') };
   },
   async reach(path) {
-    const build = await walkBuild().catch(() => null);
+    const build = await walkBuild().catch(fallback('lib/walkPlanner/app · reach', null, 'what walkBuild read'));
     const read = await walkReader.read(tilesNear(path, WAY_TILE_M, MAX_TILES), build ?? 'unknown');
     if (!read.tiles.size) return { cars: [], unknown: true };
     const { segments, bands } = routeSegments(read.tiles);
@@ -44,10 +45,10 @@ export const planner = createPlanner({
 
 /** The open walk's id, or null (WP19, WP23). */
 export async function openWalkId(): Promise<string | null> {
-  return (await db.getOpenWalk().catch(() => null))?.id ?? null;
+  return (await db.getOpenWalk().catch(fallback('lib/walkPlanner/app · openWalkId', null, 'what getOpenWalk read')))?.id ?? null;
 }
 
 /** Whether the open walk has a destination set, which Start would replace (walk planner audit 16): meta `nav`, as it is held. */
 export async function navRaw(): Promise<string | null> {
-  return db.getMeta('nav').catch(() => null);
+  return db.getMeta('nav').catch(fallback('lib/walkPlanner/app · navRaw', null, 'what getMeta read'));
 }

@@ -12,6 +12,7 @@ import { walkBounds } from './finish';
 import { fillsOf, walkStretches, type Stretch } from './gaps';
 import type { Gap } from './gaps/infer';
 import type { LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
+import { fallback } from './diagnostics/sink';
 
 export interface ReplayData {
   walk: Walk;
@@ -61,11 +62,11 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   if (!walk) return null;
   // Standstills are drawn and replayed as a still dot, not GPS jitter.
   const pauses = await db.getPauses(walkId);
-  const stills = await db.getStills(walkId).catch(() => []);
+  const stills = await db.getStills(walkId).catch(fallback('lib/summary · loadReplay', [], 'what getStills read'));
   const points = await db.getPoints(walkId);
   const plain = readTrace(points, walk.started_at, pauses, stills);
   // Filled and kept stretches are walked trace; offered ones are drawn apart, faint (G6, G11).
-  const { stretches, gaps } = await walkStretches(walkId, plain, { read: !!opts.readGaps }).catch(() => ({ stretches: [] as Stretch[], gaps: [] as Gap[] }));
+  const { stretches, gaps } = await walkStretches(walkId, plain, { read: !!opts.readGaps }).catch(fallback('lib/summary · loadReplay', ({ stretches: [] as Stretch[], gaps: [] as Gap[] }), 'what walkStretches read'));
   const fills = fillsOf(stretches);
   const tr = withFilled(plain, fills);
   const fixes = smoothKept(tr);
@@ -89,20 +90,20 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
     .sort((a, b) => a.first_t - b.first_t);
   const summary = (await db.listSummaries()).find((s) => s.walk_id === walkId) ?? null;
   // Marks found before explore stay in their walks' replays (E14).
-  const marks = await db.listMarks(walkId).catch(() => [] as Mark[]);
-  const finds = await db.listFinds(walkId).catch(() => []);
+  const marks = await db.listMarks(walkId).catch(fallback('lib/summary · loadReplay', [] as Mark[], 'what listMarks read'));
+  const finds = await db.listFinds(walkId).catch(fallback('lib/summary · loadReplay', [], 'what listFinds read'));
   const found = [
     ...marks.filter((x) => x.state === 'found' && x.capture_id).map((x) => ({ capture_id: x.capture_id!, name: x.name, category: x.category, generic: x.generic })),
     ...finds.map((f) => ({ capture_id: f.capture_id, name: f.name, category: f.category, generic: f.generic, kind: f.kind })),
   ];
   // What it passed without stopping (E11, audit 9): only once it was exploring, only kinds shown, minus its own finds.
   let passed: ReplayData['passed'] = [];
-  const explored = await db.getMeta(exploredKey(walkId)).catch(() => null);
+  const explored = await db.getMeta(exploredKey(walkId)).catch(fallback('lib/summary · loadReplay', null, 'what getMeta read'));
   if (streetBounds && explored) {
     // '1' from before the audit: count from the start.
     const since = Number(explored) > 1 ? Number(explored) : 0;
-    const hidden = (await loadSettings().catch(() => null))?.hidden ?? new Set<Kind>();
-    const items = await db.checklistItemsIn(streetBounds).catch(() => []);
+    const hidden = (await loadSettings().catch(fallback('lib/summary · loadReplay', null, 'what loadSettings read')))?.hidden ?? new Set<Kind>();
+    const items = await db.checklistItemsIn(streetBounds).catch(fallback('lib/summary · loadReplay', [], 'what checklistItemsIn read'));
     passed = passedAlong({
       items, since, hidden,
       // Riding past names nothing (R12).
@@ -111,7 +112,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
     });
   }
   // The streets first walked here, as the summary counts them (named, none walked on an earlier walk).
-  const earlier = await db.streetKeysBefore(walk.started_at).catch(() => null);
+  const earlier = await db.streetKeysBefore(walk.started_at).catch(fallback('lib/summary · loadReplay', null, 'what streetKeysBefore read'));
   const newStreets = earlier
     ? [...new Set(visited.filter((v) => isNamedStreet(v.street_key) && !earlier.has(v.street_key)).sort((a, b) => a.first_t - b.first_t).map((v) => v.street_key))]
         .map((k) => k.slice('name:'.length))

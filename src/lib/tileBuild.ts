@@ -1,4 +1,5 @@
 // @layer shell
+import { fallback } from './diagnostics/sink';
 /**
  * Reads the served tile build from a TileJSON, within a time limit. Pure (no
  * db), so it can be tested. A phone's fetch can stall for minutes on a weak
@@ -31,7 +32,7 @@ export async function fetchTileBuild(
     if (!tile) return null;
     const m = /\/([0-9]{8}_[0-9A-Za-z_]+)\/\{z\}/.exec(tile);
     return { build: m ? m[1] : tile, url: tile };
-  })().catch(() => null);
+  })().catch(fallback('lib/tileBuild · fetchTileBuild', null, 'what was read'));
   try {
     return await Promise.race([read, late]);
   } finally {

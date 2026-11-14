@@ -3,13 +3,14 @@ import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { canBuzz } from './canBuzz';
 import { HAPTIC_PATTERNS, nudgeAllowed, webFeedbackPlays, type FeedbackKind, type HapticStep } from './motionTokens';
+import { caught } from './diagnostics/sink';
 
 const playStep = (s: HapticStep) => {
   const done =
     s.weight === 'light' ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     : s.weight === 'medium' ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     : Haptics.notificationAsync(s.weight === 'success' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
-  done.catch(() => {});
+  done.catch(caught('cache', 'lib/haptics · playStep'));
 };
 
 /**

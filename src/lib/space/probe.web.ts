@@ -1,5 +1,6 @@
 // @layer adapter
 import { homeScreenNamed, type SpaceProbe } from './core';
+import { fallback } from '../diagnostics/sink';
 
 type Nav = Navigator & { standalone?: boolean };
 const nav = (): Nav | undefined => (typeof navigator === 'undefined' ? undefined : (navigator as Nav));
@@ -19,7 +20,7 @@ export const probe: SpaceProbe = {
   async persist() {
     const s = nav()?.storage;
     if (!s?.persist) return null;
-    if (await s.persisted?.().catch(() => false)) return true;
+    if (await s.persisted?.().catch(fallback('lib/space/probe · persist', false, 'what persisted read'))) return true;
     return s.persist();
   },
   homeScreen() {

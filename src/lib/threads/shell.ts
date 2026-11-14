@@ -6,6 +6,7 @@ import type { Walk } from '../types';
 import { addChange, canMakeThread, cleanName, replyChange } from './rules';
 import type { ThreadsData } from './types';
 import { membershipKey, type PendingJob } from '../deletion/pending';
+import { caught } from '../diagnostics/sink';
 
 export interface ThreadsState {
   loaded: boolean;
@@ -49,7 +50,7 @@ export function createThreads(
       await deps.flush?.();
       return fn();
     });
-    writes = run.catch(() => {});
+    writes = run.catch(caught('cache', 'lib/threads/shell · serial'));
     return run;
   }
   const commit = async (change: Parameters<typeof p.db.applyThreads>[0]): Promise<ThreadsData> => {

@@ -1,5 +1,6 @@
 // @layer shell
 import { settleWithin } from './settleWithin';
+import { caught } from './diagnostics/sink';
 
 /**
  * An open walk at launch (NV2): the walk screen comes up straight away, with no
@@ -25,11 +26,11 @@ export async function openWalkAtLaunch(deps: {
     (w) => {
       open = w;
     },
-    () => {},
+    caught('cache', 'lib/launchWalk · openWalkAtLaunch'),
   );
   await settleWithin(read, deps.capMs);
   // A replace commits a frame later: lifting at once showed the tabs for that frame.
   if (open) await settleWithin(Promise.resolve(deps.showWalk()), deps.capMs);
   deps.lift();
-  await deps.resume().catch(() => {});
+  await deps.resume().catch(caught('cache', 'lib/launchWalk · openWalkAtLaunch'));
 }

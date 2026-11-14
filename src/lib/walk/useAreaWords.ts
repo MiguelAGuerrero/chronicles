@@ -6,6 +6,7 @@ import { FORM } from './form';
 import { tilesAround } from './layer';
 import { cellWords, countCells } from './summary';
 import { walkBuild, walkPlaces, walkReader } from './walkApp';
+import { fallback } from '../diagnostics/sink';
 
 export interface AreaWords {
   /** Still reading the tiles around. */
@@ -26,7 +27,7 @@ export function useAreaWords(centre: LngLat, radiusM: number, active: boolean): 
     if (!active) return;
     let live = true;
     void (async () => {
-      const build = await walkBuild().catch(() => null);
+      const build = await walkBuild().catch(fallback('lib/walk/useAreaWords · useAreaWords', null, 'what walkBuild read'));
       // The ring's cells each need their whole neighbourhood read: the ring and one neighbourhood beyond it.
       const tiles = tilesAround(centre, radiusM + FORM.radiusM);
       const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);

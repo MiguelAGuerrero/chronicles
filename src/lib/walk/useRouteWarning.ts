@@ -8,6 +8,7 @@ import { cellsFor } from './cells';
 import { routeSegments } from './layer';
 import { MAX_TILES } from './limits';
 import { aheadWatch, walkBuild, walkPlaces, walkReader } from './walkApp';
+import { fallback } from '../diagnostics/sink';
 
 /** Tiles within this of the route are read (WK4): the street under it, the footways beside, and a cell's whole neighbourhood (UF1). */
 const ROUTE_TILE_M = 500;
@@ -34,7 +35,7 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
     aheadWatch.route(key);
     let live = true;
     void (async () => {
-      const build = await walkBuild().catch(() => null);
+      const build = await walkBuild().catch(fallback('lib/walk/useRouteWarning · useRouteWarning', null, 'what walkBuild read'));
       const tiles = tilesNear([...route], ROUTE_TILE_M, MAX_TILES);
       const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);
       if (!live || !read.tiles.size) return;

@@ -36,6 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
+import { useReducedMotion } from '../../lib/motion';
 import { backFrom, beatWords, FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
@@ -48,6 +49,7 @@ import { pausedMs } from '../../lib/geo';
 import { newStreetsLine } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
+import { caught, fallback } from '../../lib/diagnostics/sink';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 const FRAME_MS = 33; // ~30 fps for the fog's streets lighting up
@@ -95,7 +97,7 @@ export default function Replay() {
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const reduceMotion = useReducedMotion();
   const { width, height } = useWindowDimensions();
   const [viewing, setViewing] = useState<Faced[] | null>(null);
   // What happened here: a tap on the card's map shows every capture near that spot, on any walk.
@@ -112,7 +114,7 @@ export default function Replay() {
         if (!data) return;
         await decide(data.walk.id, { t0: gap.t0, t1: gap.t1, path: line.path, lengthM: line.lengthM, street: null, how: 'kept' }, 'kept');
         await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
-        const d = await loadReplay(id).catch(() => null);
+        const d = await loadReplay(id).catch(fallback('app/replay/[id] · Replay', null, 'what loadReplay read'));
         if (d) setData(d);
       },
       [data, id],
@@ -156,7 +158,7 @@ export default function Replay() {
     }
     // The card stays, busy, until the card's numbers have followed (audit 14).
     await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
-    const d = await loadReplay(id).catch(() => null);
+    const d = await loadReplay(id).catch(fallback('app/replay/[id] · decideGap', null, 'what loadReplay read'));
     if (d) setData(d);
     setGapOpen(null);
     setGapBusy(false);
@@ -170,7 +172,7 @@ export default function Replay() {
         setHereKey(tap);
         setHere(r);
       })
-      .catch(() => {});
+      .catch(caught('cache', 'app/replay/[id] · showHere'));
   };
   // Opened from the log, or watched again. Only the screen reader's steps move on by themselves (RR17).
   const rewatch = ceremony === '0';
@@ -236,13 +238,10 @@ export default function Replay() {
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {
-    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
+    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(caught('refused', 'app/replay/[id] · Replay'));
   }, []);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
-    const a = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => a.remove();
   }, []);
 
   // Load, then snap behind the first beat if the walk has not been snapped
@@ -279,10 +278,10 @@ export default function Replay() {
       setEpilogue(d.walk.epilogue ?? '');
       setStatus('ready');
       // A new tile build drops the street cache and marks walks for re-snapping.
-      const build = await ensureTileBuild().catch(() => 'unknown');
+      const build = await ensureTileBuild().catch(fallback('app/replay/[id] · Replay', 'unknown', 'what ensureTileBuild read'));
       if (!alive) return;
       if (build !== 'unknown') {
-        d = (await loadReplay(id, { readGaps: true }).catch(() => null)) ?? d;
+        d = (await loadReplay(id, { readGaps: true }).catch(fallback('app/replay/[id] · Replay', null, 'what loadReplay read'))) ?? d;
         if (!alive) return;
         // Shown even when no snap follows: in a new session, gaps are only filled once read (audit 2).
         setData(d);
@@ -296,8 +295,8 @@ export default function Replay() {
           },
           collect: (centers) => mapRef.current!.collect(centers),
           collectPlaces: (center) => mapRef.current!.collectPlaces(center),
-        }).catch(() => null);
-        d = (await loadReplay(id).catch(() => null)) ?? d;
+        }).catch(fallback('app/replay/[id] · Replay', null, 'what snapWalk read'));
+        d = (await loadReplay(id).catch(fallback('app/replay/[id] · Replay', null, 'what loadReplay read'))) ?? d;
         if (!alive) return;
         setData(d);
         setTitle(d.walk.title ?? suggestTitle(d.walk));

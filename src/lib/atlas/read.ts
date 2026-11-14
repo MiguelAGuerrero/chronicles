@@ -22,6 +22,7 @@ import { borderReach, insideTown, isWard, listingBy, shapedHoods, shapeUnread, t
 import { placesArchive } from '../discovery/archive';
 import { type Extent } from './profile';
 import { offPage } from '../landing/runOffPage';
+import { fallback } from '../diagnostics/sink';
 
 /*
  * The atlas's reads (AT1, AT5, AT14): the tiles are fetched and decoded in
@@ -35,7 +36,7 @@ const nearKey = (level: AtlasLevel) => `atlas_near:${level}`;
 
 /** The near reads kept for a level, newest first (a single object from before the hierarchy reads as one). */
 export async function nearReads(level: AtlasLevel): Promise<NearRead[]> {
-  const v = await db.getMeta(nearKey(level)).catch(() => null);
+  const v = await db.getMeta(nearKey(level)).catch(fallback('lib/atlas/read · nearReads', null, 'what getMeta read'));
   try {
     const r = v ? (JSON.parse(v) as NearRead[] | NearRead) : [];
     return Array.isArray(r) ? r : [r];
@@ -58,10 +59,10 @@ function one<T>(task: () => Promise<T>): Promise<T | null> {
 
 /** A town's whole border (z10), read across the tile edges it is cut at (whole-towns audit 1). */
 async function wholeBorder(town: { name: string; at: LngLat }, shouldStop: () => boolean) {
-  const first = await outlines.borders([town.at], shouldStop).catch(() => null);
+  const first = await outlines.borders([town.at], shouldStop).catch(fallback('lib/atlas/read · wholeBorder', null, 'what borders read'));
   const beyond = first ? borderReach(town, first.set) : [];
   if (!first || !beyond.length || shouldStop()) return first;
-  const all = await outlines.borders([town.at, ...beyond], shouldStop).catch(() => null);
+  const all = await outlines.borders([town.at, ...beyond], shouldStop).catch(fallback('lib/atlas/read · wholeBorder', null, 'what borders read'));
   return all && (all.complete || !first.complete) ? all : first;
 }
 
@@ -88,33 +89,33 @@ export function readNear(
       const by = listingBy(border, outline);
       if (by === 'retry') return false;
       if (outline && border) {
-        const f = await fetchTiles(url, extentTiles(outline, town.at).tiles, ZOOM.neighborhood, shouldStop, ['places']).catch(() => null);
+        const f = await fetchTiles(url, extentTiles(outline, town.at).tiles, ZOOM.neighborhood, shouldStop, ['places']).catch(fallback('lib/atlas/read · readNear', null, 'what fetchTiles read'));
         if (!f || shouldStop()) return false;
         candidates = townHoods({ hoods: placesFromTiles(f.places), hamlets: hamletsFromTiles(f.places), outline, set: border.set });
         // Audit 1: as placing knows them, by the tiles already kept (a listing asks for no more): a name inside a shape is no
         // row, and a shape with no point inside the town's border is one.
-        const kept = await outlines.known(candidates.map((c) => c.at)).catch(() => null);
+        const kept = await outlines.known(candidates.map((c) => c.at)).catch(fallback('lib/atlas/read · readNear', null, 'what known read'));
         candidates = shapedHoods(candidates, kept, (c) => insideTown(c.at, outline, border.set));
       }
     }
     if (!candidates) {
-      const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop, ['places']).catch(() => null);
+      const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop, ['places']).catch(fallback('lib/atlas/read · readNear', null, 'what fetchTiles read'));
       if (!f || shouldStop()) return false;
       candidates = placesFromTiles(f.places);
       // Towns known only by their outline (Whitehall) are listed too (TO4, TO10); without the outlines, by points.
       if (level === 'town') {
-        const read = await outlines.read([at], shouldStop).catch(() => null);
+        const read = await outlines.read([at], shouldStop).catch(fallback('lib/atlas/read · readNear', null, 'what read read'));
         if (shouldStop()) return false;
         if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
       } else if (level === 'neighborhood') {
         // Audit 1: the neighborhoods around you as placing knows them, by the tile under you: a name inside a shape is no row, and a shape with no point within reach is one.
-        const read = await outlines.read([at], shouldStop).catch(() => null);
+        const read = await outlines.read([at], shouldStop).catch(fallback('lib/atlas/read · readNear', null, 'what read read'));
         if (shouldStop()) return false;
         candidates = shapedHoods(candidates, read?.set, (c) => distanceM(c.at, at) <= reach);
       }
       candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach && !(level === 'neighborhood' && isWard(c.name)));
     }
-    const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, Date.now());
+    const rows = newRows(await db.listAtlasAreas().catch(fallback('lib/atlas/read · readNear', [], 'what listAtlasAreas read')), candidates, build, Date.now());
     await db.putAtlasAreas(rows);
     const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach, ...(town && level === 'neighborhood' ? { town: town.key } : {}), ...(look ? { look: true } : {}) };
     await db.setMeta(nearKey(level), JSON.stringify(withNear(await nearReads(level), near)));
@@ -156,7 +157,7 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
       // HB11: counted across its own shape where the tiles hold one; its share after the places are read; the ring where
       // they hold neither, and a failed read is tried again (audit 4). The probe reads the tiles beside it too, so a
       // shape crossing a tile edge is whole.
-      hoodRead = await outlines.read(hoodProbe(area.at), shouldStop).catch(() => null);
+      hoodRead = await outlines.read(hoodProbe(area.at), shouldStop).catch(fallback('lib/atlas/read · readRing', null, 'what read read'));
       if (shouldStop()) return null;
       const own = hoodRead ? hoodExtentFor(area, hoodRead.set) : null;
       if (own) {
@@ -168,12 +169,12 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     // Overture's places for the same tiles (AD3); without them the ring is measured from the map's alone (AD7).
     // And the places archive's (PW10); without it the findable kinds are counted from the map's places (PW3).
     const [bodies, overture, archive] = await Promise.all([
-      fetchTileBodies(url, tiles, undefined, shouldStop).catch(() => null),
+      fetchTileBodies(url, tiles, undefined, shouldStop).catch(fallback('lib/atlas/read · readRing', null, 'what fetchTileBodies read')),
       readOverture(tiles, shouldStop),
-      placesArchive.read(tiles, area.at, shouldStop).catch(() => null),
+      placesArchive.read(tiles, area.at, shouldStop).catch(fallback('lib/atlas/read · readRing', null, 'what read read')),
     ]);
     // Audit 1: a found place keeps its find's key, so the atlas shows it found.
-    const finds = archive ? await db.listFinds().catch(() => []) : [];
+    const finds = archive ? await db.listFinds().catch(fallback('lib/atlas/read · readRing', [], 'what listFinds read')) : [];
     if (shouldStop()) return null;
     if (!bodies) return failed();
     // Audit 4 (hood boundaries): a neighborhood with no shape of its own is counted across its share, the ground its line

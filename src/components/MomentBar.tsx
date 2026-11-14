@@ -22,6 +22,7 @@ import { AddToMomentPill } from './walk/AddToMomentPill';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { LiftIn, theme } from './ui';
+import { caught } from '../lib/diagnostics/sink';
 
 /**
  * Camera, mic and pencil on the ready screen (M1, NR9): a moment in one tap. Each moment asks for one fix as it
@@ -142,7 +143,7 @@ export function CaptureRow(props: {
   useEffect(() => () => momentPill.leave(), []);
   // The Group captures setting, as kept on the device (MS18).
   useEffect(() => {
-    void momentPill.loadGrouping().catch(() => {});
+    void momentPill.loadGrouping().catch(caught('cache', 'components/MomentBar · CaptureRow'));
   }, []);
   // The viewer's Add to this moment (MS12): run here, where the camera, the mic and the note are.
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);

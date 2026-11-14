@@ -1,6 +1,6 @@
 import type { Faced } from '../../lib/moment';
 import { useEventListener } from 'expo';
-import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useVideoPlayer } from 'expo-video';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
@@ -24,6 +24,8 @@ import { Button, theme } from '../ui';
 import { EditedPicture, fitRect, useNaturalSize, webData } from './EditedPhoto';
 import { seekTo, useVideoSize, VideoPicture } from './EditedVideo';
 import { CropFrame, DrawLayer, FilterStrip, TrimBar } from './tools';
+import { caught } from '../../lib/diagnostics/sink';
+import { pausePlayer as pauseAudio, playPlayer as playAudio, seekPlayer as seekAudio } from '../../lib/playerControls';
 
 const TOOL_META: Record<EditTool, { label: string; icon: IconName }> = {
   crop: { label: 'Crop', icon: 'crop' },
@@ -33,16 +35,6 @@ const TOOL_META: Record<EditTool, { label: string; icon: IconName }> = {
   trim: { label: 'Trim', icon: 'cut' },
 };
 
-// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
-function seekAudio(player: AudioPlayer, s: number) {
-  void player.seekTo(s);
-}
-function playAudio(player: AudioPlayer) {
-  player.play();
-}
-function pauseAudio(player: AudioPlayer) {
-  player.pause();
-}
 
 const DRAW_TOOLS: { id: 'pen' | 'marker' | 'eraser'; label: string; icon: IconName }[] = [
   { id: 'pen', label: 'Pen', icon: 'pencil' },
@@ -119,7 +111,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         if (path !== old) {
           await props.onSave({ thumb_path: path });
           // The copy it replaced, under its own name, goes (best effort).
-          if (old && old !== THUMB.none) void removeMedia([old]).catch(() => {});
+          if (old && old !== THUMB.none) void removeMedia([old]).catch(caught('cache', 'components/edit/MediaEditor · save'));
         }
       } catch {
         // The old copy stays; the photo itself shows the edits.

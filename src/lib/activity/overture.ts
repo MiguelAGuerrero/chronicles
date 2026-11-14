@@ -8,6 +8,7 @@ import { net } from '../net';
 import { activityFromOverture, OvertureSchemaError, overturePlacesFromTile, overturePlacesSchemaOk, type ActivityPoint, type OverturePlace } from './points';
 import { OvertureReader } from './reader';
 import { newestRelease, overtureUrl, releaseDue, releasesListUrl } from './release';
+import { fallback } from '../diagnostics/sink';
 
 /*
  * Overture Maps Places, read by tile (AD3-AD8): the network side. Each read
@@ -51,7 +52,7 @@ export function ensureOvertureRelease(): Promise<string | null> {
   if (checking) return checking;
   checking = (async () => {
     // Keys declared in META (lib/meta.ts); read and written as the rest of the app does, so FC8's scan sees them.
-    const [stored, at] = await Promise.all([db.getMeta('overture_release'), db.getMeta('overture_checked_at')]).catch(() => [null, null]);
+    const [stored, at] = await Promise.all([db.getMeta('overture_release'), db.getMeta('overture_checked_at')]).catch(fallback('lib/activity/overture · ensureOvertureRelease', [null, null], 'what all read'));
     if (stored && !missing.has(stored)) known = stored;
     const now = Date.now();
     const checkedAt = at ? Number(at) : null;
@@ -95,7 +96,7 @@ const reader = new OvertureReader({ open: (release) => new PMTiles(net.source(ov
  * from OpenStreetMap alone). Each tile is fetched once per release this session.
  */
 export async function readOverture(tiles: [number, number][], shouldStop?: () => boolean): Promise<{ release: string; points: ActivityPoint[] } | null> {
-  const release = await ensureOvertureRelease().catch(() => null);
+  const release = await ensureOvertureRelease().catch(fallback('lib/activity/overture · readOverture', null, 'what ensureOvertureRelease read'));
   if (!release || shouldStop?.()) return null;
   const r = await reader.read(release, tiles, shouldStop);
   if (r.ok) return { release, points: activityFromOverture(r.places) };

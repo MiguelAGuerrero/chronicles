@@ -6,6 +6,7 @@ import type { TracePoint } from '../types';
 import { emit, setStatus, subscribe, subscribeStatus } from './emitter';
 import { refusalFollower } from './followPermission';
 import { RecorderError, type Recorder } from './types';
+import { caught } from '../diagnostics/sink';
 
 /**
  * Web fallback: live tracing while the app is open. Browsers stop delivering
@@ -49,7 +50,7 @@ async function holdWakeLock() {
   // it would keep the screen awake after the walk ends (tend walk-screen audit 6).
   const held = wakeLock;
   wakeLock = null;
-  await held?.release().catch(() => {});
+  await held?.release().catch(caught('cache', 'lib/recorder/index · holdWakeLock'));
   try {
     const nav = navigator as Navigator & { wakeLock?: { request(type: 'screen'): Promise<{ release(): Promise<void> }> } };
     wakeLock = (await nav.wakeLock?.request('screen')) ?? null;

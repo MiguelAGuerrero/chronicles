@@ -8,6 +8,7 @@ import type { Walk } from '../types';
 import { withPiecePatch } from './layout';
 import type { GalleryView, Show, Zoom } from './types';
 import { DEFAULT_VIEW, readView } from './view';
+import { fallback } from '../diagnostics/sink';
 
 export interface GalleryState {
   status: 'idle' | 'loading' | 'ready' | 'failed';
@@ -56,7 +57,7 @@ export function createGallery(p: Pick<Ports, 'db'>) {
     },
     /** The saved view (MG22): the default when none is kept or it can't be read. */
     async loadView(): Promise<void> {
-      const raw = await p.db.getMeta('gallery_view').catch(() => null);
+      const raw = await p.db.getMeta('gallery_view').catch(fallback('lib/gallery/shell · loadView', null, 'what getMeta read'));
       let v: unknown = null;
       try {
         v = raw ? JSON.parse(raw) : null;

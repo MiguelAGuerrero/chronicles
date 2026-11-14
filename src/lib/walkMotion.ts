@@ -7,6 +7,7 @@ import { subscribeMotion } from './motionSource';
 import type { DotSource } from './liveDot';
 import { StepDetector, STEPS, type MotionState } from './steps';
 import type { Still } from './types';
+import { caught, fallback } from './diagnostics/sink';
 
 /**
  * The walk's motion (Motion, MO1-MO10): Expo's DeviceMotion, read only while a
@@ -43,7 +44,7 @@ export function askMotion(): Promise<MotionAccess> {
         setAccess('denied');
         return access;
       }
-      const available = await DeviceMotion.isAvailableAsync().catch(() => false);
+      const available = await DeviceMotion.isAvailableAsync().catch(fallback('lib/walkMotion · askMotion', false, 'what isAvailableAsync read'));
       setAccess(available ? 'on' : 'unavailable');
       return access;
     },
@@ -65,7 +66,7 @@ export async function restoreMotion(): Promise<void> {
   if (needsTap) return;
   const p = await DeviceMotion.getPermissionsAsync().catch(() => null);
   if (!p?.granted) return;
-  const available = await DeviceMotion.isAvailableAsync().catch(() => false);
+  const available = await DeviceMotion.isAvailableAsync().catch(fallback('lib/walkMotion · restoreMotion', false, 'what isAvailableAsync read'));
   setAccess(available ? 'on' : 'unavailable');
 }
 
@@ -116,7 +117,7 @@ export function useWalkMotion(
   useEffect(() => {
     if (!walkId) return;
     let live = true;
-    restoreMotion().catch(() => {});
+    restoreMotion().catch(caught('cache', 'lib/walkMotion · useWalkMotion'));
     db.getStills(walkId)
       .then(async (stored) => {
         // A spell left open by a reload, a crash or a killed app ends now: nothing was sensed since (motion audit 2).

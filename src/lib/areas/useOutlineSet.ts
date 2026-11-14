@@ -4,6 +4,7 @@ import type { LngLat } from '../types';
 import { bordersFor, outlineIdsOf, type BorderView } from './borders';
 import { outlines } from './outlineReader';
 import { BORDER_ZOOM, OUTLINE_ZOOM, outlineTileKey, outlineTilesFor, type OutlineSet } from './outlines';
+import { caught } from '../diagnostics/sink';
 
 /** A failed read is tried again this long after, while the screen is open (TB12). */
 const RETRY_MS = 30_000;
@@ -58,7 +59,7 @@ export function useWalkBorders(walkIds: readonly string[], refresh: string = '')
   useEffect(() => {
     if (!idsKey) return;
     let live = true;
-    outlines.townsOf(idsKey.split(',')).then((t) => live && setTowns(t), () => {});
+    outlines.townsOf(idsKey.split(',')).then((t) => live && setTowns(t), caught('cache', 'lib/areas/useOutlineSet · useWalkBorders'));
     return () => {
       live = false;
     };

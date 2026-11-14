@@ -1,5 +1,6 @@
 // @layer adapter
 import { exportSpan, type ExportPlan, type MediaEdit } from '../mediaEdit';
+import { caught } from '../diagnostics/sink';
 
 /** How long a refused start (sound without a tap: Safari) may keep the export waiting. */
 const START_WAIT_MS = 1500;
@@ -83,7 +84,7 @@ export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: Med
       if (audio.state !== 'running') throw new Error('suspended');
       for (const t of dest.stream.getAudioTracks()) stream.addTrack(t);
     } catch {
-      if (audio) void audio.close().catch(() => {});
+      if (audio) void audio.close().catch(caught('cache', 'lib/videoEdit/index · exportVideo'));
       audio = null; // a video with no sound, or a browser that won't: the picture alone
     }
     const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6_000_000 });
@@ -129,6 +130,6 @@ export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: Med
     video.pause();
     video.removeAttribute('src');
     video.load();
-    if (audio) void audio.close().catch(() => {});
+    if (audio) void audio.close().catch(caught('cache', 'lib/videoEdit/index · exportVideo'));
   }
 }

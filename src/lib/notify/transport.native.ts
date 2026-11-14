@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
 import type { NoticeResponse, NoticeTransport, Permission } from './core';
+import { caught } from '../diagnostics/sink';
 
 /*
  * The phone's transport (NT3): expo-notifications, local only. Loaded with the
@@ -17,7 +18,7 @@ const STOP_CATEGORY = 'recall';
 // "Stop reminding me" opens the app: with the app killed, a background action reaches no listener.
 Notifications.setNotificationCategoryAsync(STOP_CATEGORY, [
   { identifier: 'stop', buttonTitle: 'Stop reminding me', options: { opensAppToForeground: true } },
-]).catch(() => {});
+]).catch(caught('cache', 'lib/notify/transport · module'));
 
 // In front, the screen shows its own card: a notice is listed quietly, unless it asks to show (the test, NT6).
 Notifications.setNotificationHandler({
@@ -91,8 +92,8 @@ export const transport: NoticeTransport = {
     });
   },
   async cancel(id) {
-    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
-    await Notifications.dismissNotificationAsync(id).catch(() => {});
+    await Notifications.cancelScheduledNotificationAsync(id).catch(caught('cache', 'lib/notify/transport · cancel'));
+    await Notifications.dismissNotificationAsync(id).catch(caught('cache', 'lib/notify/transport · cancel'));
   },
   onResponse(fn) {
     listener = fn;

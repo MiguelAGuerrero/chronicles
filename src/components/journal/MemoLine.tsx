@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { formatElapsed } from '../../lib/format';
 import { MEMO_LOAD_WAIT_MS, MEMO_PLAY_HIT, fileEnded, isRestarting, memoClockText, memoProgressText } from '../../lib/journal/memoPlay';
 import { nowPlaying } from '../../lib/journal/nowPlaying';
@@ -12,20 +12,11 @@ import { voiceClock, voiceReachedEnd, voiceSpan, voiceState, wholeMs } from '../
 import { Icon } from '../icons';
 import { MemoTranscript } from '../MemoTranscript';
 import { theme } from '../ui';
+import { pausePlayer as pauseMemo, playPlayer as playMemo, seekPlayer as seekMemo } from '../../lib/playerControls';
 
 /** A trimmed memo's player reports every 100 ms, so it stops at its end handle, not up to half a second late (VT6). */
 const TRIMMED_PLAYER = { updateInterval: 100 };
 
-// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
-function seekMemo(player: AudioPlayer, s: number) {
-  void player.seekTo(s);
-}
-function playMemo(player: AudioPlayer) {
-  player.play();
-}
-function pauseMemo(player: AudioPlayer) {
-  player.pause();
-}
 const holderOf = (s: string | null) => s;
 
 /**

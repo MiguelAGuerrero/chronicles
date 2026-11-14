@@ -1,6 +1,7 @@
 // @layer view
 import { useEffect, useState } from 'react';
 import { ensureOvertureRelease, knownRelease } from './overture';
+import { caught } from '../diagnostics/sink';
 
 /**
  * The Overture release known, for screens that judge staleness (activity-density audit 8): checked once when the
@@ -12,7 +13,7 @@ export function useOvertureRelease(): string | null {
     let live = true;
     ensureOvertureRelease()
       .then((r) => live && setRelease(r))
-      .catch(() => {});
+      .catch(caught('cache', 'lib/activity/useOvertureRelease · useOvertureRelease'));
     return () => {
       live = false;
     };

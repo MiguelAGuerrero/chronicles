@@ -34,6 +34,7 @@ import {
   alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
+import { caught, fallback } from '../../lib/diagnostics/sink';
 
 const VIEW_TIMEOUT_MS = 4000;
 
@@ -92,6 +93,8 @@ function createSwiper() {
 /** Invisible layers that make the query source load its tiles. */
 const HIDDEN = { 'line-opacity': 0 } as const;
 
+/** A tile's feature as a street piece's source road. */
+const toRoad = (f: GeoJSON.Feature): RoadFeature => ({ geometry: f.geometry as RoadFeature['geometry'], properties: (f.properties ?? {}) as Record<string, unknown> });
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
@@ -231,10 +234,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const lookDrawn = () => {
     const source = queryRef.current;
     if (!blankWatch || !source) return;
-    const count = (sourceLayer: string) => source.querySourceFeatures({ sourceLayer }).then((fs) => fs.length, () => 0);
+    const count = (sourceLayer: string) => source.querySourceFeatures({ sourceLayer }).then((fs) => fs.length, fallback('components/map/WalkMap · count', 0, 'what querySourceFeatures read'));
     Promise.all([count('transportation'), count('water'), count('place')])
       .then(([roads, water, places]) => setDrawn(drawnFrom({ roads, water, places })))
-      .catch(() => {});
+      .catch(caught('cache', 'components/map/WalkMap · lookDrawn'));
   };
   const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
   // The dot, cone and camera glide between fixes instead of jumping.
@@ -313,10 +316,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // Below z14 the tiles are simplified and miss minor streets: pieces cut
       // from them would get other ids than the same streets at z14.
       if (Math.floor((await mapRef.current.getViewState()).zoom) < DERIVE_ZOOM) return { ...out, complete: false };
-      const toRoad = (f: GeoJSON.Feature): RoadFeature => ({
-        geometry: f.geometry as RoadFeature['geometry'],
-        properties: (f.properties ?? {}) as Record<string, unknown>,
-      });
       out.roads = (await source.querySourceFeatures({ sourceLayer: 'transportation' })).map(toRoad);
       out.names = (await source.querySourceFeatures({ sourceLayer: 'transportation_name' })).map(toRoad);
       out.places = (await source.querySourceFeatures({ sourceLayer: 'place' })).map(toRoad);
@@ -339,7 +338,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       cameraRef.current?.jumpTo({ center, zoom: PLACES_ZOOM });
       const ok = await wait;
       const places = ok
-        ? (await source.querySourceFeatures({ sourceLayer: 'place' }).catch(() => null))?.map(
+        ? (await source.querySourceFeatures({ sourceLayer: 'place' }).catch(fallback('components/map/WalkMap · collectPlaces', null, 'what querySourceFeatures read')))?.map(
             (f: GeoJSON.Feature): RoadFeature => ({ geometry: f.geometry as RoadFeature['geometry'], properties: (f.properties ?? {}) as Record<string, unknown> }),
           ) ?? null
         : null;
@@ -353,10 +352,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const source = queryRef.current;
       if (!map || !source) return { ...out, complete: false };
       const before = await map.getViewState();
-      const toRoad = (f: GeoJSON.Feature): RoadFeature => ({
-        geometry: f.geometry as RoadFeature['geometry'],
-        properties: (f.properties ?? {}) as Record<string, unknown>,
-      });
       for (const center of centers) {
         if (shouldStop?.()) {
           out.complete = false;

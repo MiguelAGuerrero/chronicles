@@ -13,6 +13,7 @@ import { arrivalLine, arrivalParts, previousCapture, streetAt } from './context'
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { openWalkViews, toMomentViews, wordsOf } from './views';
+import { fallback } from '../diagnostics/sink';
 
 /** Meta: what the user chose (RM21), one JSON value; ids and terms only. */
 export const PREFS_KEY = 'resurface_prefs';
@@ -196,7 +197,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
           }
           const street = streetAt(fix, segments, c.segment_id);
           // CX11, CX12: a complex already on the phone leads the line; nothing is fetched to show it. A cache that cannot be read is no complex, never no line.
-          const hit = fix ? complexAt(fix, await nearComplexes(fix).catch(() => [])) : null;
+          const hit = fix ? complexAt(fix, await nearComplexes(fix).catch(fallback('lib/resurface/shell · readOne', [], 'what nearComplexes read'))) : null;
           const facts = { street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, complex: hit ? { name: hit.complex.name, near: hit.near } : null, t: c.t, now: p.clock.now(), walkedMs, prev };
           const line = arrivalLine(facts);
           put({ [id]: { state: 'done', line, ...arrivalParts(facts) } });
@@ -218,7 +219,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     },
     /** Whether a walk is open: a reminder waiting from a cold start opens on the walk then, else on Memories (NV13). */
     async openWalk(): Promise<boolean> {
-      return !!(await p.db.getOpenWalk().catch(() => null));
+      return !!(await p.db.getOpenWalk().catch(fallback('lib/resurface/shell · openWalk', null, 'what getOpenWalk read')));
     },
     /** Another (RM8): the next resurfaced moment. The view takes it modulo how many there are. */
     another(): void {

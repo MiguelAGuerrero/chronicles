@@ -3,6 +3,7 @@ import { boundsOf } from '../../geo';
 import type { Ports } from '../../ports/types';
 import type { LngLat } from '../../types';
 import { KNOWN_M, wayNear } from './rule';
+import { caught, fallback } from '../../diagnostics/sink';
 
 /**
  * RP20: whether a place to find has a street or path close by, from the street segments the reads already cached
@@ -12,7 +13,7 @@ export function createReach(p: Pick<Ports, 'db'>) {
   /** The latest place asked about: an earlier ask that answers late is dropped (remarkable-and-public audit 6). */
   let latest: string | null = null;
   const near = async (at: LngLat): Promise<boolean | null> => {
-    const segments = await p.db.getSegmentsIn(boundsOf([at], KNOWN_M)!).catch(() => []);
+    const segments = await p.db.getSegmentsIn(boundsOf([at], KNOWN_M)!).catch(fallback('lib/explore/reach/shell · near', [], 'what getSegmentsIn read'));
     return wayNear(at, segments.flatMap((s) => s.geometry));
   };
   return {
@@ -24,7 +25,7 @@ export function createReach(p: Pick<Ports, 'db'>) {
         .then((n) => {
           if (latest === key) answer({ key, near: n });
         })
-        .catch(() => {});
+        .catch(caught('cache', 'lib/explore/reach/shell · ask'));
     },
   };
 }

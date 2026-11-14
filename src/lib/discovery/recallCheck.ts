@@ -8,6 +8,7 @@ import { notifier } from '../notify';
 import type { LngLat } from '../types';
 import { afterFire, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
 import type { Recall } from './types';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** Captures a tapped reminder notification asked to open, for whichever screen mounts next (R4). */
 export const RECALL_OPEN_KEY = 'recall_open';
@@ -67,7 +68,7 @@ export function onRecallFired(fn: (captures: Faced[]) => void): () => void {
 }
 async function deliver(walkId: string, captures: Faced[]) {
   if (screen && AppState.currentState === 'active') screen(captures);
-  else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
+  else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(caught('refused', 'discovery/recallCheck · deliver'));
 }
 
 // What waits in Undo, told by the Undo window (lib/deletion), which imports this module: so it is set, not imported.
@@ -111,7 +112,7 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
     await deliver(walkId, due.map((d) => d.capture));
     return true;
   })()
-    .catch(() => false)
+    .catch(fallback('discovery/recallCheck · checkRecalls', false, 'a check of the reminders near you'))
     .finally(() => {
       running = null;
     });
@@ -139,7 +140,7 @@ export function onRecallWaiting(fn: () => void): () => void {
 /** Opens a tapped reminder's captures where a screen takes them; else keeps them for the next screen (R4). Resolves whether one opened. */
 export async function openRecall(ids: string[]): Promise<boolean> {
   if (openers.size()) {
-    const found = await db.getMomentsByIds(ids).then(facedAll).catch(() => []);
+    const found = await db.getMomentsByIds(ids).then(facedAll).catch(fallback('lib/discovery/recallCheck · openRecall', [], 'what then read'));
     if (found.length && openers.offer(found)) return true;
   }
   await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(ids));

@@ -7,6 +7,7 @@ import { db } from '../db';
 import { resolveMedia } from '../media';
 
 import { bundleName, KeeperError, writeWalkBundle } from './bundle';
+import { report } from '../diagnostics/sink';
 
 export { KeeperError };
 
@@ -29,9 +30,7 @@ export function dropBaked(uri: string) {
   try {
     const f = new File(uri);
     if (f.exists) f.delete();
-  } catch {
-    // a temp file; the system clears the cache anyway
-  }
+  } catch (caughtError) { report('cache', 'lib/export/index · dropBaked', caughtError); }
 }
 
 async function* chunksOf(file: File): AsyncIterable<Uint8Array> {

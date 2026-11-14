@@ -53,6 +53,7 @@ import { capturesHere, type HereResult } from '../lib/here';
 import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
 import { MemoryPreview } from '../components/MemoryPreview';
 import { deriveSegments, streetKey } from '../lib/streets';
+import { streetMidpoint } from '../lib/streetMidpoint';
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
@@ -102,6 +103,7 @@ import { useOutlineSet } from '../lib/areas/useOutlineSet';
 import { SpaceLine } from '../components/SpaceLine';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
+import { caught, fallback } from '../lib/diagnostics/sink';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -110,10 +112,6 @@ const FOG_STEP_M = 100;
 /** A street piece whose middle the live trace passed this close to counts as walked for now. */
 const ON_TRACE_M = 20;
 
-function midpointOf(s: StreetSegment): LngLat {
-  const line = s.geometry[0] ?? [];
-  return line[Math.floor(line.length / 2)] ?? [0, 0];
-}
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 /** The screen's own clock: weak GPS (20 s) and the pause reminder (10 min) need no finer. */
@@ -491,7 +489,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     run.busy = true;
     run.at = now;
     (async () => {
-      const features = await mapRef.current?.collectView().catch(() => null);
+      const features = await mapRef.current?.collectView().catch(fallback('app/walk · WalkScreen', null, 'what collectView read'));
       if (features?.complete && features.roads.length && build !== 'unknown') {
         await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(() => {});
         // Not awaited: the fog shouldn't wait on the place cache.
@@ -511,7 +509,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       // Streets this walk has already gone down are only credited at stop;
       // until then, those along the trace are left out of the fog.
       const walkedNow = nearPoints(liveRuns.current.flat(), ON_TRACE_M);
-      setFog(segs.filter((x) => !visited.has(x.id) && !walkedNow(midpointOf(x))));
+      setFog(segs.filter((x) => !visited.has(x.id) && !walkedNow(streetMidpoint(x))));
       setWalked(segs.filter((x) => visited.has(x.id)));
     })()
       .catch(() => {})
@@ -539,7 +537,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const settings = loaded ?? DEFAULT_SETTINGS;
   useEffect(() => {
     let alive = true;
-    loadSettings().then((v) => alive && setLoaded((cur) => cur ?? v), () => {});
+    loadSettings().then((v) => alive && setLoaded((cur) => cur ?? v), caught('cache', 'app/walk · WalkScreen'));
     const off = onSettings((v) => setLoaded(v));
     return () => {
       alive = false;
@@ -564,7 +562,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setMemory(null);
     feedback('tap');
     const tap = ++hereTaps.current;
-    const found = await capturesHere(at, captures, radiusM).catch(() => null);
+    const found = await capturesHere(at, captures, radiusM).catch(fallback('app/walk · pressMap', null, 'what capturesHere read'));
     if (tap !== hereTaps.current) return; // a newer press won
     // Storage still holds what waits in Undo: it isn't counted here (deletion audit 7).
     const r = found && { ...found, captures: found.captures.filter((c) => !deletions.hidden().has(c.id)) };
@@ -740,7 +738,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [exploring, setExploring] = useState(false);
   const quiet = !exploring;
   const reloadLandings = useCallback(() => {
-    db.listLandings().then((r) => setLandings(r.filter((x) => rulesCurrent(x.rules))), () => {});
+    db.listLandings().then((r) => setLandings(r.filter((x) => rulesCurrent(x.rules))), caught('cache', 'app/walk · WalkScreen'));
   }, []);
   // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
   const preview = options && exploring && loaded ? loaded.rangeM : null;
@@ -819,7 +817,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const tap = ++memoryTaps.current;
     // The tapped pin's own captures first, then every other memory from that spot, reaching the
     // group's farthest member (MR5, audit 3); this walk's own captures aren't memories.
-    const r = await capturesHere(at, [], groupRadiusM(at, group)).catch(() => null);
+    const r = await capturesHere(at, [], groupRadiusM(at, group)).catch(fallback('app/walk · openMemory', null, 'what capturesHere read'));
     if (tap !== memoryTaps.current) return;
     const captures = groupFirst(group, r?.captures ?? [], walk?.id ?? null).filter((c) => !deletions.hidden().has(c.id));
     if (!captures.length) return;
@@ -879,7 +877,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setAutoPlay(true);
           setViewing(found);
         })
-        .catch(() => {});
+        .catch(caught('cache', 'app/walk · take'));
     void take();
     // Kept while this screen was mounting (a cold open now shows the walk sooner, NR3): taken as it lands.
     const offWaiting = onRecallWaiting(() => void take());
@@ -893,7 +891,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (!walk) return;
     let alive = true;
-    db.getMeta(EXPLORE_KEY).then((v) => alive && setExploring(v === walk.id), () => {});
+    db.getMeta(EXPLORE_KEY).then((v) => alive && setExploring(v === walk.id), caught('cache', 'app/walk · WalkScreen'));
     return () => {
       alive = false;
     };
@@ -906,7 +904,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
     if (on) {
       const key = exploredKey(walk.id);
-      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now()))), () => {}).catch(() => {});
+      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now()))), caught('cache', 'app/walk · setExplore')).catch(() => {});
     }
   };
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
@@ -950,7 +948,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       nudgedRef.current ??= (await db.getMeta(NUDGED_KEY)) === walk.id;
       const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet, nudged: nudgedRef.current });
       if (alive && got) setNudge(got);
-    })().catch(() => {});
+    })().catch(caught('cache', 'app/walk · WalkScreen'));
     return () => {
       alive = false;
     };
@@ -989,7 +987,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     let alive = true;
     loadWayBack(walkId).then((at) => {
       if (alive && at) setChosen({ walkId, at });
-    }, () => {});
+    }, caught('cache', 'app/walk · WalkScreen'));
     return () => {
       alive = false;
     };
@@ -1144,7 +1142,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!walk || !retryRecorder(status, paused, true)) return;
     retrying.current = true;
     restartRecording(walk.id)
-      .catch(() => {})
+      .catch(caught('cache', 'app/walk · WalkScreen'))
       .finally(() => {
         retrying.current = false;
       });

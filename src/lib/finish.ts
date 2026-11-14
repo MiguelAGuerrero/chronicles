@@ -16,6 +16,7 @@ import type { Area, WalkArea } from './areas/types';
 import { fillsOf, walkStretches } from './gaps';
 import { ensureTileBuild } from './tiles';
 import type { LngLat, Moment, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
+import { fallback } from './diagnostics/sink';
 
 const AREA_PAD_M = 150;
 const NEIGHBORHOOD = ['neighbourhood', 'quarter', 'suburb'];
@@ -59,11 +60,11 @@ export interface Collector {
 export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSummary> {
   const build = await ensureTileBuild();
   const pauses = await db.getPauses(walk.id);
-  const stills = await db.getStills(walk.id).catch(() => []);
+  const stills = await db.getStills(walk.id).catch(fallback('lib/finish · snapWalk', [], 'what getStills read'));
   const points = withoutPauses(await db.getPoints(walk.id), pauses);
   // Gaps filled by themselves or kept are walked trace from here on (Filling gaps, G11).
   const plain = readTrace(points, walk.started_at, pauses, stills);
-  const gaps = await walkStretches(walk.id, plain, { read: true }).catch(() => ({ stretches: [], unread: true }));
+  const gaps = await walkStretches(walk.id, plain, { read: true }).catch(fallback('lib/finish · snapWalk', ({ stretches: [], unread: true }), 'what walkStretches read'));
   const fills = fillsOf(gaps.stretches);
   const tr = withFilled(plain, fills);
   // Streets are read where you walked (a ride credits none, R7); places and captures take the rides too (R8, R9).
@@ -82,7 +83,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   let features: CollectedFeatures | null = null;
   if (bounds) {
     const trace = fixes.map((p) => [p.lon, p.lat] as LngLat);
-    features = await collector.collect(collector.plan(bounds, trace)).catch(() => null);
+    features = await collector.collect(collector.plan(bounds, trace)).catch(fallback('lib/finish · snapWalk', null, 'what collect read'));
     if (features) {
       // Views that timed out leave streets unread: the walk is snapped again later.
       streetsRead = features.complete;
@@ -97,8 +98,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   if (keptBounds && (features || !bounds)) {
     const center: LngLat = [(keptBounds[0] + keptBounds[2]) / 2, (keptBounds[1] + keptBounds[3]) / 2];
     const [wide, read] = await Promise.all([
-      collector.collectPlaces(center).catch(() => null),
-      outlines.read(kept.map((p) => [p.lon, p.lat] as LngLat)).catch(() => null),
+      collector.collectPlaces(center).catch(fallback('lib/finish · snapWalk', null, 'what collectPlaces read')),
+      outlines.read(kept.map((p) => [p.lon, p.lat] as LngLat)).catch(fallback('lib/finish · snapWalk', null, 'what read read')),
     ]);
     // A walk too wide to read is placed by points for good (TO12), not again on every launch.
     outlinesRead = !!read && (read.complete || read.tooMany);

@@ -8,6 +8,7 @@
 import type { Db } from '../db/types';
 import { createStore, type Store } from '../store';
 import { needsTranscript, spanOf, transcriptCaption, wordsOfRow, type MemoRef, type Transcript } from './core';
+import { caught, fallback } from '../diagnostics/sink';
 
 /** A memo to read: its piece's id, stored file, length and edits. */
 export interface MemoToRead extends MemoRef {
@@ -143,7 +144,7 @@ export function createTranscripts(p: TranscriptPorts) {
       // One memo's failure is its own: it stays unread, and the next one is read (TX4).
     } finally {
       reading = false;
-      if (cut) await p.cutter.remove(cut).catch(() => {});
+      if (cut) await p.cutter.remove(cut).catch(caught('cache', 'lib/transcript/shell · readOne'));
     }
     return 'next';
   }
@@ -151,7 +152,7 @@ export function createTranscripts(p: TranscriptPorts) {
   async function giveUp() {
     off = true;
     queue = [];
-    await p.meta.set('transcript_off', '1').catch(() => {});
+    await p.meta.set('transcript_off', '1').catch(caught('cache', 'lib/transcript/shell · giveUp'));
   }
 
   async function pump() {
@@ -159,7 +160,7 @@ export function createTranscripts(p: TranscriptPorts) {
     while (!off && !p.busy() && queue.length) {
       const item = queue.shift()!;
       interrupted = false;
-      const out = await readOne(item).catch((): Outcome => 'next');
+      const out = await readOne(item).catch(fallback('lib/transcript/shell · pump', 'next', 'what readOne read'));
       if (interrupted) {
         // A recording began mid-read: the memo goes back, to be read once it is quiet again (audit 6).
         interrupted = false;

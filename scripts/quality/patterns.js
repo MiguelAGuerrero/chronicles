@@ -47,6 +47,33 @@ const iterCallback = (fn) => {
 const nothing = (e) => !e || e.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(e) && e.text === 'undefined') || ts.isVoidExpression(e);
 /** A block that does nothing but return nothing (code-quality audit 13). */
 const emptyBlock = (b) => b.statements.every((st) => ts.isReturnStatement(st) && nothing(st.expression));
+/** Does the function read its first parameter (the error)? */
+const usesParam = (fn) => {
+  const p = fn.parameters && fn.parameters[0];
+  if (!p || !ts.isIdentifier(p.name)) return false;
+  let used = false;
+  const look = (n) => {
+    if (used) return;
+    if (ts.isIdentifier(n) && n.text === p.name.text && n !== p.name) used = true;
+    ts.forEachChild(n, look);
+  };
+  if (fn.body) look(fn.body);
+  return used;
+};
+/** A value handed back in place of what failed, without a word: `() => []`, `() => ({})`, `() => false` (EH12). */
+const fallbackBody = (fn) => {
+  if (usesParam(fn) || !fn.body) return false;
+  let e = fn.body;
+  if (ts.isBlock(e)) {
+    if (e.statements.length !== 1 || !ts.isReturnStatement(e.statements[0])) return false;
+    e = e.statements[0].expression;
+  }
+  while (e && (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e))) e = e.expression;
+  if (!e) return false;
+  return ts.isLiteralExpression(e) || ts.isIdentifier(e) || ts.isArrayLiteralExpression(e) || ts.isObjectLiteralExpression(e) || ts.isNewExpression(e) ||
+    ts.isNoSubstitutionTemplateLiteral(e) || e.kind === ts.SyntaxKind.TrueKeyword || e.kind === ts.SyntaxKind.FalseKeyword ||
+    (ts.isPrefixUnaryExpression(e) && ts.isNumericLiteral(e.operand));
+};
 const emptyBody = (fn) => {
   const b = fn.body;
   if (!b) return true;
@@ -112,8 +139,9 @@ function patterns(sf, layer) {
         out.quadratic.push({ line: lineOf(sf, n), fn: enclosingFnName(n), call: method });
       }
       if (core && method && LOCAL_TIME.test(method)) out.localTime.push({ line: lineOf(sf, n), call: method });
-      if (method === 'catch' && n.arguments.length === 1 && isFn(n.arguments[0]) && emptyBody(n.arguments[0])) out.silentCatch.push({ line: lineOf(sf, n), kind: '.catch(() => {})' });
-      if (method === 'then' && n.arguments.length === 2 && isFn(n.arguments[1]) && emptyBody(n.arguments[1])) out.silentCatch.push({ line: lineOf(sf, n), kind: '.then(a, () => {})' });
+      const handler = method === 'catch' && n.arguments.length === 1 ? n.arguments[0] : method === 'then' && n.arguments.length === 2 ? n.arguments[1] : null;
+      if (handler && isFn(handler) && emptyBody(handler)) out.silentCatch.push({ line: lineOf(sf, n), kind: method === 'catch' ? '.catch(() => {})' : '.then(a, () => {})' });
+      else if (handler && isFn(handler) && fallbackBody(handler)) out.silentCatch.push({ line: lineOf(sf, n), kind: 'fallback' });
       const ctx = CONTEXT_CALLS[ts.isIdentifier(callee) ? callee.text : ''];
       if (ctx && n.arguments.length < ctx.args) {
         let missing = ctx.names.slice(n.arguments.length);
@@ -325,4 +353,4 @@ function testsWithoutAssertions(sf) {
   return out;
 }
 
-module.exports = { patterns, testsWithoutAssertions, CONTEXT_CALLS };
+module.exports = { patterns, testsWithoutAssertions, CONTEXT_CALLS, emptyBody, emptyBlock, fallbackBody };

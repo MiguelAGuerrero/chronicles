@@ -37,6 +37,8 @@ import { useMomentPool } from '../threads/useMomentPool';
 import { Ticking } from '../Ticking';
 import { theme } from '../ui';
 import { OWNER_FONT } from './type';
+import { caught } from '../../lib/diagnostics/sink';
+import { BandPill } from './BandPill';
 
 /** What is typed is written this long after the last keystroke, and at once when the line lets go. */
 const SAVE_AFTER_MS = 400;
@@ -246,7 +248,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               // The moment went with its only piece: the next capture begins another.
               if (gone === 'moment') momentPill.newMoment();
               told.current.dropped?.(fx, gone);
-            }, () => {})
+            }, caught('cache', 'components/journal/OpenLine · run'))
             .then(() => changed.current());
           return;
         }
@@ -516,23 +518,9 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const showDone = typing || entryOpen;
   const status = pen.failed ? NOT_KEPT : writing ? KEPT_AS_YOU_WRITE : null;
   const errorPill = error && (
-    <View style={styles.pill} accessibilityLiveRegion="polite" testID="band-error">
-      <Text style={styles.pillText}>{error.message}</Text>
-      {error.openSettings && Platform.OS !== 'web' && (
-        <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()} style={styles.pillBtn}>
-          <Text style={styles.pillBtnText}>Settings</Text>
-        </Pressable>
-      )}
-    </View>
+    <BandPill testID="band-error" words={error.message} action={error.openSettings && Platform.OS !== 'web' ? { label: 'Settings', onPress: () => void Linking.openSettings() } : undefined} />
   );
-  const retryPill = (id: string, words: string, onPress: () => void, label = 'Retry') => (
-    <View style={styles.pill} accessibilityLiveRegion="polite" testID={id}>
-      <Text style={styles.pillText}>{words}</Text>
-      <Pressable accessibilityRole="button" onPress={onPress} style={styles.pillBtn} testID={`${id}-act`}>
-        <Text style={styles.pillBtnText}>{label}</Text>
-      </Pressable>
-    </View>
-  );
+  const retryPill = (id: string, words: string, onPress: () => void, label = 'Retry') => <BandPill testID={id} words={words} action={{ label, onPress, testID: `${id}-act` }} />;
 
   const { inBar } = props;
   // A tap on the empty page: the field takes the keyboard in the tap itself, so a phone raises it.
@@ -649,9 +637,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             />
           )}
           {toast && (
-            <View style={styles.pill} accessibilityLiveRegion="polite" testID="band-toast">
-              <Text style={styles.pillText}>{toast}</Text>
-            </View>
+            <BandPill testID="band-toast" words={toast} />
           )}
           {cap.discarded && !recording && retryPill('band-voice-undo', 'Voice note discarded', () => cap.undoDiscard(), 'Undo')}
           {cap.unsaved && retryPill('band-voice-retry', 'Voice note not saved', () => cap.retrySave())}
@@ -847,8 +833,4 @@ const styles = StyleSheet.create({
   timerText: { color: theme.ink, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   textBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   textBtnText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
-  pill: { width: '100%', maxWidth: 480, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.ink, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14, minHeight: 48 },
-  pillText: { color: theme.bg, fontSize: 14, flex: 1 },
-  pillBtn: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },
-  pillBtnText: { color: theme.bg, fontSize: 14, fontWeight: '700' },
 });

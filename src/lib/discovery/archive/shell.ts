@@ -7,6 +7,7 @@ import type { LngLat } from '../../types';
 import { ARCHIVE_ZOOM, archiveTag, archiveTilesFor, manifestDue, parseManifest, pickRegion, regionUrl, type ArchiveFile, type Manifest } from '../archiveManifest';
 import { placesFromArchive } from '../archivePois';
 import type { Place } from '../types';
+import { fallback } from '../../diagnostics/sink';
 
 /*
  * The places archive's network side (PW1-PW3, decision 0103): the manifest at most daily, the region holding the
@@ -72,7 +73,7 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
   return {
     /** Loads the manifest when it is due (at most daily), so the version is known before any read (places-worth-the-stop audit 3). */
     async refresh(): Promise<void> {
-      if (p.io.base) await ensureManifest().catch(() => null);
+      if (p.io.base) await ensureManifest().catch(fallback('lib/discovery/archive/shell · refresh', null, 'what ensureManifest read'));
     },
     /** PW10, PP13: the version (or, with blocks, the block's tag) the loaded manifest names for a point; null before it is read, outside every region, or with no address. */
     versionAt(at: LngLat): string | null {
@@ -84,7 +85,7 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
     /** PW1-PW3: the archive's places for a read's z14 tiles around `centre`, with the version they came from; null when there are none to read. */
     async read(tiles: [number, number][], centre: LngLat, shouldStop?: () => boolean): Promise<ArchiveRead> {
       if (!p.io.base) return null;
-      const m = await ensureManifest().catch(() => null);
+      const m = await ensureManifest().catch(fallback('lib/discovery/archive/shell · read', null, 'what ensureManifest read'));
       const region = m ? pickRegion(m, centre) : null;
       const file = region ? usable(region) : null;
       if (!file || shouldStop?.()) return null;

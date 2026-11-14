@@ -2,6 +2,7 @@
 import type { Ports } from '../ports/types';
 import { createStore, type Store } from '../store';
 import { decodeLayers, encodeLayers, layerDefaults, type LayerState } from './state';
+import { fallback } from '../diagnostics/sink';
 
 /*
  * The layers' state (ML5, ML7): one setting for every map, kept in meta `map_layers`. Until it is loaded the
@@ -25,7 +26,7 @@ export function createLayers(p: Pick<Ports, 'db'>): Layers {
   let loading: Promise<void> | null = null;
   const load = () =>
     (loading ??= (async () => {
-      const [raw, legacy] = await Promise.all([p.db.getMeta('map_layers').catch(() => null), p.db.getMeta('walk_layer').catch(() => null)]);
+      const [raw, legacy] = await Promise.all([p.db.getMeta('map_layers').catch(fallback('lib/layers/shell · load', null, 'what getMeta read')), p.db.getMeta('walk_layer').catch(fallback('lib/layers/shell · load', null, 'what getMeta read'))]);
       store.set((s) => ({ ...s, on: decodeLayers(raw, legacy), loaded: true }));
     })());
   return {

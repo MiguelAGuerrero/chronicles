@@ -5,6 +5,7 @@ import type { Archive } from '../activity/release';
 import { TileMemo } from '../net/tileReader';
 import { piecesFromBuildingsTile, placesFromPlacesTile, type TileFeatureIn } from './overtureSource';
 import type { BuildingPiece, ComplexRead, ComplexSource, PlaceIn } from './types';
+import { report } from '../diagnostics/sink';
 
 /*
  * Reads Overture's `buildings` and `places` tiles for complexes (CX15, CX16): one tile of each, a tile once per release while
@@ -89,9 +90,7 @@ export function createOvertureSource(o: { open: (release: string, file: 'buildin
                 }),
               ]);
               return { x, y, b, p };
-            } catch {
-              return null;
-            }
+            } catch (caughtError) { report('cache', 'lib/complexes/overtureReader · read', caughtError); return null; }
           }),
         ).then(
           (lists) => {

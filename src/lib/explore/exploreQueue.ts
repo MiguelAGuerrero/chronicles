@@ -1,6 +1,7 @@
 // @layer shell
 import { capturesToFind, readJoin, type ChecklistArea, type ChecklistItem } from './explore';
 import type { LngLat } from '../types';
+import { fallback } from '../diagnostics/sink';
 
 /** `stopped`: the caller stopped it (tend explore audit 13): no failure, so no failure's wait. */
 export type ExploreResult = { ok: true; areas: ChecklistArea[] } | { ok: false; stopped?: boolean };
@@ -25,7 +26,7 @@ export function createReadQueue(read: Read) {
     if (running && join === 'wait') return running.then((): ExploreResult | Promise<ExploreResult> => (shouldStop() ? STOPPED : run(centre, opts, shouldStop)));
     runningAt = centre;
     const mine: Promise<ExploreResult> = read(centre, opts, shouldStop)
-      .catch((): ExploreResult => ({ ok: false }))
+      .catch(fallback('lib/explore/exploreQueue · run', { ok: false } as const, 'the area read'))
       .then((r) => (!r.ok && shouldStop() ? STOPPED : r))
       .finally(() => {
         if (running === mine) {

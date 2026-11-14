@@ -1,5 +1,6 @@
 // @layer adapter
 import { Platform, Share } from 'react-native';
+import { fallback } from '../diagnostics/sink';
 
 /** The phone or browser, for the GPS log's header. */
 export const deviceName = (): string => (Platform.OS === 'web' ? navigator.userAgent : `${Platform.OS} ${Platform.Version}`);
@@ -18,7 +19,7 @@ export async function shareLogText(text: string, title = 'Chronicles GPS log'): 
     if (!clip) return 'failed';
     return clip.writeText(text).then(
       () => 'copied' as const,
-      () => 'failed' as const,
+      fallback('lib/shareLog/share · shareLogText', 'failed' as const, 'what writeText read'),
     );
   }
 }

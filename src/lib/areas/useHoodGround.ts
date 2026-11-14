@@ -8,6 +8,7 @@ import { outlines } from './outlineReader';
 import { OUTLINE_ZOOM, type OutlineSet } from './outlines';
 import { AREA_REACH_M } from './rules';
 import type { PlaceCandidate } from './types';
+import { caught } from '../diagnostics/sink';
 
 /** The neighborhoods and towns listed, as the candidates placing would weigh (HB9). */
 export const candidatesOf = (areas: readonly { level: 'neighborhood' | 'town'; name: string; at: LngLat }[]): PlaceCandidate[] =>
@@ -75,7 +76,7 @@ export function useHoodGround(area: { level: string; name: string; at: LngLat } 
         setRead(read);
         setKept((k) => keepGround(k, { hood: key, key: gkNow, ground }));
       },
-      () => {},
+      caught('cache', 'lib/areas/useHoodGround · useHoodGround'),
     );
     return () => {
       live = false;

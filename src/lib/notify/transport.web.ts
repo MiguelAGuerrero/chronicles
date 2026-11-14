@@ -1,6 +1,7 @@
 // @layer adapter
 import type { NoticeResponse, NoticeTransport, Permission } from './core';
 import { noticeFromUrl, SW_MESSAGE, swOptions } from './webNotice';
+import { caught, fallback } from '../diagnostics/sink';
 
 /*
  * The web's transport (NT2, NT3): the service worker in `public/sw.js` shows
@@ -56,14 +57,14 @@ export const transport: NoticeTransport = {
     clearTimeout(timers.get(n.id));
     timers.set(n.id, setTimeout(() => {
       timers.delete(n.id);
-      show(n).catch(() => {});
+      show(n).catch(caught('cache', 'lib/notify/transport · schedule'));
     }, afterMs));
   },
   async cancel(id) {
     clearTimeout(timers.get(id));
     timers.delete(id);
     const r = await registration();
-    for (const n of (await r?.getNotifications({ tag: id }).catch(() => [])) ?? []) n.close();
+    for (const n of (await r?.getNotifications({ tag: id }).catch(fallback('lib/notify/transport · cancel', [], 'what getNotifications read'))) ?? []) n.close();
   },
   onResponse(fn) {
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {

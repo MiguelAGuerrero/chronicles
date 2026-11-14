@@ -4,6 +4,7 @@ import { db } from '../db';
 import type { Fill, GapDecision, LngLat } from '../types';
 import { decide, readGap } from './index';
 import { decisionFor, emptyGaps, fillsOf, gapKey, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
+import { fallback } from '../diagnostics/sink';
 
 /** A gap whose streets couldn't be read is tried again after this long (G8; offline, a failed fetch). */
 const RETRY_MS = 2 * 60_000;
@@ -48,7 +49,7 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
     let alive = true;
     // A failed read is no decisions, so gaps are still read (audit 11).
     db.getGapDecisions(walkId)
-      .catch(() => [] as GapDecision[])
+      .catch(fallback('lib/gaps/useLiveStretches · useLiveStretches', [] as GapDecision[], 'what getGapDecisions read'))
       .then((rows) => alive && setDecisions({ walkId, rows }));
     return () => {
       alive = false;
@@ -76,7 +77,7 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
       for (const g of todo) {
         if (current.current !== walkId) return;
         tried.current.set(gapKey(g), Date.now());
-        const inf = await readGap(walkId, g).catch(() => undefined);
+        const inf = await readGap(walkId, g).catch(fallback('lib/gaps/useLiveStretches · useLiveStretches', undefined, 'what readGap read'));
         if (inf === undefined) unread = true;
         // This walk's only, one row per gap: a gap whose end moved replaces nothing it shouldn't (audit 10, 11).
         else if (inf && current.current === walkId)

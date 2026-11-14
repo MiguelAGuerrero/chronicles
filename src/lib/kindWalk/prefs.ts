@@ -3,6 +3,7 @@ import type { Ports } from '../ports/types';
 import { createStore, type Store } from '../store';
 import { DEFAULT_DENSITY, DEFAULT_MODE, isDensity, isMode, type Density, type Mode } from '../walkPlanner/settings';
 import { DEFAULT_BUDGET_M, DEFAULT_PREF, isPref, type WalkabilityPref } from './settings';
+import { fallback } from '../diagnostics/sink';
 
 /*
  * The kind walk's two settings (KW8, KW11), kept in meta `kindwalk_budget` (metres) and `kindwalk_pref`. A shell with a Store
@@ -32,10 +33,10 @@ export function createKindWalkPrefs(p: Pick<Ports, 'db'>): KindWalkPrefsStore {
     store,
     async load() {
       const [b, f, m, d] = await Promise.all([
-        p.db.getMeta('kindwalk_budget').catch(() => null),
-        p.db.getMeta('kindwalk_pref').catch(() => null),
-        p.db.getMeta('kindwalk_mode').catch(() => null),
-        p.db.getMeta('kindwalk_density').catch(() => null),
+        p.db.getMeta('kindwalk_budget').catch(fallback('lib/kindWalk/prefs · load', null, 'what getMeta read')),
+        p.db.getMeta('kindwalk_pref').catch(fallback('lib/kindWalk/prefs · load', null, 'what getMeta read')),
+        p.db.getMeta('kindwalk_mode').catch(fallback('lib/kindWalk/prefs · load', null, 'what getMeta read')),
+        p.db.getMeta('kindwalk_density').catch(fallback('lib/kindWalk/prefs · load', null, 'what getMeta read')),
       ]);
       const n = Number(b);
       store.set({ budgetM: b && Number.isFinite(n) && n > 0 ? n : DEFAULT_BUDGET_M, pref: isPref(f) ? f : DEFAULT_PREF, mode: isMode(m) ? m : DEFAULT_MODE, density: isDensity(d) ? d : DEFAULT_DENSITY });

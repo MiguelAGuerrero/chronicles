@@ -6,6 +6,7 @@ import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
 import { notifyWalkChanged } from './walkEvents';
+import { caught } from './diagnostics/sink';
 
 /**
  * The walk lifecycle, in one place so every screen goes through the same
@@ -32,7 +33,7 @@ export function startWalk(): Promise<{ walk: Walk; warning?: string }> {
       try {
         await db.createWalk(walk);
       } catch (e) {
-        await recorder.stop().catch(() => {});
+        await recorder.stop().catch(caught('cache', 'lib/session · startWalk'));
         throw e;
       }
       // Marks scanned from the home belong to the next walk (S11); a failure leaves them for the one after.
@@ -62,9 +63,9 @@ export function stopWalk(walkId: string): Promise<void> {
       void notifier.pauseEnded(walkId);
       void notifier.walkEnded(walkId);
       // Navigation ends with the walk (N10).
-      await clearNav().catch(() => {});
+      await clearNav().catch(caught('cache', 'lib/session · stopWalk'));
       // So does the spot chosen with Walk back here (DW7).
-      await clearWayBack().catch(() => {});
+      await clearWayBack().catch(caught('cache', 'lib/session · stopWalk'));
     })().finally(() => {
       stopping = null;
     });

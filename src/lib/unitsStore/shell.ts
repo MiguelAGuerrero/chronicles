@@ -1,6 +1,7 @@
 // @layer shell
 import type { Ports } from '../ports/types';
 import { deviceLocale, isUnits, setUnits, unitsForLocale, type Units } from '../units';
+import { fallback } from '../diagnostics/sink';
 
 /** Meta: the units setting, 'km' or 'mi' (QL13). Unset, the locale's default shows. */
 export const UNITS_KEY = 'units';
@@ -13,7 +14,7 @@ export function createUnitsStore(p: Pick<Ports, 'db'>, locale: () => string | un
   return {
     /** At launch: the saved setting, else the device region's default (QL13). The store starts at km. */
     async loadUnits(): Promise<void> {
-      const v = await p.db.getMeta(UNITS_KEY).catch(() => null);
+      const v = await p.db.getMeta(UNITS_KEY).catch(fallback('lib/unitsStore/shell · loadUnits', null, 'what getMeta read'));
       setUnits(isUnits(v) ? v : unitsForLocale(locale()));
     },
     /** Sets the store first, so every screen redraws at once, then keeps it (QL16). */
