@@ -559,6 +559,32 @@ async function cardFooter(h) {
       check(asked.now && asked.cancel === 'Not now' && asked.spoken === 'Not now' && asked.footer != null && !/Cranston/.test(asked.footer)
         && asked.size && asked.size[0] >= 44 && asked.size[1] >= 44,
         `tend explore 11: at ${w}, a far town's question has no name line and a quiet "Not now" in words, a 44 px target (${JSON.stringify(asked)})`);
+      // tend explore audit 16: Not now is below the two choices, centred, a 44 px text button; below 360 px the choices stack
+      // full width (Walk now, When I get there, Not now), and no label wraps.
+      const order = await pg2.evaluate(() => {
+        const box = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+        const [now, later, cancel] = ['atlas-walk-now', 'atlas-walk-later', 'atlas-walk-cancel'].map(box);
+        const footer = document.querySelector('[data-testid=atlas-footer]')?.getBoundingClientRect();
+        const lines = (id) => {
+          const el = [...document.querySelectorAll(`[data-testid=${id}] div`)].find((d) => d.childElementCount === 0 && d.textContent.trim());
+          if (!el) return null;
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          return new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top))).size;
+        };
+        if (!now || !later || !cancel || !footer) return null;
+        return {
+          below: cancel.top >= Math.max(now.bottom, later.bottom) - 0.5,
+          centred: Math.abs((cancel.left + cancel.right) / 2 - (footer.left + footer.right) / 2) <= 2,
+          stacked: later.top >= now.bottom - 0.5,
+          // Stacked, each choice takes the footer's whole width (its 16 px padding aside).
+          full: [now, later].every((b) => Math.abs(b.width - (footer.width - 32)) <= 2),
+          target: [Math.round(cancel.width), Math.round(cancel.height)],
+          lines: [lines('atlas-walk-now'), lines('atlas-walk-later'), lines('atlas-walk-cancel')],
+        };
+      });
+      check(order && order.below && order.centred && order.target[1] >= 44 && order.target[0] >= 44 && order.stacked === (w < 360) && (w >= 360 || order.full) && order.lines.every((n) => n === 1),
+        `tend explore audit 16: at ${w}, Not now sits centred below the choices, a 44 px target; ${w < 360 ? 'stacked full width' : 'side by side'}, nothing wraps (${JSON.stringify(order)})`);
       await shot(pg2, `carousel-far-question-${w}`);
       await pg2.click('[data-testid=atlas-walk-cancel]').catch(() => {});
       await pg2.waitForTimeout(500);

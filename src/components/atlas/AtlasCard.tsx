@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated, BackHandler, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View,
+  Animated, BackHandler, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type NativeScrollEvent, type NativeSyntheticEvent, type PanResponderGestureState,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,6 +39,8 @@ const CLOSE_AT = 0.3;
 const FLING_VY = 1;
 /** A pull from the content starts only once it is clearly downward, not a tap or a sideways wobble. */
 const PULL_START = 8;
+/** tend explore audit 16: narrower than this, the far question's choices stack full width (at 320 "When I get there" wrapped). */
+const ASK_STACK_W = 360;
 
 type Pan = ReturnType<typeof PanResponder.create>;
 
@@ -137,6 +139,8 @@ export function AtlasCard(props: {
   }, []);
 
   const insets = useSafeAreaInsets();
+  // tend explore audit 16: under this width the question's two choices stack full width, so neither label wraps.
+  const narrow = useWindowDimensions().width < ASK_STACK_W;
   const sheet = layout.kind === 'sheet';
   const screenH = sheet ? layout.screenH : 0;
   // The tabs fold away while the drawer is up, and come back when it goes (however it goes).
@@ -371,19 +375,17 @@ export function AtlasCard(props: {
             // DW2: Walk now starts as Walk to always did; When I get there keeps the place for Navigate's Start (DW3).
             <>
               {/* tend explore 11 (decision 0172, O2): the question's way out is a quiet "Not now" in words, not a second close
-                  button; it names what it asks about only when that is not the card's own area, which the header names. */}
-              <View style={[styles.askHead, asking.label === area.name && styles.askHeadBare]}>
-                {asking.label === area.name ? null : <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>}
-                <Button testID="atlas-walk-cancel" variant="ghost" label="Not now" onPress={() => setAsking(null)} style={styles.askClose} />
-              </View>
-              <View style={styles.askRow}>
-                <Button testID="atlas-walk-now" label="Walk now" busy={props.starting} busyLabel="Starting…" style={styles.askBtn}
+                  button; it names what it asks about only when that is not the card's own area, which the header names.
+                  tend explore audit 16: "Not now" comes after the choices, centred, as a dismissive action goes last. */}
+              {asking.label === area.name ? null : <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>}
+              <View style={[styles.askRow, narrow && styles.askStack]}>
+                <Button testID="atlas-walk-now" label="Walk now" busy={props.starting} busyLabel="Starting…" style={narrow ? null : styles.askBtn}
                   onPress={() => {
                     const go = asking.now;
                     setAsking(null);
                     go();
                   }} />
-                <Button testID="atlas-walk-later" variant="secondary" label="When I get there" style={styles.askBtn}
+                <Button testID="atlas-walk-later" variant="secondary" label="When I get there" style={narrow ? null : styles.askBtn}
                   accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
                   onPress={() => {
                     const a = asking;
@@ -391,6 +393,7 @@ export function AtlasCard(props: {
                     props.onLater?.(a.at, a.label);
                   }} />
               </View>
+              <Button testID="atlas-walk-cancel" variant="ghost" label="Not now" onPress={() => setAsking(null)} style={styles.askClose} />
             </>
           ) : props.walkTo && props.farOff ? (
             // DW14: too far to walk, not too far to go.
@@ -526,10 +529,10 @@ const styles = StyleSheet.create({
   nbName: { fontSize: 14, fontWeight: '600', color: theme.ink },
   footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, borderTopWidth: 1, borderTopColor: theme.line, gap: 6, backgroundColor: theme.surface },
   via: { fontSize: 13, color: theme.muted, textAlign: 'center' },
-  askHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  askTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
-  askHeadBare: { justifyContent: 'flex-end' },
-  askClose: { minWidth: 44, minHeight: 44, paddingHorizontal: 12 },
+  askTitle: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  askClose: { alignSelf: 'center', minWidth: 44, minHeight: 44, paddingHorizontal: 16 },
+  // One line per choice, each the footer's width: a wrapping column would size them to their words.
+  askStack: { flexDirection: 'column', flexWrap: 'nowrap' },
   askRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   askBtn: { flexGrow: 1, flexBasis: 140 },
   hereLine: { color: COLORS.route, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },
