@@ -1278,6 +1278,12 @@ async function run(h) {
     // dismissal, in Start's words; the walk's live region says it. At 390 and 320.
     for (const [w, hgt] of [[390, 844], [320, 700]]) {
       const { c: c5, pg: pg5 } = await freshPage(`qol-denied-walk-${w}`);
+      // The page's visibility, faked (as `hidden`), so a return to the front can be made (tend walk-screen 2).
+      await c5.addInitScript(() => {
+        window.__vis = 'visible';
+        Object.defineProperty(document, 'visibilityState', { get: () => window.__vis });
+        Object.defineProperty(document, 'hidden', { get: () => window.__vis === 'hidden' });
+      });
       await pg5.setViewportSize({ width: w, height: hgt });
       await pg5.goto(navUrl);
       await pg5.waitForSelector('[data-testid=start]');
@@ -1315,6 +1321,28 @@ async function run(h) {
       const againRaw = await rawSaid(pg5, 'walk-said');
       check(upRaw.length === 1 && againRaw.length === 1 && againRaw[0] !== upRaw[0] && againRaw[0].replace(/\u200B/g, '') === T26_WORDS,
         `tend recording audit 4: at ${w}, the chip's tap with the notice up changes the walk's live region, so it is said again (${JSON.stringify([upRaw, againRaw])})`);
+      // tend walk-screen 2: location allowed again and the page back in front, the walk records again, and the
+      // refusal's notice goes with the chip; it outlived the retry that restarted the recorder (the T26 review's F5).
+      const fixesOf = () => pg5.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('trace_point', 'readonly').objectStore('trace_point').count();
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const fixesOff = await fixesOf();
+      await c5.grantPermissions(['geolocation']);
+      await pg5.evaluate(() => { window.__vis = 'hidden'; document.dispatchEvent(new Event('visibilitychange')); });
+      await pg5.waitForTimeout(300);
+      await pg5.evaluate(() => { window.__vis = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c5.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg5.waitForTimeout(1000);
+      }
+      const back5 = { chip: await chip.count(), notice: await notice().count(), fixes: (await fixesOf()) - fixesOff };
+      check(back5.chip === 0 && back5.notice === 0 && back5.fixes > 0,
+        `tend walk-screen 2: at ${w}, location allowed again and the page back in front, the walk records again and the refusal's notice goes with the chip (${JSON.stringify(back5)})`);
       await c5.close();
     }
 

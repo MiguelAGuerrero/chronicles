@@ -58,7 +58,7 @@ import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
 import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
-import { retryRecorder } from '../lib/recorderRetry';
+import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
 import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
@@ -343,6 +343,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
   // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
   const raisedError = useRef<string | null>(null);
+  // The words of the refusal's notice, until the walk records again and takes it down (QL25).
+  const shownError = useRef<string | null>(null);
   // Each quiet refusal raised, for the live region's repeat (tend recording audit 4).
   const saidCount = useRef(0);
   const retrying = useRef(false);
@@ -352,11 +354,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // The recorder reports "recording" with every fix: only a change re-renders the screen (perf).
         setStatus((prev) => (prev.kind === s.kind && JSON.stringify(prev) === JSON.stringify(s) ? prev : s));
         if (s.kind !== 'error') {
-          if (!retrying.current) raisedError.current = null;
+          // Recording again takes the refusal's notice down, whatever restarted it, even mid-retry (QL25).
+          const next = raisedAfter(raisedError.current, shownError.current, s.kind, retrying.current);
+          raisedError.current = next.raised;
+          shownError.current = next.shown;
+          const words = next.clear;
+          if (words != null) setNotice((n) => (n?.sticky && n.message === words ? null : n));
           return;
         }
         if (raisedError.current === s.message) return;
         raisedError.current = s.message;
+        shownError.current = s.message;
         // Location refused is a quiet notice (T26), said as Navigate's is (tend map audit 12): the live region below on
         // web, the call on a phone.
         const quiet = s.tone === 'info';
@@ -1059,6 +1067,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // status raised it already; on a phone the start throws before any status, so it is raised here.
         if (raisedError.current !== fail.message) {
           raisedError.current = fail.message;
+          shownError.current = fail.message;
           setNotice({ message: fail.message, tone: 'info', openSettings: fail.openSettings, sticky: true, said: ++saidCount.current });
           AccessibilityInfo.announceForAccessibility(fail.message);
         }
@@ -1403,6 +1412,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onPress={() => {
               if (status.kind !== 'error') return;
               raisedError.current = status.message;
+              shownError.current = status.message;
               const quiet = status.tone === 'info';
               setNotice({ message: status.message, tone: status.tone ?? 'error', openSettings: status.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
               if (quiet) AccessibilityInfo.announceForAccessibility(status.message);
