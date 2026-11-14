@@ -140,7 +140,7 @@ export function StartSettings(props: {
             accessibilityState={{ checked: units === u }}
             aria-checked={units === u}
             accessibilityLabel={u === 'km' ? 'Kilometres and metres' : 'Miles and feet'}
-            onPress={() => saveUnits(u).catch(failedSave('StartSettings · Distances', 'a setting', () => saveUnits(u)))}
+            onPress={() => saveUnits(u).catch(failedSave('StartSettings · Distances', 'your Distances choice', () => saveUnits(u)))}
             style={[styles.segmentBtn, units === u && styles.segmentOn]}
           >
             <Text style={[styles.segmentText, units === u && styles.segmentTextOn]}>{u === 'km' ? 'km' : 'miles'}</Text>

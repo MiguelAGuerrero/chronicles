@@ -77,6 +77,22 @@ Open: none
     is never a dialog, and never floats over the way, Undo or the replay's beats; during a replay it waits for the
     card (the steward's S2).
 
+## Cold find (2026-11-14, the `ux-reviewer`, from the journey's pictures)
+
+Told only "send the app's diagnostics", from the walk settings. 5 findings: 3 fixed, each behind a check named
+`errors-handled ui N` in the `diagnostics` journey; 2 rejected.
+
+1. (high) fix: the row read as a heading, not a control. It is the sheet's outlined `Button` now
+   (`errors-handled ui 1`).
+2. (medium) fix: it sat under Distances, with no heading of its own. It has a rule and a heading, Help
+   (`errors-handled ui 2`).
+3. (medium) fix: the failed-save line said "a setting" and not what to do. It names the setting ("Your
+   Distances choice") and, for a full phone, says "Free some room first." (`errors-handled ui 3`).
+4. (medium) reject: a dialog for a failed save. EH14 and the plan chose one line that stays until it saves;
+   a dialog over the map betrays EH13.
+5. (low) reject: a dismiss control and a place higher up. The line goes when the save works (S4, by design),
+   and it sits in the walk screen's pill slot, beside the captures, never over them.
+
 ## Decisions
 
 - 2026-11-14 (the owner, decision 0179): no swallowed errors; handled by kind; a local diagnostics log, shared as

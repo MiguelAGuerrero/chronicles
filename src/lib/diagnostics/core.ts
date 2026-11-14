@@ -126,5 +126,7 @@ export function failedLine(list: FailedSave[]): string | null {
   const subject = joined.charAt(0).toUpperCase() + joined.slice(1);
   const whys = [...new Set(list.map((f) => f.why).filter((w): w is string => !!w))];
   const verb = list.length === 1 ? 'wasn’t saved' : 'weren’t saved';
-  return `${subject} ${verb}${whys.length === 1 ? `: ${whys[0]}` : ''}.`;
+  // What to do, where it is known (errors-handled ui 3): a full phone needs room before Retry can work.
+  const advice = whys.length === 1 && whys[0] === 'the phone is full' ? ' Free some room first.' : '';
+  return `${subject} ${verb}${whys.length === 1 ? `: ${whys[0]}` : ''}.${advice}`;
 }

@@ -41,6 +41,17 @@ async function run(h) {
     check(found && order && /Share diagnostics/.test(label), `EH1, EH2: the walk settings have a row "Share diagnostics", after Distances ("${label.replace(/\n/g, ' ')}")`);
     const note = found ? await pg.locator('[data-testid=share-diagnostics-note]').innerText().catch(() => '') : '';
     check(/no places/i.test(note) && !/[0-9]/.test(note), `EH3a, EH13: before the tap the note says what the text holds, with no count ("${note}")`);
+    // errors-handled ui 1, 2 (the cold find, Nov 14): drawn as a button, under a heading of its own.
+    const looks = found ? await row.evaluate((e) => {
+      const cs = getComputedStyle(e);
+      const all = [...document.querySelectorAll('[role=heading], [aria-level]')].map((h) => h.textContent);
+      return { border: parseFloat(cs.borderTopWidth) > 0, role: e.getAttribute('role'), help: all.includes('Help') };
+    }) : {};
+    check(looks.border && looks.role === 'button', `errors-handled ui 1: Share diagnostics is drawn as a button, outlined like the sheet's others (${JSON.stringify(looks)})`);
+    check(looks.help, 'errors-handled ui 2: it sits under a heading of its own, Help, not under Distances');
+    await shot(pg, 'diagnostics-00-settings-top');
+    if (found) await row.scrollIntoViewIfNeeded();
+    await pg.waitForTimeout(300);
     await shot(pg, 'diagnostics-01-row');
     if (found) await row.click();
     await pg.waitForTimeout(800);
@@ -58,7 +69,8 @@ async function run(h) {
     await pg.click(`[data-testid=${other}]`).catch(() => {});
     await drawerTo(pg, 'peek');
     const line = await pg.waitForSelector('[data-testid=save-failed-line]', { timeout: 6000 }).then((e) => e.innerText(), () => '');
-    check(/A setting wasn’t saved/.test(line) && /Retry/.test(line) && !/[0-9]/.test(line.replace(/\d+\s*(m|km|ft|mi)\b/g, '')), `EH7, EH13: one line in words with Retry, no number ("${line.replace(/\n/g, ' ')}")`);
+    check(/Your Distances choice wasn’t saved: the phone is full\. Free some room first\./.test(line), `errors-handled ui 3: the line names the setting and says what to do ("${line.replace(/\n/g, ' ')}")`);
+    check(/wasn’t saved/.test(line) && /Retry/.test(line) && !/[0-9]/.test(line.replace(/\d+\s*(m|km|ft|mi)\b/g, '')), `EH7, EH13: one line in words with Retry, no number ("${line.replace(/\n/g, ' ')}")`);
     const boxes = await pg.evaluate(() => {
       const r = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
       const line = r('save-failed-line');

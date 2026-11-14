@@ -58,7 +58,7 @@ test('EH7 why in words when known, one line in a clause for several, never a num
   assert.equal(whyOf(new Error('SQLITE_IOERR: something odd')), null, 'unknown: no reason rather than the platform\'s words');
   assert.equal(failedLine([]), null);
   let list = withFailed([], { key: 'nav', what: 'your destination', why: 'the phone is full' });
-  assert.equal(failedLine(list), 'Your destination wasn’t saved: the phone is full.');
+  assert.equal(failedLine(list), 'Your destination wasn’t saved: the phone is full. Free some room first.', 'errors-handled ui 3: what to do, where it is known');
   list = withFailed(list, { key: 'units', what: 'a setting', why: null });
   list = withFailed(list, { key: 'nav', what: 'your destination', why: null });
   assert.equal(list.length, 2, 'the same thing replaces');
