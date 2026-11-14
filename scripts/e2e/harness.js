@@ -179,12 +179,13 @@ const overpassAnswer = { elements: [
 ] };
 // After dark (DK1-DK17): the Overpass answer to the after-dark query. 'mixed': Arnold and Transit Street lit, Williams Street
 // mapped as unlit (each on the base map's own street, the UI review's U2); a bar open in the evening, a bookshop open by day, a place whose hours can't be read
-// and one with none. 'unlit': every grid street mapped as unlit (the heads-up). 'busy': a 429 for every after-dark query.
+// and one with none. 'unlit': every street of the base map mapped as unlit (the heads-up). 'busy': a 429 for every after-dark query.
 const ll = (p) => ({ lat: p[1], lon: p[0] });
 const darkWorld = { mode: 'mixed' };
 const darkAnswerOf = (mode) => ({ elements: mode === 'unlit'
-  ? [...GRID.map((gy, i) => ({ type: 'way', id: 900 + i, tags: { highway: 'residential', lit: 'no', name: `Grid ${gy} Street` }, geometry: [ll(at(-5, gy)), ll(at(5, gy))] })),
-    ...GRID.map((gx, i) => ({ type: 'way', id: 950 + i, tags: { highway: 'residential', lit: 'no' }, geometry: [ll(at(gx, -5)), ll(at(gx, 5))] }))]
+  // Every street of the base map, where routes run (after-dark audit 1: an unlit way beside a route is not the route).
+  ? [...ys.map((y, i) => ({ type: 'way', id: 900 + i, tags: { highway: 'residential', lit: 'no', name: names[i] }, geometry: [ll(at(-2, y)), ll(at(4, y))] })),
+    ...xs.map((x, i) => ({ type: 'way', id: 950 + i, tags: { highway: 'residential', lit: 'no' }, geometry: [ll(at(x, -2)), ll(at(x, 2))] }))]
   : [
     { type: 'way', id: 801, tags: { highway: 'residential', lit: 'yes', name: 'Arnold Street' }, geometry: [ll(at(-2, 0.5)), ll(at(4, 0.5))] },
     { type: 'way', id: 802, tags: { highway: 'residential', lit: 'automatic', name: 'Transit Street' }, geometry: [ll(at(-2, -0.5)), ll(at(4, -0.5))] },

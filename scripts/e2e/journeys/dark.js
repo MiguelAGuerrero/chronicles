@@ -178,7 +178,7 @@ async function run(h) {
     line = (await p3.locator('[data-testid=walk-ahead]').innerText({ timeout: 500 }).catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
     if (!line) await p3.waitForTimeout(250);
   }
-  check(/^Next: (Grid -?\d Street is mapped as unlit|a stretch mapped as unlit)$/.test(line), `DK10: after sunset, a line says a stretch mapped as unlit is ahead (${JSON.stringify(line)})`);
+  check(/^Next: ((Wickenden|Transit|Arnold|Williams) Street is mapped as unlit|a stretch mapped as unlit)$/.test(line), `DK10: after sunset, a line says a stretch mapped as unlit is ahead (${JSON.stringify(line)})`);
   check((await p3.locator('[data-testid=walk-ahead] [data-testid=walk-ahead-moon]').count()) === 1 && (await p3.locator('[data-testid=walk-ahead] [data-testid=walk-badge-car]').count()) === 0, 'DK10: it wears the moon, never the car');
   check((await p3.evaluate(() => window.__buzz.length)) === 0, 'DK10: nothing buzzed');
   const words = (t) => t.replace(/\d+([.,]\d+)?/g, '#');
