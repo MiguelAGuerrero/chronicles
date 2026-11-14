@@ -129,12 +129,13 @@ export function useExplore(opts: {
   // One read at a time, a failed one waiting 2 min and 100 m (E5); every walk, quiet or not (E2).
   const failed = useRef<{ at: LngLat; t: number } | null>(null);
   const checkedAt = useRef<LngLat | null>(null);
-  const readAt = useCallback(async (centre: LngLat): Promise<boolean> => {
+  const readAt = useCallback(async (centre: LngLat, stop: () => boolean = () => false): Promise<boolean> => {
     // Busy streets only on an exploring walk (the owner's call); checklists on every walk.
-    const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current);
+    const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current || stop());
     if (!mounted.current) return false;
     if (!r.ok) {
-      failed.current = { at: centre, t: Date.now() };
+      // tend explore audit 13: a read its caller stopped is no failure, so it sets no failure's wait.
+      if (!r.stopped) failed.current = { at: centre, t: Date.now() };
       return false;
     }
     failed.current = null;
@@ -206,7 +207,8 @@ export function useExplore(opts: {
           const k = known.current ?? (await loadKnown());
           const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
           const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-          if (centre && !(await readAt(centre))) break;
+          // tend explore audit 13: a route dropped meanwhile stops its reads, a waiting one included.
+          if (centre && !(await readAt(centre, () => !alive))) break;
         }
       });
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);

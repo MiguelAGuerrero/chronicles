@@ -103,3 +103,53 @@ test('tend explore audit 12: the walk screen finds through the finder, with its 
   assert.match(src, /finder\.look\([^;]*found, record, /, 'the capture effect looks through the finder');
   assert.match(src, /finder\.seen\(/, "a reload's finds are handled");
 });
+
+// tend explore audit 13 (auditor 5): a read waiting behind another went on to read for a route already dropped (its only
+// stop was the screen's unmount), and a stopped read set the failure's 2-minute wait.
+test('tend explore audit 13: another centre waits for the running read, then reads its own (tend explore 15)', async () => {
+  const f = fakeRead();
+  const q = createReadQueue(f.read);
+  const a = q.read(fix, { remember: false }, () => false);
+  const b = q.read(probe, { remember: false }, () => false);
+  const same = q.read([fix[0], fix[1]], { remember: false }, () => false);
+  assert.equal(same, a, 'the same centre shares the running read');
+  assert.deepEqual(f.asked, [fix], 'one read at a time');
+  f.end(0);
+  await a;
+  await tick();
+  assert.deepEqual(f.asked, [fix, probe], 'the probe reads its own once the first ends');
+  f.end(1);
+  assert.deepEqual(await b, { ok: true, areas: [] });
+});
+
+test('tend explore audit 13: a waiter stopped meanwhile reads nothing, and says it was stopped', async () => {
+  const f = fakeRead();
+  const q = createReadQueue(f.read);
+  let dropped = false;
+  const a = q.read(fix, { remember: false }, () => false);
+  const b = q.read(probe, { remember: false }, () => dropped);
+  dropped = true;
+  f.end(0);
+  await a;
+  assert.deepEqual(await b, { ok: false, stopped: true });
+  assert.deepEqual(f.asked, [fix], 'no read for the dropped route');
+});
+
+test('tend explore audit 13: a read its caller stopped says so; one that failed by itself does not', async () => {
+  const f = fakeRead();
+  const q = createReadQueue(f.read);
+  let stop = false;
+  const a = q.read(fix, { remember: false }, () => stop);
+  stop = true;
+  f.end(0, { ok: false });
+  assert.deepEqual(await a, { ok: false, stopped: true });
+  const b = q.read(probe, { remember: false }, () => false);
+  f.end(1, { ok: false });
+  assert.deepEqual(await b, { ok: false });
+});
+
+test('tend explore audit 13: the walk screen gives route reads the route\'s stop, and a stopped read sets no failure', () => {
+  const src = readFileSync(SRC, 'utf8');
+  assert.match(src, /readAt\(centre, \(\) => !alive\)/, 'a route read stops with its route');
+  assert.match(src, /if \(!r\.stopped\) failed\.current = /, 'only a read that failed by itself waits');
+});
