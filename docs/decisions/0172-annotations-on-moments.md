@@ -72,3 +72,13 @@ The owner asked for a better word than "annotations" and agreed to the recommend
 - In code, the slice renames `noteType` to `reaction`. "Annotation" stays only as this record's history.
 - The word's cost, argued at 0168's gate (the word for likes on someone else's post), is accepted again: a reaction
   here is the owner's own, shown to no one, never counted and never said of a place.
+
+## Addendum, Nov 14 (the slice's calls)
+At the plan's review (`specs/reactions/plan.md`), the owner:
+- **Reactions are kept in a table of their own** and read whole into memory, as the reminder bell reads reminders;
+  nothing about how a moment loads changes.
+- **Lenses live in the journal's contents**, as Reactions, between Threads and Hidden.
+- **On a faint memory pin the bubbles are faint with it** (the steward's finding 9), and **every map draws them, the
+  replays included**; the replay's cards stay bare.
+- With the go-ahead, the defaults the plan named: the earliest note's type wins its family when two notes of one
+  moment disagree; the three families in one panel; a moment set aside with Not this one stays in its lens.

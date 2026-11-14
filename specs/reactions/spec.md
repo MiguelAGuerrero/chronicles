@@ -18,7 +18,7 @@ Touches: decision 0161 and NY12 ("nothing sorts, filters or searches notes by ty
 Verdict: aligned if reshaped (decision 0172; the owner reaffirmed lenses over 0161's NY12)
 Shape: Eight reactions in three fixed families: Feeling (Happy, Neutral, Sad), Taste (Like, Dislike), Thought (Question, Emphasis, Idea). At most one per family per moment, chosen only by the owner, after keeping, from the face with a plus. Stored as their own records, never on the moment. A moment's reactions show as ink glyphs with their names wherever the moment is read, and as bubbles from the bottom-left of a single moment's pin. The journal's contents gain Reactions: one lens per reaction that has a moment, named in words ("Ideas"), opening the moments in context. Nothing counts them, ranks them or says anything of a place.
 Criteria: RX1-RX36 below.
-Open: four calls in the plan's "For the owner" (where the reactions are stored and read; which type a moment keeps when two notes disagree; the picker's shape; where lenses live), each with a recommended answer the criteria assume.
+Open: none (the owner's calls of Nov 14, below).
 
 ## Decisions (the owner's calls)
 
@@ -30,6 +30,11 @@ Open: four calls in the plan's "For the owner" (where the reactions are stored a
   (amends NY10).
 - **Nov 14 (0172, the word):** they are reactions; families Feeling, Taste, Thought; "Type" becomes "Reaction"
   everywhere; lenses named in plain words, never with a count.
+
+- **Nov 14 (0172, the slice's calls):** reactions in a table of their own, read whole as the bell reads reminders; the
+  contents' Reactions holds the lenses; bubbles are faint on a faint pin and drawn on every map, the replays included;
+  the defaults taken: the earliest note's type wins its family, the three families in one panel, a moment set aside
+  with Not this one stays in its lens.
 
 ## Surfaces (decision 0167, from the code)
 
@@ -98,8 +103,8 @@ Showing them
 17. **RX17** A pin of exactly one moment with reactions wears one bubble per reaction, in a row from the head's bottom-left corner outward, in the families' order: each a solid ink disc with a white glyph and a white edge, the reminder bell's size; a pin with no reactions wears none.
 18. **RX18** The pin's head always shows the moment's kind (a note's glyph, a photo's picture, a memo's, a video's still), whatever its reactions: a reaction never replaces the head (amends NY10).
 19. **RX19** A pin of several moments wears no reaction bubbles and its name lists none.
-20. **RX20** The bubbles never cover the bell or the clock (top corners) or the video mark (bottom right), on a pin and on a faint memory pin, where they are as faint as the pin, unlike the bell, which does something (steward 9; the owner's call); at the map's normal zoom on a 320 px screen, three bubbles stay inside the pin's own touch target or beside it without covering another pin's head.
-21. **RX21** A single moment's pin says its reactions after its kind, in the families' order: "Photo, happy, idea, twelve minutes in. Open"; a change of reaction shows on the pin behind the viewer at once, on the same pin, with focus kept (as RB5). The walk screen, Chronicle's Map and Navigate draw them; the replay and a day's replay, which are ceremonies, do not (steward, silent; the owner's call).
+20. **RX20** The bubbles never cover the bell or the clock (top corners) or the video mark (bottom right), on a pin and on a faint memory pin, where they are as faint as the pin, unlike the bell, which does something (steward 9; the owner, Nov 14); at the map's normal zoom on a 320 px screen, three bubbles stay inside the pin's own touch target or beside it without covering another pin's head.
+21. **RX21** A single moment's pin says its reactions after its kind, in the families' order: "Photo, happy, idea, twelve minutes in. Open"; a change of reaction shows on the pin behind the viewer at once, on the same pin, with focus kept (as RB5). Every map that draws capture pins draws them: the walk screen, the replay, a day's replay, Chronicle's Map and Navigate (the owner, Nov 14).
 
 Lenses
 
@@ -130,11 +135,11 @@ Storage and truth
 - **Steward 3** (the replay's own card; surfaces missed): accept; the table names them, and the replay's cards stay bare (RX16).
 - **Steward 4** (the slip speaking reactions it does not draw): accept, RX16.
 - **Steward 5** (one ink colour not carried over): accept, RX36.
-- **Steward 6** (a hidden moment in a lens): the default keeps it (a lens is asked for); put to the owner.
+- **Steward 6** (a hidden moment in a lens): the default keeps it (a lens is asked for), taken with the owner's go-ahead.
 - **Steward 7** (a lens grouped by place or period): accept, RX24.
 - **Steward 8** (the viewer's "i of n"): accept, RX25; the lens passes `position={false}`.
-- **Steward 9** (solid bubbles on faint pins): put to the owner; the spec assumes faint.
-- Silent: bubbles on the replay's map (the spec assumes none) and resurfacing learning from reactions (never, RX30) are the owner's.
+- **Steward 9** (solid bubbles on faint pins): the owner: faint (RX20).
+- Silent: bubbles on the replay's map: the owner, drawn there too (RX21); resurfacing never learns from reactions (RX30).
 
 ## Record
 

@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Reactions slice (RX1-RX36, `specs/reactions/spec.md`, decision 0172) | `claude/trusting-gates-cd90zs` | started 2026-11-14: plan approved; tests first, then the build, the audit and the deploy the owner asked for |\n"
+    }
+  ]
+}
