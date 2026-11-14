@@ -20,6 +20,16 @@ export type Where = {
   recordingIn?: ControlsAt | null;
 };
 
+/**
+ * What the sheet keeps free at its foot (audit 40, 43; chronicle-journal audit 62, 63): the bar's own height or the
+ * messages above it, whichever is taller, whether the bar is drawn or not, so the sheet's length never changes as the
+ * controls move between the bar and the row; plus, while the keyboard is up, the room an iPhone keeps for its own row
+ * (`under`, never part of `barH`) and the keyboard's lift.
+ */
+export function footRoom(r: { barH: number; aboveH: number; under: number; lift: number }): number {
+  return Math.max(r.barH, r.aboveH) + r.under + r.lift;
+}
+
 export function controlsAt(w: Where): ControlsAt {
   if (w.inBar || !w.opened || w.typing || w.failed || !w.rowInView || w.recordingIn === 'foot') return 'foot';
   return 'line';

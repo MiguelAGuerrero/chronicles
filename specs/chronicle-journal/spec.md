@@ -233,6 +233,32 @@ ui 14. Passes (contrast, hierarchy, wrapping, targets, the sheets): no change.
 - **UI review** (8 findings, none high): ux 7, the camera's and mic's targets touch, accepted as `chronicle-journal ui 11` (12 pt between them); ux 1 and 2 (the "+" here, a pen in the bar; a "+" beside media reads as Add) and ux 3 (a recording's order in the row and the bar) to the owner (`docs/STATUS.md`); ux 4 (the top entry's sign under the held date's edge, from audit 52) deferred; ux 5 (the bar with the tab bar, audit 50), ux 6 (icons and Done in one bar, JN29) and ux 8 (the caret, a device check) rejected as before this slice.
 - **Journeys:** `journal` (117 checks) ran nine times while the old checks were amended one failure at a time and the two bugs above were fixed; `capturehome` and `resurface` twice (amended), `threads` and `notepage` once. Native unverified: one check added to `docs/NATIVE_UNVERIFIED.md`.
 
+## Audit of JN34-JN40, the row under the line (Nov 14)
+
+Report-only passes by the auditor, the steward and the UX reviewer, after a cold find (all six tasks placed; "stop and keep a voice note" with doubt), triaged. 18 findings: 10 fixed, 3 deferred, 5 rejected. Regression tests are named `chronicle-journal audit N`: unit tests in `src/lib/__tests__/journal/bar.test.ts` (62, 63, 70) and checks in the `journal` journey (61, 64, 65, 68, 69, 77), committed as todos first at `25f0e48`.
+
+61. The bar and the row traded places on every frame of a slow pull across the row's edge (41 changes in one pull): accept. The row's place is kept while the bar holds the controls (`rowSlot`), so the line's measured height never changes with where they are.
+62. A message taller than the bar changed the foot's room as the controls moved: accept. `footRoom` (`lib/journal/bar.ts`) is the same whether the bar or the row is drawn.
+63. On an iPhone, the bar's last height while typing (with the room for the keyboard's own row) was kept at rest: accept. `barH` is measured without it; it counts only while the keyboard is up. The unit test holds the arithmetic; the iPhone itself is a device check.
+64. Pulled back mid-note, the bar had no pen (the auditor, the steward's S1, the UX review's U4): accept. The pen leads the recording's timer.
+65. With an entry open, the bar offered Done while a voice note recorded and the row did not: accept. Neither does; Done's unseen place stays (JN14), but for the pen pulled back.
+66. A voice note begun from the viewer's "Add to this moment" kept the last press's place: accept. The ask clears it. Covered by typecheck and review only: the journey does not open the viewer's ask.
+67. A walk starting or ending remounts the line, and its Undo can take over the viewer's: defer (`docs/DEFERRED.md`).
+68. Back from the threads, frames drew the row on a page not yet shown: accept. The page says it closed when it goes.
+69. The "+" lay outside its parent's bounds, where Android delivers no touch: accept. The line's box reaches into the margin.
+70. A unit test that could not fail, and a JN38 test that repeated JN35's: accept, rewritten over every input with `recordingIn`.
+71. Stop is a filled purple disc on the page (the steward's S2): reject, as the slice's steward 7: the row is the line's, and the purple is the line's own recording colour (the bar's Stop).
+72. Words in the row (Done, Discard) against the shape's "no label" (S3): reject. The shape describes the row at rest; JN38 and JN39 are the states the owner approved.
+73. The reaction sign on every entry's face (S4): reject, the owner's call (NY27).
+74. The gap between the last entry and the line (S5, U5): reject. It is `datelineRoom`, kept so the line does not jump when its dateline arrives (JN28's rule).
+75. The failed page says nothing was read, then shows today's entries (U1): defer, JN9's notice, before this slice.
+76. The top entry's sign under the held date, worse than ux 4 said (U2, the cold find): defer, noted on its item.
+77. An entry left open showed Done without "Kept as you write" (U3): accept. The row says it, as the bar does.
+78. The cold find hesitated over whether Stop keeps the note: reject. A square is the platform's Stop (Voice Memos), its spoken name says "Stop and save", and the row offers Discard beside it.
+
+- **Journeys:** `journal` ran four times (twice to make the 61 and 65 checks reproduce their findings, once failing JN14 when 65's first fix moved the camera, once green: 124 checks).
+- **Native,** never run on a device: VoiceOver and the "+" (`accessible={false}`), `onScroll` and `onLayout` driving the row and the bar, the 200 ms blur hold against the keyboard's hide, `maintainVisibleContentPosition` with the row's slot, the Undo's place under the viewer's Modal, and recording from the row with the screen locked (`docs/NATIVE_UNVERIFIED.md`).
+
 ## Audit of JN28-JN33 (Nov 13)
 
 Report-only passes by the auditor (40-49), the steward (S1-S3) and the UX reviewer (U1-U10), triaged. 23 findings: 10 fixed, 4 deferred, 6 to the owner (three questions; S1, U1 and audit 44's order are one, S2 and U7 another), 3 rejected. Regression tests are named `chronicle-journal audit N`: a unit test in `src/lib/__tests__/journal/rest.test.ts` (48) and checks in the `journal` journey (40, 42, 43, 44, 45), committed as todos first.

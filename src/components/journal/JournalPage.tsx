@@ -132,6 +132,11 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   const { onOpen } = props;
   useEffect(() => {
     onOpen?.(open);
+    // Leaving for a thread, the threads or Hidden, the page is no longer seen: the bar holds the controls until a new
+    // page opens (chronicle-journal audit 68).
+    return () => {
+      if (open) onOpen?.(false);
+    };
   }, [onOpen, open]);
   // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
   // changes the sheet's length while the reader is at its end just keeps the end in view.

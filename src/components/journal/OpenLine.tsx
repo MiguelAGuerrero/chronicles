@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type ForwardedRef, type ReactNode } from 'react';
 import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { controlsAt, type ControlsAt } from '../../lib/journal/bar';
+import { controlsAt, footRoom, type ControlsAt } from '../../lib/journal/bar';
 import { accessoryRoom, floatsAccessory, lineLift } from '../../lib/journal/keyboard';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { deleteNoteNow } from '../../lib/deletion';
@@ -459,9 +459,11 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   };
   // The viewer's Add to this moment (MS12) is run here, where the camera, the mic and the line are.
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  // Where a voice note under way was begun: it stays there (JN38). Set by the press (cleared by the viewer's ask, audit 66), read only while recording.
+  const [voiceIn, setVoiceIn] = useState<ControlsAt | null>(null);
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
-    onAsk.current = (kind) => (kind === 'photo' ? void photo() : kind === 'voice' ? voice() : input.current?.focus());
+    onAsk.current = (kind) => (kind === 'photo' ? void photo() : kind === 'voice' ? (setVoiceIn(null), voice()) : input.current?.focus());
   });
   useEffect(() => {
     const ask = momentPill.store.get().ask;
@@ -493,16 +495,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const [barH, setBarH] = useState(LINE_REST_H);
   // The camera and the mic are in the row under the line, or in the bar: one or the other, never both (JN35,
   // decision 0175). Messages pad the sheet's foot, so they never cover the row (JN40).
-  // Where a voice note under way was begun: it stays there (JN38). Set by the press, read only while recording.
-  const [voiceIn, setVoiceIn] = useState<ControlsAt | null>(null);
   const at = controlsAt({ inBar: props.inBar, opened: props.opened !== false, rowInView: !props.penInBar, typing, failed: pen.failed, recordingIn: recording ? voiceIn : null });
   const [aboveH, setAboveH] = useState(0);
-  const { onHeight } = props;
-  // The sheet keeps the bar's room at its foot whether the bar is drawn or not, so its length never changes as the bar
-  // comes and goes, and a reader scrolled back is not moved (audit 43); a message taller than that room adds the rest.
-  useEffect(() => {
-    onHeight?.((at === 'foot' ? barH : Math.max(barH, aboveH)) + lift);
-  }, [onHeight, barH, aboveH, at, lift]);
   // An iPhone's browser floats the keyboard's own row (previous, next, a tick) over the page, on whatever sits
   // just above the keys: the bar keeps that much of itself empty under its controls (fix keyboard-accessory).
   const [floating] = useState(
@@ -510,6 +504,12 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       && floatsAccessory({ ua: navigator.userAgent, touchPoints: navigator.maxTouchPoints, supports: (q) => CSS.supports(q) }),
   );
   const under = accessoryRoom({ keyboard, floating });
+  const { onHeight } = props;
+  // The sheet keeps the same room at its foot whether the bar or the row holds the controls (audit 43; chronicle-journal
+  // audit 62, 63): `barH` is measured without the accessory's room, which counts only while the keyboard is up.
+  useEffect(() => {
+    onHeight?.(footRoom({ barH, aboveH, under, lift }));
+  }, [onHeight, barH, aboveH, under, lift]);
   const writing = text.length > 0 || pen.beginning || !!pen.entry;
   const entryOpen = writing || !!openId;
   const showDone = typing || entryOpen;
@@ -565,7 +565,9 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {/* Room for the dateline that arrives with the first character, so the line being written does not jump.
           A tap on it is a tap on the empty page beneath (audit 45). */}
       {!inBar && !entryOpen && <View style={styles.datelineRoom} pointerEvents="none" />}
-      <View>
+      {/* On the page this reaches into the margin, so the "+" lies inside it: Android takes no touch outside a parent's
+          bounds (chronicle-journal audit 69). */}
+      <View style={inBar ? null : styles.lineWithMargin}>
         <TextInput
           ref={input}
           testID="line-input"
@@ -620,16 +622,34 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           )}
           {recording ? <View style={styles.rowTimer}>{timer}{discard}</View> : null}
           <View style={styles.rowFill} />
+          {/* As the bar says it (chronicle-journal audit 77): what is written is kept, so Done is not Save. */}
+          {status && !recording ? <Text style={styles.rowStatus} numberOfLines={1} testID="line-status" accessibilityLiveRegion="polite">{status}</Text> : null}
           {entryOpen && !recording ? (
             <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
               <Text style={styles.doneText}>Done</Text>
             </Pressable>
           ) : null}
         </View>
+      ) : !inBar ? (
+        // The row's place is kept while the bar holds the controls, so the line's height never changes with where they
+        // are and the edge where the row leaves view cannot move under a slow scroll (chronicle-journal audit 61).
+        <View style={styles.rowSlot} aria-hidden importantForAccessibility="no-hide-descendants" />
       ) : null}
     </View>
   );
   const active = typing || writing;
+  const penBtn = (
+    <IconButton
+      testID="bar-write"
+      icon="create-outline"
+      label={LINE_LABELS.write}
+      onPress={() => {
+        input.current?.focus();
+        onFoot();
+      }}
+      disabled={props.disabled}
+    />
+  );
   const bar = (
     <View key="line" style={styles.layer} pointerEvents="box-none">
       <View ref={wrap} onLayout={measure} style={[styles.wrap, { bottom: lift }]} pointerEvents="box-none" testID="open-line-wrap">
@@ -659,7 +679,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           {!recording && focused && <SpaceLine />}
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
-        {at === 'foot' ? <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height))}>
+        {at === 'foot' ? <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height) - under)}>
           {asking ? (
             // The eight, named, just above the bar (NY19, NY25): two rows of four. The bar below keeps its places.
             <View style={styles.types} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
@@ -696,7 +716,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
                 {fieldEl}
               </>
             ) : recording ? (
-              <View style={styles.lead}>{timer}{discard}</View>
+              // Pulled back mid-note the pen stays (chronicle-journal audit 64): writing is one tap away from anywhere.
+              <View style={styles.lead}>{props.penInBar ? penBtn : null}{timer}{discard}</View>
             ) : active || pen.failed ? (
               <>
                 {/* The recording bar is folded away while the field has the keyboard (JN30): its mark stays (audit 53). */}
@@ -707,18 +728,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               // At rest the empty page is the pen (JN32); pulled out of view, the bar holds one, so words stay one
               // tap away from anywhere on the sheet (JN9, audit 50).
               <View style={styles.lead}>
-                {props.penInBar ? (
-                  <IconButton
-                    testID="bar-write"
-                    icon="create-outline"
-                    label={LINE_LABELS.write}
-                    onPress={() => {
-                      input.current?.focus();
-                      onFoot();
-                    }}
-                    disabled={props.disabled}
-                  />
-                ) : null}
+                {props.penInBar ? penBtn : null}
               </View>
             )}
             {inBar && recording ? <>{timer}{discard}</> : null}
@@ -736,7 +746,9 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             ) : (
               <IconButton testID="band-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={() => { setVoiceIn('foot'); voice(); }} busy={cap.busy === 'voice'} disabled={props.disabled} />
             )}
-            {showDone ? (
+            {recording && props.penInBar ? null : showDone && !recording ? (
+              // While a voice note records, Stop ends it and no Done is offered, in the bar as in the row (audit 65); its
+              // unseen place stays, so the camera does not move (JN14), but for the pen pulled back, which needs the room.
               <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
                 <Text style={styles.doneText}>Done</Text>
               </Pressable>
@@ -852,9 +864,13 @@ const styles = StyleSheet.create({
   field: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 26, paddingVertical: 9, paddingHorizontal: 0, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
   // The glyph in the margin, before the line's first letter (the page's 24 px gutter), level with its first line; its
   // 44 pt target starts at the screen's edge and runs over the first letters, where a tap does the same (cold find).
-  plus: { position: 'absolute', left: -24, top: 0, width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 1 },
+  plus: { position: 'absolute', left: 0, top: 0, width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 1 },
   // The glyphs line up with the line's first letter: a 44 pt target holds a 24 pt glyph 10 pt in.
   // 12 pt between the targets, for a thumb on foot (matrix 22, chronicle-journal ui 11).
+  // The page's own gutter (JournalPage's 24 px): the line's box reaches into it, the words stay where they were.
+  lineWithMargin: { marginLeft: -24, paddingLeft: 24 },
+  rowSlot: { minHeight: 44 },
+  rowStatus: { color: theme.muted, fontSize: 13, flexShrink: 1, paddingRight: 4 },
   pageRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginLeft: -10, minHeight: 44 },
   rowTimer: { flexDirection: 'row', alignItems: 'center', flexGrow: 0, flexShrink: 0, gap: 4, marginLeft: -4 },
   rowFill: { flexGrow: 1 },
