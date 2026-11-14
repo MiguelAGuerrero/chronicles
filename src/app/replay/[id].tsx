@@ -644,7 +644,9 @@ export default function Replay() {
                 </Text>
                 {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
                 {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
-                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
+                {/* What was kept, a clause, and the one hint the day's card gives too (tend replay T19). */}
+                {s && formatCaptures(s) ? <Text testID="card-kept" style={styles.cardMuted}>{formatCaptures(s)}</Text> : null}
+                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>Tap a pin to open it</Text> : null}
                 {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
                 {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
                 {passed ? <Text testID="card-low" style={styles.cardMuted}>{passed}</Text> : null}

@@ -1,5 +1,6 @@
 // @layer core
 /** Distances and times as the screens show them. Pure, so tests and the recording bar can use them. */
+import { kindsClause } from './pins';
 import { getUnits, type Units } from './units';
 
 const FT_M = 0.3048;
@@ -52,12 +53,10 @@ export function formatDuration(ms: number): string {
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
 }
 
-/** "2 photos · 1 video · 1 note", leaving out kinds with none. */
+/**
+ * What a walk kept, as one clause in the pins' words (tend replay T19, decision 0165; the walks row's too, decision
+ * 0170): "Two photos, a video, a voice memo and a note", leaving out kinds with none; empty when nothing was kept.
+ */
 export function formatCaptures(c: { photos: number; videos?: number; voices: number; notes: number }): string {
-  const parts: string[] = [];
-  if (c.photos) parts.push(`${c.photos} ${c.photos === 1 ? 'photo' : 'photos'}`);
-  if (c.videos) parts.push(`${c.videos} ${c.videos === 1 ? 'video' : 'videos'}`);
-  if (c.voices) parts.push(`${c.voices} ${c.voices === 1 ? 'voice memo' : 'voice memos'}`);
-  if (c.notes) parts.push(`${c.notes} ${c.notes === 1 ? 'note' : 'notes'}`);
-  return parts.join(' · ');
+  return kindsClause([['photo', c.photos], ['video', c.videos ?? 0], ['voice', c.voices], ['text', c.notes]]);
 }

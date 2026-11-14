@@ -151,11 +151,11 @@ test('M13: the card is the weekday, moments, places and any walk distance; no st
   const [day] = buildDays([walk('w', at(3, 10), at(3, 11))], [cap('a', at(3, 9), null), cap('b', at(3, 10, 30), 'w', -71.39)]);
   const card = dayCard(day, at(20, 9), new Map([['w', 2100]]));
   assert.match(card.title, /Tue/);
-  assert.equal(card.line, '2 moments · 2 places');
+  assert.equal(card.line, 'Two moments');
   assert.equal(card.walked, '2.1 km walked');
   const [loose] = buildDays([], [cap('a', at(3, 9), null)]);
   const c2 = dayCard(loose, at(20, 9), new Map());
-  assert.equal(c2.line, '1 moment · 1 place');
+  assert.equal(c2.line, 'One moment');
   assert.equal(c2.walked, null);
   assert.doesNotMatch(JSON.stringify(card), /streak|badge|record/i);
 });

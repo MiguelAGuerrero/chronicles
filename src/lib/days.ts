@@ -3,7 +3,9 @@ import type { Faced } from './moment';
 import { formatDistance } from './format';
 import { boundsOf, distanceM, type Bounds } from './geo';
 import type { Units } from './units';
-import type { LngLat, Walk } from './types';
+import type { LngLat, StreetSegment, Walk } from './types';
+import { streetAt } from './resurface/context';
+import { numberWord } from './resurface/lines';
 
 /**
  * Moments and days (the concept doc's "Moments and days" tab). A capture is a
@@ -133,17 +135,60 @@ export function dayFrame(moments: Faced[], walks: { runs: LngLat[][]; rideRuns: 
 /** Meta key set once a day's replay has been watched to its end (M12). */
 export const watchedKey = (key: string) => `day_watched:${key}`;
 
-/** The day's closing card: quiet, no streaks or badges (M13). Its distance in the units setting, as the walk's card (tend replay 3). */
-export function dayCard(day: Day, now: number, distanceByWalk: Map<string, number>, units?: Units) {
+/** What a walk's replay knows of where its moments were: its streets, and the places its moments found. */
+export interface WalkPlaces {
+  walked: StreetSegment[];
+  fog: StreetSegment[];
+  found: { capture_id: string; name: string; generic: boolean }[];
+}
+
+/**
+ * The named place of a placed moment of a walk (tend replay T19, decision 0153: named places only): the place it
+ * found, else its street as a moment's own line states it (`streetAt`). A loose moment, or one with no street within
+ * reach, has none.
+ */
+export function momentPlace(c: Pick<Faced, 'id' | 'lat' | 'lon' | 'segment_id'>, walk: WalkPlaces | null | undefined): string | null {
+  if (!walk || c.lat == null || c.lon == null) return null;
+  const found = walk.found.find((f) => f.capture_id === c.id && !f.generic);
+  if (found) return found.name;
+  return streetAt([c.lon, c.lat], [...walk.walked, ...walk.fog], c.segment_id ?? null)?.name ?? null;
+}
+
+/**
+ * The day card's line, a clause (tend replay T19, decision 0165): "Four moments, around Wickenden Street and the Old
+ * Mill" when every placed moment has a named place and there are one or two; else "Four moments around Fox Point",
+ * the day's area; else "Four moments". Null with no moments.
+ */
+export function dayLine(moments: number, places: readonly (string | null)[], area: string | null): string | null {
+  if (moments < 1) return null;
+  const said = `${capWord(numberWord(moments))} ${moments === 1 ? 'moment' : 'moments'}`;
+  const named = [...new Set(places.filter((p): p is string => !!p))];
+  if (places.length && places.every(Boolean) && named.length <= 2) return `${said}, around ${named.join(' and ')}`;
+  return area ? `${said} around ${area}` : said;
+}
+
+/** The day's area: the one area its walks share, if they share one. */
+export function dayArea(day: Day): string | null {
+  const areas = new Set(day.entries.flatMap((e) => (e.kind === 'walk' && e.walk.area ? [e.walk.area] : [])));
+  return areas.size === 1 ? [...areas][0] : null;
+}
+
+const capWord = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * The day's closing card: quiet, no streaks or badges (M13). Its distance in the units setting, as the walk's card (tend
+ * replay 3); its moments a clause, with their named places or the day's area (tend replay T19).
+ */
+export function dayCard(day: Day, now: number, distanceByWalk: Map<string, number>, units?: Units, walks?: ReadonlyMap<string, WalkPlaces>) {
   const date = new Date(dayStart(day.key));
   const label = dayLabel(day.key, now);
   const weekday = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
   const caps = dayCaptures(day);
-  const spots = spotCount(caps);
+  const placed = caps.filter((c) => c.lat != null && c.lon != null);
   const metres = day.entries.reduce((m, e) => m + (e.kind === 'walk' ? distanceByWalk.get(e.walk.id) ?? 0 : 0), 0);
   return {
     title: label === 'Today' || label === 'Yesterday' ? `${label} · ${weekday}` : weekday,
-    line: `${plural(caps.length, 'moment', 'moments')} · ${plural(spots, 'place', 'places')}`,
+    line: dayLine(caps.length, placed.map((c) => momentPlace(c, c.walk_id ? walks?.get(c.walk_id) : null)), dayArea(day)),
     walked: metres > 0 ? `${formatDistance(metres, units)} walked` : null,
   };
 }

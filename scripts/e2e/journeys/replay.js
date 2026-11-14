@@ -273,6 +273,15 @@ async function run(h) {
     // viewer open from a pin it leaves nothing (the web's viewer takes no Escape itself: captures-and-media.md).
     await pg.waitForTimeout(800);
     await shot(pg, 'rr-card');
+    // tend replay T19 (decision 0165, "Clauses, one hint"): what the walk kept is one clause in words, and the hint is a
+    // line of its own, worded as the day's card words it.
+    const keptLine = await pg.evaluate(() => {
+      const e = document.querySelector('[data-testid=card-kept]');
+      const card = e && e.closest('[data-testid=card-kept]')?.parentElement;
+      return { kept: e?.textContent ?? null, hint: !!card && [...card.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it'), lower: !!card && /tap a pin to open(?! it)/.test(card.textContent) };
+    });
+    check(/^(A|An|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten) /.test(keptLine.kept ?? '') && /photo|video|voice memo|note/.test(keptLine.kept) && !/\d|·/.test(keptLine.kept) && keptLine.hint && !keptLine.lower,
+      `tend replay T19: the walk's card says what it kept as one clause in words, the hint "Tap a pin to open it" on its own line (${JSON.stringify(keptLine)})`);
     await pg.click('[data-testid=to-name]');
     await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
     await shot(pg, 'rr-name');
@@ -422,6 +431,24 @@ async function run(h) {
     // The day framed above its card once the fit has settled.
     await pg.waitForTimeout(1200);
     await shot(pg, 'rr-day-card');
+    // tend replay T19: the day's line is a clause in words, with the walk card's one hint; whole at 320 px too.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await pg.setViewportSize({ width: w, height: 700 });
+        await pg.waitForTimeout(900);
+        await shot(pg, `rr-day-card-${w}`);
+      }
+      const day = await pg.evaluate(() => {
+        const card = document.querySelector('[data-testid=day-card]');
+        const line = document.querySelector('[data-testid=day-card-line]');
+        const r = line?.getBoundingClientRect();
+        return { line: line?.textContent ?? null, right: r ? Math.round(r.right) : null, hint: !!card && [...card.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it') };
+      });
+      check(/^(One moment|[A-Z][a-z-]+ moments)(, around .+| around .+)?$/.test(day.line ?? '') && !/\d|·/.test(day.line) && day.hint && day.right <= w,
+        `tend replay T19: at ${w} px the day's card says its moments in a clause, with "Tap a pin to open it" (${JSON.stringify(day)})`);
+    }
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(600);
     // The day's card is as quiet as the walk's (tend replay 12, tabs audit U13): its line set as the walk card's, no
     // large or accent text in it.
     const quiet = await pg.evaluate(() => {

@@ -195,7 +195,7 @@ async function checks(h) {
       await p2.waitForSelector('[data-testid=day-card]', { timeout: 30000 });
       const line = await p2.locator('[data-testid=day-card-line]').innerText();
       const cardText = await p2.locator('[data-testid=day-card]').innerText();
-      check(/^3 moments · 2 places$/.test(line) && /walked/.test(cardText) && !/streak|badge/i.test(cardText), `the day ends on a quiet card (${line})`);
+      check(/^Three moments(, around .+| around .+)?$/.test(line) && /walked/.test(cardText) && !/streak|badge/i.test(cardText), `the day ends on a quiet card, its moments a clause (tend replay T19: ${line})`);
       await shot(p2, '23-day-card');
       // tend map T28, audit 28: on the day's map every pin says when: a pin of its one walk the minutes in (a day of
       // several walks would say each one's part of the day), a moment outside a walk its part of the day.

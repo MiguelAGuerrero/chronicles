@@ -184,10 +184,16 @@ const MANY: Record<CaptureKind, string> = { photo: 'photos', video: 'videos', vo
  * too (tend explore T29), its moments put in the order taken first.
  */
 export function pinKindsWords(pin: KindsTaken): string {
-  const parts = kindsInOrder(pin).map((k) => {
-    const n = pin.captures.filter((c) => c.kind === k).length;
-    return n === 1 ? ONE[k] : `${numberWord(n)} ${MANY[k]}`;
-  });
+  return kindsClause(kindsInOrder(pin).map((k) => [k, pin.captures.filter((c) => c.kind === k).length]));
+}
+
+/**
+ * Kinds and how many of each, as one clause in the pins' words, in the order given, kinds with none left out: "Two
+ * photos, a video, a voice memo and a note" (tend replay T19, decision 0165). A pin, a reminder, a walk's card and
+ * its row, and what a removal of media takes all say their kinds with it. Empty when there are none.
+ */
+export function kindsClause(counts: readonly (readonly [CaptureKind, number])[]): string {
+  const parts = counts.filter(([, n]) => n > 0).map(([k, n]) => (n === 1 ? ONE[k] : `${numberWord(n)} ${MANY[k]}`));
   const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] ?? '';
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
