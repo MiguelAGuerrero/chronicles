@@ -15,7 +15,7 @@ const api = async () => (await import('../../dark/hours' as string)) as Api;
 const SU = 0, MO = 1, TU = 2, WE = 3, FR = 5, SA = 6;
 const m = (hh: number, mm = 0) => hh * 60 + mm;
 
-test('DK7: the common forms read; past midnight; later rules win; month, week, date, PH, sunset times and comments are unknown', { todo: 'test first' }, async () => {
+test('DK7: the common forms read; past midnight; later rules win; month, week, date, PH, sunset times and comments are unknown', async () => {
   const { parseHours, openAt } = await api();
   const at = (text: string, d: number, min: number) => openAt(parseHours(text), d, min);
 

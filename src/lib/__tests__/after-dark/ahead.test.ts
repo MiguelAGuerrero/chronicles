@@ -21,7 +21,7 @@ const path = [at(0), at(1500)];
 const unlit = 'unlit' as unknown as Stretch['kind'];
 const w = (id: string, lit: string, from: number, to: number, name?: string): DarkWay => ({ id, lit, name, line: [at(from), at(to)] });
 
-test('DK10: an unlit stretch of 100 m or more is said 200 m ahead, once, kept 15 s; near ones are one; walkability\'s line wins; the words', { todo: 'test first' }, async () => {
+test('DK10: an unlit stretch of 100 m or more is said 200 m ahead, once, kept 15 s; near ones are one; walkability\'s line wins; the words', async () => {
   const { unlitStretches, withUnlit } = await api();
   // Lit 0-300, unlit 300-500 on Elm Street, lit 500-600, unlit 600-700 (100 m from the first: one stretch), lit after.
   const ways = [w('a', 'yes', 0, 300), w('b', 'no', 300, 500, 'Elm Street'), w('c', 'yes', 500, 600), w('d', 'no', 600, 700, 'Elm Street'), w('e', 'yes', 700, 1500)];
@@ -53,7 +53,7 @@ test('DK10: an unlit stretch of 100 m or more is said 200 m ahead, once, kept 15
   assert.equal(warningLine({ kind: unlit, street: null }), 'Next: a stretch mapped as unlit');
 });
 
-test('DK13: the heads-up reads walkability only while it is on, after-dark tiles only while After dark is on and it is dark', { todo: 'test first' }, async () => {
+test('DK13: the heads-up reads walkability only while it is on, after-dark tiles only while After dark is on and it is dark', async () => {
   const { headsUp } = await api();
   assert.deepEqual(headsUp({ walkOn: false, darkOn: false, dark: true }), { readWalk: false, readDark: false });
   assert.deepEqual(headsUp({ walkOn: true, darkOn: false, dark: true }), { readWalk: true, readDark: false });

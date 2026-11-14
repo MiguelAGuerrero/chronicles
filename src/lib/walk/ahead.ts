@@ -20,15 +20,15 @@ const ON_M = 15;
 
 export interface Stretch {
   key: string;
-  /** A fast road (a street band, WH1) or ground built around cars (a run of car cells, UF15). */
-  kind?: 'road' | 'area';
+  /** A fast road (a street band, WH1), ground built around cars (a run of car cells, UF15), or a street mapped as unlit (after dark, DK10). */
+  kind?: 'road' | 'area' | 'unlit';
   street: string | null;
   /** Metres along the route. */
   fromM: number;
   toM: number;
 }
 
-interface Seg {
+export interface Seg {
   id: string;
   name: string | null;
   geometry: readonly (readonly LngLat[])[];
@@ -36,6 +36,15 @@ interface Seg {
 
 /** Every `car` stretch of at least STRETCH_MIN_M along a route (WK15). Segments with no band say nothing. */
 export function carStretches(path: readonly LngLat[], segments: readonly Seg[], bands: ReadonlyMap<string, Band>): Stretch[] {
+  return stretchesWhere(path, segments, (id) => bands.get(id) === 'car').filter((s) => s.toM - s.fromM >= STRETCH_MIN_M);
+}
+
+/**
+ * The runs along a route over segments that `counts` (WK15; after dark's unlit ways, DK10), of any length: the caller keeps those
+ * long enough. Each run is keyed by its street and its last segment, and takes the street most of it is on; a segment the run is
+ * already on wins over a nearer joining street (walkability audit 9). `kind` is put on each run when given.
+ */
+export function stretchesWhere(path: readonly LngLat[], segments: readonly Seg[], counts: (id: string) => boolean, kind?: Stretch['kind'], keyPrefix = ''): Stretch[] {
   if (path.length < 2) return [];
   const project = projector(path[0]);
   const pts = path.map(project);
@@ -43,13 +52,13 @@ export function carStretches(path: readonly LngLat[], segments: readonly Seg[], 
   const out: Stretch[] = [];
   let run: { from: number; to: number; segs: Set<string>; last: string; names: Map<string | null, number> } | null = null;
   const close = () => {
-    if (run && run.to - run.from >= STRETCH_MIN_M) {
+    if (run && run.to > run.from) {
       let street: string | null = null;
       let most = 0;
       for (const [n, c] of run.names) if (c > most) [street, most] = [n, c];
       // Its street and the last segment of it: a new route over the same stretch, even one that starts inside it, is
       // the same stretch (walkability audit 8).
-      out.push({ key: `${street ?? ''}@${run.last}`, street, fromM: run.from, toM: run.to });
+      out.push({ key: `${keyPrefix}${street ?? ''}@${run.last}`, ...(kind ? { kind } : {}), street, fromM: run.from, toM: run.to });
     }
     run = null;
   };
@@ -71,11 +80,11 @@ export function carStretches(path: readonly LngLat[], segments: readonly Seg[], 
       }
       near.sort((x, y) => x.d - y.d);
       const current: Set<string> | null = run ? (run as { segs: Set<string> }).segs : null;
-      const onIt: { s: Seg; d: number } | undefined = current ? near.find((c) => current.has(c.s.id) && bands.get(c.s.id) === 'car') : undefined;
+      const onIt: { s: Seg; d: number } | undefined = current ? near.find((c) => current.has(c.s.id) && counts(c.s.id)) : undefined;
       const best: { s: Seg; d: number } | null = onIt ?? near[0] ?? null;
       const from = along + (L * k) / n;
       const to = along + (L * (k + 1)) / n;
-      if (best && bands.get(best.s.id) === 'car') {
+      if (best && counts(best.s.id)) {
         if (!run) run = { from, to, segs: new Set(), last: best.s.id, names: new Map() };
         run.to = to;
         run.segs.add(best.s.id);
@@ -199,4 +208,6 @@ export function aheadStep(state: AheadState, stretches: readonly Stretch[], alon
 }
 
 export const warningLine = (s: Pick<Stretch, 'street' | 'kind'>) =>
-  s.kind === 'area' ? 'Next: an area built around cars' : s.street ? `Next: a stretch built around cars on ${s.street}` : 'Next: a stretch built around cars';
+  // After dark (DK10, steward S6): the map's tag, said as the map's, never as a fact about the street.
+  s.kind === 'unlit' ? (s.street ? `Next: ${s.street} is mapped as unlit` : 'Next: a stretch mapped as unlit')
+  : s.kind === 'area' ? 'Next: an area built around cars' : s.street ? `Next: a stretch built around cars on ${s.street}` : 'Next: a stretch built around cars';

@@ -34,7 +34,7 @@ const EQUATOR: LngLat = [0, 0];
 const OSLO: LngLat = [10.75, 59.91];
 const TROMSO: LngLat = [18.96, 69.65];
 
-test('DK6: sunrise and sunset within five minutes of the tables (the equator, Philadelphia in June and December, 60° N); polar day and night', { todo: 'test first' }, async () => {
+test('DK6: sunrise and sunset within five minutes of the tables (the equator, Philadelphia in June and December, 60° N); polar day and night', async () => {
   const { sunTimes } = await api();
   // Published tables (US Naval Observatory, timeanddate.com), in UTC.
   const eq = sunTimes(EQUATOR, Date.parse('2026-03-20T12:00:00Z'));
@@ -57,7 +57,7 @@ test('DK6: sunrise and sunset within five minutes of the tables (the equator, Ph
   assert.equal(polarNight.rise, null);
 });
 
-test('DK5: after dark the reading is now; in daylight an hour after tonight\'s sunset, with its words; no dark tonight in polar day', { todo: 'test first' }, async () => {
+test('DK5: after dark the reading is now; in daylight an hour after tonight\'s sunset, with its words; no dark tonight in polar day', async () => {
   const { readingAt, isDark } = await api();
   const night = Date.parse('2026-12-21T23:30:00Z'); // 6:30 pm in Philadelphia, after sunset
   assert.equal(isDark(PHILADELPHIA, night), true);

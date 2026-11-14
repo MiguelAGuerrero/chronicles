@@ -27,7 +27,7 @@ const way = (id: string, lit: string, y: number): DarkWay => ({ id, lit, name: `
 const place = (id: string, hours: string, x: number): DarkPlace => ({ id, at: at(x, 50), hours });
 const MO = 1;
 
-test('DK3: only ways tagged lit draw; no tag and lit=no draw nothing; one line per lit way, never an area', { todo: 'test first' }, async () => {
+test('DK3: only ways tagged lit draw; no tag and lit=no draw nothing; one line per lit way, never an area', async () => {
   const { litOf } = await overpass();
   for (const v of ['yes', '24/7', 'automatic', 'limited', 'interval', 'sunset-sunrise', 'dusk-dawn', '18:00-06:00']) assert.equal(litOf(v), 'lit', v);
   for (const v of ['no', 'disused']) assert.equal(litOf(v), 'unlit', v);
@@ -40,7 +40,7 @@ test('DK3: only ways tagged lit draw; no tag and lit=no draw nothing; one line p
   for (const l of got.lit) assert.notDeepEqual(l[0], l[l.length - 1], 'a line, never a closed ring');
 });
 
-test('DK4: only places open at the reading\'s time draw, as bare points; closed, missing and unreadable hours draw nothing; far from you, none', { todo: 'test first' }, async () => {
+test('DK4: only places open at the reading\'s time draw, as bare points; closed, missing and unreadable hours draw nothing; far from you, none', async () => {
   const { darkDraw, hoursReadHere } = await draw();
   const places = [
     place('open', 'Mo-Su 17:00-23:00', 10),
@@ -60,7 +60,7 @@ test('DK4: only places open at the reading\'s time draw, as bare points; closed,
   assert.equal(hoursReadHere([139.7, 35.7], null, -240), false, 'Tokyo on an EDT phone');
 });
 
-test('DK15: the key changes only when the picture does, a closing crossed included', { todo: 'test first' }, async () => {
+test('DK15: the key changes only when the picture does, a closing crossed included', async () => {
   const { darkDraw } = await draw();
   const tiles = [{ ways: [way('a', 'yes', 0)], places: [place('bar', 'Mo-Su 17:00-23:00', 10)] }];
   const at2000 = darkDraw(tiles, { weekday: MO, minute: 20 * 60 });
@@ -72,7 +72,7 @@ test('DK15: the key changes only when the picture does, a closing crossed includ
   assert.notEqual(at2000.key, more.key, 'a new tile with a new lit way');
 });
 
-test('DK8: the query holds the tile\'s bounds and asks only for lit ways and places with opening hours; the parser keeps the raw tags', { todo: 'test first' }, async () => {
+test('DK8: the query holds the tile\'s bounds and asks only for lit ways and places with opening hours; the parser keeps the raw tags', async () => {
   const { darkQuery, darkFromOverpass } = await overpass();
   const q = darkQuery(40.59, -75.5, 40.61, -75.48);
   assert.ok(q.includes('40.59,-75.5,40.61,-75.48'), q);
