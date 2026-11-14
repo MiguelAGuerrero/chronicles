@@ -3,6 +3,7 @@ import type { Faced } from './moment';
 import { distanceM } from './geo';
 import type { CaptureKind, LngLat } from './types';
 import { plainNote } from './refs';
+import { numberWord } from './resurface/lines';
 
 /**
  * Memories on revisit (the concept doc's tab): captures from earlier walks
@@ -50,6 +51,16 @@ export function previewLine(c: Faced): string {
   if (c.kind === 'photo') return c.caption?.trim() || LABEL.photo;
   const ms = Number(c.body);
   return Number.isFinite(ms) && ms > 0 ? `${LABEL[c.kind]} · ${clock(ms)}` : LABEL[c.kind];
+}
+
+/** The preview's word for the rest of a group, "and two more here" (tend memories T30, decision 0170); null with none. */
+export function moreHere(more: number): string | null {
+  return more > 0 ? `and ${numberWord(more)} more here` : null;
+}
+
+/** The preview as a screen reader says it: the date, its line, a stack's words, the rest in words, then "Open". */
+export function previewSpoken(o: { date: string; line: string; stack: string | null; more: number }): string {
+  return `Memory from ${o.date}: ${[o.line, o.stack, moreHere(o.more)].filter(Boolean).join(', ')}. Open`;
 }
 
 /**

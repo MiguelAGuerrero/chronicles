@@ -105,6 +105,22 @@ async function checks(h) {
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
+    // tend tabs 10 (decision 0172, O15): the sheet says the place's walks in words, as its star does, at 390 and 320 px.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        await shot(page, `09-home-place-${w}`);
+      }
+      const meta = await page.evaluate(() => {
+        const e = document.querySelector('[data-testid=place-meta]');
+        return { text: e?.textContent ?? null, right: e ? Math.round(e.getBoundingClientRect().right) : null };
+      });
+      check(/ · one walk · /.test(meta.text ?? '') && !/\d+ walks?\b/.test(meta.text) && meta.right <= w,
+        `tend tabs 10: at ${w} px the place sheet says its walks in words, as its star does (${JSON.stringify(meta)})`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
     // tend places audit 2: read once the selection's bounce has settled.
     await page.waitForSelector('[data-testid=enter-bounce]', { state: 'detached', timeout: 5000 }).catch(() => {});
     const chosen = await starLook();
@@ -319,6 +335,27 @@ async function checks(h) {
       `opening the walks list leaves a view that already shows every place alone (M6, audit 7: ${fitsAfter - fitsBefore} fits, star at ${Math.round(starBefore.y)}, sheet at ${Math.round(sheetTop)})`);
     check((await page.locator('[data-testid=walk-row]').count()) === 1, 'the walks list has the one stopped walk');
     await shot(page, '10-home-walks');
+    // tend tabs 11 (decision 0172, O18: one walk, described one way): the walks row says what it kept as the walk's card
+    // does (tend replay T19), no digit among it, and its More is named by its title, at 390 and 320 px.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        await shot(page, `10-home-walks-${w}`);
+      }
+      const row = await page.evaluate(() => {
+        const e = document.querySelector('[data-testid=walk-row]');
+        const more = e?.parentElement?.querySelector('[data-testid=walk-more]');
+        const texts = e ? [...e.querySelectorAll('div, span')].filter((x) => !x.childElementCount).map((x) => x.textContent) : [];
+        return { texts, name: e?.getAttribute('aria-label') ?? null, more: more?.getAttribute('aria-label') ?? null, right: more ? Math.round(more.getBoundingClientRect().right) : null };
+      });
+      const meta = row.texts.find((t) => / · /.test(t)) ?? '';
+      const kept = meta.split(' · ').slice(3).join(' · ');
+      check(/^(a|an|one|two|three|four|five|six|seven|eight|nine|ten)[ \u00a0].*(photo|video|voice memo|note)s?$/.test(kept) && !/\d/.test(kept) && /^More for .+/.test(row.more ?? '') && row.texts.includes(row.more.replace(/^More for /, '')) && row.right <= w,
+        `tend tabs 11, tend tabs audit 23: at ${w} px the walks row says what it kept in words, lowercase after its dot, and names its More by its title (${JSON.stringify({ meta, more: row.more })})`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
     await page.locator('[data-testid=walk-row]').first().click();
     await page.waitForSelector('[data-testid=done]', { timeout: 90000 });
     check(true, 're-watching from the walks list reaches the card with no taps');

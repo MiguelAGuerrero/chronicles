@@ -19,7 +19,6 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 
 | Slice (spec tab) | Status | Evidence (last related commit on main) | Spec | Audited |
 |---|---|---|---|---|
-| Reaction links (in Memories a reaction under an entry or the viewer's line is a link to its lens, its word underlined in ink, Back to the journal; elsewhere plain words; the sign and a page's Reaction tool always the face with a plus; the first entry under a date clears the date's edge; "Not kept yet" in ink at a panel's top; a moment's rows kept together by `setReactions`; a keep under way is not dropped; a video's pin wears its bubbles in an L; RL1-RL12, decision 0177) | built 2026-11-14, test-first (12 of 12): unit tests, typecheck, lint, docs and vision checks; e2e `reactions`, `journal`, `notepage`, `qol`, `capturehome`, `dense`, `edit`, `responses`, `resurface`, `stacks`, `threads`, `upgrade`, `videothumbs`, `voicetrim`, `walk`; cold find and UI review triaged (`reaction-links ui 1-2`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reaction-links/spec.md` | no |
 | Reactions (note types became reactions on any moment, at most one per family: Feeling, Taste, Thought; the face with a plus on the entry being written and today's entries, More's Reaction, the viewer's More and a note page's Reaction tool; marks under a dateline, the viewer's info line, a card and a bubble; ink bubbles across a single moment's pin; the journal's contents → Reactions → a lens per reaction, oldest first, no count; RX1-RX36, decision 0176) | built and audited 2026-11-14, deployed to main 2026-11-14 (`28a6339`, Pages run 271; the owner's task done on the live build), test-first (36 of 36): unit tests, typecheck, lint, docs and vision checks; e2e `reactions` (new), `journal`, `notepage`, `qol`, `threads`, `responses`, `upgrade`; cold find and UI review triaged (`reactions ui 1-5`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reactions/spec.md` | yes (22 findings: 15 fixed, 4 deferred, 1 rejected, 1 merged, 1 for the owner; tests `reactions audit 1-6, 8-10, 13, 16-18, 20, 21`) |
 | Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool, and since Nov 13 by choice at capture: a slot in the corner of the journal's entry being written that opens the eight, named, above the bar; Type in an entry's More; the Type tool on a new note's page; on the viewer's note, the single-note pin and the thread bubble; NY1-NY27, decisions 0161, 0168) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected; NY18-NY25 with the journal's bar, 26 findings: 21 fixed, 3 deferred, 2 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |
 | Explorer App Concept (v0: record, capture, replay, storage; round 3) | shipped | `7cf5ab1` 2026-10-31 round 3; `565b244` 2026-10-31 | `specs/concept/spec.md` | yes (two audit rounds `7936f48`, `ce6dd26`; round-3 audit `712fdf8`) |
@@ -175,20 +174,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   moments kept at one place, turn the map, then open its replay and Explore.
   Expect: the scale bar's label stays whole beside its line, a pin's count or kinds stay inside its head, the compass and
   Locate stay 44 pt and in their column, and the map's (i) stays reachable, none cut or pushed under the strip or a card.
-- **T19 [owner] Replay: the cards say their counts in words, with one hint** (2026-11-12)
-  Area: replay (the walk's card and the day's). Seen: `rr-day-card` ("5 moments · 5 places", now 16 px regular after
-  `tend replay 12`), `probe-390r-card` ("1 photo · 1 video · 1 voice memo · 1 note · tap a pin to open"); the hint
-  worded two ways, "· tap a pin to open" and "Tap a pin to open it" (UX U11). Rests on: VISION.md Always, "Counts are
-  words, in a clause"; the replay rule, "No accent colour or large number on the card" (steward S3). M13 shipped
-  "\<weekday\> · N moments · P places", so this amends a shipped criterion. Your answer of Nov 12 (decision 0153):
-  "places" on the day's card are named places only, said in words.
-  Recommended: the day's line a clause, "Four moments, around Wickenden Street and the Old Mill" (up to two named
-  places, else "Four moments around Fox Point", the day's area, else "Four moments"); the walk's captures line a
-  clause, "Two photos, a video, a voice memo and a note"; one hint on both, "Tap a pin to open it". /vision: aligned
-  (return; "Counts are words, in a clause"), amends M13.
-  Otherwise: the numbers as words only ("Four moments · two places"); or leave it.
-  **Answered** by the owner in person (Nov 12; decision 0165): "Clauses, one hint", the recommended shape. Recorded
-  Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).
 - **T21 [owner] Replay: the name step's only way on is Keep it** (2026-11-12)
   Area: replay (beat five). Seen: `probe-390r-name`, `probe-320r-name` (two fields and Keep it, no Cancel or back).
   Rests on: NN/g H3, "a clearly marked 'emergency exit'"; the goal-to-control matrix, row 18, "Text view in a sheet
@@ -234,33 +219,43 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
-- **T30 [owner] Counts in digits beside the reminders: the memory preview, the walks row, a delete's confirm** (2026-11-14)
-  Area: memories, tabs, deletion (the T29 sibling lens). Seen: a memory preview of a group shows and says "2 more
-  here" ("…, and 2 more here. Open"; `MemoryPreview.tsx` l.42 and l.64, MR4's "N more here"); a walks list row ends
-  "1 photo · 1 video · 1 voice memo · 1 note" (`walkRowMeta`, from `formatCaptures` in `lib/format.ts` l.56, the line
-  the replay card shares, which T19 answers); a delete asks "Its trace, 3 moments and 12 streets walked go." and "2
-  photos and 1 voice memo go." (`deletion/core.ts`, `count` l.92; D4's own example has digits). Since `tend explore
-  T29` the reminder on the same walk screen says "Two memories here". Rests on: VISION.md Always, "Counts are words,
-  in a clause. Distances and times are fine."
-  Recommended: words through `numberWord`, one voice with the reminders and pins: the preview "and two more here";
-  the walks row's captures T19's clause ("A photo, a video, a voice memo and a note"), built with T19 since they share
-  `formatCaptures`; a confirm "Its trace, three moments and twelve streets walked go.", "Two photos and a voice memo
-  go." /vision: aligned (honour; "Counts are words"); it amends MR4's "N more here" and D4's example.
-  Otherwise: the memory preview alone (it sits where the reminder card does); or leave them.
-  **Answered yes** by the owner in person (Nov 14, during the T29 review; decision 0170): "All in words", the
-  recommended shape: the memory preview "and two more here"; the walks row's captures T19's clause, built with T19
-  since they share `formatCaptures`; a delete's confirm "Its trace, three moments and twelve streets walked go." and
-  "Two photos and a voice memo go." Waits for the next `/tend inbox`, one build per run (T29 was built first).
-
-### From /slice reaction-links
-
-What the reaction-links slice left for the owner (`specs/reaction-links/spec.md`, Record).
-
-- **Back from a lens opened from the viewer** (UI review U6): a reaction in the viewer closes it and opens its lens (RL3), so Back returns to the journal, not to the moment that was open. Recommended: keep it (the lens is a new place, and the moment is one tap away in the journal); the alternative is that Back reopens the viewer on that moment.
+- **T31 [owner] Replay: the walk's card still says digits beside its clauses: streets walked, new streets, more finds** (2026-11-14)
+  Area: replay (the walk's card and the fog beat). Seen: the walk's card line reads "559 m · 50 min · 1 street walked,
+  your first time down Transit Street" (picture `rr-card-320` of the T19 review; `src/app/replay/[id].tsx`, the
+  `card-line`, `s.streets_walked`), and past two names `newStreetsLine` (`lib/quietLines.ts`) says "3 streets new to
+  you", on the card and as the fog beat's headline; the card's finds read "Found A · B · C and 2 more" (`foundList`,
+  `lib/explore/explore.ts` l.514, `card-finds`; the review's auditor 2). All sit beside "Two photos, a video, a voice
+  memo and a note" since `tend replay T19`. Rests on: VISION.md Always, "Counts are words, in a clause. Distances and
+  times are fine."; T19 and T30's sibling lens. It changes the fog beat's headline too, which is replay copy outside
+  the cards, so yours (the review's steward 8).
+  Recommended: in words through `numberWord`, one voice with the card's other clauses: "559 m · 50 min · one street
+  walked, your first time down Transit Street", "three streets new to you" on the card and "Three streets new to you"
+  as the fog beat's headline, and "Found A · B · C and two more". /vision: aligned (honour; "Counts are words, in a
+  clause"); it amends the replay rule's example ("3 streets new to you", `.claude/rules/replay.md`, "The card").
+  Otherwise: naming over counting, as `newStreetsLine` already does for one or two: the card names up to two new
+  streets and says "a few streets new to you" past two, with no count of streets walked (a count of streets walked
+  leans toward coverage, VISION.md Never); or leave it.
+- **T32 [owner] Chronicle's Days say their counts in digits above the timeline's words** (2026-11-14)
+  Area: tabs (Chronicle's Days). Seen: a days list row and a day's header read "3 moments · 1 walk" (`dayCounts`,
+  `lib/days.ts`, M7's "N moments · M walks"; `HomeSheet.tsx` l.288 and l.410, and the row's spoken name l.405), right
+  above the timeline's "Walk · 145 m · one moment" since `tend tabs 11`: two voices for one count on one screen
+  (picture `after2/21-day-timeline.png` of the T19 review). Rests on: VISION.md Always, "Counts are words, in a
+  clause."; T19 and T30's sibling lens (decision 0172 ended 0052's carve-out for the place sheet and a day's walk row,
+  not for the days list).
+  Recommended: in words through `numberWord`, "Three moments · one walk", on the row, the header and the row's spoken
+  name. /vision: aligned (return; "Counts are words"); it amends M7's example (`specs/moments-and-days/spec.md` l.33).
+  Otherwise: leave it (a list's meta line keeps its digits, as 0052 carved out).
 
 ### From /slice reactions
 
 What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).
+
+- **The sign once a moment has a reaction** (UI review U3): today it turns into the first reaction's glyph, so a plain smiling face can mean "no reaction yet" or "Happy", and the reaction is also spelled out under the dateline. Recommended: keep the face with a plus as the sign always and let the line under the dateline say what is chosen. It changes RX9, RX12 and decision 0168's "marked, the type's own glyph".
+  Answered Nov 14 (decision 0177): always the face with a plus; a follow-up slice after the deploy.
+- **"Contents" as the way to the lenses** (the cold find, RX2): "Gather all my ideas" was found, but late: "Contents" reads as a book's table of contents, and Threads was tried first. Recommended: keep Contents (your call in 0176) and rename its spoken name and line only if the owner sees the same on a phone; the alternative is a reaction under a moment opening its lens, which you declined.
+  Answered Nov 14 (decision 0177): Contents stays, and a reaction under a moment becomes a second way in.
+- **Gathering a reaction's moments was found late** (the audit's cold find, high, reactions audit 22): "Gather all my ideas" was placed only through Contents → Reactions, and called borderline not found ("Contents" reads as a table of contents, and an Idea is never seen as a reaction from the journal). Recommended: a reaction under an entry or in the viewer opens its lens (a second way in, beside Contents), which you set aside on Nov 14; or keep Contents and look on a phone first.
+  Answered Nov 14 (decision 0177): a reaction under a moment opens its lens, beside Contents; a follow-up slice after the deploy.
 
 ### From /slice: the row under the line
 
@@ -296,36 +291,63 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 14, `/tend walk-screen --cap=8 --deploy=main`, the ledger lens** (from `85cffce8`; the owner's answers of
-decision 0172 for the walk and its recording first, with the `[loop]` item O22 is built with).
-- `tend walk-screen 2`: a refused walk's quiet notice goes once the walk records again, whatever restarted it
-  (`raisedAfter`; the `[loop]` item of the T26 review).
-- `tend walk-screen 3`: on the web, a walk whose location is turned back on records again by itself (O22): the recorder
-  follows the site's permission after a refusal; nothing is stored meanwhile, so the off span reads as a gap over a
-  minute, never a pause.
-- `tend walk-screen 4`: the web refusal names "your browser's or your phone's settings" (O19).
-- `tend walk-screen 5`: Locate's timeout says "Couldn't find your position. Try again in a moment." quietly (O21);
-  `LocateError.refused` says a refusal, not the tone.
-- `tend walk-screen 6`: the walk screen's error says "Your walk is still recording." (O35).
-- `tend walk-screen 7`: the strip's Pause shows "Pause" / "Resume" under its icon (O27).
-- `tend walk-screen 8`: the walk screen's dwell times are named motion tokens (O23).
-- `tend walk-screen 9`: a found place's pin wears its finding moment's kind glyph, not a tick (O26).
-- The review (auditor and ux-reviewer, one round, decision 0145): eleven findings accepted, shipped as
-  `tend walk-screen audit 2-11`: the follower resumes only the walk the store holds open and unpaused, never after a
-  refused Start or Resume, nor a walk ended in another tab (audits 2-4, run against session state); the walk route's
-  error line follows the open walk and its pause (5); one wake lock after a return (6); the follower lives for the
-  walk's refusals (7); the walk's own moment wins for a find's glyph (8); Hold 48 high beside Pause on the walk's strip
-  (9); the owner's answers, in person, Nov 14, during the review, added to 0172: "Card only on Explore" (O6, O20: no
-  refusal banner while Explore's card says location is blocked, 10) and "Found with a video: …" (O26: the found pin
-  said with its kind, 11). Two filed `[loop]` low (the too-long video's fault beside "Video saved here"; the toast
-  wrapping at 320).
-Left by the cap, `[loop]` as they were: the "Navigate, ready" memo items (a null `uri`, a save lost on unmount,
-`dropTemp` in an updater), the `space` step's setup, "Add to this moment" at 320. The journal's 450 ms settle stays
-noted (not built with O23). Entries filed: none. Lenses not run: 1-6 (a ledger run; only the screens the answers
-changed were pictured, at 390 and 320). The walk screen stays rough (capped). Nothing here has run on a phone.
+**Nov 14, `/tend inbox T19 yes T30 yes --deploy=main`, with O15 and O18 of decision 0172** (from `b33399ff`, rebased on
+`83d509eb` and `0c5f4f96`; the owner's own answers, one theme: the remaining counts in digits become words. The
+coordinator ruled as the owner's proxy that T19 and T30 build in one run, since they share `formatCaptures`, as 0170
+records).
+- `tend replay T19`: the day's card says its moments as a clause with their named places or the day's area, the walk's
+  card says what it kept as one clause in the pins' words ("Two photos, a video, a voice memo and a note"), one hint on
+  both, "Tap a pin to open it"; `kindsClause` in `lib/pins.ts` is the one table the clause, the pins and the reminders
+  share, and the walks row takes the clause (T30's walks-row part).
+- `tend memories T30`: a memory preview of a group says "and two more here", shown and spoken.
+- `tend deletion T30`: a delete asks "Its trace, three moments and twelve streets walked go." and "Two photos and a voice
+  memo go.".
+- `tend tabs 10` (O15): the place sheet says "one walk", as its star does.
+- `tend tabs 11` (O18): a day's timeline says "Walk · 1.2 km · three moments"; the walk's card names its More by its
+  title, as the row and the timeline do.
+- The review (one round, the auditor, the ux-reviewer and the steward; decision 0145). The owner answered three of its
+  questions in person, Nov 14: "Only when all are placed" (steward 1: the day's card names a place or area only when
+  every moment of the day has a place inside it, loose moments checked against it; otherwise the count alone, "Three
+  moments"), "Lowercase after a dot" (steward 4, auditor 4, ux 2: in `walkRowMeta` a clause after a middle dot starts
+  lowercase; a capital only where the clause starts a line, as on the card) and "its moments" (steward 6: past
+  fifty-nine the confirm says "Its trace, its moments and its streets walked go.", and the same shape for media).
+  Fixed: `tend tabs audit 22` (a walk that kept nothing reads "Walk · 145 m", never "zero moments"), `tend replay audit
+  10` (the walk card's hint is its last line, above the buttons), `11` (no pin, no hint, on either card), `12` (the
+  owner's "Only when all are placed"), `13` (the day's card is built from what the screen loaded, whole, so its walks
+  cannot be left out), `tend tabs audit 23` (the owner's "Lowercase after a dot", and "a" kept on its noun's line),
+  `tend deletion audit 1` (the owner's "its moments"), `tend tabs audit 24` and `tend deletion audit 2` (no-break
+  spaces: "one moment" and "walked go." keep together), `tend memories audit 3` ("and one more here" holds one line at
+  320 px, across the card).
+- Filed: T31 `[owner]` (the walk card's streets walked, new streets and "and N more" finds in digits, with the fog
+  beat), T32 `[owner]` (the days list's and a day's header's "3 moments · 1 walk"); `[loop]` low, Navigate's spoken
+  "N routes to <place>"; `[loop]` medium, "Delete walk" wraps at 320 px (before this run); `[owner]` low, the day card's
+  old rule line (0135). The kinds-tables item is noted, not closed (two of its tables are one now). A phone check for
+  every changed screen in `docs/NATIVE_UNVERIFIED.md`; the spec wording (M13, MR4, D4, with M8's) in "Open before the
+  loop".
+- Not run: the balance (an inbox run); the journeys gaps, qol, tabs, walk and videothumbs, reached through `pins.ts`,
+  `HomeSheet` and the replay route, whose changes the unit tests hold. Nothing here has run on a phone.
 
 ### Open before the loop
 
+- **M13's, MR4's and D4's words after T19 and T30** (Nov 14; decisions 0165, 0170, and the owner's answers in person
+  during the review of `tend replay T19`): since `tend replay T19` a day's card says its moments as a clause, "Four
+  moments, around Wickenden Street and the Old Mill" (one or two named places: the place a moment found, else the
+  street it was on), else "Four moments around Fox Point" (the area the day's walks share), and, the owner's "Only when
+  all are placed" (`tend replay audit 12`), a place or area only when every moment of the day has a place inside it,
+  loose moments checked against the streets the day's walks read; otherwise the count alone, "Three moments". "Tap a
+  pin to open it" is each card's last line above its buttons, and only with a pin on its map (`audit 10`, `11`). The
+  walk's card says "Two photos, a video, a voice memo and a note"; the walks row takes that clause lowercase after its
+  dot, the owner's "Lowercase after a dot" ("Nov 14, 2026 · 589 m · 4 min · a photo, a video, a voice memo and a note",
+  `tend tabs audit 23`). Since `tend memories T30` a memory preview of a group adds "and two more here"; since `tend
+  deletion T30` a delete asks "Its trace, three moments and twelve streets walked go." and "Two photos and a voice memo
+  go.", and past fifty-nine, the owner's "its moments", "Its trace, its moments and its streets walked go." and "Its
+  photos and a voice memo go." (`tend deletion audit 1`). A day's walk that kept nothing reads "Walk · 145 m" (`tend
+  tabs audit 22`). Amend, in the docs and their mirrors (the loop may not edit a spec): M13
+  (`specs/moments-and-days/spec.md` l.42, "\<weekday> · N moments · P places"), MR4 (`specs/memories-on-revisit/spec.md`
+  l.39, "N more here"), D4's example (`specs/clearing-walks-and-moments/spec.md` l.28, "Its trace, 12 moments and 9
+  streets walked go."), and M8's example (the item below, O18, built as `tend tabs 11`) with its walk that kept
+  nothing. Until then the words are in `dayLine`'s, `dayPlaces`', `formatCaptures`', `walkRowMeta`'s, `moreHere`'s and
+  `walkDeleteText`'s comments.
 - **The spec wording the owner's answers of Nov 14 need** (Nov 14; decision 0172): the answers to the deferred list
   change words or placements that shipped criteria pin. Amend, in the docs and their mirrors (the loop may not edit a
   spec): QL3 (`specs/quality-of-life/spec.md` l.23), whose markers sit under the capture pins: a pin standing on a
@@ -527,7 +549,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Reaction links slice (RL1-RL12, `specs/reaction-links/spec.md`, decision 0177) | `claude/trusting-gates-cd90zs` | built 2026-11-14; waits for the deploy |
 | Smooth neighborhood switches (a switch redraws nothing it already showed: the outline kept and derived after the settle, unchanged Busy lines never resent, the names sent once at the settle, lines held on a town's page, markers not rebuilt, a cut read retried; SS1-SS10, after Explore in a dense city) | `claude/trusting-cannon-f5wdhg` | built 2026-11-13, test-first by history (10 of 10): unit tests (2344), typecheck, lint, docs and vision checks; the `switches` journey (at 4x CPU each switch paired with the camera alone's move) and the 16 journeys `check:affected` names pass on the merged build; steward read (S1-S3 accepted); UI review: U1 fixed, then superseded by main's fix carousel-height on the merge; SS9 amended on the owner's call (decision 0166); native unverified; not audited; merged to main and deployed 2026-11-14 (`4e9a496`, Pages run 254; the live bundle carries the slice). Late border fixed on the way (`readerTook`; the dense journey's DC17 now zooms on the selected area). Spec `specs/smooth-switches/spec.md` |
 | Voice trim (a voice memo trimmed with start and end handles, as data on the untouched recording; Edit in the viewer; the kept part plays everywhere, its length said in words; VT1-VT12, decision 0090) | `claude/upbeat-gates-s6xy90` | built 2026-11-12, test-first by intent, the owner waived `check:test-first` for it (6 of 11 criteria report todo-before-real: the unit tests' todos used a constant the history check does not read; VT7 is device-only): unit tests (2072), typecheck, lint, docs and vision checks; the `voicetrim` journey and the nine journeys `check:affected` named (edit, notepage, qol, replay, responses, resurface, stacks, threads, walk) pass on the web build; a first sweep failed on a build whose map worker was missing (`npm ci --ignore-scripts` skipped `copy-maplibre-worker.js`), so it is not the slice's; steward read once (6 findings, triaged in the plan); native unverified; audited 2026-11-13 at the owner's request (12 findings: 6 fixed, 2 deferred, 4 rejected; tests `voice-trim audit 1-4, 9, 10`; the UI review before it: `voice-trim ui 1, 3` fixed, `ui 4, 6` guards); spec `specs/voice-trim/spec.md` |
 | Video thumbnails (a video's still where its kept part starts, in every preview under a play mark: the gallery, Memories, a walk's memory preview, a one-video pin, the replay's pile; a web exception for the frame; VS1-VS9) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-13, test-first by history (9 of 9): unit tests (2140), typecheck, lint, docs and vision checks; the `videothumbs` journey (14 checks, green four runs in a row) and the eleven journeys `check:affected` names pass; steward read (S1-S4 accepted); UI review (decision 0145): 5 findings, 3 fixed (`video-thumbnails ui 1, 3, 4`), 1 deferred (U1, older), 1 rejected; audited 2026-11-13 at the owner's request (13 findings: 9 fixed, tests `video-thumbnails audit 1-9`; 2 deferred; 2 rejected); merged with main (its ids renamed VS1-VS9, voice trim holding VT; `RENAMED` in scripts/features.js), 2323 unit tests, and twelve of the thirteen journeys `check:affected` names pass on the /chronicles build; `voicetrim` fails on main too (a test id the journal page dropped; DEFERRED); native unverified; merged to main on the owner's go-ahead (Nov 13, `b67935a`); its Pages run (243) was refused by the record gate (decision 0156): the merge's documents and one commit after it were hand-edited, mine; the fix-forward set this row through `npm run records` (`d5cab8b`); deployed by Pages run 244 (Nov 13), live check done (a video recorded on the live site gets its still under the play mark in Media). Spec `specs/video-thumbnails/spec.md` |
