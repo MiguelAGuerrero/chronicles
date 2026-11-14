@@ -172,8 +172,8 @@ async function checks(h) {
             return [...c.querySelectorAll('div, span')].every((e) => e.getBoundingClientRect().right <= window.innerWidth + 0.5);
           });
           await page.setViewportSize({ width: 390, height: 844 });
-          check(/^Its trace[a-z ,-]* go(es)?\./.test(t.replace(/\n/g, ' ').replace(/^.*?(Its trace)/, '$1')) && !/\d+ (moment|street)/.test(t) && narrow,
-            `tend deletion T30: deleting a walk says its moments and streets in words, whole at 320 px (${t.replace(/\n/g, ' · ')})`);
+          check(/^Its trace[a-z ,\u00a0-]*[ \u00a0]go(es)?\./.test(t.replace(/\n/g, ' ').replace(/^.*?(Its trace)/, '$1')) && !/\d+ (moment|street)/.test(t) && narrow,
+            `tend deletion T30, tend deletion audit 2: deleting a walk says its moments and streets in words, whole at 320 px (${t.replace(/\n/g, ' · ')})`);
         }
         await page.click('[data-testid=confirm-delete]');
         return t;

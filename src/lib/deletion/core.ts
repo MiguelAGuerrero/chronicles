@@ -115,7 +115,8 @@ export function walkDeleteText(o: { moments: number; streets: number; bytes: num
   const parts = ['Its trace'];
   if (o.moments) parts.push(count(o.moments, 'moment', 'moments'));
   if (o.streets) parts.push(count(o.streets, 'street walked', 'streets walked'));
-  const body = `${joinAnd(parts)} ${parts.length > 1 ? 'go' : 'goes'}.`;
+  // "go." keeps to the word before it, never alone on a line at 320 px (tend deletion audit 2).
+  const body = `${joinAnd(parts)}\u00a0${parts.length > 1 ? 'go' : 'goes'}.`;
   return { title: 'Delete this walk?', body: withSize(body, o.bytes), confirm: 'Delete walk' };
 }
 
