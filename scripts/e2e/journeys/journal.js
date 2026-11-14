@@ -890,6 +890,7 @@ async function run(h) {
   await pg.click('[data-testid=composer] [data-testid=band-voice-discard]').catch(() => {});
   await pg.waitForTimeout(1200);
   // JN51: Open as a page carries the words to the note's page; closing it returns to the journal.
+  await pg.click(input).catch(() => {});
   await pg.keyboard.type('Long enough for a page.', { delay: 10 });
   await pg.waitForTimeout(1000);
   await pg.click('[data-testid=line-page]').catch(() => {});
