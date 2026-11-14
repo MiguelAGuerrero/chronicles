@@ -178,17 +178,11 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     cur.onsuccess = () => {
       const c = cur.result;
       if (!c) return;
-      for (const r of migrateTypes((c.value as MomentRecord).pieces)) reactions.put(r);
+      // Read raw: the pieces' old `note_type` is no longer part of a capture's type.
+      for (const r of migrateTypes((c.value as { pieces: { id: string; moment_id: string; t: number; note_type?: string | null }[] }).pieces)) reactions.put(r);
       c.continue();
     };
   }
-}
-
-/** A cleared note type leaves no field, as the SQLite store reads it (note-types audit 14). */
-function withoutClearedType<T extends { note_type?: string | null }>(piece: T): T {
-  if (piece.note_type != null) return piece;
-  const { note_type: _gone, ...rest } = piece;
-  return rest as T;
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -353,7 +347,7 @@ export const db: Db = {
     const tx = (await conn()).transaction('moment', 'readwrite');
     const st = tx.objectStore('moment');
     const m = (await done(st.index('piece_ids').get(id))) as MomentRecord | undefined;
-    if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? withoutClearedType({ ...x, ...p }) : x)) });
+    if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
     await committed(tx);
   },
   async addPiece(momentId, p) {

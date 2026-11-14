@@ -10,8 +10,9 @@ import { theme } from '../ui';
 import { MomentPicture } from './MomentPicture';
 import { hasMore } from '../../lib/moment';
 import { StackMark, STACK_SPOKEN } from '../StackMark';
-import { markOf } from '../../lib/noteType';
-import { NoteMark } from '../NoteMark';
+import { spokenReactions, type ReactionSet } from '../../lib/reactions/core';
+import { useReactions } from '../../lib/reactions/useReactions';
+import { ReactionMarks } from '../reactions/ReactionMarks';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 
@@ -20,10 +21,13 @@ export function contextText(context: ContextEntry | undefined, m: MomentView, no
   return context?.state === 'done' ? context.line : whenLine(m.t, now);
 }
 
-/** What a moment says about itself in one line, for a screen reader (RM25). A note's type is said only where its mark is drawn (`typed`, note-types audit 16). */
-export function momentSpoken(m: MomentView, now: number, context?: ContextEntry, typed = true): string {
+/**
+ * What a moment says about itself in one line, for a screen reader (RM25). Its reactions are said only where they are
+ * drawn (RX16): a caller that draws `ReactionMarks` passes the set; the slip passes none.
+ */
+export function momentSpoken(m: MomentView, now: number, context?: ContextEntry, reacted?: ReactionSet): string {
   // A moment with more than one piece says so in words (MS8), never how many (MS9).
-  return [KIND_WORD[m.kind], (typed ? markOf(m.capture)?.name : null) ?? null, hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
+  return [KIND_WORD[m.kind], ...(reacted ? spokenReactions(reacted) : []), hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**
@@ -44,9 +48,10 @@ export function MomentCard(props: {
 }) {
   const { moment: m, walk, now } = props;
   const from = fromLine(walk);
+  const reacted = useReactions(m.id);
   return (
     <View style={styles.card} testID="moment-card">
-      <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context)}. Open`} onPress={props.onOpen}>
+      <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context, reacted)}. Open`} onPress={props.onOpen}>
         {(m.kind === 'photo' || m.kind === 'video') && <MomentPicture capture={m.capture} style={styles.picture} iconSize={36} />}
         {hasMore(m.capture) && <StackMark style={m.kind === 'photo' || m.kind === 'video' ? styles.markOnPicture : styles.markInline} light={!(m.kind === 'photo' || m.kind === 'video')} />}
         <View style={styles.body}>
@@ -56,8 +61,8 @@ export function MomentCard(props: {
               <Text style={styles.memoText}>{memoWords(m.capture)}</Text>
             </View>
           )}
-          {m.kind === 'text' && <NoteMark capture={m.capture} />}
           {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
+          <ReactionMarks set={reacted} quiet />
           {props.answering ? <Text style={styles.meta} testID="moment-answering">{props.answering}</Text> : null}
           <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>
         </View>

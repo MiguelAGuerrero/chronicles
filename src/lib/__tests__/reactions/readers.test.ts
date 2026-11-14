@@ -63,12 +63,14 @@ test('RX16: a reaction is spoken only where it is drawn: the card speaks them th
   assert.doesNotMatch(slip, WORDS);
 });
 
-test('RX36: every reaction glyph is drawn in the one ink colour, and the chosen state is no tint', { todo: 'test first' }, () => {
+test('RX36: every reaction glyph is drawn in the one ink colour, and the chosen state is no tint', () => {
   for (const f of ['components/reactions/ReactionPanel.tsx', 'components/reactions/ReactionMarks.tsx', 'components/reactions/ReactionSign.tsx']) {
     const src = readFileSync(join(SRC, f), 'utf8');
     const colours = [...src.matchAll(/color=\{([^}]+)\}/g)].map((m) => m[1].trim());
     assert.ok(colours.length > 0, `${f} draws a glyph`);
-    assert.deepEqual([...new Set(colours)].filter((c) => c !== 'theme.ink'), [], `${f}: ink only`);
+    // Ink, or the page's white where a glyph sits on ink (the sign's plus, the viewer's dark strip): nothing else.
+    const named = colours.flatMap((c) => (c === 'ink' ? ['theme.ink', 'theme.bg'] : c.match(/theme\.\w+|#[0-9a-f]+|rgba?\(/gi) ?? [c]));
+    assert.deepEqual([...new Set(named)].filter((c) => c !== 'theme.ink' && c !== 'theme.bg'), [], `${f}: ink only`);
     assert.doesNotMatch(src, /accent|tint|backgroundColor:\s*theme\.(accent|wash)/, `${f}: no accent or tint`);
   }
 });

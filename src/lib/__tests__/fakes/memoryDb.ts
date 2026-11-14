@@ -119,12 +119,6 @@ function band(lo: number, hi: number): (v: Key) => boolean {
  * key order. A write that would fail part-way (a duplicate id) fails before
  * changing anything, like a transaction.
  */
-/** A cleared note type leaves no field, as the real stores read it (note-types audit 14). */
-const clearedType = <T extends { note_type?: string | null }>(piece: T): T => {
-  if (piece.note_type != null) return piece;
-  const { note_type: _gone, ...rest } = piece;
-  return rest as T;
-};
 
 export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const copy = <T>(v: T): T => structuredClone(v);
@@ -236,7 +230,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async updatePiece(id, p) {
       const m = momentOfPiece(id);
-      if (m) moments.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? clearedType({ ...x, ...p }) : x)) });
+      if (m) moments.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
     },
     async addPiece(momentId, p) {
       const m = moments.get(momentId);

@@ -259,8 +259,8 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       store.set((s) => ({ ...s, moments: s.moments.map(patched), inOpenWalk: s.inOpenWalk.map(patched) }));
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
-    async saveNote(c: Faced, body: string, type?: string | null, typeOnly = false): Promise<void> {
-      const change = notePatch(body, type, typeOnly);
+    async saveNote(c: Faced, body: string): Promise<void> {
+      const change = notePatch(body);
       await p.db.updatePiece(c.piece_id, change);
       // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
       captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);

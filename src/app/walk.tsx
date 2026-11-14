@@ -1794,7 +1794,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         remind
         walkId={walk?.id ?? null}
         onSaveEdit={(c, patch) => cap.setEdit(c, patch)}
-        onSaveNote={(c, body, type, only) => cap.setNote(c, body, type, only)}
+        onSaveNote={(c, body) => cap.setNote(c, body)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
@@ -1911,7 +1911,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={(c, body, type, only) => cap.setNote(c, body, type, only)}
+        onSaveNote={(c, body) => cap.setNote(c, body)}
       />
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
@@ -1921,7 +1921,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {page && (
           <NewNotePage
             key={page.key}
-            typed
+            reactable
             ref={pageRef}
             cap={cap}
             into={page.into}

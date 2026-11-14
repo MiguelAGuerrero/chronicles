@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import { type Faced, facedOf } from '../../moment';
+import { REACTIONS } from '../../reactions/core';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { pinHeadKinds, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, walkClocks, type CapturePin, type WalkClock } from '../../pins';
@@ -68,7 +69,8 @@ test('tend map T14: the spoken name says the kinds and the minutes in; one momen
   // Amended by tend map T28 (decision 0164): a pin of one moment says its minutes too.
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12)), { clocks: [W1] }), 'Photo, twelve minutes in');
   assert.equal(pinSpoken(pinOf(cap('a', 'voice', 12)), { memory: true }), 'Memory: Voice memo');
-  assert.equal(pinSpoken(pinOf(cap('a', 'text', 12, { note_type: 'idea' })), {}), 'Note, idea');
+  // RX21 (amends NY10): a single moment's reactions follow its kind, in the families' order.
+  assert.equal(pinSpoken(pinOf(cap('a', 'text', 12)), { reactions: REACTIONS.filter((r) => r.id === 'idea' || r.id === 'happy') }), 'Note, happy, idea');
   assert.doesNotMatch(pinSpoken(pinOf(cap('a', 'photo', 1), cap('b', 'photo', 2), cap('c', 'voice', 3)), { clocks: [W1] }), /\d/);
 });
 
@@ -140,7 +142,7 @@ const day = (id: string, kind: CaptureKind, t: number, o: Partial<Faced> = {}): 
 test('tend map T28: a pin of one moment says its minutes when its walk\'s clock is known', () => {
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12)), { clocks: [W1], now: NOW }), 'Photo, twelve minutes in');
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0.2)), { clocks: [W1], now: NOW }), 'Photo, at the start');
-  assert.equal(pinSpoken(pinOf(cap('a', 'text', 65, { note_type: 'idea' })), { clocks: [W1], now: NOW }), 'Note, idea, one hour and five minutes in');
+  assert.equal(pinSpoken(pinOf(cap('a', 'text', 65)), { clocks: [W1], now: NOW, reactions: REACTIONS.filter((r) => r.id === 'idea') }), 'Note, idea, one hour and five minutes in');
   // A pause before it is not walked time.
   assert.equal(pinSpoken(pinOf(cap('a', 'voice', 12)), { clocks: [{ ...W1, pauses: [{ started_at: T0 + 2 * MIN, ended_at: T0 + 7 * MIN }] }], now: NOW }), 'Voice memo, seven minutes in');
   // Several close together keep the first one's minutes (tend map T14).

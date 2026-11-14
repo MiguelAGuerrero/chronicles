@@ -242,7 +242,7 @@ export function CaptureRow(props: {
         {page && (
           <NewNotePage
             key={page.key}
-            typed
+            reactable
             ref={pageRef}
             cap={cap}
             into={page.into}

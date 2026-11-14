@@ -7,7 +7,10 @@ import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, ty
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
-import { NoteMark } from './NoteMark';
+import { reactions } from '../lib/reactions';
+import { useReactions } from '../lib/reactions/useReactions';
+import { ReactionMarks } from './reactions/ReactionMarks';
+import { ReactionPanel } from './reactions/ReactionPanel';
 import { MemoTranscript } from './MemoTranscript';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
@@ -241,6 +244,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
   const [now] = useState(() => Date.now());
+  // The moment's reactions, under its info line, for every kind (RX15).
+  const reacted = useReactions(capture.id);
   const meta = viewerLine({ kind: KIND_LABEL[capture.kind], t: capture.t, time: timeOf(capture), now, parts: props.parts ?? [props.footer] });
   // The responses' words come last, inside the info line: the viewer's only control for them (RT1, RT11).
   const responsesLink = (onDark: boolean) =>
@@ -330,6 +335,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
             <Text style={styles.stripMeta} numberOfLines={props.responses ? 3 : 2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(true)}</Text>
             {actions(true)}
           </View>
+          <ReactionMarks set={reacted} inverse style={styles.stripReactions} />
         </View>
         )}
       </View>
@@ -341,12 +347,12 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
         {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
         <View testID="capture-card" style={styles.pageArea}>
-        {capture.note_type ? <View style={styles.pageMark}><NoteMark capture={capture} /></View> : null}
         <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
         <View style={[styles.metaRow, styles.pageMeta]}>
           <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
           {actions(false)}
         </View>
+        <ReactionMarks set={reacted} style={styles.pageReactions} />
         </View>
       </View>
     );
@@ -356,7 +362,6 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
-          {capture.kind === 'text' && <NoteMark capture={capture} />}
           {capture.kind === 'text' &&
             (props.onOpenRef ? <NoteText body={capture.body ?? ''} format={capture.body_format} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
           {capture.kind === 'voice' && uri && (
@@ -368,6 +373,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
             <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
             {actions(false)}
           </View>
+          <ReactionMarks set={reacted} />
         </View>
       </View>
     </View>
@@ -394,8 +400,7 @@ export function CaptureViewer(props: {
    */
   onSaveEdit?: (c: Faced, patch: CapturePatch) => Promise<void>;
   /** Offers "Edit note" on notes (QL24); the editor opens inside the viewer. */
-  /** `type`: the chosen note type when the owner changed it (null clears), else undefined, the stored one standing (NY7, NY16); `typeOnly`: the words are not being saved, so the body and its format stay as kept. */
-  onSaveNote?: (c: Faced, body: string, type?: string | null, typeOnly?: boolean) => Promise<void>;
+  onSaveNote?: (c: Faced, body: string) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
   onGoHere?: (c: Faced) => void;
   /** Open in Maps (NH6): hands the capture's place to the phone's maps app, from the More menu. */
@@ -441,6 +446,10 @@ export function CaptureViewer(props: {
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Faced | null>(null);
+  const notingSet = useReactions(noting?.id);
+  // More's Reaction (RX11): the families in a panel inside the viewer, never a Modal on its Modal.
+  const [reactingTo, setReactingTo] = useState<string | null>(null);
+  const reactingSet = useReactions(reactingTo);
   // A note's page is headed by the day and the moment's context as the viewer was given it (NP2).
   const [headNow] = useState(() => Date.now());
   // With no line given, it says what it knows and never claims no place for a placed moment (note-pages audit 2).
@@ -450,7 +459,6 @@ export function CaptureViewer(props: {
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
   // The type chosen with it, by piece: null is "No type" (NY7).
-  const [editedType, setEditedType] = useState<Map<string, string | null>>(() => new Map());
   // What was deleted (D3, D5) leaves the viewer at once; a piece split out (MS16) shows at once as its own moment,
   // right after the one it came from, while its split waits or once it is stored.
   const visible = useVisible(props.captures);
@@ -569,7 +577,7 @@ export function CaptureViewer(props: {
   // Edits and notes are the piece's own (MS11): kept by the piece's id.
   const editedBody = listed ? edited.get(listed.piece_id) : undefined;
   const withText = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody, body_format: 'md' as const } : listed;
-  const withBody = withText && editedType.has(withText.piece_id) ? { ...withText, note_type: editedType.get(withText.piece_id) } : withText;
+  const withBody = withText;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
   // The notes that mention the moment shown, read from their text (RF7): by date, never by count.
@@ -888,25 +896,8 @@ export function CaptureViewer(props: {
             key={noting.id}
             body={noting.body ?? ''}
             bodyFormat={noting.body_format ?? null}
-            type={noting.note_type ?? null}
-            onType={async (t) => {
-              // A type chosen on the page is kept at once, beside the words, and put back if it can't be (NY7).
-              const c = noting;
-              const had = editedType.has(c.piece_id);
-              const before = editedType.get(c.piece_id) ?? null;
-              setEditedType((m) => new Map(m).set(c.piece_id, t));
-              try {
-                await props.onSaveNote?.(c, edited.get(c.piece_id) ?? c.body ?? '', t, true);
-              } catch {
-                setEditedType((m) => {
-                  const n = new Map(m);
-                  if (had) n.set(c.piece_id, before);
-                  else n.delete(c.piece_id);
-                  return n;
-                });
-                setSaveState({ id: c.id, text: 'The type could not be saved' });
-              }
-            }}
+            // The page's Reaction tool, on the moment shown (RX12): kept at once, never touching the words.
+            reaction={{ set: notingSet, onPick: (id) => void reactions.choose(noting.id, id).catch(() => setSaveState({ id: noting.id, text: 'The reaction could not be saved' })) }}
             head={headOf(noting)}
             self={noting.id}
             onClose={() => setNoting(null)}
@@ -974,10 +965,33 @@ export function CaptureViewer(props: {
             }}
           />
         )}
+        {reactingTo && current?.id === reactingTo && (
+          <View style={[styles.reactSheet, { paddingBottom: insets.bottom + 12 }]} testID="viewer-reactions">
+            <View style={styles.reactHead}>
+              <Text style={styles.reactTitle} accessibilityRole="header">Reaction</Text>
+              <Pressable testID="viewer-reaction-done" accessibilityRole="button" onPress={() => setReactingTo(null)} style={styles.reactDone}>
+                <Text style={styles.reactDoneText}>Done</Text>
+              </Pressable>
+            </View>
+            <ReactionPanel set={reactingSet} onPick={(id) => void reactions.choose(reactingTo, id).catch(() => setSaveState({ id: reactingTo, text: 'The reaction could not be saved' }))} />
+          </View>
+        )}
         {menu && current && (
           <>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} accessible={false} />
             <ScrollView style={[styles.menu, { top: insets.top + 64, maxHeight: Math.max(220, height - insets.top - insets.bottom - 140) }]} testID="viewer-menu">
+              <Pressable
+                testID="viewer-reaction"
+                accessibilityRole="button"
+                onPress={() => {
+                  setMenu(false);
+                  setReactingTo(current.id);
+                }}
+                style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+              >
+                <Icon name="happy-outline" size={22} color={theme.ink} />
+                <Text style={styles.menuText}>Reaction</Text>
+              </Pressable>
               {current.lat != null && props.remind && (
                 // In More since UC9; its state is in the info line (UC12).
                 <Pressable
@@ -1177,7 +1191,13 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   pageArea: { flex: 1 },
   // A note's type, one line above the page it marks (NY9).
-  pageMark: { paddingHorizontal: 16, paddingTop: 10 },
+  pageReactions: { paddingHorizontal: 16, paddingBottom: 10, backgroundColor: theme.surface },
+  stripReactions: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingBottom: 6 },
+  reactSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 6 },
+  reactHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  reactTitle: { color: theme.ink, fontSize: 16, fontWeight: '600' },
+  reactDone: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  reactDoneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   pageMeta: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.surface, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   nav: { flexDirection: 'row', gap: 8 },
   action: {

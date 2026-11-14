@@ -11,7 +11,7 @@ import { type Faced, patchFaced } from './moment';
  * gone (tabs audit 5). Storage stays the truth; this only keeps the screens'
  * lists in step.
  */
-export type CapturePatch = Partial<Pick<Faced, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'body_format' | 'edit' | 'note_type'>>;
+export type CapturePatch = Partial<Pick<Faced, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'body_format' | 'edit'>>;
 /** The channel for loose moments, which belong to no walk (media-editing audit 2). */
 export const LOOSE_MOMENTS = '@loose-moments';
 type Listener = { walkId: string; owner: object; fn: (c: Faced) => void; onPatch?: (id: string, patch: CapturePatch, pieceId?: string) => void };

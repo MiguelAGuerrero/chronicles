@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { NoteType } from '../../lib/noteType';
-import { NoteTypeMenu } from '../notePage/NoteTypeMenu';
+import type { ReactionId, ReactionSet } from '../../lib/reactions/core';
+import { ReactionPanel } from '../reactions/ReactionPanel';
 import { Modal } from '../Modal';
 import { theme } from '../ui';
 
 /** A moment's More menu (RM20): bring it up less, never bring it back, or open it. */
-export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Given when the moment has a note (NY23). */ type?: { chosen: NoteType | null; onChoose: (t: NoteType | null) => void }; /** Open on the eight, with nothing else (NY27). */ onlyType?: boolean; onLess: () => void; onHide: () => void; onOpen: () => void; /** Given for the resurfaced slip (chronicle journal JN20). */ onRelive?: () => void; onAnother?: () => void; /** Given for a placed moment (chronicle journal JN6, ui 3). */ onMap?: () => void }) {
+export function MemoryMenu(props: { open: boolean; onClose: () => void; /** The moment's reactions (RX10): Reaction in the list, the families in this same sheet. */ reaction?: { set: ReactionSet; onPick: (id: ReactionId) => void }; /** Open on the reactions, with nothing else (RX9). */ onlyType?: boolean; onLess: () => void; onHide: () => void; onOpen: () => void; /** Given for the resurfaced slip (chronicle journal JN20). */ onRelive?: () => void; onAnother?: () => void; /** Given for a placed moment (chronicle journal JN6, ui 3). */ onMap?: () => void }) {
   const item = (testID: string, label: string, hint: string, fn: () => void) => (
     <Pressable testID={testID} accessibilityRole="button" onPress={fn} style={styles.item}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.hint}>{hint}</Text>
     </Pressable>
   );
-  // Type (NY23): the eight and No type, in this same sheet; never a second Modal.
+  // Reaction (RX10): the three families, in this same sheet; never a second Modal. A choice leaves them open.
   const [typing, setTyping] = useState(false);
-  const type = props.type;
-  // Opened from the sign on an entry's row (NY27): the eight at once.
+  const type = props.reaction;
+  // Opened from the sign on an entry's row (RX9): the reactions at once.
   const grid = (typing || !!props.onlyType) && !!type;
   // Closed by anything (an item, the host), it opens on its list again (note-types audit 63).
   if (!props.open && typing) setTyping(false);
@@ -31,19 +31,13 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
         <View style={styles.sheet} testID="memory-menu" accessibilityViewIsModal>
           {grid && type ? (
             <>
-            <Text style={styles.heading} accessibilityRole="header">Type</Text>
-            <NoteTypeMenu
-              chosen={type.chosen}
-              onChoose={(t) => {
-                setTyping(false);
-                type.onChoose(t);
-              }}
-            />
+            <Text style={styles.heading} accessibilityRole="header">Reaction</Text>
+            <ReactionPanel set={type.set} onPick={type.onPick} />
             </>
           ) : null}
           {grid ? null : (
             <>
-          {!typing && type ? item('menu-type', 'Type', 'A mark for why you wrote this note', () => setTyping(true)) : null}
+          {!typing && type ? item('menu-reaction', 'Reaction', 'How it felt, what you made of it', () => setTyping(true)) : null}
           {props.onRelive && item('resurfaced-relive', 'Relive it', 'Replays the walk or the day it came from', props.onRelive)}
           {props.onAnother && item('resurfaced-another', 'Another', 'Brings back a different moment', props.onAnother)}
           {item('menu-less', 'Show less like this', 'Brings this kind of thing up less often', props.onLess)}
@@ -53,7 +47,7 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** Give
             </>
           )}
           <Pressable testID="menu-cancel" accessibilityRole="button" onPress={close} style={styles.item}>
-            <Text style={[styles.label, { color: theme.muted }]}>Cancel</Text>
+            <Text style={[styles.label, { color: theme.muted }]}>{grid ? 'Done' : 'Cancel'}</Text>
           </Pressable>
         </View>
       </View>

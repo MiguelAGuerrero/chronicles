@@ -413,9 +413,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         onClose={() => setRecalled(null)}
         autoPlay
         remind
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
@@ -431,9 +431,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           await captureEdits.save(c, patch);
           setCaptures((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);

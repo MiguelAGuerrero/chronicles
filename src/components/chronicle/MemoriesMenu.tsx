@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FORGET_CONFIRM, HINT_FORGET, HINT_HIDDEN, HINT_OFF, HINT_ON } from '../../lib/resurface/copy';
+import { LENS_LINE } from '../../lib/reactions/lens';
 import { Modal } from '../Modal';
 import { Button, theme } from '../ui';
 
 /**
- * The journal's contents (chronicle journal JN21; MC8-MC10): Threads, Hidden, the switch, and Forget my choices, which asks once, in the
+ * The journal's contents (chronicle journal JN21; MC8-MC10): Threads, Reactions (RX22), Hidden, the switch, and Forget my choices, which asks once, in the
  * same sheet (no second Modal), and says what will be offered again.
  */
-export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () => void; onThreads: () => void; onHidden: () => void; onToggle: () => void; onForget: () => void }) {
+export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () => void; onThreads: () => void; onReactions: () => void; onHidden: () => void; onToggle: () => void; onForget: () => void }) {
   const [confirming, setConfirming] = useState(false);
   const close = () => {
     setConfirming(false);
@@ -33,6 +34,10 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
               <Pressable testID="menu-threads" accessibilityRole="button" onPress={() => { setConfirming(false); props.onThreads(); }} style={styles.item}>
                 <Text style={styles.label}>Threads</Text>
                 <Text style={styles.hint}>What you keep coming back to, and what you connected</Text>
+              </Pressable>
+              <Pressable testID="menu-reactions" accessibilityRole="button" onPress={() => { setConfirming(false); props.onReactions(); }} style={styles.item}>
+                <Text style={styles.label}>Reactions</Text>
+                <Text style={styles.hint}>{LENS_LINE}</Text>
               </Pressable>
               <Pressable testID="menu-hidden" accessibilityRole="button" onPress={() => { setConfirming(false); props.onHidden(); }} style={styles.item}>
                 <Text style={styles.label}>Hidden</Text>

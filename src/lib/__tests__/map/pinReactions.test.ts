@@ -7,7 +7,7 @@ const icons = () => import('../../reactions/core' as string) as Promise<Record<s
 const cap = (id: string, kind: string, extra: Record<string, unknown> = {}) => ({ id, kind, t: 1, pieces: [{ id, kind }], ...extra });
 const pin = (...captures: unknown[]) => ({ lngLat: [0, 0], kind: 'text', captures });
 
-test('RX17: a pin of exactly one moment wears its reactions in the families\' order; one with none wears none', { todo: 'test first' }, async () => {
+test('RX17: a pin of exactly one moment wears its reactions in the families\' order; one with none wears none', async () => {
   const { pinReactions } = await pins();
   const sets = new Map([['a', { thought: 'idea', feeling: 'happy' }], ['b', {}]]);
   assert.deepEqual(pinReactions(pin(cap('a', 'photo')), sets).map((r: { id: string }) => r.id), ['happy', 'idea']);
@@ -15,13 +15,13 @@ test('RX17: a pin of exactly one moment wears its reactions in the families\' or
   assert.deepEqual(pinReactions(pin(cap('z', 'voice')), sets), []);
 });
 
-test('RX19: a pin of several moments wears no reactions', { todo: 'test first' }, async () => {
+test('RX19: a pin of several moments wears no reactions', async () => {
   const { pinReactions } = await pins();
   const sets = new Map([['a', { thought: 'idea' }], ['b', { feeling: 'sad' }]]);
   assert.deepEqual(pinReactions(pin(cap('a', 'photo'), cap('b', 'text')), sets), []);
 });
 
-test('RX18: the head is the kind, whatever a note once carried: the pin\'s icon is chosen by kind alone', { todo: 'test first' }, async () => {
+test('RX18: the head is the kind, whatever a note once carried: the pin\'s icon is chosen by kind alone', async () => {
   // icons.tsx loads a font module, so it is read as source here (a Node test cannot load React Native).
   const { readFileSync } = await import('node:fs');
   const { join } = await import('node:path');

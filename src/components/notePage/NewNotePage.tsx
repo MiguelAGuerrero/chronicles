@@ -1,8 +1,9 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useId, useRef, useState } from 'react';
 import { deleteNoteNow } from '../../lib/deletion';
 import { noteHead } from '../../lib/notePage/head';
-import type { NoteType } from '../../lib/noteType';
-import { typeForNewNote } from '../../lib/noteTypeChoice';
+import type { ReactionId, ReactionSet } from '../../lib/reactions/core';
+import { reactions } from '../../lib/reactions';
+import { useReactions } from '../../lib/reactions/useReactions';
 import type { CaptureKind } from '../../lib/types';
 import type { useCaptures } from '../../lib/useCaptures';
 import { NotePage, newNoteStore, type NotePageHandle } from './NotePage';
@@ -26,24 +27,33 @@ export const NewNotePage = forwardRef<NotePageHandle, {
   onClose: () => void;
   /** It was kept (its first words landed): the host says so as it says any capture. */
   onKept?: () => void;
-  /** The page carries the Type tool (NY24): a capture surface's page does; a response's does not (NY15). */
-  typed?: boolean;
+  /** The page carries the Reaction tool (RX13): a capture surface's page does; a response's does not. */
+  reactable?: boolean;
   /** The camera is offered on the page (NP14). */
   camera?: boolean;
 }>(function NewNotePage(props, ref) {
   const { cap, onKept } = props;
   const [stamp] = useState(() => cap.beginNote(props.into));
-  // A type chosen on the page (NY24): held until the note is kept, then written on it; never a reason to keep one.
-  const typed = useRef<{ ids: { id: string; piece_id: string } | null; chosen: NoteType | null }>({ ids: null, chosen: null });
+  // Reactions chosen on the page (RX13): held under the page's key until its moment is kept, then written on it;
+  // never a reason to keep one. A page left without words drops them.
+  const key = `page:${useId()}`;
+  const kept = useRef<string | null>(null);
+  const [held, setHeld] = useState<ReactionSet>(() => reactions.held(key));
+  const [keptId, setKeptId] = useState<string | null>(null);
+  const keptSet = useReactions(keptId);
+  useEffect(() => () => {
+    if (!kept.current) reactions.drop(key);
+  }, [key]);
   const [store] = useState(() =>
     newNoteStore(
       async (body) => {
         const k = await cap.keepNote(stamp, body);
         if (k) {
-          typed.current.ids = k;
-          // The note is kept whether or not its type is: a failed type write must never look like a failed keep,
-          // or the page keeps the note a second time (note-types audit 58).
-          if (typed.current.chosen) await cap.setNote(k, body, typed.current.chosen, true).catch(() => {});
+          kept.current = k.id;
+          // The note is kept whether or not its reactions are: a failed reaction write must never look like a failed
+          // keep, or the page keeps the note a second time (note-types audit 58).
+          await reactions.keep(key, k.id).catch(() => {});
+          setKeptId(k.id);
           onKept?.();
         }
         return k;
@@ -71,11 +81,12 @@ export const NewNotePage = forwardRef<NotePageHandle, {
       head={head}
       store={store}
       self={stamp.into ?? null}
-      type={props.typed ? null : undefined}
-      onType={props.typed ? async (t) => {
-        const w = typed.current;
-        w.chosen = t;
-        if (typeForNewNote({ kept: !!w.ids, chosen: t }) === 'set' && w.ids) await cap.setNote(w.ids, '', t, true).catch(() => {});
+      reaction={props.reactable ? {
+        set: keptId ? keptSet : held,
+        onPick: (id: ReactionId) => {
+          if (kept.current) void reactions.choose(kept.current, id).catch(() => {});
+          else setHeld(reactions.hold(key, id));
+        },
       } : undefined}
       onClose={props.onClose}
       onCamera={

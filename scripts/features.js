@@ -240,9 +240,6 @@ const FEATURES = [
       'src/components/Baker*.ts',
       'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
-      // Note types (NY1-NY17): the model and the mark a note wears.
-      'src/lib/noteType{,Choice}.ts',
-      'src/components/NoteMark.tsx',
       // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
       'src/lib/thumbs/**',
       'src/components/VideoMark.tsx',
@@ -278,7 +275,7 @@ const FEATURES = [
     name: 'reactions',
     about: 'reactions on any moment, one per family (Feeling, Taste, Thought): the sign, the panel, marks, pin bubbles and the lenses (decision 0172)',
     rule: 'captures-and-media',
-    source: ['src/lib/reactions/**', 'src/lib/pins.ts'],
+    source: ['src/lib/reactions/**', 'src/components/reactions/**', 'src/lib/pins.ts'],
     journeys: ['reactions'],
     specs: ['reactions'],
   },
@@ -364,6 +361,9 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // Note types became reactions on any moment (the owner, Nov 14, decision 0172): one per family, their own records,
+  // the head always the kind, Type now Reaction. specs/reactions (RX1-RX36) carries what stands of them.
+  'note-types': Array.from({ length: 27 }, (_, i) => `NY${i + 1}`),
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
   // of Places worth the stop went with them.

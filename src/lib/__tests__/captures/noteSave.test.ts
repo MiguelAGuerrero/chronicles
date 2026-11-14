@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { type Faced, facedAll, facedAt, facedOf, isFacePiece, momentOf } from '../../moment';
-import { createReady } from '../../ready/shell';
 import { createResurface } from '../../resurface/shell';
 import type { Walk } from '../../types';
 import { fakePorts } from '../fakes';
 
-// Saving a note with its type (specs/note-types, NY7, NY8, NY15): text and type go together, as one write.
+// Saving a note's words names its piece (note-types audit 1, 12, 13). Its moment's reactions are their own records
+// (specs/reactions RX28): a note save writes none.
 
 const walk: Walk = { id: 'w1', started_at: 1_000_000, ended_at: 2_000_000, title: null, epilogue: null, open: false, area: null, snapped_build: null };
 const note = (id: string, extra: Partial<Faced> = {}): Faced => facedOf({ id, walk_id: 'w1', t: 1_500_000, lat: null, lon: null, kind: 'text', file_path: null, body: 'first', segment_id: null, ...extra });
@@ -21,43 +21,16 @@ async function seeded(extra: Partial<Faced> = {}) {
 }
 const stored = async (p: Awaited<ReturnType<typeof seeded>>['p']) => (await p.db.getMomentsByIds(['n1']).then(facedAll))[0];
 
-test('NY7: saving an edited note stores its text and its type together, and shows both at once', async () => {
+test('RX28: a note save writes its words and format only, never a reaction', async () => {
   const { p, r, c } = await seeded();
-  await r.saveNote(c, 'second thought', 'idea');
+  await r.saveNote(c, 'second thought');
   const s = await stored(p);
   assert.equal(s.body, 'second thought');
-  assert.equal(s.note_type, 'idea');
-  assert.equal(r.store.get().moments.find((m) => m.id === 'n1')!.capture.note_type, 'idea');
+  assert.equal(s.body_format, 'md');
+  assert.deepEqual(await p.db.listReactions(), []);
 });
 
-test('NY7: a failed save leaves the text and the type as they were', async () => {
-  const { p, r, c } = await seeded({ note_type: 'question' });
-  p.db.failNext('updatePiece');
-  await assert.rejects(r.saveNote(c, 'lost', 'sad'));
-  const s = await stored(p);
-  assert.equal(s.body, 'first');
-  assert.equal(s.note_type, 'question');
-});
-
-test('NY8: saving with the type left alone keeps it, and "No type" (null) clears it', async () => {
-  const { p, r, c } = await seeded({ note_type: 'like' });
-  await r.saveNote(c, 'edited words');
-  assert.equal((await stored(p)).note_type, 'like');
-  await r.saveNote(c, 'edited again', null);
-  assert.equal((await stored(p)).note_type ?? null, null);
-});
-
-test('NY7: the ready screen\'s note save writes the type with the text', async () => {
-  const p = fakePorts({ now: 3_000_000 });
-  await p.db.createWalk(walk);
-  await p.db.addMoment(momentOf(note('n1')));
-  await createReady(p).saveNote('n1', 'new', 'emphasis');
-  const s = (await p.db.getMomentsByIds(['n1']).then(facedAll))[0];
-  assert.equal(s.body, 'new');
-  assert.equal(s.note_type, 'emphasis');
-});
-
-test('note-types audit 1: a note typed in a stacked moment changes its own piece and never the moment\'s face on screen', async () => {
+test('note-types audit 1: a note saved in a stacked moment changes its own piece and never the moment\'s face on screen', async () => {
   const p = fakePorts({ now: 3_000_000 });
   await p.db.createWalk(walk);
   await p.db.addMoment({
@@ -71,18 +44,17 @@ test('note-types audit 1: a note typed in a stacked moment changes its own piece
   await r.load();
   const c = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
   assert.equal(c.kind, 'photo', 'the face is the photo');
-  await r.saveNote(facedAt(c, 'b'), 'second, edited', 'idea');
-  const [stored] = await p.db.getMomentsByIds(['m1']);
-  assert.equal(stored.pieces.find((x) => x.id === 'b')!.note_type, 'idea', 'the note piece is typed');
-  assert.equal(stored.pieces.find((x) => x.id === 'm1')!.note_type ?? null, null, 'the photo is not');
+  await r.saveNote(facedAt(c, 'b'), 'second, edited');
+  const [kept] = await p.db.getMomentsByIds(['m1']);
+  assert.equal(kept.pieces.find((x) => x.id === 'b')!.body, 'second, edited', 'the note piece has its words');
+  assert.equal(kept.pieces.find((x) => x.id === 'm1')!.body, null, 'the photo does not');
   const shown = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
-  assert.equal(shown.note_type ?? null, null, 'the face on screen takes no type');
-  assert.equal(shown.body, null, 'nor the note\'s words');
+  assert.equal(shown.body, null, 'the face on screen takes none of the note\'s words');
   assert.equal(isFacePiece(facedAt(c, 'b')), false);
   assert.equal(isFacePiece(c), true);
 });
 
-test('note-types audit 12, 13: a note typed at a non-face piece reaches its copy in the row\'s pieces, so a reopened stack and a split read it', async () => {
+test('note-types audit 12, 13: a note saved at a non-face piece reaches its copy in the row\'s pieces, so a reopened stack and a split read it', async () => {
   const p = fakePorts({ now: 3_000_000 });
   await p.db.createWalk(walk);
   await p.db.addMoment({
@@ -95,20 +67,15 @@ test('note-types audit 12, 13: a note typed at a non-face piece reaches its copy
   const r = createResurface(p);
   await r.load();
   const c = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
-  await r.saveNote(facedAt(c, 'b'), 'second, edited', 'sad');
+  await r.saveNote(facedAt(c, 'b'), 'second, edited');
   const shown = r.store.get().moments.find((m) => m.id === 'm1')!.capture;
-  const again = facedAt(shown, 'b');
-  assert.equal(again.body, 'second, edited', 'the stack reopened reads the new words');
-  assert.equal(again.note_type, 'sad', 'and the new type');
-  assert.equal(shown.pieces.find((x) => x.id === 'b')!.note_type, 'sad', 'the copy a split would take');
-  assert.equal(shown.note_type ?? null, null, 'the face is still the photo, untouched');
+  assert.equal(facedAt(shown, 'b').body, 'second, edited', 'the stack reopened reads the new words');
+  assert.equal(shown.pieces.find((x) => x.id === 'b')!.body, 'second, edited', 'the copy a split would take');
+  assert.equal(shown.body, null, 'the face is still the photo, untouched');
   // A note that is its moment's face updates its own copy too.
-  const solo = momentOf(note('n9'));
-  await p.db.addMoment(solo);
+  await p.db.addMoment(momentOf(note('n9')));
   await r.load();
   const n = r.store.get().moments.find((m) => m.id === 'n9')!.capture;
-  await r.saveNote(n, 'solo, edited', 'like');
-  const after = r.store.get().moments.find((m) => m.id === 'n9')!.capture;
-  assert.equal(after.pieces[0].note_type, 'like');
-  assert.equal(after.pieces[0].body, 'solo, edited');
+  await r.saveNote(n, 'solo, edited');
+  assert.equal(r.store.get().moments.find((m) => m.id === 'n9')!.capture.pieces[0].body, 'solo, edited');
 });

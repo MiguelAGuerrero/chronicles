@@ -332,9 +332,9 @@ export default function DayReplay() {
         captures={viewing}
         onClose={() => setViewing(null)}
         remind
-        onSaveNote={async (c, body, type, only) => {
+        onSaveNote={async (c, body) => {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
-          const change = notePatch(body, type, only);
+          const change = notePatch(body);
           await db.updatePiece(c.piece_id, change);
           setData((d) => d && withNote(d, c.id, change, c.piece_id));
           captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);

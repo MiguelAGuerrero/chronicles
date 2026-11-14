@@ -5,8 +5,9 @@ import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { deleteNoteNow } from '../../lib/deletion';
 import { KEPT_AS_YOU_WRITE, LINE_LABELS, LINE_PLACEHOLDER, NOT_KEPT } from '../../lib/journal/lines';
 import { noteHead } from '../../lib/notePage/head';
-import { NOTE_TYPES, noteTypeOf, type NoteType } from '../../lib/noteType';
-import { pickType } from '../../lib/noteTypeChoice';
+import { reactions } from '../../lib/reactions';
+import { useReactions } from '../../lib/reactions/useReactions';
+import { ReactionPanel } from '../reactions/ReactionPanel';
 import { PEN_START, hasWords, penStep, type PenEffect, type PenEvent, type PenState } from '../../lib/journal/pen';
 import { captureTarget } from '../../lib/journal/target';
 import type { Faced } from '../../lib/moment';
@@ -49,9 +50,9 @@ const FIELD_MIN = 44;
 const FIELD_MAX = 132;
 
 /** What the page asks of the line: a tap on the empty page gives the field the keyboard (JN32). */
-/** `pickType`: the bar becomes the row of eight for one pick (note types NY19); asked again, it goes back. */
-export type TypeAsk = { piece: string; type: string | null | undefined; onPick: (t: NoteType | null) => void };
-export type OpenLineHandle = { write: () => void; pickType: (ask: TypeAsk) => void };
+/** `react`: the reactions open above the bar for the entry being written (RX6); asked again, they close. */
+export type ReactAsk = { moment: string };
+export type OpenLineHandle = { write: () => void; react: (ask: ReactAsk) => void };
 
 type LineProps = {
   /** Memories is in front and nothing is open over it: leaving, or opening something, saves a note being recorded (JN14). */
@@ -331,14 +332,13 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
 
   // Writing: a reference reads as "@" and its words and goes whole (RF3); what is stored puts its token back.
   const [picking, setPicking] = useState<number | null>(null);
-  // The bar as the row of eight (NY19), for one pick. The next character puts the bar back (NY20).
-  const [typeAsk, setTypeAsk] = useState<TypeAsk | null>(null);
-  // The type of the note in the line, as last asked about or picked: the page it opens into begins with it (NY26).
-  const [lineType, setLineType] = useState<{ piece: string; type: NoteType | null } | null>(null);
-  // They belong to the note being written, on the screen in front: when that entry closes (Done, two minutes, a
-  // capture, the page) or Memories is no longer in front, they go (note-types audit 56).
-  if (typeAsk && (pen.entry?.pieceId !== typeAsk.piece || focused === false)) setTypeAsk(null);
-  const asking = typeAsk && pen.entry?.pieceId === typeAsk.piece && focused !== false ? typeAsk : null;
+  // The reactions above the bar (RX6), for the entry being written; a choice keeps them (RX7), the next character
+  // puts them away. They belong to the entry on the screen in front: when it closes (Done, two minutes, a capture,
+  // the page) or Memories is no longer in front, they go (note-types audit 56).
+  const [typeAsk, setTypeAsk] = useState<ReactAsk | null>(null);
+  if (typeAsk && (pen.entry?.momentId !== typeAsk.moment || focused === false)) setTypeAsk(null);
+  const asking = typeAsk && pen.entry?.momentId === typeAsk.moment && focused !== false ? typeAsk : null;
+  const askingSet = useReactions(asking?.moment);
   const typeOpen = !!asking;
   const { onTypeOpen } = props;
   useEffect(() => {
@@ -367,6 +367,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   // The line opens into a page (JN25): on the entry being written, with its words already there, or a new page from an
   // empty line. The page is the note's own editor (decision 0151); what it writes is that same entry's.
   const [page, setPage] = useState<{ key: number; into: string | null; entry: { momentId: string; pieceId: string; body: string; t: number; placed: boolean } | null } | null>(null);
+  const pageSet = useReactions(page?.entry?.momentId);
   const pageRef = useRef<NotePageHandle>(null);
   const [pageNow] = useState(() => Date.now());
   const openPage = () => {
@@ -524,9 +525,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const { inBar } = props;
   // A tap on the empty page: the field takes the keyboard in the tap itself, so a phone raises it.
   useImperativeHandle(props.handle, () => ({
-    pickType: (ask: TypeAsk) => {
-      setTypeAsk((was) => (was && was.piece === ask.piece ? null : ask));
-      setLineType({ piece: ask.piece, type: noteTypeOf(ask.type) });
+    react: (ask: ReactAsk) => {
+      setTypeAsk((was) => (was && was.moment === ask.moment ? null : ask));
       // The caret stays on the page: the tap on the slot took it from the field.
       input.current?.focus();
     },
@@ -615,32 +615,15 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
         <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height))}>
           {asking ? (
-            // The eight, named, just above the bar (NY19, NY25): two rows of four. The bar below keeps its places.
-            <View style={styles.types} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
-              {NOTE_TYPES.map((t) => {
-                const on = noteTypeOf(asking.type) === t.id;
-                return (
-                  <Pressable
-                    key={t.id}
-                    testID={`type-pick-${t.id}`}
-                    accessibilityRole="radio"
-                    accessibilityLabel={t.name}
-                    accessibilityState={{ checked: on }}
-                    onPress={() => {
-                      const next = pickType(asking.type, t.id);
-                      asking.onPick(next);
-                      setLineType({ piece: asking.piece, type: next });
-                      setTypeAsk(null);
-                      input.current?.focus();
-                    }}
-                    style={[styles.pick, on && styles.pickOn]}
-                  >
-                    <Icon name={t.glyph as IconName} size={20} color={theme.ink} />
-                    <Text style={[styles.pickName, on && styles.pickNameOn]} numberOfLines={1}>{t.name}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            // The reactions, named, just above the bar (RX6, RX7): the bar below keeps its places, and a choice leaves
+            // them open for another family; the caret stays on the page.
+            <ReactionPanel
+              set={askingSet}
+              onPick={(id) => {
+                void reactions.choose(asking.moment, id).catch(() => {});
+                input.current?.focus();
+              }}
+            />
           ) : null}
           <View style={styles.row}>
             {inBar ? (
@@ -713,7 +696,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {inBar ? [body, bar] : [bar, body]}
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
-          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} typed onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
+          <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} reactable onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
         )}
         {page?.entry && (
           <NotePage
@@ -724,14 +707,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             bodyFormat={null}
             head={noteHead({ t: page.entry.t, now: pageNow, time: timeOf(page.entry.t), context: null, placing: false, draft: null, placed: page.entry.placed, onWalk: walking })}
             self={page.entry.momentId}
-            // The page's Type tool, on the note the line was writing (NY26).
-            type={lineType?.piece === page.entry.pieceId ? lineType.type : null}
-            onType={async (t) => {
-              const e = page.entry!;
-              setLineType({ piece: e.pieceId, type: t });
-              await cap.setNote({ id: e.momentId, piece_id: e.pieceId }, '', t, true).catch(() => {});
-              changed.current();
-            }}
+            // The page's Reaction tool, on the moment the line was writing (RX12).
+            reaction={{ set: pageSet, onPick: (id) => void reactions.choose(page.entry!.momentId, id).catch(() => {}) }}
             onClose={closePage}
             onCamera={pageCamera}
             store={{
@@ -810,13 +787,6 @@ const styles = StyleSheet.create({
   done: { minWidth: 44, height: 44, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
-  // The eight above the bar's row: two rows of four, each the glyph over its name (NY19, NY25).
-  types: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', maxWidth: 624, alignSelf: 'center', paddingBottom: 4 },
-  pick: { width: '25%', minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  // The chosen one: a tint, an ink rule under it and a heavier name, never colour alone.
-  pickOn: { backgroundColor: '#ebe7df', borderBottomColor: theme.ink },
-  pickName: { color: theme.ink, fontSize: 12 },
-  pickNameOn: { fontWeight: '700' },
   walkDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, marginLeft: 8 },
   unseen: { opacity: 0 },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },

@@ -1,5 +1,6 @@
-import { markOf } from '../../lib/noteType';
-import { NoteMark } from '../NoteMark';
+import { useReactions } from '../../lib/reactions/useReactions';
+import { ReactionMarks } from '../reactions/ReactionMarks';
+import { ReactionSign } from '../reactions/ReactionSign';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
@@ -10,7 +11,7 @@ import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import type { Capture, Walk } from '../../lib/types';
 import { MomentPicture } from '../chronicle/MomentPicture';
-import { Icon, type IconName } from '../icons';
+import { Icon } from '../icons';
 import { NoteText } from '../threads/NoteText';
 import { theme } from '../ui';
 import { MemoLine } from './MemoLine';
@@ -37,12 +38,12 @@ export function Entry(props: {
   onMap?: () => void;
   onWalk: (walkId: string) => void;
   onMore: () => void;
-  /** The Type slot of the note being written was tapped (note types NY19). */
-  onType?: (piece: Capture) => void;
-  /** A note kept today offers the sign on its row too (NY27): a tap opens the eight. Given only for today's entries. */
+  /** The sign of the entry being written was tapped (RX6): the reactions open above the bar. */
+  onSign?: () => void;
+  /** An entry kept today offers the sign on its row too (RX9): a tap opens the reactions. Given only for today's entries. */
   onReact?: () => void;
-  /** The eight are open for the note being written: the slot shows it. */
-  typeOpen?: boolean;
+  /** The reactions are open for the entry being written: the sign shows it. */
+  signOpen?: boolean;
   onOpenRef: (v: MomentView) => void;
 }) {
   const { moment: m, walk } = props;
@@ -59,13 +60,10 @@ export function Entry(props: {
   });
   const from = fromLine(walk);
   const pieces = c.pieces.filter((p) => p.id !== props.writing);
-  // The note being written has a Type slot in the dateline's corner (note types NY19). Its mark, once chosen, is
-  // drawn where a kept note's is, above its words (NY22), so Done moves nothing.
-  const written = props.onType ? c.pieces.find((p) => p.id === props.writing && p.kind === 'text') : undefined;
-  const mark = written ? markOf(written) : null;
-  // A note kept today (NY27): the note that has a type, else the first, as More's Type marks (audit 57).
-  const keptNote = !written && props.onReact ? pieces.find((p) => p.kind === 'text' && markOf(p)) ?? pieces.find((p) => p.kind === 'text') : undefined;
-  const keptMark = keptNote ? markOf(keptNote) : null;
+  // The entry being written has the sign at its dateline's end (RX6); one kept today, the same sign (RX9). Its
+  // reactions are spelled out under the dateline (RX14), so choosing one moves nothing.
+  const reacted = useReactions(c.id);
+  const writingHere = !!props.onSign && c.pieces.some((p) => p.id === props.writing);
   // A placed dateline wears a small pin, so it reads as the way to the map (ui 3); an unplaced one is plain words.
   const lineText = (
     <View style={styles.lineRow}>
@@ -84,39 +82,16 @@ export function Entry(props: {
         ) : (
           <View style={styles.dateline}>{lineText}</View>
         )}
-        {written ? (
-          <Pressable
-            testID="type-slot"
-            accessibilityRole="button"
-            accessibilityLabel={`Type, ${mark?.name ?? 'No type'}`}
-            aria-expanded={!!props.typeOpen}
-            onPress={() => props.onType?.(written)}
-            style={[styles.type, props.typeOpen && styles.typeOpen]}
-          >
-            {/* A sign, not a word (NY26, decision 0168): a face with a plus while unmarked, the type's glyph once
-                marked. In ink: a muted tag was not found on the owner's phone (0167). */}
-            <Icon name={(mark?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="type-slot-face" />
-            {mark ? null : (
-              <View style={styles.typeAdd} testID="type-slot-add">
-                <Icon name="add" size={11} color={theme.bg} />
-              </View>
-            )}
-          </Pressable>
-        ) : null}
-        {keptNote ? (
-          <Pressable testID="entry-react" accessibilityRole="button" accessibilityLabel={`Type, ${keptMark?.name ?? 'No type'}`} onPress={props.onReact} style={styles.type}>
-            <Icon name={(keptMark?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} />
-            {keptMark ? null : (
-              <View style={styles.typeAdd}>
-                <Icon name="add" size={11} color={theme.bg} />
-              </View>
-            )}
-          </Pressable>
+        {writingHere ? (
+          <ReactionSign testID="reaction-slot" set={reacted} open={!!props.signOpen} onPress={() => props.onSign?.()} />
+        ) : props.onReact ? (
+          <ReactionSign set={reacted} onPress={props.onReact} />
         ) : null}
         <Pressable testID="moment-more" accessibilityRole="button" accessibilityLabel="More about this moment" onPress={props.onMore} style={styles.more}>
           <Icon name="ellipsis-horizontal" size={18} color={theme.muted} />
         </Pressable>
       </View>
+      <ReactionMarks set={reacted} style={styles.reactions} />
       {pieces.length > 0 && (
         <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
           {pieces.map((p) => (
@@ -124,7 +99,6 @@ export function Entry(props: {
           ))}
         </Pressable>
       )}
-      {written && mark ? <View testID="entry-writing-type"><NoteMark capture={written} /></View> : null}
       {props.answering ? <Text style={[styles.app, styles.answering]} testID="moment-answering">{props.answering}</Text> : null}
       {from && walk ? (
         <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} style={styles.from}>
@@ -140,13 +114,10 @@ function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: Mom
     const body = p.body ?? '';
     if (!body.trim()) return null;
     // An entry the page wrote is drawn in its shape, natively (JN26); one it did not stays literal (NP7).
-    // The type the owner chose for the note, in ink above its words (note types, decision 0161; audit 54).
-    const mark = <NoteMark capture={p} />;
-    if (p.body_format === 'md') return <View testID="entry-piece-text">{mark}<Blocks body={body} onOpenRef={onOpenRef} /></View>;
+    if (p.body_format === 'md') return <View testID="entry-piece-text"><Blocks body={body} onOpenRef={onOpenRef} /></View>;
     // A reference is drawn as the moment it names (JN16, RF4); the words around it stay the owner's.
     return (
       <View testID="entry-piece-text">
-        {mark}
         {parseRefs(body).some((x) => 'ref' in x) ? (
           <View testID="entry-words"><NoteText body={body} style={styles.words} onOpen={onOpenRef} /></View>
         ) : (
@@ -244,9 +215,6 @@ const styles = StyleSheet.create({
   plate: { gap: 8 },
   picture: { height: 200, width: '100%' },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  type: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
-  // The plus that makes the face "add": a small ink disc at its shoulder.
-  typeAdd: { position: 'absolute', top: 6, right: 4, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.bg },
-  typeOpen: { backgroundColor: '#ebe7df' },
+  reactions: { paddingBottom: 8 },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
 });
