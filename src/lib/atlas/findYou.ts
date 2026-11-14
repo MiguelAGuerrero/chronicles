@@ -14,10 +14,13 @@ export interface PermissionSeen {
  * map's edge Locate steps aside, so the same crosshair is never offered twice. After a Locate refusal (its notice says
  * where to turn location on) Find me waits until the permission changes from how it was refused: `refused` is the
  * count of changes seen when the refusal came, and a later change that still reads "denied" (the refusal's own) does not
- * count. While the card does not offer Find me, the edge Locate is the way to you.
+ * count. While the card does not offer Find me, the edge Locate is the way to you, unless location is `blocked` (tend
+ * explore audit 8): refused, and the permission reads "denied", so a tap could only be refused again. Then neither shows
+ * and the card says where to turn location on (audit 9). Where a tap may still ask ("prompt", "unknown") the edge stays.
  */
-export function findYou(p: { cardEmpty: boolean; refused: number | null; permission: PermissionSeen }): { findMe: boolean; edgeLocate: boolean } {
+export function findYou(p: { cardEmpty: boolean; refused: number | null; permission: PermissionSeen }): { findMe: boolean; edgeLocate: boolean; blocked: boolean } {
   const waiting = p.refused != null && (p.permission.changes === p.refused || p.permission.state === 'denied');
   const findMe = p.cardEmpty && !waiting;
-  return { findMe, edgeLocate: !findMe };
+  const blocked = p.cardEmpty && p.refused != null && p.permission.state === 'denied';
+  return { findMe, edgeLocate: !findMe && !blocked, blocked };
 }

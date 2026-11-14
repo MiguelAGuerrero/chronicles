@@ -1426,8 +1426,9 @@ async function run(h) {
           // Locate is the one way meanwhile. Once the permission changes (the site allowed), Find me is back, the edge's gone.
           const refused = await ways();
           const notice = await pg4.getByText(T17_WORDS).count();
-          check(refused.findMe === 0 && refused.edge === 1 && notice >= 1,
-            `tend explore 8: Explore at ${w}, after a refusal no Find me under the notice that says where to turn location on; the edge Locate stays (${JSON.stringify({ ...refused, notice })})`);
+          // tend explore audit 8: while the permission reads "denied" the edge Locate could only be refused again, so it goes too.
+          check(refused.findMe === 0 && refused.edge === 0 && notice >= 1,
+            `tend explore 8, tend explore audit 8: Explore at ${w}, after a refusal, location blocked, no Find me and no edge Locate, only the notice that says where to turn location on (${JSON.stringify({ ...refused, notice })})`);
           await c4.grantPermissions(['geolocation']);
           await pg4.waitForTimeout(1500);
           const allowed = await ways();

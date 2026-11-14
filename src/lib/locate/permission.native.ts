@@ -14,7 +14,8 @@ export function watchLocatePermission(onState: (state: LocatePermission) => void
   const read = () => {
     Location.getForegroundPermissionsAsync().then(
       (p) => {
-        const state: LocatePermission = p.status === 'granted' ? 'granted' : p.status === 'denied' ? 'denied' : 'prompt';
+        // A refusal the phone may still ask again about (Android's first "Deny") is a prompt, not a block (tend explore audit 8).
+        const state: LocatePermission = p.status === 'granted' ? 'granted' : p.status === 'denied' && !p.canAskAgain ? 'denied' : 'prompt';
         if (!live || state === last) return;
         last = state;
         onState(state);
