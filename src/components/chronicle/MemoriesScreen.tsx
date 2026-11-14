@@ -51,6 +51,7 @@ import { ThreadMomentMenu } from '../threads/ThreadMomentMenu';
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
 const NO_IDS: string[] = [];
+const selectLoaded = (s: { loaded: boolean }) => s.loaded;
 
 /** A moment kept in this sitting, as the page draws it before (or without) a read of the store (JN9). */
 const viewOf = (c: Faced): MomentView => ({ id: c.id, t: c.t, kind: c.kind, walkId: c.walk_id, words: wordsOf(c), place: null, hasMedia: c.kind === 'text' ? true : !!c.file_path, capture: c });
@@ -328,6 +329,7 @@ export function MemoriesScreen() {
   const menuMoment = menuFor ? inThreadById.get(menuFor) ?? null : null;
   // The moment's reactions: what Reaction in More shows and sets (RX10).
   const menuSet = useReactions(menuMoment?.id);
+  const reactionsLoaded = useStore(reactions.store, selectLoaded);
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   // A reply says what it answers wherever it is listed (audit 1).
   const answerLine = (m: MomentView) => {
@@ -502,7 +504,8 @@ export function MemoriesScreen() {
       onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
       footPad={lineH + 16}
       notice={failedNotice}
-      loaded={state.status !== 'loading'}
+      // The reactions are read with the moments: marks that arrive after the sheet opens would move its entries (fix entry-jitter).
+      loaded={state.status !== 'loading' && reactionsLoaded}
       entry={entry}
       field={line.field}
       onWrite={() => lineRef.current?.write()}
