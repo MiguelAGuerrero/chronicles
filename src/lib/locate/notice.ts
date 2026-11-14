@@ -6,8 +6,10 @@ export interface LocateError {
   message: string;
   /** A phone's Settings hold the permission: the banner offers Open Settings. */
   openSettings?: boolean;
-  /** `info`: a quiet notice (the cream banner, its words in dark amber), for a choice the person made; `error`: a fault. */
+  /** `info`: a quiet notice (the cream banner, its words in dark amber), for no fault of the person's; `error`: a fault. */
   tone: 'info' | 'error';
+  /** Location refused: a choice the person made, which only turning it back on undoes (Explore holds Find me back). */
+  refused?: boolean;
 }
 
 /**
@@ -35,13 +37,18 @@ export function startOffNotice(platform: 'web' | 'native'): LocateError {
   return platform === 'web' ? { message: START_OFF.web, tone: 'info' } : { message: START_OFF.native, openSettings: true, tone: 'info' };
 }
 
+/** Locate found nothing in time, or nothing at all (decision 0172, O21): no fault, and waiting is the way. */
+export const LOCATE_TIMEOUT = 'Couldn’t find your position. Try again in a moment.';
+
 /**
  * The banner for a Locate tap that found nothing (QL11): refused is the quiet notice above, with Open Settings where
- * the platform has it; a timeout or no location at all is one line.
+ * the platform has it; a timeout or no location at all is one line, as quiet (O21), and no refusal.
  */
 export function locateNotice(reason: LocateResult['reason'], platform: 'web' | 'native'): LocateError {
   if (reason === 'denied') {
-    return platform === 'web' ? { message: LOCATION_OFF.web, tone: 'info' } : { message: LOCATION_OFF.native, openSettings: true, tone: 'info' };
+    return platform === 'web'
+      ? { message: LOCATION_OFF.web, tone: 'info', refused: true }
+      : { message: LOCATION_OFF.native, openSettings: true, tone: 'info', refused: true };
   }
-  return { message: 'Couldn’t find your position', tone: 'error' };
+  return { message: LOCATE_TIMEOUT, tone: 'info' };
 }

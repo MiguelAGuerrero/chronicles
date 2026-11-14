@@ -53,6 +53,10 @@ paths:
   moves there, and the map fits 250 m around it; nothing tracks after. A second
   tap while busy does nothing. Denied says what the recorder's start says, with
   Open Settings on a phone; a timeout says "Couldn't find your position".
+- **Since `tend walk-screen 5`** (decision 0172, O21) Locate's timeout, or no location at all, says "Couldn’t find
+  your position. Try again in a moment." in the quiet notice's tone, not red, so the screens' live regions say it. A
+  quiet tone is no longer a refusal: `LocateError.refused` is (`locate/notice.ts`), which Explore reads to hold Find
+  me back; never test the tone for it.
 - **E2E:** `E2E_ONLY=qol` runs the slice's scenario alone (~30 s). The web map
   writes `data-ends`, `data-center` and `data-walker` on its container for it.
   The fit centres the fix in the view above the drawer, so the canvas's own

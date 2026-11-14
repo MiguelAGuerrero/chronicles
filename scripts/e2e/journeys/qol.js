@@ -1546,6 +1546,37 @@ async function run(h) {
       }
     }
 
+    // tend walk-screen 5 (decision 0172, O21): Locate that finds nothing in time says "Couldn’t find your position. Try
+    // again in a moment." as the quiet notice, not the red fault, said by the screen's live region; on Explore it is no
+    // refusal, so Find me stays offered. The browser here never gives a position, so every Locate times out (10 s).
+    const TIMEOUT_WORDS = 'Couldn’t find your position. Try again in a moment.';
+    for (const [screen, url, saidId] of [['Navigate', navUrl, 'ready-said'], ['Explore', exploreUrl, 'atlas-snap-said']]) {
+      for (const [w, hgt] of [[390, 844], [320, 700]]) {
+        const { c: c10, pg: pg10 } = await freshPage(`qol-timeout-${screen}-${w}`);
+        await c10.addInitScript(() => {
+          let n = 0;
+          navigator.geolocation.watchPosition = () => ++n;
+          navigator.geolocation.getCurrentPosition = () => {};
+          navigator.geolocation.clearWatch = () => {};
+        });
+        await pg10.setViewportSize({ width: w, height: hgt });
+        await pg10.goto(url);
+        await pg10.waitForTimeout(3000);
+        const findMe = () => pg10.locator('[data-testid=atlas-locate]').filter({ visible: true }).count();
+        const button = screen === 'Explore' && (await findMe()) ? '[data-testid=atlas-locate]' : 'xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]';
+        await pg10.locator(button).filter({ visible: true }).first().click({ timeout: 10000 }).catch(() => {});
+        await pg10.waitForTimeout(11_500);
+        const seen = await readNotice(pg10, TIMEOUT_WORDS);
+        const said = await saidIn(pg10, saidId);
+        const red = await pg10.getByText(/^Couldn.t find your position$/).count();
+        const offered = screen === 'Explore' ? await findMe() : null;
+        await shot(pg10, `qol-15-${screen.toLowerCase()}-locate-timeout-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && red === 0 && said.length === 1 && said[0].text === TIMEOUT_WORDS && (offered == null || offered === 1),
+          `tend walk-screen 5: ${screen} at ${w}, Locate timed out says "${TIMEOUT_WORDS}" as the quiet notice, every line whole, said by the live region, and on Explore Find me stays offered (${JSON.stringify({ ...seen, said, red, offered })})`);
+        await c10.close();
+      }
+    }
+
     // tend map audit 25 (the T25 review): a loop walk, its end a few metres from its start. The start's marker drew over
     // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Hold, with motion, the
     // walker's dot and the end are both on the map, apart, and pictured, at 390 and at 320.

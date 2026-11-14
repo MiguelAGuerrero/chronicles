@@ -241,7 +241,7 @@ export default function Explore() {
     () =>
       watchLocatePermission((state) => {
         // tend explore audit 10: allowed (or reset) after a refusal, the refusal's quiet notice goes with it.
-        if (refusalLifted(permissionNow.current, state)) setLocError((e) => (e?.tone === 'info' ? null : e));
+        if (refusalLifted(permissionNow.current, state)) setLocError((e) => (e?.refused ? null : e));
         setPermission((p) => (!p ? { state, changes: 0 } : p.state === state ? p : { state, changes: p.changes + 1 }));
       }),
     [],
@@ -280,8 +280,8 @@ export default function Explore() {
     onError: (e) => {
       setLocError(e);
       sayQuiet(e);
-      // A refusal is the quiet notice (`locateNotice`'s only `info`), which says where to turn location on.
-      if (e.tone === 'info') setRefused(permissionNow.current?.changes ?? 0);
+      // A refusal is the quiet notice that says where to turn location on; a timeout is quiet too, and no refusal (O21).
+      if (e.refused) setRefused(permissionNow.current?.changes ?? 0);
     },
   });
   // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
