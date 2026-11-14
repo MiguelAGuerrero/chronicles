@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Smooth neighborhood switches"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the neighborhood's outline kept and derived after the move, unchanged Busy lines never resent, the names once at the settle, the lines held on a town's page, markers kept, a cut read retried; one Explore render per move, costing what the camera alone does; SS1-SS10, decision 0166) | shipped 2026-11-14 | `4e9a496` 2026-11-14 (Pages run 254) | `specs/smooth-switches/spec.md` | no (UI review: 1 finding, fixed) |\n",
+      "target": "sha256:7fb1dc94e8b982b2d318ffdc3a1e12ef2b127a052c23d21ea9c66cd865c7180e"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Smooth neighborhood switches"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the outline kept and derived after the settle, unchanged Busy lines never resent, the names sent once at the settle, lines held on a town's page, markers not rebuilt, a cut read retried; SS1-SS10, after Explore in a dense city) | `claude/trusting-cannon-f5wdhg` | built 2026-11-13, test-first by history (10 of 10): unit tests (2344), typecheck, lint, docs and vision checks; the `switches` journey (at 4x CPU each switch paired with the camera alone's move) and the 16 journeys `check:affected` names pass on the merged build; steward read (S1-S3 accepted); UI review: U1 fixed, then superseded by main's fix carousel-height on the merge; SS9 amended on the owner's call (decision 0166); native unverified; not audited; merged to main and deployed 2026-11-14 (`4e9a496`, Pages run 254; the live bundle carries the slice). Late border fixed on the way (`readerTook`; the dense journey's DC17 now zooms on the selected area). Spec `specs/smooth-switches/spec.md` |\n",
+      "target": "sha256:fb509ea40162ab00d304f9f96ed8d793785b41fb99dc99f8a6da0a52a27e824e"
+    }
+  ]
+}
