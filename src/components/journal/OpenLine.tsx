@@ -734,6 +734,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           <Pressable style={StyleSheet.absoluteFill} onPress={() => { void done(); setComposing(false); }} accessible={false} />
           <View style={styles.sheet} testID="composer-sheet">
             <View style={styles.sheetHead}>
+              {/* Writing on a walk, its recording's mark stays in sight (audit 53): the composer covers the recording bar. */}
+              {walk ? <View style={[styles.walkDot, styles.sheetWalkDot]} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
               <Text style={styles.sheetTitle} accessibilityRole="header">New entry</Text>
               <View style={styles.rowFill} />
               {pen.entry && props.onTypeIn ? (() => {
@@ -885,6 +887,7 @@ const styles = StyleSheet.create({
   rowFill: { flexGrow: 1 },
   sheetType: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sheetTypeAdd: { position: 'absolute', right: 6, top: 6, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  sheetWalkDot: { marginLeft: 0, marginRight: 8 },
   sheetStatus: { flex: 1, color: theme.muted, fontSize: 13, textAlign: 'right' },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, borderBottomWidth: 1, borderBottomColor: theme.line },
   sheetTitle: { color: theme.muted, fontSize: 15, fontWeight: '600' },
