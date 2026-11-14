@@ -135,7 +135,7 @@ Each becomes a `- [ ] **Do:** … **Expect:** …` item in `docs/NATIVE_UNVERIFI
 ## Steward
 
 Nine findings (one breach, seven drifts, one tone), triaged in the spec: seven accepted into RX16, RX20, RX21, RX24,
-RX25, RX30, RX35 and RX36; two (S6, S9) and one silence (the replay's map) put to the owner below the four calls.
+RX25, RX30, RX35 and RX36; two (steward 6, 9) and one silence (the replay's map) put to the owner below the four calls.
 
 ## Size
 

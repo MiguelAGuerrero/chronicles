@@ -48,9 +48,9 @@ moment is drawn that a reaction could join:
 | Respond's page, in `ResponsesSheet` and the thread screens | none until kept (NY15) | none until kept (RX13) |
 | Thread bubbles (`NoteBubble`, `OwnThreadScreen`) | the mark (NY17) | the moment's reactions (RX16) |
 | `chronicle/MomentCard` (the Chronicle's and the owner's thread screens, the new lens) | its spoken name only | glyphs and names after the words (RX16) |
-| The replay's cards and step-through (`ceremony/Cards.tsx`, `StepThrough`, `Grid`, `Pile`) | none | none: the ceremony is the content's, five beats in restraint (steward S3) |
-| A day's timeline row (`HomeSheet`, `timeline-moment`) | none | none in this slice: the row is the day's read, and the moment's viewer shows them (steward S3) |
-| A memory pin's preview (`MemoryPreview`), the reminder card (`ReminderCard`), the moment bar's toast (`MomentBar`) | none | none: a preview and a reminder say where and when; the pin wears the bubbles (steward S3) |
+| The replay's cards and step-through (`ceremony/Cards.tsx`, `StepThrough`, `Grid`, `Pile`) | none | none: the ceremony is the content's, five beats in restraint (steward 3) |
+| A day's timeline row (`HomeSheet`, `timeline-moment`) | none | none in this slice: the row is the day's read, and the moment's viewer shows them (steward 3) |
+| A memory pin's preview (`MemoryPreview`), the reminder card (`ReminderCard`), the moment bar's toast (`MomentBar`) | none | none: a preview and a reminder say where and when; the pin wears the bubbles (steward 3) |
 | Hidden (`chronicle/HiddenScreen`) | none | none: it lists what was set aside, by its words |
 | Pins (`CapturePinView`, web and native, on every map that draws them) | a single note's head (NY10) | the head shows the kind; bubbles (RX17-RX21) |
 | The slip (`Slip`) | none (note-types audit 16) | none: the slip is a moment brought back in its own words, kept quiet |
@@ -94,19 +94,19 @@ Showing them
 
 14. **RX14** A journal entry with reactions shows them under its dateline, before its pieces: each its glyph and its name in words, in the families' order, in ink; an entry with none shows nothing there.
 15. **RX15** The viewer shows the moment's reactions, glyph and name, under its info line, for every kind; a moment with none shows nothing; a note's page no longer has a type mark above it.
-16. **RX16** A thread's note bubble and every `chronicle/MomentCard` (the thread screens, the lens) show the moment's reactions after its words, glyph and name, in ink; their spoken names add each reaction ("Note, happy, idea, Tuesday evening"). A reaction is spoken only where its glyph is drawn: the slip, a memory's preview, the reminder card and the replay speak none (steward S4, as note-types audit 16).
+16. **RX16** A thread's note bubble and every `chronicle/MomentCard` (the thread screens, the lens) show the moment's reactions after its words, glyph and name, in ink; their spoken names add each reaction ("Note, happy, idea, Tuesday evening"). A reaction is spoken only where its glyph is drawn: the slip, a memory's preview, the reminder card and the replay speak none (steward 4, as note-types audit 16).
 17. **RX17** A pin of exactly one moment with reactions wears one bubble per reaction, in a row from the head's bottom-left corner outward, in the families' order: each a solid ink disc with a white glyph and a white edge, the reminder bell's size; a pin with no reactions wears none.
 18. **RX18** The pin's head always shows the moment's kind (a note's glyph, a photo's picture, a memo's, a video's still), whatever its reactions: a reaction never replaces the head (amends NY10).
 19. **RX19** A pin of several moments wears no reaction bubbles and its name lists none.
-20. **RX20** The bubbles never cover the bell or the clock (top corners) or the video mark (bottom right), on a pin and on a faint memory pin, where they are as faint as the pin, unlike the bell, which does something (steward S9; the owner's call); at the map's normal zoom on a 320 px screen, three bubbles stay inside the pin's own touch target or beside it without covering another pin's head.
+20. **RX20** The bubbles never cover the bell or the clock (top corners) or the video mark (bottom right), on a pin and on a faint memory pin, where they are as faint as the pin, unlike the bell, which does something (steward 9; the owner's call); at the map's normal zoom on a 320 px screen, three bubbles stay inside the pin's own touch target or beside it without covering another pin's head.
 21. **RX21** A single moment's pin says its reactions after its kind, in the families' order: "Photo, happy, idea, twelve minutes in. Open"; a change of reaction shows on the pin behind the viewer at once, on the same pin, with focus kept (as RB5). The walk screen, Chronicle's Map and Navigate draw them; the replay and a day's replay, which are ceremonies, do not (steward, silent; the owner's call).
 
 Lenses
 
 22. **RX22** The journal's contents (its top-right button) list **Reactions** between Threads and Hidden, with the line "Moments gathered by how you reacted".
 23. **RX23** Reactions shows one row per reaction that at least one kept moment has, in the set's order, under its family's word: the glyph and the lens name in words ("Ideas"), and no count, number, share or bar; a reaction no moment has is not listed; with none at all, one line: "When you react to a moment, it gathers here."
-24. **RX24** A lens shows every kept moment with that reaction, oldest first, each as a moment in its context (its picture or kind, its words, its date, place and walk), never as glyphs alone; nothing says how many. It is one list: no map, no heading or grouping by place, street, area or period, and no scrubber (steward S7). A moment set aside with Not this one is still in it: a lens is asked for, not brought back (steward S6, the default).
-25. **RX25** A tap on a moment in a lens opens it in the viewer, which steps through the lens's moments in its order with no "i of n"; Back returns to the lens at the same moment; the viewer's info line never says a position (steward S8).
+24. **RX24** A lens shows every kept moment with that reaction, oldest first, each as a moment in its context (its picture or kind, its words, its date, place and walk), never as glyphs alone; nothing says how many. It is one list: no map, no heading or grouping by place, street, area or period, and no scrubber (steward 7). A moment set aside with Not this one is still in it: a lens is asked for, not brought back (steward 6, the default).
+25. **RX25** A tap on a moment in a lens opens it in the viewer, which steps through the lens's moments in its order with no "i of n"; Back returns to the lens at the same moment; the viewer's info line never says a position (steward 8).
 26. **RX26** A moment whose reaction is cleared, or which is deleted, leaves its lens when the lens is next shown; a lens left empty leaves the Reactions list; Undo of a delete brings it back.
 27. **RX27** A lens reads only the owner's reactions: no word in a note, no place, time or walk puts a moment in a lens.
 
@@ -114,26 +114,26 @@ Storage and truth
 
 28. **RX28** Reactions are truth, kept as their own records (moment, family, reaction, when set), never fields of the moment: setting or clearing one never changes the moment's row or any piece; the stores agree (the fake, IndexedDB, SQLite) on set, replace, clear and read.
 29. **RX29** Every note type kept before becomes its moment's reaction on first open (the next `MIGRATIONS` entry; IndexedDB 22); where two notes of one moment hold types of the same family, the earliest note's is kept; nothing is lost from a moment with one typed note, and the old field is never read again.
-30. **RX30** No code of Explore, a place, a route, an area, discovery, landing or walkability reads reactions, and nothing outside the lens code filters, sorts or counts moments by reaction (the guard of note-types audit 15, moved to reactions); nothing chooses, weights or orders moments by reaction: not the slip, the replay, recall, reminders or the suggested threads (steward S2).
+30. **RX30** No code of Explore, a place, a route, an area, discovery, landing or walkability reads reactions, and nothing outside the lens code filters, sorts or counts moments by reaction (the guard of note-types audit 15, moved to reactions); nothing chooses, weights or orders moments by reaction: not the slip, the replay, recall, reminders or the suggested threads (steward 2).
 31. **RX31** Deleting a moment (by its last piece, by a walk, by Clear) deletes its reactions after the Undo window and not before; Undo keeps them; deleting a piece of a moment that stays keeps them; a piece split out to its own moment takes none.
 32. **RX32** The backup bundle and the web store's export keep a moment's reactions with it.
 33. **RX33** Nothing sets a reaction from a moment's words, picture, time or place: a reaction exists only because the owner chose it.
 34. **RX34** The reactions panel, at 320 px wide and at 200% text, shows every reaction with its name, nothing cut, each target 44 px or more both ways; a screen reader hears each as its name and its family ("Idea, Thought, chosen").
 
-35. **RX35** A reaction is shown only on the moment that has it, and moments are gathered only in a lens: no walk, day, week, thread, area or place is shown or said to have a reaction, and none is summed up from them (steward S1).
-36. **RX36** Every reaction glyph, mark and bubble is the one ink colour (white on an ink disc on a pin), asserted by a test; a chosen reaction is shown by weight and a check, never an accent or a tint (steward S5, NY11 carried over).
+35. **RX35** A reaction is shown only on the moment that has it, and moments are gathered only in a lens: no walk, day, week, thread, area or place is shown or said to have a reaction, and none is summed up from them (steward 1).
+36. **RX36** Every reaction glyph, mark and bubble is the one ink colour (white on an ink disc on a pin), asserted by a test; a chosen reaction is shown by weight and a check, never an accent or a tint (steward 5, NY11 carried over).
 
 ## Steward triage (Nov 14)
 
-- **S1** (a walk or day summed up by reactions; breach): accept, RX35.
-- **S2** (resurfacing weighting the bright ones): accept, RX30.
-- **S3** (the replay's own card; surfaces missed): accept; the table names them, and the replay's cards stay bare (RX16).
-- **S4** (the slip speaking reactions it does not draw): accept, RX16.
-- **S5** (one ink colour not carried over): accept, RX36.
-- **S6** (a hidden moment in a lens): the default keeps it (a lens is asked for); put to the owner.
-- **S7** (a lens grouped by place or period): accept, RX24.
-- **S8** (the viewer's "i of n"): accept, RX25; the lens passes `position={false}`.
-- **S9** (solid bubbles on faint pins): put to the owner; the spec assumes faint.
+- **Steward 1** (a walk or day summed up by reactions; breach): accept, RX35.
+- **Steward 2** (resurfacing weighting the bright ones): accept, RX30.
+- **Steward 3** (the replay's own card; surfaces missed): accept; the table names them, and the replay's cards stay bare (RX16).
+- **Steward 4** (the slip speaking reactions it does not draw): accept, RX16.
+- **Steward 5** (one ink colour not carried over): accept, RX36.
+- **Steward 6** (a hidden moment in a lens): the default keeps it (a lens is asked for); put to the owner.
+- **Steward 7** (a lens grouped by place or period): accept, RX24.
+- **Steward 8** (the viewer's "i of n"): accept, RX25; the lens passes `position={false}`.
+- **Steward 9** (solid bubbles on faint pins): put to the owner; the spec assumes faint.
 - Silent: bubbles on the replay's map (the spec assumes none) and resurfacing learning from reactions (never, RX30) are the owner's.
 
 ## Record
