@@ -100,7 +100,12 @@ source.
    (`scripts/perf-walk.js`), dead code, a layer baseline entry that is fixed.
 6. **The identity.** `npm run check:vision -- --list`; score words, numerals
    and accent colour in the area's copy and pictures.
-7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:
+7. **The code's shape.** `/refactor` on each feature of the area (decision 0178):
+   `npm run quality -- --scope <feature>` gives the gate and the queue. Up to 3
+   moves from it, each its own `refactor <feature> N` commit with the baseline
+   tightened in it (never a `tend …` commit, which may not touch a baseline);
+   a behavioural or architectural move is filed as `owner` or `arch`.
+8. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:
    `npm run book:items -- deferred --tag loop --section "<area's section>"`.
 
 Run the subagents in one message. An empty lens is a result: say "nothing

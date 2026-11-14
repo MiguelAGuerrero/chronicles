@@ -266,6 +266,10 @@ test, a check in the feature's journey) or record it in `docs/DEFERRED.md`.
 No e2e when no journey covers the slice's files and it changes no
 screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
+1. Run `/refactor` (decision 0178): `npm run quality -- --scope`, fix what the
+   slice made worse (`npm run check:quality`), up to 3 moves from the queue,
+   one `refactor <feature> N` commit each, then `npm run quality -- --tighten`.
+   Anything architectural or behavioural it finds goes to the owner.
 1. Take the spec out of `IN_PROGRESS` in `scripts/features.js`; `npm run
    check:docs` then holds every criterion to a test (TG20).
 2. Update `docs/STATUS.md`: a row in "Slices" (`npm run records -- slice row add

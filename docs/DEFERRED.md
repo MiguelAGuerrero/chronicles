@@ -32,6 +32,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
 - Walk me back ignores filled stretches (Filling gaps)
+  Gated aligned on Nov 14 (decision 0178): a `/fix`, kept and self-filled stretches only, never an offered or dismissed one; the 0029 rules hold over filled ground.
 - Finding, fix remove-which-place: a moment with two or more unfound places within 60 m is tagged to none, on any walk; the "Which place is this moment about?" chip is gone (the owner, Nov 12), and a moment cannot be tagged to a place afterwards (Explore, E8). `specs/v1-discovery/spec.md` E8 still says "until the reader picks": the owner's doc wins, so it is theirs to edit
 
 ## Streets and snapping
@@ -814,3 +815,14 @@ What the reactions slice left out (`specs/reactions`, decision 0176).
 - [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
 - [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.
 - [loop] **Reactions** (reactions audit 7, 11, 12, 15): a failed reaction write outside the viewer is silent (the journal's sign, More, a new page; as note-types audit 59); `keep` writes a row per family with no transaction, so a failure part-way keeps half a set; held reactions are dropped if a new page unmounts while its first save is in flight; on a video's pin the bubbles clear the play mark but sit mostly off the head (three cannot both touch the head and clear the mark: a design call).
+
+## Code quality
+
+The code-quality slice (CQ1-CQ15) left these for slices of their own, each the owner's call of Nov 14. The gate holds the ground meanwhile: nothing it records may get worse.
+
+- Errors handled by kind, the next slice (decision 0179): a local diagnostics log (new truth: a SQLite migration and an IndexedDB version) shared as text from the settings dialog; failed saves shown with Try again, refusals as state, cache marked for recompute, fallbacks recorded; the 248 swallowed errors and 26 floating promises moved over by R10
+- A palette of semantic tokens (decision 0180): a module beside `lib/motionTokens`, its tokens named for what they mean; the 297 colour literals moved over by R16, with a journey and the UI review
+- [arch] Decomposition slices for `src/app/walk.tsx` (2,054 lines; `WalkScreen` 160 hook calls) and `src/components/map/WalkMap.web.tsx` (1,557 lines), too large for 3 moves a slice (decision 0178)
+- `src/components/map/types.ts` into `src/lib/map/` (R6 with R1), the first queue item for `/refactor` (decision 0178): 11 `src/lib` modules import it, 2 by value
+- A coverage ratchet for core and mutation testing: `npm run test:coverage` exists; mutation testing needs a dependency, which the slice ruled out (decision 0178)
+- Floating promises are not checked by `npm test`: the type checker costs a program (about 5 s), so `check:affected` and CI run them (`check:quality`)

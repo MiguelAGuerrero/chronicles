@@ -17,6 +17,7 @@ npm run test:feature <feature>              # one feature's folder (src/lib/__te
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
 npm run check:docs                          # this file's budget, rule globs, paths the docs name
 npm run check:vision                        # score words, tallies, hosts, data-sending deps, spec verdicts (0094)
+npm run check:quality                       # the code-quality ratchet; npm run quality -- --scope for a slice's queue (0178)
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
@@ -47,7 +48,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 
 Each area's rules are in `.claude/rules/<area>.md` and load by themselves when you read or edit that area's files; `ls .claude/rules/` lists them.
 
-Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree, deployed by default; 0081), `/tend` (loop: ships what conforms, files the rest; 0128).
+Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/refactor` (after green: the queue's moves, 0178), `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree, deployed by default; 0081), `/tend` (loop: ships what conforms, files the rest; 0128).
 
 ## Rules that hold everywhere
 

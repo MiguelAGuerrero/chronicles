@@ -417,10 +417,24 @@ placed before, during or after its move (`mark:moved` to `mark:settled`).
 - In this world only the town's own streets are named (each neighborhood is more than its ring from them), so SS10
   zooms on the town's card.
 
+### The code-quality gate
+
+```bash
+npm run check:quality              # the ratchet, with the type checker: about 10 s
+npm run quality -- --scope         # the gate for a slice's features, then the queue of moves
+npm run quality -- --tighten       # takes improvements into the baseline; refuses anything worse or new
+npm run check:refactor             # refactor commits on the branch changed no existing test
+```
+
+- `scripts/quality.baseline.json` holds today's violations by file and function name; a file
+  over 400 lines may not grow. `npm test` runs the gate without the type checker
+  (`arch/quality.test.ts`), `check:affected` runs it whole after the layers. The limits, the
+  catalog of moves and the traps: `.claude/rules/refactoring.md`; the step: `/refactor`.
+
 ## 5. CI
 
 `.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`,
-`check:docs`, typecheck, `npm test`, lint, the `/chronicles` export and the
+`check:docs`, `check:vision`, `check:quality`, `check:refactor`, typecheck, `npm test`, lint, the `/chronicles` export and the
 deploy. **The e2e is not in CI** (it needs a browser and takes about 15
 minutes): it is the agent's job before merging.
 

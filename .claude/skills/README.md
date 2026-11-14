@@ -12,7 +12,7 @@ stops for the owner, and what it may push. This page is the map; a skill's own f
              ├─ addition / opinion ─► /vision ─► inbox T<n> ─► owner ─► one commit ► main
              ├─ phone-only ─────────────────► inbox T<n> [phone]   (larger additions are filed as G)
              └─ area polished ─► evolve ─► /vision ─► inbox G<n> ─► owner ─► /slice --from=G<n> ► main
-a slice lands ─► its area is rough ─► the next /tend sweeps it
+a slice lands ─► /refactor on its features ─► its area is rough ─► the next /tend sweeps it (and /refactor's queue)
 ```
 
 ## What each skill takes and leaves
@@ -27,6 +27,7 @@ a slice lands ─► its area is rough ─► the next /tend sweeps it
 | `/tend-orchestrator` | the owner only | four answers asked first: deploy, stop rule, authority (0157 at most), skill edits | `/tend` runs through subagents, reviewers spawned at their review points, proxy yeses recorded as the proxy's (0157), an insights file and a list of proxy answers for the owner | at the start; then, batched, every no, reshape or hold, and what 0157 keeps for the owner (arch, phone, VISION, amendments of their calls or shipped criteria, the replay, sharing, notifications, counts, Silent questions) | nothing itself; each run publishes under the grant the owner gave at the start |
 | `/deploy` | the owner only | a green branch | `main` moved, the Pages run checked | a failed precondition; a merge that is not a fast-forward | `main` |
 | `/e2e` | anyone | a journey name | a pass or failure; pictures with `E2E_SHOTS` | never | nothing |
+| `/refactor` | `/slice` step 9; `/tend` sweeps; the owner | a scope (the slice's features, an area's, a feature) | up to 3 `refactor <feature> N` commits, the baseline tightened, behavioural or architectural moves filed | never; it files | nothing on its own grant |
 | `/docs-gc` | anyone, at the end of a slice | the tree | docs brought back in line | never | nothing |
 
 Subagents (`.claude/agents/`): `auditor`, `steward`, `ux-reviewer`. All report-only by configuration (decision 0133): the `ux-reviewer` has no

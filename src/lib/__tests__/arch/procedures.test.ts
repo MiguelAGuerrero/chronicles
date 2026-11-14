@@ -114,7 +114,7 @@ test('TG19 the e2e skill and AGENTS.md say what is true', () => {
   assert.match(read('AGENTS.md'), /\*\*Nothing is a score\*\* in the app/);
 });
 
-test('CQ15 /refactor sits after green and before /docs-gc in /slice, in /tend\'s sweep, and in the skills\' table', { todo: 'test first' }, () => {
+test('CQ15 /refactor sits after green and before /docs-gc in /slice, in /tend\'s sweep, and in the skills\' table', () => {
   const skill = read('.claude/skills/refactor/SKILL.md');
   for (const word of ['npm run quality -- --scope', 'check:quality', '--tighten', 'check:refactor', 'refactor <feature> N: R<k>']) assert.ok(skill.includes(word), `/refactor names ${word}`);
   assert.match(skill, /up to 3/i);
