@@ -23,6 +23,8 @@ const features = require('../features');
 const { analyzeFunctions } = require('./functions');
 const { findClones, duplicatedLines, tokenize } = require('./clones');
 const { buildGraph } = require('./graph');
+const { patterns, testsWithoutAssertions } = require('./patterns');
+const { coChange } = require('./history');
 
 const ROOT = path.join(__dirname, '..', '..');
 const toPosix = (p) => p.split(path.sep).join('/');
@@ -179,7 +181,7 @@ function platformPairs(files, graph, dup) {
 }
 
 /** The facts for the whole tree. */
-function collect(root = ROOT, { minTokens } = {}) {
+function collect(root = ROOT, { minTokens, types = false } = {}) {
   const all = srcFiles(root);
   const prod = all.filter((f) => !isTest(f));
   const { layers: libLayers } = layers.readLayers(root);
@@ -196,10 +198,15 @@ function collect(root = ROOT, { minTokens } = {}) {
   const files = {};
   const fnRecords = [];
   const sources = new Map();
+  const patternsOf = {};
+  const unasserted = [];
   for (const rel of all) {
     const source = fs.readFileSync(path.join(root, rel), 'utf8');
     sources.set(rel, source);
-    if (isTest(rel)) continue;
+    if (isTest(rel)) {
+      if (rel.endsWith('.test.ts')) for (const t of testsWithoutAssertions(require('./functions').parse(rel, source))) unasserted.push({ file: rel, ...t });
+      continue;
+    }
     const layer = layerOf(rel, libRel);
     const { sf, functions } = analyzeFunctions(rel, source, { resolveImport: importResolver(root, rel, libRel) });
     for (const f of functions) fnRecords.push({ file: rel, layer, ...f });
@@ -229,6 +236,7 @@ function collect(root = ROOT, { minTokens } = {}) {
       churn: ch ? ch.added + ch.deleted : 0,
       ...smells(sf, source),
     };
+    patternsOf[rel] = patterns(sf, layer);
   }
 
   // Copy-paste across production files, and across tests on their own.
@@ -293,6 +301,28 @@ function collect(root = ROOT, { minTokens } = {}) {
   const untestedCore = prod.filter((f) => files[f].layer === 'core' && !reached.has(f) && files[f].functions > 0);
   for (const f of prod) files[f].tested = reached.has(f) ? (files[f].testFanIn ? 'direct' : 'transitive') : 'none';
 
+  // Pattern findings, flattened with their file.
+  const flat = (key) => Object.entries(patternsOf).flatMap(([file, p]) => p[key].map((x) => (typeof x === 'object' ? { file, ...x } : { file, line: x })));
+  const patternFindings = {};
+  for (const key of ['quadratic', 'paramMutation', 'localTime', 'silentCatch', 'derivedStateEffects', 'setterClusters', 'wideProps', 'platformBranches', 'freshSelectors', 'contextCalls']) patternFindings[key] = flat(key);
+  for (const [file, p] of Object.entries(patternsOf)) {
+    files[file].hexColors = p.hexColors;
+    files[file].hookDepSuppressions = p.hookDepSuppressions;
+    files[file].silentCatches = p.silentCatch.length;
+  }
+  // Decisions inside shells: a shell function that branches a lot is deciding,
+  // and its decisions want to be a core function the shell calls (the sandwich).
+  const shellDecisions = fnRecords.filter((x) => (x.layer === 'shell' || x.layer === 'adapter') && !x.inClass && x.complexity > 8).map((x) => ({ file: x.file, line: x.line, name: x.name, complexity: x.complexity }));
+  // Modules no production file imports: routes and composition roots aside.
+  const ROOTS = /^src\/app\/|\/index(\.native|\.web)?\.tsx?$|\.d\.ts$/;
+  const orphans = prod.filter((f) => !ROOTS.test(f) && files[f].fanIn === 0 && !graph.usedOutside.has(f)).map((f) => ({ file: f, testOnly: files[f].testFanIn > 0 }));
+  // Change coupling from git (features that move together without an import).
+  const linked = (a, b) => graph.valueEdges.get(a)?.has(b) || graph.valueEdges.get(b)?.has(a) || graph.typeEdges.get(a)?.has(b) || graph.typeEdges.get(b)?.has(a);
+  const coupling = coChange(root, { exists: (f) => Object.prototype.hasOwnProperty.call(files, f), featuresOf: featureNames, linked: (a, b) => !!linked(a, b) });
+  let floating = null;
+  if (types) floating = require('./types').floatingPromises(root, (rel) => Object.prototype.hasOwnProperty.call(files, rel));
+  if (floating) for (const [f, hits] of Object.entries(floating)) files[f].floatingPromises = hits.length;
+
   // Per feature: lines by layer, and pure logic stranded outside core.
   const perFeature = {};
   for (const [rel, fi] of Object.entries(files)) {
@@ -325,6 +355,12 @@ function collect(root = ROOT, { minTokens } = {}) {
     shellsOnSingletons,
     untestedCore,
     perFeature,
+    patterns: patternFindings,
+    shellDecisions,
+    orphans,
+    coupling,
+    floating,
+    testsWithoutAssertions: unasserted,
     packages: Object.fromEntries([...graph.packages].map(([k, v]) => [k, [...v].sort()])),
   };
 }
@@ -379,7 +415,38 @@ function summary(facts, { only = null, n = 15 } = {}) {
   table(`Helpers defined in more than one file (${helpers.length})`, helpers.slice(0, n), [
     ['name', (h) => h.name], ['files', (h) => h.defs.map((d) => `${d.file}:${d.line}`).join('<br>')],
   ]);
+  const P = facts.patterns;
+  const inP = (k) => P[k].filter((x) => inScope(x.file));
+  const list = (title, rows, fmt) => {
+    L.push(`## ${title} (${rows.length})`, '');
+    for (const r of rows.slice(0, n)) L.push(`- ${fmt(r)}`);
+    if (rows.length > n) L.push(`- … ${rows.length - n} more`);
+    L.push('');
+  };
+  list('Linear scans inside loops, in core (O(n·m) candidates)', inP('quadratic'), (x) => `${x.file}:${x.line} ${x.fn}: .${x.call}()`);
+  list('Exported core functions that mutate a parameter', inP('paramMutation').filter((x) => x.exported), (x) => `${x.file}:${x.line} ${x.fn} writes ${x.param}`);
+  const lt = [...new Set(inP('localTime').map((x) => x.file))];
+  list('Core files reading local time (hidden input)', lt, (x) => `${x}: ${inP('localTime').filter((y) => y.file === x).length} reads`);
+  const sc = F.filter((x) => x.silentCatches).sort((a, b) => b.silentCatches - a.silentCatches);
+  list(`Swallowed errors: ${total('silentCatches')} in`, sc, (x) => `${x.file}: ${x.silentCatches}`);
+  if (facts.floating) {
+    const fl = F.filter((x) => x.floatingPromises).sort((a, b) => b.floatingPromises - a.floatingPromises);
+    list(`Floating promises: ${total('floatingPromises')} in`, fl, (x) => `${x.file}: ${x.floatingPromises}`);
+  }
+  list('Effects that only set state (derive it in render)', inP('derivedStateEffects'), (x) => `${x.file}:${x.line} ${x.component} sets ${x.sets.join(', ')}`);
+  list('State setters always called together (reducer candidates)', inP('setterClusters'), (x) => `${x.file}:${x.line} ${x.component}: ${x.setters.join(', ')}`);
+  list('Components with more than 10 props', inP('wideProps'), (x) => `${x.file}:${x.line} ${x.component}: ${x.props}`);
+  list('Store selectors returning a fresh object', inP('freshSelectors'), (x) => `${x.file}:${x.line}`);
+  list('Calls missing their context arguments', inP('contextCalls'), (x) => `${x.file}:${x.line} ${x.call} without ${x.missing.join(', ')}`);
+  const pb = F.filter((x) => P.platformBranches.some((y) => y.file === x.file)).map((x) => ({ file: x.file, n: P.platformBranches.filter((y) => y.file === x.file).length })).sort((a, b) => b.n - a.n);
+  list(`Platform.OS branches in shared files: ${pb.reduce((a, x) => a + x.n, 0)} in`, pb, (x) => `${x.file}: ${x.n}`);
+  list('Shell and adapter functions that decide (over 8 branches)', facts.shellDecisions.filter((x) => inScope(x.file)).sort((a, b) => b.complexity - a.complexity), (x) => `${x.file}:${x.line} ${x.name}: ${x.complexity}`);
+  L.push(`Suppressed hook dependencies: ${total('hookDepSuppressions')}. Hard-coded colours: ${total('hexColors')} in ${F.filter((x) => x.hexColors).length} files.`, '');
   if (!only) {
+    list('Modules no production file imports', facts.orphans, (x) => `${x.file}${x.testOnly ? ' (tests only)' : ''}`);
+    list('Files in different features that change together, with no import between them', facts.coupling.pairs, (x) => `${x.a} ↔ ${x.b}: ${x.commits} commits, ${Math.round(x.confidence * 100)}%`);
+    L.push(`Features touched per commit: median ${facts.coupling.featuresPerCommit.p50}, p90 ${facts.coupling.featuresPerCommit.p90}.`, '');
+    list('Tests with no assertion', facts.testsWithoutAssertions, (x) => `${x.file}:${x.line} ${x.name}`);
     L.push(`## Import cycles (${facts.cycles.length})`, '');
     for (const c of facts.cycles.slice(0, n)) L.push(`- ${c.length} files: ${c.slice(0, 6).join(', ')}${c.length > 6 ? ', …' : ''}`);
     L.push('');
@@ -399,7 +466,7 @@ if (require.main === module) {
     const i = args.indexOf(name);
     return i >= 0 ? args[i + 1] : null;
   };
-  const facts = collect(ROOT);
+  const facts = collect(ROOT, { types: args.includes('--types') });
   const json = opt('--json');
   if (json) fs.writeFileSync(json, JSON.stringify(facts, null, 1));
   const only = opt('--files') ? new Set(opt('--files').split(',').map((s) => s.trim()).filter(Boolean)) : null;

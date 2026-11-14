@@ -75,6 +75,10 @@ function readModule(file, source) {
       const callee = node.expression;
       if (callee.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(callee) && callee.text === 'require')) imports.push({ spec: node.arguments[0].text, names: '*', typeOnly: false, dynamic: true, line: lineOf(node) });
     }
+    // new Worker(new URL('./x', import.meta.url)): the bundler loads ./x as a module of its own.
+    if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'URL' && node.arguments && node.arguments.length === 2 && ts.isStringLiteralLike(node.arguments[0]) && node.arguments[0].text.startsWith('.') && node.arguments[1].getText(sf) === 'import.meta.url') {
+      imports.push({ spec: node.arguments[0].text, names: '*', typeOnly: false, dynamic: true, line: lineOf(node) });
+    }
     ts.forEachChild(node, calls);
   };
   calls(sf);
@@ -154,6 +158,7 @@ function buildGraph(root, files, { extraImporters = [], isTest = () => false, fe
   const used = new Map(files.map((f) => [f, { names: new Set(), star: false, byTest: new Set(), byProd: new Set() }]));
   const packages = new Map();
   const crossFeature = [];
+  const usedOutside = new Set();
 
   for (const [rel, mod] of mods) {
     const abs = path.join(root, rel);
@@ -176,6 +181,7 @@ function buildGraph(root, files, { extraImporters = [], isTest = () => false, fe
           (isTest(rel) ? u.byTest : u.byProd).add(n);
         }
         if (!inSet.has(rel)) {
+          usedOutside.add(t);
           // index.js, scripts: real importers, never tests.
           if (imp.names !== '*') for (const n of imp.names) u.byProd.add(n);
           continue;
@@ -237,6 +243,7 @@ function buildGraph(root, files, { extraImporters = [], isTest = () => false, fe
     testOnlyExports,
     packages,
     crossFeature,
+    usedOutside,
   };
 }
 
