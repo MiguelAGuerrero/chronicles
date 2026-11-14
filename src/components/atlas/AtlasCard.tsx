@@ -363,18 +363,18 @@ export function AtlasCard(props: {
         </View>
 
         {/* The card's main step stays in sight (atlas round 3): never at the end of a scroll. */}
-        <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]}>
+        <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]} testID="atlas-footer">
           {props.here ? (
             // A status, not a link (tend explore 10, decision 0172): in ink, the page's heading staying the town.
             <Text style={[styles.hereLine, styles.you]}>You’re in {area.name}</Text>
           ) : asking ? (
             // DW2: Walk now starts as Walk to always did; When I get there keeps the place for Navigate's Start (DW3).
             <>
-              <View style={styles.askHead}>
-                <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>
-                <Pressable testID="atlas-walk-cancel" accessibilityRole="button" accessibilityLabel="Not now" onPress={() => setAsking(null)} style={styles.askClose}>
-                  <Icon name="close" size={22} color={theme.ink} />
-                </Pressable>
+              {/* tend explore 11 (decision 0172, O2): the question's way out is a quiet "Not now" in words, not a second close
+                  button; it names what it asks about only when that is not the card's own area, which the header names. */}
+              <View style={[styles.askHead, asking.label === area.name && styles.askHeadBare]}>
+                {asking.label === area.name ? null : <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>}
+                <Button testID="atlas-walk-cancel" variant="ghost" label="Not now" onPress={() => setAsking(null)} style={styles.askClose} />
               </View>
               <View style={styles.askRow}>
                 <Button testID="atlas-walk-now" label="Walk now" busy={props.starting} busyLabel="Starting…" style={styles.askBtn}
@@ -528,7 +528,8 @@ const styles = StyleSheet.create({
   via: { fontSize: 13, color: theme.muted, textAlign: 'center' },
   askHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   askTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
-  askClose: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  askHeadBare: { justifyContent: 'flex-end' },
+  askClose: { minWidth: 44, minHeight: 44, paddingHorizontal: 12 },
   askRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   askBtn: { flexGrow: 1, flexBasis: 140 },
   hereLine: { color: COLORS.route, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },

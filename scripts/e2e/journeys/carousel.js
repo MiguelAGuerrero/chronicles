@@ -500,9 +500,10 @@ async function wholeTowns(h) {
   }
 }
 
-// The area card's footer at 390 and 320 (decision 0172): where you are, it is a status line in ink (tend explore 10).
+// The area card's footer at 390 and 320 (decision 0172): where you are, it is a status line in ink (tend explore 10); a far
+// town's question has a quiet "Not now" and no name line (tend explore 11).
 async function cardFooter(h) {
-  const { exploreUrl, check, freshPage, shot, areaTile } = h;
+  const { exploreUrl, check, freshPage, shot, areaTile, snapWorld } = h;
   for (const [w, hgt] of [[390, 844], [320, 700]]) {
     const { c, pg } = await freshPage(`carousel-footer-${w}`);
     try {
@@ -524,6 +525,48 @@ async function cardFooter(h) {
       await shot(pg, `carousel-here-card-${w}`);
     } finally {
       await c.close();
+    }
+    // tend explore 11 (O2): a far town's question says no name of its own (the card's header names the town), and its
+    // way out is a quiet "Not now" in words, not a second close button.
+    snapWorld.serve = true;
+    const { c: c2, pg: pg2 } = await freshPage(`carousel-far-${w}`);
+    try {
+      await pg2.setViewportSize({ width: w, height: hgt });
+      await pg2.goto(exploreUrl);
+      const cranston = pg2.locator('[data-testid=atlas-tile][data-name="Cranston"]');
+      await pg2.waitForSelector('[data-testid=atlas-tile][data-name="Cranston"]', { timeout: 60000 }).catch(() => {});
+      await cranston.first().click().catch(() => {});
+      await pg2.waitForTimeout(800);
+      if (!(await pg2.locator('[data-testid=atlas-card]').count()) && (await cranston.count())) await cranston.first().click().catch(() => {});
+      await pg2.waitForTimeout(800);
+      if (!(await pg2.locator('[data-testid=atlas-card]').count())) await pg2.click('[data-testid=atlas-town-head]', { timeout: 30000 }).catch(() => {});
+      await pg2.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
+      await pg2.waitForTimeout(700);
+      await pg2.click('[data-testid=atlas-walk]').catch(() => {});
+      await pg2.waitForTimeout(900);
+      const asked = await pg2.evaluate(() => {
+        const footer = document.querySelector('[data-testid=atlas-footer]');
+        const cancel = document.querySelector('[data-testid=atlas-walk-cancel]');
+        const r = cancel?.getBoundingClientRect();
+        return {
+          footer: footer?.innerText.replace(/\s+/g, ' ').trim() ?? null,
+          cancel: cancel?.innerText.trim() ?? null,
+          spoken: cancel?.getAttribute('aria-label') ?? null,
+          size: r ? [Math.round(r.width), Math.round(r.height)] : null,
+          now: !!document.querySelector('[data-testid=atlas-walk-now]'),
+        };
+      });
+      check(asked.now && asked.cancel === 'Not now' && asked.spoken === 'Not now' && asked.footer != null && !/Cranston/.test(asked.footer)
+        && asked.size && asked.size[0] >= 44 && asked.size[1] >= 44,
+        `tend explore 11: at ${w}, a far town's question has no name line and a quiet "Not now" in words, a 44 px target (${JSON.stringify(asked)})`);
+      await shot(pg2, `carousel-far-question-${w}`);
+      await pg2.click('[data-testid=atlas-walk-cancel]').catch(() => {});
+      await pg2.waitForTimeout(500);
+      check((await pg2.locator('[data-testid=atlas-walk]').count()) === 1 && (await pg2.locator('[data-testid=atlas-walk-now]').count()) === 0,
+        `tend explore 11: at ${w}, Not now closes the question and leaves the card`);
+    } finally {
+      await c2.close();
+      snapWorld.serve = false;
     }
   }
 }
