@@ -437,17 +437,17 @@ async function run(h) {
   await pg.evaluate(() => document.activeElement?.blur?.());
   await done();
   await pg.waitForTimeout(900);
-  // chronicle-journal audit 60 (with JN41): back from Threads the page is at its foot, and the toolbar holds its pen as ever.
+  // chronicle-journal audit 60 (with JN47): back from Threads the page is at its foot, and the toolbar holds its field as ever.
   await pg.evaluate(() => { document.querySelector('[data-testid=journal-page]').scrollTop = 0; });
   await pg.waitForTimeout(700);
-  const pen60 = await pg.locator('[data-testid=bar-write]').count();
+  const pen60 = await pg.locator('[data-testid=bar-compose]').count();
   await h.toThreads(pg);
   await pg.waitForTimeout(600);
   await h.toJournal(pg);
   await pg.waitForTimeout(1200);
-  const back60 = await pg.locator('[data-testid=bar-write]').count();
-  const foot60 = await pg.evaluate(() => { const r = document.querySelector('[data-testid=journal-page] [data-testid=line-input]')?.getBoundingClientRect(); return !!r && r.top > 0 && r.bottom < window.innerHeight; });
-  check(pen60 === 1 && back60 === 1 && foot60, `chronicle-journal audit 60 (with JN41): back from Threads the page is at its foot and the toolbar keeps its pen (${pen60} -> ${back60}, ${foot60})`);
+  const back60 = await pg.locator('[data-testid=bar-compose]').count();
+  const foot60 = await pg.evaluate(() => { const r = document.querySelector('[data-testid=journal-page] [data-testid=empty-page]')?.getBoundingClientRect(); return !!r && r.top > 0 && r.top < window.innerHeight; });
+  check(pen60 === 1 && back60 === 1 && foot60, `chronicle-journal audit 60 (with JN47): back from Threads the page is at its foot and the toolbar keeps its field (${pen60} -> ${back60}, ${foot60})`);
 
   // JN3, JN4: no card around an entry; the owner's words in a serif, the app's lines in its sans.
   const look = await pg.evaluate((sel) => {
@@ -741,17 +741,14 @@ async function run(h) {
   const old27 = await pg.evaluate(() => { const c = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')].filter((x) => /A quiet note from a walk/.test(x.innerText)); return { olds: c.length, withSign: c.filter((x) => x.querySelector('[data-testid=entry-react]')).length }; });
   check(old27.olds > 0 && old27.withSign === 0, `NY27: an entry of an earlier day offers no sign on its row (${JSON.stringify(old27)})`);
   check(marks54 >= 1, `chronicle-journal audit 54: a note's type shows on its entry in the journal (${marks54} marks)`);
-  // JN9, JN11, audit 50: scrolled back, the empty page is out of view and the bar holds the pen: one tap brings
-  // today's foot into view and the caret onto the page, with no scroll first.
-  const pen50 = await box(pg, '[data-testid=bar-write]');
-  check(!!pen50 && pen50.w >= 44 && pen50.h >= 44 && pen50.y < 844, `chronicle-journal audit 50: with the page pulled down the bar holds a pen (${JSON.stringify(pen50)})`);
-  await pg.click('[data-testid=bar-write]', { timeout: 3000 }).catch(() => {});
+  // JN9, audit 50 (with JN47): scrolled back, the toolbar's field opens the composer in one tap, with no scroll first.
+  const field50 = await box(pg, '[data-testid=bar-compose]');
+  await pg.click('[data-testid=bar-compose]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(1000);
+  const open50 = { composer: (await pg.locator('[data-testid=composer]').count()) === 1, focus: await pg.evaluate(() => document.activeElement?.getAttribute('data-testid')) };
+  check(!!field50 && field50.h >= 44 && field50.y < 844 && open50.composer && open50.focus === 'line-input', `chronicle-journal audit 50 (with JN47): pulled back, the toolbar's field opens the composer with the caret in it (${JSON.stringify({ field50, open50 })})`);
+  await done();
   await pg.waitForTimeout(900);
-  const backAtFoot = await pg.evaluate(() => { const r = document.querySelector('[data-testid=line-input]')?.getBoundingClientRect(); return !!r && r.top > 0 && r.bottom <= window.innerHeight; });
-  check(backAtFoot && (await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'))) === 'line-input', 'JN11: the pen brings today\'s page to the foot, with the caret in it');
-  await pg.evaluate(() => document.activeElement?.blur?.());
-  await pg.waitForTimeout(900);
-  check((await pg.locator('[data-testid=bar-write]').count()) === 1, 'chronicle-journal audit 50 (with JN41): with the empty page in view the toolbar still holds the pen');
 
   // JN41-JN46 (decision 0176): the capture is a toolbar fixed at the foot: a grey "What's on your mind?" field, the
   // pen, the camera and the mic; the words are written on the page.
