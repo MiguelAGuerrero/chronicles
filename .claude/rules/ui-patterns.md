@@ -46,8 +46,8 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
   prefers symbols); icon-only buttons carry a spoken name (X4).
 - **A moment's responses sheet** (decision 0131) departs from matrix 11 and 24 on the owner's call: a full-height sheet whose entries open a moment on the viewer's stack, Back returning to the sheet, as iMessage's reply view.
 - **A bottom toolbar and the tab bar never show together** (T8): a toolbar belongs to a screen that covers the tabs.
-  One exception, the owner's (decision 0176): the journal's capture toolbar ("What’s on your mind?", the pen, the camera,
-  the mic), fixed above the tab bar as Day One's and Facebook's composers are.
+  One exception, the owner's (decision 0176): the journal's capture toolbar ("What’s on your mind?", the camera, the
+  mic; the pen went with 0177), fixed above the tab bar as Day One's and Facebook's composers are.
 - **Targets 44 pt on iOS, 48 dp on Android** (X0); WCAG 2.5.8's minimum is 24 px, so the platform sizes govern.
   Controls used while walking are bigger than the minimum (X0d).
 - **Text over a picture needs its own solid ground** (V4, X1): 3:1 for controls and 4.5:1 for text.

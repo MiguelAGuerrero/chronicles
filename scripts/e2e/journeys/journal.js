@@ -854,7 +854,7 @@ async function run(h) {
   const open47 = await sheetState();
   await shot(pg, 'journal-47-composer');
   const hint12 = await pg.locator('[data-testid=composer] [data-testid=line-input]').getAttribute('placeholder').catch(() => null);
-  check.todo(hint12 === 'What’s on your mind?', `chronicle-journal ui 12: the empty composer's field says where to write, muted (${hint12})`);
+  check(hint12 === 'What’s on your mind?', `chronicle-journal ui 12: the empty composer's field says where to write, muted (${hint12})`);
   check(open47.open && !!open47.sheet && open47.sheet.h >= open47.vh * 0.75 && open47.title === 'New entry' && !!open47.done && open47.focused && !!open47.photo && !!open47.voice && !!open47.page,
     `JN47: "What’s on your mind?" opens the composer, filling the room, with "New entry", Done, the caret in its field, the camera, the mic and Open as a page (${JSON.stringify(open47)})`);
   // JN48: kept as typed; Done closes; the entry is at the end of today.
@@ -1194,7 +1194,7 @@ async function run(h) {
   await pg.waitForTimeout(700);
   const rec53 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=line-recording]'); return e ? e.getAttribute('aria-label') : null; });
   const head13 = await pg.evaluate(() => document.querySelector('[data-testid=composer] [role=heading]')?.textContent?.trim() ?? null);
-  check.todo(head13 === 'New entry, on a walk', `chronicle-journal ui 13: on a walk the composer says so in words beside its mark (${head13})`);
+  check(head13 === 'New entry, on a walk', `chronicle-journal ui 13: on a walk the composer says so in words beside its mark (${head13})`);
   check(rec53 === 'Walk recording', `chronicle-journal audit 53 (with JN47): writing on a walk, the composer keeps the recording's mark (${rec53})`);
   await shot(pg, 'journal-21-writing-on-a-walk');
   await done();

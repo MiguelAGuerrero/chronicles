@@ -572,8 +572,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         <TextInput
           ref={input}
           testID="line-input"
-          // On the page the toolbar says it (JN43, decision 0176); in a thread the field is the toolbar's own.
-          placeholder={inBar ? LINE_PLACEHOLDER : undefined}
+          // The field is the composer's or, where no page shows, the bar's: either way it says where to write (ui 12).
+          placeholder={LINE_PLACEHOLDER}
           placeholderTextColor={theme.muted}
           multiline
           value={text}
@@ -736,7 +736,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             <View style={styles.sheetHead}>
               {/* Writing on a walk, its recording's mark stays in sight (audit 53): the composer covers the recording bar. */}
               {walk ? <View style={[styles.walkDot, styles.sheetWalkDot]} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
-              <Text style={styles.sheetTitle} accessibilityRole="header">New entry</Text>
+              <Text style={styles.sheetTitle} accessibilityRole="header">{walk ? 'New entry, on a walk' : 'New entry'}</Text>
               <View style={styles.rowFill} />
               {pen.entry && props.onTypeIn ? (() => {
                 const e = pen.entry;
