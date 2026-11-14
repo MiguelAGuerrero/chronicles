@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "the first queue item for"
+      ],
+      "body": "- `src/components/map/types.ts` into a new map folder of `src/lib` (R6 with R1), the first queue item for `/refactor` (decision 0178): 11 `src/lib` modules import it, 2 by value\n",
+      "target": "sha256:8a0fc3f23a8997f699c46353e07087599e88aaf8ee5abcda00d08cda3f3e3cab"
+    }
+  ]
+}

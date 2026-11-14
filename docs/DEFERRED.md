@@ -823,6 +823,6 @@ The code-quality slice (CQ1-CQ15) left these for slices of their own, each the o
 - Errors handled by kind, the next slice (decision 0179): a local diagnostics log (new truth: a SQLite migration and an IndexedDB version) shared as text from the settings dialog; failed saves shown with Try again, refusals as state, cache marked for recompute, fallbacks recorded; the 248 swallowed errors and 26 floating promises moved over by R10
 - A palette of semantic tokens (decision 0180): a module beside `lib/motionTokens`, its tokens named for what they mean; the 297 colour literals moved over by R16, with a journey and the UI review
 - [arch] Decomposition slices for `src/app/walk.tsx` (2,054 lines; `WalkScreen` 160 hook calls) and `src/components/map/WalkMap.web.tsx` (1,557 lines), too large for 3 moves a slice (decision 0178)
-- `src/components/map/types.ts` into `src/lib/map/` (R6 with R1), the first queue item for `/refactor` (decision 0178): 11 `src/lib` modules import it, 2 by value
+- `src/components/map/types.ts` into a new map folder of `src/lib` (R6 with R1), the first queue item for `/refactor` (decision 0178): 11 `src/lib` modules import it, 2 by value
 - A coverage ratchet for core and mutation testing: `npm run test:coverage` exists; mutation testing needs a dependency, which the slice ruled out (decision 0178)
 - Floating promises are not checked by `npm test`: the type checker costs a program (about 5 s), so `check:affected` and CI run them (`check:quality`)
