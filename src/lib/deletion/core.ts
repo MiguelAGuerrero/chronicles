@@ -91,8 +91,11 @@ export function sizeText(bytes: number): string {
   return `Frees about ${shown} ${unit}.`;
 }
 
-/** A count in words, as the reminders and pins say one (tend deletion T30, decision 0170): "three moments". */
-const count = (n: number, one: string, many: string) => `${numberWord(n)} ${n === 1 ? one : many}`;
+/**
+ * A count in words, as the reminders and pins say one (tend deletion T30, decision 0170): "three moments"; past
+ * fifty-nine "its moments", never "many" (the owner, Nov 14, "its moments"; tend deletion audit 1).
+ */
+const count = (n: number, one: string, many: string) => (numberWord(n) === 'many' ? `its ${many}` : `${numberWord(n)} ${n === 1 ? one : many}`);
 
 function joinAnd(parts: string[]): string {
   if (parts.length <= 1) return parts.join('');
@@ -119,7 +122,7 @@ export function walkDeleteText(o: { moments: number; streets: number; bytes: num
 /** D4: what removing a walk's media takes, and what stays: its kinds in the pins' words, "Two photos and a voice memo go." (tend deletion T30). */
 export function mediaRemoveText(o: { photos: number; videos: number; voices: number; bytes: number }): ConfirmText {
   const n = o.photos + o.videos + o.voices;
-  const body = `${kindsClause([['photo', o.photos], ['video', o.videos], ['voice', o.voices]])} ${n === 1 ? 'goes' : 'go'}. The walk, its notes and its streets stay.`;
+  const body = `${kindsClause([['photo', o.photos], ['video', o.videos], ['voice', o.voices]], { its: true })} ${n === 1 ? 'goes' : 'go'}. The walk, its notes and its streets stay.`;
   return { title: 'Remove photos, videos and memos?', body: withSize(body, o.bytes), confirm: 'Remove' };
 }
 
