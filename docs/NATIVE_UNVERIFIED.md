@@ -623,3 +623,4 @@ What the note types slice wrote and has not run on a phone (`specs/note-types`, 
 
 - [ ] **Do:** with the Busy layer on, open a town's page and swipe through its neighborhoods to the end of the row and back. **Expect:** the magenta lines stay put, none redrawn or swapped (SS3: native's strips and pockets made again only when `graded` or `pockets` change; SS4: the areas within the town's reach held); each neighborhood's outline appears once the map stops, and at once on the way back (SS1, SS2: `useHoodGround`'s kept outlines, waiting on `onRegionDidChange`); the map never resizes as the selected card changes (the row keeps its tallest height).
   The slice's decision is 0165: 0164 went to the owner's answers to T28 and T29 on main first, and a section heading can't be renamed by an operation.
+  Now 0166: 0165 went to the owner's answers to T19-T22 on main first, too.

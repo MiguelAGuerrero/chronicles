@@ -792,4 +792,5 @@ What the note types slice left out (`specs/note-types`, decision 0161).
 
 - **Native's busy names at a switch's settle** (SS5 is the web's): on a phone the names still follow the selection at the move's start. MapLibre RN has no `moveend` the names can wait on in the same way; do it with `onRegionDidChange` if the phone shows the names flicker.
   The slice's decision is 0165: 0164 went to the owner's answers to T28 and T29 on main first, and a section heading can't be renamed by an operation.
+  Now 0166: 0165 went to the owner's answers to T19-T22 on main first, too.
 - **The card, ring and name held until the camera settles** (the owner, Nov 13: not now, re-measure first). After the slice a switch's one Explore render, the selection's, is what it adds to the camera alone's cost (SS9); holding it would put the card about 0.4 s behind the camera.
