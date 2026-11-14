@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "`exploreRead` hands the read already running to any caller",
+        "--reason",
+        "built in tend explore 15: a read asked for another centre waits for the running one, never told it was its own"
+      ],
+      "target": "sha256:9e77c644ad29c4781fd9ab6af75bf7ef4d76f9983243083a04c470fa9d5264dd"
+    }
+  ]
+}
