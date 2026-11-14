@@ -97,6 +97,7 @@
     "book:items": "node scripts/bookkeeping.js items",
     "e2e:baseline": "node scripts/e2e-baseline.js",
     "check:e2e": "node scripts/affected.js e2e",
+    "quality": "node scripts/quality",
     "places:coverage": "tsx scripts/places-coverage.ts"
   },
   "private": true
