@@ -72,6 +72,8 @@ export function MemoriesScreen() {
   const [menuFromSlip, setMenuFromSlip] = useState(false);
   // The piece the open line is writing: drawn there, not on the page.
   const [writing, setWriting] = useState<string | null>(null);
+  // The composer is open (JN47): the entry being written shows no Type sign of its own behind it.
+  const [composing, setComposing] = useState(false);
   // Why a moment kept in this sitting has no place, when the line was told (JN5), and those moments themselves,
   // so they are drawn while the page is loading or could not be read (JN9).
   const [reasons, setReasons] = useState<Record<string, NoFix>>({});
@@ -321,7 +323,7 @@ export function MemoriesScreen() {
         now={now}
         reason={reasons[m.id] ?? null}
         answering={answerLine(m)}
-        writing={writing}
+        writing={composing ? null : writing}
         onOpen={() => open(m)}
         onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
         onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
@@ -483,7 +485,12 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine ref={lineRef} inBar={body != null} onTypeOpen={setTypeOpen} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
+      <OpenLine ref={lineRef} inBar={body != null} onTypeOpen={setTypeOpen} onComposing={setComposing} onTypeIn={(e) => {
+        const row = page.rows.find((r) => r.k === 'entry' && r.m.id === e.momentId);
+        const c = row && row.k === 'entry' ? row.m.capture : null;
+        if (!c) return;
+        lineRef.current?.pickType({ piece: e.pieceId, type: e.type, onPick: (t) => void resurface.saveNote({ ...c, piece_id: e.pieceId }, '', t, true).catch(() => {}) });
+      }} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
         {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu

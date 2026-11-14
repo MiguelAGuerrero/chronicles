@@ -78,6 +78,10 @@ type LineProps = {
   inBar: boolean;
   /** The eight are open above the bar, or not (NY19): the slot shows it. */
   onTypeOpen?: (open: boolean) => void;
+  /** The composer opened or closed (JN47): the page hides the Type sign of the entry being written while it is open. */
+  onComposing?: (open: boolean) => void;
+  /** The composer's Type sign (NY26, JN47): the screen asks for the eight on the entry being written. */
+  onTypeIn?: (e: { momentId: string; pieceId: string; type: NoteType | null }) => void;
   /** The screen's body, given the field and what the page needs to grow round it (null when the field is in the bar). */
   children: (page: { field: ReactNode; writing: boolean; entryOpen: boolean } | null) => ReactNode;
   /** The page's own messages (Undo): first in the column above the line (JN18). */
@@ -456,6 +460,17 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
   // A voice note begun from the writing row keeps Done's unseen place, so the camera does not move as it starts (JN14).
   const [recTyping, setRecTyping] = useState(false);
+  // The composer (JN47, decision 0177): on the page an entry is written in a sheet with room to type, never on the page.
+  const [composing, setComposing] = useState(false);
+  const { onComposing } = props;
+  useEffect(() => {
+    onComposing?.(composing);
+  }, [onComposing, composing]);
+  useEffect(() => {
+    if (!composing) return;
+    const t = setTimeout(() => input.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [composing]);
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => (kind === 'photo' ? void photo() : kind === 'voice' ? (setRecTyping(false), voice()) : input.current?.focus());
@@ -534,10 +549,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       // The caret stays on the page: the tap on the slot took it from the field.
       input.current?.focus();
     },
-    write: () => {
-      input.current?.focus();
-      onFoot();
-    },
+    write: () => setComposing(true),
   }));
   const timer = (
     <View testID="band-voice-timer" style={styles.timer} accessible accessibilityLabel="Recording voice note">
@@ -556,7 +568,6 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     <View key="field" style={inBar ? styles.fieldInBar : styles.fieldOnPage} pointerEvents="box-none">
       {/* Room for the dateline that arrives with the first character, so the line being written does not jump.
           A tap on it is a tap on the empty page beneath (audit 45). */}
-      {!inBar && !entryOpen && <View style={styles.datelineRoom} pointerEvents="none" />}
       <View>
         <TextInput
           ref={input}
@@ -588,6 +599,35 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       </View>
     </View>
   );
+  // The eight (NY19, NY25): above the toolbar's row, or above the composer's tools while it is open.
+  const typeRow = asking ? (
+            // The eight, named, just above the bar (NY19, NY25): two rows of four. The bar below keeps its places.
+            <View style={styles.types} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
+              {NOTE_TYPES.map((t) => {
+                const on = noteTypeOf(asking.type) === t.id;
+                return (
+                  <Pressable
+                    key={t.id}
+                    testID={`type-pick-${t.id}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={t.name}
+                    accessibilityState={{ checked: on }}
+                    onPress={() => {
+                      const next = pickType(asking.type, t.id);
+                      asking.onPick(next);
+                      setLineType({ piece: asking.piece, type: next });
+                      setTypeAsk(null);
+                      input.current?.focus();
+                    }}
+                    style={[styles.pick, on && styles.pickOn]}
+                  >
+                    <Icon name={t.glyph as IconName} size={20} color={theme.ink} />
+                    <Text style={[styles.pickName, on && styles.pickNameOn]} numberOfLines={1}>{t.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+  ) : null;
   const doneBtn = (
     <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
       <Text style={styles.doneText}>Done</Text>
@@ -597,18 +637,6 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     <View style={styles.done} pointerEvents="none" aria-hidden importantForAccessibility="no-hide-descendants">
       <Text style={[styles.doneText, styles.unseen]}>Done</Text>
     </View>
-  );
-  const penBtn = (
-    <IconButton
-      testID="bar-write"
-      icon="create-outline"
-      label={LINE_LABELS.write}
-      onPress={() => {
-        input.current?.focus();
-        onFoot();
-      }}
-      disabled={props.disabled}
-    />
   );
   const bar = (
     <View key="line" style={styles.layer} pointerEvents="box-none">
@@ -640,34 +668,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
         <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height) - under)}>
-          {asking ? (
-            // The eight, named, just above the bar (NY19, NY25): two rows of four. The bar below keeps its places.
-            <View style={styles.types} testID="type-row" accessibilityRole="radiogroup" accessibilityLabel="Type">
-              {NOTE_TYPES.map((t) => {
-                const on = noteTypeOf(asking.type) === t.id;
-                return (
-                  <Pressable
-                    key={t.id}
-                    testID={`type-pick-${t.id}`}
-                    accessibilityRole="radio"
-                    accessibilityLabel={t.name}
-                    accessibilityState={{ checked: on }}
-                    onPress={() => {
-                      const next = pickType(asking.type, t.id);
-                      asking.onPick(next);
-                      setLineType({ piece: asking.piece, type: next });
-                      setTypeAsk(null);
-                      input.current?.focus();
-                    }}
-                    style={[styles.pick, on && styles.pickOn]}
-                  >
-                    <Icon name={t.glyph as IconName} size={20} color={theme.ink} />
-                    <Text style={[styles.pickName, on && styles.pickNameOn]} numberOfLines={1}>{t.name}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
+          {composing ? null : typeRow}
           <View style={styles.row}>
             {inBar ? (
               <>
@@ -677,7 +678,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               </>
             ) : recording ? (
               // The pen stays while a note records (JN45, audit 64): writing is one tap away from anywhere.
-              <View style={styles.lead}>{penBtn}{timer}{discard}</View>
+              <View style={styles.lead}>{timer}{discard}</View>
             ) : typing || pen.failed ? (
               <>
                 {/* The recording bar is folded away while the field has the keyboard (JN30): its mark stays (audit 53). */}
@@ -690,10 +691,10 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               <View style={styles.lead}>
                 {/* The toolbar (JN41, decision 0176): the field says it and starts writing on the page; Done takes the pen's
                     place while an entry is open (JN44). */}
-                <Pressable testID="bar-compose" accessibilityRole="button" accessibilityLabel={LINE_PLACEHOLDER} onPress={() => { input.current?.focus(); onFoot(); }} disabled={props.disabled} style={styles.compose}>
+                <Pressable testID="bar-compose" accessibilityRole="button" accessibilityLabel={LINE_PLACEHOLDER} onPress={() => setComposing(true)} disabled={props.disabled} style={styles.compose}>
                   <Text style={styles.composeText} numberOfLines={1}>{LINE_PLACEHOLDER}</Text>
                 </Pressable>
-                {showDone ? doneBtn : penBtn}
+                {showDone ? doneBtn : null}
               </View>
             )}
             {inBar && recording ? <>{timer}{discard}</> : null}
@@ -721,10 +722,67 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   );
   // Keyed, so the bar and the screen keep their state when their order changes: the bar comes first for a screen
   // reader on the page, and after a thread's or Hidden's own Back.
-  const body = <View key="body" style={styles.body}>{props.children(inBar ? null : { field: fieldEl, writing: typing, entryOpen })}</View>;
+  const body = <View key="body" style={styles.body}>{props.children(inBar ? null : { field: null, writing: typing, entryOpen })}</View>;
   return (
     <>
       {inBar ? [body, bar] : [bar, body]}
+      {/* The composer (JN47-JN51): it fills the room above the keyboard; Done, a tap on its dimmed edge or Back keep what
+          is written (it is kept as it is typed) and close it (JN48). */}
+      <Modal visible={composing} transparent animationType="slide" onRequestClose={() => { void done(); setComposing(false); }}>
+        <View style={[styles.sheetBack, { paddingBottom: keyboard }]} testID="composer">
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => { void done(); setComposing(false); }} accessible={false} />
+          <View style={styles.sheet} testID="composer-sheet">
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle} accessibilityRole="header">New entry</Text>
+              <View style={styles.rowFill} />
+              {pen.entry && props.onTypeIn ? (() => {
+                const e = pen.entry;
+                const t = lineType?.piece === e.pieceId ? lineType.type : null;
+                const info = NOTE_TYPES.find((x) => x.id === t);
+                // Every page a note is written on carries the Type tool (0167): the composer's, by its title (NY26).
+                return (
+                  <Pressable testID="type-slot" accessibilityRole="button" accessibilityLabel={`Type, ${info?.name ?? 'No type'}`} aria-expanded={!!asking} onPress={() => props.onTypeIn?.({ momentId: e.momentId, pieceId: e.pieceId, type: t })} style={styles.sheetType}>
+                    <Icon name={(info?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="type-slot-face" />
+                    {info ? null : (
+                      <View style={styles.sheetTypeAdd} testID="type-slot-add">
+                        <Icon name="add" size={11} color={theme.bg} />
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })() : null}
+              <Pressable testID="sheet-done" accessibilityRole="button" accessibilityLabel="Done" onPress={() => { void done(); setComposing(false); }} style={styles.done}>
+                <Text style={styles.doneText}>Done</Text>
+              </Pressable>
+            </View>
+            <Pressable style={styles.sheetBody} onPress={() => input.current?.focus()} accessible={false}>
+              {fieldEl}
+            </Pressable>
+            {typeRow}
+            <View style={styles.sheetTools}>
+              <IconButton testID="sheet-photo" icon="camera-outline" label={LINE_LABELS.photo} onPress={() => void photo()} busy={cap.busy === 'photo'} disabled={props.disabled || (cap.busy === 'voice' && !recording)} />
+              {recording ? (
+                <IconButton testID="sheet-voice-save" icon="stop" label="Stop and save voice note" onPress={() => void saveVoice()} busy={cap.busy === 'voice'} voice />
+              ) : (
+                <IconButton testID="sheet-voice" icon="mic-outline" label={LINE_LABELS.voice} onPress={voice} busy={cap.busy === 'voice'} disabled={props.disabled} />
+              )}
+              {recording ? <View style={styles.lead}>{timer}{discard}</View> : (
+                <>
+                  {/* A long entry, or one with a shape, becomes the note's page (JN51): the composer closes first, since iOS
+                      shows no Modal over a Modal. */}
+                  <IconButton testID="sheet-page" icon="expand-outline" label="Open as a page" onPress={() => { setComposing(false); void openPage(); }} disabled={pen.beginning} />
+                  <Text style={styles.sheetStatus} numberOfLines={1} testID="sheet-status" accessibilityLiveRegion="polite">{status ?? ''}</Text>
+                  {pen.failed ? (
+                    <Pressable testID="sheet-retry" accessibilityRole="button" onPress={() => send.current({ k: 'retry' })} style={styles.textBtn}>
+                      <Text style={styles.textBtnText}>Retry</Text>
+                    </Pressable>
+                  ) : null}
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
           <NewNotePage key={page.key} ref={pageRef} cap={cap} into={page.into} typed onWalk={walking} camera onKept={() => { keptOnPage.current = true; }} onClose={closePage} />
@@ -820,6 +878,17 @@ const styles = StyleSheet.create({
   field: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 26, paddingVertical: 9, paddingHorizontal: 0, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
   // The toolbar's field (JN41): a soft grey a shade off the page, the app's sans, tight enough that its words are whole
   // at 320 px (JN46).
+  // The composer's sheet: from a dimmed edge at the top to the keyboard (JN47).
+  sheetBack: { flex: 1, justifyContent: 'flex-end', paddingTop: 44, backgroundColor: 'rgba(20,24,32,0.35)' },
+  sheet: { flex: 1, backgroundColor: theme.bg, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  rowFill: { flexGrow: 1 },
+  sheetType: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  sheetTypeAdd: { position: 'absolute', right: 6, top: 6, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  sheetStatus: { flex: 1, color: theme.muted, fontSize: 13, textAlign: 'right' },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, borderBottomWidth: 1, borderBottomColor: theme.line },
+  sheetTitle: { color: theme.muted, fontSize: 15, fontWeight: '600' },
+  sheetBody: { flex: 1, minHeight: 220, paddingTop: 8 },
+  sheetTools: { flexDirection: 'row', alignItems: 'center', gap: 12, marginLeft: -10, borderTopWidth: 1, borderTopColor: theme.line, paddingTop: 4 },
   compose: { flex: 1, minHeight: 44, borderRadius: 22, backgroundColor: theme.line, justifyContent: 'center', paddingHorizontal: 12, marginRight: 2 },
   composeText: { color: theme.muted, fontSize: 15 },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

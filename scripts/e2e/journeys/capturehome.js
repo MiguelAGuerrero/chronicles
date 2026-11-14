@@ -73,10 +73,12 @@ async function run(h) {
   // here is the launch and the tabs, the walk minimized under Memories, the recording bar and Explore's one fix.
 
   // A note kept before the walk, so Days has a day to open (the bar's Edit offer, below).
-  await pg.click('[data-testid=line-input]').catch(() => {});
+  // The journal's composer (JN47): the toolbar's field opens it with the caret in it.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(600);
   await pg.keyboard.type('A note before the walk.', { delay: 10 });
   await pg.waitForTimeout(1200);
-  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.click('[data-testid=sheet-done]').catch(() => {});
   await pg.waitForTimeout(1500);
 
   // HC10, HC7, HC15: with a walk minimized, the band files into the walk, sits above the recording bar,
@@ -137,10 +139,12 @@ async function run(h) {
   const barBox = await box(pg, '[data-testid=recording-bar]');
   check(!!walkBand && !!barBox && walkBand.y + walkBand.h <= barBox.y + 0.5 && !(await shown('[data-testid=bar-photo]')),
     `HC7: with a walk minimized, the band sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ walkBand, barBox })})`);
-  await pg.click('[data-testid=line-input]').catch(() => {});
+  // The journal's composer (JN47): the toolbar's field opens it with the caret in it.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(600);
   await pg.keyboard.type('Kept on the walk, from Memories.', { delay: 10 });
   await pg.waitForTimeout(1200);
-  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.click('[data-testid=sheet-done]').catch(() => {});
   await pg.waitForTimeout(800);
   for (let i = 6; i < 10; i++) await step(i);
   const db = await stored(pg);
