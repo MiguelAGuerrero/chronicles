@@ -127,7 +127,7 @@ const FEATURES = [
   {
     name: 'presence',
     about: 'what a place is: one vocabulary of classes from every source\'s tags, read by density, marks and bars (decision 0140)',
-    rule: 'explore-and-discovery',
+    rule: 'presence',
     source: ['src/lib/presence/**'],
     // Its consumers own the journeys that show it: explore's marks, atlas and grading.
     journeys: [],
@@ -144,7 +144,7 @@ const FEATURES = [
   {
     name: 'explore',
     about: 'the Explore tab (the atlas), discovery, marks, reminders',
-    rule: 'explore-and-discovery',
+    rule: 'explore-atlas',
     source: [
       'src/lib/discovery/**',
       'src/lib/explore/**',
