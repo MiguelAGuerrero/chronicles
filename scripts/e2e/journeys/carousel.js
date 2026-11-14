@@ -500,6 +500,34 @@ async function wholeTowns(h) {
   }
 }
 
+// The area card's footer at 390 and 320 (decision 0172): where you are, it is a status line in ink (tend explore 10).
+async function cardFooter(h) {
+  const { exploreUrl, check, freshPage, shot, areaTile } = h;
+  for (const [w, hgt] of [[390, 844], [320, 700]]) {
+    const { c, pg } = await freshPage(`carousel-footer-${w}`);
+    try {
+      await pg.setViewportSize({ width: w, height: hgt });
+      await pg.goto(exploreUrl);
+      const fox = await areaTile(pg, 'Fox Point');
+      await fox.click().catch(() => {});
+      if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null))) await fox.click().catch(() => {});
+      await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(900);
+      // tend explore 10 (O10): "You're in Fox Point" is a status line in ink, never link-coloured; the page's heading stays the town.
+      const here = await pg.evaluate(() => {
+        const e = [...document.querySelectorAll('[data-testid=atlas-card] div')].find((d) => d.childElementCount === 0 && /^You’re in /.test(d.textContent));
+        return e ? { text: e.textContent, color: getComputedStyle(e).color, link: !!e.closest('a,[role=link],[role=button]') } : null;
+      });
+      const heading = await pg.locator('[data-testid=explore-area]').innerText().catch(() => '');
+      check(here && here.text === 'You’re in Fox Point' && here.color === 'rgb(29, 36, 48)' && !here.link && heading === 'Providence',
+        `tend explore 10: at ${w}, the card's "You're in Fox Point" is a status line in ink, not link-coloured, and the heading stays the town (${JSON.stringify({ ...here, heading })})`);
+      await shot(pg, `carousel-here-card-${w}`);
+    } finally {
+      await c.close();
+    }
+  }
+}
+
 module.exports = {
   name: 'carousel',
   // Explore carousel (EC1-EC20): the map and a row of area cards.
@@ -508,6 +536,7 @@ module.exports = {
     'src/lib/atlas/carousel.ts',
     'src/components/atlas/AtlasCarousel.tsx',
     'src/components/atlas/AtlasTile.tsx',
+    'src/components/atlas/AtlasCard.tsx',
     'src/components/map/WalkMap.web.tsx',
     'src/components/map/types.ts',
     'src/components/AreaPoint.tsx',
@@ -521,5 +550,6 @@ module.exports = {
     await hintOnce(h);
     await townFramedOnce(h);
     await wholeTowns(h);
+    await cardFooter(h);
   },
 };

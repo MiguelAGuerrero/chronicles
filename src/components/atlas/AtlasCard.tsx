@@ -365,7 +365,8 @@ export function AtlasCard(props: {
         {/* The card's main step stays in sight (atlas round 3): never at the end of a scroll. */}
         <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]}>
           {props.here ? (
-            <Text style={[styles.you, styles.hereLine]}>You’re in {area.name}</Text>
+            // A status, not a link (tend explore 10, decision 0172): in ink, the page's heading staying the town.
+            <Text style={[styles.hereLine, styles.you]}>You’re in {area.name}</Text>
           ) : asking ? (
             // DW2: Walk now starts as Walk to always did; When I get there keeps the place for Navigate's Start (DW3).
             <>
