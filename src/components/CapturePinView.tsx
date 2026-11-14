@@ -5,6 +5,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { pinHeadKinds, pinSpoken, pinThumb, type CapturePin, type WalkClock } from '../lib/pins';
 import type { ReactionInfo } from '../lib/reactions/core';
 import { VideoMark } from './VideoMark';
+import { webData } from './edit/EditedPhoto';
 import { useStill } from '../lib/thumbs/useStill';
 import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
@@ -86,7 +87,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
         {reactions.length > 0 && (
           <View style={styles.reactions} pointerEvents="none">
             {reactions.map((r) => (
-              <View key={r.id} testID="pin-reaction" data-reaction={r.id} style={styles.reaction}>
+              <View key={r.id} testID="pin-reaction" {...webData({ reaction: r.id })} style={styles.reaction}>
                 <Icon name={r.glyph as IconName} size={11} color="#ffffff" />
               </View>
             ))}

@@ -29,8 +29,9 @@ const INIT = () => {
 const SEED = ({ now, day }) => {
   const note = (id, t, body) => ({ id, walk_id: null, t, lat: null, lon: null, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind: 'text', file_path: null, body }] });
   const rows = [];
-  // The first few carry a type the owner chose (note types, decision 0161): the journal draws its mark.
-  const typed = (i, m) => { if (i < 6) m.pieces[0].note_type = 'idea'; return m; };
+  // The first few carry a reaction the owner chose (reactions, decision 0172): the journal draws its marks.
+  const typed = (i, m) => { if (i < 6) reactions.push({ moment_id: m.id, family: 'thought', reaction: 'idea', set_at: m.t }); return m; };
+  const reactions = [];
   for (let i = 0; i < 60; i++) rows.push(typed(i, note(`n${String(i).padStart(2, '0')}`, now - (i + 2) * day, `A quiet note from a walk around town, the ${i % 2 ? 'second' : 'first'} of its day.`)));
   rows.push(note('h1', now - 50 * day - 1000, 'The harbor at dusk.'), note('h2', now - 40 * day - 1000, 'Harbor lights again.'), note('h3', now - 20 * day - 1000, 'Out to the harbor early.'));
   rows.push(note('year', now - 365 * day, 'First frost on the allotment gate. Nobody about.'));
@@ -42,8 +43,9 @@ const SEED = ({ now, day }) => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['moment'], 'readwrite');
+      const tx = req.result.transaction(['moment', 'reaction'], 'readwrite');
       for (const r of rows) tx.objectStore('moment').put(r);
+      for (const r of reactions) tx.objectStore('reaction').put(r);
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     };
@@ -385,145 +387,35 @@ async function run(h) {
   check(!!again42.head && !!again42.last && again42.last.top - again42.head.bottom < 40 && again42.last.top >= again42.head.bottom - 2 && (!again42.prev || again42.prev.bottom <= again42.head.bottom + 2),
     `chronicle-journal audit 42: coming back to Memories opens on the last entry (${JSON.stringify(again42)})`);
 
-  // NY18-NY25 (note types at capture, by choice): the slot in the corner of the entry being written, the bar as the
-  // row of eight, the glyph on a kept entry, and Type in More.
-  const typeOfNote = async (re) => (await stored(pg)).moments.flatMap((m) => m.pieces).find((x) => re.test(x.body ?? ''))?.note_type ?? null;
-  const slotLabel = () => pg.locator('[data-testid=type-slot]').getAttribute('aria-label').catch(() => null);
-  await toLine();
-  await pg.waitForTimeout(500);
-  const before18 = await pg.locator('[data-testid=type-slot], [data-testid=type-row]').filter({ visible: true }).count();
-  check(before18 === 0, `NY18: nothing about a type is on screen before the first character (${before18})`);
-  await pg.keyboard.type('Why is the bakery shut', { delay: 10 });
-  await pg.waitForTimeout(1400);
-  const label19 = await slotLabel();
-  await pg.click('[data-testid=type-slot]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(500);
-  const row19 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=type-row] [data-testid^=type-pick-]')].map((e) => { const r = e.getBoundingClientRect(); return { id: e.dataset.testid.slice(10), name: e.getAttribute('aria-label'), text: e.innerText.trim().split('\n').pop(), x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) }; }));
-  const open19 = await pg.evaluate(() => ({ expanded: document.querySelector('[data-testid=type-slot]')?.getAttribute('aria-expanded'), bar: ['band-photo', 'band-voice', 'line-done'].filter((id) => { const r = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect(); return !!r && r.width > 0; }).length }));
-  await shot(pg, 'journal-22-type-row');
-  await pg.setViewportSize({ width: 320, height: 844 });
-  await pg.waitForTimeout(500);
-  const row25 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=type-row] [data-testid^=type-pick-]')].map((e) => { const r = e.getBoundingClientRect(); return { y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right) }; }));
-  await shot(pg, 'journal-23-type-row-320');
-  await pg.setViewportSize({ width: 390, height: 844 });
-  await pg.waitForTimeout(500);
-  check(row25.length === 8 && new Set(row25.map((b) => b.y)).size === 2 && row25.every((b) => b.h >= 44 && b.w >= 44 && b.l >= 0 && b.r <= 320), `NY25: at 320 px the eight are two rows of four, nothing cut, each 44 px or more both ways (${JSON.stringify(row25)})`);
-  await pg.click('[data-testid=type-pick-idea]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(900);
-  const after19 = { row: await pg.locator('[data-testid=type-row]').count(), focus: await pg.evaluate(() => document.activeElement?.getAttribute('data-testid')), label: await slotLabel(), stored: await typeOfNote(/bakery shut/) };
-  check(label19 === 'Type, No type' && row19.map((r) => r.id).join() === 'question,emphasis,idea,happy,neutral,sad,like,dislike' && row19.map((r) => r.name).join() === 'Question,Emphasis,Idea,Happy,Neutral,Sad,Like,Dislike'
-    && after19.row === 0 && after19.focus === 'line-input' && after19.label === 'Type, Idea',
-    `NY19: the slot opens the eight; one tap marks the note and the caret stays on the page (${JSON.stringify({ label19, row19: row19.map((r) => r.id), after19 })})`);
-  check(row19.every((r) => r.text === r.name) && open19.expanded === 'true' && open19.bar === 3,
-    `NY19, NY20: each of the eight shows its name, the slot shows it is open, and the camera, the mic and Done stay in the bar (${JSON.stringify({ open19, texts: row19.map((r) => r.text) })})`);
-  await pg.click('[data-testid=type-slot]').catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=type-pick-idea]').catch(() => {});
-  await pg.waitForTimeout(900);
-  const cleared19 = { label: await slotLabel(), stored: await typeOfNote(/bakery shut/) };
-  check(cleared19.label === 'Type, No type' && cleared19.stored == null, `NY19: a tap on the marked one clears it (${JSON.stringify(cleared19)})`);
-  await pg.click('[data-testid=type-slot]').catch(() => {});
-  await pg.waitForTimeout(400);
-  // The caret is still on the page: the next character is typed without another tap.
-  await pg.keyboard.press('End');
-  await pg.keyboard.type('?', { delay: 10 });
-  await pg.waitForTimeout(1200);
-  const typed20 = { row: await pg.locator('[data-testid=type-row]').count(), done: await pg.locator('[data-testid=line-done]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), body: (await stored(pg)).moments.flatMap((m) => m.pieces).some((x) => x.body === 'Why is the bakery shut?') };
-  check(typed20.row === 0 && typed20.done === 1 && typed20.cam === 1 && typed20.body, `NY20: the next character puts the bar back, and the words are kept as ever (${JSON.stringify(typed20)})`);
-  await pg.click('[data-testid=type-slot]').catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=type-pick-question]').catch(() => {});
-  await pg.waitForTimeout(900);
-  const marked22 = await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=note-type-mark]').getAttribute('aria-label').catch(() => null);
-  await done();
-  await pg.waitForTimeout(1200);
-  const kept22 = await pg.evaluate(() => { const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')]; const of = (c) => c?.querySelector('[data-testid=note-type-mark]')?.getAttribute('aria-label') ?? null; return { last: of(cards[cards.length - 1]), prev: of(cards[cards.length - 2]), slot: document.querySelectorAll('[data-testid=type-slot]').length }; });
-  check(kept22.last === 'Question' && kept22.prev == null && kept22.slot === 0 && marked22 === 'Question', `NY22: a typed note shows its glyph and name above its words, while it is written and once kept; one with none shows nothing (${JSON.stringify({ kept22, marked22 })})`);
-  await shot(pg, 'journal-24-type-on-entry');
-  await pg.reload();
-  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
-  await pg.waitForTimeout(1500);
-  const again21 = { stored: await typeOfNote(/bakery shut/), shown: await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=note-type-mark]').getAttribute('aria-label').catch(() => null) };
-  check(again21.stored === 'question' && again21.shown === 'Question', `NY21: the type is kept at once and is there when the app is opened again (${JSON.stringify(again21)})`);
-  await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]').click();
-  await pg.waitForTimeout(800);
-  await pg.click('[data-testid=menu-type]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(500);
-  const items23 = await pg.locator('[data-testid=memory-menu] [data-testid^=note-type-item-]').count();
-  const alone23 = await pg.locator('[data-testid=memory-menu] [data-testid=menu-less], [data-testid=memory-menu] [data-testid=menu-hide]').count();
-  await shot(pg, 'journal-25-type-in-more');
-  await pg.click('[data-testid=note-type-item-sad]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(1200);
-  const more23 = { items: items23, menu: await pg.locator('[data-testid=memory-menu]').count(), stored: await typeOfNote(/bakery shut/), shown: await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=note-type-mark]').getAttribute('aria-label').catch(() => null) };
-  check(more23.items === 9 && alone23 === 0 && more23.menu === 0 && more23.stored === 'sad' && more23.shown === 'Sad', `NY23: More offers Type; the eight and No type take the sheet by themselves, and choosing keeps it (${JSON.stringify({ more23, alone23 })})`);
-  // NY26: the slot says what it is, in a word (the owner could not find a bare tag), and the page the line opens
-  // into carries the Type tool with the type already chosen.
-  await toLine();
-  await pg.keyboard.type('A page with a type', { delay: 10 });
-  await pg.waitForTimeout(1300);
-  // Unmarked, the slot is the sign people know for adding a reaction: a face with a plus, in ink, and no word (0168).
-  const slot26 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=type-slot]'); if (!e) return null; const g = e.querySelector('[data-testid=type-slot-face]'); return { add: !!e.querySelector('[data-testid=type-slot-add]'), words: [...e.querySelectorAll('*')].filter((x) => x.children.length === 0 && /[A-Za-z]{3,}/.test(x.textContent ?? '')).length, ink: g ? getComputedStyle(g).color : null, w: Math.round(e.getBoundingClientRect().width), h: Math.round(e.getBoundingClientRect().height) }; });
-  await pg.click('[data-testid=type-slot]').catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=type-pick-happy]').catch(() => {});
-  await pg.waitForTimeout(900);
-  const marked26 = await pg.evaluate(() => { const e = document.querySelector('[data-testid=type-slot]'); return { add: !!e?.querySelector('[data-testid=type-slot-add]'), label: e?.getAttribute('aria-label') }; });
-  await shot(pg, 'journal-26-type-slot-word');
-  await pg.click('[data-testid=line-page]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).catch(() => {});
-  await pg.waitForTimeout(1500);
-  const tool26 = await pg.locator('[data-testid=note-page] [data-testid=note-type-row]').getAttribute('aria-label').catch(() => null);
-  await shot(pg, 'journal-27-type-on-the-line-page');
-  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=note-type-item-idea]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(900);
-  await pg.click('[data-testid=note-done]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(1500);
-  const after26 = await typeOfNote(/A page with a type/);
-  check(!!slot26 && slot26.add && slot26.words === 0 && slot26.ink === 'rgb(29, 36, 48)' && slot26.w >= 44 && slot26.h >= 44 && !marked26.add && marked26.label === 'Type, Happy' && tool26 === 'Type, Happy' && after26 === 'idea',
-    `NY26: unmarked the slot is a face with a plus, in ink, with no word; marked it is the type's glyph; the page the line opens into carries the Type tool with that type, and a choice there is kept (${JSON.stringify({ slot26, marked26, tool26, after26 })})`);
-  // NY27: a note kept today offers the same sign on its row; one from an earlier day does not. A tap opens the eight
-  // at once, and the choice is kept.
-  await pg.evaluate(() => document.activeElement?.blur?.());
-  await pg.waitForTimeout(900);
-  const rows27 = await pg.evaluate(() => { const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')]; return { today: cards.filter((c) => c.querySelector('[data-testid=entry-react]')).length, lastHas: !!cards[cards.length - 1]?.querySelector('[data-testid=entry-react]') }; });
-  await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').filter({ hasText: 'Stack 5' }).last().locator('[data-testid=entry-react]').click({ timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(800);
-  const sheet27 = { items: await pg.locator('[data-testid=memory-menu] [data-testid^=note-type-item-]').count(), other: await pg.locator('[data-testid=memory-menu] [data-testid=menu-less], [data-testid=memory-menu] [data-testid=menu-open]').count() };
-  await shot(pg, 'journal-28-react-to-todays-entry');
-  await pg.click('[data-testid=note-type-item-like]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(1200);
-  const kept27 = await typeOfNote(/^Stack 5/);
-  check(rows27.today >= 2 && rows27.lastHas && sheet27.items === 9 && sheet27.other === 0 && kept27 === 'like',
-    `NY27: a note kept today offers the sign on its row, and one tap opens the eight by themselves (${JSON.stringify({ rows27, sheet27, kept27 })})`);
+  // Reactions on the journal (RX6-RX10, RX14) are the `reactions` journey's; what stays here is how the sheet and the
+  // panel behave around the rest of the page (note-types audit 56, 63, carried to reactions).
   // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
   const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
   await lastMore().click();
   await pg.waitForTimeout(700);
-  await pg.click('[data-testid=menu-type]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(400);
   await pg.click('[data-testid=menu-cancel]');
   await pg.waitForTimeout(700);
   await lastMore().click();
   await pg.waitForTimeout(700);
-  const list63 = { type: await pg.locator('[data-testid=memory-menu] [data-testid=menu-type]').count(), grid: await pg.locator('[data-testid=memory-menu] [data-testid=note-type-menu]').count() };
+  const list63 = { type: await pg.locator('[data-testid=memory-menu] [data-testid=menu-reaction]').count(), grid: await pg.locator('[data-testid=memory-menu] [data-testid=reaction-panel]').count() };
   check(list63.type === 1 && list63.grid === 0, `note-types audit 63: More reopens on its list (${JSON.stringify(list63)})`);
   await pg.click('[data-testid=menu-cancel]');
   await pg.waitForTimeout(700);
-  // note-types audit 56: the eight go when Memories is no longer in front (a menu opens), and the bar is whole.
+  // note-types audit 56: the reactions go when Memories is no longer in front (a menu opens), and the bar is whole.
   await toLine();
   await pg.keyboard.type('Let go.', { delay: 10 });
   await pg.waitForTimeout(1300);
-  await pg.click('[data-testid=type-slot]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-slot]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(400);
-  const up56 = await pg.locator('[data-testid=type-row]').count();
+  const up56 = await pg.locator('[data-testid=reaction-panel]').count();
   await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').first().locator('[data-testid=moment-more]').click({ force: true });
   await pg.waitForTimeout(700);
   await pg.click('[data-testid=menu-cancel]').catch(() => {});
   await pg.waitForTimeout(900);
-  const gone56 = { row: await pg.locator('[data-testid=type-row]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), mic: await pg.locator('[data-testid=band-voice]').count() };
-  check(up56 === 1 && gone56.row === 0 && gone56.cam === 1 && gone56.mic === 1, `note-types audit 56: the eight go when Memories loses focus, and the bar keeps the camera and the mic (${JSON.stringify({ up56, gone56 })})`);
+  const gone56 = { row: await pg.locator('[data-testid=reaction-panel]').count(), cam: await pg.locator('[data-testid=band-photo]').count(), mic: await pg.locator('[data-testid=band-voice]').count() };
+  check(up56 === 1 && gone56.row === 0 && gone56.cam === 1 && gone56.mic === 1, `note-types audit 56: the reactions go when Memories loses focus, and the bar keeps the camera and the mic (${JSON.stringify({ up56, gone56 })})`);
   await pg.evaluate(() => document.activeElement?.blur?.());
   await done();
   await pg.waitForTimeout(900);
@@ -819,11 +711,11 @@ async function run(h) {
   check(after > before && anchorVisible, `JN1: reaching the top loads older entries above, and the entry that was on screen stays on screen (${before} → ${after}, anchor visible ${anchorVisible})`);
   check(same(fixedAtFoot, fixedAtTop) && same(lineAtRest, fixedAtFoot), `JN9: the open line keeps its box at the foot and scrolled back (${JSON.stringify({ lineAtRest, fixedAtFoot, fixedAtTop })})`);
   await shot(pg, 'journal-05-scrolled-back');
-  const marks54 = await pg.locator('[data-testid=journal-page] [data-testid=note-type-mark]').count();
-  // NY27: scrolled back among earlier days, no entry offers the sign on its row.
-  const old27 = await pg.evaluate(() => { const c = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')].filter((x) => /A quiet note from a walk/.test(x.innerText)); return { olds: c.length, withSign: c.filter((x) => x.querySelector('[data-testid=entry-react]')).length }; });
-  check(old27.olds > 0 && old27.withSign === 0, `NY27: an entry of an earlier day offers no sign on its row (${JSON.stringify(old27)})`);
-  check(marks54 >= 1, `chronicle-journal audit 54: a note's type shows on its entry in the journal (${marks54} marks)`);
+  const marks54 = await pg.locator('[data-testid=journal-page] [data-testid=reaction-marks]').count();
+  // RX9: scrolled back among earlier days, no entry offers the sign on its row.
+  const old9 = await pg.evaluate(() => { const c = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')].filter((x) => /A quiet note from a walk/.test(x.innerText)); return { olds: c.length, withSign: c.filter((x) => x.querySelector('[data-testid=reaction-sign]')).length }; });
+  check(old9.olds > 0 && old9.withSign === 0, `RX9: an entry of an earlier day offers no sign on its row (${JSON.stringify(old9)})`);
+  check(marks54 >= 1, `chronicle-journal audit 54, RX14: a moment's reactions show on its entry in the journal (${marks54} marks)`);
   // JN9, JN11, audit 50: scrolled back, the empty page is out of view and the bar holds the pen: one tap brings
   // today's foot into view and the caret onto the page, with no scroll first.
   const pen50 = await box(pg, '[data-testid=bar-write]');

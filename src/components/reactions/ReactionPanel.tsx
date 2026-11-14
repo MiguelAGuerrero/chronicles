@@ -17,7 +17,7 @@ export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId
     <View testID={props.testID ?? 'reaction-panel'} style={styles.panel} accessibilityLabel="Reactions">
       {ROWS.map((f) => (
         <View key={f.id} style={styles.family} testID={`reaction-family-${f.id}`} accessibilityRole="radiogroup" accessibilityLabel={f.name}>
-          <Text style={styles.familyName} testID="reaction-family-name">{f.name}</Text>
+          <Text style={styles.familyName} testID="reaction-group-name">{f.name}</Text>
           <View style={styles.row}>
             {f.reactions.map((r) => {
               const on = props.set[f.id] === r.id;

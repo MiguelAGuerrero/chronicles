@@ -877,92 +877,67 @@ async function run(h) {
       await pg.waitForTimeout(400);
     });
 
-    // Note types (NY6, NY9, NY10, NY11): the page's Type tool and menu, the card's mark, the pin's label, in one ink.
-    await qstep('note-types NY6, NY9, NY10, NY11', async () => {
+    // Reactions on the replay's note (RX12, RX15, RX18; they replaced note types, decision 0172): the page's Reaction
+    // tool where Type was, the panel in view on a small phone, the viewer's marks, and the pin the note shares with a
+    // photo still saying its kinds.
+    await qstep('reactions RX12, RX15', async () => {
       await openNote();
-      const bare = await pg.locator('[data-testid=note-type-mark]').count();
+      const bare = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').count();
       await pg.click('[data-testid=viewer-edit-note]');
       await pg.locator('[data-testid=note-page]').waitFor({ timeout: 5000 });
-      const row = pg.locator('[data-testid=note-type-row]');
-      const rowBefore = (await row.count()) ? await row.getAttribute('aria-label') : '';
-      if (await row.count()) await row.click();
-      const pressed = (await row.count()) ? await row.getAttribute('aria-pressed') : null;
-      const items = await pg.locator('[data-testid^=note-type-item-]').count();
-      const colours = await pg.evaluate(() => [...new Set([...document.querySelectorAll('[data-testid^=note-type-glyph-]')].map((e) => getComputedStyle(e).color))]);
-      // note-types audit 8: the menu reads down its columns (No type to Happy, then Neutral to Dislike), the chosen row tinted.
-      const boxes = {};
-      for (const id of ['none', 'question', 'emphasis', 'idea', 'happy', 'neutral', 'sad', 'like', 'dislike']) boxes[id] = await pg.locator(`[data-testid=note-type-item-${id}]`).boundingBox().catch(() => null);
-      const colA = ['none', 'question', 'emphasis', 'idea', 'happy'].map((i) => boxes[i]);
-      const colB = ['neutral', 'sad', 'like', 'dislike'].map((i) => boxes[i]);
-      const down = (col) => col.every((b, i) => b && (i === 0 || (Math.abs(b.x - col[0].x) < 2 && b.y > col[i - 1].y)));
-      const tint = await pg.evaluate(() => getComputedStyle(document.querySelector('[data-testid=note-type-item-none]')).backgroundColor);
-      check(down(colA) && down(colB) && colB[0].x > colA[0].x && Math.abs(colB[0].y - colA[0].y) < 2 && tint !== 'rgba(0, 0, 0, 0)',
-        `note-types audit 8: the Type menu reads down its columns and tints the chosen row (${JSON.stringify([colA.map((b) => b && Math.round(b.y)), colB.map((b) => b && Math.round(b.y)), tint])})`);
-      // note-types audit 20: the chosen row is marked by a heavier label and an ink check as well as the tint.
-      const chosenRow = await pg.evaluate(() => {
-        const row = document.querySelector('[data-testid=note-type-item-none]');
-        const label = [...row.querySelectorAll('div')].find((e) => e.children.length === 0 && (e.textContent || '').trim() === 'No type');
-        const check = document.querySelector('[data-testid=note-type-check]');
-        return { weight: label ? Number(getComputedStyle(label).fontWeight) : 0, check: check ? getComputedStyle(check).color : null };
-      });
-      check(chosenRow.weight >= 600 && chosenRow.check === 'rgb(29, 36, 48)', `note-types audit 20: the chosen row has a heavier label and an ink check (${JSON.stringify(chosenRow)})`);
-      // note-types audit 9: on a small phone with the menu open, the whole menu and the page's bar stay in view.
+      const tool = pg.locator('[data-testid=note-reaction-tool]');
+      const toolBefore = (await tool.count()) ? await tool.getAttribute('aria-label') : '';
+      const typeTool = await pg.locator('[data-testid=note-type-row]').count();
+      if (await tool.count()) await tool.click();
+      const pressed = (await tool.count()) ? await tool.getAttribute('aria-pressed') : null;
+      const picks = await pg.locator('[data-testid=reaction-panel] [data-testid^=reaction-pick-]').count();
+      // note-types audit 9, carried: on a small phone with the panel open, the panel and the page's bar stay in view.
       const vp = pg.viewportSize();
       await pg.setViewportSize({ width: 320, height: 520 });
       await pg.waitForTimeout(500);
       const inView = await pg.evaluate(() => {
-        const m = document.querySelector('[data-testid=note-type-menu]').getBoundingClientRect();
+        const m = document.querySelector('[data-testid=reaction-panel]')?.getBoundingClientRect();
         const b = document.querySelector('[data-testid=note-bar]').getBoundingClientRect();
-        return { menuTop: Math.round(m.top), menuRight: Math.round(m.right), barBottom: Math.round(b.bottom), h: window.innerHeight, w: window.innerWidth };
+        return { top: m ? Math.round(m.top) : -1, right: m ? Math.round(m.right) : 9999, barBottom: Math.round(b.bottom), h: window.innerHeight, w: window.innerWidth };
       });
+      await shot(pg, 'qol-06-reaction-panel-320');
       await pg.setViewportSize(vp);
       await pg.waitForTimeout(400);
-      check(inView.menuTop >= 0 && inView.barBottom <= inView.h && inView.menuRight <= inView.w, `note-types audit 9: at 320 x 520 with the menu open, the menu and the bar stay in view (${JSON.stringify(inView)})`);
-      await shot(pg, 'qol-06-note-type-menu');
-      if (items) await pg.click('[data-testid=note-type-item-idea]');
-      await pg.waitForTimeout(300);
-      const focusedAfter = await pg.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-testid'));
-      check(focusedAfter === 'note-type-row', `note-types audit 21: choosing a type returns focus to the Type row (${focusedAfter})`);
-      const rowAfter = (await row.count()) ? await row.getAttribute('aria-label') : '';
+      await pg.click('[data-testid=reaction-pick-idea]').catch(() => null);
+      await pg.waitForTimeout(500);
+      const toolAfter = (await tool.count()) ? await tool.getAttribute('aria-label') : '';
       await pg.click('[data-testid=note-done]');
       await pg.waitForTimeout(800);
-      const mark = pg.locator('[data-testid=note-type-mark]');
-      const markText = (await mark.count()) ? await mark.first().innerText() : '';
-      const markLabel = (await mark.count()) ? await mark.first().getAttribute('aria-label') : '';
+      const marks = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').getAttribute('aria-label').catch(() => null);
       const nameStyle = await pg.evaluate(() => {
-        const el = [...document.querySelectorAll('[data-testid=note-type-mark] *')].find((e) => /^Idea$/.test((e.textContent || '').trim()) && e.children.length === 0 && getComputedStyle(e).fontFamily && e.tagName !== 'I');
+        const el = document.querySelector('[data-testid=capture-viewer] [data-testid=reaction-marks] [data-testid=reaction-name]');
         if (!el) return null;
         const st = getComputedStyle(el);
         return { color: st.color, size: parseFloat(st.fontSize) };
       });
-      await shot(pg, 'qol-07-note-type-card');
+      await shot(pg, 'qol-07-reaction-on-the-note');
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(600);
-      // The note shares its pin with the photo, so the pin says its group's kinds, not the type (NY10); since tend map T14
-      // (decision 0154) its head shows the two kinds fanned with no numeral, and its name says them in words with the
-      // minutes in, never "2 captures here".
+      // The note shares its pin with the photo: a pin of several says its kinds (tend map T14) and wears no bubbles (RX19).
       const several = await pg.$$eval('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])', (es) => es.map((e) => ({
-        label: e.getAttribute('aria-label'), kinds: e.querySelectorAll('[data-testid=pin-kind]').length, digits: /\d/.test(e.textContent || ''),
+        label: e.getAttribute('aria-label'), kinds: e.querySelectorAll('[data-testid=pin-kind]').length, digits: /\d/.test(e.textContent || ''), bubbles: e.querySelectorAll('[data-testid=pin-reaction]').length,
       })));
-      const pin = several.filter((p) => /^A photo and a note, (at the start|.+ minutes? in)\. Open$/.test(p.label) && p.kinds === 2 && !p.digits).length;
-      check(bare === 0 && /Type/.test(rowBefore) && /No type/.test(rowBefore) && items === 9 && /Idea/.test(rowAfter),
-        `NY6: the note page's Type tool opens a menu of eight and "No type", and shows the choice (bare ${bare}, row ${JSON.stringify(rowBefore)}, items ${items}, after ${JSON.stringify(rowAfter)})`);
-      check(/Idea/.test(markText) && markLabel === 'Idea',
-        `NY9: the viewer's note card shows the type's mark and its spoken name, none without a type (${JSON.stringify([markText, markLabel])})`);
-      check(pin >= 1, `NY10, tend map T14: a pin that holds the typed note and a photo shows the two kinds fanned, no numeral, and says "A photo and a note" with the minutes in (${JSON.stringify(several)})`);
-      check(pressed === 'true', `note-types ui 1: the Type tool shows pressed while its menu is open, so it reads as a control (${pressed})`);
-      check(!!nameStyle && nameStyle.color === 'rgb(29, 36, 48)' && nameStyle.size >= 14, `note-types ui 2: the mark's name is in ink and 14 px or more (${JSON.stringify(nameStyle)})`);
-      check(items === 9 && colours.length === 1 && markLabel === 'Idea',
-        `NY11: every glyph is drawn in one ink colour and each has its spoken name (${JSON.stringify(colours)})`);
-      // Back to no type, so the steps after this one meet the note as before (NY8).
+      const pin = several.filter((p) => /^A photo and a note, (at the start|.+ minutes? in)\. Open$/.test(p.label) && p.kinds === 2 && !p.digits && p.bubbles === 0).length;
+      check(bare === 0 && typeTool === 0 && toolBefore === 'Reaction, none' && picks === 8 && toolAfter === 'Reaction, Idea' && pressed === 'true',
+        `RX12: the note page's Reaction tool, where Type was, opens the eight and shows the choice (${JSON.stringify({ bare, typeTool, toolBefore, picks, toolAfter, pressed })})`);
+      check(inView.top >= 0 && inView.barBottom <= inView.h && inView.right <= inView.w, `note-types audit 9, carried: at 320 x 520 the reactions and the page's bar stay in view (${JSON.stringify(inView)})`);
+      check(marks === 'Idea' && !!nameStyle && nameStyle.color === 'rgb(29, 36, 48)' && nameStyle.size >= 14,
+        `RX15: the viewer shows the note's reaction under its info line, its name in ink at 14 px or more (${JSON.stringify({ marks, nameStyle })})`);
+      check(pin >= 1, `RX19, tend map T14: the pin that holds the note and a photo says its two kinds, fanned, no numeral, no bubbles (${JSON.stringify(several)})`);
+      // Back to none, so the steps after this one meet the note as before.
       await openNote();
       await pg.click('[data-testid=viewer-edit-note]');
-      await pg.locator('[data-testid=note-type-row]').click().catch(() => null);
-      await pg.click('[data-testid=note-type-item-none]').catch(() => null);
+      await pg.locator('[data-testid=note-reaction-tool]').click().catch(() => null);
+      await pg.click('[data-testid=reaction-pick-idea]').catch(() => null);
       await pg.click('[data-testid=note-done]').catch(() => null);
       await pg.waitForTimeout(600);
-      const cleared = await pg.locator('[data-testid=note-type-mark]').count();
-      check(cleared === 0, `NY8: choosing "No type" clears the mark (${cleared})`);
+      const cleared = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').count();
+      check(cleared === 0, `RX5: choosing the chosen reaction again clears it (${cleared})`);
       await pg.click('[data-testid=viewer-close]').catch(() => null);
       await pg.waitForTimeout(400);
     });

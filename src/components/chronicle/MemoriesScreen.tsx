@@ -223,6 +223,11 @@ export function MemoriesScreen() {
   useEffect(() => {
     if (threadIds.length) void resurface.contextFor(threadIds, deletedIds);
   }, [threadIds, deletedIds, state.version]);
+  // A lens's moments are on screen too: each arrives with its context line (RX24, MC6).
+  const lensIds = useMemo(() => (lensViews ? lensViews.map((v) => v.id) : NO_IDS), [lensViews]);
+  useEffect(() => {
+    if (lensIds.length) void resurface.contextFor(lensIds, deletedIds);
+  }, [lensIds, deletedIds, state.version]);
   const hidden = useMemo(() => hiddenItems(state.prefs, feed.moments), [state.prefs, feed.moments]);
   // A delete began: the lines of the walks it touches are read again, so none names the capture that is going (audit 9).
   useEffect(() => {

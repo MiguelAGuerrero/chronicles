@@ -130,8 +130,8 @@ async function run(h) {
   const boldOn = await pg.getAttribute('[data-testid=note-format-bold]', 'aria-pressed');
   await pg.click('[data-testid=note-format-bold]');
   const names = ['Heading', 'Subheading', 'Body', 'Bold', 'Italic', 'Bulleted list', 'Numbered list', 'Checklist', 'Quote'];
-  // A new page carries the Type tool too (note types NY24).
-  check(bar.map((b) => b.name).join('|') === 'Format|Mention a moment|Type, No type|Take a photo or video' && bar.every((b) => b.w >= 44 && b.h >= 44)
+  // A new page carries the Reaction tool too (RX13).
+  check(bar.map((b) => b.name).join('|') === 'Format|Mention a moment|Reaction, none|Take a photo or video' && bar.every((b) => b.w >= 44 && b.h >= 44)
     && names.every((n) => panel.some((p) => p.name === n)) && panel.every((p) => p.w >= 44 && p.h >= 44 && (p.pressed === 'true' || p.pressed === 'false')) && boldOn === 'true',
     `NP4: Aa, @, Type and the camera above the keyboard (${bar.map((b) => b.name).join('|')}); the panel's nine named, 44 px, pressed or not (bold ${boldOn}; ${JSON.stringify(panel.map((p) => p.name))})`);
   await pg.setViewportSize({ width: 320, height: 640 });
@@ -419,37 +419,6 @@ async function run(h) {
   const readyPage = await there('[data-testid=note-page] [data-testid=note-input]');
   await pg.keyboard.press('Escape');
   check(readyPage, 'NP1: Navigate\'s pencil opens the page in one tap');
-  // NY24 (note types at capture): a new note's page carries the Type tool; a type chosen before the first words is on
-  // the note when it is kept, and a page left without words keeps nothing.
-  await pg.goto(url);
-  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
-  await pg.waitForTimeout(1200);
-  const n24 = (await stored(pg)).length;
-  await openPage();
-  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
-  await pg.waitForTimeout(600);
-  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=note-type-item-idea]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(500);
-  await pg.click('[data-testid=note-done]');
-  await pg.waitForTimeout(1200);
-  const none24 = (await stored(pg)).length === n24;
-  await openPage();
-  await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
-  await pg.waitForTimeout(600);
-  await pg.click('[data-testid=note-type-row]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=note-type-item-idea]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=note-page] [data-testid=note-input]');
-  await pg.keyboard.type('A typed page from the start.');
-  await pg.waitForTimeout(2500);
-  await pg.click('[data-testid=note-done]');
-  await pg.waitForTimeout(1200);
-  const got24 = (await stored(pg)).flatMap((m) => m.pieces).find((x) => /A typed page from the start/.test(x.body ?? ''));
-  check(none24 && got24?.note_type === 'idea', `NY24: a new page carries the Type tool; chosen before the words it is on the kept note, and a wordless page keeps nothing (${JSON.stringify({ none24, type: got24?.note_type })})`);
-
   // RX12, RX13 (reactions, decision 0172): the page's Reaction tool, where Type was, sets the moment's reactions; on a
   // new page they wait for the words and are kept with the moment; a page left without words keeps nothing.
   const rxOf = (re) => pg.evaluate((src) => new Promise((resolve) => {
@@ -479,7 +448,7 @@ async function run(h) {
   await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(1200);
   const got13 = await rxOf(/A page reacted to before its words/);
-  check.todo(tool13 === 'Reaction, none' && got13?.thought === 'emphasis' && got13?.taste === 'like',
+  check(tool13 === 'Reaction, none' && got13?.thought === 'emphasis' && got13?.taste === 'like',
     `RX13: a new page carries the Reaction tool; what is chosen before the words is on the moment when it is kept (${JSON.stringify({ tool13, got13 })})`);
   // RX12: the page of a kept note, opened again, shows the moment's first reaction and changes it there.
   await pg.locator('[data-testid=journal-page] [data-testid=moment-card]').filter({ hasText: 'A page reacted to before its words' }).last().locator('[data-testid=moment-open]').click().catch(() => {});
@@ -496,7 +465,7 @@ async function run(h) {
   await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForTimeout(1000);
   const got12 = await rxOf(/A page reacted to before its words/);
-  check.todo(tool12 === 'Reaction, Like' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
+  check(tool12 === 'Reaction, Like' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
     `RX12: a note's page has a Reaction tool in place of Type, showing the first reaction; a choice is kept on the moment and leaves the words alone (${JSON.stringify({ tool12, typeTool12, got12 })})`);
 
   await c.close();

@@ -7,19 +7,19 @@ const DAY = 86400000;
 
 // A photo and a note from today, two older notes reacted to as ideas, and an older one with none. All placed near the
 // harness's start, apart enough to be pins of their own on Chronicle's Map.
-const SEED = ({ now, at }) => new Promise((resolve, reject) => {
+const SEED = ({ now, at, day }) => new Promise((resolve, reject) => {
   const m = (id, t, kind, p, extra = {}) => ({ id, walk_id: null, t, lat: p[1], lon: p[0], segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind, file_path: kind === 'photo' ? id : null, body: kind === 'text' ? extra.body : null, caption: null, caption_y: null }] });
   const rows = [
     m('rx-photo', now - 30 * 60000, 'photo', at[0]),
     m('rx-today', now - 20 * 60000, 'text', at[1], { body: 'The bench by the fountain is new.' }),
-    m('rx-idea-1', now - 5 * DAY, 'text', at[2], { body: 'Map the alleys behind the market.' }),
-    m('rx-idea-2', now - 3 * DAY, 'text', at[3], { body: 'Come back when the bakery opens.' }),
-    m('rx-plain', now - 2 * DAY, 'text', at[4], { body: 'Nothing much on the way home.' }),
+    m('rx-idea-1', now - 5 * day, 'text', at[2], { body: 'Map the alleys behind the market.' }),
+    m('rx-idea-2', now - 3 * day, 'text', at[3], { body: 'Come back when the bakery opens.' }),
+    m('rx-plain', now - 2 * day, 'text', at[4], { body: 'Nothing much on the way home.' }),
   ];
   const reactions = [
-    { moment_id: 'rx-idea-1', family: 'thought', reaction: 'idea', set_at: now - 5 * DAY },
-    { moment_id: 'rx-idea-2', family: 'thought', reaction: 'idea', set_at: now - 3 * DAY },
-    { moment_id: 'rx-idea-2', family: 'feeling', reaction: 'happy', set_at: now - 3 * DAY },
+    { moment_id: 'rx-idea-1', family: 'thought', reaction: 'idea', set_at: now - 5 * day },
+    { moment_id: 'rx-idea-2', family: 'thought', reaction: 'idea', set_at: now - 3 * day },
+    { moment_id: 'rx-idea-2', family: 'feeling', reaction: 'happy', set_at: now - 3 * day },
   ];
   const cv = document.createElement('canvas');
   cv.width = 160;
@@ -58,12 +58,13 @@ async function run(h) {
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
   const entry = (words) => pg.locator(entries).filter({ hasText: words }).last();
   const photoEntry = () => pg.locator(entries).filter({ has: pg.locator('img') }).last();
-  const at = [0, 1, 2, 3, 4].map((k) => [start[0] + k * 0.004, start[1] + k * 0.002]);
+  // Off the start, where an entry written in the journey is placed (its own pin).
+  const at = [1, 2, 3, 4, 5].map((k) => [start[0] + k * 0.004, start[1] + k * 0.002]);
 
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await there('[data-testid=open-line]', 20000);
-  const seeded = await pg.evaluate(SEED, { now: Date.now(), at }).catch(() => false);
+  const seeded = await pg.evaluate(SEED, { now: Date.now(), at, day: DAY }).catch((e) => String(e).slice(0, 300));
   await pg.reload();
   await there(entries, 20000);
   await pg.waitForTimeout(1500);
@@ -78,20 +79,19 @@ async function run(h) {
   await pg.click('[data-testid=reaction-panel] [data-testid=reaction-pick-happy]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(1000);
   const kept1 = await reactionsOf(pg, 'rx-photo');
-  check.todo(seeded === true && sign9.count === 1 && kept1?.feeling === 'happy',
+  check(seeded === true && sign9.count === 1 && kept1?.feeling === 'happy',
     `RX1: a photo's entry today offers the face with a plus, and a tap on a reaction there keeps it (${JSON.stringify({ seeded, sign9, kept1 })})`);
-  check.todo(families.length === 3 && /^Feeling/.test(families[0]) && /^Taste/.test(families[1]) && /^Thought/.test(families[2]),
+  check(families.length === 3 && /^Feeling/.test(families[0]) && /^Taste/.test(families[1]) && /^Thought/.test(families[2]),
     `RX9: the sign opens the three families by themselves (${JSON.stringify(families)})`);
-  await pg.keyboard.press('Escape').catch(() => {});
-  await pg.click('[data-testid=menu-close]', { timeout: 1500 }).catch(() => {});
-  await pg.waitForTimeout(500);
+  await pg.click('[data-testid=menu-cancel]', { timeout: 1500 }).catch(() => {});
+  await pg.waitForTimeout(700);
   const marked9 = await photoEntry().locator('[data-testid=reaction-sign]').getAttribute('aria-label').catch(() => null);
   // RX14: the entry shows its reactions under its dateline, glyph and name, in the families' order.
-  const marks14 = await photoEntry().locator('[data-testid=reaction-marks] [data-testid^=reaction-mark-]').allInnerTexts().catch(() => []);
-  check.todo(marked9 === 'Reaction, Happy' && marks14.join() === 'Happy',
+  const marks14 = await photoEntry().locator('[data-testid=reaction-marks] [data-testid=reaction-name]').allInnerTexts().catch(() => []);
+  check(marked9 === 'Reaction, Happy' && marks14.join() === 'Happy',
     `RX9, RX14: marked, the sign is the first reaction's glyph; the entry spells its reactions under the dateline (${JSON.stringify({ marked9, marks14 })})`);
   const old9 = await entry('Nothing much on the way home').locator('[data-testid=reaction-sign]').count();
-  check.todo(old9 === 0, `RX9: an entry of an earlier day shows no sign on its row (${old9})`);
+  check(old9 === 0, `RX9: an entry of an earlier day shows no sign on its row (${old9})`);
 
   // RX10: every entry's More offers Reaction, which shows the three families in the same sheet and stays for another.
   await entry('Nothing much on the way home').locator('[data-testid=moment-more]').click().catch(() => {});
@@ -105,10 +105,10 @@ async function run(h) {
   await pg.waitForTimeout(700);
   const open10 = await pg.locator('[data-testid=memory-menu] [data-testid=reaction-panel]').count();
   await shot(pg, 'reactions-02-in-more');
-  await pg.click('[data-testid=menu-close]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=menu-cancel]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const kept10 = await reactionsOf(pg, 'rx-plain');
-  check.todo(alone10 === 0 && open10 === 1 && kept10?.feeling === 'sad' && kept10?.thought === 'question',
+  check(alone10 === 0 && open10 === 1 && kept10?.feeling === 'sad' && kept10?.thought === 'question',
     `RX10: More's Reaction shows the families by themselves and stays open for a second family (${JSON.stringify({ alone10, open10, kept10 })})`);
 
   // RX6-RX8: the entry being written: nothing before its first character, then the sign; the panel above the bar
@@ -120,7 +120,7 @@ async function run(h) {
   await pg.waitForTimeout(1300);
   await pg.click('[data-testid=reaction-slot]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(500);
-  const rows6 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=reaction-panel] [data-testid^=reaction-family-]')].map((f) => ({ name: f.querySelector('[data-testid=reaction-family-name]')?.textContent, picks: [...f.querySelectorAll('[data-testid^=reaction-pick-]')].map((b) => b.innerText.trim()) })));
+  const rows6 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=reaction-panel] [data-testid^=reaction-family-]')].map((f) => ({ name: f.querySelector('[data-testid=reaction-group-name]')?.textContent, picks: [...f.querySelectorAll('[data-testid^=reaction-pick-]')].map((b) => b.querySelector('[data-testid=reaction-name]')?.textContent ?? '') })));
   const bar7 = await pg.evaluate(() => ['band-photo', 'band-voice', 'line-done'].filter((id) => { const r = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect(); return !!r && r.width > 0; }).length);
   await shot(pg, 'reactions-03-while-writing');
   await pg.click('[data-testid=reaction-pick-idea]').catch(() => {});
@@ -134,9 +134,9 @@ async function run(h) {
   await pg.keyboard.type('?', { delay: 10 });
   await pg.waitForTimeout(800);
   const closed7 = await pg.locator('[data-testid=reaction-panel]').count();
-  check.todo(before6 === 0 && rows6.map((r) => r.name).join() === 'Feeling,Taste,Thought' && rows6.map((r) => r.picks.join('/')).join('|') === 'Happy/Neutral/Sad|Like/Dislike|Question/Emphasis/Idea' && chosen6 === 'true',
+  check(before6 === 0 && rows6.map((r) => r.name).join() === 'Feeling,Taste,Thought' && rows6.map((r) => r.picks.join('/')).join('|') === 'Happy/Neutral/Sad|Like/Dislike|Question/Emphasis/Idea' && chosen6 === 'true',
     `RX6: nothing before the first character; then the sign opens three rows under their words, each reaction with its name, chosen ones shown chosen (${JSON.stringify({ before6, rows6, chosen6 })})`);
-  check.todo(bar7 === 3 && still7 === 1 && closed7 === 0, `RX7: the camera, the mic and Done stay; a choice keeps the panel open; the next character closes it (${JSON.stringify({ bar7, still7, closed7 })})`);
+  check(bar7 === 3 && still7 === 1 && closed7 === 0, `RX7: the camera, the mic and Done stay; a choice keeps the panel open; the next character closes it (${JSON.stringify({ bar7, still7, closed7 })})`);
   await pg.click('[data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(1200);
   await pg.reload();
@@ -147,21 +147,21 @@ async function run(h) {
     req.onsuccess = () => { const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.find((m) => m.pieces.some((p) => /square so quiet/.test(p.body ?? '')))?.id ?? null); };
   }));
   const kept8 = idOf ? await reactionsOf(pg, idOf) : null;
-  check.todo(kept8?.thought === 'idea' && kept8?.feeling === 'neutral', `RX8: what was chosen while writing is on the moment after Done and a reload (${JSON.stringify(kept8)})`);
+  check(kept8?.thought === 'idea' && kept8?.feeling === 'neutral', `RX8: what was chosen while writing is on the moment after Done and a reload (${JSON.stringify(kept8)})`);
 
   // RX34, RX36: at 320 px every reaction shows its name, nothing cut, 44 px targets, ink only, spoken with its family.
   await pg.setViewportSize({ width: 320, height: 720 });
   await pg.waitForTimeout(500);
   await photoEntry().locator('[data-testid=reaction-sign]').click({ timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
-  const at320 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=reaction-panel] [data-testid^=reaction-pick-]')].map((e) => { const r = e.getBoundingClientRect(); const g = e.querySelector('[data-testid^=reaction-glyph-]'); return { label: e.getAttribute('aria-label'), text: e.innerText.trim(), w: Math.round(r.width), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right), ink: g ? getComputedStyle(g).color : null, bg: getComputedStyle(e).backgroundColor, cut: e.scrollWidth > e.clientWidth + 1 }; }));
+  const at320 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=reaction-panel] [data-testid^=reaction-pick-]')].map((e) => { const r = e.getBoundingClientRect(); const g = e.querySelector('[data-testid^=reaction-glyph-]'); return { label: e.getAttribute('aria-label'), text: e.querySelector('[data-testid=reaction-name]')?.textContent ?? '', w: Math.round(r.width), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right), ink: g ? getComputedStyle(g).color : null, bg: getComputedStyle(e).backgroundColor, cut: e.scrollWidth > e.clientWidth + 1 }; }));
   await shot(pg, 'reactions-04-panel-320');
-  await pg.click('[data-testid=menu-close]', { timeout: 1500 }).catch(() => {});
+  await pg.click('[data-testid=menu-cancel]', { timeout: 1500 }).catch(() => {});
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(500);
-  check.todo(at320.length === 8 && at320.every((b) => b.w >= 44 && b.h >= 44 && b.l >= 0 && b.r <= 320 && !b.cut && b.text.length > 0) && at320.some((b) => b.label === 'Idea, Thought'),
+  check(at320.length === 8 && at320.every((b) => b.w >= 44 && b.h >= 44 && b.l >= 0 && b.r <= 320 && !b.cut && b.text.length > 0) && at320.some((b) => b.label === 'Idea, Thought'),
     `RX34: at 320 px every reaction shows its name, nothing cut, each 44 px or more, spoken with its family (${JSON.stringify(at320.map((b) => [b.label, b.w, b.h]))})`);
-  check.todo(at320.length === 8 && at320.every((b) => b.ink === INK && /rgba\(0, 0, 0, 0\)|transparent/.test(b.bg)), `RX36: every glyph in the one ink colour, and no tint, chosen or not (${JSON.stringify(at320.map((b) => [b.ink, b.bg]))})`);
+  check(at320.length === 8 && at320.every((b) => b.ink === INK && /rgba\(0, 0, 0, 0\)|transparent/.test(b.bg)), `RX36: every glyph in the one ink colour, and no tint, chosen or not (${JSON.stringify(at320.map((b) => [b.ink, b.bg]))})`);
 
   // RX11, RX15: the viewer's More offers Reaction for a photo; its reactions show under the info line.
   await photoEntry().locator('[data-testid=moment-open]').click().catch(() => {});
@@ -173,11 +173,12 @@ async function run(h) {
   await pg.waitForTimeout(500);
   await pg.click('[data-testid=reaction-pick-idea]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
-  await pg.keyboard.press('Escape').catch(() => {});
+  await shot(pg, 'reactions-05a-viewer-panel');
+  await pg.click('[data-testid=viewer-reaction-done]').catch(() => {});
   await pg.waitForTimeout(500);
-  const marks15 = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks] [data-testid^=reaction-mark-]').allInnerTexts().catch(() => []);
+  const marks15 = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks] [data-testid=reaction-name]').allInnerTexts().catch(() => []);
   await shot(pg, 'reactions-05-viewer');
-  check.todo(marks15.join() === 'Happy,Like,Idea', `RX11, RX15: the viewer's More sets a photo's reactions, and they show under its info line at once (${JSON.stringify(marks15)})`);
+  check(marks15.join() === 'Happy,Like,Idea', `RX11, RX15: the viewer's More sets a photo's reactions, and they show under its info line at once (${JSON.stringify(marks15)})`);
   await pg.click('[data-testid=viewer-close]').catch(() => {});
   await pg.waitForTimeout(600);
 
@@ -191,9 +192,9 @@ async function run(h) {
   const list23 = await pg.locator('[data-testid=reactions-screen]').innerText().catch(() => '');
   const rows23 = await pg.locator('[data-testid=reactions-screen] [data-testid^=lens-row-]').evaluateAll((es) => es.map((e) => e.dataset.testid.slice(9)));
   await shot(pg, 'reactions-06-the-lenses');
-  check.todo(items22.findIndex((t) => /^Reactions/.test(t)) === items22.findIndex((t) => /^Threads/.test(t)) + 1 && items22.some((t) => /Moments gathered by how you reacted/.test(t)),
+  check(items22.findIndex((t) => /^Reactions/.test(t)) === items22.findIndex((t) => /^Threads/.test(t)) + 1 && items22.some((t) => /Moments gathered by how you reacted/.test(t)),
     `RX22: the contents list Reactions after Threads, with its line (${JSON.stringify(items22)})`);
-  check.todo(rows23.join() === 'happy,neutral,sad,like,question,idea' && !/\d/.test(list23),
+  check(rows23.join() === 'happy,neutral,sad,like,question,idea' && !/\d/.test(list23),
     `RX23: one row per reaction a moment has, in the set's order, and no number anywhere (${JSON.stringify({ rows23, list23 })})`);
   await pg.click('[data-testid=lens-row-idea]', { timeout: 3000 }).catch(() => {});
   await there('[data-testid=lens-screen]');
@@ -201,20 +202,20 @@ async function run(h) {
   const lens24 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').evaluateAll((es) => es.map((e) => e.getAttribute('aria-label')));
   const title24 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
   await shot(pg, 'reactions-07-ideas');
-  check.todo(title24 === 'Ideas' && lens24.length === 4 && /alleys/.test(lens24[0]) && /bakery/.test(lens24[1]) && lens24.every((l) => /(ago|day|morning|afternoon|evening|night|today|yesterday)/i.test(l)),
+  check(title24 === 'Ideas' && lens24.length === 4 && /alleys/.test(lens24[0]) && /bakery/.test(lens24[1]) && lens24.every((l) => /(ago|day|morning|afternoon|evening|night|today|yesterday)/i.test(l)),
     `RX2, RX24: Ideas shows every moment with Idea, oldest first, each in its context (${JSON.stringify({ title24, lens24 })})`);
   await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').first().click().catch(() => {});
   await there('[data-testid=capture-viewer]');
   await pg.waitForTimeout(600);
   const info25 = await pg.locator('[data-testid=capture-viewer]').innerText().catch(() => '');
-  await pg.keyboard.press('ArrowRight').catch(() => {});
+  await pg.locator('[data-testid=capture-viewer] [aria-label="Next moment"]').first().click().catch(() => {});
   await pg.waitForTimeout(600);
   const next25 = await pg.locator('[data-testid=capture-viewer]').innerText().catch(() => '');
   await pg.click('[data-testid=viewer-close]').catch(() => {});
   await pg.waitForTimeout(600);
   const back25 = await pg.locator('[data-testid=lens-screen]').count();
-  check.todo(/alleys/.test(info25) && /bakery/.test(next25) && !/\b\d+ of \d+\b/.test(info25 + next25) && back25 === 1,
-    `RX25: a moment opens in the viewer, which steps through the lens with no position; Back returns to the lens (${JSON.stringify({ back25 })})`);
+  check(/alleys/.test(info25) && /bakery/.test(next25) && !/\b\d+ of \d+\b/.test(info25 + next25) && back25 === 1,
+    `RX25: a moment opens in the viewer, which steps through the lens with no position; Back returns to the lens (${JSON.stringify({ back25, info25: info25.slice(0, 200), next25: next25.slice(0, 200) })})`);
 
   // RX26: a cleared reaction leaves its lens when it is next shown.
   await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').first().click().catch(() => {});
@@ -223,11 +224,11 @@ async function run(h) {
   await pg.click('[data-testid=viewer-reaction]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-idea]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
-  await pg.keyboard.press('Escape').catch(() => {});
+  await pg.click('[data-testid=viewer-reaction-done]').catch(() => {});
   await pg.click('[data-testid=viewer-close]').catch(() => {});
   await pg.waitForTimeout(800);
   const lens26 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').count();
-  check.todo(lens26 === 3, `RX26: a moment whose reaction is cleared leaves its lens (${lens26})`);
+  check(lens26 === 3, `RX26: a moment whose reaction is cleared leaves its lens (${lens26})`);
   await pg.click('[data-testid=lens-back]').catch(() => {});
   await pg.click('[data-testid=reactions-back]').catch(() => {});
   await pg.waitForTimeout(500);
@@ -246,11 +247,11 @@ async function run(h) {
     return { label: el.getAttribute('aria-label'), head: { x: Math.round(head.x), cx: Math.round(head.x + head.width / 2), cy: Math.round(head.y + head.height / 2) }, bubbles, photo: !!el.querySelector('img') };
   }, pin);
   await shot(pg, 'reactions-08-pin');
-  check.todo(!!pin17 && pin17.bubbles.map((b) => b.id).join() === 'happy,like,idea' && pin17.bubbles.every((b) => b.bg === INK && b.cy > pin17.head.cy) && pin17.bubbles[0].x < pin17.head.cx && pin17.photo,
+  check(!!pin17 && pin17.bubbles.map((b) => b.id).join() === 'happy,like,idea' && pin17.bubbles.every((b) => b.bg === INK && b.cy > pin17.head.cy) && pin17.bubbles[0].x < pin17.head.cx && pin17.photo,
     `RX3, RX17, RX18: the photo's pin wears its reactions as ink bubbles from its bottom-left, and its head is still the photo (${JSON.stringify(pin17)})`);
-  check.todo(!!pin17 && /^Photo, happy, like, idea/.test(pin17.label ?? ''), `RX21: the pin says its reactions after its kind (${pin17?.label})`);
+  check(!!pin17 && /^Photo, happy, like, idea/.test(pin17.label ?? ''), `RX21: the pin says its reactions after its kind (${pin17?.label})`);
   const several19 = await pg.evaluate(() => [...document.querySelectorAll('[data-ids*=","]')].map((e) => e.querySelectorAll('[data-testid=pin-reaction]').length));
-  check.todo(several19.every((n) => n === 0), `RX19: a pin of several wears no bubbles (${JSON.stringify(several19)})`);
+  check(several19.every((n) => n === 0), `RX19: a pin of several wears no bubbles (${JSON.stringify(several19)})`);
   const box20 = await pg.evaluate((sel) => {
     const el = document.querySelector(sel);
     const r = (q) => { const b = el?.querySelector(q)?.getBoundingClientRect(); return b ? [b.left, b.top, b.right, b.bottom] : null; };
@@ -258,7 +259,7 @@ async function run(h) {
     return { bubbles, bell: r('[data-testid=pin-reminder]'), clock: r('[data-testid=memory-clock]'), video: r('[data-testid=pin-video-mark]') };
   }, pin);
   const overlaps = (a, b) => !!a && !!b && a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-  check.todo(box20.bubbles.length === 3 && box20.bubbles.every((b) => ![box20.bell, box20.clock, box20.video].some((o) => overlaps(b, o))),
+  check(box20.bubbles.length === 3 && box20.bubbles.every((b) => ![box20.bell, box20.clock, box20.video].some((o) => overlaps(b, o))),
     `RX20: the bubbles never cover the bell, the clock or the video mark (${JSON.stringify(box20)})`);
   const handle = await pg.$(pin);
   await pg.click(pin).catch(() => {});
@@ -268,9 +269,9 @@ async function run(h) {
   await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const behind21 = handle ? await handle.evaluate((e) => ({ connected: e.isConnected, n: e.querySelectorAll('[data-testid=pin-reaction]').length })).catch(() => null) : null;
-  await pg.keyboard.press('Escape').catch(() => {});
+  await pg.click('[data-testid=viewer-reaction-done]').catch(() => {});
   await pg.click('[data-testid=viewer-close]').catch(() => {});
-  check.todo(!!behind21 && behind21.connected && behind21.n === 2, `RX21: a change of reaction shows on the same pin behind the viewer at once (${JSON.stringify(behind21)})`);
+  check(!!behind21 && behind21.connected && behind21.n === 2, `RX21: a change of reaction shows on the same pin behind the viewer at once (${JSON.stringify(behind21)})`);
 
   await c.close();
 }
