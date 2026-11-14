@@ -23,6 +23,9 @@ export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId
   useEffect(() => () => reactions.closed(moment), [moment]);
   return (
     <View testID={props.testID ?? 'reaction-panel'} style={styles.panel} accessibilityLabel="Reactions">
+      {/* A choice that could not be kept, said once in the journal's words (RL9); never a count, never a nag. In ink at
+          the top, right under the panel's header, where it is seen (reaction-links ui 2). */}
+      {notKept ? <Text style={styles.notKept} testID="reaction-not-kept" accessibilityLiveRegion="polite">Not kept yet</Text> : null}
       {ROWS.map((f) => (
         <View key={f.id} style={styles.family} testID={`reaction-family-${f.id}`} accessibilityRole="radiogroup" accessibilityLabel={f.name}>
           <Text style={styles.familyName} testID="reaction-group-name">{f.name}</Text>
@@ -51,8 +54,6 @@ export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId
           </View>
         </View>
       ))}
-      {/* A choice that could not be kept, said once in the journal's words (RL9); never a count, never a nag. */}
-      {notKept ? <Text style={styles.notKept} testID="reaction-not-kept" accessibilityLiveRegion="polite">Not kept yet</Text> : null}
     </View>
   );
 }
@@ -68,5 +69,5 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   name: { color: theme.ink, fontSize: 12 },
   nameOn: { fontWeight: '700' },
-  notKept: { color: theme.muted, fontSize: 13, paddingHorizontal: 6, paddingTop: 4 },
+  notKept: { color: theme.ink, fontSize: 14, paddingHorizontal: 6, paddingTop: 4 },
 });

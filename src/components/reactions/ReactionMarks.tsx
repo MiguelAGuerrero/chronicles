@@ -25,7 +25,8 @@ export function ReactionMarks({ set, quiet = false, inverse = false, style, onOp
         const mark = (
           <View style={styles.mark} testID={`reaction-mark-${r.id}`} aria-label={onOpen ? undefined : r.name}>
             <Icon name={r.glyph as IconName} size={16} color={ink} testID={`reaction-glyph-${r.id}`} />
-            <Text style={[styles.name, { color: ink }]} testID="reaction-name">{r.name}</Text>
+            {/* A link's word is underlined in ink, the one mark RL5 allows (the cold find, reaction-links ui 1). */}
+            <Text style={[styles.name, { color: ink }, onOpen && styles.linkName]} testID="reaction-name">{r.name}</Text>
           </View>
         );
         // A link to the whole lens, named for it ("Ideas"); pressed, only the ink fades (RL5).
@@ -46,5 +47,6 @@ const styles = StyleSheet.create({
   mark: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { fontSize: 14, color: theme.ink },
   link: { minHeight: 44, justifyContent: 'center' },
+  linkName: { textDecorationLine: 'underline' },
   pressed: { opacity: 0.55 },
 });

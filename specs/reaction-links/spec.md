@@ -78,4 +78,28 @@ Back goes to where the first lens was opened from.
 
 ## Record
 
-Not built.
+Built 2026-11-14, test-first (12 of 12): `reactions/links.test.ts` (RL6, RL7 words and drawing, RL9-RL12), the Db contract
+(`FC7 setReactions, RL10`), the `reactions` journey (RL1-RL6, RL8, RL9) and the `notepage` journey (RL7). RL8's check
+measures the date's edge against the sign's face and the dateline (the edge takes no pointer events, so a hit test
+never sees it); it failed on the build without the fix.
+
+### The cold find (decision 0167)
+
+The UX reviewer, given three pictures and "Gather all my ideas" and nothing else: its first tap was "Idea" under the
+entry, the right control, but from a still picture it read as a label like the dateline beside it, so it called the
+task not found. Accepted as RL5's fallback: `reaction-links ui 1`, the word of a reaction that is a link underlined in
+ink; a plain mark keeps none.
+
+### UI review (decision 0145)
+
+Nine pictures against the plan's goal-to-control lines. Six findings:
+- U1 (the links read as labels): accept, `reaction-links ui 1` (as the cold find).
+- U2 ("Not kept yet" far from its cause, in muted grey): accept, `reaction-links ui 2` (in ink, at the panel's top,
+  under its header); the words stay RL9's, the journal's own.
+- U3 (the panel does not say which moment it acts on): defer; the panel opens from the entry tapped, and the picture's
+  entry was scrolled away by the journey.
+- U4 (the 44 px band loosens the entry): reject; 44 px is the platform's target (X0), and `hitSlop` is not kept by the
+  web build.
+- U5 (the circled minus of Neutral reads as "remove"): defer; Ionicons has no neutral face (`reactions/core`).
+- U6 (Back from a lens opened from the viewer returns to the journal, not the moment): the owner's (RL3); in
+  `docs/STATUS.md`.

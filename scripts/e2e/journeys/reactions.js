@@ -373,6 +373,12 @@ async function run(h) {
   // RL1, RL2, RL5: "Idea" under the photo's entry is a link to Ideas; Back returns to the journal.
   const link5 = await photoEntry().locator('[data-testid=reaction-link-idea]').evaluate((e) => { const r = e.getBoundingClientRect(); return { role: e.getAttribute('role'), label: e.getAttribute('aria-label'), h: Math.round(r.height) }; }).catch(() => null);
   check(!!link5 && link5.role === 'link' && link5.label === 'Ideas' && link5.h >= 44, `RL5: a reaction under an entry is a link named for its lens, 44 px tall (${JSON.stringify(link5)})`);
+  // reaction-links ui 1 (the cold find, U1): a link's word is underlined in ink; a plain mark's is not.
+  const ui1l = await pg.evaluate(() => {
+    const deco = (sel) => { const e = document.querySelector(sel); return e ? getComputedStyle(e).textDecorationLine : null; };
+    return { link: deco('[data-testid=reaction-link-idea] [data-testid=reaction-name]'), plain: deco('[data-testid=lens-screen] [data-testid=reaction-name]') };
+  });
+  check(ui1l.link === 'underline', `reaction-links ui 1: a reaction that is a link has its word underlined in ink (${JSON.stringify(ui1l)})`);
   await shot(pg, 'reactions-09-links-under-entry');
   await photoEntry().locator('[data-testid=reaction-link-idea]').click().catch(() => {});
   const lens2 = await there('[data-testid=lens-screen]');
@@ -406,6 +412,14 @@ async function run(h) {
   await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(900);
   const fail9 = { line: await pg.locator('[data-testid=reaction-not-kept]').innerText().catch(() => null), chosen: await pg.locator('[data-testid=reaction-pick-like]').getAttribute('aria-checked').catch(() => null) };
+  // reaction-links ui 2 (U2): the line is in ink, at the panel's top, above the first family.
+  const ui2k = await pg.evaluate(() => {
+    const line = document.querySelector('[data-testid=reaction-not-kept]');
+    const fam = document.querySelector('[data-testid=reaction-family-feeling]');
+    if (!line || !fam) return null;
+    return { above: line.getBoundingClientRect().bottom <= fam.getBoundingClientRect().top + 1, color: getComputedStyle(line).color };
+  });
+  check(!!ui2k && ui2k.above && ui2k.color === 'rgb(29, 36, 48)', `reaction-links ui 2: "Not kept yet" is in ink at the panel's top (${JSON.stringify(ui2k)})`);
   await shot(pg, 'reactions-10-not-kept');
   await pg.evaluate(() => window.__unbreak?.());
   await pg.click('[data-testid=reaction-done]').catch(() => {});

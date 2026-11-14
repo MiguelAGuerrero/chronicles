@@ -1,0 +1,74 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--after",
+        "(UI review U6, U8, U9)"
+      ],
+      "body": "- [loop] **Reaction links** (UI review U3, U5): a reaction panel does not say which moment it acts on (a subtitle with the moment's first words, or the entry scrolled into view above the sheet); Neutral's circled minus reads as \"remove\" now that a mark is tappable (Ionicons has no neutral face; a drawn one, or another glyph, is a choice for a phone).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /slice reaction-links"
+      ],
+      "intro": "What the reaction-links slice left for the owner (`specs/reaction-links/spec.md`, Record).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reaction-links"
+      ],
+      "body": "- **Back from a lens opened from the viewer** (UI review U6): a reaction in the viewer closes it and opens its lens (RL3), so Back returns to the journal, not to the moment that was open. Recommended: keep it (the lens is a new place, and the moment is one tap away in the journal); the alternative is that Back reopens the viewer on that moment.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice reactions",
+        "The sign once a moment has a reaction",
+        "--reason",
+        "built in reaction-links (decision 0177)"
+      ],
+      "target": "sha256:2fb8c5935d0b821da097910ab440516144c89a51fae466f06a89b425c9280940"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice reactions",
+        "\"Contents\" as the way to the lenses",
+        "--reason",
+        "built in reaction-links (decision 0177)"
+      ],
+      "target": "sha256:e0661c5504683bf7541411a38618722cac338ac91b5e3d15a649489055b47851"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Reaction links (in Memories a reaction under an entry or the viewer's line is a link to its lens, its word underlined in ink, Back to the journal; elsewhere plain words; the sign and a page's Reaction tool always the face with a plus; the first entry under a date clears the date's edge; \"Not kept yet\" in ink at a panel's top; a moment's rows kept together by `setReactions`; a keep under way is not dropped; a video's pin wears its bubbles in an L; RL1-RL12, decision 0177) | built 2026-11-14, test-first (12 of 12): unit tests, typecheck, lint, docs and vision checks; e2e `reactions`, `journal`, `notepage`, `qol`, `capturehome`, `dense`, `edit`, `responses`, `resurface`, `stacks`, `threads`, `upgrade`, `videothumbs`, `voicetrim`, `walk`; cold find and UI review triaged (`reaction-links ui 1-2`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reaction-links/spec.md` | no |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Reaction links slice (RL1-RL12"
+      ],
+      "body": "| Reaction links slice (RL1-RL12, `specs/reaction-links/spec.md`, decision 0177) | `claude/trusting-gates-cd90zs` | built 2026-11-14; waits for the deploy |\n",
+      "target": "sha256:b3621c5f0014d47cedc2da058b92ad90e592ce671914a63998b93af264b32eda"
+    }
+  ]
+}
