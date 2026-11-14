@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| After dark (lit streets and places open after dark as a fourth map layer, from OpenStreetMap by tile; local sunset on the device; an unlit heads-up on a navigated walk; DK1-DK17, the vision gate's reshaping of the owner's safety idea, Nov 14) | `claude/affectionate-heisenberg-4x07ad` | started 2026-11-14; plan reviewed and approved with its defaults; tests first, then the code, then the audit the owner asked for |\n"
+    }
+  ]
+}

@@ -45,7 +45,7 @@ How much of a town is tagged is not known: Overpass and taginfo are blocked from
 12. **DK12** The legend, in the walk's settings drawers (Navigate's start settings and the live walk's options), shows, with swatches matching what is drawn:
     - "Lit streets", tip: "Lit streets: streets OpenStreetMap marks as having street lights.";
     - "Open after dark", tip: "Open after dark: places whose hours, as mapped, say they are open at the time above.";
-    - a third row with the moon, "On a route after dark", tip: "On a route after dark: a quiet line before a street mapped as unlit." (steward S3);
+    - a third row with the moon, "On a route after dark", tip: "On a route after dark: a line before a street mapped as unlit." (steward S3);
     - and the layer's note: "From OpenStreetMap. Only what is mapped: a street with no lighting mapped may still be lit."
 13. **DK13** Nothing is read for the layer while it is off: no Overpass request and no read of the kept tiles; the heads-up reads no route tile while it is off.
 14. **DK14** When Overpass is busy, unreachable or past its cap, the panel line says "Not available now" and no guess is drawn; tiles already kept are still drawn, and a tile that failed is not asked again for two minutes.

@@ -839,6 +839,25 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(keys(await db.getWalkTiles(['3/4', '1/2'])), ['1/2', '3/4']);
     });
 
+    test('DK9 putDarkTiles, getDarkTiles: the same key replaces; only the keys asked for come back, in key order; empty is a no-op; purgeDerived clears them', { todo: 'test first' }, async () => {
+      type DarkTile = { key: string; x: number; y: number; code: string; read_at: number; ways: { id: string; lit: string; name?: string; line: [number, number][] }[]; places: { id: string; at: [number, number]; hours: string }[] };
+      const db = (await fresh()) as unknown as Db & { putDarkTiles(t: DarkTile[]): Promise<void>; getDarkTiles(k: string[]): Promise<DarkTile[]> };
+      const darkTile = (key: string, read_at = 1): DarkTile => {
+        const [x, y] = key.split('/').map(Number);
+        return { key, x, y, code: 'd1', read_at, ways: [{ id: 'w1', lit: 'yes', name: 'Elm Street', line: [[LON, LAT], [LON + 0.001, LAT]] }], places: [{ id: 'n2', at: [LON, LAT], hours: 'Mo-Su 17:00-23:00' }] };
+      };
+      assert.deepEqual(await db.getDarkTiles(['1/2']), []);
+      await db.putDarkTiles([darkTile('1/2', 1), darkTile('3/4', 1)]);
+      await db.putDarkTiles([darkTile('1/2', 2)]);
+      await db.putDarkTiles([]);
+      assert.deepEqual(await db.getDarkTiles([]), []);
+      assert.deepEqual(keys(await db.getDarkTiles(['1/2', '9/9'])), ['1/2']);
+      assert.deepEqual((await db.getDarkTiles(['1/2']))[0], darkTile('1/2', 2));
+      assert.deepEqual(keys(await db.getDarkTiles(['3/4', '1/2'])), ['1/2', '3/4']);
+      await db.purgeDerived();
+      assert.deepEqual(await db.getDarkTiles(['1/2', '3/4']), []);
+    });
+
     test('FC7 putComplexes, complexesNear (CX14): the same id replaces; only boxes meeting the area come back, in id order; empty is a no-op; purgeDerived clears them', async () => {
       const db = await fresh();
       const mk = (id: string, w: number, s: number, name = id): Complex => ({ id, name, kind: 'shopping', polygons: [[[[w, s], [w + 0.001, s], [w + 0.001, s + 0.001], [w, s + 0.001], [w, s]]]], at: [w + 0.0005, s + 0.0005], bbox: [w, s, w + 0.001, s + 0.001], release: 'r', code: 'c1' });

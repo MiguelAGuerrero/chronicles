@@ -177,6 +177,22 @@ wkSeg('far-b', { class: 'primary', '@name': 'Route 7', speed_limits: mph(55) }, 
 const overpassAnswer = { elements: [
   { type: 'way', id: 1, tags: { highway: 'secondary', 'sidewalk:both': 'no', maxspeed: '35 mph', name: 'Route 6' }, geometry: [{ lat: at(0, 3)[1], lon: at(-2, 3)[0] }, { lat: at(0, 3)[1], lon: at(2, 3)[0] }] },
 ] };
+// After dark (DK1-DK17): the Overpass answer to the after-dark query. 'mixed': Grid 0 and Grid 1 Street lit, Grid 2 Street
+// mapped as unlit, Grid 3 Street untagged; a bar open in the evening, a bookshop open by day, a place whose hours can't be read
+// and one with none. 'unlit': every grid street mapped as unlit (the heads-up). 'busy': a 429 for every after-dark query.
+const ll = (p) => ({ lat: p[1], lon: p[0] });
+const darkWorld = { mode: 'mixed' };
+const darkAnswerOf = (mode) => ({ elements: mode === 'unlit'
+  ? [...GRID.map((gy, i) => ({ type: 'way', id: 900 + i, tags: { highway: 'residential', lit: 'no', name: `Grid ${gy} Street` }, geometry: [ll(at(-5, gy)), ll(at(5, gy))] })),
+    ...GRID.map((gx, i) => ({ type: 'way', id: 950 + i, tags: { highway: 'residential', lit: 'no' }, geometry: [ll(at(gx, -5)), ll(at(gx, 5))] }))]
+  : [
+    { type: 'way', id: 801, tags: { highway: 'residential', lit: 'yes', name: 'Grid 0 Street' }, geometry: [ll(at(-5, 0)), ll(at(5, 0))] },
+    { type: 'way', id: 802, tags: { highway: 'residential', lit: 'automatic', name: 'Grid 1 Street' }, geometry: [ll(at(-5, 1)), ll(at(5, 1))] },
+    { type: 'way', id: 803, tags: { highway: 'residential', lit: 'no', name: 'Grid 2 Street' }, geometry: [ll(at(-5, 2)), ll(at(5, 2))] },
+    { type: 'node', id: 811, lat: at(0.2, 0.1)[1], lon: at(0.2, 0.1)[0], tags: { amenity: 'bar', opening_hours: 'Mo-Su 16:00-02:00', name: 'Night Bar' } },
+    { type: 'node', id: 812, lat: at(0.6, 0.1)[1], lon: at(0.6, 0.1)[0], tags: { shop: 'books', opening_hours: 'Mo-Su 09:00-17:00' } },
+    { type: 'node', id: 813, lat: at(1.0, 0.1)[1], lon: at(1.0, 0.1)[0], tags: { amenity: 'cafe', opening_hours: 'Jan-Mar Mo-Su 18:00-23:00' } },
+  ] });
 // What the transportation archive holds: 'ok' the fixture, 'grid' every street of the grid as a fast road (the heads-up
 // journey), 'broken' a 200 that is not a PMTiles file (not a 404, which would be a console error), so Overture "can't be read".
 const walkability = { mode: 'ok' };
@@ -644,7 +660,9 @@ async function createHarness() {
   const overpassRoute = async (r) => {
     const req = r.request();
     overpassAsked.push({ url: req.url(), method: req.method(), body: req.postData() });
-    return r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: JSON.stringify(overpassAnswer) });
+    const isDark = decodeURIComponent(req.postData() ?? '').includes('opening_hours');
+    if (isDark && darkWorld.mode === 'busy') return r.fulfill({ status: 429, headers: { 'access-control-allow-origin': '*' }, body: '' });
+    return r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: JSON.stringify(isDark ? darkAnswerOf(darkWorld.mode) : overpassAnswer) });
   };
   const overtureRoute = async (r) => {
     const req = r.request();
@@ -680,6 +698,7 @@ async function createHarness() {
       // E2E_MOBILE=1: a phone's touch screen, so taps come as touches and the browser makes the clicks.
       ...(process.env.E2E_MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
       ...(opts.touch ? { hasTouch: true } : {}),
+      ...(opts.timezoneId ? { timezoneId: opts.timezoneId } : {}),
       permissions: opts.permissions ?? ['geolocation'],
       geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
     });
@@ -785,7 +804,7 @@ async function createHarness() {
   });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, darkWorld, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
 
