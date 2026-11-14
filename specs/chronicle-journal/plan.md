@@ -132,3 +132,82 @@ Left open by the steward and not settled here: VISION.md's open question 5 (how 
 
 Built and audited: what changed from this plan, the tests and the audit's triage are in `specs/chronicle-journal/spec.md`, "Record" and "Audit". Defaults 1-5, 7 and 8 were built as written; default 6 as changed after the steward.
 
+
+## The ways to make an entry sit with the line (JN34-JN40, Nov 14, decision 0172)
+
+For the owner's review before any code. Spec: JN34-JN40 in `specs/chronicle-journal/spec.md`. Branch `claude/chronicles-action-button-layout-x4cg4k`; pushed there, not deployed.
+
+### What you will see
+
+- **At rest:** the day's date, the last entry, then on the empty page "What’s on your mind?" with the camera and the mic directly under it, left-aligned with the placeholder. Nothing above the tab bar.
+- **Typing:** the row leaves the page and the bar sits on the keyboard as today (status, Open as a page, camera, mic, Done).
+- **Scrolled back:** the bar comes back above the tab bar with the pen, the camera and the mic, as today.
+- **A thread, the threads, Hidden:** unchanged.
+
+### Defaults for your review
+
+1. **The row is drawn quiet but findable:** the same two glyphs as the bar (`camera-outline`, `mic-outline`) in ink, 22 pt glyphs in 44 pt targets, no labels, no container. Restraint (VISION.md) without hiding them ("Found before quiet"). Words beside the glyphs ("Photo", "Voice") would be louder and more findable; not taken by default.
+2. **Recording stays in the row** (JN38): the timer and Discard lead, Stop takes the mic's place and the camera keeps its own, so the finger that started it finds Stop under it. The alternative, moving the recording to the bar, puts Stop a screen away from where you tapped. Stop keeps the recording purple: the row is the line's, and that colour is the line's own.
+3. **Done for an open entry is in the row** (JN39), after a photo or a voice note with no keyboard up; otherwise Done is only in the keyboard bar. Done's kept place at rest (audit 51) goes: with no bar at rest there is nothing to keep it in.
+4. **No bar at rest, rather than an empty one** (JN35): the empty page runs down to the tab bar. This also settles ux 3 of Nov 13 (a toolbar above the tab bar at rest, T8).
+5. **The row sits in the empty page's top, under the field**, so a tap anywhere else on the empty page still writes (JN32); the row takes its own taps.
+
+### Files
+
+- `src/components/journal/OpenLine.tsx`: the field element gains the row (camera, mic, Done, the recording's timer, Discard, Stop) when on the page and not typing; the bar renders only while typing, recording from the bar, failed, `penInBar`, or `inBar`; `onHeight` reports 0 when no bar is drawn.
+- `src/lib/journal/bar.ts` (new, `@layer core`): `controlsAt({ inBar, opened, rowInView, typing, failed })` returns `bar` or `row`, never both (JN35), with its unit tests. `rowInView` comes from `JournalPage`'s scroll (today's `onAway`, made exact: the row wholly in view).
+- `src/components/journal/JournalPage.tsx`: room for the row under the field in the empty page (`lib/journal/rest.ts` if `BLANK_MIN` must grow by the row's 44).
+- `scripts/e2e/journeys/journal.js`: checks JN34-JN40, shots at rest, typing, scrolled back, recording, 320 px.
+- Docs: decision 0172, `.claude/rules/journal.md` (JN29/audit 51 lines), `.claude/rules/ui-patterns.md` (the exception to T7), `docs/PRODUCT.md`, `NATIVE_UNVERIFIED.md` (the row on a phone with the keyboard down and up).
+
+### Data
+
+None. No truth, no cache, no migration.
+
+### Tests per criterion
+
+| Id | Test |
+|---|---|
+| JN34 | `journal` journey: at rest `page-photo` and `page-voice` are visible, their left edge within 4 px of the field's, their top under the placeholder, each ≥ 44 px, ink, named, and next after the field in DOM order; shot. Cold find by the `ux-reviewer` |
+| JN35 | `bar.test.ts` (`src/lib/__tests__/journal/`): `controlsAt` over every input, one answer each; journey: no `open-line` at rest, the bar's camera with reads broken (`__breakReads`) |
+| JN36 | `bar.test.ts`: typing → bar, no row; journey: focus the field, the row is gone and `open-line` holds the writing row; blur, the row is back and the placeholder's and last entry's tops are unchanged |
+| JN37 | `bar.test.ts`: row out of view → bar; journey: scroll back, `bar-write`, `band-photo`, `band-voice` visible; and mid-recording, Stop in the bar |
+| JN38 | journey: tap `page-voice`, the timer and Stop are in the row, Stop's box where the mic's was, the camera where it was and enabled |
+| JN39 | journey: words typed then blur, `page-done` in the row; Done ends the entry and the row returns to two; `bar.test.ts`: a failed save → bar (the journey has no write-failure hook) |
+| JN40 | journey: an Undo pill at rest does not overlap the row's box; a thread shows the bar as before; at 320 px no control in the row wraps (every state) |
+
+### Goal to control
+
+| Goal | How often, where | Control | Where you'll look first | Matrix |
+|---|---|---|---|---|
+| Add a photo or a voice note | Often, on foot | Two icon buttons under the placeholder | Where you'd write, under the question: that is the point of the change | 22 and 5 (as before); composer precedent (Facebook, Threads, X). Departs from T7 (no loose buttons on content): the row belongs to the line, the owner's call (0172) |
+| Write | Very often | The placeholder line, the empty page | Unchanged | 22 |
+| Stop a recording | Each voice note | Stop where the mic was | Under the finger that began it | 23 |
+| Finish an entry | Each entry | Done in the keyboard bar, or in the row after a photo | Trailing end of whichever row is up | 23 |
+
+### Weighed against what was settled
+
+- **audit 51 / ux 5** (the camera and the mic never move): reversed by the owner's call; they move from under the line to the keyboard bar when typing, as in Notes and Day One.
+- **T7** (controls in bars, not on content): an exception, recorded in 0172 and `ui-patterns.md`.
+- **0112** ("fixed low, never a hero block"): kept in spirit by JN37 (the bar brings them back when the row is out of view) and by default 1 (no block, no colour).
+
+### The steward's findings (Nov 14)
+
+1. Capture hidden while the sheet loads (breach): accept, JN35 (the bar until the sheet opens, and after a failed read).
+2. The camera gone mid-recording (breach): accept, JN38.
+3. Messages with no bar to sit on: accept, JN40.
+4. T7's exception asks for a container and 3:1: accept into 0172, which waives the container: the row is on the page's own ground, ink on it is well over 3:1, and a container would make it the block 0112 forbids.
+5. The walk's recording bar at rest: accept, JN35.
+6. The edges between row and bar: accept, JN35's rule (one or the other, never both, never neither), JN37 (a recording when pulled back), JN38 (the keyboard mid-note), JN39 (words left, a failed save).
+7. The recording purple on the page: reject; the row is the line's, and the purple is the line's own recording colour (the bar's Stop today).
+8. "Someone finds them" is a judgement: accept; JN34 now names what is checked (glyph, ink, 44 pt, spoken name), and the cold find runs in the UX review.
+9. Screen-reader order: accept, JN34 amends JN23 (the row right after the field).
+- Question it raised: with icons under it, does the placeholder read more like a prompt than 0171 allowed? My view: no, it says nothing more than before; yours to call.
+
+### Deferred
+
+- Nothing planned. If the steward or the UX review asks for words on the glyphs, it goes to you.
+
+### Native paths that will not run on a device
+
+- The row under a native `TextInput`'s placeholder, the bar appearing when pulled back, and recording from the row: web only until a phone runs it.

@@ -467,6 +467,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'chronicle-journal': { branch: 'claude/chronicles-action-button-layout-x4cg4k', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
