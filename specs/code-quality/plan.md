@@ -43,7 +43,7 @@ All in `src/lib/__tests__/arch/` (the `arch` feature), over fixture trees in a t
 
 | Criterion | File | Test name |
 |---|---|---|
-| CQ1 | `quality.test.ts` | `CQ1 the facts are the same bytes on two runs` |
+| CQ1 | `quality.test.ts` | `CQ1 the facts are the same bytes on two runs over a fixture tree` |
 | CQ2 | `qualityFacts.test.ts` | `CQ2 lines, branches, nesting, parameters, hooks and props have known answers` |
 | CQ3 | `qualityFacts.test.ts` | `CQ3 purity and the layer findings: each with a look-alike that passes` |
 | CQ4 | `qualityFacts.test.ts` | `CQ4 swallowed errors and floating promises: each with a look-alike that passes` |
@@ -53,8 +53,8 @@ All in `src/lib/__tests__/arch/` (the `arch` feature), over fixture trees in a t
 | CQ8 | `quality.test.ts` | `CQ8 new code past each limit fails, naming its move` |
 | CQ9 | `quality.test.ts` | `CQ9 the baseline keys by name, so moving code within a file changes nothing` |
 | CQ10 | `quality.test.ts` | `CQ10 a recorded file or function that got worse fails; a frozen file may not grow by a line` |
-| CQ11 | `quality.test.ts` | `CQ11 an improvement fails until tightened; tighten refuses to raise or add` |
-| CQ12 | `quality.test.ts` | `CQ12 the repo passes its gate, check:affected runs it, and it costs at most 6 s` |
+| CQ11 | `quality.test.ts` | `CQ11 an improvement fails until tightened; tighten refuses to raise or add; no looser than main's` |
+| CQ12 | `quality.test.ts` | `CQ12 the repo passes its gate, and check:affected and CI run check:quality` |
 | CQ13 | `quality.test.ts` | `CQ13 the scope follows the changed files' features and the queue is ranked by commits times branches` |
 | CQ14 | `refactorCommits.test.ts` | `CQ14 a refactor commit may add to a test, never change one` |
 | CQ15 | `procedures.test.ts` | `CQ15 /refactor sits after green and before /docs-gc in /slice, in /tend's sweep, and in the skills' table` |

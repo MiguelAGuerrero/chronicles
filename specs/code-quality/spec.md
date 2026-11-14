@@ -38,8 +38,8 @@ Open: none
    swallowed; with `--types`, a call whose value is a promise that nothing awaits, returns, voids or catches is listed as
    floating. Each with a fixture and a look-alike (`.catch(handle)`, `void p`, `await p`, `.then(a, b)`).
 5. **CQ5 · React.** Listed, each with a fixture and a look-alike: an effect whose own body only sets state; three or more
-   setters called together in three or more callbacks; a component over 10 props; `Platform.OS` in a file that has no
-   `.web`/`.native` sibling; a `useStore` selector that builds a new object or array; `react-hooks/exhaustive-deps` turned
+   setters called together in three or more callbacks; a component over 10 props; `Platform.OS` in a file that is not itself a `.web` or
+   `.native` file; a `useStore` selector that builds a new object or array; `react-hooks/exhaustive-deps` turned
    off; a hard-coded colour.
 6. **CQ6 · The graph and copies.** Import cycles; exports no production file imports (Expo Router's route exports and
    modules loaded by `new URL('./x', import.meta.url)` count as used); modules nothing imports; copies of 70+ normalised
@@ -64,10 +64,11 @@ Open: none
     catalog move that fixes it (R1-R16). A file over 400 lines may not grow at all (the owner, 2026-11-14).
 11. **CQ11 · Tighten, never loosen.** An improvement leaves a stale entry, and the gate fails until
     `npm run quality -- --tighten` lowers it. `--tighten` only lowers values and removes entries; asked to raise one or add
-    one, it refuses and says why. A ceiling test in `arch/` holds each list's length and each total, like
-    `functional-core audit 7`.
-12. **CQ12 · Enforced.** `npm test` runs the gate without `--types`; `npm run check:affected` runs `check:quality`
-    (with `--types`) after the layer check; CI runs `check:quality`. `npm test` grows by at most 6 seconds.
+    one, it refuses and says why. A test in `arch/` holds the baseline to be no looser than the one at the merge base with
+    `main`: no entry `main` lacks, no value above `main`'s.
+12. **CQ12 · Enforced.** `npm test` runs the gate over the repo without `--types` (the type checker's pass costs a
+    program); `npm run check:affected` runs `check:quality` (with `--types`) after the layer check; CI runs
+    `check:quality` and `check:refactor`.
 
 ### The step
 
@@ -88,8 +89,8 @@ Open: none
 - Fixture trees in a temp folder, as `functionalCoreAudit.test.ts` builds them: CQ2-CQ7 (one finding and one look-alike
   per analyzer), CQ8-CQ11 (a baseline, a regression, an improvement, `--tighten`'s refusals), CQ13 (a scope and a queue on a
   tiny git repo).
-- CQ1: two runs over this repo compared byte for byte.
-- CQ12: the arch test runs the gate over the repo and times it; `affected.test.ts` holds that `check` runs `check:quality`.
+- CQ1: two runs over a fixture tree with history compared byte for byte.
+- CQ12: the arch test runs the gate over the repo; it reads `affected.js`'s steps and the CI workflow for the two checks.
 - CQ14: a throwaway git repo with a refactor commit that adds a test and one that edits an assertion.
 - CQ15: `procedures.test.ts` reads the skill files.
 

@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Code quality (facts from `npm run quality` become a ratchet: `check:quality` against a baseline that only shrinks, limits for new code, `check:refactor` keeping refactor commits behaviour-preserving, and `/refactor` after a slice is green and in each `/tend` sweep; CQ1-CQ15) | `claude/serene-sagan-ig8te6` | started 2026-11-14: the analyzers report (`scripts/quality/`), the spec and plan approved by the owner; tests first next, then `/audit` (the owner asked). Spec `specs/code-quality/spec.md` |\n"
+    }
+  ]
+}

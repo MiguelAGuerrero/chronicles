@@ -113,3 +113,17 @@ test('TG19 the e2e skill and AGENTS.md say what is true', () => {
   assert.match(read('.claude/skills/e2e/SKILL.md'), /nothing-leaves/);
   assert.match(read('AGENTS.md'), /\*\*Nothing is a score\*\* in the app/);
 });
+
+test('CQ15 /refactor sits after green and before /docs-gc in /slice, in /tend\'s sweep, and in the skills\' table', { todo: 'test first' }, () => {
+  const skill = read('.claude/skills/refactor/SKILL.md');
+  for (const word of ['npm run quality -- --scope', 'check:quality', '--tighten', 'check:refactor', 'refactor <feature> N: R<k>']) assert.ok(skill.includes(word), `/refactor names ${word}`);
+  assert.match(skill, /up to 3/i);
+  assert.match(skill, /never push/i);
+  const slice = read('.claude/skills/slice/SKILL.md');
+  const at = slice.indexOf('/refactor');
+  assert.ok(at > slice.indexOf('## 9. Before done') && at < slice.indexOf('Run `/docs-gc`'), '/slice runs /refactor in step 9, before /docs-gc');
+  assert.match(read('.claude/skills/tend/SKILL.md'), /\/refactor/);
+  assert.match(read('.claude/skills/README.md'), /\| `\/refactor` \|/);
+  const rules = read('.claude/rules/refactoring.md');
+  for (let k = 1; k <= 16; k++) assert.match(rules, new RegExp(`\\*\\*R${k}\\b`), `the catalog holds R${k}`);
+});
