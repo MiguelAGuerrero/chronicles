@@ -84,7 +84,7 @@ async function run(h) {
     `RX1: a photo's entry today offers the face with a plus, and a tap on a reaction there keeps it (${JSON.stringify({ seeded, sign9, kept1 })})`);
   check(families.length === 3 && /^Feeling/.test(families[0]) && /^Taste/.test(families[1]) && /^Thought/.test(families[2]),
     `RX9: the sign opens the three families by themselves (${JSON.stringify(families)})`);
-  await pg.click('[data-testid=menu-cancel]', { timeout: 1500 }).catch(() => {});
+  await pg.click('[data-testid=reaction-done]', { timeout: 1500 }).catch(() => {});
   await pg.waitForTimeout(700);
   const marked9 = await photoEntry().locator('[data-testid=reaction-sign]').getAttribute('aria-label').catch(() => null);
   // RX14: the entry shows its reactions under its dateline, glyph and name, in the families' order.
@@ -114,7 +114,29 @@ async function run(h) {
   await pg.waitForTimeout(700);
   const open10 = await pg.locator('[data-testid=memory-menu] [data-testid=reaction-panel]').count();
   await shot(pg, 'reactions-02-in-more');
-  await pg.click('[data-testid=menu-cancel]', { timeout: 3000 }).catch(() => {});
+  // reactions ui 3: a chosen reaction is marked by a check beside its name, never a rule under it like a tab.
+  const ui3 = await pg.evaluate(() => {
+    const on = [...document.querySelectorAll('[data-testid=memory-menu] [data-testid^=reaction-pick-][aria-checked=true]')];
+    return on.map((e) => ({ check: !!e.querySelector('[data-testid=reaction-check]'), rule: getComputedStyle(e).borderBottomWidth }));
+  });
+  check.todo(ui3.length === 2 && ui3.every((x) => x.check && (x.rule === '0px' || x.rule === '')), `reactions ui 3: a chosen reaction has a check, and no rule under it (${JSON.stringify(ui3)})`);
+  // reactions ui 4: the sheet's way out is one word in ink at its top right, as the viewer's.
+  const ui4 = await pg.evaluate(() => {
+    const d = document.querySelector('[data-testid=memory-menu] [data-testid=reaction-done]');
+    const sheet = document.querySelector('[data-testid=memory-menu]')?.getBoundingClientRect();
+    if (!d || !sheet) return null;
+    const r = d.getBoundingClientRect();
+    const t = [...d.querySelectorAll('*')].find((x) => x.children.length === 0 && x.textContent.trim()) ?? d;
+    return { word: d.innerText.trim(), ink: getComputedStyle(t).color, right: Math.round(sheet.right - r.right), top: Math.round(r.top - sheet.top) };
+  });
+  check.todo(!!ui4 && ui4.word === 'Done' && ui4.ink === INK && ui4.right < 40 && ui4.top < 60, `reactions ui 4: the reactions sheet closes by Done, in ink, at its top right (${JSON.stringify(ui4)})`);
+  // reactions ui 5: the three rows share three columns, Taste's two in the first two.
+  const ui5 = await pg.evaluate(() => {
+    const x = (id) => Math.round(document.querySelector(`[data-testid=memory-menu] [data-testid=reaction-pick-${id}]`)?.getBoundingClientRect().left ?? -1);
+    return { happy: x('happy'), like: x('like'), question: x('question'), neutral: x('neutral'), dislike: x('dislike'), emphasis: x('emphasis') };
+  });
+  check.todo(ui5.happy === ui5.like && ui5.like === ui5.question && ui5.neutral === ui5.dislike && ui5.dislike === ui5.emphasis, `reactions ui 5: Like and Dislike sit in the first two of the three columns (${JSON.stringify(ui5)})`);
+  await pg.click('[data-testid=reaction-done]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const kept10 = await reactionsOf(pg, 'rx-plain');
   check(alone10 === 0 && open10 === 1 && kept10?.feeling === 'sad' && kept10?.thought === 'question',
@@ -165,7 +187,7 @@ async function run(h) {
   await pg.waitForTimeout(600);
   const at320 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=reaction-panel] [data-testid^=reaction-pick-]')].map((e) => { const r = e.getBoundingClientRect(); const g = e.querySelector('[data-testid^=reaction-glyph-]'); return { label: e.getAttribute('aria-label'), text: e.querySelector('[data-testid=reaction-name]')?.textContent ?? '', w: Math.round(r.width), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right), ink: g ? getComputedStyle(g).color : null, bg: getComputedStyle(e).backgroundColor, cut: e.scrollWidth > e.clientWidth + 1 }; }));
   await shot(pg, 'reactions-04-panel-320');
-  await pg.click('[data-testid=menu-cancel]', { timeout: 1500 }).catch(() => {});
+  await pg.click('[data-testid=reaction-done]', { timeout: 1500 }).catch(() => {});
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(500);
   check(at320.length === 8 && at320.every((b) => b.w >= 44 && b.h >= 44 && b.l >= 0 && b.r <= 320 && !b.cut && b.text.length > 0) && at320.some((b) => b.label === 'Idea, Thought'),
@@ -183,7 +205,7 @@ async function run(h) {
   await pg.click('[data-testid=reaction-pick-idea]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
   await shot(pg, 'reactions-05a-viewer-panel');
-  await pg.click('[data-testid=viewer-reaction-done]').catch(() => {});
+  await pg.click('[data-testid=reaction-done]').catch(() => {});
   await pg.waitForTimeout(500);
   const marks15 = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks] [data-testid=reaction-name]').allInnerTexts().catch(() => []);
   await shot(pg, 'reactions-05-viewer');
@@ -235,7 +257,7 @@ async function run(h) {
   await pg.click('[data-testid=viewer-reaction]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-idea]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
-  await pg.click('[data-testid=viewer-reaction-done]').catch(() => {});
+  await pg.click('[data-testid=reaction-done]').catch(() => {});
   await pg.click('[data-testid=viewer-close]').catch(() => {});
   await pg.waitForTimeout(800);
   const lens26 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').count();
@@ -294,7 +316,7 @@ async function run(h) {
   await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const behind21 = handle ? await handle.evaluate((e) => ({ connected: e.isConnected, n: e.querySelectorAll('[data-testid=pin-reaction]').length })).catch(() => null) : null;
-  await pg.click('[data-testid=viewer-reaction-done]').catch(() => {});
+  await pg.click('[data-testid=reaction-done]').catch(() => {});
   await pg.click('[data-testid=viewer-close]').catch(() => {});
   check(!!behind21 && behind21.connected && behind21.n === 2, `RX21: a change of reaction shows on the same pin behind the viewer at once (${JSON.stringify(behind21)})`);
 

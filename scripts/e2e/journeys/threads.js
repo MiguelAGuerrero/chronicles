@@ -282,7 +282,7 @@ async function run(h) {
   await pg.click('[data-testid=reaction-pick-happy]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-question]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
-  await pg.click('[data-testid=viewer-reaction-done]').catch(() => {});
+  await pg.click('[data-testid=reaction-done]').catch(() => {});
   await closeViewer();
   const marks16 = await pg.locator(`${bubble('looked strong at the pier')} [data-testid=reaction-marks] [data-testid=reaction-name]`).allInnerTexts().catch(() => []);
   const plain16 = await pg.locator(`${bubble('And a third')} [data-testid=reaction-marks]`).count();
