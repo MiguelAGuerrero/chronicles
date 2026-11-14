@@ -271,6 +271,8 @@ async function run(h) {
   const lens24 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').evaluateAll((es) => es.map((e) => e.getAttribute('aria-label')));
   const title24 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
   await shot(pg, 'reactions-07-ideas');
+  const backWordList = await pg.locator('[data-testid=lens-back]').innerText().catch(() => null);
+  check(backWordList === 'Reactions', `reaction-links live 1: a lens opened from the Reactions list says Back to Reactions (${backWordList})`);
   check(title24 === 'Ideas' && lens24.length === 4 && /alleys/.test(lens24[0]) && /bakery/.test(lens24[1]) && lens24.every((l) => /(ago|day|morning|afternoon|evening|night|today|yesterday)/i.test(l)),
     `RX2, RX24: Ideas shows every moment with Idea, oldest first, each in its context (${JSON.stringify({ title24, lens24 })})`);
   await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').first().click().catch(() => {});
@@ -387,6 +389,9 @@ async function run(h) {
   const lens2 = await there('[data-testid=lens-screen]');
   const title2 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
   const count2 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').count();
+  // reaction-links live 1 (the deploy's live check): Back names where it goes; from an entry, the journal.
+  const backWord2 = { text: await pg.locator('[data-testid=lens-back]').innerText().catch(() => null), label: await pg.locator('[data-testid=lens-back]').getAttribute('aria-label').catch(() => null) };
+  check(backWord2.text === 'Journal' && backWord2.label === 'Back to the journal', `reaction-links live 1: a lens opened from an entry says Back to the journal (${JSON.stringify(backWord2)})`);
   await pg.click('[data-testid=lens-back]').catch(() => {});
   await pg.waitForTimeout(800);
   const back2 = { journal: await pg.locator('[data-testid=journal-page]').count(), list: await pg.locator('[data-testid=reactions-screen]').count() };
