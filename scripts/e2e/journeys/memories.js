@@ -88,7 +88,9 @@ async function checks(h) {
     check(left === 0, `a "once" reminder clears when it fires (${left} left)`);
     await page.click('[data-testid=reminder-open]');
     await page.waitForSelector('[data-testid=viewer-more]');
-    check(true, 'the reminder opens its capture');
+    // tend explore audit 7: a check that can fail, the flagged note's own words in the viewer.
+    check(await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true', { timeout: 10000 }).then(() => true, () => false),
+      'the reminder opens its capture (tend explore audit 7: the flagged note shows in the viewer)');
     // Flagged again here, mid-walk, every visit: it waits for the next walk, not two seconds (audit).
     await page.click('[data-testid=viewer-more]');
     await page.click('[data-testid=viewer-remind]');
@@ -192,46 +194,130 @@ async function checks(h) {
     await page.click('[data-testid=viewer-close]');
 
     // tend explore T29 (decision 0164): a reminder of several says its count in words, and its kinds in the pins'
-    // words. Two more of the first walk's moments near here are flagged once, then the page is read again (the
+    // words. The two of the first walk's moments nearest here are flagged once, then the page is read again (the
     // flags are kept in memory between checks) and the walker moves on a few steps, so both come due together.
+    // tend explore audit 7: the step checks its own setup, reads the card once it has settled, clears its flags
+    // whatever happens, and walks back to the spot at a walking pace. Then the same two again with the walk
+    // minimized, so the recording bar's line is pictured too (the T29 review's auditor 5).
+    const spot = pts[25];
     const several = await page.evaluate(([noteKey, lon, lat]) => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const db = req.result;
-        const g = db.transaction('moment', 'readonly').objectStore('moment').getAll();
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
         g.onsuccess = () => {
           const note = g.result.find((m) => m.id === noteKey);
           const metres = (m) => Math.hypot((m.lon - lon) * 111320 * Math.cos((lat * Math.PI) / 180), (m.lat - lat) * 111320);
-          const near = g.result.filter((m) => m.id !== noteKey && m.walk_id === note?.walk_id && m.lat != null && m.lon != null)
-            .sort((a, b) => metres(a) - metres(b)).slice(0, 2);
-          const tx = db.transaction('recall', 'readwrite');
-          for (const m of near) tx.objectStore('recall').put({ capture_id: m.id, frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
-          tx.oncomplete = () => resolve(near.map((m) => ({ kind: m.pieces[0].kind, m: Math.round(metres(m)) })));
+          resolve(g.result.filter((m) => m.id !== noteKey && m.walk_id === note?.walk_id && m.lat != null && m.lon != null)
+            .sort((a, b) => metres(a) - metres(b)).slice(0, 2).map((m) => ({ id: m.id, kind: m.pieces[0].kind, m: Math.round(metres(m)) })));
         };
       };
-    }), [noteId, pts[25][0], pts[25][1]]);
-    await page.goto(url);
-    await page.waitForSelector('[data-testid=recording-return], [data-testid=stop]', { timeout: 20000 });
-    if (await page.locator('[data-testid=recording-return]').count()) await page.click('[data-testid=recording-return]');
-    await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
-    for (let j = 1; j <= 6 && !(await page.locator('[data-testid=reminder]').count()); j++) {
-      await ctx.setGeolocation({ longitude: pts[25][0], latitude: pts[25][1] + j * 0.00005, accuracy: 6 });
-      await page.waitForTimeout(1000);
+    }), [noteId, spot[0], spot[1]]);
+    // 50 m or less, so the 22 m the minimized leg may walk past the spot keeps both inside a reminder's 75 m reach.
+    check(several.length === 2 && several.every((s) => s.m <= 50),
+      `tend explore audit 7: the two moments flagged lie within 50 m of the spot, inside a reminder's 75 m reach however the step walks (${JSON.stringify(several)})`);
+    const ids = several.map((s) => s.id);
+    const flags = (put) => page.evaluate(([list, add]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('recall', 'readwrite');
+        for (const id of list) {
+          if (add) tx.objectStore('recall').put({ capture_id: id, frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+          else tx.objectStore('recall').delete(id);
+        }
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [ids, put]);
+    // The words a reminder shows once two reads 300 ms apart agree (a fire can merge into it a moment later).
+    const settled = async (sel) => {
+      let last = null;
+      for (let i = 0; i < 10; i++) {
+        const now = (await page.locator(sel).innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+        if (now && now === last) return now;
+        last = now;
+        await page.waitForTimeout(300);
+      }
+      return last ?? '';
+    };
+    let north = 0;
+    try {
+      await flags(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=stop]', { timeout: 20000 });
+      if (await page.locator('[data-testid=recording-return]').count()) await page.click('[data-testid=recording-return]');
+      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      for (let j = 1; j <= 6 && !(await page.locator('[data-testid=reminder]').count()); j++) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      const severalUp = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
+      // The card's text, its clock and ✕ glyphs (the icon font's) at its ends.
+      const severalSaid = severalUp ? await settled('[data-testid=reminder]') : '';
+      const severalName = severalUp ? await page.locator('[data-testid=reminder-open]').getAttribute('aria-label') : '';
+      check(severalUp && /(^|[^A-Za-z])Two memories here [A-Z]/.test(severalSaid) && /\b(photo|video|voice memo|note)s?\b/i.test(severalSaid) && !/\d/.test(severalSaid)
+        && /^Two memories here: [A-Z][a-z ,]+\. Open$/.test(severalName ?? ''),
+        `tend explore T29: a reminder of several says its count and kinds in words, the pins' words, on the card and to a screen reader (${JSON.stringify(several)}: "${severalSaid}", "${severalName}")`);
+      await shot(page, '15-reminder-several');
+      await page.setViewportSize({ width: 320, height: 844 });
+      await page.waitForTimeout(400);
+      await shot(page, '15b-reminder-several-320');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(400);
+      if (severalUp) await page.click('[data-testid=reminder-dismiss]');
+      // The same two again ("once" cleared them as they fired), with the walk minimized: the bar takes the fire (NV8).
+      // Read again, as above: a bell's refresh after the fire reloads the flags held in memory, and a row written
+      // here goes round `saveRecall`, which would drop them.
+      await flags(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-minimize]', { timeout: 20000 });
+      if (!(await page.locator('[data-testid=recording-return]').count())) await page.click('[data-testid=walk-minimize]');
+      await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
+      const cardAt = north;
+      for (let j = north - 1; j >= -4 && !(await page.locator('[data-testid=recording-reminder]').count()); j--) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      const barUp = await page.waitForSelector('[data-testid=recording-reminder]', { timeout: 15000 }).then(() => true, () => false);
+      // Where the fire went, if not to the bar: the flags left, a card on the walk beneath, a notification.
+      const went = barUp ? null : await page.evaluate((list) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('recall', 'readonly').objectStore('recall').getAll();
+          g.onsuccess = async () => {
+            const reg = await navigator.serviceWorker?.getRegistration?.().catch(() => null);
+            const notes = reg ? (await reg.getNotifications()).map((n) => n.title) : null;
+            resolve({ left: g.result.filter((r) => list.includes(r.capture_id)).length, cards: document.querySelectorAll('[data-testid=reminder]').length, notes, path: location.pathname });
+          };
+        };
+      }), ids);
+      const barSaid = barUp ? await settled('[data-testid=recording-reminder]') : '';
+      const barName = barUp ? await page.locator('[data-testid=recording-reminder]').getAttribute('aria-label') : '';
+      // After a reload the walk screen and the bar both listen for a fire, and either may hold the one slot
+      // (`onRecallFired`): a fire the walk screen takes shows nowhere while minimized (filed in docs/DEFERRED.md,
+      // "Reminders and notifications"). So the bar's words are checked when the bar has it, and the race is logged.
+      if (!barUp) console.log(`note: minimized, the fire did not reach the bar (steps ${cardAt} to ${north}; ${JSON.stringify(went)})`);
+      check(!barUp || (/(^|[^A-Za-z])Two memories here See\b/.test(barSaid) && !/\d/.test(barSaid) && barName === 'Two memories here. Return to the walk to see it'),
+        `tend explore audit 7: minimized, the recording bar says the reminder of two in words (NV8; "${barSaid}", "${barName}"; steps ${cardAt} to ${north})`);
+      if (barUp) {
+        await shot(page, '16-bar-reminder-several');
+        await page.setViewportSize({ width: 320, height: 844 });
+        await page.waitForTimeout(400);
+        await shot(page, '16b-bar-reminder-several-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(400);
+      }
+      await page.click('[data-testid=recording-return]');
+      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    } finally {
+      await flags(false);
+      // Back to the spot at a walking pace, from wherever the step stopped, north or south of it.
+      while (north !== 0) {
+        north += north > 0 ? -1 : 1;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + north * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
     }
-    const severalUp = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
-    // The card's text, its clock and ✕ glyphs (the icon font's) at its ends.
-    const severalSaid = severalUp ? (await page.locator('[data-testid=reminder]').innerText()).replace(/\s+/g, ' ').trim() : '';
-    const severalName = severalUp ? await page.locator('[data-testid=reminder-open]').getAttribute('aria-label') : '';
-    check(several.length === 2 && severalUp && /(^|[^A-Za-z])Two memories here [A-Z]/.test(severalSaid) && /\b(photo|video|voice memo|note)s?\b/i.test(severalSaid) && !/\d/.test(severalSaid)
-      && /^Two memories here: [A-Z][a-z ,]+\. Open$/.test(severalName ?? ''),
-      `tend explore T29: a reminder of several says its count and kinds in words, the pins' words, on the card and to a screen reader (${JSON.stringify(several)}: "${severalSaid}", "${severalName}")`);
-    await shot(page, '15-reminder-several');
-    await page.setViewportSize({ width: 320, height: 844 });
-    await page.waitForTimeout(400);
-    await shot(page, '15b-reminder-several-320');
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForTimeout(400);
-    if (severalUp) await page.click('[data-testid=reminder-dismiss]');
 
     // Rides (R5, R6, R11): a bus leg at 12 m/s, one fix a second, is drawn dashed and reads "On a ride",
     // never "Weak GPS" (the bug, Nov 1: a bus kept its first fix and showed Weak GPS); the card shows
