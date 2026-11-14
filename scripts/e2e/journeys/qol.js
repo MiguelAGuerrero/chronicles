@@ -1417,6 +1417,8 @@ async function run(h) {
       }
       const on = { chip: await chip8.count(), notice: await notice8(), ...(await stored()) };
       await shot(pg8, `qol-13h-walk-location-back-${w}`);
+      // tend walk-screen audit 10: the walk keeps its banner for a refusal; only Explore's card says it alone.
+      check(off.notice === 1, `tend walk-screen audit 10: at ${w}, the walk refused shows its banner (${JSON.stringify(off)})`);
       check(off.chip === 1 && off.notice === 1 && on.chip === 0 && on.notice === 0 && on.fixes > off.fixes && on.pauses === 0,
         `tend walk-screen 3: at ${w}, location turned off mid-walk says so quietly; turned back on, the walk records again by itself, the notice and chip gone, and no pause stored (${JSON.stringify({ off, on })})`);
       // tend walk-screen audit 6 (the review's auditor 5): the restart took a second wake lock and never let go of the
@@ -1532,15 +1534,21 @@ async function run(h) {
         check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
           `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
         await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
-        await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
         if (screen === 'Explore') {
-          // tend explore 8 (O20): after the refusal Find me waits, its notice saying where to turn location on; the edge
+          // tend walk-screen audit 10 (the review's ux 3; the owner, in person, Nov 14: "Card only on Explore"): while the card
+          // says location is blocked, no banner says it again over it; with no fix and no tiles, still no scale bar.
+          const seen = await readNotice(pg4, T17_WORDS);
+          const banners = await pg4.locator('[data-testid=lift-in]', { hasText: /Location is off/ }).filter({ visible: true }).count();
+          check(seen.banner == null && banners === 0 && seen.bars.length === 0,
+            `tend walk-screen audit 10: Explore at ${w}, refused while the card says location is blocked, no banner says it again, and no scale bar over the blank world (${JSON.stringify({ ...seen, banners })})`);
+        } else await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
+        if (screen === 'Explore') {
+          // tend explore 8 (O20): after the refusal Find me waits, the card saying where to turn location on; the edge
           // Locate is the one way meanwhile. Once the permission changes (the site allowed), Find me is back, the edge's gone.
           const refused = await ways();
-          const notice = await pg4.getByText(T17_WORDS).count();
           // tend explore audit 8: while the permission reads "denied" the edge Locate could only be refused again, so it goes too.
-          check(refused.findMe === 0 && refused.edge === 0 && notice >= 1,
-            `tend explore 8, tend explore audit 8: Explore at ${w}, after a refusal, location blocked, no Find me and no edge Locate, only the notice that says where to turn location on (${JSON.stringify({ ...refused, notice })})`);
+          check(refused.findMe === 0 && refused.edge === 0,
+            `tend explore 8, tend explore audit 8: Explore at ${w}, after a refusal, location blocked, no Find me and no edge Locate, only the card that says where to turn location on (${JSON.stringify(refused)})`);
           // tend explore audit 9 (the owner, in person, Nov 14, during the review: "Say where to turn it on"): while location is
           // blocked the empty card's line is the refusal's own sentence, muted, with no crosshair glyph.
           const card = await pg4.evaluate(() => {

@@ -8,7 +8,7 @@ import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
-import { BLOCKED_LINE, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
+import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
@@ -588,7 +588,6 @@ export default function Explore() {
   }, [selected, town, selectKey, enterArea, frame]);
 
   const wide = screen.w >= TWO_PANES;
-  const error = walkStart.error ?? locError;
   // The title names the level shown (fix explore-town-scope): the towns near you, or the town whose page is open.
   const lookOn = looked != null;
   const title = town?.name ?? (lookOn ? lookWords().title : 'Near you');
@@ -606,6 +605,8 @@ export default function Explore() {
   const noteText = town && ownTown && !neighborhoods.length && fresh.status !== 'offline' ? townNote(town.name, listing) : null;
   // One way to find you (tend explore 8): the empty card's Find me, else the edge Locate.
   const finding = findYou({ cardEmpty: !noteText && !shown.length && !from, refused, permission: permission ?? { state: 'unknown', changes: 0 } });
+  // The card alone says location is blocked: no banner says it again (tend walk-screen audit 10, the owner, Nov 14).
+  const error = exploreBanner(walkStart.error ?? locError, finding.blocked);
   const overlay = error ? (
     <Banner
       // Location refused, by Locate (T17) or by Walk here (tend recording audit 2), is the quiet notice; anything else a fault.

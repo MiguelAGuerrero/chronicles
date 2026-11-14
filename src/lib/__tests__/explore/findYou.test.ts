@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BLOCKED_LINE, findYou, refusalLifted, type PermissionSeen } from '../../atlas/findYou';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../atlas/findYou';
 
 // tend explore 8 (decision 0172, O6 and O20): with no fix, Explore showed Locate at the map's edge and Find me in the
 // empty card, the same crosshair twice; after a refusal Find me stayed under the notice, a button that could only be
@@ -75,4 +77,20 @@ test('tend explore audit 10: the refusal\'s own change to "denied", the same ans
   assert.equal(refusalLifted({ state: 'prompt', changes: 0 }, 'denied'), false);
   assert.equal(refusalLifted({ state: 'denied', changes: 2 }, 'denied'), false);
   assert.equal(refusalLifted(null, 'granted'), false);
+});
+
+// tend walk-screen audit 10 (the review's ux 3; the owner, in person, Nov 14, adding to 0172's O6/O20 answer: "Card
+// only on Explore"): while Explore's empty card says location is blocked, a refusal's banner said it again over it. On
+// Explore the card alone says it; a fault keeps its banner, and the walk and the other screens keep theirs.
+test('tend walk-screen audit 10: Explore raises no refusal banner while its card says location is blocked', () => {
+  const refusal = { message: 'Location is off for this site.', tone: 'info' as const };
+  const fault = { message: 'Something broke', tone: 'error' as const };
+  assert.equal(exploreBanner(refusal, true), null);
+  assert.equal(exploreBanner(refusal, false), refusal);
+  assert.equal(exploreBanner(fault, true), fault);
+  const untoned: { message: string; tone?: 'info' | 'error' } = { message: 'No tone' };
+  assert.equal(exploreBanner(untoned, true), untoned, 'no tone is a fault');
+  assert.equal(exploreBanner(null, true), null);
+  const src = readFileSync(join(__dirname, '../../../app/(tabs)/explore.tsx'), 'utf8');
+  assert.match(src, /const error = exploreBanner\(walkStart\.error \?\? locError, finding\.blocked\);/, 'Explore draws its banner through it');
 });
