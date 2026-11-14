@@ -45,6 +45,7 @@ async function run(h) {
     return { button: !!b && b.width >= 44 && b.top >= 0 && b.bottom <= innerHeight, word: !!r && /After dark/.test(r.textContent ?? '') && style?.opacity !== '0' && style?.visibility !== 'hidden' };
   });
   check(seen.button && seen.word, `DK2: the Layers button is in view and the row says After dark in ink (${JSON.stringify(seen)})`);
+  check.todo(/Lit streets, places open/.test(rowText), `after-dark ui 1: the switch says under its name what it shows (${JSON.stringify(rowText)})`);
   await shot(pg, 'dark-panel');
   await pg.click('[data-testid=layers]').catch(() => {});
   const switched = await tryLayer(pg, 'dark');
