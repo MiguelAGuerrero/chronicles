@@ -1,8 +1,10 @@
 // @layer adapter
 import { db } from '../db';
 import { startOffNotice } from '../locate/notice';
+import { watchLocatePermission } from '../locate/permission.web';
 import type { TracePoint } from '../types';
 import { emit, setStatus, subscribe, subscribeStatus } from './emitter';
+import { followPermission } from './followPermission';
 import { RecorderError, type Recorder } from './types';
 
 /**
@@ -22,6 +24,13 @@ let lastFixAt = 0;
 const WAITING_AFTER_MS = 10_000;
 let pending: Promise<void> | null = null;
 let wakeLock: { release(): Promise<void> } | null = null;
+/** Following the site's permission after a refusal, so the walk records again once it is given back (O22). */
+let unfollow: (() => void) | null = null;
+
+function unfollowPermission() {
+  unfollow?.();
+  unfollow = null;
+}
 
 function record(p: TracePoint) {
   db.appendPoints([p]).then(
@@ -64,6 +73,7 @@ function watch(id: string): Promise<void> {
     return Promise.reject(new RecorderError('This browser has no location access, so it cannot record a walk.'));
   }
   stopWatch();
+  unfollowPermission();
   walkId = id;
   lastFixAt = 0;
   setStatus({ kind: 'waiting' });
@@ -103,6 +113,13 @@ function watch(id: string): Promise<void> {
         // Refused: Locate's line with the recorder's own end, as a quiet notice (T26).
         const { message, tone } = startOffNotice('web');
         setStatus({ kind: 'error', message, tone });
+        // Location given back, the walk records again by itself (decision 0172, O22): nothing is stored meanwhile, so
+        // the off span reads in the trace as lost GPS does, a gap over a minute (never a pause).
+        unfollowPermission();
+        unfollow = followPermission(watchLocatePermission, () => {
+          unfollow = null;
+          recorder.resume(id).catch(() => {});
+        });
         settle(() => reject(new RecorderError(message, false, tone)));
       },
       { enableHighAccuracy: true, maximumAge: 0 },
@@ -125,6 +142,7 @@ export const recorder: Recorder = {
   },
   async stop() {
     stopWatch();
+    unfollowPermission();
     walkId = null;
     setStatus({ kind: 'idle' });
     await wakeLock?.release().catch(() => {});

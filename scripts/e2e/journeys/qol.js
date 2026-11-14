@@ -1346,6 +1346,47 @@ async function run(h) {
       await c5.close();
     }
 
+    // tend walk-screen 3 (decision 0172, O22): location turned off mid-walk, on the page as it is (no reload, no return to
+    // the front), stops the recording with the quiet notice; turned back on, the walk records again by itself, with no
+    // new words: the notice and the chip go. Nothing is stored for the off span: no pause row, so it reads as a gap.
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      const { c: c8, pg: pg8 } = await freshPage(`qol-location-back-${w}`);
+      await pg8.setViewportSize({ width: w, height: hgt });
+      await pg8.goto(navUrl);
+      await pg8.waitForSelector('[data-testid=start]');
+      await pg8.waitForTimeout(1500);
+      await pg8.click('[data-testid=start]');
+      await pg8.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg8.waitForTimeout(1500);
+      const stored = () => pg8.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['trace_point', 'pause'], 'readonly');
+          const f = tx.objectStore('trace_point').count();
+          const p = tx.objectStore('pause').count();
+          tx.oncomplete = () => resolve({ fixes: f.result, pauses: p.result });
+        };
+      }));
+      const chip8 = pg8.locator('[data-testid=status-chip]');
+      const notice8 = () => pg8.locator('[data-testid=lift-in]', { hasText: T26_WORDS }).count();
+      await c8.clearPermissions();
+      await chip8.waitFor({ timeout: 10000 }).catch(() => {});
+      await pg8.waitForTimeout(800);
+      const off = { chip: await chip8.count(), notice: await notice8(), ...(await stored()) };
+      await shot(pg8, `qol-13g-walk-location-off-${w}`);
+      await c8.grantPermissions(['geolocation']);
+      for (let j = 1; j <= 4; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg8.waitForTimeout(1000);
+      }
+      const on = { chip: await chip8.count(), notice: await notice8(), ...(await stored()) };
+      await shot(pg8, `qol-13h-walk-location-back-${w}`);
+      check(off.chip === 1 && off.notice === 1 && on.chip === 0 && on.notice === 0 && on.fixes > off.fixes && on.pauses === 0,
+        `tend walk-screen 3: at ${w}, location turned off mid-walk says so quietly; turned back on, the walk records again by itself, the notice and chip gone, and no pause stored (${JSON.stringify({ off, on })})`);
+      await c8.close();
+    }
+
     // tend recording audit 1-3: the same refusal is the same quiet notice, said, wherever a walk is asked for: Resume on a
     // paused walk (never "Could not resume: ..."), Walk here on Explore, and Walk here on Chronicle. Location is granted
     // first, so the screens have a fix and the map is near, then taken back before the tap. At 390 and 320.
