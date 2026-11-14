@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| After dark (lit streets and places open after dark as a fourth map layer, from OpenStreetMap's `lit` and `opening_hours` by tile through Overpass, kept 30 days; local sunset on the device; a heads-up \"Next: <street> is mapped as unlit\" on a navigated walk after sunset; never a safety grade; DK1-DK17, decision 0181, the vision gate's reshaping of the owner's safety idea, Nov 14) | built 2026-11-14, test-first by history (17 of 17); merged with main (SQLite migration 30, IndexedDB 23 after reactions; Storefronts' names); unit tests, typecheck, lint, docs and vision checks; the `dark` journey and `layers`, `walkability`, `headsup`, `upgrade` pass on the merged build; cold find and UI review: 4 fixed (`after-dark ui 1-4`), 2 to the owner, 2 rejected; native unverified; not deployed | `claude/affectionate-heisenberg-4x07ad` | `specs/after-dark/spec.md` | yes, at the owner's request (16 findings: 11 fixed, tests `after-dark audit 1-11`; 1 fixed in the docs; 3 to the owner; 1 rejected) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "After dark (lit streets",
+        "--reason",
+        "built and audited; its row is in Slices"
+      ],
+      "target": "sha256:cc096c20b3b39913c978bc5bb2ac08e98bc60e7f499e40bbc6a428e9a330c56d"
+    }
+  ]
+}
