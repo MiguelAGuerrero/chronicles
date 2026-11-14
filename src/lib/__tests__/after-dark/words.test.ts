@@ -111,3 +111,7 @@ test('after-dark ui 1: the After dark switch says under its name what it shows, 
   assert.equal(d?.sub, 'Lit streets, places open');
   assert.ok(!BANNED.test(d?.sub ?? ''));
 });
+
+test('after-dark ui 3: the subtitle describes what is drawn and cannot read as a status', { todo: 'test first' }, () => {
+  assert.equal(dark()?.sub, 'Lit streets and open places');
+});
