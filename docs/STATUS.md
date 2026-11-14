@@ -282,22 +282,32 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 14, `/tend triage`, records only** (from `74a8bc4e`; the owner's own answers, in person, Nov 14, to the `[owner]`
-items of `docs/DEFERRED.md`, O1-O35, recorded in decision 0172).
-- `tend triage: the owner's answers to the deferred list (decision 0172), closed and noted`: the decision; ten items
-  closed (O1, O4, O5, O25, O28, O29, O32 answered "leave"; O12, O24 and the struck-through attribution item stale,
-  checked on `main`); twenty-two answered items noted for the loop to build (O2-O35 and the `[arch]` read-past), O8
-  noted stale-likely, the untagged twins of O9 and O23 noted; the eta item's premise rewritten; three bullets split
-  (QL item 5 into two `[phone]` items, the complexes and boundaries audit items into twelve); "Open before the loop":
-  the spec wording the answers need, and notes on the accent at launch and R7.
-- `tend triage: the ledger's retags, the second pair per section` and this record: the rest of the firm retags;
-  O31 noted as a slice.
-Retagged ten (`[owner]` six, one of them phone-only; `[arch]` three; `[kept]` one). Left as they are: O30, O33, O34 and
-every note-type item, the `[loop]` item on the threads' ⋯ buttons among them (the owner is reworking note types); the
-"to check" `[loop]` items, for their area runs. O31 (name a complex on the walk screen) has its gate and criteria in
-decision 0172 and is not filed as a `G` entry: the balance reads "outgrowing its base" (seven areas rough).
-Not a sweep: no lens ran, no area changed state, nothing a person sees changed, so no e2e ran. Nothing here has run on
-a phone.
+**Nov 14, `/tend explore --cap=8 --deploy=main`, the ledger lens** (from `e6bdfc6a`, rebased on `00e0bbe9`; the owner's
+answers of decision 0172 for Explore first, then Explore's medium `[loop]` items).
+- `tend explore 8`: one way to find you (O6, O20): no edge Locate beside Find me; no Find me after a refusal until the
+  permission changes (`findYou`, `locate/permission.*`, native unverified).
+- `tend explore 9`: the selected card's border and footer link in ink (O3, the accent at rest).
+- `tend explore 10`: "You're in Fox Point" a status line in ink (O10).
+- `tend explore 11`: the far town's question says "Not now" in words, no second name line (O2).
+- `tend explore 12`: Explore's toast dwell a motion token (O7; O23, the walk screen's, waits for its run).
+- `tend explore 13`: a look cancelled while its area is written says nothing (`runLook`).
+- `tend explore 14`: a capture made during its area's read waits for that read (`capturesToFind`).
+- `tend explore 15`: a read for another centre waits for the running one, never told it was its own (`readJoin`).
+- The review (auditor and ux-reviewer, one round, decision 0145): fourteen findings accepted, shipped as
+  `tend explore audit 8-17`: blocked location shows no edge Locate either (audit 8); the owner's answer, in person,
+  Nov 14, during the review, "Say where to turn it on", added to 0172's O6 and O20: while blocked the empty card says
+  "Location is off. Turn it on in your browser's or your phone's settings to see the areas around you." (on a phone,
+  the phone notice's words: "Location is turned off for Chronicles. Turn it on in Settings to see the areas around
+  you."), muted, no crosshair, the notice still closable (audit 9); the refusal's notice goes once allowed (10); the
+  explore reads' queue a tested shell (`explore/exploreQueue.ts`) with a pending hold (11), places being recorded taken
+  (12), stopped waiters and reads (13); `MOTION.exploreToast` (14); the compass hands focus to Move map (15); "Not now"
+  below the choices, which stack under 360 px (16); "You're in" in regular weight (17); the run's own rule line on the
+  edge Locate reworded (auditor 7). Five filed `[loop]` low: the accent at rest on "How the marks work" and the map's
+  selected name, the kind rows cut at 320, the toast over the credits, Move map alone in its column.
+Left by the cap, `[loop]` as they were: "A near read whose write fails is retried every 1.5 s", "A failed
+`listAtlasAreas` in `readNear`". Entries filed: none (the answers were the owner's). Lenses not run: 1-6 (a ledger run;
+only the screens the answers changed were pictured, at 390 and 320). Explore stays rough (capped). Nothing here has run
+on a phone.
 
 ### Open before the loop
 
