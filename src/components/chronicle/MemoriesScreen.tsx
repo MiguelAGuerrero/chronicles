@@ -442,10 +442,6 @@ export function MemoriesScreen() {
 
   const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
   const lineRef = useRef<OpenLineHandle>(null);
-  // The row under the line is out of view: the bar holds the pen, the camera and the mic (audit 50, JN37).
-  const [away, setAway] = useState(false);
-  // The sheet has opened: until it has, the bar holds the camera and the mic (JN35).
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const journal = (line: { field: ReactNode; writing: boolean; entryOpen: boolean }) => (
     <JournalPage
@@ -462,8 +458,6 @@ export function MemoriesScreen() {
       onWrite={() => lineRef.current?.write()}
       writing={line.writing}
       focused={isFocused}
-      onAway={setAway}
-      onOpen={setSheetOpen}
       slip={pick ? (
         <Slip
           pick={pick}
@@ -489,7 +483,7 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine ref={lineRef} inBar={body != null} penInBar={away} opened={sheetOpen} onTypeOpen={setTypeOpen} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
+      <OpenLine ref={lineRef} inBar={body != null} onTypeOpen={setTypeOpen} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
         {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu
