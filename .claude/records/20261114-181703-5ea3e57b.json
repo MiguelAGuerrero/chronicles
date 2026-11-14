@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Code quality (facts from"
+      ],
+      "body": "| Code quality (facts from `npm run quality` become a ratchet: `check:quality` against a baseline that only shrinks, limits for new code, `check:refactor` keeping refactor commits behaviour-preserving, and `/refactor` after a slice is green and in each `/tend` sweep; CQ1-CQ15, decisions 0178-0180) | `claude/serene-sagan-ig8te6` | built and audited 2026-11-14 (see Slices); next on this branch: errors handled by kind with a diagnostics log shared as text (decision 0179), its spec and plan for the owner. Before `/deploy`, merge main: while the baseline is not on main yet, write it again from the merged tree (`rm scripts/quality.baseline.json && npm run quality -- --baseline`), the one time it may be. Spec `specs/code-quality/spec.md` |\n",
+      "target": "sha256:70fb4c5ab11cd19d76222ba4bbea71a9206cdb930a060c554900d4fe4de71ef2"
+    }
+  ]
+}
