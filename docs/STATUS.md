@@ -251,6 +251,10 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   since they share `formatCaptures`; a delete's confirm "Its trace, three moments and twelve streets walked go." and
   "Two photos and a voice memo go." Waits for the next `/tend inbox`, one build per run (T29 was built first).
 
+### From /slice storefronts
+
+- **What's good here? keeps its title** (steward S3, `specs/storefronts/plan.md`): the long press's action still asks what is *good*, while VISION.md's guidance is "where there is a lot, never whether it is good". G2 kept the title and changed only its line ("Where storefronts gather: X"). Recommended: rename the action "What's here?"; or keep it, and the spec records your call.
+
 ### From /slice reactions
 
 What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).
@@ -272,26 +276,6 @@ From the UI review of JN34-JN40 (2026-11-14, `specs/chronicle-journal/spec.md`, 
 ### Next evolutions
 
 The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.
-
-- **G2 [M] Explore: "busy" becomes "storefronts", listed nearest first** (2026-11-11) · Earn · aligned
-  Area: explore (and layers, landing, the route leaning). From: T4, reshaped by the owner Nov 11: "busy" implies traffic,
-  which depends on the time of day; the concept is the density of non-residential places you can walk into, for a downtown
-  strip and a small corner pocket alike. The owner chose the word, the order and the reach.
-  Touches: VISION.md Never, "Popularity, trending, foot traffic, other people's activity" (nearest fit "Presence of places
-  from open data") and "rankings of places"; decisions 0034 (information only), 0080, 0127, 0109 (the source stays
-  Overture and OpenStreetMap; only the word changes).
-  The slice: 1. The map layer "Busy streets" is "Storefronts". 2. An area's card says "Storefronts" for its areas and
-  streets, listed nearest you first. 3. The walk line reads "Starts you on {street}", with no superlative. 4. "What's good
-  here?" names the street or pocket where storefronts gather, never "Busiest area". 5. "A busy pocket" becomes a pocket
-  of storefronts. 6. The walk's help line and the route leaning ("Along the busy streets") say storefronts. 7. No line or
-  label for this concept says busy, busiest or most, and none counts storefronts. 8. Walkability's "Streets far apart and
-  busy" (traffic) is unchanged. 9. Decisions 0080 and 0127 and the specs that pin the old words are amended in the slice.
-  Builds on presence (decision 0140; its first slice shipped Nov 11, PR1-PR8): Storefronts is a presence class and its density, not a
-  renamed busy table. G4 (presence's second slice) first is better, not required.
-  Payoff: every visit to Explore, and every route that leans; the word stops promising people the data cannot see.
-  Cost: M, copy across about eight screens and modules plus the specs and tests that pin it, no native code, no data
-  change. Reopens: explore (rough), layers, landing, scenic routes. After it: the pocket alert and the Navigate line can
-  say the same word. Instead: rename the card's sections only (the layer and the card would then disagree).
 
 ### Last tend
 

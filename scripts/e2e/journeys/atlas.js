@@ -100,8 +100,13 @@ async function checks(h) {
         const text = await page.locator('[data-testid=atlas-card]').innerText();
         const list = page.locator('[data-testid=atlas-storefronts]');
         const via = await page.locator('[data-testid=atlas-walk-via]').innerText().catch(() => null);
-        check(!/\bbus(y|iest)\b/i.test(text) && (await list.count()) <= 1 && (!(await list.count()) || /(^|\n)Storefronts\n/.test(text)) && (via == null || /^Starts you on \S/.test(via)),
+        check(!/\bbus(y|iest)\b/i.test(text) && (await list.count()) <= 1 && (!(await list.count()) || /(^|\n)Storefronts\n/i.test(text)) && (via == null || /^Starts you on \S/.test(via)),
           `SF2, SF4, SF9: ${pickName}'s card says Storefronts, one list (${await list.locator('[data-testid=atlas-storefront]').count()} streets), never busy; Walk to's line ${JSON.stringify(via)}`);
+        if (await list.count()) {
+          await list.scrollIntoViewIfNeeded().catch(() => {});
+          await page.waitForTimeout(400);
+          await shot(page, 'sf-card-storefronts');
+        }
       }
       await page.keyboard.press('Escape');
       await page.waitForTimeout(1500);

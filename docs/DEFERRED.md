@@ -460,7 +460,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The thresholds rest on five places** (`walk/form.ts`); a sixth can disagree. A way to look at the cells (a debug overlay of the signals) is not built.
 - **Cells are 250 m squares**: coarse at close zoom. Smoothing or a finer grid is a look-and-feel call for the owner once seen on a phone.
 - **The tint reads about 1.5 km around the map's centre** (a cell needs its whole neighbourhood read), so it fades out near that edge.
-- **Busy streets draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
+- **Storefronts draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
 - **The unwalked-streets toggle, fog, "?" marks and routes are not layers yet** (the owner chose only walkability, busy streets and town borders).
 - **Layer options** (a busy-grade slider, a tint choice), **ordering and opacity** are not built.
 - **The long press on a drawn stretch (specs/walkability WK14) is retired**: the layer draws areas, not stretches. A long press on a tint is its own call.

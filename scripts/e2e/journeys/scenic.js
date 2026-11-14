@@ -61,7 +61,7 @@ async function run(h) {
     // SR1: the three leanings are switches in the walk settings, all on by default.
     await drawerTo(pg, 'half');
     check(JSON.stringify(await switches(pg)) === JSON.stringify([['leaning-green', 'true'], ['leaning-sights', 'true'], ['leaning-storefronts', 'true']]),
-      `scenic SR1: Green, Sights and Streets with life are on by default (${JSON.stringify(await switches(pg))})`);
+      `scenic SR1: Green, Sights and Storefronts are on by default (${JSON.stringify(await switches(pg))})`);
     await drawerTo(pg, 'peek');
     await startWalk(pg);
 
@@ -139,6 +139,8 @@ async function run(h) {
     // SR1: all three off, kept across a reload; Go here then goes the direct way with no preview.
     const b = await open('scenic-off');
     await drawerTo(b.pg, 'half');
+    await b.pg.locator('[data-testid=route-leanings]').scrollIntoViewIfNeeded().catch(() => {});
+    await shot(b.pg, 'sf-leanings');
     for (const id of ['green', 'sights', 'storefronts']) await b.pg.click(`[data-testid=leaning-${id}]`);
     await b.pg.waitForTimeout(500);
     const off = await switches(b.pg);
