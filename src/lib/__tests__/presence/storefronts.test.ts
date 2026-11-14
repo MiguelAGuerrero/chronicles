@@ -10,8 +10,8 @@ import { LANDING_VERSION, rulesCurrent } from '../../landing/view';
 const NOT_STOREFRONTS = ['park', 'reserve', 'green_amenity', 'open_space', 'monument', 'memorial_site', 'artwork', 'viewpoint', 'curiosity', 'structure', 'burial_ground'] as const;
 const STOREFRONTS = ['shop', 'boutique', 'eatery', 'food_counter', 'drink', 'venue', 'museum', 'arts_centre', 'theatre', 'cinema_hall', 'heritage', 'attraction', 'community', 'civic_hall', 'worship', 'service', 'health', 'lodging', 'civic', 'sport', 'office', 'vehicle'] as const;
 
-test('SF10: presence says which classes are storefronts; only a storefront weighs toward density', { todo: 'test first' }, () => {
-  const p = presence as unknown as { isStorefront: (c: string) => boolean; storefrontWeight: (c: readonly string[]) => number };
+test('SF10: presence says which classes are storefronts; only a storefront weighs toward density', () => {
+  const p = presence;
   for (const c of NOT_STOREFRONTS) {
     assert.equal(p.isStorefront(c), false, `${c} is not a storefront`);
     assert.equal(p.storefrontWeight([c]), 0, `${c} weighs nothing`);
@@ -34,7 +34,7 @@ test('SF10: presence says which classes are storefronts; only a storefront weigh
   assert.equal(presence.densityWeight(['artwork']), 1);
 });
 
-test('SF11: the reclassification re-derives what depends on it: a new presence code, nothing carried', { todo: 'test first' }, () => {
+test('SF11: the reclassification re-derives what depends on it: a new presence code, nothing carried', () => {
   assert.notEqual(presence.PRESENCE_CODE, 'p2');
   assert.deepEqual(presence.PRESENCE_CARRIED, [], 'a weight changed, so no earlier code is carried');
   assert.ok(ATLAS_CODE.endsWith(`.${presence.PRESENCE_CODE}`), 'the atlas reads its areas again');

@@ -7,70 +7,73 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * tags; presence answers with classes from one vocabulary; each consumer derives what it needs from the classes: density
  * a weight (AD1), marks and bars a category and kind. This is the only file that holds a table from OpenMapTiles poi
  * classes, Overture's taxonomy, the places archive's classes or the tiles' landcover to what a place is (PR2, PS1, PS4, PS7).
- * What makes a mark is curation over classes, kept apart (`discovery/curation.ts`, PR7). "Busy" is not presence: traffic,
- * if it ever comes, is a signal of its own (0140).
+ * What makes a mark is curation over classes, kept apart (`discovery/curation.ts`, PR7). Storefronts are presence's own
+ * reading (specs/storefronts); traffic, if it ever comes, is a signal of its own (0140).
  */
 
 /**
  * The version of the vocabulary and its tables: part of the atlas's and the landing's cache codes (PR6). Bump on any change here.
  * p2: the archive, names and landcover read here (specs/presence-readers); nothing derived changed, so p1 rows are carried (PS9).
+ * p3: only storefronts weigh toward density (specs/storefronts SF10, decision 0178); a weight changed, so nothing is carried (SF11).
  */
-export const PRESENCE_CODE = 'p2';
+export const PRESENCE_CODE = 'p3';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
  * landing (`LANDING_CARRIED`, `landing/view.ts`). Only ever the code just before, and only when the golden tables show
  * nothing derived changed; empty it at a bump that changes a bar, a mark or a weight.
  */
-export const PRESENCE_CARRIED: readonly string[] = ['p1'];
+export const PRESENCE_CARRIED: readonly string[] = [];
 
 const FULL = 1;
 const HALF = 0.5;
 const QUARTER = 0.25;
 
 /**
- * The vocabulary. `weight` is how much the class counts toward a street's density (AD1: full for a place to go, half for
- * everyday services and civic places, a quarter for offices and vehicles); `category` and `kind` are what it is to marks
+ * The vocabulary. `weight` is how much the class counts (AD1: full for a place to go, half for everyday services and civic
+ * places, a quarter for offices and vehicles); `storefront` is whether it is a place you walk into, the only classes that
+ * weigh toward a street's storefronts (specs/storefronts SF10, decision 0178: parks, monuments, art, views, curiosities,
+ * listed structures and cemeteries are places to find, never storefronts); `category` and `kind` are what it is to marks
  * and bars, where it is one of the tab's kinds.
  */
 const DEFS = {
   // Places to go: shops, food, drink, what is shown.
-  shop: { weight: FULL },
-  boutique: { weight: FULL, category: 'shops' },
-  eatery: { weight: FULL, category: 'food' },
-  food_counter: { weight: FULL },
-  drink: { weight: FULL, category: 'nightlife' },
-  venue: { weight: FULL },
+  shop: { weight: FULL, storefront: true },
+  boutique: { weight: FULL, storefront: true, category: 'shops' },
+  eatery: { weight: FULL, storefront: true, category: 'food' },
+  food_counter: { weight: FULL, storefront: true },
+  drink: { weight: FULL, storefront: true, category: 'nightlife' },
+  venue: { weight: FULL, storefront: true },
   artwork: { weight: FULL, category: 'art', kind: 'public_art' },
-  museum: { weight: FULL, category: 'culture', kind: 'museums' },
-  arts_centre: { weight: FULL, category: 'culture', kind: 'community' },
-  theatre: { weight: FULL, category: 'culture', kind: 'theatres' },
-  cinema_hall: { weight: FULL, category: 'culture' },
+  museum: { weight: FULL, storefront: true, category: 'culture', kind: 'museums' },
+  arts_centre: { weight: FULL, storefront: true, category: 'culture', kind: 'community' },
+  theatre: { weight: FULL, storefront: true, category: 'culture', kind: 'theatres' },
+  cinema_hall: { weight: FULL, storefront: true, category: 'culture' },
   monument: { weight: FULL, category: 'history', kind: 'monuments' },
   memorial_site: { weight: FULL, category: 'history', kind: 'monuments' },
   // The places archive's odd places and listed buildings (PW4, RP8).
   curiosity: { weight: FULL, category: 'viewpoints', kind: 'curiosities' },
   structure: { weight: FULL, category: 'history', kind: 'structures' },
-  heritage: { weight: FULL },
-  attraction: { weight: FULL, category: 'viewpoints', kind: 'viewpoints' },
+  heritage: { weight: FULL, storefront: true },
+  attraction: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'viewpoints' },
   // Everyday and civic places, green and views.
-  community: { weight: HALF, category: 'culture', kind: 'community' },
-  civic_hall: { weight: HALF, category: 'history', kind: 'monuments' },
-  worship: { weight: HALF, category: 'history', kind: 'churches' },
+  community: { weight: HALF, storefront: true, category: 'culture', kind: 'community' },
+  civic_hall: { weight: HALF, storefront: true, category: 'history', kind: 'monuments' },
+  worship: { weight: HALF, storefront: true, category: 'history', kind: 'churches' },
   burial_ground: { weight: HALF, category: 'history', kind: 'cemeteries' },
   park: { weight: HALF, category: 'parks', kind: 'parks' },
   reserve: { weight: HALF, category: 'parks', kind: 'parks' },
   green_amenity: { weight: HALF, category: 'parks' },
   open_space: { weight: HALF },
   viewpoint: { weight: HALF, category: 'viewpoints', kind: 'viewpoints' },
-  service: { weight: HALF },
-  health: { weight: HALF },
-  lodging: { weight: HALF },
-  civic: { weight: HALF },
-  sport: { weight: HALF },
+  service: { weight: HALF, storefront: true },
+  health: { weight: HALF, storefront: true },
+  lodging: { weight: HALF, storefront: true },
+  civic: { weight: HALF, storefront: true },
+  sport: { weight: HALF, storefront: true },
   // Offices and vehicles; and what is no place to go.
-  office: { weight: QUARTER },
-  vehicle: { weight: QUARTER },
+  office: { weight: QUARTER, storefront: true },
+  vehicle: { weight: QUARTER, storefront: true },
   none: { weight: 0 },
   // Ground, not a place to go: a scenic route's green (PS4).
   woodland: { weight: 0 },
@@ -84,7 +87,7 @@ const DEFS = {
   historic: { weight: 0, category: 'history' },
 } as const satisfies Record<string, ClassDef>;
 
-export type ClassDef = { readonly weight: number; readonly category?: CategoryId; readonly kind?: Kind };
+export type ClassDef = { readonly weight: number; readonly storefront?: true; readonly category?: CategoryId; readonly kind?: Kind };
 export type PresenceClass = keyof typeof DEFS;
 export const CLASSES: Readonly<Record<PresenceClass, ClassDef>> = DEFS;
 export const classDef = (c: PresenceClass): ClassDef => CLASSES[c];
@@ -304,7 +307,15 @@ export function named(classes: readonly PresenceClass[], name: string): Presence
   return out;
 }
 
-/** PR4: how much a feature counts toward density: the greatest weight of its classes. */
+/** SF10: whether a class is a storefront, a place you walk into. */
+export const isStorefront = (c: PresenceClass): boolean => CLASSES[c].storefront === true;
+
+/** SF10: how much a feature counts toward a street's storefronts: the greatest weight of its storefront classes. */
+export function storefrontWeight(classes: readonly PresenceClass[]): number {
+  return classes.reduce((w, c) => (isStorefront(c) ? Math.max(w, CLASSES[c].weight) : w), 0);
+}
+
+/** PR4: the greatest weight of a feature's classes, storefront or not: a complex's shopping word reads it (decision 0178). */
 export function densityWeight(classes: readonly PresenceClass[]): number {
   return classes.reduce((w, c) => Math.max(w, CLASSES[c].weight), 0);
 }

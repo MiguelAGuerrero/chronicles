@@ -35,9 +35,10 @@ import type { Pocket } from './pockets';
 /** a10: community parks reads a park's name as presence reads a museum's, past a neighbourhood's "Old Town", and "heritage" keeps no park (tend explore T9); none carried. */
 /** a11: a neighborhood with a real shape is counted across it (neighborhood boundaries, HB11); towns stand as under a10. */
 /** a12: a park with a small outline and nothing notable in or near it is a community park whatever its name (fix community-park, 0163); none carried. */
-/** The atlas's own part of a row's code (a12). */
-const ATLAS_OWN = 'a12';
-/** A row's code: the atlas's own (a12) and presence's (PR6), so a reclassification re-reads every row. */
+/** a13: a profile keeps each storefront street's point, so the card lists them nearest first (specs/storefronts SF3); none carried. */
+/** The atlas's own part of a row's code (a13). */
+const ATLAS_OWN = 'a13';
+/** A row's code: the atlas's own (a13) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
 /**
