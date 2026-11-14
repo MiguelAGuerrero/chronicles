@@ -174,20 +174,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   moments kept at one place, turn the map, then open its replay and Explore.
   Expect: the scale bar's label stays whole beside its line, a pin's count or kinds stay inside its head, the compass and
   Locate stay 44 pt and in their column, and the map's (i) stays reachable, none cut or pushed under the strip or a card.
-- **T19 [owner] Replay: the cards say their counts in words, with one hint** (2026-11-12)
-  Area: replay (the walk's card and the day's). Seen: `rr-day-card` ("5 moments · 5 places", now 16 px regular after
-  `tend replay 12`), `probe-390r-card` ("1 photo · 1 video · 1 voice memo · 1 note · tap a pin to open"); the hint
-  worded two ways, "· tap a pin to open" and "Tap a pin to open it" (UX U11). Rests on: VISION.md Always, "Counts are
-  words, in a clause"; the replay rule, "No accent colour or large number on the card" (steward S3). M13 shipped
-  "\<weekday\> · N moments · P places", so this amends a shipped criterion. Your answer of Nov 12 (decision 0153):
-  "places" on the day's card are named places only, said in words.
-  Recommended: the day's line a clause, "Four moments, around Wickenden Street and the Old Mill" (up to two named
-  places, else "Four moments around Fox Point", the day's area, else "Four moments"); the walk's captures line a
-  clause, "Two photos, a video, a voice memo and a note"; one hint on both, "Tap a pin to open it". /vision: aligned
-  (return; "Counts are words, in a clause"), amends M13.
-  Otherwise: the numbers as words only ("Four moments · two places"); or leave it.
-  **Answered** by the owner in person (Nov 12; decision 0165): "Clauses, one hint", the recommended shape. Recorded
-  Nov 13; waits for the next `/tend inbox`, one build per run (T28 was built first).
 - **T21 [owner] Replay: the name step's only way on is Keep it** (2026-11-12)
   Area: replay (beat five). Seen: `probe-390r-name`, `probe-320r-name` (two fields and Keep it, no Cancel or back).
   Rests on: NN/g H3, "a clearly marked 'emergency exit'"; the goal-to-control matrix, row 18, "Text view in a sheet
@@ -233,23 +219,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
-- **T30 [owner] Counts in digits beside the reminders: the memory preview, the walks row, a delete's confirm** (2026-11-14)
-  Area: memories, tabs, deletion (the T29 sibling lens). Seen: a memory preview of a group shows and says "2 more
-  here" ("…, and 2 more here. Open"; `MemoryPreview.tsx` l.42 and l.64, MR4's "N more here"); a walks list row ends
-  "1 photo · 1 video · 1 voice memo · 1 note" (`walkRowMeta`, from `formatCaptures` in `lib/format.ts` l.56, the line
-  the replay card shares, which T19 answers); a delete asks "Its trace, 3 moments and 12 streets walked go." and "2
-  photos and 1 voice memo go." (`deletion/core.ts`, `count` l.92; D4's own example has digits). Since `tend explore
-  T29` the reminder on the same walk screen says "Two memories here". Rests on: VISION.md Always, "Counts are words,
-  in a clause. Distances and times are fine."
-  Recommended: words through `numberWord`, one voice with the reminders and pins: the preview "and two more here";
-  the walks row's captures T19's clause ("A photo, a video, a voice memo and a note"), built with T19 since they share
-  `formatCaptures`; a confirm "Its trace, three moments and twelve streets walked go.", "Two photos and a voice memo
-  go." /vision: aligned (honour; "Counts are words"); it amends MR4's "N more here" and D4's example.
-  Otherwise: the memory preview alone (it sits where the reminder card does); or leave them.
-  **Answered yes** by the owner in person (Nov 14, during the T29 review; decision 0170): "All in words", the
-  recommended shape: the memory preview "and two more here"; the walks row's captures T19's clause, built with T19
-  since they share `formatCaptures`; a delete's confirm "Its trace, three moments and twelve streets walked go." and
-  "Two photos and a voice memo go." Waits for the next `/tend inbox`, one build per run (T29 was built first).
 
 ### From /slice reactions
 
