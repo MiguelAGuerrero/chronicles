@@ -73,3 +73,26 @@ test('fix entry-jitter 1: the sheet is taken to its end only once the peek and i
   assert.equal(rest.peekMeasured([{ k: 'day', key: 'd' }], 1, { d: 66 }), true);
   assert.equal(rest.peekMeasured([], 0, {}), true);
 });
+
+test('fix entry-jitter audit 1: the sheet does not open before the read has answered, however long it takes', () => {
+  const rest = rs;
+  // Nothing has been laid out yet.
+  assert.equal(rest.sheetOpens({ view: 0, answered: true, measured: true, slack: true, hard: true }), false);
+  // A slow read: the page has only today's date, which is measured; the entries are still to come.
+  assert.equal(rest.sheetOpens({ view: 700, answered: false, measured: true, slack: false, hard: false }), false);
+  assert.equal(rest.sheetOpens({ view: 700, answered: false, measured: true, slack: true, hard: false }), false);
+  // Only a read that never answers is given up on, after the hard wait.
+  assert.equal(rest.sheetOpens({ view: 700, answered: false, measured: false, slack: false, hard: true }), true);
+});
+
+test('fix entry-jitter audit 2: a row that never reports its height holds the sheet only for the slack', () => {
+  const rest = rs;
+  assert.equal(rest.sheetOpens({ view: 700, answered: true, measured: false, slack: false, hard: false }), false);
+  assert.equal(rest.sheetOpens({ view: 700, answered: true, measured: false, slack: true, hard: false }), true);
+  assert.equal(rest.sheetOpens({ view: 700, answered: true, measured: true, slack: false, hard: false }), true);
+});
+
+test('fix entry-jitter audit 3: a failed read is an answer, so the kept-this-sitting page opens as soon as it is measured', () => {
+  // `answered` is true for a read that failed as for one that succeeded (MemoriesScreen passes both).
+  assert.equal(rs.sheetOpens({ view: 700, answered: true, measured: true, slack: false, hard: false }), true);
+});

@@ -68,3 +68,26 @@ export function peekMeasured(rows: readonly Row[], from: number, heights: Readon
   const held = stickyDay(rows, from);
   return held == null || heights[held] != null;
 }
+
+export interface OpenInput {
+  /** The sheet's own height, 0 until it has been laid out. */
+  view: number;
+  /** The read of the entries has answered, whether it succeeded or failed. */
+  answered: boolean;
+  /** `peekMeasured`. */
+  measured: boolean;
+  /** A short wait since the read answered has passed: a row that never reports must not keep the sheet hidden. */
+  slack: boolean;
+  /** A long wait since the sheet mounted has passed: a read that never answers must not keep it hidden either. */
+  hard: boolean;
+}
+
+/**
+ * Whether the sheet is shown (fix entry-jitter). Only once the read has answered and the rows that size the empty
+ * page have reported; the waits bound a row that never reports and a read that never answers. A slow read does not
+ * open it: it would show today's date alone and slide the entry into place when they arrive (audit 1).
+ */
+export function sheetOpens(o: OpenInput): boolean {
+  if (o.view <= 0) return false;
+  return o.hard || (o.answered && (o.measured || o.slack));
+}
