@@ -54,6 +54,10 @@ async function run(h) {
   const night = await panelLine(pg);
   check(night === 'Open now. Only what is mapped.', `DK5: after sunset the panel line says Open now (${JSON.stringify(night)})`);
   await shot(pg, 'dark-explore');
+  await pg.click('[data-testid=layers]');
+  await pg.waitForSelector('[data-testid=layer-status-dark]', { timeout: 5000 });
+  await shot(pg, 'dark-panel-on');
+  await pg.click('[data-testid=layers]');
   // DK15: nothing is sent again while nothing changes.
   const sets = Number((await attr(pg, 'data-dark-sets')) ?? 0);
   await pg.waitForTimeout(4000);
@@ -138,19 +142,31 @@ async function run(h) {
   }
   await p3.waitForTimeout(1000);
   await tryLayer(p3, 'dark');
-  const box = await p3.locator('canvas.maplibregl-canvas').last().boundingBox().catch(() => null);
+  // The destination is kept with the open walk, and a reload routes to it on the first fix (as a reload mid-walk does): the
+  // route does not wait on the walk map's camera, which a browser clock moved a month on cannot be trusted to move.
+  await p3.evaluate((dest) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['walk', 'meta'], 'readwrite');
+      const g = tx.objectStore('walk').getAll();
+      g.onsuccess = () => {
+        const open = g.result.find((w) => w.open);
+        tx.objectStore('meta').put({ key: 'nav', value: JSON.stringify({ walk_id: open?.id ?? null, dest: { at: dest, label: 'Your spot', kind: 'point' } }) });
+      };
+      tx.oncomplete = () => resolve();
+    };
+  }), at(2, 2));
+  await p3.reload();
+  // Direct, if a scenic route is offered too (scenic routes, SR2).
+  await routed(p3, 45000).catch(() => {});
+  await p3.waitForSelector('[data-testid=nav-bar]', { timeout: 15000 }).catch(() => {});
+  const navText = await p3.locator('[data-testid=nav-bar]').innerText({ timeout: 5000 }).catch(() => '');
+  // The line, once it has words (it is polled: the route's tiles are read while it comes).
   let line = '';
-  let navText = '';
-  if (box) {
-    await p3.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2 - 120);
-    await p3.mouse.down();
-    await p3.waitForTimeout(700);
-    await p3.mouse.up();
-    await p3.click('[data-testid=go-here]', { timeout: 5000 }).catch(() => {});
-    await routed(p3, 30000).catch(() => {});
-    navText = await p3.locator('[data-testid=nav-bar]').innerText({ timeout: 5000 }).catch(() => '');
-    await p3.waitForSelector('[data-testid=walk-ahead]', { timeout: 45000 }).catch(() => {});
-    line = (await p3.locator('[data-testid=walk-ahead]').innerText().catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
+  const until = Date.now() + 45000;
+  while (Date.now() < until && !line) {
+    line = (await p3.locator('[data-testid=walk-ahead]').innerText({ timeout: 500 }).catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
+    if (!line) await p3.waitForTimeout(250);
   }
   check(/^Next: (Grid -?\d Street is mapped as unlit|a stretch mapped as unlit)$/.test(line), `DK10: after sunset, a line says a stretch mapped as unlit is ahead (${JSON.stringify(line)})`);
   check((await p3.locator('[data-testid=walk-ahead] [data-testid=walk-ahead-moon]').count()) === 1 && (await p3.locator('[data-testid=walk-ahead] [data-testid=walk-badge-car]').count()) === 0, 'DK10: it wears the moon, never the car');
