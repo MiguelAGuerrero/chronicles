@@ -352,6 +352,78 @@ async function checks(h) {
       }
     }
 
+    // tend explore 16 (decision 0172, O11, "Many sooner"): a reminder of thirteen says "Many memories here", its one line
+    // whole at 390 and 320 px. Eleven notes are added beside the two above, in the same earlier walk, all flagged once;
+    // the step takes them out again whatever happens.
+    const extra = Array.from({ length: 11 }, (_, i) => `o11-${i}`);
+    const many = [...ids, ...extra];
+    const seedMany = (add) => page.evaluate(([list, keep, lon, lat, add]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['moment', 'recall'], 'readwrite');
+        const g = tx.objectStore('moment').get(keep);
+        g.onsuccess = () => {
+          const walkId = g.result?.walk_id ?? null;
+          list.forEach((id, i) => {
+            if (!add) { tx.objectStore('moment').delete(id); return; }
+            const t = (g.result?.t ?? Date.now()) + (i + 1) * 1000;
+            tx.objectStore('moment').put({ id, walk_id: walkId, t, lat: lat + (i % 3) * 0.00001, lon: lon + Math.floor(i / 3) * 0.00001, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, kind: 'text', file_path: null, body: `A note kept here, ${id}.`, t, caption: null, caption_y: null }] });
+          });
+        };
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [extra, ids[0], spot[0], spot[1], add]);
+    const flagMany = (put) => page.evaluate(([list, add]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('recall', 'readwrite');
+        for (const id of list) {
+          if (add) tx.objectStore('recall').put({ capture_id: id, frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+          else tx.objectStore('recall').delete(id);
+        }
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [many, put]);
+    try {
+      await seedMany(true);
+      await flagMany(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=stop]', { timeout: 20000 });
+      if (await page.locator('[data-testid=recording-return]').count()) await page.click('[data-testid=recording-return]');
+      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      for (let j = 1; j <= 6 && !(await page.locator('[data-testid=reminder]').count()); j++) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      const manyUp = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
+      if (manyUp) await settled('[data-testid=reminder]');
+      for (const w of [390, 320]) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        const card = await page.evaluate(() => {
+          const open = document.querySelector('[data-testid=reminder-open]');
+          const title = open && [...open.querySelectorAll('div, span')].find((e) => [...e.childNodes].some((n) => n.nodeType === 3 && /memories here/.test(n.textContent)));
+          const r = title?.getBoundingClientRect();
+          return { title: title?.textContent ?? null, whole: !!title && title.scrollWidth <= title.clientWidth + 1, right: r ? Math.round(r.right) : null, name: open?.getAttribute('aria-label') ?? null };
+        });
+        check(manyUp && card.title === 'Many memories here' && card.whole && card.right <= w && /^Many memories here: [A-Z][a-z ,-]+\. Open$/.test(card.name ?? ''),
+          `tend explore 16: at ${w} px a reminder of thirteen says "Many memories here", its one line whole, and its name says so (${JSON.stringify(card)})`);
+        await shot(page, `15c-reminder-thirteen-${w}`);
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(400);
+      if (manyUp) await page.click('[data-testid=reminder-dismiss]');
+    } finally {
+      await flagMany(false);
+      await seedMany(false);
+      while (north !== 0) {
+        north += north > 0 ? -1 : 1;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + north * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+    }
+
     // Rides (R5, R6, R11): a bus leg at 12 m/s, one fix a second, is drawn dashed and reads "On a ride",
     // never "Weak GPS" (the bug, Nov 1: a bus kept its first fix and showed Weak GPS); the card shows
     // walked and ridden distance apart.

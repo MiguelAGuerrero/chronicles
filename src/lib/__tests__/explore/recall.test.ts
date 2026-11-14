@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderHeld, reminderText } from '../../discovery/recall';
 import { pinKindsWords } from '../../pins';
+import { moreHere, previewSpoken } from '../../memories';
 import type { Recall } from '../../discovery/types';
 import type { LngLat } from '../../types';
 
@@ -142,7 +143,8 @@ test('tend explore audit 5: a reminder says the same words in any time zone, for
   assert.equal(reminderText([at('b', 'text', 1), at('a', 'photo', 1)]).body, 'A photo and a note');
   // A count of twenty to fifty-nine is hyphenated.
   const photos = (n: number) => Array.from({ length: n }, (_, i) => at(`p${i}`, 'photo', i));
-  assert.deepEqual(reminderText(photos(21)), { title: 'Twenty-one memories here', body: 'Twenty-one photos' });
+  // The title says many from thirteen since tend explore 16; the body still counts each kind.
+  assert.deepEqual(reminderText(photos(21)), { title: 'Many memories here', body: 'Twenty-one photos' });
   // Past fifty-nine the title says many while a body under sixty a kind still counts each.
   const mixed = Array.from({ length: 61 }, (_, i) => at(`m${i}`, i % 2 ? 'text' : 'photo', i));
   assert.deepEqual(reminderText(mixed), { title: 'Many memories here', body: 'Thirty-one photos and thirty notes' });
@@ -158,4 +160,20 @@ test('tend explore audit 6: the announcement says the card title, for every mome
   assert.equal(reminderText(held).title, 'Three memories here');
   // One already held is not counted twice.
   assert.deepEqual(reminderHeld([at('a', 'photo', 1)], [at('a', 'photo', 1), at('b', 'text', 2)]).map((c) => c.id), ['a', 'b']);
+});
+
+// tend explore 16 (decision 0172, O11, "Many sooner"): a reminder of several says its count in words up to twelve and
+// "Many memories here" from thirteen, so the card's one line holds at 320 px; a memory preview of the same spot agrees,
+// "and many more here" once the spot holds thirteen (the T19 review's auditor).
+test('tend explore 16: "Many memories here" from thirteen, and the preview of the same spot agrees', () => {
+  const notes = (n: number) => Array.from({ length: n }, (_, i) => capture(`n${i}`, { kind: 'text', body: 'x', t: new Date(2026, 9, 20, 15, i).getTime() }));
+  assert.equal(reminderText(notes(12)).title, 'Twelve memories here');
+  assert.equal(reminderText(notes(13)).title, 'Many memories here');
+  assert.equal(reminderText(notes(13)).body, 'Thirteen notes');
+  assert.equal(reminderText(notes(27)).title, 'Many memories here');
+  // The preview shows one and the rest: twelve shown with eleven more, thirteen with "many more".
+  assert.equal(moreHere(11), 'and eleven more here');
+  assert.equal(moreHere(12), 'and many more here');
+  assert.equal(moreHere(14), 'and many more here');
+  assert.equal(previewSpoken({ date: 'Nov 2, 2026', line: 'Bought two plums', stack: null, more: 12 }), 'Memory from Nov 2, 2026: Bought two plums, and many more here. Open');
 });

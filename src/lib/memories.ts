@@ -53,9 +53,20 @@ export function previewLine(c: Faced): string {
   return Number.isFinite(ms) && ms > 0 ? `${LABEL[c.kind]} · ${clock(ms)}` : LABEL[c.kind];
 }
 
-/** The preview's word for the rest of a group, "and two more here" (tend memories T30, decision 0170); null with none. */
+/**
+ * Whether a spot's memories are said as "many": from thirteen (tend explore 16, decision 0172, the owner's "Many
+ * sooner"). A reminder's title and a preview of the same spot share it, so the two agree.
+ */
+export const manyHere = (memories: number): boolean => memories >= 13;
+
+/**
+ * The preview's word for the rest of a group, "and two more here" (tend memories T30, decision 0170); "and many more
+ * here" once the spot holds thirteen, the one shown and the rest, as its reminder says "Many memories here" (tend
+ * explore 16); null with none.
+ */
 export function moreHere(more: number): string | null {
-  return more > 0 ? `and ${numberWord(more)} more here` : null;
+  if (more <= 0) return null;
+  return `and ${manyHere(more + 1) ? 'many' : numberWord(more)} more here`;
 }
 
 /** The preview as a screen reader says it: the date, its line, a stack's words, the rest in words, then "Open". */
