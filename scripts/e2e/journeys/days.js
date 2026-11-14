@@ -163,7 +163,7 @@ async function checks(h) {
       await p2.waitForSelector('[data-testid=day-title]');
       const order = await p2.locator('[data-testid=timeline-moment], [data-testid=timeline-walk]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
       check(order.join(',') === 'timeline-moment,timeline-walk,timeline-moment', `the day lists its moments and walk in time order (${order.join(', ')})`);
-      check(/\bone moment\b/.test(await p2.locator('[data-testid=timeline-walk]').innerText()), 'the walk is one row with its moment count, in words (M8, tend tabs 11)');
+      check(/\bone[ \u00a0]moment\b/.test(await p2.locator('[data-testid=timeline-walk]').innerText()), 'the walk is one row with its moment count, in words (M8, tend tabs 11)');
       await p2.click('[data-testid=sheet-days-back]');
       await p2.waitForSelector('[data-testid=day-row]');
       check((await p2.locator('[data-testid=day-title]').count()) === 0, 'a day\u2019s timeline goes back to the days list (audit 11)');
@@ -186,8 +186,8 @@ async function checks(h) {
           // The title is the line above the walk's line.
           return { line: at >= 0 ? texts[at] : null, title: at > 0 ? texts[at - 1] : null, more: more?.getAttribute('aria-label') ?? null, right: more ? Math.round(more.getBoundingClientRect().right) : null };
         });
-        check(/^Walk( · .+)? · one moment$/.test(row.line ?? '') && row.more === `More for ${row.title}` && row.right <= w,
-          `tend tabs 11: at ${w} px a day's walk says its moments in words, its More named by its title (${JSON.stringify(row)})`);
+        check(/^Walk( · .+)? · one\u00a0moment$/.test(row.line ?? '') && row.more === `More for ${row.title}` && row.right <= w,
+          `tend tabs 11, tend tabs audit 24: at ${w} px a day's walk says its moments in words, the count on its noun's line, its More named by its title (${JSON.stringify(row)})`);
       }
       await p2.setViewportSize({ width: 390, height: 844 });
       await p2.waitForTimeout(300);

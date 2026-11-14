@@ -15,9 +15,9 @@ test('tend tabs 10: the place sheet says its walks in words, as its star does', 
 });
 
 test("tend tabs 11: a day's timeline says a walk's moments in words", () => {
-  assert.equal(timelineWalkLine('1.2 km', 3), 'Walk · 1.2 km · three moments');
-  assert.equal(timelineWalkLine(null, 1), 'Walk · one moment');
-  assert.equal(timelineWalkSpoken('4:12 PM', 'Plums by the bridge', timelineWalkLine('1.2 km', 3)), '4:12 PM, Plums by the bridge, Walk, 1.2 km, three moments. Replay it');
+  assert.equal(timelineWalkLine('1.2 km', 3), 'Walk · 1.2 km · three\u00a0moments');
+  assert.equal(timelineWalkLine(null, 1), 'Walk · one\u00a0moment');
+  assert.equal(timelineWalkSpoken('4:12 PM', 'Plums by the bridge', timelineWalkLine('1.2 km', 3)), '4:12 PM, Plums by the bridge, Walk, 1.2 km, three\u00a0moments. Replay it');
 });
 
 test("tend tabs 11: a walk's More is named by its title wherever the title is known", () => {
@@ -36,4 +36,9 @@ test('tend tabs audit 23: the walks row\'s clause starts lowercase after its dot
   assert.equal(meta, 'Nov 2, 2026 · 1.2 km · 25 min · a photo, a video and two notes');
   assert.equal(formatCaptures({ photos: 1, voices: 1, notes: 0 }), 'A photo and a voice memo');
   assert.equal(walkRowMeta('Nov 2, 2026', { distance_m: 1234, duration_ms: 25 * 60_000, photos: 0, voices: 0, notes: 0 }), 'Nov 2, 2026 · 1.2 km · 25 min');
+});
+
+test('tend tabs audit 24: a day\'s walk line keeps its count on its noun\'s line', () => {
+  assert.equal(timelineWalkLine('145 m', 1), 'Walk · 145 m · one moment');
+  assert.equal(timelineWalkLine('1.2 km', 23), 'Walk · 1.2 km · twenty-three moments');
 });
