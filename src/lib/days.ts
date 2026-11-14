@@ -200,10 +200,20 @@ export function dayPlaces(day: Day, walks: ReadonlyMap<string, WalkPlaces> | und
 const capWord = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
+ * What the day screen loaded that its card reads (tend replay audit 13): each walk's distance, and each walk's replay
+ * for where its moments were. One value, handed over whole, so the card cannot be built without the walks.
+ */
+export interface DayLoaded {
+  distance: ReadonlyMap<string, number>;
+  walks: ReadonlyMap<string, WalkPlaces>;
+}
+
+/**
  * The day's closing card: quiet, no streaks or badges (M13). Its distance in the units setting, as the walk's card (tend
  * replay 3); its moments a clause, with their named places or the day's area (tend replay T19).
  */
-export function dayCard(day: Day, now: number, distanceByWalk: Map<string, number>, units?: Units, walks?: ReadonlyMap<string, WalkPlaces>) {
+export function dayCard(day: Day, now: number, loaded: DayLoaded, units?: Units) {
+  const { distance: distanceByWalk, walks } = loaded;
   const date = new Date(dayStart(day.key));
   const label = dayLabel(day.key, now);
   const weekday = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });

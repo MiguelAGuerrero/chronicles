@@ -233,7 +233,7 @@ export default function DayReplay() {
   const cardAt = onCard ? phase.t0 : 0;
   // In the units setting, redrawn when it changes (tend replay 3).
   const units = useUnits();
-  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance, units, data.walks) : null), [data, day, cardAt, units]);
+  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data, units) : null), [data, day, cardAt, units]);
   // Each walk's clock, so a pin of several from one walk says how far in it was (tend map T14).
   const clocks = useMemo(() => (data ? [...data.walks.values()].map((r) => ({ id: r.walk.id, started_at: r.walk.started_at, pauses: r.pauses })) : undefined), [data]);
 
