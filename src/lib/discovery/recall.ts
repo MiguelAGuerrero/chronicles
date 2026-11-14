@@ -120,5 +120,12 @@ export function reminderText(captures: Faced[]): { title: string; body: string }
   return { title: 'A memory from here', body: `${KIND_NAME[c.kind]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` };
 }
 
-/** What the walk screen and the recording bar announce as reminders come: the reminder's own count, in words (tend explore T29). */
-export const reminderSpoken = (captures: Faced[]): string => (captures.length > 1 ? severalHere(captures.length) : 'A memory from here');
+/**
+ * What a reminder card holds once more come due (tend explore audit 6): what it held, then each newly due one it
+ * did not hold. The walk screen and the recording bar announce this list's own title (`reminderText`), so the words
+ * heard are the card's: "A note from here", "Three memories here".
+ */
+export function reminderHeld(held: readonly Faced[] | null, due: readonly Faced[]): Faced[] {
+  const have = held ?? [];
+  return [...have, ...due.filter((c) => !have.some((x) => x.id === c.id))];
+}

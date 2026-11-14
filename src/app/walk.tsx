@@ -35,7 +35,7 @@ import { forPreview } from '../lib/nav/previewView';
 import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
-import { reminderSpoken } from '../lib/discovery/recall';
+import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
@@ -831,14 +831,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     hereRef.current = live.here;
   }, [live.here]);
+  // What the card holds, read by the listener below, so it announces the card's own title (tend explore audit 6).
+  const reminderRef = useRef(reminder);
+  useEffect(() => {
+    reminderRef.current = reminder;
+  }, [reminder]);
   useEffect(
     () =>
       onRecallFired((due) => {
-        setReminder((r) => {
-          const all = [...(r?.captures ?? []), ...due.filter((c) => !r?.captures.some((x) => x.id === c.id))];
-          return { captures: all, at: hereRef.current, shownAt: Date.now() };
-        });
-        AccessibilityInfo.announceForAccessibility(reminderSpoken(due));
+        const next = { captures: reminderHeld(reminderRef.current?.captures ?? null, due), at: hereRef.current, shownAt: Date.now() };
+        reminderRef.current = next;
+        setReminder(next);
+        AccessibilityInfo.announceForAccessibility(reminderText(next.captures).title);
       }),
     [],
   );

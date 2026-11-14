@@ -9,7 +9,7 @@ import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
 import { stopWalk } from '../lib/session';
-import { reminderSpoken, reminderText } from '../lib/discovery/recall';
+import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { perfCount } from '../lib/perfCount';
@@ -99,11 +99,18 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   }, [said]);
   // Remind me here goes on while minimized (NV8): a fire with the page in front lands here, where
   // the walk's card would be; a tap opens it on the walk.
+  // What the bar holds, read by the listener below, so it announces the bar's own title (tend explore audit 6).
+  const reminderRef = useRef(reminder);
+  useEffect(() => {
+    reminderRef.current = reminder;
+  }, [reminder]);
   useEffect(
     () =>
       onRecallFired((due) => {
-        setReminder((r) => [...(r ?? []), ...due.filter((c) => !r?.some((x) => x.id === c.id))]);
-        AccessibilityInfo.announceForAccessibility(reminderSpoken(due));
+        const all = reminderHeld(reminderRef.current, due);
+        reminderRef.current = all;
+        setReminder(all);
+        AccessibilityInfo.announceForAccessibility(reminderText(all).title);
       }),
     [],
   );

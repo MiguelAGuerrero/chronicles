@@ -2,7 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderSpoken, reminderText } from '../../discovery/recall';
+import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderHeld, reminderText } from '../../discovery/recall';
 import { pinKindsWords } from '../../pins';
 import type { Recall } from '../../discovery/types';
 import type { LngLat } from '../../types';
@@ -120,10 +120,8 @@ test('tend explore T29: a reminder of several says its count and kinds in words,
   const said = reminderText(many);
   assert.deepEqual(said, { title: 'Many memories here', body: 'A note and many photos' });
   assert.doesNotMatch(`${said.title} ${said.body}`, /\d/);
-  // The announcements say the reminder's own words; one memory keeps "A memory from here".
-  assert.equal(reminderSpoken(three), 'Three memories here');
-  assert.equal(reminderSpoken([at('a', 'photo', 1), at('b', 'text', 2)]), 'Two memories here');
-  assert.equal(reminderSpoken([at('a', 'text', 1)]), 'A memory from here');
+  // The announcements say the card's own title (tend explore audit 6).
+  assert.equal(reminderText(reminderHeld(null, three)).title, 'Three memories here');
   // One memory's body keeps its kind's name and date ("Voice memo, Oct 20"), from the pins' table too.
   assert.deepEqual(reminderText([at('a', 'voice', 1)]), { title: 'A memory from here', body: 'Voice memo, Oct 20' });
 });
@@ -148,4 +146,16 @@ test('tend explore audit 5: a reminder says the same words in any time zone, for
   // Past fifty-nine the title says many while a body under sixty a kind still counts each.
   const mixed = Array.from({ length: 61 }, (_, i) => at(`m${i}`, i % 2 ? 'text' : 'photo', i));
   assert.deepEqual(reminderText(mixed), { title: 'Many memories here', body: 'Thirty-one photos and thirty notes' });
+});
+
+test('tend explore audit 6: the announcement says the card title, for every moment the card holds', () => {
+  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: new Date(2026, 9, 20, 15, min).getTime() });
+  // One note: the card says "A note from here", and so does its announcement (no longer "A memory from here").
+  assert.equal(reminderText(reminderHeld(null, [at('n', 'text', 1)])).title, 'A note from here');
+  // A card of one joined by two more holds three, and says so: not the two just due.
+  const held = reminderHeld([at('a', 'photo', 1)], [at('b', 'voice', 2), at('c', 'text', 3)]);
+  assert.deepEqual(held.map((c) => c.id), ['a', 'b', 'c']);
+  assert.equal(reminderText(held).title, 'Three memories here');
+  // One already held is not counted twice.
+  assert.deepEqual(reminderHeld([at('a', 'photo', 1)], [at('a', 'photo', 1), at('b', 'text', 2)]).map((c) => c.id), ['a', 'b']);
 });
