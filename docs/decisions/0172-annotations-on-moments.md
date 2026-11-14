@@ -59,3 +59,16 @@ carries its reminder bell. The owner's calls, the same day:
 - The pin's spoken name says each annotation after the kind, in the families' order ("Photo, happy, idea, twelve
   minutes in. Open"); the exact wording is the slice's.
 - Every map that draws capture pins draws the bubbles (as RB6); Explore draws none, as 0161's addendum holds.
+
+## Addendum, Nov 14 (the word)
+The owner asked for a better word than "annotations" and agreed to the recommendation:
+- **They are reactions.** The face with a plus (0168) adds a reaction; the word now matches the sign. "Type" goes
+  everywhere it is said: the page's tool, More, the spoken names ("Reaction, idea"). This answers the open question
+  0168 left ("Reaction" or "Type").
+- **The families are Feeling** (Happy, Neutral, Sad), **Taste** (Like, Dislike) **and Thought** (Question, Emphasis,
+  Idea), in that order, which is the bubbles' order on a pin. "Thought" replaces "intent", and "Reaction" is never a
+  family's name inside reactions.
+- A lens is named for its reaction in plain words ("Ideas", "Dislikes", "Happy moments"), never with a count.
+- In code, the slice renames `noteType` to `reaction`. "Annotation" stays only as this record's history.
+- The word's cost, argued at 0168's gate (the word for likes on someone else's post), is accepted again: a reaction
+  here is the owner's own, shown to no one, never counted and never said of a place.

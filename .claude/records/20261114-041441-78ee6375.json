@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From the journal's audit",
+        "A note's reaction: its word"
+      ],
+      "body": "  Answered Nov 14 (decision 0172): \"Reaction\" everywhere, with the families Feeling, Taste and Thought; built in the reactions slice.\n",
+      "target": "sha256:b420df5971082f2038a8bb358ee3dc5c4b366a6fdd533dd27f390b86408d1fb9"
+    }
+  ]
+}

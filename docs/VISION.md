@@ -141,4 +141,4 @@ same argument is not had twice.
 | 0139 | Media: bare tiles; the day header says where |
 | 0147 | Complexes: information only; the street kept; a viewing never fetches (reshaped at the gate, Nov 11) |
 | 0155 | Chronicle is a journal: writing in it captures |
-| 0172 | Annotations on moments: one per family, the owner's own; gathered in lenses; never counted or said of a place (reshaped at the gate, Nov 14) |
+| 0172 | Reactions on moments: one per family, the owner's own; gathered in lenses; never counted or said of a place (reshaped at the gate, Nov 14) |

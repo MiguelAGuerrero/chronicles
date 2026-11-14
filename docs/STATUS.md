@@ -145,6 +145,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **The dateline's tap lands on a cluster** (audit 19): the Map frames 150 m around the moment, but entries made at one spot share a pin with a count. Recommended: arrive with that moment's preview open.
 - **JN19 on your phone**: the line above a real keyboard, in Safari and the Home Screen app, is the first thing to try (`docs/NATIVE_UNVERIFIED.md`).
 - **(Nov 13) A note's reaction: its word** (decision 0168; the first cold find): the journal's sign is a face with a plus, but the page's tool, More and the spoken names still say "Type", which a cold reader took for typing or typeface. Yours: "Reaction" everywhere, or keep "Type". (Answered the same evening: the sign on today's entries only, NY27; ink glyphs, not colour emoji.)
+  Answered Nov 14 (decision 0172): "Reaction" everywhere, with the families Feeling, Taste and Thought; built in the reactions slice.
 
 ### From /tend
 
