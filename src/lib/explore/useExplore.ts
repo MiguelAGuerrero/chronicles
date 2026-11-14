@@ -15,7 +15,7 @@ import {
   alertedFor,
   alertKeys,
   EXPLORE_RULES,
-  findFor,
+  capturesToFind,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -234,14 +234,12 @@ export function useExplore(opts: {
     if (!found) return;
     const fresh = opts.captures.filter((c) => !handled.current.has(c.id) && c.lat != null && c.lon != null);
     if (!walkId || !fresh.length || !items.length) return;
-    for (const c of fresh) handled.current.add(c.id);
+    // tend explore 14: a capture with nothing in reach waits while a read runs; its read's items look at it again.
+    const { handled: done, finds } = capturesToFind({ captures: fresh.map((c) => ({ id: c.id, at: [c.lon!, c.lat!] as LngLat })), items: [...items, ...routeItems], taken: found, reading: exploreBusy() });
+    for (const id of done) handled.current.add(id);
     (async () => {
-      const taken = new Set(found);
-      for (const c of fresh) {
-        const place = findFor([c.lon!, c.lat!], [...items, ...routeItems], taken);
-        if (!place) continue;
-        taken.add(place.key);
-        await record(place, c.id);
+      for (const f of finds) {
+        await record(f.item, f.captureId);
         if (!mounted.current) return;
       }
     })();
