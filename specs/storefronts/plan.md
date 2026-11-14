@@ -39,8 +39,8 @@ New, all under `src/lib/storefronts/` unless said (each starts with `// @layer`)
 - `src/lib/__tests__/storefronts/` (tests, below) and `contract/` (the pinned copy).
 
 Existing, changed:
-- `src/lib/layers/registry.ts`: a `storefronts` entry, `defaultOn: false`, icon `bag-handle-outline`, one legend row "Shops" (a new `SwatchKey`, `'shop'`), a note ("From OpenStreetMap. Thrift, antiques, books, records, clothing and gift shops. Tap one for its name.").
-- `src/lib/layers/notes.ts`: the "Zoom in to see them" and "Not available right now" lines for Storefronts.
+- `src/lib/layers/registry.ts`: a `storefronts` entry, `defaultOn: false`, icon `bag-handle-outline`, one legend row "Shops" (a new `SwatchKey`, `'shop'`; the legend shows only in the two drawers), a note naming the source and nothing about types ("From OpenStreetMap. Tap a mark for its name."; steward S1). The entry is offered only when a storefront base is set (SF2).
+- `src/lib/layers/notes.ts`: the lines for Storefronts: "Zoom in to see them", "Not covered here yet", "Couldn't read the shops" (SF7), with the words grep extended to this file (SF13).
 - `src/components/map/types.ts` and `WalkMap.web.tsx`, `WalkMap.native.tsx`: a `storefronts` prop, a source and one circle layer drawn like `found-pins` (web `setData('storefronts', ...)`; native a `GeoJSONSource` with a `CircleLayer`), placed under the dot, trace, route and pins (SF12); the press handler's hit order gets the storefront last (SF14). No text layer (SF11).
 - `src/app/(tabs)/explore.tsx`, `src/components/walk/useReady.tsx`, `src/app/walk.tsx`: each calls `useStorefronts` with its fix or centre and passes the result and the card to the map (SF1, SF3); the walk's and ready's pass `near` (800 m of the fix).
 - `src/components/StartSettings.tsx`: its `LayersKey` lists the new row (SF3, from the registry, so it is one line if any).
@@ -56,24 +56,24 @@ A new feature folder `src/lib/__tests__/storefronts/` and a journey `scripts/e2e
 
 | Id | Test (name starts with the id) | File |
 |---|---|---|
-| SF1 | the three hosts each draw the marks of the fixture pack when the layer is on; the Layers button on each opens a panel with a "Storefronts" row, its legend and an icon that is not Busy streets' | journey `storefronts`; `registry.test.ts` (distinct icon and name) |
-| SF2 | off by default; a stored `map_layers` with no `storefronts` key reads off; while off the shell is never called and the harness serves no storefront request | `layerState.test.ts`; journey (request log) |
-| SF3 | one setting for every map; the registry row reaches `LayersKey` | `layerState.test.ts`; journey on `ready`, Explore and the walk |
+| SF1 | the three hosts each draw the marks of the fixture pack when the layer is on; the Layers button on each opens a panel with a "Storefronts" switch row, its note and an icon that is not Busy streets' (no legend in the panel) | journey `storefronts`; `registry.test.ts` (distinct icon and name) |
+| SF2 | off by default; a stored `map_layers` with no `storefronts` key reads off; while off the shell is never called and the harness serves no storefront request; with no base set the row is absent and nothing is asked | `layerState.test.ts`; journey (request log) |
+| SF3 | one setting for every map; the note on Explore and Navigate ready, the legend row reaching both `LayersKey` drawers | `layerState.test.ts`; journey on `ready`, Explore and the walk |
 | SF4 | a tile feature with extra fields (rating, hours, phone, website, id, description) yields a place holding only type, name, position and chain | `read.test.ts` |
 | SF5 | `chain: true` is kept; absent is not flagged; nothing is inferred from a name ("Goodwill" with no flag is not a chain) | `read.test.ts` |
 | SF6 | a shell over `fakePorts()`: manifest at most daily, region by position, tiles by z12, nothing written to the place cache, only the two meta keys, a host check against `ALLOWED_HOSTS` | `shell.test.ts` |
-| SF7 | failed manifest, failed tile, empty region and no region each give no places, a flag, and no throw; the notes say "Not available right now" with no alert text | `shell.test.ts`; `notes.test.ts` |
+| SF7 | no region, a covered area with none, and a failed manifest or tile give three distinct states, each no places and no throw; the notes carry their own words and no alert text, and a covered empty area has no line | `shell.test.ts`; `notes.test.ts` |
 | SF8 | the pinned contract's types, schema and example read through the app's reader; a class not in `storefront-types.json` is not drawn | `contract.test.ts` |
 | SF9 | the drawn list is exactly the listed values; every other value (supermarket, hairdresser, an invented one) is not drawn; presence's boutique shop values are a superset check | `types.test.ts` |
-| SF10 | `thin`: the same size, no count in its output, close places merge at a low zoom and split at a high one; below `NEAR_ZOOM` the map is given nothing | `read.test.ts`; journey (`data-storefronts`) |
+| SF10 | `thin`: the same size, no count in its output, so no size, colour or opacity can vary with how many a mark stands for; close places merge at a low zoom and split at a high one; below `NEAR_ZOOM` the map is given nothing | `read.test.ts`; journey (`data-storefronts`) |
 | SF11 | the map's layer list has no symbol layer for storefronts; the legend and card copy hold no digits | `mapProps.test.ts` (as `map/busyNames.test.ts` reads layers) |
 | SF12 | `withinOf` 800 m on the walk maps and unbounded on Explore; the layer order puts storefronts under the dot, trace, route and pins (a pure `storefrontOrder()` the maps call, like `busyLayerOrder`) | `read.test.ts`; `order.test.ts`; journey checks the capture stack is clickable |
-| SF13 | the words grep (`layers.test.ts`) runs over the new entry | `registry.test.ts` |
-| SF14 | `nearest` picks the one nearest within the reach and none beyond; pins, marks and "?" win a shared tap (the press handler's order, a pure `pressTarget()`); a tap elsewhere closes | `read.test.ts`; `pressTarget.test.ts`; journey |
-| SF15 | the card's text for a flagged and an unflagged place; no field of the place can reach it beyond name and type (a type-level test: the card's input has two fields) | `card.test.ts` |
-| SF16 | on `ready` and the walk the card's box and the capture stack's box do not overlap, and a capture starts with the card open | journey |
+| SF13 | the words grep (`layers.test.ts`, ML6) runs over the new entry and, extended, over `layers/notes.ts` | `registry.test.ts`; `notes.test.ts` |
+| SF14 | `nearest` picks the one nearest unmerged mark within the reach and none beyond; a merged mark's tap gives a zoom-in and no card; pins, marks and "?" win a shared tap (the press handler's order, a pure `pressTarget()`); a tap that closes the card returns "consumed" and Explore's panel, long-press and zoom handling do not run | `read.test.ts`; `pressTarget.test.ts`; journey |
+| SF15 | the card's text for a flagged and an unflagged place (the source-worded chain line, never "independent", "local" or "unique"); the card's input type has three fields (name, type, chain) and nothing can reach it beyond them; `chains.json` is not imported by the storefront modules | `card.test.ts`; `boundary.test.ts` |
+| SF16 | the card is anchored in a fixed region at the map's top; on `ready` and the walk its box never intersects the capture stack's box at the journey's viewports (a short phone included); its close control is at least 44 px; a capture starts with the card open | `cardBox.test.ts` (a pure box rule); journey |
 | SF17 | an import-boundary test: no file under `presence`, `discovery`, `atlas`, `landing`, `explore` imports `storefronts`; the three codes are unchanged | `boundary.test.ts` |
-| SF18 | `Object.keys` of every store the shell touches: only the two meta keys; a captured moment's record has no storefront field | `shell.test.ts` |
+| SF18 | `Object.keys` of every store the shell touches: only the two meta keys; a captured moment's record has no storefront field; the reader's output type has no visited, passed, found or done field | `shell.test.ts`; `read.test.ts` |
 
 Layer check: `storefronts/types.ts` and `read.ts` core (no clock, randomness, module state; import only core), `shell.ts` shell, `index.ts` adapter, `useStorefronts.ts` view. `npm test` and lint enforce it.
 
@@ -84,10 +84,11 @@ Tests go in first as todos in their own commit (`Storefronts: tests first (SF1-S
 | Goal | How often, where | Control | Matrix row | Where the owner will look first |
 |---|---|---|---|---|
 | Turn the shops on or off on the map | Occasional, a map on any of the three screens | The Storefronts switch in the existing Layers panel | #14 Toggle a setting | The Layers button on the map they are looking at, the same place as Busy streets and Town borders |
-| Know what the marks mean | Passing | A legend row "Shops" and its note under the switch | #19 A passive status | Under the switch |
-| Know the layer is not drawing | Passing | The panel's quiet line ("Zoom in to see them", "Not available right now") | #19, #21 | Under the switch |
-| Learn what one mark is | Occasional, a map on any of the three | A tap on the mark opens a small card: name, kind in words, "A chain" if flagged | #24 A quick, scoped sub-task without losing context (a card, not a sheet, so the map stays in view) | On the mark itself |
-| Close the card | Every time | A tap elsewhere on the map, and a visible close symbol | #23 Dismiss | Where they tapped |
+| Know what the marks mean | Passing | The panel's one quiet note under the switch on Explore and Navigate ready; a legend row in the two drawers that hold `LayersKey` (the legend never sits over the map, the layers rule, Nov 5) | #19 A passive status | Under the switch |
+| Know why the layer is not drawing | Passing | The panel's quiet line ("Zoom in to see them", "Not covered here yet", "Couldn't read the shops") | #19, #21 | Under the switch |
+| Learn what one mark is | Occasional, a map on any of the three | A tap on an unmerged mark opens a small card in a fixed place at the map's top: name, kind in words, a chain line only if flagged | #24 A quick, scoped sub-task without losing context (a card, not a sheet, so the map stays in view) | On the mark itself |
+| Separate a merged mark | Occasional | A tap on it zooms in; no card | (as 0115's star) | On the mark itself |
+| Close the card | Every time | A close control of at least 44 px, and a tap elsewhere on the map, which does nothing else | #23 Dismiss | Where the card is |
 
 No new top-level control, no capture behind a tap, nothing over the capture stack (Always: capture one tap away).
 
@@ -97,7 +98,9 @@ No new top-level control, no capture behind a tap, nothing over the capture stac
 3. **`mall` and `department_store` are not drawn.**
 4. **On the walk maps the marks draw only within 800 m of you** (DC18's number for busy names); Explore draws across what the map shows once it has settled.
 5. **Below zoom 14 nothing is drawn** (`NEAR_ZOOM`), the zoom the tiles' own places are complete at.
-6. **The card has no action.** No Walk here, no Open in Maps, no route; circuits and the hand-off to Maps come later.
+6. **The card has no action.** No Walk here, no Open in Maps, no route; circuits and the hand-off to Maps come later. It sits at the map's top (as 0115's card does), never at the mark, so it cannot reach the capture stack.
+6b. **The layer is not offered until a pack exists**: with no storefront base set the row is absent (SF2). Production gets the base only when chronicles-data publishes its first storefront pack; until then nobody meets a switch that does nothing.
+6c. **The 800 m edge on the walk maps is a hard cut from you, not from the pan**: the marks move with you, and a pan neither extends nor shrinks it.
 7. **Icon `bag-handle-outline`** for the layer. Busy streets already uses `storefront-outline` and its row says "Busy with places: streets with many shops"; the two sound alike, which is a confusion risk the cold find will test (SF1). If it fails, the fix is words or icon, not a merge.
 
 ## Every surface (from the code, not from memory)
@@ -106,7 +109,18 @@ No new top-level control, no capture behind a tap, nothing over the capture stac
 
 ## Steward findings
 
-(Added after the steward runs; each accepted into a criterion or rejected with its reason.)
+The steward's report (Nov 14): one breach, six drifts, one tone. All accepted; S2's wording and S4's "row absent" need the owner's confirmation, marked below.
+
+- **S1, the drawn list teaches a curation.** Accepted into SF9 and the plan: no copy says "places to go" or "errands"; the layer's note names the source and "shops", not a list of types. The list itself stays (the owner's call), stated as a mechanical rule. Presence's superset test stays.
+- **S2, "A chain" reads as a quality signal and as fact.** Accepted into SF5 and SF15: the line is worded as what the map data records, an unflagged shop is never called independent, local or unique, and only the pack's flag is read (`chains.json` is not). **Owner to confirm the wording** (the earlier call was "A chain" only when flagged).
+- **S3, SF1's legend is not where SF1 said.** Accepted (the breach; verified against `.claude/rules/layers.md`): SF1 and SF3 now say where the meaning lives per host; the cold find checks the switch row and note, not a legend in the panel.
+- **S4, a dead switch, and one line for three states.** Accepted into SF2 and SF7: the row is absent until a storefront base is set; no region, a covered empty area and a failed read have separate words (the covered empty area has none). **Owner to confirm** "row absent until a pack exists".
+- **S5, the card is unplaced and the 800 m edge reads as a radar.** Accepted into SF14 and SF16 and defaults 6 and 6c: a fixed card at the top, a 44 px close control, a closing tap consumes the tap, the 800 m is a hard cut from you.
+- **S6, merged marks hide shops.** Accepted into SF10 and SF14: a merged mark's tap zooms in and opens no card; no size, colour or opacity varies with how many a mark stands for.
+- **S7, circuits as a checklist.** Accepted into SF18 and the decision record that amends 0044 (a shop is never marked done; a circuit shows no "n of m"). Its silent questions go to the owner (below).
+- **S8, inconsistencies.** Accepted: SF15's input has three fields; the spec says "every named shop=*"; the words grep covers `layers/notes.ts` (SF13); the Precedents line for 0044's amendment reads "shops may be drawn as a layer, never as marks or on a checklist".
+
+**Questions for the owner (the vision is silent):** (1) when circuits come, may a shop on a circuit show "passed" or "walked", given the lows stay in yet a checklist is out? (2) May a later slice derive "just after the bookshop" for a moment from the trace and the pack (truth-safe), or never? Neither blocks this slice; SF18 forbids both for now.
 
 ## Deferred, and why
 
@@ -121,4 +135,4 @@ The new circle layer and its source on MapLibre React Native; the press hit orde
 - **Density on the live walk.** A town centre can hold hundreds of shops; at 800 m the marks may crowd the trace. `thin` and the 800 m bound are the levers; the `ux-reviewer`'s pictures with a dense fixture decide.
 - **Data quality.** OSM shop coverage varies a lot by town; the layer will be sparse in some. The panel's note says the source and says nothing about completeness.
 - **Two readers of "a shop".** Presence calls a shop a weight; the layer calls it a mark. SF9's superset test and SF17's boundary test keep them from drifting into each other.
-- **The pack does not exist yet.** The app's half can ship against fixtures; the layer will read nothing in production until chronicles-data publishes a storefront pack.
+- **The pack does not exist yet.** The app's half can ship against fixtures; with no storefront base set the layer is not offered (SF2), so production shows nothing until chronicles-data publishes a pack and the base is set.
