@@ -57,3 +57,14 @@ export function peekStart(rows: readonly Row[], anchor: string | null): number {
   const at = anchor == null ? -1 : rows.findIndex((r) => r.k === 'entry' && r.key === anchor);
   return at < 0 ? rows.length : at;
 }
+
+/**
+ * Whether the rows that decide the empty page's height have all reported theirs: the peek's rows and the date held
+ * over it (fix entry-jitter). Until they have, `blankHeight` is sized from zeros, too tall by the whole peek, and a
+ * sheet taken to its end then shows the entry above where it rests and moves it down when the heights arrive.
+ */
+export function peekMeasured(rows: readonly Row[], from: number, heights: Readonly<Record<string, number>>): boolean {
+  for (let i = from; i < rows.length; i++) if (heights[rows[i].key] == null) return false;
+  const held = stickyDay(rows, from);
+  return held == null || heights[held] != null;
+}

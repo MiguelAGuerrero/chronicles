@@ -54,3 +54,22 @@ test('chronicle-journal audit 48: the date held over the peek is the peek\'s own
   assert.equal(rest.stickyDay(rows, 2), null);
   assert.equal(rest.stickyDay(rows, 5), 'today');
 });
+
+test('fix entry-jitter 1: the sheet is taken to its end only once the peek and its held date have been measured', () => {
+  const rest = rs;
+  const rows = [{ k: 'day', key: 'd' }, { k: 'entry', key: 'a' }, { k: 'entry', key: 'b' }];
+  // Before any row has reported its height the empty page is sized from zeros and too tall by the whole peek: the
+  // end it scrolls to is not the resting place, and the entry jumps when the heights arrive.
+  assert.equal(rest.peekMeasured(rows, 1, {}), false);
+  assert.equal(rest.peekMeasured(rows, 1, { a: 90 }), false);
+  // Every row of the peek is in, but the date held over it is not.
+  assert.equal(rest.peekMeasured(rows, 1, { a: 90, b: 70 }), false);
+  assert.equal(rest.peekMeasured(rows, 1, { a: 90, b: 70, d: 66 }), true);
+  // A peek that begins with a date of its own holds none.
+  assert.equal(rest.peekMeasured(rows, 0, { d: 66, a: 90, b: 70 }), true);
+  assert.equal(rest.peekMeasured(rows, 0, { d: 66, a: 90 }), false);
+  // Nothing kept: nothing to wait for but the day's date, which is the last day drawn.
+  assert.equal(rest.peekMeasured([{ k: 'day', key: 'd' }], 1, {}), false);
+  assert.equal(rest.peekMeasured([{ k: 'day', key: 'd' }], 1, { d: 66 }), true);
+  assert.equal(rest.peekMeasured([], 0, {}), true);
+});

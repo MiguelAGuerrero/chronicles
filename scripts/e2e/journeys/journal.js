@@ -755,10 +755,25 @@ async function run(h) {
 
   // JN1, JN2, JN9, JN20: a long journal opens at its foot in book order; the line is fixed; older entries load above.
   await pg.evaluate(SEED, { now: Date.now(), day: DAY });
+  // fix entry-jitter: every frame of the launch records where the last entry is, while the sheet is visible at all.
+  await c.addInitScript(() => {
+    window.__seen = [];
+    const t0 = performance.now();
+    const tick = () => {
+      const root = document.querySelector('[data-testid=journal-page]');
+      const cards = root ? [...root.querySelectorAll('[data-testid=moment-card]')] : [];
+      if (root && cards.length && Number(getComputedStyle(root).opacity) > 0) window.__seen.push(Math.round(cards[cards.length - 1].getBoundingClientRect().top));
+      if (performance.now() - t0 < 8000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await pg.reload();
   await there('[data-testid=memories]', 20000);
   await pg.waitForSelector(entries, { timeout: 15000 }).catch(() => {});
   await pg.waitForTimeout(2000);
+  const seen = await pg.evaluate(() => window.__seen ?? []);
+  check(seen.length > 3 && new Set(seen).size === 1,
+    `fix entry-jitter 1: on launch the latest entry is first seen where it rests and does not move (${JSON.stringify([...new Set(seen)])} over ${seen.length} frames)`);
   const opened = await pg.evaluate(({ sel, lineSel }) => {
     const cards = [...document.querySelectorAll(sel)];
     const lineBox = document.querySelector(lineSel)?.getBoundingClientRect();
