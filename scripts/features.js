@@ -176,11 +176,11 @@ const FEATURES = [
   },
   {
     name: 'layers',
-    about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
+    about: 'map layers: the Layers button and panel, what is on, storefronts and town borders as layers',
     rule: 'layers',
     source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
     journeys: ['layers', 'dense', 'switches'],
-    specs: ['map-layers', 'explore-dense-city', 'smooth-switches'],
+    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts'],
   },
   {
     name: 'walkability',
@@ -192,7 +192,7 @@ const FEATURES = [
   },
   {
     name: 'landing',
-    about: 'what\'s good here: landing analysis, busy streets, activity density',
+    about: 'what\'s good here: landing analysis, storefront streets, activity density',
     rule: 'landing',
     source: ['src/lib/landing/**', 'src/lib/activity/**'],
     journeys: [],

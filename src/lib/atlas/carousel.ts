@@ -4,7 +4,7 @@ import type { LandingView } from '../landing/view';
 import type { LngLat } from '../types';
 import { ATLAS_RULES, needsNear, type Listed, type NearRead } from './atlas';
 
-/** Explore's row of area cards (EC1-EC15): what is in it, which card a swipe or a scroll means, and which Busy names the map keeps. */
+/** Explore's row of area cards (EC1-EC15): what is in it, which card a swipe or a scroll means, and which Storefront names the map keeps. */
 
 /**
  * The row's areas in order (EC3): a town's own card first on its page, then its neighborhoods; near you, the towns alone,
@@ -75,8 +75,8 @@ export function settledIndex(offsetX: number, step: number, count: number): numb
 /** Where to scroll to centre a card (EC4). */
 export const offsetOf = (index: number, step: number): number => index * step;
 
-/** The Busy view with its names kept only inside the selected area's ring and from `minZoom` (EC7); its drawn streets are never touched. */
-export function busyNamesNear(view: LandingView | null, at: LngLat | null, zoom: number, ringM: number, minZoom: number): LandingView | null {
+/** The Storefronts view with its names kept only inside the selected area's ring and from `minZoom` (EC7); its drawn streets are never touched. */
+export function storefrontNamesNear(view: LandingView | null, at: LngLat | null, zoom: number, ringM: number, minZoom: number): LandingView | null {
   if (!view) return null;
   const named = at != null && zoom >= minZoom;
   const near = (p: LngLat) => named && distanceM(at, p) <= ringM;
@@ -118,13 +118,13 @@ export function townNote(name: string, listing: boolean): string {
   return listing ? `Reading ${name}…` : `The map names no neighborhoods in ${name}.`;
 }
 
-/** How far from the selected area's point the Busy names reach: a neighborhood's ring, a town's own reach, never less than the ring (explore-carousel audit 16). */
-export function busyRadiusM(level: 'neighborhood' | 'town', ringM: number, townReachM: number): number {
+/** How far from the selected area's point the Storefront names reach: a neighborhood's ring, a town's own reach, never less than the ring (explore-carousel audit 16). */
+export function storefrontRadiusM(level: 'neighborhood' | 'town', ringM: number, townReachM: number): number {
   return level === 'town' ? Math.max(ringM, townReachM) : ringM;
 }
 
-/** Whether the Busy names are shown at this zoom: one boolean, so a camera move does not send the map a new view (explore-carousel audit 3). */
-export function busyNamesOn(zoom: number, minZoom: number): boolean {
+/** Whether the Storefront names are shown at this zoom: one boolean, so a camera move does not send the map a new view (explore-carousel audit 3). */
+export function storefrontNamesOn(zoom: number, minZoom: number): boolean {
   return zoom >= minZoom;
 }
 

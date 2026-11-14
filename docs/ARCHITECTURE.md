@@ -9,7 +9,7 @@ is for, and the invariants it must keep. Decisions and their history are in
 
 Chronicles is a local-only companion for wandering towns on foot: one Expo
 codebase for iOS, Android and the web (a fallback). Three tabs are the loop:
-Explore before (busy areas, places to find), Navigate during (Start, the
+Explore before (storefront areas, places to find), Navigate during (Start, the
 capture row, a live view of a minimized walk), Chronicle after (stars where
 walks were, Walks | Days, replays). A walk screen opens over the tabs while
 recording: a live dot and trace, capture buttons, navigation inside the walk,
@@ -221,7 +221,7 @@ Navigation (inside a walk)
   nav/eta.ts                 time left on the bar: the walk's own pace, clamped (QL17, QL18)
   nav/previewView.ts         what the live map leaves undrawn while the route preview is open (`forPreview`)
   nav/scenic.ts              scenic routes: who gets the preview, one route per leaning within 30%, the rows in words
-  nav/scenicSignals.ts       green (landcover), sights and busy streets of a corridor; their per-routing indexes
+  nav/scenicSignals.ts       green (landcover), sights and storefront streets of a corridor; their per-routing indexes
   nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
   routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
   kindWalk/                  a suggested walk where a kind is dense (`lib/kindWalk`: density, plan, words, its settings and prefs)
@@ -266,7 +266,7 @@ Discovery and Explore (v1)
   atlas/waitingPins.ts       the selected area's places on the map: a "?" where it has room, a dot where not (WT7, WT12-WT14)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
-  atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Busy names kept near the selection
+  atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Storefront names kept near the selection
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
   explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
@@ -280,9 +280,9 @@ Activity density (AD1-AD16)
   activity/overture.ts       Overture's places by tile (pmtiles, byte ranges); the release check (meta)
 Map layers (ML1-ML13)
   layers/registry.ts         the list of layers: name, icon, default, legend rows (a layer is data)
-  layers/state.ts            the stored setting decoded and defaulted; the old walk_layer read in once; needsBusyRead
+  layers/state.ts            the stored setting decoded and defaulted; the old walk_layer read in once; needsStorefrontsRead
   layers/shell.ts            createLayers: the state and the panel's open flag as a Store (meta `map_layers`); index.ts is the app's instance
-  layers/busy.ts, useBusyLayer.ts  Busy streets as a layer: the remembered areas and the one read
+  layers/storefronts.ts, useStorefrontsLayer.ts  Storefronts as a layer: the remembered areas and the one read
   layers/useLayers.ts        the hook the maps call
 Walkability (WK1-WK23, UF1-UF20)
   walk/form.ts               the rule and its one table of thresholds (judge)
@@ -306,14 +306,14 @@ Walkability (WK1-WK23, UF1-UF20)
 Kind walk (decisions 0101, 0102)
   kindWalk/                  the kind walk: suggest.ts and plan.ts pick routes for a kind, density.ts, words.ts (core); prefs.ts, settings.ts (shells); app.ts the instance; useKindWalk.ts the view
 Landing (v1.5)
-  landing/analyze.ts         busy streets, pockets, the landing point, from the grades
+  landing/analyze.ts         storefront streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read
   landing/spatial.ts         buckets, single linkage, hulls: the analysis's planar helpers
   landing/read.ts            What's good here: decoder reads, remembered areas; the tiles' bytes go to runOffPage
   landing/compute.ts         computeRead: decode, streets, places, activity and the measure, one staged generator (DC13)
   landing/offPage.ts         createOffPage: a worker per read, else the page; same result either way (DC7, DC8)
   landing/runOffPage(.web).ts the instances: a worker on web (compute.worker.ts), the JS thread with a turn per stage on native
-  landing/names.ts           busyNames: one name per strip at its label point, turned along its street (DC1, DC3)
+  landing/names.ts           storefrontNames: one name per strip at its label point, turned along its street (DC1, DC3)
   landing/workerJobs.ts      the worker's jobs: a read (computeRead) or an atlas ring (atlas/ringCompute.ts, audit 2)
   atlas/profile.ts           profileFrom: what a ring read keeps, from decoded tiles (core, so the worker runs it)
   layers/motion.ts           createMotion: whether the map moves, a promise for its settle (DC9, audit 7)
@@ -436,7 +436,7 @@ Layers (functional core, imperative shell)
   `SNAP_RULES` (bump when `snapper.ts`, `AREA_RULES` or a boundary pack's
   edition changes what counts) re-snaps and re-places every walk through the
   `snap_rules` meta. `LANDING_CODE` (`landing/view.ts`, bumped by hand) marks
-  remembered busy areas stale; they are drawn dimmed until analyzed again.
+  remembered storefront areas stale; they are drawn dimmed until analyzed again.
   The Overture release (meta `overture_release`, checked at most daily by
   `ensureOvertureRelease`) is a second version: a landing row or an atlas
   ring measured with another release, or without Overture, is stale too
@@ -489,7 +489,7 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
-- **A busy read's background thread** (explore-dense-city DC7, decision 0160): a web worker (`landing/runOffPage.web.ts`,
+- **A storefronts read's background thread** (explore-dense-city DC7, decision 0160): a web worker (`landing/runOffPage.web.ts`,
   `landing/compute.worker.ts`, built by Expo's export as a file of its own). No Expo module gives the web, or a phone, a
   background JS thread; native runs the same `computeRead` on the JS thread with a turn before each tile and stage. A
   worker that can't start (a page left open across a deploy asks for the old worker's file) leaves the read to the page.

@@ -59,7 +59,7 @@ recording, and a recording bar brings a minimized walk back.
   it tinted and frames the whole town, the towns around in grey lines (town borders, decision 0088),
   as do a town's page, the walk screen (lines only), the replay and a day.
 - Each tile is the same picture at the same scale: an 800 m ring around the
-  area's point, with its streets, busy streets (magenta, graded faint to
+  area's point, with its streets, storefront streets (magenta, graded faint to
   strong), parks, the streets
   you walked, a "?" for each kind still waiting and a check for each find. It
   also shows how far the area is, "New to you" or how often you walked there,
@@ -113,20 +113,21 @@ recording, and a recording bar brings a minimized walk back.
   the web. Pinch, the wheel, the two-finger turn and the long press stay.
 - A tile opens the area's card:
   - the eight kinds in words;
-  - its busy streets;
+  - its storefronts: one list of its storefront streets, nearest you first, each with Walk to;
   - what's waiting (kinds only, never names);
   - what you found;
   - the areas next door;
-  - Walk to its busiest street.
-- A long press on the small map still offers **What's good here?** and
+  - Walk to, which starts you on a street of its storefronts.
+- A long press on the small map still offers **What's here?** and
   **Walk here**. There are no counts of places on this tab.
-- **Busy streets are a density of places** (activity density, decision 0080):
-  every kind of place counts (shops, food, services, attractions), from
+- **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0180):
+  shops, food, drink, services, offices and the like count; parks, monuments, public art, views, curiosities and
+  cemeteries don't. From
   OpenStreetMap and Overture Maps Places, measured along each street and
   graded against the town itself, so a small town shows where its activity
   centres. Never foot traffic, and never a number.
 - Explore's route preview and "Walk this way" are deferred: Walk here and
-  "Walk to its busiest street" start at once.
+  Walk to start at once.
 
 - **Places worth the stop** (decision 0103): curiosities (follies, roadside
   oddities, natural oddities, covered bridges and lighthouses, places that
@@ -258,7 +259,7 @@ recording, and a recording bar brings a minimized walk back.
   Start, the app shows Direct beside up to three scenic routes, one per
   leaning switched on: **Through green** (parks, gardens, woods), **Past the
   sights** (places worth seeing, of the kinds in "What I'm into") and **Along
-  busy streets**. Each is at most 30% longer. Every row gives its own
+  storefronts**, which names the streets in the order you pass them. Each is at most 30% longer. Every row gives its own
   distance in km or miles, and a scenic row what it passes ("Through green ·
   360 m · through India Point Park"): never a time or minutes compared, never
   naming a place not yet found. A tap highlights one on the map; Go starts it; off
@@ -270,7 +271,7 @@ recording, and a recording bar brings a minimized walk back.
   that can't be found, beside Go here on the long-press
   card and in a pin's viewer. Navigation and the walk go on.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
-  range (60-300 m), a chip when on a busy strip, an optional pocket alert
+  range (60-300 m), a chip when on a storefront strip, an optional pocket alert
   (a double-tap once per place, on phones and browsers that can buzz), and a nudge when an area is a dead zone.
   A capture within 60 m of an unfound place finds it.
 - **Remind me here**: flag a capture, and the next walk that passes within
@@ -294,16 +295,16 @@ recording, and a recording bar brings a minimized walk back.
 
 #### Map layers and walkability (before and during)
 
-- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Busy streets and Town
+- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts and Town
   borders. Each draws something over the base map and shows its own legend while on. All three start off, so a fresh map is clear; the button is outlined, and its glyph
   and a firmer edge say a layer is on. One setting for every map, kept across launches.
 - **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
   built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
-- **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
+- **Storefronts** (decision 0180; it was "Busy streets", which promised traffic the data can't see) is the graded magenta shading of streets lined with places you walk into, now on request on any walk. Turning it on where nothing is
   remembered reads the area once, in the background on the web and only once the map has stopped moving, so moving between neighborhoods stays
-  smooth in a dense city (decision 0160). Its street names are the map's own text: one per street within 300 m, at its busiest point, turned along it, never over
+  smooth in a dense city (decision 0160). Its street names are the map's own text: one per street within 300 m, at its densest point, turned along it, never over
   another name, a "?" pin, the selected area's name or one of Explore's buttons; where they crowd, the heavier streets (a
   current area's first) keep theirs and zooming in brings the rest. On Explore they take the room first; on the walk screen
   and Navigate the map's own street names do, the trace draws over them, and only those within 800 m of you are named.
@@ -488,7 +489,7 @@ recording, and a recording bar brings a minimized walk back.
   nothing on web.
 - Map data is OpenStreetMap via OpenFreeMap, with signal assumed (no offline
   maps). Streets, places and attractions are derived on the device from the
-  vector tiles. Busy streets also read Overture Maps Places by tile, for the
+  vector tiles. Storefronts also read Overture Maps Places by tile, for the
   shops OpenStreetMap is missing (decision 0080).
 
 ## Status at a glance
@@ -526,7 +527,8 @@ recording, and a recording bar brings a minimized walk back.
 | Reactions (any moment carries at most one reaction per family: Feeling, Taste, Thought; set from the journal's sign, More, the viewer's More and a note page's Reaction tool; drawn under an entry's dateline, the viewer's info line, a card and a bubble, and as ink bubbles on a single moment's pin; gathered in the journal's contents → Reactions, a lens per reaction, oldest first, no count; never inferred, never said of a place; replaced note types, decision 0176; in Memories a reaction under an entry or the viewer's line opens its lens, the sign always the face with a plus, decision 0177) | Built 2026-11-14 (web verified by the e2e `reactions`, `journal`, `notepage`, `qol`, `threads`, `responses`; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
-| Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
+| Scenic routes (Go here offers Direct and one route per leaning: green, sights, storefronts) | Shipped on web (native unverified) |
+| Storefronts ("busy" becomes storefronts everywhere, nearest first; only places you walk into count; SF1-SF14, decision 0180) | Built (web verified by the e2e; native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video and voice-memo trim, all saved out (a memo is never saved out) | Shipped on web (native unverified; the video module never compiled) |
 | Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |

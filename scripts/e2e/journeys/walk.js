@@ -13,7 +13,7 @@ async function checks(h) {
     const barH = async () => Math.round((await page.locator('[data-testid=ready-bar]').boundingBox()).height);
     // The busy streets the walk map draws, by their lines (`data-busy`, "strips:N"): their names are the map's own text, and
     // on the walk maps only within 800 m of you (explore-dense-city DC1, DC18), so the lines say whether they are drawn.
-    const busyLines = async () => Number(/strips:(\d+)/.exec((await walkMap().getAttribute('data-busy').catch(() => null)) ?? '')?.[1] ?? 0);
+    const busyLines = async () => Number(/strips:(\d+)/.exec((await walkMap().getAttribute('data-storefronts').catch(() => null)) ?? '')?.[1] ?? 0);
     const peekH = await barH();
     await drawerTo(page, 'half');
     check((await page.locator('[data-testid=mode-quiet][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=mode-explore]').count()) === 1
@@ -229,8 +229,8 @@ async function checks(h) {
         // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once. They are drawn only when
         // the Busy streets layer is on, on any walk (specs/map-layers ML8, ML10): Explore mode no longer draws them by itself.
         check((await busyLines()) === 0, 'ML10: switching Explore on does not draw the busy streets by itself');
-        await h.switchLayer(page, 'busy');
-        await page.waitForFunction(() => [...document.querySelectorAll('.maplibregl-map')].some((m) => /strips:[1-9]/.test(m.dataset.busy ?? '')), null, { timeout: 15000 }).catch(() => {});
+        await h.switchLayer(page, 'storefronts');
+        await page.waitForFunction(() => [...document.querySelectorAll('.maplibregl-map')].some((m) => /strips:[1-9]/.test(m.dataset.storefronts ?? '')), null, { timeout: 15000 }).catch(() => {});
         check((await busyLines()) >= 1, 'ML8: with the Busy streets layer on, the busy streets around are drawn');
         // AD12: the busy streets draw graded, each grade wider than the one below.
         const graded = ((await walkMap().getAttribute('data-graded')) ?? '').split(',').filter(Boolean).map((g) => g.split(':').map(Number));

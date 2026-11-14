@@ -4,9 +4,9 @@ import { useOvertureRelease } from '../activity/useOvertureRelease';
 import { landingView, type LandingRow, type LandingView } from '../landing/view';
 import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
-import { readBusyAround, rememberedAreas } from './busy';
+import { readStorefrontsAround, rememberedAreas } from './storefronts';
 import { perfCount, perfMark } from '../perfCount';
-import { busyReadDue, drawnAreas, needsBusyRead, needsListing, triedAfter, type BusyHold } from './state';
+import { storefrontsReadDue, drawnAreas, needsStorefrontsRead, needsListing, triedAfter, type StorefrontsHold } from './state';
 
 /** Two listings of the remembered areas hold the same rows: the same keys, each read at the same time. */
 const sameRows = (a: readonly LandingRow[], b: readonly LandingRow[]) =>
@@ -16,8 +16,8 @@ const sameRows = (a: readonly LandingRow[], b: readonly LandingRow[]) =>
 const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
 
 /**
- * Busy streets as a layer (ML8, ML9): the remembered areas near `centre`, drawn when `on`, on any walk. With none within
- * 1.5 km they are read once (the same read What's good here does); a failure says nothing and waits for a toggle or a
+ * Storefront streets as a layer (ML8, ML9): the remembered areas near `centre`, drawn when `on`, on any walk. With none within
+ * 1.5 km they are read once (the same read What's here does); a failure says nothing and waits for a toggle or a
  * move of about 1 km. Nothing is listed or read while off. `reload` lists again after another read (an exploring walk's).
  */
 /**
@@ -26,12 +26,12 @@ const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
  */
 export type Stillness = () => { moving: boolean; settled: () => Promise<void> };
 
-export function useBusyLayer(
+export function useStorefrontsLayer(
   centre: LngLat | null,
   on: boolean,
   stillness?: Stillness,
   /** A town's page (SS4): the areas within its reach stay drawn while its neighborhoods are switched. */
-  hold: BusyHold | null = null,
+  hold: StorefrontsHold | null = null,
 ): { view: LandingView | null; reading: boolean; failed: boolean; reload: () => void } {
   const release = useOvertureRelease();
   const [rows, setRows] = useState<LandingRow[]>([]);
@@ -68,11 +68,11 @@ export function useBusyLayer(
     let started = false;
     void (async () => {
       // SS8: listed when the layer comes on and after a read or a reload, never for a switch alone; and where nothing
-      // remembered covers the centre, since another read (What's good here, an exploring walk) may have since.
+      // remembered covers the centre, since another read (What's here, an exploring walk) may have since.
       let list = rowsNow.current;
       const v = version.current;
-      if (needsListing({ listed: listed.current, version: v }) || (!!centre && needsBusyRead(list, centre))) {
-        perfCount('busy:list');
+      if (needsListing({ listed: listed.current, version: v }) || (!!centre && needsStorefrontsRead(list, centre))) {
+        perfCount('storefronts:list');
         const [fresh, b] = await Promise.all([rememberedAreas(), ensureTileBuild().catch(() => null)]);
         if (!live) return;
         listed.current = v;
@@ -81,20 +81,20 @@ export function useBusyLayer(
         if (!sameRows(rowsNow.current, fresh)) setRows(fresh);
         if (b !== buildNow.current) setBuild(b);
       }
-      const needs = !!centre && needsBusyRead(list, centre);
+      const needs = !!centre && needsStorefrontsRead(list, centre);
       // DC9: never while the map moves (a switch's ease, a drag): wait for it to settle, then decide again.
       const moving = () => stillnessRef.current?.().moving ?? false;
       while (needs && !tried.current.has(key) && moving()) {
         await stillnessRef.current!().settled();
         if (!live) return;
       }
-      if (centre && busyReadDue({ on, needs, tried: tried.current.has(key), moving: moving() })) {
+      if (centre && storefrontsReadDue({ on, needs, tried: tried.current.has(key), moving: moving() })) {
         tried.current.add(key);
         started = true;
-        perfCount('busy:read');
-        perfMark('mark:busy-read');
+        perfCount('storefronts:read');
+        perfMark('mark:storefronts-read');
         setReading(true);
-        const ok = await readBusyAround(centre, () => !live);
+        const ok = await readStorefrontsAround(centre, () => !live);
         // SS7: a read a switch cut short leaves its place untried, so selecting it again reads it.
         if (!live) {
           if (!triedAfter('cut')) tried.current.delete(key);
@@ -105,7 +105,7 @@ export function useBusyLayer(
         setFailed(!ok);
         if (ok) {
           version.current += 1;
-          perfCount('busy:list');
+          perfCount('storefronts:list');
           const fresh = await rememberedAreas();
           if (!live) return;
           listed.current = version.current;

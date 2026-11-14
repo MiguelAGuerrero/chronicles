@@ -37,7 +37,7 @@ async function run(h) {
     await pg.goto(exploreUrl);
     const first = await h.areaTile(pg, SMALL_HOODS[0][0], 90000);
     check(!!(await safe(() => first.count(), 0)), `switches: Smallton's page lists its neighborhoods (${await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.name).join(', '))})`);
-    await h.switchLayer(pg, 'busy');
+    await h.switchLayer(pg, 'storefronts');
     await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 120000 }));
     // Every neighborhood selected once at normal speed, so each area is read and its outline's tiles are kept.
     await pg.locator('.maplibregl-canvas').first().focus();
@@ -52,7 +52,7 @@ async function run(h) {
     }
     await pg.waitForTimeout(6000);
     // SS8: the remembered areas were listed while the layer came on (so the count below is not empty by absence).
-    const listedAtStart = await pg.evaluate(() => window.__perfLog.filter(([k]) => k === 'busy:list').length);
+    const listedAtStart = await pg.evaluate(() => window.__perfLog.filter(([k]) => k === 'storefronts:list').length);
     // The town's own card leads the row: one step on to its first neighborhood, where the measured switches start.
     await pg.keyboard.press('ArrowRight');
     await pg.waitForTimeout(4000);
@@ -76,7 +76,7 @@ async function run(h) {
     const steps = [];
     for (const [i, key] of keys.entries()) {
       await pg.locator('.maplibregl-canvas').first().focus();
-      const busyBefore = await safe(() => map().getAttribute('data-busy'), '');
+      const busyBefore = await safe(() => map().getAttribute('data-storefronts'), '');
       const from = await centre();
       const t0 = await now();
       await pg.keyboard.press(key);
@@ -90,12 +90,12 @@ async function run(h) {
       const timing = await measure(moved ?? t0, settled ?? t1);
       steps.push({
         key, to: await selected(), revisit: i >= n,
-        busyBefore, busyAfter: await safe(() => map().getAttribute('data-busy'), ''),
+        busyBefore, busyAfter: await safe(() => map().getAttribute('data-storefronts'), ''),
         moved: moved != null, settled: settled != null,
         ground: count('hood:ground'), groundMid: count('hood:ground', during),
         strips: count('setData:strips'), pockets: count('setData:pockets'),
-        namesMid: count('setData:busy-names', during), namesAfter: count('setData:busy-names', (t) => settled != null && t >= settled), names: count('setData:busy-names'),
-        markers: count('marker:area'), listed: count('busy:list'), rendersMid: count('render:explore', during),
+        namesMid: count('setData:storefront-names', during), namesAfter: count('setData:storefront-names', (t) => settled != null && t >= settled), names: count('setData:storefront-names'),
+        markers: count('marker:area'), listed: count('storefronts:list'), rendersMid: count('render:explore', during),
         ...timing,
       });
       // SS9's measure, right after it so the machine's load is the same: the same move by the camera alone, the app idle
@@ -140,10 +140,10 @@ async function run(h) {
     await pg.keyboard.press('ArrowLeft');
     await pg.waitForTimeout(3000);
     await pg.evaluate(([t, z]) => window.__zoomTo(t, z), [at(...SMALL_TOWN), 14.5]);
-    await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-busy-names') ?? '[]') !== '[]', null, { timeout: 15000 }));
+    await safe(() => pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-storefront-names') ?? '[]') !== '[]', null, { timeout: 15000 }));
     await pg.waitForTimeout(1000);
-    const givenBefore = JSON.parse((await safe(() => map().getAttribute('data-busy-given'), '[]')) || '[]').map((g) => g.name);
-    const drawnBefore = JSON.parse((await safe(() => map().getAttribute('data-busy-names'), '[]')) || '[]');
+    const givenBefore = JSON.parse((await safe(() => map().getAttribute('data-storefronts-given'), '[]')) || '[]').map((g) => g.name);
+    const drawnBefore = JSON.parse((await safe(() => map().getAttribute('data-storefront-names'), '[]')) || '[]');
     const zoomBefore = await safe(() => map().getAttribute('data-zoom'), '');
     const t0 = await now();
     const box = await map().boundingBox();
@@ -156,8 +156,8 @@ async function run(h) {
     await pg.evaluate(([p]) => window.__zoomTo(p, 15.2), [mid]);
     await pg.waitForTimeout(2500);
     const ev = await events(t0, await now());
-    const cleared = ev.filter(([k]) => k === 'busy-names:clear').length;
-    const drawn = JSON.parse((await safe(() => map().getAttribute('data-busy-names'), '[]')) || '[]');
+    const cleared = ev.filter(([k]) => k === 'storefront-names:clear').length;
+    const drawn = JSON.parse((await safe(() => map().getAttribute('data-storefront-names'), '[]')) || '[]');
     check(cleared === 0 && drawn.length > 0, `SS10: a zoom clears no busy name (cleared ${cleared}; at z${zoomBefore} given ${givenBefore.slice(0, 4).join(', ')}, drawn ${drawnBefore.slice(0, 4).join(', ')}; drawn after at z${await safe(() => map().getAttribute('data-zoom'), '')}: ${drawn.slice(0, 4).join(', ')})`);
   } finally {
     smallWorld.serve = false;
@@ -173,7 +173,7 @@ module.exports = {
     'src/components/map/WalkMap.web.tsx',
     'src/lib/areas/{useHoodGround,hoods}.ts',
     'src/lib/atlas/carousel.ts',
-    'src/lib/layers/{useBusyLayer,state,busy}.ts',
+    'src/lib/layers/{useStorefrontsLayer,state,storefronts}.ts',
   ],
   run,
 };

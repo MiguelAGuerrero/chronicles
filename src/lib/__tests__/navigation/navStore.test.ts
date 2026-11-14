@@ -52,8 +52,8 @@ test('SR11: the chosen leanings are kept with the destination; none, or unknown 
   assert.deepEqual((await nav.loadNav('w1'))?.leanings, ['green', 'sights']);
   await nav.saveNav('w1', dest);
   assert.equal((await nav.loadNav('w1'))?.leanings, undefined, 'direct');
-  await p.db.setMeta(NAV_KEY, JSON.stringify({ walk_id: 'w1', dest: { ...dest, leanings: ['purple', 'busy'] } }));
-  assert.deepEqual((await nav.loadNav('w1'))?.leanings, ['busy'], 'an unknown leaning is dropped');
+  await p.db.setMeta(NAV_KEY, JSON.stringify({ walk_id: 'w1', dest: { ...dest, leanings: ['purple', 'storefronts'] } }));
+  assert.deepEqual((await nav.loadNav('w1'))?.leanings, ['storefronts'], 'an unknown leaning is dropped');
   await p.db.setMeta(NAV_KEY, JSON.stringify({ walk_id: 'w1', dest: { ...dest, leanings: 'green' } }));
   assert.equal((await nav.loadNav('w1'))?.leanings, undefined, 'not a list');
 });

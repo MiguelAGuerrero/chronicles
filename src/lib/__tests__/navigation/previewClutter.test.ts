@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { forPreview, type ClutterLayers } from '../../nav/previewView';
 
-// fix preview-clutter: with a route preview open, the map showed the walked trace, the faint gap stretches, the fog, the busy streets'
+// fix preview-clutter: with a route preview open, the map showed the walked trace, the faint gap stretches, the fog, the storefront streets'
 // shading, the town borders and the walkability tint under the blue routes. Only the routes are drawn while choosing one.
 
 const some = (): ClutterLayers => ({

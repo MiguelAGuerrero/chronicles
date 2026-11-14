@@ -15,7 +15,7 @@ const dLat = 1 / 111320;
 const dLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
 const m = (x: number, y: number): LngLat => [O[0] + x * dLon, O[1] + y * dLat];
 const analysis = (name: string, at: LngLat): AreaAnalysis => ({
-  basis: 'density', reason: 'Busiest area',
+  basis: 'density', reason: 'Where storefronts gather',
   pockets: [{ name, weight: 12, spanM: 250, centre: at, hull: [at, at, at], strips: [name] }],
   strips: [{ name, lengthM: 250, weight: 11, lines: [[at, at]], peak: at }],
   graded: [{ name, grade: 3, lines: [[at, at]] }],
@@ -113,7 +113,7 @@ test('AD12: graded stretches draw wider and stronger as the grade rises; stale o
   assert.ok(w[0] < w[1] && w[1] < w[2] && o[0] < o[1] && o[1] < o[2]);
   const stale = stripsGeoJSON(landingView([{ ...row, build: 'old' }], 'b1'));
   assert.equal(stale.features[2].properties!.opacity, HOTSPOT_GRADES[3].opacity * HOTSPOT_GRADES.staleOpacity);
-  // An area analyzed before grades: its busy streets draw as medium.
+  // An area analyzed before grades: its storefront streets draw as medium.
   const { graded: _g, ...before } = a;
   const old = landingView([{ ...row, analysis: before as typeof a }], 'b1');
   assert.deepEqual(old.graded.map((g) => g.grade), [2]);
@@ -127,6 +127,6 @@ test('fix street-label-double audit 2, 3, 4: the current row\'s name wins, strip
   const hood = { ...analysis('x', m(0, 0)), strips: [], pockets: [{ name: 'Fox Point', weight: 5, spanM: 250, centre: m(0, 0), hull: [m(0, 0), m(0, 0), m(0, 0)] as LngLat[], strips: [] }] };
   const v = landingView([row(m(0, 0), hood), row(m(1500, 0), analysis('Fox Point', m(30, 30)))], 'b1');
   assert.equal(v.labels.length + v.strips.length, 1, 'a neighbourhood and a strip of one name');
-  const two = { ...hood, pockets: [0, 100].map((x) => ({ ...hood.pockets[0], name: 'A busy pocket', centre: m(x, 0) })) };
+  const two = { ...hood, pockets: [0, 100].map((x) => ({ ...hood.pockets[0], name: 'A pocket of storefronts', centre: m(x, 0) })) };
   assert.equal(landingView([row(m(0, 0), two)], 'b1').labels.length, 2);
 });

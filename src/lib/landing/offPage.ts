@@ -18,7 +18,7 @@ export interface OffPagePorts {
   clearTimeout: (t: unknown) => void;
   /** Gives the JS thread a turn, between the page-side compute's stages (DC11). */
   pause: () => Promise<void>;
-  /** Called when a read ran off the page (the e2e's `busy:worker`). */
+  /** Called when a read ran off the page (the e2e's `storefront:worker`). */
   onWorker?: () => void;
 }
 

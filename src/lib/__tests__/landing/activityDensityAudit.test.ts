@@ -40,7 +40,7 @@ const pt = (at: LngLat, weight = 1, name: string | null = null, source: Activity
 const ovp = (id: string, confidence = 0.95): OverturePlace => ({ id, name: id, at: O, hierarchy: ['food_and_drink', 'restaurant'], confidence, operating_status: 'open' });
 
 test('activity-density audit 1: a short strong cluster is drawn even when no busy street or pocket forms', () => {
-  // Five shops within 60 m on Main Street: too short for a busy street, too small for a pocket.
+  // Five shops within 60 m on Main Street: too short for a storefront street, too small for a pocket.
   const points = Array.from({ length: 5 }, (_, i) => pt(m(i % 2 ? 8 : -8, 22 + i * 12)));
   const r = analyzeArea({ centre: O, points, segments: grid(), towns: [], transit: [] });
   assert.deepEqual(r.strips, []);

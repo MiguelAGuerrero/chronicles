@@ -9,7 +9,7 @@ import { KIND_COLOR, SKETCH_COLORS } from './kinds';
 
 /**
  * An area's ring as a picture (AT6): the same frame and scale for every area,
- * so tiles compare at a glance. Streets, graded busy streets (magenta), parks, the
+ * so tiles compare at a glance. Streets, graded storefront streets (magenta), parks, the
  * streets you walked (the trace's green), a "?" for each kind waiting (one
  * per kind, never named: AT7) and a check for each find.
  */
@@ -27,7 +27,7 @@ export const MiniMap = memo(function MiniMap(props: {
   const release = useOvertureRelease();
   const dim = area.profile && profileStale(area.profile, release) ? HOTSPOT_GRADES.staleOpacity : 1;
   const paths = useMemo(() => (sketch ? sketchPaths(sketch, walked) : null), [sketch, walked]);
-  // TP2: a graded town is drawn around its busiest pocket, never the quiet ring around its point.
+  // TP2: a graded town is drawn around its densest pocket, never the quiet ring around its point.
   const drawnAt = area.profile?.sketchAt ?? area.at;
   const to = useMemo(() => toSketch(drawnAt), [drawnAt]);
   const { w, h, ringR } = SKETCH;

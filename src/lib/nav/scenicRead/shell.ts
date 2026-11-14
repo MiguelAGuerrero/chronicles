@@ -27,9 +27,9 @@ export interface ScenicIo {
 
 /**
  * The read behind a scenic route (SR13, SR9): the z14 tiles of the corridor between the two ends
- * from the tile host, and Overture's places for the same tiles, as "What's good here?" reads them.
+ * from the tile host, and Overture's places for the same tiles, as "What's here?" reads them.
  * Its streets and places join today's caches, tagged with the build; the green, the sights and the
- * graded busy streets are made from it and never kept. Any failure, or a Cancel, gives null.
+ * graded storefront streets are made from it and never kept. Any failure, or a Cancel, gives null.
  */
 export function createScenicRead(p: Pick<Ports, 'db'>, io: ScenicIo) {
   const meta = metaStore(p.db);
@@ -51,14 +51,14 @@ export function createScenicRead(p: Pick<Ports, 'db'>, io: ScenicIo) {
         await p.db.putPlaces(places).catch(() => {});
         const points = mergeSources(activityFromTilePois(features.pois), overture?.points ?? []);
         const centre: LngLat = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
-        const busy = gradeStreets({ centre, points, segments }).graded.map((g) => ({ name: g.name, grade: g.grade, lines: g.lines }));
+        const storefronts = gradeStreets({ centre, points, segments }).graded.map((g) => ({ name: g.name, grade: g.grade, lines: g.lines }));
         // PK18: read as the switches read it, so a choice saved before a kind existed hides what it hid.
         const [off, known] = await Promise.all([meta.get('explore_hidden').catch(() => null), meta.get('explore_kinds_known').catch(() => null)]);
         const hidden = parseHidden(off ? JSON.stringify(off) : null, known ? JSON.stringify(known) : null);
         const found = new Set((await p.db.listFinds().catch(() => [])).map((f) => f.key));
         const green = greenFromTiles(features.landcover ?? [], places.filter((x) => x.category === 'parks'));
         if (shouldStop()) return null;
-        return { segments, signals: { green, sights: sightsFrom(places, hidden, found), busy } };
+        return { segments, signals: { green, sights: sightsFrom(places, hidden, found), storefronts } };
       } catch {
         return null;
       }

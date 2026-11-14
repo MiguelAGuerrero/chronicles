@@ -255,7 +255,7 @@ test('AD13: a busy street is a run of one name at medium or above, at least 120 
   for (const s of r.strips) assert.ok(r.graded.some((g) => g.name === s.name && g.grade >= 2));
   // Strongest first, and its peak is on it.
   assert.ok(distanceM(r.strips[0].peak, m(0, 50)) < 260);
-  // A pocket is named for its strongest busy street.
+  // A pocket is named for its strongest storefront street.
   assert.equal(r.pockets[0]?.name, 'Main Street');
 });
 

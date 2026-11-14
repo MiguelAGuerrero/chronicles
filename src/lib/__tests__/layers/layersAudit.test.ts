@@ -49,33 +49,33 @@ test('ML15, layers audit 2: the busy streets are keyed by which areas are near, 
 test('ML14, UF19, layers audit 7: a layer that is on but cannot draw says why: no position, reading, or not available', () => {
   assert.deepEqual(drawNow(true, null, ''), { draw: null, status: 'waiting' });
   assert.deepEqual(drawNow(false, null, ''), { draw: null, status: 'off' });
-  assert.equal(layerNotes({ walkability: 'waiting', busyReading: false, busyFailed: false }).walkability, 'Waiting for your position');
-  assert.equal(layerNotes({ walkability: 'reading', busyReading: false, busyFailed: false }).walkability, 'Reading…');
-  assert.equal(layerNotes({ walkability: 'unavailable', busyReading: false, busyFailed: false }).walkability, 'Not available now');
-  assert.equal(layerNotes({ walkability: 'ready', busyReading: false, busyFailed: false }).walkability, null);
-  assert.equal(layerNotes({ walkability: 'off', busyReading: true, busyFailed: false }).busy, 'Reading…');
-  assert.equal(layerNotes({ walkability: 'off', busyReading: false, busyFailed: true }).busy, 'Not available now');
-  assert.equal(layerNotes({ walkability: 'off', busyReading: false, busyFailed: false }).busy, null);
+  assert.equal(layerNotes({ walkability: 'waiting', storefrontsReading: false, storefrontsFailed: false }).walkability, 'Waiting for your position');
+  assert.equal(layerNotes({ walkability: 'reading', storefrontsReading: false, storefrontsFailed: false }).walkability, 'Reading…');
+  assert.equal(layerNotes({ walkability: 'unavailable', storefrontsReading: false, storefrontsFailed: false }).walkability, 'Not available now');
+  assert.equal(layerNotes({ walkability: 'ready', storefrontsReading: false, storefrontsFailed: false }).walkability, null);
+  assert.equal(layerNotes({ walkability: 'off', storefrontsReading: true, storefrontsFailed: false }).storefronts, 'Reading…');
+  assert.equal(layerNotes({ walkability: 'off', storefrontsReading: false, storefrontsFailed: true }).storefronts, 'Not available now');
+  assert.equal(layerNotes({ walkability: 'off', storefrontsReading: false, storefrontsFailed: false }).storefronts, null);
 });
 
 test('layers audit 13: the settings load once; a switch made before the load finishes is not overwritten by it', async () => {
   const p = fakePorts();
-  await p.db.setMeta('map_layers', JSON.stringify({ walkability: false, busy: false, borders: true }));
+  await p.db.setMeta('map_layers', JSON.stringify({ walkability: false, storefronts: false, borders: true }));
   const l = createLayers(p);
   const loads = [l.load(), l.load(), l.load()];
-  await l.set('busy', true);
+  await l.set('storefronts', true);
   await Promise.all(loads);
-  assert.equal(l.store.get().on.busy, true, 'the early switch survives the load');
+  assert.equal(l.store.get().on.storefronts, true, 'the early switch survives the load');
   assert.equal(l.store.get().on.borders, true, 'what was stored is there');
   const reads = p.log.effects().filter((e) => /getMeta/.test(JSON.stringify(e))).length;
   void reads;
   const again = createLayers(p);
   await again.load();
-  assert.equal(again.store.get().on.busy, true, 'and it was kept');
+  assert.equal(again.store.get().on.storefronts, true, 'and it was kept');
 });
 
 test('the owner\'s call (2026-11-05): Walkability, Busy streets and Town borders all start off', () => {
-  assert.deepEqual(layerDefaults(), { walkability: false, busy: false, borders: false });
+  assert.deepEqual(layerDefaults(), { walkability: false, storefronts: false, borders: false });
   assert.ok(LAYERS.every((l) => l.defaultOn === false));
 });
 
