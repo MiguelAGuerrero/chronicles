@@ -24,7 +24,7 @@ import { CaptureViewer } from '../CaptureView';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { Entry, type NoFix } from '../journal/Entry';
-import { JournalPage, type JournalPageHandle } from '../journal/JournalPage';
+import { FOOT_GAP, JournalPage, type JournalPageHandle } from '../journal/JournalPage';
 import { LINE_REST_H, OpenLine, type OpenLineHandle } from '../journal/OpenLine';
 import { Slip } from '../journal/Slip';
 import { HiddenScreen } from './HiddenScreen';
@@ -442,8 +442,10 @@ export function MemoriesScreen() {
 
   const subScreen = ready && (!!thread || !!own || threadsOpen || hiddenOpen);
   const lineRef = useRef<OpenLineHandle>(null);
-  // The empty page is out of view: the bar holds the pen (audit 50).
+  // The row under the line is out of view: the bar holds the pen, the camera and the mic (audit 50, JN37).
   const [away, setAway] = useState(false);
+  // The sheet has opened: until it has, the bar holds the camera and the mic (JN35).
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const journal = (line: { field: ReactNode; writing: boolean; entryOpen: boolean }) => (
     <JournalPage
@@ -452,7 +454,7 @@ export function MemoriesScreen() {
       more={page.more}
       now={now}
       onMore={() => setLimit((l) => l + JOURNAL_PAGE)}
-      footPad={lineH + 16}
+      footPad={lineH + FOOT_GAP}
       notice={failedNotice}
       loaded={state.status !== 'loading'}
       entry={entry}
@@ -461,6 +463,7 @@ export function MemoriesScreen() {
       writing={line.writing}
       focused={isFocused}
       onAway={setAway}
+      onOpen={setSheetOpen}
       slip={pick ? (
         <Slip
           pick={pick}
@@ -486,7 +489,7 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine ref={lineRef} inBar={body != null} penInBar={away} onTypeOpen={setTypeOpen} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={undoToast}>
+      <OpenLine ref={lineRef} inBar={body != null} penInBar={away} opened={sheetOpen} onTypeOpen={setTypeOpen} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
         {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu
@@ -595,12 +598,14 @@ export function MemoriesScreen() {
         onSaveNote={(c, body, type, only) => resurface.saveNote(c, body, type, only)}
       />
       {/* Above the open line, whatever its height: a delete's Undo waits, and must never cover the line or sit under it (fix journal-note-pages audit 1). */}
-      <UndoToast style={{ bottom: lineH + 12, zIndex: 3 }} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // A delete's Undo sits in the line's column of messages, so the sheet makes room for it and it never covers the
+  // line's row (JN40).
+  undoInColumn: { position: 'relative', left: 0, right: 0, width: '100%' },
   screen: { flex: 1, backgroundColor: theme.bg },
   scroll: { flex: 1 },
   pad: { paddingHorizontal: 16, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },

@@ -11,6 +11,8 @@ export type JournalPageHandle = { toFoot: (animated?: boolean) => void };
 
 /** Older entries are asked for this near the top of what is drawn. */
 const NEAR_TOP = 240;
+// What the sheet's foot pads beyond the line's own height (`MemoriesScreen`'s `footPad`): not a bar.
+export const FOOT_GAP = 16;
 /** How long the sheet's end is held while the empty page grows or comes back (the bars fold in about this long). */
 const SETTLE_MS = 450;
 /** The sheet is shown this long after the read answered at most, whether or not its rows have reported their heights. */
@@ -49,6 +51,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   writing?: boolean;
   /** The empty page went out of view, or came back (audit 50): out of view, the bar holds the pen. */
   onAway?: (away: boolean) => void;
+  /** The sheet has opened (it is seen): until then the bar holds the capture controls (JN35). */
+  onOpen?: (open: boolean) => void;
   /** Memories is the screen in front. Coming back to it is a new sitting: the page opens on the last entry again (audit 42). */
   focused?: boolean;
   /** Said under today's date when the page could not be read. */
@@ -125,6 +129,10 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     moving.current = false;
     scroll.current?.scrollToEnd({ animated: false });
   }, [open]);
+  const { onOpen } = props;
+  useEffect(() => {
+    onOpen?.(open);
+  }, [onOpen, open]);
   // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
   // changes the sheet's length while the reader is at its end just keeps the end in view.
   const moving = useRef(false);
@@ -178,6 +186,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   });
 
   const away = useRef(false);
+  const lineRoom = useRef(0);
   // A page just drawn is at its foot, with the empty page in view (audit 60).
   const { onAway } = props;
   useEffect(() => {
@@ -189,9 +198,11 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     at.current = { y: contentOffset.y, height: contentSize.height, view: layoutMeasurement.height };
     if (!hold.current && armed.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
     if (pinned.current) opened.current = true;
-    // The empty page is the sheet's last `blank` px above its foot's padding.
-    // Out of view: its top is under the bar or below it (audit 61).
-    const out = contentOffset.y + layoutMeasurement.height < contentSize.height - blankH.current + 24;
+    // The empty page is the sheet's last `blankH` px (as measured) above its foot's padding; the line and the row under it are its
+    // first `lineRoom` px. Out of view: the row is not wholly above the foot's padding (audit 61, JN37). A bar that
+    // comes in adds its height to that padding, so the row must clear it before the bar goes again.
+    const foot = contentSize.height - props.footPad;
+    const out = contentOffset.y + layoutMeasurement.height - (props.footPad - FOOT_GAP) < foot - blankH.current + Math.max(24, lineRoom.current) - 4;
     if (out !== away.current) {
       away.current = out;
       props.onAway?.(out);
@@ -296,7 +307,10 @@ export const JournalPage = forwardRef<JournalPageHandle, {
             aria-hidden
             tabIndex={-1}
           />
-          {props.field}
+          {/* The field and the row under it (JN34): their height says where the row ends, for JN37's "in view". */}
+          <View onLayout={(e) => { lineRoom.current = Math.round(e.nativeEvent.layout.height); }} pointerEvents="box-none">
+            {props.field}
+          </View>
         </View>
       </View>
     </ScrollView>

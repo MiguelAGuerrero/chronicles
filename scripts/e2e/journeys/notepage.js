@@ -422,7 +422,7 @@ async function run(h) {
   // NY24 (note types at capture): a new note's page carries the Type tool; a type chosen before the first words is on
   // the note when it is kept, and a page left without words keeps nothing.
   await pg.goto(url);
-  await pg.waitForSelector('[data-testid=open-line]', { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=line-input]', { timeout: 30000 });
   await pg.waitForTimeout(1200);
   const n24 = (await stored(pg)).length;
   await openPage();

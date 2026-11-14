@@ -43,7 +43,8 @@ async function run(h) {
   await c.addInitScript(COUNT_GEO);
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
-  const band = '[data-testid=open-line]';
+  // At rest the line's row under the placeholder (JN34, decision 0172); there is no bar at rest.
+  const band = '[data-testid=line-row]';
 
   // HC1, HC14: an empty app opens on Memories, at /, with one tab bar, no map, and no location read.
   await pg.goto(url);
@@ -201,7 +202,7 @@ async function run(h) {
     const settingsBtn = err ? await p3.locator('[data-testid=band-error] [role=button]').count() : -1;
     check(err && settingsBtn === 0, `capture-from-chronicle audit 4: on the web a denied mic is said above the band, with no Settings button (${err}, ${settingsBtn})`);
     // An entry written beside the error: the line keeps its box under it (the journal has no toast to stack).
-    const pair = { err: await box(p3, '[data-testid=band-error]'), line: await box(p3, '[data-testid=open-line]') };
+    const pair = { err: await box(p3, '[data-testid=band-error]'), line: await box(p3, '[data-testid=line-row]') };
     check(!!pair.err && !!pair.line && !overlap(pair.err, pair.line),
       `capture-from-chronicle audit 3: an error sits above the open line, never over it (${JSON.stringify(pair)})`);
     await c3.close();
