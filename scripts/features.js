@@ -269,7 +269,7 @@ const FEATURES = [
   {
     name: 'transcript',
     about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0169)',
-    rule: 'captures-and-media',
+    rule: 'memo-transcripts',
     source: ['src/lib/transcript/**', 'src/lib/useTranscript.ts', 'src/components/MemoTranscript.tsx'],
     journeys: ['transcript'],
     specs: ['memo-transcripts'],
@@ -301,7 +301,7 @@ const FEATURES = [
   {
     name: 'notes',
     about: 'note pages: a note is a journal entry, written in TipTap (Expo DOM), kept as it is written, read in the viewer; its body is Markdown once the page wrote it',
-    rule: 'captures-and-media',
+    rule: 'note-pages',
     source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
     journeys: ['notepage'],
     specs: ['note-pages'],

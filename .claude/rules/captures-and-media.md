@@ -7,19 +7,8 @@ paths:
   - "src/lib/here/**"
   - "src/lib/audioMode*.ts"
   - "src/lib/export/**"
+  - "src/components/edit/MediaEditor.tsx"
   - "src/lib/__tests__/captures/**"
-  - "src/lib/transcript/**"
-  - "src/lib/useTranscript.ts"
-  - "src/components/MemoTranscript.tsx"
-  - "src/lib/__tests__/transcript/**"
-  - "src/lib/notePage/**"
-  - "src/components/notePage/**"
-  - "src/lib/noteEdit.ts"
-  - "src/lib/__tests__/notes/**"
-  - "src/components/edit/**"
-  - "src/lib/{mediaEdit,editSession,editOffer}.ts"
-  - "src/lib/{captureEdits,videoEdit}/**"
-  - "modules/**"
 ---
 # Captures and media
 
@@ -84,50 +73,10 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
   Blob parts on web). Missing media is counted, marked in walk.json and reported.
   There is no import yet.
 
-## Media editing (ME1-ME23, decision 0090)
+## Players
 
-- **Edits are data** on the untouched file (`Capture.edit`, `lib/mediaEdit`):
-  rotate, crop (against the original, so a later turn keeps the same part),
-  filter (photos), lines (original fractions; thickness against its shorter
-  side), trim (videos). One order everywhere: rotate, crop, filter, lines,
-  caption. `exportPlan` is the one transform the screen (`EditedPicture`'s SVG,
-  `VideoPicture`'s view transforms), both bakers and the video module follow.
-- **The editor** (`edit/MediaEditor`) is an overlay inside the viewer (iOS:
-  no Modal over a Modal) and its own Modal from the Edit offer on Navigate's
-  ready screen and the recording bar. Its state is `editSession` (core): Done
-  with no change writes nothing; Close with changes asks. After Done on a
-  photo, the small copy is remade from a bake without the caption.
-- **The viewer unmounts the shown capture while the editor is up.** On the
-  web, closing an editor drawn over a mounted `CaptureContent` left a stale
-  copy of it in the DOM each time (Nov 4; never explained, reproduced in
-  Chromium; `ME4` check in the `edit` journey). It also keeps a video from
-  playing under the editor.
-- **No drag may start a text selection on the web**: react-native-web ends the
-  responder on `selectionchange`, so a pen line kept one move (Nov 4). The
-  editor's root is `userSelect: 'none'`.
 - **Never mutate a player in a component body or its closures** (React
   Compiler lint): `seekTo(player, s)` and `playWithSound` sit at module level.
-- **Video sizes:** expo-video's track size is the encoded one (a portrait clip
-  reads landscape) and the web player has none, so `useVideoSize` asks a
-  first-frame thumbnail on phones and `probeVideoSize` reads the metadata on
-  the web.
-- **The replay's cards show the edits** (`ceremony/Cards`: `CardPhoto` fills the
-  card with the edited picture; `CardVideo` is turned, cropped and plays only the
-  kept part, its wait timed on the kept length). The pile shows the edited small copy.
-- **A loose moment's change goes on the bus's `LOOSE_MOMENTS` channel**
-  (`captureBus.patch(null, ...)`); the ready screen listens, so a moment
-  edited from its Edit offer shows on its pin (audit 2).
-- **An edited small copy is named by its edit** (`editedThumbName`): pins key
-  their picture by the ref, so the same name never reloaded (audit 3). The
-  capture-time copy stands down once a photo has a copy or an edit (audit 8).
-- **Escape and Back go through the editor's own Close** (`requestClose`), which
-  asks before discarding (audit 5). Choices (pens, colours, filters, aspects,
-  thicknesses) are radios with `aria-checked`; react-native-web ignores
-  `aria-selected` on a button (audit 11).
-- **Saving out:** photos through `bakers.bake` (the web applies the matrix to
-  the pixels); videos through `exportVideo` with the lines and caption as a
-  clear PNG (`bakers.bakeOverlay`): the local module on phones, canvas +
-  MediaRecorder on the web (real time; MP4 or WebM as the browser records).
 
 ## Thumbnails
 
@@ -233,44 +182,3 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   `chronicle` journey's fresh page copies iOS's rule by holding a `<video>`'s
   `readyState` at 1 until a `play()` is let through (Chromium loads a `blob:`
   video whatever its `preload` says).
-- **A note is a page** (note pages NP1-NP14, decision 0151; it replaced the note card and `NoteEditor`). The pencil (Navigate's
-  `MomentBar`, the walk's `walk.tsx`, Memories' open line through Open as a page, `journal/OpenLine`), Respond → Note (`ReplyDock`) and Add to this moment open
-  `NewNotePage` in a non-transparent `Modal`; the viewer's Edit opens `NotePage` inside its own Modal (iOS: never a Modal
-  over a Modal), and the viewer reads a note as `NoteReader` (`CaptureContent`'s `note` prop). The editor is TipTap in an
-  Expo DOM component (`notePage/JournalEditor.tsx`, `'use dom'`: plain DOM on the web, `@expo/dom-webview` on phones),
-  whose default export must be a plain function taking `ref` as a prop (lint `expo/use-dom-exports`); everything it
-  takes or gives back is JSON, and its handle (`format`, `insertMention`, `focus`) takes JSON arguments.
-  - **The document** is `lib/notePage/schema.ts` (adapter): StarterKit without code, link, strike, underline or rule;
-    task lists; the mention as `@[id|words]` (0125) through its own Markdown tokenizer; a paragraph's leading `#`, `1.`,
-    `-`, `>` kept as text. `toDoc(body, format)` reads a body the page wrote (`body_format` 'md') as Markdown and any
-    other note literally (a paragraph per line); `toBody` always writes Markdown. Unit tests run it in Node.
-  - **Words elsewhere** come from `plainNote(body, body_format)` (`lib/refs.ts`), which drops the marks of a page with
-    `marked`, the lexer `@tiptap/markdown` uses (a pure package in core). Every reader of a note passes `body_format`;
-    one that doesn't reads a page's marks as words.
-  - **Saving as it is written** is `lib/notePage/autosave.ts`'s reducer, run by `NotePage`'s `useAutosave`: a pause of
-    `NOTE_SAVE_PAUSE`, leaving, the background; an emptied page never writes an empty body, and only leaving it empty
-    deletes (`deleteNoteNow`, with Undo). A new note is stamped at the tap (`useCaptures.beginNote`) and kept by
-    `keepNote`; every host's `onSaveNote` stores `notePatch(body)` (the body and `body_format: 'md'`).
-  - **Ticks only on the page**: TaskItem's `onReadOnlyChecked` refuses while reading (the steward's S1, 0114).
-  - **On a phone, nothing loads** (NP13): the DOM document adds a Content-Security-Policy meta when `IS_DOM`; the
-    schema has no image, frame or link, so a paste keeps none. `@expo/dom-webview` can't refuse a navigation.
-  - **Leaving** (the audit): Done is the one way out; Escape and system Back go through `requestClose` and keep too. The page
-    closes only once what is written is kept (`closable`): a failed save keeps it open, "Not saved yet" in its top bar.
-  - **Mentions** read as cards in the reader (RF4): `useMentionCards` gives JSON to the DOM, drawn by TipTap's
-    `ReactNodeViewRenderer` under a React context; while writing, a chip. A gone moment's token is relabelled by `withGone`.
-  - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
-    `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
-    (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.
-- **Note types** (NY1-NY17, decision 0161): `Capture.note_type` (SQLite migration 27, IndexedDB 20; raw as stored, read through `noteTypeOf`, so an unknown value is no type) is the owner's mark on a note: one of eight ink glyphs in `lib/noteType` (fixed order, spoken names). The note's page offers a Type tool in its bar only for an edit (`NotePage` given `type` and `onType`; never a new note's page or Respond's), opening `NoteTypeMenu`; a choice is kept at once through `onSaveNote(c, body, type, typeOnly)`. `notePatch(body, type, typeOnly)` (`lib/noteEdit`) is the one write: text and type together, or, `typeOnly`, the type alone (the body and its `body_format` stay as kept). Every `onSaveNote` call passes it on (`noteTypeScan.test` fails a call site that takes two arguments). `NoteMark` draws the glyph and name above the viewer's note and in the owner-thread bubble; `captureIcon` and `pinMark` put it on a pin of exactly one note (a pin of several keeps its count). Never count, sort, filter, search or infer a type, and never read one for a place (NY12, NY13): `noteTypeReaders.test` lists the files that may mention a type; a new reader goes through `/vision` and then onto that list.
-  - Since `tend map T14` a pin of several shows its kinds fanned and says them in words, never its count (`map.md`, "A pin of several moments").
-  - **A note save names its piece** (note-types audit 1, 12, 13): screens, the bus and `applyPatch` take `c.piece_id` (as voice trim's edits do); `patchFaced` (`lib/moment`) applies it: on the row's copy of that piece in `pieces` always (what a reopened stack and a split read), and on the face's own fields only when the piece is the face. Never patch a row's face fields from a note shown at another piece. A spoken label says the type only where its mark is drawn (`momentSpoken(..., typed)`).
-
-## Memo transcripts (TX1-TX18, decision 0169)
-
-- **The words are a cache beside the memo** (`transcript` table, SQLite migration 28, IndexedDB 21; `capture_id`, `text`, `lang`, `from_ms`, `to_ms`, `made_at`), never in the memo's `body`, `caption` or `edit`. `''` means the engine heard none, so the memo is not read again. A row read from another span than `spanOf(memo)` is stale (`isStale`): not served, and read again.
-- **Read in the background, one at a time** (`transcript/shell.ts`): after a memo is kept (`useCaptures.saveMemo`) and for older ones at launch (`backfillTranscripts`, `_layout`). It waits while a walk or a memo records or plays (`busy`), asks for the speech permission only for a memo kept this session on a quiet moment, never at launch, and remembers a refusal (meta `transcript_off`). Nothing is said when it cannot read.
-- **On the device only**: every request is `onDevice: true` (the type allows nothing else) and `supportsOnDevice(lang)` is asked before each read. The engine adapter and the cutter are `.native.ts`; the web has none (`engine.ts`).
-- **A trimmed memo is read from a cut copy** of its kept span (`exportTrimmedAudio` in the local module `chronicles-video-edit`), written to the cache and removed after the read.
-- **Shown as a caption** (`MemoTranscript`, `testID` `memo-transcript`, label "Read by your phone: ..."): nothing while pending or empty, no count, no confidence. A hit in search shows the moment's normal card, never a snippet. No edit or hide: a wrong word is part of the memo.
-- **Chronicle reads it through `resurface`'s `transcript` option** (`wordsOf`); `THREAD_RULES` is `resurface-2`.
-- **Audit (Nov 13):** a delete of one piece clears its row (`deletePieces`); a read checks `kept` before it writes; an engine `end` with no result is null, never "no speech"; a recording beginning aborts the read (`interrupt`) and the memo waits; Memories refreshes once when the queue is quiet (`onSettled`); `onDeviceReady` (core) gates on API 33 and an installed pack on Android and on the device locale's on-device flag on iOS, never on iOS's supported-locale list; the web engine's permission is `'unavailable'`, so it stores nothing. The caption says "Read by your phone" in view (`memo-transcript-label`) and sets its words in italics.
