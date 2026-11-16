@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Shop marks (the shops themselves as data, a pack family built in chronicles-data from OpenStreetMap shop=*, and as hollow-ring marks inside the one Storefronts layer on Explore, Navigate ready and the live walk; a tap rings a lone mark and opens a card at the map's top; no label, no count, no visited state; SM1-SM18, decision 0182, reshaped from a separate layer when the owner folded it into Storefronts, Nov 16) | built 2026-11-16, test-first by history (18 of 18, under the earlier prefix SF too): 48 unit tests, typecheck, lint, docs, vision and records checks; the `shopmarks` journey and `layers`, `dense`, `carousel`, `curiosities`, `marks`, `qol`, `ready`, `walkability` pass on the merged build; web only, native unverified; not deployed; the app half runs against a fixture pack, the pack's adapter belongs in chronicles-data and no pack is published, so production shows the street shading alone | branch `claude/nice-hopper-nvpwap` (local history rewritten; the remote still holds two commits without record trailers, awaiting the owner's call on a force-push) | `specs/shop-marks/spec.md` | no (UI review done: shop-marks ui 1, 2, 4, 7 fixed) |\n"
+    }
+  ]
+}
