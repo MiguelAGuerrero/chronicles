@@ -74,6 +74,7 @@ import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
+import { shareLabel } from '../lib/atlas/goHere';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
@@ -684,7 +685,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
    */
   const handOff = (at: LngLat, label: string) => {
     feedback('tap');
-    openInMaps(at, label).then(
+    // go-here-everywhere audit 2: a star's title or a spot is the owner's own; only a neutral label rides in the link (0058).
+    openInMaps(at, shareLabel('spot', label)).then(
       (ok) => {
         if (!ok) setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
       },

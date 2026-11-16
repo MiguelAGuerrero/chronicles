@@ -249,7 +249,7 @@ export default function Explore() {
     onFail: () => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' }),
     focused,
   });
-  const goHereFor = (at: LngLat, label: string) => gohere.ask({ at, label, kind: 'area' });
+  const goHereFor = (at: LngLat, label: string, via?: string | null) => gohere.ask({ at, label, kind: 'area', via });
   const [locError, setLocError] = useState<LocateError | null>(null);
   // tend explore 8 (decision 0172, O6, O20): the location permission as it changes, and the count of its changes when a
   // Locate tap was refused; Find me waits until it changes from that.
@@ -474,7 +474,8 @@ export default function Explore() {
     // tend explore 6, audit 1: one Back or Escape steps out of one thing: the Layers panel, the long press's choices, the page.
     if (!townSeen || open || !focused) return;
     const out = () => {
-      const does = pageBack({ layersOpen: layersOpen, spot: !!spot });
+      const does = pageBack({ layersOpen: layersOpen, spot: !!spot, goHere: gohere.open });
+      if (does === 'gohere') return;
       if (does === 'layers') closeLayers();
       else if (does === 'spot') setSpot(null);
       else leave();
@@ -489,7 +490,7 @@ export default function Explore() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
+  }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot, gohere.open]);
   // GZ2: Back closes the search sheet first (Escape is the field's own).
   useEffect(() => {
     if (!searching || !focused) return;
@@ -943,7 +944,10 @@ export default function Explore() {
                 onPress={onCard}
                 onGoHere={(key) => {
                   const a = shown.find((x) => x.area.key === key)?.area;
-                  if (a) goHereFor(walkTarget(a).at, a.name);
+                  if (a) {
+                    const t = walkTarget(a);
+                    goHereFor(t.at, a.name, t.via);
+                  }
                 }}
               />
             )}

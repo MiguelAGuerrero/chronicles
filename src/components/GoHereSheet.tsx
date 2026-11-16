@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { goHereChoices, goHereWords, type GoHereChoice } from '../lib/atlas/goHere';
+import { goHereChoices, goHereWords, sheetEdge, type GoHereChoice } from '../lib/atlas/goHere';
 import { Icon } from './icons';
 import { theme } from './ui';
 
@@ -13,6 +13,8 @@ export function GoHereSheet(props: {
   name: string;
   mapsApp: string;
   mapsHint?: string;
+  /** The area's busiest street, when that is where Go here starts you (audit 9). */
+  via?: string | null;
   /** A destination is already saved: said once, that this replaces it. */
   replaces: boolean;
   /** A walk is open: the Chronicles row routes it (GE4). */
@@ -22,11 +24,10 @@ export function GoHereSheet(props: {
   onChoose: (id: GoHereChoice['id']) => void;
   onClose: () => void;
 }) {
-  const [title, ...notes] = goHereWords(props.name, props.replaces);
+  const [title, ...notes] = goHereWords(props.name, props.replaces, props.via);
   const insets = useSafeAreaInsets();
-  const top = props.anchor === 'top';
   return (
-    <View style={[styles.wrap, top ? { top: insets.top } : { bottom: 0 }]} pointerEvents="box-none">
+    <View style={[styles.wrap, sheetEdge(props.anchor ?? 'bottom', insets)]} pointerEvents="box-none">
       <View style={styles.sheet} testID="go-here-sheet" accessibilityViewIsModal>
         <View style={styles.head}>
           <View style={styles.headText}>
@@ -48,7 +49,7 @@ export function GoHereSheet(props: {
           >
             <View style={styles.rowText}>
               <Text style={styles.label} testID={`go-here-${c.id}-label`}>{c.label}</Text>
-              <Text style={styles.hint}>{c.hint}</Text>
+              <Text style={styles.hint} testID={`go-here-${c.id}-hint`}>{c.hint}</Text>
             </View>
             {/* The maps row leaves the app: its glyph says so; Chronicles' stays a way further in (explore-go-here ui 1). */}
             {c.id === 'maps' ? <View testID="go-here-maps-external"><Icon name="open-outline" size={16} color={theme.ink} /></View> : <Icon name="chevron-forward" size={16} color={theme.ink} />}

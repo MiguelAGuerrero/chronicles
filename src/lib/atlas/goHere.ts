@@ -1,5 +1,5 @@
 // @layer core
-import type { Listed } from './atlas';
+import { walkViaLine, type Listed } from './atlas';
 
 /**
  * Explore's Go here (GH1-GH15, decision to follow): every tile has a quick way to its place, a sheet of two choices.
@@ -36,9 +36,25 @@ export function goHereDo(choice: GoHereChoice['id'], walkOpen: boolean): 'maps' 
   return walkOpen ? 'start' : 'later';
 }
 
-/** The sheet's own words: its heading, and, when a destination is already saved, that this replaces it (said once). */
-export function goHereWords(name: string, replaces: boolean): string[] {
-  return replaces ? [`Go to ${name}`, 'Replaces where you were heading'] : [`Go to ${name}`];
+/**
+ * The sheet's own words: its heading; where it starts you, when that is one of its streets, as Walk to says (`walkViaLine`)
+ * (audit 9); and, when a destination is already saved, that this replaces it (said once).
+ */
+export function goHereWords(name: string, replaces: boolean, via?: string | null): string[] {
+  return [`Go to ${name}`, ...(via ? [walkViaLine(via)] : []), ...(replaces ? ['Replaces where you were heading'] : [])];
+}
+
+/**
+ * The maps row's hint (audit 3): one line at 320 px, and "Recording pauses" only where it is true: a browser takes no fixes
+ * while Chronicles is hidden, and only a walk open records. On a phone Chronicles keeps recording (0058).
+ */
+export function goHereMapsHint(o: { walkOpen: boolean; web: boolean }): string {
+  return o.walkOpen && o.web ? 'Opens your maps app. Recording pauses.' : 'Opens your maps app';
+}
+
+/** Where the sheet sits (audit 5): at the top it starts at the top inset; at the foot it clears the bottom inset, over the card that hides the tabs. */
+export function sheetEdge(anchor: 'top' | 'bottom', insets: { top: number; bottom: number }): { top: number } | { bottom: number } {
+  return anchor === 'top' ? { top: insets.top } : { bottom: insets.bottom };
 }
 
 /** GE5: a busy-area or complex row has Go here whether or not Walk to is offered: Go here works at any distance. */

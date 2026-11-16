@@ -146,6 +146,10 @@ async function run(h) {
     const tabBox = await pg.locator('a[href$="navigate"]').first().boundingBox().catch(() => null);
     const sheetBox = await pg.locator('[data-testid=go-here-sheet]').boundingBox().catch(() => null);
     check(!!sheetBox && (!tabBox || sheetBox.y + sheetBox.height <= tabBox.y + 1), `GH12: the sheet at 320 px sits above the tab bar and covers none of it (${JSON.stringify({ sheetBox, tabBox })})`);
+    // go-here-everywhere audit 3: at 320 px each row's hint is one line (nothing wraps on a 320 px phone).
+    const hintH = await pg.evaluate(() => ['go-here-app-hint', 'go-here-maps-hint'].map((id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect().height ?? 0));
+    check(hintH.every((h) => h > 0 && h <= 17), `go-here-everywhere audit 3: each hint is one line at 320 px, and none says recording with no walk open (${hintH.join(', ')})`);
+    check(!/Recording/.test(await pg.locator('[data-testid=go-here-maps-hint]').innerText().catch(() => 'Recording')), 'go-here-everywhere audit 3: no "Recording" in the maps hint with no walk open');
     await shot(pg, 'gohere-3-320');
     await c.close();
   } finally {
@@ -266,6 +270,16 @@ async function hosts(h) {
       check(o2.length === 1 && /destination=-?[\d.]+,-?[\d.]+/.test(o2[0]) && !/Your|spot/i.test(decodeURIComponent(o2[0])), `GE3, GE13: the pressed spot goes to the maps app as coordinates alone (${o2[0]})`);
     }
     check((await metaOf(pg, 'nav')) === navSaved && !(await openWalk(pg)), 'GE11: the maps choice saved nothing and started no walk (the destination is still the one Chronicles saved)');
+    // go-here-everywhere audit 6: a sheet left open does not come back, stale, after a tab switch.
+    await pg.goto(exploreUrl);
+    await pg.waitForSelector('[data-testid=atlas-go-here]', { timeout: 60000 }).catch(() => {});
+    await pg.locator('[data-testid=atlas-go-here]').last().click().catch(() => {});
+    await pg.waitForSelector('[data-testid=go-here-sheet]', { timeout: 5000 }).catch(() => {});
+    await h.tabTo(pg, 'chronicle');
+    await pg.waitForTimeout(800);
+    await h.tabTo(pg, 'explore');
+    await pg.waitForTimeout(1200);
+    check((await pg.locator('[data-testid=go-here-sheet]').count()) === 0, 'go-here-everywhere audit 6: a sheet left open does not come back after a tab switch');
     await c.close();
   } finally {
     snapWorld.serve = false;

@@ -93,5 +93,31 @@ See `plan.md`.
 - **One flake, said:** `GE7`'s count of the far question's button failed once, 600 ms after the tap, and passed on the next run; the journey now waits for the button.
 - **Weak spots, said:** no journey world has a town with busy areas, so the busy-area rows' Go here is covered by the shared code and the complex rows' journey, not its own (`docs/DEFERRED.md`). Chronicle's map section has no capture band (the journal's camera and mic live in Memories), so GE9's boxes there hold by construction.
 - **Deferred:** the peeking-tile limit (0180), the two lines above.
-- **Not audited** (`/audit` is the owner's to ask). Native has never run on a device (`docs/NATIVE_UNVERIFIED.md`).
+- **Audited Nov 16** (below). Native has never run on a device (`docs/NATIVE_UNVERIFIED.md`).
+
+## Audit (Nov 16; the auditor, the steward, the UX review and a cold find; it covers the tile slice's shared code too)
+
+The cold find placed all five tasks (the next town's Go here from the row, the card's, a complex row's, the star's and the pressed spot's), by elimination, with no task unplaced: no finding. Findings are numbered in the order triaged.
+
+1. Escape or Back with the sheet open also left a town's page: accept, the page's own listener never knew the sheet was open. Test `go-here-everywhere audit 1` (`pageBack` takes `goHere`). Fixed.
+2. The walk screen's Open in Maps sent a star's title in the `geo:` link: accept, 0058 and GE13 say only the destination leaves. Test `go-here-everywhere audit 2` (every `openInMaps` call passes `shareLabel`). Fixed.
+3. The web maps hint said "Recording pauses" with no walk open, and ran to three lines at 320 px (the auditor's F3, the steward's S3, the UX review's U3): accept. Tests `go-here-everywhere audit 3` (unit on `goHereMapsHint`; the journey's one-line hints). Fixed.
+4. Escape order depends on a `covered` ref set in an effect: reject, the effect runs before any later event and the order is LIFO on a phone; not reproduced.
+5. The sheet at the foot ignored the bottom inset over the card: accept. Test `go-here-everywhere audit 5` (`sheetEdge`); the web's inset is 0, so only the unit test can fail. Fixed.
+6. A sheet left open came back stale after a tab switch: accept. Test `go-here-everywhere audit 6` (journey). Fixed.
+7. Chronicle's maps-failure notice is never cleared: defer, only a phone can reach it (`docs/DEFERRED.md`).
+8. Chronicle's `walkOpen` ignores `readOpen`: defer, a narrow window that saves for later, which is right for a stopped walk (`docs/DEFERRED.md`).
+9. Go here's destination was the busiest street while the sheet said "Go to Cranston": accept. Test `go-here-everywhere audit 9` (`goHereWords` with `via`: "Starts you at <street>, its busiest street", as Walk to says). Fixed.
+10. The steward's S1, the top sheet hides the section bar and the star: reject. The sheet's box starts at 68 px and the bar ends at about 60 (`gohere-c2-sheet.png`); the hook lives inside the map pane, whose top inset is already 0. The star under it is named by the sheet's title.
+11. The sheet was never pictured with a walk open (the steward's S2): defer (`docs/DEFERRED.md`).
+12. The steward's S4, "Walk here" beside "Go here" as near-synonyms: reject, the owner's own word, already accepted at the UI review (U2).
+13. The UX review's U1, the link under 44 pt: reject, the journey measures 44 px on every host.
+14. U2, the spot card's stacking: reject, the close under Walk here was the card's before this slice.
+15. U4, the sheet overlaps what it names: reject, no scrim by design (GH12), and the title names the place.
+16. U5, a gap under the title with no subtitle: reject, the close button's 44 px sets the header's height.
+17. U6, Walk to and Go here apart on a complex row: reject, decided at the UI review (ui 1).
+18. U7, raise the label to 14 px: reject, GH11 holds it no larger than the meta line.
+19. U8, no divider above Go here on the card: reject, opinion; the arrow marks it.
+
+19 findings, 6 fixed, 3 deferred, 10 rejected. **Every host** (the auditor, from the code): `useGoHere` is used by `explore.tsx` and `index.tsx` alone; `GoHereSheet` renders only through it; `AtlasTile`, `AtlasCard` and `HomeSheet` have one host each. Not reached, and by intent: the walk screen's own Go here and Open in Maps (0058), the pin viewer's Go here, Explore's mark (no card). Nothing reached by accident.
 

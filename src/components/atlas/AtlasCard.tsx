@@ -88,7 +88,7 @@ export function AtlasCard(props: {
   onWalk: () => void;
   onWalkAt: (at: LngLat, label: string) => void;
   /** Go here (GE1): the sheet of two choices for a place on this card, any distance. */
-  onGoHere?: (at: LngLat, label: string) => void;
+  onGoHere?: (at: LngLat, label: string, via?: string | null) => void;
   /** WP1: a kind's "Suggest a walk" button opens the walk planner for it. */
   onPlan: (kind: CategoryId) => void;
   /** The walk planner is open over the card: its Back and Escape are the planner's, and the card stays as it was (tend explore 4). */
@@ -120,13 +120,13 @@ export function AtlasCard(props: {
     else now();
   };
   // GE1, GE8: Go here is a quiet ink link with the arrow, 44 px high, named for its place.
-  const goLink = (testID: string, at: LngLat, label: string, style?: object) => (
+  const goLink = (testID: string, at: LngLat, label: string, style?: object, via?: string | null) => (
     <Pressable
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`Go here, ${label}`}
       accessibilityHint="Choose Chronicles or your maps app"
-      onPress={() => props.onGoHere?.(at, label)}
+      onPress={() => props.onGoHere?.(at, label, via)}
       style={({ pressed }) => [styles.goLink, style, pressed && styles.goPressed]}
     >
       <Icon name="navigate-outline" size={14} color={theme.ink} />
@@ -423,13 +423,13 @@ export function AtlasCard(props: {
               <Button testID="atlas-walk-later" label="When I get there" tall
                 accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
                 onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
-              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot) : null}
+              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot, props.walkTo.via) : null}
             </>
           ) : props.walkTo ? (
             <>
               <Button testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
               {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">{walkViaLine(props.walkTo.via)}</Text> : null}
-              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot) : null}
+              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot, props.walkTo.via) : null}
             </>
           ) : (
             <Text style={[styles.muted, styles.hereLine]}>Too far to walk from here</Text>

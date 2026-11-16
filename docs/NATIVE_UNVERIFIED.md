@@ -283,6 +283,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
   - [ ] **Do:** on a phone, tap Go here on a tile, then Chronicles. **Expect:** Navigate opens ready, "To <place>", no walk started and nothing recorded until you tap Start (GH5, GH6)
 - [ ] **Do:** on an iPhone, open Explore, open a town's card and tap Go here under Walk to, then Apple Maps; also a complex's row. **Expect:** Apple Maps opens with walking directions to that place; the card is as it was (GE1, GE3, decision 0182)
   - [ ] **Do:** on an iPhone, on Chronicle's Map section, select a place and tap Go here under Walk here, then Apple Maps; then long-press the map at street zoom and do the same. **Expect:** the sheet opens at the top, Apple Maps opens with walking directions, and the star stays selected (GE2, GE3, GE9)
+- [ ] **Do:** on an Android phone, with a star's title as its name, tap Go here on the star's sheet, then Maps; then tap Open in Maps on the walk screen's navigation bar toward that star. **Expect:** neither link shows the star's title in the maps app: the label is "Destination" (audit 2, GE13)
+  - [ ] **Do:** on a phone, open Go here's sheet over Explore's area card, then press Back; then open it on a town's page and press Back. **Expect:** Back closes the sheet alone each time; the card and the page stay (audit 1, audit 6)
+  - [ ] **Do:** on a notched iPhone, open Go here's sheet over Explore's area card (the card hides the tabs), and on Chronicle's Map. **Expect:** the sheet clears the home indicator at the foot, and on Chronicle sits just under the section bar (audit 5, GE9)
 
 ## Explore atlas
 

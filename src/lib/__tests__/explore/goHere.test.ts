@@ -114,3 +114,56 @@ test('GE12: a decision record cites 0180, 0058 and 0121, lists the hosts and kee
   assert.ok(hit.length === 1, 'one record for Go here on the rest of the surfaces');
   for (const need of [/0180/, /0058/, /0121/, /busy/i, /complex/i, /long-press|long press/i, /star/i, /dead-zone/i]) assert.match(hit[0], need);
 });
+
+// ---- Audit of go-here-everywhere (Nov 16). ----
+
+test('go-here-everywhere audit 1: Escape or Back with the sheet open closes the sheet alone, never also the town page', async () => {
+  const { pageBack } = await import('../../atlas/waitingPins');
+  assert.equal(pageBack({ layersOpen: false, spot: false, goHere: true }), 'gohere', 'the sheet is open: the page does nothing');
+  assert.equal(pageBack({ layersOpen: true, spot: true, goHere: true }), 'gohere', 'the sheet is the topmost thing');
+  assert.equal(pageBack({ layersOpen: false, spot: false }), 'leave', 'with no sheet the page steps out as before');
+  assert.equal(pageBack({ layersOpen: true, spot: false, goHere: false }), 'layers');
+});
+
+test('go-here-everywhere audit 2: every openInMaps caller passes the label through shareLabel, so a star\'s title never rides in the link', () => {
+  const root = new URL('../../../', import.meta.url);
+  const calls: string[] = [];
+  const walk = (dir: URL) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === '__tests__' || e.name === 'node_modules') continue;
+      const u = new URL(e.name + (e.isDirectory() ? '/' : ''), dir);
+      if (e.isDirectory()) walk(u);
+      else if (/\.(ts|tsx)$/.test(e.name)) {
+        for (const line of readFileSync(u, 'utf8').split('\n')) {
+          if (/\bopenInMaps\(/.test(line) && !/export (async )?function openInMaps|^\s*(\*|\/\/)/.test(line)) calls.push(`${e.name}: ${line.trim()}`);
+        }
+      }
+    }
+  };
+  walk(root);
+  assert.ok(calls.length >= 2, 'the callers are found');
+  for (const c of calls) assert.match(c, /shareLabel\(/, `${c} must pass its label through shareLabel`);
+});
+
+test('go-here-everywhere audit 3: the maps row\'s hint says recording pauses only where it is true, and fits one line', async () => {
+  const { goHereMapsHint } = await import('../../atlas/goHere');
+  assert.doesNotMatch(goHereMapsHint({ walkOpen: false, web: true }), /recording/i, 'nothing records with no walk open');
+  assert.doesNotMatch(goHereMapsHint({ walkOpen: true, web: false }), /recording/i, 'on a phone Chronicles keeps recording');
+  assert.match(goHereMapsHint({ walkOpen: true, web: true }), /Recording pauses/);
+  for (const walkOpen of [false, true]) for (const web of [false, true]) assert.ok(goHereMapsHint({ walkOpen, web }).length <= 42, 'one line at 320 px');
+});
+
+test('go-here-everywhere audit 5: the sheet at the foot clears the bottom inset; at the top it sits at the top inset', async () => {
+  const { sheetEdge } = await import('../../atlas/goHere');
+  assert.deepEqual(sheetEdge('bottom', { top: 47, bottom: 34 }), { bottom: 34 }, 'over the card, which hides the tabs, above the home indicator');
+  assert.deepEqual(sheetEdge('bottom', { top: 0, bottom: 0 }), { bottom: 0 });
+  assert.deepEqual(sheetEdge('top', { top: 47, bottom: 34 }), { top: 47 });
+});
+
+test('go-here-everywhere audit 9: Go here says where it starts you when that is one of its streets, as Walk to does (`walkViaLine`)', async () => {
+  const { goHereWords } = await import('../../atlas/goHere');
+  assert.ok(goHereWords('Cranston', false, 'Park Avenue').includes('Starts you on Park Avenue'));
+  assert.ok(!goHereWords('Cranston', false, null).some((w) => /Starts you/.test(w)));
+  assert.ok(!goHereWords('Cranston', false).some((w) => /Starts you/.test(w)));
+  assert.deepEqual(goHereWords('Cranston', true, 'Park Avenue'), ['Go to Cranston', 'Starts you on Park Avenue', 'Replaces where you were heading']);
+});

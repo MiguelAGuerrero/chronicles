@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { BackHandler, Platform } from 'react-native';
-import { goHereDo, shareLabel, type GoHereChoice } from '../lib/atlas/goHere';
+import { goHereDo, goHereMapsHint, shareLabel, type GoHereChoice } from '../lib/atlas/goHere';
 import { feedback } from '../lib/motion';
-import { HANDOFF_HINT, mapsAppName, openInMaps } from '../lib/nav/openInMaps';
+import { mapsAppName, openInMaps } from '../lib/nav/openInMaps';
 import { loadPendingDest } from '../lib/nav/store';
 import type { Waypoint } from '../lib/nav/types';
 import type { LngLat } from '../lib/types';
@@ -13,6 +13,8 @@ export interface GoHereTarget {
   at: LngLat;
   label: string;
   kind: 'area' | 'star' | 'spot';
+  /** The area's busiest street, when Go here starts you there (audit 9). */
+  via?: string | null;
 }
 
 /**
@@ -39,7 +41,14 @@ export function useGoHere(o: {
     // A destination already saved is said to be replaced (GE4), once it is read.
     void loadPendingDest().then((d) => setState((s) => (s && s.target === target ? { target, replaces: !!d } : s)), () => {});
   }, []);
-  const shown = state != null && o.focused !== false;
+  // A sheet left open on a tab you leave does not come back, stale, when you return (audit 6): adjust during render, on the change.
+  const focusedNow = o.focused !== false;
+  const [wasFocused, setWasFocused] = useState(focusedNow);
+  if (focusedNow !== wasFocused) {
+    setWasFocused(focusedNow);
+    if (!focusedNow && state) setState(null);
+  }
+  const shown = state != null && focusedNow;
   useEffect(() => {
     if (!shown) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -69,7 +78,8 @@ export function useGoHere(o: {
     <GoHereSheet
       name={state.target.label}
       mapsApp={mapsAppName()}
-      mapsHint={Platform.OS === 'web' ? HANDOFF_HINT : undefined}
+      mapsHint={goHereMapsHint({ walkOpen: o.walkOpen, web: Platform.OS === 'web' })}
+      via={state.target.via}
       replaces={state.replaces}
       walkOpen={o.walkOpen}
       anchor={o.anchor}
@@ -77,5 +87,5 @@ export function useGoHere(o: {
       onClose={close}
     />
   ) : null;
-  return { ask, close, open: state != null, sheet };
+  return { ask, close, open: shown, sheet };
 }
