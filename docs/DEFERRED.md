@@ -810,3 +810,11 @@ What the reactions slice left out (`specs/reactions`, decision 0176).
 - [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
 - [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.
 - [loop] **Reaction links** (UI review U3, U5): a reaction panel does not say which moment it acts on (a subtitle with the moment's first words, or the entry scrolled into view above the sheet); Neutral's circled minus reads as "remove" now that a mark is tappable (Ionicons has no neutral face; a drawn one, or another glyph, is a choice for a phone).
+
+## Small places (SP1-SP22, decision 0182)
+
+Small places (decision 0182): what the slice left for later.
+
+- **A bar's breakdown by type** on a neighbourhood or town card (the types present, in words, in a fixed order, no counts): the owner's own later slice, with its own gate (decision 0182); the tension recorded there, that weighting is a form of curation.
+- **Switched-on small subsets leaning a route:** the planner and scenic Sights leave every small subset out, on or off (SP16, a default the owner may overrule); whether a reader's switched-on ones should lean is for the breakdown slice.
+- **The data side is on chronicles-data's branch, not its main:** contract v3 and OSM's small places (its SL1-SL11) reach a pack only once that branch merges and the weekly job's OSM fetch runs; the noise review per test area comes with that first build, before a pack is published (decision 0109). Until then the app takes the new classes and nothing new shows.
