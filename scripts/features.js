@@ -155,8 +155,8 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places'],
   },
   {
     name: 'kind-walk',

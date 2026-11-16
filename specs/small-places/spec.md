@@ -28,25 +28,27 @@ The places archive (chronicles-data) reads OpenStreetMap's tags only to confirm 
 - **A breakdown of a bar by type is its own later slice** (the owner, Nov 14).
 - **A small memorial keeps its own name** (the owner, Nov 16, "Their own name"): a Stolperstein or a ghost bike is named as it bears it; an unnamed one reads "Memorial" (steward's silent question 1).
 - **The bars' cache keeps counts and shares apart** (the owner, Nov 16, "Counts plus shares"; plan, Data, A).
-- **The data side first, in chronicles-data, attached to this session** (the owner, Nov 16).
+- **The data side first, in chronicles-data, attached to this session** (the owner, Nov 16); built there as SL1-SL11 (its `docs/small-places/spec.md`, contract v3).
+- **One OSM adapter, its role by class** (the owner, Nov 16, over two adapters).
+- **A marker is a marker whoever lists it** (the owner, Nov 16): Wikidata's `marker` joins OSM's plaques in Plaques and markers, off by default.
 - Defaults taken in the plan, for the owner to overrule: see plan.md, "Defaults to overrule".
 
 ## Criteria
 
 The owner's task, in their words: "find small things like a time capsule while exploring", and "a plaque doesn't have to be on by default, but can be a refinement in the historical category as its own subgroup".
 
-- **SP1** (the task): on an exploring walk, an archive time capsule within the range shows as a "?" and is named "Time capsule" within 60 m; a capture beside it finds it, and the replay says "Found: Time capsule".
+- **SP1** (the task): on an exploring walk, an archive time capsule within the range shows as a "?" and is named "A time capsule" when unnamed (its own name when it has one) within 60 m; a capture beside it finds it, and the replay says "Found: A time capsule".
 - **SP2** (finding): in "What I'm into", under Monuments and memorials, a row named "Plaques and markers", indented as Community parks is under Parks, is switched off; someone told only "turn plaques on" finds it there.
-- **SP3** the archive's small classes map to one kind each, pinned: plaques, small memorials and old stones and wayside shrines in History (under Monuments and memorials, Monuments and memorials, Buildings and structures and Places of worship); time capsules in Viewpoints & oddities under Curiosities; little libraries in Culture under Community spaces; murals and sculptures as Public art itself and community gardens as Parks and gardens itself, with no switch of their own (the plan's default; steward S5).
+- **SP3** the archive's small classes map to one kind each, pinned (Wikidata's `marker` with OSM's plaques, the owner, Nov 16): plaques, small memorials and old stones and wayside shrines in History (under Monuments and memorials, Monuments and memorials, Buildings and structures and Places of worship); time capsules in Viewpoints & oddities under Curiosities; little libraries in Culture under Community spaces; murals and sculptures as Public art itself and community gardens as Parks and gardens itself, with no switch of their own (the plan's default; steward S5).
 - **SP4** an unknown class, or a known small class with a tag outside the table, is left out (never guessed).
-- **SP5** an unnamed small place enters, named by its type ("Plaque", "Little library", "Time capsule", "Memorial", "Milestone", "Wayside shrine"); its card and find say that name once ("Found: Little library", never "Little library · Little libraries"); an unnamed place of any other archive class is still left out.
+- **SP5** an unnamed small place enters, named by its type as an unnamed viewpoint is ("A plaque", "A little library", "A time capsule", "A memorial", "An old stone", "A wayside shrine", "A statue", "Public art", "A community garden"); its card and find say that name once ("Found: A little library", never "A little library · Little libraries"); an unnamed place of any other archive class is still left out.
 - **SP6** two unnamed small places of the same type in one ~10 m cell are one place.
 - **SP7** on a fresh install, Plaques and markers, Small memorials, Old stones and Wayside shrines and crosses are off; Time capsules and Little libraries are on.
 - **SP8** after the update, a reader with saved switches from before gets the same defaults; a parent they had switched off still hides its new subsets.
 - **SP9** a subset switched on stays on after a reload and a new archive version; one switched off by the reader stays off.
 - **SP10** a subset's row shows only while its parent is on, and is off and locked under a parent switched off (as Community parks).
 - **SP11** an off subset's places show as no "?" on a walk, on Explore's map or in an area's "Waiting to be found"; switched on, they do.
-- **SP12** an area's bars: a small place adds ¼ (plaques, small memorials, old stones, wayside shrines, time capsules), ½ (little libraries, community gardens) or 1 (murals and sculptures) to its category, only while its subset is on (murals and sculptures while Public art is on, community gardens while Parks and gardens is on); four plaques in a ring light History's first dot with plaques on, and none with them off.
+- **SP12** an area's bars: a small place adds ¼ (plaques, small memorials, old stones, wayside shrines, time capsules), ½ (little libraries, community gardens) to its category only while its subset is on; four plaques in a ring light History's first dot with plaques on, and none with them off. Murals, sculptures, statues (1) and community gardens (½) have no switch of their own and count as their kind's places always, as the map's artworks and parks do (0115).
 - **SP13** flipping a subset's switch changes the tiles' and the card's dots and the character line without reading the area again.
 - **SP14** none of the small classes weighs toward storefronts, What's here? or a town's pockets.
 - **SP15** no screen shows a number of small places, or a share of them found; the walk's card and the replay keep their bounds (one or two by name, then "a few places").
@@ -56,7 +58,7 @@ The owner's task, in their words: "find small things like a time capsule while e
 - **SP19** a community-named park whose only places in or near it are small places stays a community park, with those subsets on or off (steward S1; 0143's demotion holds).
 - **SP20** passing a museum and three plaques says "Passed <the museum> without stopping": small places are named in the card's and the replay's passed line only when nothing else was passed (steward S2; the lows stay in).
 - **SP21** an area's Found list shows the unnamed finds of one type as one row named by the type in the plural ("Plaques"), with no number (steward S3).
-- **SP22** an unnamed small place reads with an article in a sentence ("Passed a plaque without stopping"), and two or more of one type as the plural ("Passed plaques without stopping") (steward S4).
+- **SP22** an unnamed small place reads with its article in a sentence ("Passed a plaque without stopping"), and two of one type as the plural ("Passed plaques without stopping") (steward S4).
 
 ## Steward (Nov 16, on the spec and plan)
 
