@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import ts from 'typescript';
 import * as mapTypes from '../../../components/map/types';
+import { glideShown } from '../../useGlidingWalker';
 
 // Native map frames (NF1-NF6, specs/native-map-frames). The phone's map can't render under `npm test`
 // (nothing a test imports may import React Native), so these read the source, as endsPaint.test.ts does:
@@ -91,7 +92,7 @@ const idOf = (e: Jsx) => {
   return a?.initializer && ts.isStringLiteral(a.initializer) ? a.initializer.text : null;
 };
 
-test('NF1: a glide frame re-renders only the walker, its cone and the camera: WalkMap holds no glide state', { todo: 'test first' }, () => {
+test('NF1: a glide frame re-renders only the walker, its cone and the camera: WalkMap holds no glide state', () => {
   const sf = read(NATIVE);
   const body = walkMapBody(sf);
   assert.equal(calls(body, 'useGlidingWalker').length, 0, 'WalkMap itself must not turn each glide frame into its own state');
@@ -106,7 +107,21 @@ test('NF1: a glide frame re-renders only the walker, its cone and the camera: Wa
   assert.equal(jumps.length, 0, 'the follow camera is not moved from WalkMap by glide frames');
 });
 
-test('NF2: the replays hand the map nothing new on a tick but the walker and the camera', { todo: 'test first' }, () => {
+test('NF1: what the dot and cone show, read from the frame store, is what the map showed from its own state', () => {
+  const a: [number, number] = [-71.4, 41.81];
+  const b: [number, number] = [-71.401, 41.811];
+  // The replay moves the dot itself: the props, never a frame.
+  assert.deepEqual(glideShown({ walker: a, heading: 10 }, b, 90, false, false), { walker: b, heading: 90 });
+  // Gliding: the latest frame; before the first one, the new fix rather than nothing.
+  assert.deepEqual(glideShown({ walker: a, heading: 10 }, b, 90, true, false), { walker: a, heading: 10 });
+  assert.deepEqual(glideShown({ walker: null, heading: null }, b, 90, true, false), { walker: b, heading: 90 });
+  // No walker: no dot, whatever the last frame was.
+  assert.deepEqual(glideShown({ walker: a, heading: 10 }, null, null, true, false), { walker: null, heading: null });
+  // With the live dot running, the cone is the frames' alone (coneHeading), never the trace's standing in for it.
+  assert.deepEqual(glideShown({ walker: a, heading: null }, b, 90, true, true), { walker: a, heading: null });
+});
+
+test('NF2: the replays hand the map nothing new on a tick but the walker and the camera', () => {
   // These reach only the scale bar, the fit and the first camera, cheap and read once; the rest reaches sources and pins.
   const EXEMPT = new Set(['ref', 'style', 'scaleInset', 'fitPadding', 'initialCenter', 'initialZoom']);
   for (const file of ['app/replay/[id].tsx', 'app/day/[key].tsx']) {
@@ -122,7 +137,7 @@ test('NF2: the replays hand the map nothing new on a tick but the walker and the
   }
 });
 
-test('NF3: a map source is drawn by a memo component and handed nothing new on each render', { todo: 'test first' }, () => {
+test('NF3: a map source is drawn by a memo component and handed nothing new on each render', () => {
   const sf = read(NATIVE);
   const sources = jsx(sf, 'GeoJSONSource');
   assert.ok(sources.length >= 20, 'the native map draws its overlays as GeoJSON sources');
@@ -137,7 +152,7 @@ test('NF3: a map source is drawn by a memo component and handed nothing new on e
   }
 });
 
-test('NF4: pins, marks, stars and labels re-render only with their own content', { todo: 'test first' }, () => {
+test('NF4: pins, marks, stars and labels re-render only with their own content', () => {
   const sf = read(NATIVE);
   const markers = jsx(sf, 'Marker');
   assert.ok(markers.length >= 6, 'the native map draws its pins as Markers');
@@ -156,7 +171,7 @@ test('NF4: pins, marks, stars and labels re-render only with their own content',
   }
 });
 
-test('NF5: the phone simplifies the line sources the web does, from one definition', { todo: 'test first' }, () => {
+test('NF5: the phone simplifies the line sources the web does, from one definition', () => {
   const t = mapTypes as unknown as { LINE_SOURCE?: unknown; LINE_SOURCE_IDS?: readonly string[] };
   assert.deepEqual(t.LINE_SOURCE, { tolerance: 1, buffer: 64 });
   const ids = t.LINE_SOURCE_IDS ?? [];

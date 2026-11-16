@@ -1,9 +1,11 @@
 // @layer view
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { glideAngle, glideAngleTo, glideDone, glidePos, glideTo, type AngleGlide, type PosGlide } from './glide';
 import type { DotSource } from './liveDot';
 import { coneHeading } from './nav/navigator';
+import type { Store } from './store';
 import type { LngLat } from './types';
+import { useStore } from './useStore';
 
 export type GlideFrame = { walker: LngLat | null; heading: number | null };
 
@@ -97,14 +99,34 @@ export function useGlideFrames(
   }, []);
 }
 
-/** Phone: the glide as React state, capped at ~15 fps (the map layers redraw per frame). */
-const NATIVE_FRAME_MS = 66;
+/** Phone: the glide's frames, capped at ~15 fps (each frame re-sends the dot's and cone's sources). */
+export const NATIVE_FRAME_MS = 66;
 
-export function useGlidingWalker(walker: LngLat | null | undefined, heading: number | null | undefined, enabled = true, source?: DotSource | null): GlideFrame {
-  const [shown, setShown] = useState<GlideFrame>({ walker: walker ?? null, heading: heading ?? null });
-  useGlideFrames(walker, heading, enabled, setShown, NATIVE_FRAME_MS, source);
+/**
+ * What the dot and cone show (native map frames, NF1): the glide's latest frame, read from the map's
+ * frame store by the small parts that draw it, so only they render per frame, never the map.
+ * Before the first frame after a change it shows the new fix rather than a stale spot; with the dot
+ * running, the frames' heading is the cone (coneHeading), never the trace's standing in for it.
+ */
+export function useGlideShown(
+  frames: Store<GlideFrame>,
+  walker: LngLat | null | undefined,
+  heading: number | null | undefined,
+  enabled: boolean,
+  source?: DotSource | null,
+): GlideFrame {
+  const shown = useStore(frames, (f) => f);
+  return glideShown(shown, walker, heading, enabled, !!source?.get());
+}
+
+/** The decision `useGlideShown` makes, apart from React: the glide's frame, or the props it stands in for. */
+export function glideShown(
+  shown: GlideFrame,
+  walker: LngLat | null | undefined,
+  heading: number | null | undefined,
+  enabled: boolean,
+  dotRunning: boolean,
+): GlideFrame {
   if (!enabled) return { walker: walker ?? null, heading: heading ?? null };
-  // Before the first frame after a change, show the new fix rather than a stale spot. With the dot
-  // running, the frames' heading is the cone (coneHeading): never the trace's standing in for it.
-  return { walker: walker ? (shown.walker ?? walker) : null, heading: source?.get() ? shown.heading : heading == null ? null : (shown.heading ?? heading) };
+  return { walker: walker ? (shown.walker ?? walker) : null, heading: dotRunning ? shown.heading : heading == null ? null : (shown.heading ?? heading) };
 }

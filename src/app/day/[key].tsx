@@ -13,6 +13,7 @@ import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
+import type { WalkMapProps } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
@@ -31,6 +32,8 @@ import type { LngLat } from '../../lib/types';
 
 /** The drawn trace is rebuilt at most this often; the walker moves every frame. */
 const TRACE_STEP_MS = 66;
+/** A day draws no fog and no walked streets; one empty list, so the map isn't handed a new one each tick (NF2). */
+const NO_STREETS: WalkMapProps['walked'] = [];
 
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
@@ -261,8 +264,8 @@ export default function DayReplay() {
         borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
-        walked={[]}
-        fog={[]}
+        walked={NO_STREETS}
+        fog={NO_STREETS}
         captures={pinned}
         clocks={clocks}
         onPinPress={onCard ? setViewing : undefined}

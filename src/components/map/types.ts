@@ -347,6 +347,15 @@ export const DRAWING_DASH = [1, 1];
 /** A ride's dash, in line widths: long enough to read as a line, gapped enough to read as not walked. */
 export const RIDE_DASH = [1.6, 1.4];
 
+/**
+ * Line sources are simplified a little more than maplibre's default and keep a smaller tile buffer
+ * (tolerance 0.375 and buffer 128 are the defaults): less to re-tile on each update (perf, Nov 1).
+ * Both maps take it, the web in `addSource`, the phone as `GeoJSONSource` props (NF5).
+ */
+export const LINE_SOURCE = { tolerance: 1, buffer: 64 } as const;
+/** The sources drawn as lines, simplified by `LINE_SOURCE` on both maps (NF5). */
+export const LINE_SOURCE_IDS = ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing'] as const;
+
 export function traceGeoJSON(runs: LngLat[][]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
