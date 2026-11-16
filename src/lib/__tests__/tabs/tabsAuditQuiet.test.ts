@@ -24,7 +24,7 @@ test('tabs audit U13: what a walk passed is named, or "a few places", never coun
 test('tabs audit U13: a walks list row keeps distance and time, and counts no new streets', () => {
   const s = { distance_m: 1234, duration_ms: 25 * 60_000, new_streets: 3, photos: 1, videos: 0, voices: 0, notes: 2 };
   const meta = walkRowMeta('Nov 2, 2026', s);
-  assert.match(meta, /^Nov 2, 2026 · 1\.2 km · 25 min/);
+  assert.match(meta, /^Nov 2, 2026 · 1\.2\u00a0km · 25\u00a0min/);
   assert.doesNotMatch(meta, /new street/);
 });
 

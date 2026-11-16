@@ -35,8 +35,8 @@ test('tend replay T19: the walk card says what was kept as one clause in the pin
 
 test('tend replay T19: the walks row takes the walk card\'s clause, no digit among what was kept', () => {
   const meta = walkRowMeta('Nov 2, 2026', { distance_m: 1234, duration_ms: 25 * 60_000, photos: 1, videos: 1, voices: 1, notes: 1 });
-  assert.equal(meta, 'Nov 2, 2026 · 1.2 km · 25 min · a\u00a0photo, a\u00a0video, a\u00a0voice memo and a\u00a0note');
-  assert.equal(walkRowSpoken('Plums', meta, null), 'Replay Plums. Nov 2, 2026, 1.2 km, 25 min, a\u00a0photo, a\u00a0video, a\u00a0voice memo and a\u00a0note');
+  assert.equal(meta, 'Nov 2, 2026 · 1.2\u00a0km · 25\u00a0min · a\u00a0photo, a\u00a0video, a\u00a0voice memo and a\u00a0note');
+  assert.equal(walkRowSpoken('Plums', meta, null), 'Replay Plums. Nov 2, 2026, 1.2\u00a0km, 25\u00a0min, a\u00a0photo, a\u00a0video, a\u00a0voice memo and a\u00a0note');
 });
 
 test('tend replay T19: the day card names one or two places its moments were at', () => {

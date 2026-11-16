@@ -8,6 +8,9 @@ import { formatCaptures, formatDistance, formatDuration } from './format';
 import type { Star } from './places';
 import { numberWord } from './resurface/lines';
 
+/** A figure kept whole at a line's end, "589 m" never "589 / m" (tend chronicle 10): its spaces are no-break. */
+const bound = (figure: string) => figure.replace(/ /g, '\u00a0');
+
 /**
  * "your first time down Elm Street", or past two "three streets new to you", in words (tend replay T31, the owner's yes,
  * Nov 14); null when none were new. `bind`, for the card's line, keeps the count on its noun's line; the fog beat's
@@ -39,7 +42,7 @@ export function walkCardStreets(walked: number, newStreets: string[] | null): st
  */
 export function walkRowMeta(date: string, s: { distance_m: number; duration_ms: number; photos: number; videos?: number; voices: number; notes: number }): string {
   const kept = formatCaptures(s);
-  return [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), kept.charAt(0).toLowerCase() + kept.slice(1)].filter(Boolean).join(' · ');
+  return [date, bound(formatDistance(s.distance_m)), bound(formatDuration(s.duration_ms)), kept.charAt(0).toLowerCase() + kept.slice(1)].filter(Boolean).join(' · ');
 }
 
 /**
@@ -57,7 +60,7 @@ export function walkRowSpoken(title: string, meta: string, epilogue: string | nu
  */
 export function timelineWalkLine(distance: string | null, moments: number): string {
   // The count keeps to its noun when the line wraps, "one / moment" never split (tend tabs audit 24).
-  return ['Walk', distance, moments > 0 ? `${numberWord(moments)}\u00a0${moments === 1 ? 'moment' : 'moments'}` : null].filter(Boolean).join(' · ');
+  return ['Walk', distance && bound(distance), moments > 0 ? `${numberWord(moments)}\u00a0${moments === 1 ? 'moment' : 'moments'}` : null].filter(Boolean).join(' · ');
 }
 
 /** A walk's More, named by the title it shows wherever that title is known: its row, its timeline entry, its card (tend tabs 11). */
@@ -88,7 +91,7 @@ const walksWord = (n: number) => `${numberWord(n)} ${n === 1 ? 'walk' : 'walks'}
  * distance walked there, "Providence, Rhode Island · one walk · 175 m" (tend tabs 10, decision 0172).
  */
 export function placeSheetLine(subtitle: string | null | undefined, walks: number, distance: string): string {
-  return [subtitle, walksWord(walks), distance].filter(Boolean).join(' · ');
+  return [subtitle, walksWord(walks), bound(distance)].filter(Boolean).join(' · ');
 }
 
 /**
