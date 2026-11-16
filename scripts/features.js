@@ -157,7 +157,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'gohere'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere'],
   },
   {
     name: 'kind-walk',
@@ -485,6 +485,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'go-here-everywhere': { branch: 'claude/focused-brahmagupta-eajl5h', since: '2026-11-16' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
