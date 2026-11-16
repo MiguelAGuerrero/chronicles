@@ -201,21 +201,27 @@ export default function Replay() {
   useEffect(() => {
     beatNow.current = phase.beat;
   }, [phase.beat]);
+  // One way back, read once (tend replay 4, 5, T21): Android's Back, Escape and the name sheet's Back. True when it was
+  // taken here; false when the beat is left as Not now or Done leaves it.
+  const stepBack = useCallback((): boolean => {
+    if (backFrom(beatNow.current) !== 'card') return false;
+    go('card');
+    return true;
+  }, [go]);
   useEffect(() => {
     if (rewatch) return;
     // However it is left, the first replay ends on Chronicle's Memories (RM3).
     chronicleSection.set('memories');
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       // Back on the name step returns to the card, the words typed kept (tend replay 4).
-      if (backFrom(beatNow.current) === 'card') go('card');
-      else toChronicle();
+      if (!stepBack()) toChronicle();
       return true;
     });
     return () => {
       back.remove();
       if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
-  }, [rewatch, toChronicle, go]);
+  }, [rewatch, toChronicle, stepBack]);
   // Escape on the web is Back's sibling (tend replay 5): the name step returns to the card; anywhere else the replay
   // is left as Not now or Done leaves it. Nothing while a viewer, the walk's menu or a gap's card holds the key.
   const held = viewing != null || here != null || actionsOpen || gapOpen != null || isDrawing;
@@ -224,15 +230,15 @@ export default function Replay() {
     const onKey = (e: KeyboardEvent) => {
       // A held key's repeats are not more presses: the name step's Escape stops at the card (tend replay audit 4).
       if (e.key !== 'Escape' || e.repeat) return;
-      if (backFrom(beatNow.current) === 'card') go('card');
-      else if (!rewatch) toChronicle();
+      if (stepBack()) return;
+      if (!rewatch) toChronicle();
       else if (router.canGoBack()) router.back();
       else router.dismissTo('/');
     };
     // In the capture phase: react-native-web's TextInput stops a key's propagation (the name step's fields).
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [held, rewatch, toChronicle, go]);
+  }, [held, rewatch, toChronicle, stepBack]);
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {
@@ -685,6 +691,16 @@ export default function Replay() {
               </>
             ) : (
               <>
+                {/* A quiet way back to the card, the words kept, where Back and Escape go (tend replay T21, decision 0165):
+                    an iPhone has neither. */}
+                <Pressable
+                  testID="name-back"
+                  accessibilityRole="button"
+                  onPress={stepBack}
+                  style={({ pressed }) => [styles.nameBack, pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={styles.notNowText}>Back</Text>
+                </Pressable>
                 <Text style={styles.label} nativeID="title-label">Name this walk</Text>
                 <TextInput
                   testID="title-input"
@@ -784,6 +800,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   notNow: { minHeight: 44, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   notNowText: { fontSize: 15, fontWeight: '600', color: theme.muted },
+  // Not now's quiet text, at the name sheet's leading edge, its words in line with the labels below.
+  nameBack: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: 16, marginLeft: -16, marginTop: -10 },
   flex: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: theme.muted },
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },

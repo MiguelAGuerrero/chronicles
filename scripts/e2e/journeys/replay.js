@@ -330,6 +330,40 @@ async function run(h) {
     await pg.click('[data-testid=viewer-close]').catch(() => {});
     await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 3000 }).catch(() => {});
 
+    // tend replay T21 (decision 0165, "A quiet Back"): the name sheet's top row holds a quiet Back in Not now's style, no
+    // new colour, a 44 px target above the first field, and it returns to the card with the words kept; at 390 and 320.
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.click('[data-testid=to-name]');
+      await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
+      await pg.waitForTimeout(300);
+      const back = await pg.evaluate(() => {
+        const b = document.querySelector('[data-testid=name-back]');
+        const label = document.getElementById('title-label');
+        if (!b || !label) return null;
+        const r = b.getBoundingClientRect();
+        const text = [...b.querySelectorAll('*')].find((x) => x.childElementCount === 0 && x.textContent === 'Back');
+        const ink = text ? getComputedStyle(text).color : null;
+        return {
+          text: b.textContent, name: b.getAttribute('aria-label') ?? b.textContent, w: Math.round(r.width), h: Math.round(r.height),
+          left: Math.round(r.left), above: r.bottom <= label.getBoundingClientRect().top + 1, ink, labelInk: getComputedStyle(label).color,
+          ground: getComputedStyle(b).backgroundColor,
+        };
+      });
+      check(back && back.text === 'Back' && back.h >= 44 && back.w >= 44 && back.left >= 0 && back.above && back.ink === back.labelInk && back.ink !== 'rgb(194, 65, 12)' && /rgba\(0, 0, 0, 0\)|transparent/.test(back.ground),
+        `tend replay T21: at ${w} px the name sheet's top row holds a quiet Back, 44 px, in the muted ink, no ground (${JSON.stringify(back)})`);
+      await shot(pg, `rr-name-back-${w}`);
+      await pg.click('[data-testid=name-back]');
+      const onCardAgain = await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).then(() => true, () => false);
+      const stillHere = /\/replay\//.test(new URL(pg.url()).pathname);
+      await pg.click('[data-testid=to-name]').catch(() => {});
+      const keptBack = await pg.inputValue('[data-testid=title-input]').catch(() => null);
+      check(onCardAgain && stillHere && keptBack === 'Plums by the bridge', `tend replay T21: at ${w} px Back returns to the card, the words kept (${onCardAgain}, ${stillHere}, "${keptBack}")`);
+      await pg.click('[data-testid=name-back]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    }
+    await pg.setViewportSize({ width: 390, height: 844 });
+
     // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).
     await pg.setViewportSize({ width: 844, height: 390 });
     await pg.getByText('Watch again').click();
