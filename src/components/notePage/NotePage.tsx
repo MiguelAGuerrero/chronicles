@@ -217,6 +217,8 @@ export const NotePage = forwardRef<NotePageHandle, {
     if (!fits(shown, label)) return;
     editor.current?.insertMention(id, label);
   };
+  const menuCard = menuFor ? cards?.[menuFor] : undefined;
+  const menuVideo = !!menuCard && !menuCard.gone && !!menuCard.picture?.video;
   const startEdit = () => {
     const v = menuFor ? cardPool.byId.get(menuFor) : null;
     setMenuFor(null);
@@ -251,6 +253,7 @@ export const NotePage = forwardRef<NotePageHandle, {
           head={{ day: props.head.day, line: props.head.line }}
           palette={PALETTE}
           mentions={cards}
+          selectedId={menuFor}
           onPictureTap={(id) => setMenuFor((m) => (props.onEditMedia && id && id !== m ? id : null))}
           onChange={(body, text, n) => {
             setStored(body);
@@ -280,8 +283,9 @@ export const NotePage = forwardRef<NotePageHandle, {
       )}
       {menuFor && props.onEditMedia ? (
         <View style={styles.panel} testID="picture-menu" accessibilityRole="menu" accessibilityLabel="Picture">
-          <Pressable testID="picture-edit" accessibilityRole="menuitem" accessibilityLabel="Edit" onPress={startEdit} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
-            <Text style={styles.glyph}>Edit</Text>
+          <Pressable testID="picture-edit" accessibilityRole="menuitem" accessibilityLabel={menuVideo ? 'Edit video' : 'Edit photo'} onPress={startEdit} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
+            <Icon name="create" size={22} color={theme.ink} />
+            <Text style={styles.glyph}>{menuVideo ? 'Edit video' : 'Edit photo'}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -401,7 +405,7 @@ const styles = StyleSheet.create({
   short: { flex: 1, textAlign: 'center', fontSize: 15, color: theme.muted },
   failed: { color: theme.ink, fontWeight: '600' },
   body: { flex: 1, position: 'relative' },
-  menuRow: { minHeight: 44, paddingHorizontal: 18, justifyContent: 'center' },
+  menuRow: { minHeight: 48, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },
   panel: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line, backgroundColor: theme.bg, paddingVertical: 6, gap: 4 },
   panelRow: { paddingHorizontal: 8, gap: 6, alignItems: 'center' },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingTop: 6, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line, backgroundColor: theme.surface },

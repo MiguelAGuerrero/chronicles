@@ -507,9 +507,13 @@ async function run(h) {
     const menu = await there('[data-testid=picture-menu]', 3000);
     const entries = await pg.locator('[data-testid=picture-menu] [role=button], [data-testid=picture-menu] [role=menuitem]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? e.textContent));
     await shot(pg, 'np-pic-02-menu');
+    const outlined = await pg.locator(pic).first().evaluate((e) => { const i = e.querySelector('img'); return i ? getComputedStyle(i).outlineStyle !== 'none' && parseFloat(getComputedStyle(i).outlineWidth) >= 2 : false; }).catch(() => false);
+    check(outlined && (await pg.locator(pic).first().getAttribute('aria-expanded')) === 'true', 'note-pictures ui 1: the picture whose menu is open is outlined, so what Edit applies to is seen');
+    const rowBox = await pg.locator('[data-testid=picture-edit]').boundingBox();
+    check(!!rowBox && rowBox.height >= 44 && (await pg.locator('[data-testid=picture-edit]').getAttribute('aria-label')) === 'Edit photo' && (await pg.locator('[data-testid=picture-edit] svg, [data-testid=picture-edit] [class*=ionicons]').count()) >= 0, `note-pictures ui 2: the menu's row says what it edits, "Edit photo", at a 44 pt target (${rowBox && Math.round(rowBox.height)})`);
     await pg.keyboard.press('Escape');
     const menuClosed = await gone('[data-testid=picture-menu]', 3000);
-    check(menu && entries.length === 1 && /^Edit/.test(entries[0] ?? '') && menuClosed && (await pg.locator('[data-testid=note-page]').count()) === 1, `NI13: a tap on a picture opens a menu with one entry, Edit; Escape closes it and the page stays (${JSON.stringify(entries)})`);
+    check(menu && entries.length === 1 && /^Edit photo/.test(entries[0] ?? '') && menuClosed && (await pg.locator('[data-testid=note-page]').count()) === 1, `NI13: a tap on a picture opens a menu with one entry, Edit; Escape closes it and the page stays (${JSON.stringify(entries)})`);
     // NI14, NI15: Edit opens the one editor over the page; a turn is kept on the moment and the picture is drawn turned.
     const dims = () => pg.locator(pic).first().evaluate((e) => { const i = e.querySelector('img'); return { w: i?.naturalWidth ?? 0, h: i?.naturalHeight ?? 0 }; }).catch(() => ({ w: 0, h: 0 }));
     const d0 = await dims();

@@ -34,6 +34,8 @@ const Cards = createContext<Record<string, Card> | undefined>(undefined);
 
 /** Whether the page is being written: a mention is then a chip or a picture, and a tap on a picture asks for its menu. */
 const Writing = createContext(false);
+/** The picture whose menu is open (note pictures ui 1): drawn with an outline, so what Edit applies to is seen. */
+const Selected = createContext<string | null>(null);
 
 /**
  * A mention: while writing a chip; a photo's or video's picture where it has been made (note pictures NI1-NI3, NI10);
@@ -42,12 +44,13 @@ const Writing = createContext(false);
 function MentionView(p: ReactNodeViewProps) {
   const cards = useContext(Cards);
   const writing = useContext(Writing);
+  const selected = useContext(Selected);
   const id = String(p.node.attrs.id);
   const c = cards?.[id];
   if (c && !c.gone && c.picture) {
     const pic = c.picture;
     return (
-      <NodeViewWrapper as="span" className="mention picture" data-id={id} data-testid="note-picture" role="button" tabIndex={0} aria-label={`${pic.spoken}${writing ? '. Edit' : '. Open'}`}>
+      <NodeViewWrapper as="span" className={`mention picture${writing && selected === id ? ' selected' : ''}`} data-id={id} aria-expanded={writing ? selected === id : undefined} data-testid="note-picture" role="button" tabIndex={0} aria-label={`${pic.spoken}${writing ? '. Edit' : '. Open'}`}>
         <span className="pic-frame">
           <img src={pic.src} alt="" draggable={false} />
           {pic.video ? <span className="pic-play" aria-hidden="true" /> : null}
@@ -87,6 +90,8 @@ type Props = {
   onOpenMention: (id: string) => void;
   /** A tap on a picture while writing: the app opens its menu (note pictures NI13). */
   onPictureTap?: (id: string | null) => void;
+  /** The picture whose menu is open. */
+  selectedId?: string | null;
   /** A tap on the words while reading (NP5). */
   onTapToEdit: () => void;
   /** The head has scrolled away (NP2): the top bar shows its short form. */
@@ -218,6 +223,7 @@ export default function JournalEditor(props: Props) {
     .page .mention.picture { display: block; width: fit-content; max-width: 100%; margin: 8px 0; padding: 0; border: 0; background: none; white-space: normal; cursor: pointer; }
     .page .pic-frame { position: relative; display: block; line-height: 0; }
     .page .pic-frame img { display: block; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid ${p.edge}; background: ${p.surface}; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
+    .page .mention.picture.selected img { outline: 3px solid ${p.ink}; outline-offset: 2px; }
     .page .pic-play { position: absolute; inset: 0; margin: auto; width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.55); }
     .page .pic-play::after { content: ''; position: absolute; left: 17px; top: 12px; border-style: solid; border-width: 10px 0 10px 16px; border-color: transparent transparent transparent #fff; }
     .page .pic-context { display: block; margin-top: 4px; font-size: 13px; line-height: 1.3; color: ${p.muted}; }
@@ -269,7 +275,9 @@ export default function JournalEditor(props: Props) {
         </header>
         <Cards.Provider value={props.mentions}>
           <Writing.Provider value={props.editable}>
-            <EditorContent editor={editor} />
+            <Selected.Provider value={props.selectedId ?? null}>
+              <EditorContent editor={editor} />
+            </Selected.Provider>
           </Writing.Provider>
         </Cards.Provider>
       </div>
