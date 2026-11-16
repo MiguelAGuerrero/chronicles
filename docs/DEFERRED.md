@@ -60,6 +60,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - The offer for a gap depends on the walk's pace when it was read: live, the replay and a later session can differ (gap-drawing audit 13)
 - A gap whose end fix moves more than 25 m while it is drawn keeps a line that meets no gap (gap-drawing audit 14)
 - Drawing needs map taps: no way for a screen reader (Gap drawing)
+- Keeping every offer at the walk's end re-reads the replay after the snap, which can drop a capture edit made while it ran (G15 audit 9; the same as Keep on a card)
+- The first replay's "Not now" is a small grey text, and a person who is done can't tell it also leaves the gap question (G15 audit 11; ui-patterns "Found before quiet")
 
 ## Explore and discovery
 

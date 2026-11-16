@@ -7,7 +7,7 @@ import { Button, theme } from './ui';
  * never a count; asked once, on the first replay.
  */
 export function KeepGapsCard(props: {
-  words: { title: string; sub: string };
+  words: { title: string; sub: string; keep: string; leave: string };
   onKeep: () => void;
   onLeave: () => void;
   busy?: boolean;
@@ -16,13 +16,13 @@ export function KeepGapsCard(props: {
 }) {
   return (
     <View style={[styles.row, props.style]} pointerEvents="box-none">
-      <View testID="keep-gaps-card" style={styles.card}>
+      <View testID="keep-gaps-card" style={styles.card} accessibilityLiveRegion="polite">
         <Text style={styles.title} accessibilityRole="header">{props.words.title}</Text>
         <Text style={styles.sub}>{props.words.sub}</Text>
         {props.error ? <Text testID="keep-gaps-error" style={styles.error} accessibilityLiveRegion="polite">{props.error}</Text> : null}
         <View style={styles.actions}>
-          <Button testID="keep-gaps" label="Keep them" onPress={props.onKeep} busy={props.busy} busyLabel="Saving…" />
-          <Button testID="leave-gaps" variant="secondary" label="Leave them" onPress={props.onLeave} disabled={props.busy} />
+          <Button testID="keep-gaps" variant="secondary" label={props.words.keep} onPress={props.onKeep} busy={props.busy} busyLabel="Saving…" />
+          <Button testID="leave-gaps" variant="secondary" label={props.words.leave} onPress={props.onLeave} disabled={props.busy} />
         </View>
       </View>
     </View>

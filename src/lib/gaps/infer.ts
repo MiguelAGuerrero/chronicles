@@ -556,11 +556,17 @@ export function offersOf(stretches: Stretch[]): Stretch[] {
   return stretches.filter((s) => s.how === 'offer');
 }
 
-/** The walk's-end prompt (G15), in words and never a count; null with nothing offered. */
-export function keepAllWords(n: number): { title: string; sub: string } | null {
+/** The walk's-end prompt (G15), in words and never a count, agreeing with how many; null with nothing offered. */
+export function keepAllWords(n: number): { title: string; sub: string; keep: string; leave: string } | null {
   if (n <= 0) return null;
-  const sub = n === 1 ? 'One gap has a likely way along the streets.' : n === 2 ? 'Two gaps have a likely way along the streets.' : 'A few gaps have a likely way along the streets.';
-  return { title: 'Keep the likely way?', sub };
+  const one = n === 1;
+  const which = one ? 'One gap has' : n === 2 ? 'Two gaps have' : 'A few gaps have';
+  return {
+    title: 'Keep the likely way?',
+    sub: `${which} a likely way along the streets. Keeping ${one ? 'it adds it' : 'them adds them'} to your walk; leaving ${one ? 'it' : 'them'} lets you decide from ${one ? 'its' : 'their'} card.`,
+    keep: one ? 'Keep it' : 'Keep them',
+    leave: one ? 'Leave it' : 'Leave them',
+  };
 }
 
 /**

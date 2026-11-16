@@ -207,8 +207,8 @@ async function run(h) {
     await c.close();
 
     // G15: an offer left undecided at Stop is asked about once, on the first replay's card.
-    {
-      const { c: c2, pg: p2 } = await freshPage('gaps-end');
+    const endScenario = async (mode) => {
+      const { c: c2, pg: p2 } = await freshPage(`gaps-end-${mode}`);
       await c2.addInitScript(() => { window.__perf = {}; });
       const here2 = at(3.0, -0.5);
       await p2.goto(navUrl);
@@ -265,32 +265,46 @@ async function run(h) {
       await p2.waitForTimeout(800);
       const asked = await p2.locator('[data-testid=keep-gaps-card]').innerText().catch(() => '');
       check(/Keep the likely way\?/.test(asked) && !/\d/.test(asked.replace('Keep the likely way?', '')), `G15: the first replay asks once about the offered gap, in words ("${asked.replace(/\n/g, ' · ')}")`);
-      await shot(p2, 'g15-keep-gaps');
-      await p2.click('[data-testid=leave-gaps]');
-      await p2.waitForTimeout(500);
-      const left = await state2();
-      check((await p2.locator('[data-testid=keep-gaps-card]').count()) === 0 && left.faint === 1, `G15: Leave them stores nothing; the gap stays offered (${JSON.stringify(left)})`);
-      await p2.reload();
-      await p2.waitForSelector('[data-testid=skip], [data-testid=to-name]', { timeout: 60000 });
-      if (await p2.locator('[data-testid=skip]').count()) await p2.click('[data-testid=skip]');
-      await p2.waitForSelector('[data-testid=keep-gaps-card]', { timeout: 30000 }).catch(() => {});
-      await p2.click('[data-testid=keep-gaps]');
-      let kept2 = await state2();
-      for (let k = 0; k < 30 && kept2.faint !== 0; k++) {
+      if (mode === 'leave') await shot(p2, 'g15-keep-gaps');
+      const keepLabel = await p2.locator('[data-testid=keep-gaps]').innerText();
+      check(keepLabel === 'Keep it' && (await p2.locator('[data-testid=leave-gaps]').innerText()) === 'Leave it', `filling-gaps audit 6: one gap, so the buttons say it ("${keepLabel}")`);
+      if (mode === 'leave') {
+        await p2.click('[data-testid=leave-gaps]');
         await p2.waitForTimeout(500);
-        kept2 = await state2();
+        const left = await state2();
+        check((await p2.locator('[data-testid=keep-gaps-card]').count()) === 0 && left.faint === 1, `G15: Leave stores nothing; the gap stays offered (${JSON.stringify(left)})`);
+        // Asked once (audit 1): a reload of the same replay does not ask again, and the gap is still offered.
+        await p2.reload();
+        await p2.waitForSelector('[data-testid=skip], [data-testid=to-name]', { timeout: 60000 });
+        if (await p2.locator('[data-testid=skip]').count()) await p2.click('[data-testid=skip]');
+        await p2.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+        await p2.waitForTimeout(2500);
+        const again = await state2();
+        check((await p2.locator('[data-testid=keep-gaps-card]').count()) === 0 && again.faint === 1, `filling-gaps audit 1: after a reload the question is not asked again (${JSON.stringify(again)})`);
+      } else {
+        // The prompt stays out of the way of the card's one primary (audit 5): both buttons are secondary.
+        const fills = await p2.evaluate(() => ['keep-gaps', 'leave-gaps'].map((id) => getComputedStyle(document.querySelector(`[data-testid=${id}]`)).backgroundColor));
+        check(fills[0] === fills[1], `filling-gaps audit 5: Keep and Leave are the same weight (${fills.join(' / ')})`);
+        await p2.click('[data-testid=keep-gaps]');
+        let kept2 = await state2();
+        for (let k = 0; k < 30 && kept2.faint !== 0; k++) {
+          await p2.waitForTimeout(500);
+          kept2 = await state2();
+        }
+        const stored = await p2.evaluate(() => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => {
+            const g = req.result.transaction('gap_fill', 'readonly').objectStore('gap_fill').getAll();
+            g.onsuccess = () => resolve(g.result.map((r) => r.state));
+          };
+        }));
+        check(kept2.faint === 0 && JSON.stringify(stored) === '["kept"]' && (await p2.locator('[data-testid=keep-gaps-card]').count()) === 0,
+          `G15: Keep keeps the offered way and the card goes (${JSON.stringify(kept2)}, ${JSON.stringify(stored)})`);
       }
-      const stored = await p2.evaluate(() => new Promise((resolve) => {
-        const req = indexedDB.open('chronicles');
-        req.onsuccess = () => {
-          const g = req.result.transaction('gap_fill', 'readonly').objectStore('gap_fill').getAll();
-          g.onsuccess = () => resolve(g.result.map((r) => r.state));
-        };
-      }));
-      check(kept2.faint === 0 && JSON.stringify(stored) === '["kept"]' && (await p2.locator('[data-testid=keep-gaps-card]').count()) === 0,
-        `G15: Keep them keeps the offered way and the card goes (${JSON.stringify(kept2)}, ${JSON.stringify(stored)})`);
       await c2.close();
-    }
+    };
+    await endScenario('leave');
+    await endScenario('keep');
 }
 
 module.exports = {
