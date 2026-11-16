@@ -381,8 +381,45 @@ async function checks(h) {
         await shot(page, '03b-viewer-more');
         await page.click('[data-testid=viewer-remind]');
         await page.waitForSelector('[data-testid=remind-editor]');
-        check((await page.locator('[data-testid=remind-once][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=remind-none][aria-checked=true]').count()) === 1, 'remind me here offers how often, once by default, and until when');
-        await shot(page, '03a-remind');
+        // tend explore 18 (decision 0172, O9; ui-patterns matrix 15): How often and Until are two labelled menus, each
+        // button one line at 390 and 320 px, each opening the chips' choices in their order with the chosen one checked.
+        const remindMenus = [];
+        for (const w of [390, 320]) {
+          await page.setViewportSize({ width: w, height: 844 });
+          await page.waitForTimeout(400);
+          const sfx = w === 390 ? '' : `-${w}`;
+          // Whole, on one line: never cut short by its ellipsis, never wrapped.
+          const button = async (id) => page.locator(`[data-testid=remind-${id}-text]`).evaluate((t) => {
+            const lh = parseFloat(getComputedStyle(t).lineHeight) || parseFloat(getComputedStyle(t).fontSize) * 1.3;
+            return { text: t.textContent, oneLine: t.getBoundingClientRect().height < lh * 1.6 && t.scrollWidth <= t.clientWidth + 1, h: t.parentElement.getBoundingClientRect().height };
+          });
+          const often = await button('often');
+          const until = await button('until');
+          await shot(page, `03a-remind${sfx}`);
+          const menu = async (id, shotName) => {
+            await page.click(`[data-testid=remind-${id}]`);
+            await page.waitForSelector(`[data-testid=remind-${id}-menu]`);
+            await page.waitForTimeout(200);
+            await shot(page, shotName);
+            const items = await page.locator(`[data-testid=remind-${id}-menu] [role=radio]`).evaluateAll((els) => els.map((e) => [e.firstElementChild.textContent, e.getAttribute('aria-checked')]));
+            // (Its label alone: the checkmark is an icon font's glyph.)
+            const inView = await page.locator(`[data-testid=remind-${id}-menu]`).evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; });
+            // A tap outside closes the menu and keeps the choice.
+            await page.mouse.click(4, 4);
+            const closed = await page.waitForSelector(`[data-testid=remind-${id}-menu]`, { state: 'detached', timeout: 3000 }).then(() => true, () => false);
+            return { items, inView, closed };
+          };
+          const oftenMenu = await menu('often', `03d-remind-often${sfx}`);
+          const untilMenu = await menu('until', `03e-remind-until${sfx}`);
+          remindMenus.push({ w, often, until, oftenMenu, untilMenu, editorOpen: await page.locator('[data-testid=remind-editor]').count() === 1 });
+        }
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(400);
+        const sameItems = (got, want) => JSON.stringify(got.map(([t]) => t)) === JSON.stringify(want) && got.filter(([, c]) => c === 'true').map(([t]) => t).join() === want[0];
+        const menusOk = remindMenus.every((m) => m.often.text === 'How often: Once' && m.until.text === 'Until: No end' && m.often.oneLine && m.until.oneLine && m.often.h >= 44 && m.until.h >= 44
+          && sameItems(m.oftenMenu.items, ['Once', 'Every visit', 'Weekly at most', 'Monthly at most']) && sameItems(m.untilMenu.items, ['No end', '1 month', '3 months', '1 year'])
+          && m.oftenMenu.inView && m.untilMenu.inView && m.oftenMenu.closed && m.untilMenu.closed && m.editorOpen);
+        check(menusOk, `tend explore 18: remind me here is two labelled menus, "How often: Once" and "Until: No end", one line each at 390 and 320 px, opening the chips' choices in order, the default checked (${JSON.stringify(remindMenus)})`);
         // Every pin element as it stands, to see that the bell redraws it in place (reminder-bell audit 3, 4).
         await page.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
         await page.click('[data-testid=remind-save]');
@@ -391,6 +428,11 @@ async function checks(h) {
         const reminderSaid = (await page.locator('[data-testid=capture-meta]:has-text("Reminder set")').count()) > 0 && (await page.locator('[data-testid=viewer-pill]').count()) === 0;
         check(reminderSaid, 'UC10, UC12: a set reminder says so in the info line, with no pill');
         await shot(page, '03c-reminder-set');
+        await page.setViewportSize({ width: 320, height: 844 });
+        await page.waitForTimeout(400);
+        await shot(page, '03c-reminder-set-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(400);
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
         await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
         const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);

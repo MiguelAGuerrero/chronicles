@@ -30,7 +30,7 @@ import { MediaEditor, type MediaEditorHandle } from './edit/MediaEditor';
 import type { CapturePatch } from '../lib/captureBus';
 import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
-import { RemindEditor } from './RemindEditor';
+import { RemindEditor, type RemindEditorHandle } from './RemindEditor';
 import { NotePage, NoteReader, type NotePageHandle } from './notePage/NotePage';
 import { noteHead, type NoteHead } from '../lib/notePage/head';
 import { UndoToast } from './UndoToast';
@@ -449,6 +449,8 @@ export function CaptureViewer(props: {
   const editor = useRef<MediaEditorHandle>(null);
   // A note being written or edited closes its @ picker first, then itself (tend chronicle 1).
   const noteEditor = useRef<NotePageHandle>(null);
+  // Back and Escape close an open menu of the reminder editor before the editor (tend explore 18).
+  const remindEditor = useRef<RemindEditorHandle>(null);
   const replyNote = useRef<NotePageHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
@@ -692,7 +694,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => setReminding(null) : openedStack.length ? back : close}
+      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => remindEditor.current?.requestClose() : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
@@ -939,6 +941,7 @@ export function CaptureViewer(props: {
         )}
         {reminding && (
           <RemindEditor
+            ref={remindEditor}
             key={reminding.id}
             current={recalls.get(reminding.id) ?? null}
             onClose={() => setReminding(null)}

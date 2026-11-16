@@ -94,6 +94,7 @@ async function checks(h) {
     // Flagged again here, mid-walk, every visit: it waits for the next walk, not two seconds (audit).
     await page.click('[data-testid=viewer-more]');
     await page.click('[data-testid=viewer-remind]');
+    await page.click('[data-testid=remind-often]');
     await page.click('[data-testid=remind-visit]');
     await page.click('[data-testid=remind-save]');
     await page.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
