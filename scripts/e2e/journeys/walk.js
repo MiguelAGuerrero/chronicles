@@ -444,6 +444,18 @@ async function checks(h) {
         await page.setViewportSize({ width: 320, height: 844 });
         await page.waitForTimeout(400);
         await shot(page, '03c-reminder-set-320');
+        // tend explore audit 21 (the review's U2): Add to this moment's row has its own space above the note's page,
+        // never over its title (ui-patterns T7: a control may not float over content).
+        const addOverTitle = await page.evaluate(() => {
+          const shown = (el) => el && el.getBoundingClientRect().height > 0 && getComputedStyle(el).visibility !== 'hidden';
+          const row = [...document.querySelectorAll('[data-testid=viewer-add]')].find(shown);
+          const reader = [...document.querySelectorAll('[data-testid=note-reader]')].find(shown);
+          if (!row || !reader) return { row: !!row, reader: !!reader };
+          const a = row.getBoundingClientRect();
+          const b = reader.getBoundingClientRect();
+          return { row: true, reader: true, rowBottom: Math.round(a.bottom), pageTop: Math.round(b.top), clear: a.bottom <= b.top + 0.5 };
+        });
+        check(addOverTitle.clear === true, `tend explore audit 21: at 320 px the Add to this moment row sits above the note's page, not over its title (${JSON.stringify(addOverTitle)})`);
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(400);
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).

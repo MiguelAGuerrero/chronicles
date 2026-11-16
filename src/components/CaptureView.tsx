@@ -73,6 +73,8 @@ function touchPoint(e: { pageX?: number; pageY?: number; touches?: ArrayLike<{ p
 const timeOf = (c: Faced) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 /** The viewer's top bar (Close, More) over a note's page: 48 pt buttons and their margins. */
 const VIEWER_TOP = 64;
+/** Add to this moment's row under the top bar: 4 above its 48 pt buttons, 8 below; a note's page starts under it (tend explore audit 21). */
+const ADD_ROW_H = 60;
 
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
@@ -242,6 +244,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   responses?: { text: string; onPress: () => void } | null;
   /** A note is read as its page (NP5): its head, its drawing to its last line; a tap on the words asks to edit. */
   note?: { head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void; gone?: (id: string) => boolean };
+  /** Add to this moment's row shows under the top bar: a note's page starts below it, never under it (T7; tend explore audit 21). */
+  addRow?: boolean;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -349,7 +353,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 
   if (capture.kind === 'text' && props.note) {
     return (
-      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
+      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP + (props.addRow ? ADD_ROW_H : 0), paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
         {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
         <View testID="capture-card" style={styles.pageArea}>
         <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} pageAt={{ t: capture.t, walkId: capture.walk_id ?? null }} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
@@ -745,6 +749,7 @@ export function CaptureViewer(props: {
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
             onLens={props.onLens ? (id) => { close(); props.onLens!(id); } : undefined}
+            addRow={openForAdd === current.id}
             note={
               current.kind === 'text'
                 ? {
@@ -773,7 +778,7 @@ export function CaptureViewer(props: {
         )}
         {current && openForAdd === current.id && !editing && !noting && !reminding && !adding && (
           // Add to this moment, only while its pill is open (MS12): back to the walk screen, which adds to it.
-          <View style={[styles.addRow, { top: insets.top + 68 }]} testID="viewer-add">
+          <View style={[styles.addRow, { top: insets.top + VIEWER_TOP + 4 }]} testID="viewer-add">
             {([['Add a photo to this moment', 'camera', 'photo'], ['Add a voice memo to this moment', 'mic', 'voice'], ['Add a note to this moment', 'create', 'text']] as const).map(([label, icon, kind]) => (
               <Pressable
                 key={kind}
