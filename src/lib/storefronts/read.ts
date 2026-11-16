@@ -106,3 +106,13 @@ export function pressTarget(i: { control: boolean; capturePin: boolean; mark: bo
 
 /** SF12: the map's layers from the bottom up; the storefronts sit above the base map and under everything the walker meets. */
 export const storefrontOrder = (): string[] => ['base', 'busy-lines', 'storefronts', 'trace', 'route', 'busy-names', 'mark-pins', 'capture-pins', 'dot'];
+
+/**
+ * SF14: what the map does with a tap that no pin, mark or control took: open a card, zoom a merged mark apart, close an open card
+ * and do nothing else, or hand the tap on as the screen had it before.
+ */
+export function pressAction(i: { cardOpen: boolean; target: PressTarget }): 'card' | 'zoom' | 'close' | 'press' {
+  if (i.target === 'card') return 'card';
+  if (i.cardOpen) return 'close';
+  return i.target === 'zoom' ? 'zoom' : 'press';
+}

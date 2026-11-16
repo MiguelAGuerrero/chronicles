@@ -12,6 +12,7 @@ import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
+import { nearest, pressAction, pressTarget } from '../../lib/storefronts/read';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
@@ -31,7 +32,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, storefrontsGeoJSON, storefrontLayers, storefrontSelectedGeoJSON, storefrontSelectedLayers, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -163,6 +164,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const alternates = useMemo(() => alternatesGeoJSON(props.alternates), [props.alternates]);
   const routeGrades = useMemo(() => routeGradesGeoJSON(props.routeGrades), [props.routeGrades]);
   const foundPins = useMemo(() => pinsGeoJSON(props.foundPins), [props.foundPins]);
+  const storefronts = useMemo(() => storefrontsGeoJSON(props.storefronts), [props.storefronts]);
+  const storefrontSelected = useMemo(() => storefrontSelectedGeoJSON(props.storefrontSelected), [props.storefrontSelected]);
   // SS3: the lines and pockets are made again only when they change, never because the names near the selected area did.
   const landingGraded = props.landing?.graded;
   const landingPockets = props.landing?.pockets;
@@ -393,7 +396,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         logo={false}
         onPress={(e) => {
           const at = e.nativeEvent.lngLat;
-          props.onPress?.(at, pressRadiusM(view?.zoom ?? 16, at[1]));
+          const radius = pressRadiusM(view?.zoom ?? 16, at[1]);
+          // SF14: of the taps no pin, mark or control took, a single storefront opens its card, a merged one zooms apart, an open
+          // card only closes, and anything else is the screen's own tap as before (the same rule as the web map).
+          const hit = nearest(props.storefronts ?? [], at, radius);
+          const action = pressAction({ cardOpen: !!props.storefrontCardOpen, target: pressTarget({ control: false, capturePin: false, mark: false, storefront: hit }) });
+          if (action === 'card') props.onStorefrontPress?.(hit);
+          else if (action === 'close') props.onStorefrontPress?.(null);
+          else if (action === 'zoom' && hit) cameraRef.current?.easeTo({ center: hit.at, zoom: Math.min((view?.zoom ?? 16) + 2, 20), duration: props.animate === false || reduced ? 0 : MOTION.ease });
+          else props.onPress?.(at, radius);
         }}
         onLongPress={(e) => {
           swiper.held();
@@ -497,6 +508,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="walked" data={walked}>
           <Layer id="walked" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />
+        </GeoJSONSource>
+        {/* Storefronts (SF10-SF12): above the walked streets, under the route, the trace, the pins and the dot; circles only. */}
+        <GeoJSONSource id="storefronts" data={storefronts}>
+          {storefrontLayers().map((l) => <Layer key={l.id} id={l.id} type="circle" paint={l.paint as never} />)}
+        </GeoJSONSource>
+        <GeoJSONSource id="storefront-selected" data={storefrontSelected}>
+          {storefrontSelectedLayers().map((l) => <Layer key={l.id} id={l.id} type="circle" paint={l.paint as never} />)}
         </GeoJSONSource>
         {/* A preview's other routes, faint, under the one highlighted (SR2). */}
         <GeoJSONSource id="alternates" data={alternates}>

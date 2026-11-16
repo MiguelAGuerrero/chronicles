@@ -32,3 +32,31 @@ test('SF10: no mark\'s size, colour or opacity depends on a feature property: ev
   const { storefrontLayers } = await types();
   for (const l of storefrontLayers!()) for (const v of Object.values(l.paint ?? {})) assert.ok(!JSON.stringify(v).includes('"get"'), `${JSON.stringify(v)} varies with a property`);
 });
+
+// The UI review (decision 0145, Nov 16): regression tests written before each fix.
+const ui = () =>
+  import('../../../components/map/types') as Promise<{
+    STOREFRONT?: { color: string; radius: number };
+    storefrontLayers?: () => { id: string; type: string; paint: Record<string, unknown> }[];
+    storefrontSelectedLayers?: () => { id: string; type: string; source: string; paint: Record<string, unknown> }[];
+    storefrontSelectedGeoJSON?: (at: [number, number] | null | undefined) => { features: unknown[] };
+  }>;
+
+test('storefronts ui 1: a mark is a hollow ring, so its shape and not only its tone tells it from the walker\'s solid dot', async () => {
+  const { storefrontLayers, STOREFRONT } = await ui();
+  const l = storefrontLayers!()[0];
+  assert.equal(l.paint['circle-opacity'], 0, 'no fill');
+  assert.ok(Number(l.paint['circle-stroke-width']) >= 2, 'a stroke that reads on the map');
+  assert.equal(l.paint['circle-stroke-color'], STOREFRONT!.color);
+});
+
+test('storefronts ui 2: the shop whose card is open is drawn with a larger ring, and none when no card is open', async () => {
+  const { storefrontSelectedLayers, storefrontSelectedGeoJSON, STOREFRONT } = await ui();
+  assert.equal(typeof storefrontSelectedGeoJSON, 'function');
+  assert.equal(storefrontSelectedGeoJSON!(null).features.length, 0);
+  assert.equal(storefrontSelectedGeoJSON!([-75.19, 40.69]).features.length, 1);
+  const [l] = storefrontSelectedLayers!();
+  assert.equal(l.type, 'circle');
+  assert.ok(Number(l.paint['circle-radius']) > STOREFRONT!.radius, 'larger than a mark at rest, which keeps one size');
+  assert.ok(!JSON.stringify(l.paint).includes('"get"'));
+});

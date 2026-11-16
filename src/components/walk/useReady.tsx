@@ -7,6 +7,12 @@ import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleShee
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
 import { LayersControl } from '../LayersControl';
+import { StorefrontCard } from '../StorefrontCard';
+import { cardBox } from '../../lib/storefronts/card';
+import { STOREFRONTS_BASE } from '../../lib/storefronts';
+import type { Storefront } from '../../lib/storefronts/read';
+import { WALK_NEAR_M } from '../../lib/storefronts/types';
+import { useStorefronts } from '../../lib/storefronts/useStorefronts';
 import { MomentBar } from '../MomentBar';
 import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
@@ -68,7 +74,7 @@ export function useReady(props: {
   // The destination line and the zero distance follow the units setting (QL16).
   useUnits();
   const at = useStackLayout();
-  const { height: screenH } = useWindowDimensions();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const walkStart = useStartWalk();
   // A refusal of location carries its own tone, Locate's (T17) and Start's (T26): a quiet notice; a moment's failure is an error.
   // What the screen says to a screen reader without moving focus (tend map audit 12); `n` makes a repeat a change.
@@ -92,6 +98,9 @@ export function useReady(props: {
   const moments = useVisible(storedMoments);
   const [viewing, setViewing] = useState<Faced[] | null>(null);
   const [pinZoom, setPinZoom] = useState(() => (fix ? 16 : WORLD.zoom) >= MOMENT_PIN_ZOOM);
+  // Storefronts (SF1): the map's zoom, for the layer's near-zoom rule, and the one shop whose card is open.
+  const [mapZoom, setMapZoom] = useState<number | null>(null);
+  const [sfCard, setSfCard] = useState<Storefront | null>(null);
   const momentPins = useMemo(() => (pinZoom ? moments : NONE), [moments, pinZoom]);
 
   // Each time the screen comes to the front: the choices, the moments, the first-walk note; and one fix.
@@ -214,6 +223,8 @@ export function useReady(props: {
   const layers = useLayers();
   const wk = useWalkability(fix, !!layers.on.walkability);
   const busy = useBusyLayer(fix, !!layers.on.busy);
+  // SF12: around you only, within 800 m, a hard cut from you.
+  const sf = useStorefronts({ on: !!layers.on.storefronts && STOREFRONTS_BASE !== '', centre: fix, zoom: mapZoom, near: { at: fix, m: WALK_NEAR_M } });
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
     walkability: wk.draw,
@@ -229,7 +240,14 @@ export function useReady(props: {
     // Mid-memo, pins do nothing, so a memo is never cut short (moments audit).
     // Nor with the bar up: one Escape would close the viewer and the bar (audit 12).
     onPinPress: (cs: Faced[]) => !memoOn && !up && setViewing(cs),
-    onViewChange: (v: { zoom: number }) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM),
+    onViewChange: (v: { zoom: number }) => {
+      setPinZoom(v.zoom >= MOMENT_PIN_ZOOM);
+      setMapZoom(v.zoom);
+    },
+    storefronts: sf.marks,
+    storefrontCardOpen: !!sfCard,
+    storefrontSelected: sfCard && layers.on.storefronts ? sfCard.at : null,
+    onStorefrontPress: (m: { place?: Storefront } | null) => setSfCard(m?.place ?? null),
     walker: fix,
     // No scale bar over a blank world while no fix places the map (T17).
     hideScaleOnBlank: true,
@@ -294,7 +312,8 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      {sfCard && !!layers.on.storefronts ? <StorefrontCard place={sfCard} onClose={() => setSfCard(null)} box={cardBox({ width: screenW, height: screenH, topInset: at.insets.top + 152 })} /> : null}
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, storefronts: sf.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 
@@ -355,7 +374,8 @@ export function useReady(props: {
       />
     </>
   );
-  return { mapProps, overlay, bordersOn: !!layers.on.borders };
+  // The map's zoom is shared with the live walk, which reuses this map: it reports its view only when it changes, so one state serves both.
+  return { mapProps, overlay, bordersOn: !!layers.on.borders, mapZoom, setMapZoom };
 }
 
 const styles = StyleSheet.create({

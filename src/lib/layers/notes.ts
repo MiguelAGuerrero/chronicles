@@ -6,7 +6,7 @@ import type { WalkStatus } from '../walk/layer';
 export type StorefrontsStatus = 'ok' | 'empty' | 'uncovered' | 'failed' | 'reading' | 'far';
 
 const STOREFRONT_LINES: Record<StorefrontsStatus, string | null> = {
-  ok: 'Tap a mark for its name.',
+  ok: 'Shops from OpenStreetMap. Tap a mark for its name.',
   // A covered area with none is not a failure: it says nothing (SF7).
   empty: null,
   uncovered: 'Not covered here yet',

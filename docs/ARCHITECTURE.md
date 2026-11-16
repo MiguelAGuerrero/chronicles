@@ -284,6 +284,9 @@ Map layers (ML1-ML13)
   layers/shell.ts            createLayers: the state and the panel's open flag as a Store (meta `map_layers`); index.ts is the app's instance
   layers/busy.ts, useBusyLayer.ts  Busy streets as a layer: the remembered areas and the one read
   layers/useLayers.ts        the hook the maps call
+  storefronts/read.ts, types.ts, card.ts  the shops as data and a layer (SF1-SF18, decision 0182): a pack tile into places (type, name, position, chain flag), the marks a map draws (thin, no count), which mark a tap hit (nearest, pressTarget, pressAction), the card's words and place; the drawn list is presence's STOREFRONT_SHOPS
+  storefronts/shell.ts       createStorefronts: the storefront manifest daily, the region, the read's z12 tiles through net/tileReader, a state per read (ok, empty, uncovered, failed); writes only two meta keys, never the place cache; index.ts is the app's instance (EXPO_PUBLIC_STOREFRONTS_BASE)
+  storefronts/useStorefronts.ts  the hook the three maps call: reads only while the layer is on and zoomed in, near you on the walk maps, never stored
 Walkability (WK1-WK23, UF1-UF20)
   walk/form.ts               the rule and its one table of thresholds (judge)
   walk/cells.ts              cells on a fixed grid, judged from their 450 m neighbourhood through a spatial index

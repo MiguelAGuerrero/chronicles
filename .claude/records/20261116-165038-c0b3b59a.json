@@ -1,0 +1,79 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "--new",
+        "Storefronts (SF1-SF18, decision 0182)"
+      ],
+      "body": "- [ ] **Do:** on a phone with a storefront pack published, switch Storefronts on in the Layers panel on Explore, Navigate and during a walk, and zoom in on a town. **Expect:** small grey-ink circles of one size appear above the walked streets and under the route, the trace, the pins and your dot, with no text on them, and the panel's line says \"Tap a mark for its name.\" (SF1, SF10-SF12; the circle layer and its source on MapLibre React Native)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Storefronts"
+      ],
+      "body": "- [ ] **Do:** on a phone, tap a lone storefront mark, then tap an empty part of the map, then tap a merged mark. **Expect:** the first opens a card at the top of the map (clear of the capture stack, a close control of at least 44 pt), the second only closes it and starts nothing else, the third zooms in and opens no card (SF14, SF16; the press rule in the native map's `onPress`, which the pins and marks never reach)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Storefronts"
+      ],
+      "body": "- [ ] **Do:** on a phone during a walk, with Storefronts on, walk past shops for a few minutes. **Expect:** only shops within 800 m of you are drawn, the capture stack is never covered and starting a capture works with a card open, and the map stays smooth at walking pace (SF3, SF12, SF16; the layer over the live walk's map)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Storefronts"
+      ],
+      "body": "- [ ] **Do:** on a phone on cellular data, switch Storefronts on in a town the pack covers, then in one it does not. **Expect:** the covered town draws its shops after a short read (byte-range reads of the pack through `lib/net`), the other says \"Not covered here yet\" and nothing else, and with the network off it says \"Couldn't read the shops\" quietly, with no alert (SF6, SF7)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "--new",
+        "Storefronts (specs/storefronts, decision 0182)"
+      ],
+      "body": "- **Circuits**: planning, saving and revisiting a journey across several towns through the shops of a kind. The data and the layer here are its substrate. Open for the owner before it: may a shop on a circuit read \"passed\" or \"walked\", and may a moment say \"just after the bookshop\"? Neither is decided (decision 0182; SF18 forbids both for now).\n",
+      "intro": "Left out of Storefronts on purpose (the owner's calls, Nov 14; the spec's \"Not in this slice\"). Circuits are the next slice and read this data.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Storefronts"
+      ],
+      "body": "- **Storefronts**: per-type switches and a chain filter in the panel (the panel holds switches and status lines only today); labels at high zoom; opening hours; a Walk here or Open in Maps action on the card; errand shops (supermarket, hairdresser and the rest) as a drawable set, which the pack already carries; storefronts outside the first pack's US region; a glyph per type on the marks (one colour and size today).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Storefronts"
+      ],
+      "body": "- **Storefronts**: the pack itself. The adapter (OpenStreetMap `shop=*`, a `chain` flag from brand and operator tags, regional z12 packs, the manifest) belongs in chronicles-data, which this session could not reach; the app's contract is pinned in `src/lib/__tests__/storefronts/contract/` and moves there. Until a pack is published and `EXPO_PUBLIC_STOREFRONTS_BASE` is set in the production build, the Storefronts row is not offered.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Storefronts"
+      ],
+      "body": "- **Storefronts** (cold find, Nov 16): the Layers button is a glyph with no word, and nothing on the map says the layers include shops; a first-time walker finds the button but cannot tell what it offers. Shared by every layer, so not changed here; the owner may want a word, a first-use hint or a counted-free badge for a newly offered layer.\n"
+    }
+  ]
+}

@@ -27,3 +27,8 @@ test('SF13: no status line of the layer holds a number, a count or a percentage'
   assert.ok(note('uncovered'), 'the layer has status lines');
   for (const s of ['uncovered', 'failed', 'far', 'reading', 'empty', 'ok'] as const) assert.ok(!/\d|%/.test(note(s) ?? ''), `${s}: ${note(s)}`);
 });
+
+test('storefronts ui 4: the panel\'s line says what the marks are (shops, from OpenStreetMap) and how to use one', () => {
+  assert.match(note('ok') ?? '', /Shops from OpenStreetMap/);
+  assert.match(note('ok') ?? '', /Tap a mark/);
+});

@@ -28,16 +28,25 @@ const TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'te
 const PLACES_PATH = '/places-e2e/';
 const places = { manifest: JSON.stringify({ schema: 1, regions: [] }), files: {}, asked: [] };
 
-function servePlaces(q, r, pathname) {
-  const name = pathname.slice(PLACES_PATH.length);
-  places.asked.push({ name, range: q.headers.range ?? null, cookie: q.headers.cookie ?? null, referer: q.headers.referer ?? null });
+/**
+ * Storefronts (SF2, SF6): the storefront pack, served the same way at `/storefronts-e2e/` (`export:web` sets
+ * EXPO_PUBLIC_STOREFRONTS_BASE). An empty manifest unless a journey sets one; every request is logged, so a journey can say nothing
+ * was asked while the layer is off.
+ */
+const STOREFRONTS_PATH = '/storefronts-e2e/';
+const storefronts = { manifest: JSON.stringify({ schema: 1, regions: [] }), files: {}, asked: [] };
+
+/** One fixture pack: its manifest and files by byte range, logging each request with the headers PW1 forbids. */
+function servePack(pack, prefix, q, r, pathname) {
+  const name = pathname.slice(prefix.length);
+  pack.asked.push({ name, range: q.headers.range ?? null, cookie: q.headers.cookie ?? null, referer: q.headers.referer ?? null });
   const cors = { 'access-control-allow-origin': '*' };
   if (name === 'manifest.json') {
     r.writeHead(200, { ...cors, 'content-type': 'application/json' });
-    r.end(places.manifest);
+    r.end(pack.manifest);
     return;
   }
-  const file = places.files[name];
+  const file = pack.files[name];
   if (!file) {
     r.writeHead(404, cors);
     r.end();
@@ -55,7 +64,8 @@ function serve() {
   // served as JavaScript for the map worker. Paths outside BASE are a 404.
   const server = http.createServer((q, r) => {
     const pathname = decodeURIComponent(q.url.split('?')[0]);
-    if (pathname.startsWith(PLACES_PATH)) return servePlaces(q, r, pathname);
+    if (pathname.startsWith(PLACES_PATH)) return servePack(places, PLACES_PATH, q, r, pathname);
+    if (pathname.startsWith(STOREFRONTS_PATH)) return servePack(storefronts, STOREFRONTS_PATH, q, r, pathname);
     if (!pathname.startsWith(`${BASE}/`)) {
       r.writeHead(404);
       r.end();
@@ -785,7 +795,7 @@ async function createHarness() {
   });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, storefronts, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
 

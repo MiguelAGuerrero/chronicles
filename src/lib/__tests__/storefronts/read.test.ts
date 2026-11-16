@@ -102,3 +102,13 @@ test('SF18: nothing a read returns can say a shop was visited, passed, found or 
   const keys = [...Object.keys(p), ...thin([p], 18).flatMap((m) => Object.keys(m))];
   assert.ok(!keys.some((k) => /visit|pass|found|done|seen|count|rank/i.test(k)), keys.join());
 });
+
+test('SF14: with the card open a tap anywhere else only closes it; a tap on another single mark swaps the card; nothing falls through', async () => {
+  const { pressAction } = (await import('../../storefronts/read' as string)) as { pressAction: (i: { cardOpen: boolean; target: Target }) => 'card' | 'zoom' | 'close' | 'press' };
+  assert.equal(pressAction({ cardOpen: false, target: 'none' }), 'press', 'no card: the map\'s own tap goes on as before');
+  assert.equal(pressAction({ cardOpen: false, target: 'card' }), 'card');
+  assert.equal(pressAction({ cardOpen: false, target: 'zoom' }), 'zoom');
+  assert.equal(pressAction({ cardOpen: true, target: 'none' }), 'close', 'a tap that closes the card does nothing else');
+  assert.equal(pressAction({ cardOpen: true, target: 'zoom' }), 'close');
+  assert.equal(pressAction({ cardOpen: true, target: 'card' }), 'card');
+});

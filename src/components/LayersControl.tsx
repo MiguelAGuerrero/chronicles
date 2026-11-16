@@ -19,7 +19,7 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
-  storefront: { color: STOREFRONT.color, opacity: STOREFRONT.opacity },
+  storefront: { color: STOREFRONT.color, opacity: STOREFRONT.swatchFill, outline: true },
 };
 
 /** SF2: the layers this build offers (Storefronts only where a pack's address is set). */

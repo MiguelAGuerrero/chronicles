@@ -92,3 +92,17 @@ The owner's task, in their words: "a separate layer on the map that addresses th
 ## Not in this slice (deferred, recorded in `docs/DEFERRED.md`)
 
 Circuits (planning, saving and revisiting); per-type switches and a chain filter in the panel; labels at high zoom; opening hours; a Walk here or Open in Maps action on the card; errand shops as a drawable set; storefronts outside the US region the first pack covers.
+
+## Record (Nov 16, 2026)
+
+**Built and tested on web:** SF1-SF18, each first a todo (`50e009d`, 18 of 18 by `check:test-first`), then real with its code. Unit tests in `src/lib/__tests__/storefronts/` (47) and the `storefronts` journey, which runs the three hosts: Explore's panel and drawing, Navigate ready (marks, the card, a tap elsewhere closing it, a merged mark zooming apart, a reload keeping the setting) and the live walk (marks within 800 m, the card clear of the capture stack), over a fixture pack the harness serves at `/storefronts-e2e/`.
+
+**Calls made while building (the owner to overrule):**
+- The shop list lives in presence (`STOREFRONT_SHOPS`), because the presence guard forbids spelling a source's tags anywhere else; the plan had it in `storefronts/`. The kind words are derived, not a table.
+- `parseManifest` takes a file prefix, so the storefront pack reuses the places manifest reader.
+- The panel's one line is the "meaning" on Explore and Navigate (the panel shows status lines only), and reads "Shops from OpenStreetMap. Tap a mark for its name." The legend row shows in the two drawers.
+- The shared map zoom for the live walk lives in `useReady` (the live walk reuses the ready map, which reports its view only when it changes).
+
+**UI review (decision 0145).** Cold find: both pictures place the first tap on the Layers button; it is an icon with no word, so what it offers cannot be told from the picture (a shared control, deferred). Review: accepted and fixed, each behind a regression test named `storefronts ui N`: **ui 1** (marks a hollow ring, so shape and not only tone tells them from the walker's solid dot), **ui 2** (the shop whose card is open is ringed), **ui 4** (the line says what the marks are), **ui 7** (the card is a polite live region, so it announces itself; the close control is named "Close"). Rejected: U3 the bag icon beside Busy streets' storefront icon (opinion; the cold find did not fail on it, the row's word disambiguates; revisit if a first-time walker confuses them), U5 ghost text behind the panel (existing panel behaviour), U6 the card's width (opinion; the placement is tested, SF16). Not done: pictures of the "Zoom in", "Not covered here yet" and "Couldn't read the shops" lines and of merged marks, which the harness cannot yet frame (the lines are unit-tested for words and digits).
+
+**Deferred:** see `docs/DEFERRED.md`, "Storefronts". **Native has never run on a device:** the circle and selected-ring layers, the press rule, the walk screen's layer and the pack's byte-range reads are in `docs/NATIVE_UNVERIFIED.md`, "Storefronts".

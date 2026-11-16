@@ -34,6 +34,7 @@ const GAP = 12;
 
 /**
  * SF16: where the card sits: a fixed region of the map's top, under the status bar and clear of the capture stack, which
- * lives in the bottom half of the screen. Never at the mark, so it cannot reach the stack.
+ * lives in the bottom half of the screen. Never at the mark, so it cannot reach the stack. `topInset` is where the screen's free
+ * top begins: the status bar, and on the walk screens the navigation card above the map.
  */
-export const cardBox = (v: { width: number; height: number; topInset: number }): Box => ({ x: GUTTER, y: v.topInset + GAP, w: v.width - 2 * GUTTER, h: Math.min(CARD_H, v.height * 0.4 - v.topInset - GAP) });
+export const cardBox = (v: { width: number; height: number; topInset: number }): Box => ({ x: GUTTER, y: v.topInset + GAP, w: v.width - 2 * GUTTER, h: CARD_H });
