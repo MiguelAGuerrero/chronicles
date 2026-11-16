@@ -231,8 +231,9 @@ recording, and a recording bar brings a minimized walk back.
   A photo or video mentioned on a page (the camera's, or one picked with Mention) is drawn as the photo itself, on its
   own line at the page's width, in the page and in the viewer's reader (decision 0182): a video as its still under the
   play mark; a line under it says where it is from only when it is from another day or walk. While writing, a tap on
-  a picture offers **Edit**, which opens the media editor over the page with every tool it has (rotate, crop, filter,
-  draw, text, and trim for a video); the edit is the photo's own, everywhere. The note still stores only the mention.
+  a picture outlines it and offers **Edit photo**, which opens the media editor over the page with every tool it has
+  (rotate, crop, filter, draw, text, and trim for a video; the edit is the photo's own, everywhere), and **Remove from
+  page**, which takes out the mention only, says so with Undo, and leaves the photo in the Chronicle. The note still stores only the mention.
 - When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
   never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why

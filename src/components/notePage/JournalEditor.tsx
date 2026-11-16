@@ -9,6 +9,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor, type ReactNodeViewProps } from '@tiptap/react';
 import { CharacterCount, Placeholder } from '@tiptap/extensions';
+import { closeHistory } from '@tiptap/pm/history';
 import { IS_DOM, useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from 'expo/dom';
 import { NOTE_CSP } from '../../lib/notePage/csp';
 import { noteExtensions, toBody, toDoc, type BodyFormat } from '../../lib/notePage/schema';
@@ -24,6 +25,10 @@ export interface JournalHandle extends DOMImperativeFactory {
   focus: (...args: JSONValue[]) => void;
   /** Lets go of the caret, so the keyboard goes down while another layer is up (note pictures NI14). */
   blur: (...args: JSONValue[]) => void;
+  /** Takes a picture's mention out of the page, and the space the camera wrote after it (note pictures NI19). */
+  removeMention: (...args: JSONValue[]) => void;
+  /** The page's own undo: puts a removed picture back where it was (NI19). */
+  undo: (...args: JSONValue[]) => void;
 }
 type JSONValue = Parameters<DOMImperativeFactory[string]>[number];
 
@@ -199,6 +204,33 @@ export default function JournalEditor(props: Props) {
     },
     blur: () => {
       editor?.commands.blur();
+    },
+    removeMention: (...args) => {
+      const id = String(args[0]);
+      if (!editor) return;
+      let at: { from: number; to: number } | null = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (at || node.type.name !== 'mention' || String(node.attrs.id) !== id) return;
+        const end = pos + node.nodeSize;
+        const next = editor.state.doc.textBetween(end, Math.min(end + 1, editor.state.doc.content.size), '');
+        at = { from: pos, to: next === ' ' ? end + 1 : end };
+      });
+      // Its own step of the page's history, never merged with the photo just put in (they are within half a second of
+      // each other when one is taken and taken out at once), so Undo puts back only what was removed (NI19).
+      const range = at as { from: number; to: number } | null;
+      if (range) {
+        editor
+          .chain()
+          .command(({ tr }) => {
+            closeHistory(tr);
+            tr.delete(range.from, range.to);
+            return true;
+          })
+          .run();
+      }
+    },
+    undo: () => {
+      editor?.chain().focus().undo().run();
     },
   }), [editor]);
 

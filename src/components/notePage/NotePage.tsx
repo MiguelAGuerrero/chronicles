@@ -198,6 +198,9 @@ export const NotePage = forwardRef<NotePageHandle, {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<Faced | null>(null);
   const mediaEditor = useRef<MediaEditorHandle>(null);
+  // A picture just taken out (NI19): said with Undo until it is used, another picture is tapped or something is typed.
+  const [removed, setRemoved] = useState(false);
+  const removing = useRef(false);
   const [now] = useState(() => Date.now());
   // The room line counts what the editor counts, so it says full when the editor takes no more (note-pages audit 8).
   const room = roomOfCount(count);
@@ -227,6 +230,14 @@ export const NotePage = forwardRef<NotePageHandle, {
     editor.current?.blur();
     setEditing(v.capture);
   };
+  const removePicture = () => {
+    const id = menuFor;
+    setMenuFor(null);
+    if (!id) return;
+    removing.current = true;
+    editor.current?.removeMention(id);
+    setRemoved(true);
+  };
   const camera = props.onCamera;
   const bottom = Platform.OS === 'web' ? keyboard : 0;
   return (
@@ -254,8 +265,14 @@ export const NotePage = forwardRef<NotePageHandle, {
           palette={PALETTE}
           mentions={cards}
           selectedId={menuFor}
-          onPictureTap={(id) => setMenuFor((m) => (props.onEditMedia && id && id !== m ? id : null))}
+          onPictureTap={(id) => {
+            if (id) setRemoved(false);
+            setMenuFor((m) => (props.onEditMedia && id && id !== m ? id : null));
+          }}
           onChange={(body, text, n) => {
+            // The removal's own change keeps its line; whatever is typed after it takes the line away.
+            if (removing.current) removing.current = false;
+            else setRemoved(false);
             setStored(body);
             setShown(text);
             setCount(n);
@@ -286,6 +303,18 @@ export const NotePage = forwardRef<NotePageHandle, {
           <Pressable testID="picture-edit" accessibilityRole="menuitem" accessibilityLabel={menuVideo ? 'Edit video' : 'Edit photo'} onPress={startEdit} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
             <Icon name="create" size={22} color={theme.ink} />
             <Text style={styles.glyph}>{menuVideo ? 'Edit video' : 'Edit photo'}</Text>
+          </Pressable>
+          <Pressable testID="picture-remove" accessibilityRole="menuitem" accessibilityLabel="Remove from page" onPress={removePicture} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
+            <Icon name="trash-outline" size={22} color={theme.danger} />
+            <Text style={[styles.glyph, styles.danger]}>Remove from page</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {removed && !menuFor ? (
+        <View style={[styles.panel, styles.removedRow]} testID="picture-removed" accessibilityLiveRegion="polite">
+          <Text style={styles.removedText}>Taken out of the page</Text>
+          <Pressable testID="picture-undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={() => { setRemoved(false); editor.current?.undo(); }} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
+            <Text style={[styles.glyph, styles.done]}>Undo</Text>
           </Pressable>
         </View>
       ) : null}
@@ -405,6 +434,9 @@ const styles = StyleSheet.create({
   short: { flex: 1, textAlign: 'center', fontSize: 15, color: theme.muted },
   failed: { color: theme.ink, fontWeight: '600' },
   body: { flex: 1, position: 'relative' },
+  removedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 18 },
+  removedText: { fontSize: 15, color: theme.muted },
+  danger: { color: theme.danger },
   menuRow: { minHeight: 48, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },
   panel: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line, backgroundColor: theme.bg, paddingVertical: 6, gap: 4 },
   panelRow: { paddingHorizontal: 8, gap: 6, alignItems: 'center' },

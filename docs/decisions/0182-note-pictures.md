@@ -17,9 +17,11 @@ The owner's calls, Nov 16:
   document; no drag, no resize, no caption of the page's own.
 - **No caption under a picture from the page's own walk.** One from another day or walk gets one muted line beneath
   it, the card's words (the steward's S2; the owner chose "a line only when it differs").
-- **A tap on a picture while writing offers a menu with one entry, Edit**, which opens the existing media editor over
-  the page with every tool it has (rotate, crop, filter, draw, text, and trim for a video). Remove and Open the moment
-  were offered and not chosen; a picture is removed from the page with the keyboard.
+- **A tap on a picture while writing offers a menu: Edit, then Remove from page.** Edit opens the existing media editor
+  over the page with every tool it has (rotate, crop, filter, draw, text, and trim for a video). The menu first held
+  Edit alone (Open the moment was offered and not chosen); the UI review found no visible way to take a picture out,
+  and the owner, the same day, asked for Remove from page: it takes out the mention only (the photo stays its own
+  moment), acts at once and says "Taken out of the page" with Undo (NI19).
 - **An edit is the moment's own** (`Capture.edit`, 0090): editing from the page changes the photo everywhere.
 
 ## Consequences

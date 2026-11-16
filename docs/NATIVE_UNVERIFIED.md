@@ -586,6 +586,7 @@ The page's editor is TipTap in an Expo DOM component: on a phone, a WebView (`@e
 - [ ] **Do:** with the caret just after a picture, press Backspace twice, then undo. **Expect:** the first takes the space, the second takes the picture, and undo brings it back; the caret never lands inside it (NI4).
 - [ ] **Do:** tap a picture on a phone, then Edit, then turn it and tap Done; then tap Back with the keyboard up. **Expect:** a one-row menu, the media editor over the page with no second Modal and the keyboard down, the picture redrawn turned on Done, and Back closing the editor, then the menu, then the page (NI13, NI14).
 - [ ] **Do:** edit a photo with a filter and a pen line, then open a page that mentions it, in the page and the reader. **Expect:** the picture carries the crop, rotation, filter and lines (no caption), or the unedited picture if the baker cannot run, never a broken one; a video shows its still under the play mark (NI3, NI15).
+- [ ] **Do:** on a phone, tap a picture, then Remove from page, then Undo. **Expect:** the picture goes with the space after it, the photo stays in the Chronicle, "Taken out of the page" and Undo show above the keyboard bar, and Undo puts the picture back where it was (NI19).
 
 
 ## Free look (FL1-FL21, decision 0150)
