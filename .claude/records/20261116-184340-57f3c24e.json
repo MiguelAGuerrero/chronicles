@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Small places (OpenStreetMap locates"
+      ],
+      "body": "| Small places (OpenStreetMap locates a pinned table of small places, the kind Pikmin Bloom's postcards reach: time capsules and little libraries on, plaques and markers, small memorials, milestones and old stones, wayside shrines off by default, each a switch under its kind; unnamed ones named by type; the bars weigh them by the size of the stop only when switched on; never a park's signal, never a route's lean, never drowning the lows; SP1-SP22, decision 0183; the data side is chronicles-data's SL1-SL11) | built 2026-11-16 and deployed to main 2026-11-16 (`be678fc6`, Pages run 287; the owner's task done on the live build), test-first (22 of 22): unit tests, typecheck, lint, docs and vision checks; e2e `small-places` (new), `marks`, `curiosities` and the journeys covering its files; cold find and UI review triaged (`small-places ui 1-3`); chronicles-data's branch not merged; native unverified | `claude/epic-darwin-m94owv` (both repos) | `specs/small-places/spec.md` (repo first) | no |\n",
+      "target": "sha256:a5c59d78a7f0a2181eda69a9a28bd39b3e5f1f4aa3c228e965ab639435e4a9ba"
+    }
+  ]
+}
