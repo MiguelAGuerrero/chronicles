@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import type { Listed } from '../../lib/atlas/atlas';
-import { liveReport, offsetOf, settledIndex, settleStep } from '../../lib/atlas/carousel';
+import { HOLD_NONE, holdStep, isHeld, liveReport, offsetOf, settledIndex, settleStep, type Hold } from '../../lib/atlas/carousel';
 
 /** A card's width: most of a phone's width so the next one peeks, never wider than this. */
 const CARD_MAX = 320;
@@ -9,6 +9,8 @@ const CARD_SHARE = 0.78;
 const GAP = 12;
 /** The scroll is "settled" once it has been still this long. */
 const SETTLE_MS = 120;
+/** After a release the settle waits this long for a glide to begin (its first event can come late), and asks again while held. */
+const RELEASE_MS = 300;
 
 /**
  * The row of area cards (EC2-EC4, EC13; decision 0124): one horizontal row, one card centred at a time. A scroll that settles
@@ -38,6 +40,8 @@ export function AtlasCarousel(props: {
   // The card (by key, so a changed list never misleads it) the reader's own scroll is on: while it is set, the selection follows
   // the scroll and the effect never scrolls the row (fix carousel-live-select audits 1, 3). The settle clears it.
   const lastKey = useRef<string | null>(null);
+  // The reader's finger is down, or a release is still gliding: the settle waits (fix carousel-snap-back).
+  const hold = useRef<Hold>(HOLD_NONE);
   const index = useMemo(() => items.findIndex((l) => l.area.key === selected), [items, selected]);
 
   // What the settle needs, as the screen last drew it: a timer's callback must never read an older row.
@@ -61,12 +65,20 @@ export function AtlasCarousel(props: {
     scrollTo(index);
   }, [index, step, scrollTo]);
 
+  // The settle that asks again calls itself through this (a callback cannot name itself while it is being made).
+  const again = useRef<() => void>(() => {});
   const settle = useCallback(() => {
-    lastKey.current = null;
     const { items: list, selected: now, step: s, onSettle } = latest.current;
     const i = settledIndex(offset.current, s, list.length);
     const at = list.findIndex((l) => l.area.key === now);
-    const step = settleStep({ index: i, intended: intended.current, selected: at });
+    const step = settleStep({ index: i, intended: intended.current, selected: at, held: isHeld(hold.current) });
+    // A pause under the finger or mid-glide is not a stop: leave the scroll and the live selection as they are, and ask again.
+    if (step.wait) {
+      hold.current = holdStep(hold.current, 'waited');
+      timer.current = setTimeout(() => again.current(), RELEASE_MS);
+      return;
+    }
+    lastKey.current = null;
     // The row's own scroll ended where it was sent: nothing to report; one that stalled short of it aims on (audit 2).
     if (intended.current != null) {
       if (step.scrollTo != null) scrollTo(step.scrollTo);
@@ -78,9 +90,13 @@ export function AtlasCarousel(props: {
     const key = step.report != null ? list[step.report]?.area.key : null;
     if (key) onSettle(key);
   }, [scrollTo]);
+  useEffect(() => {
+    again.current = settle;
+  }, [settle]);
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     offset.current = e.nativeEvent.contentOffset.x;
+    hold.current = holdStep(hold.current, 'scroll');
     // The card nearest the middle is selected as it passes, so the map previews it while the reader is still scrolling.
     const { items: list, selected: now, step: s, onSettle } = latest.current;
     const i = settledIndex(offset.current, s, list.length);
@@ -93,6 +109,17 @@ export function AtlasCarousel(props: {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(settle, SETTLE_MS);
   }, [settle]);
+  // A reader's own touch takes the scroll back from the row's (explore-carousel audit 2) and holds the settle until it lets go.
+  const touchDown = useCallback(() => {
+    intended.current = null;
+    hold.current = holdStep(hold.current, 'down');
+  }, []);
+  // A release that glides on keeps the settle waiting until it ends; one that stops at once settles after a short grace.
+  const touchUp = useCallback(() => {
+    hold.current = holdStep(hold.current, 'up');
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(settle, RELEASE_MS);
+  }, [settle]);
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
@@ -104,8 +131,19 @@ export function AtlasCarousel(props: {
       testID="atlas-carousel"
       accessibilityLabel={props.label}
       // A reader's own drag takes the scroll back from the row's (explore-carousel audit 2).
-      onScrollBeginDrag={() => {
-        intended.current = null;
+      onScrollBeginDrag={touchDown}
+      onScrollEndDrag={touchUp}
+      // Touch events are what the web build fires; a phone sends both.
+      onTouchStart={touchDown}
+      onTouchEnd={touchUp}
+      onTouchCancel={touchUp}
+      onMomentumScrollBegin={() => {
+        hold.current = holdStep(hold.current, 'glide');
+      }}
+      onMomentumScrollEnd={() => {
+        hold.current = holdStep(hold.current, 'rest');
+        if (timer.current) clearTimeout(timer.current);
+        settle();
       }}
       showsHorizontalScrollIndicator={false}
       snapToInterval={step}

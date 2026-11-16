@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { liveReport, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, FINGER_MAX_WAITS, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -144,11 +144,11 @@ test('EC7: with no view or no selected area there are no names, and no view stay
 
 test('explore-carousel audit 2: a settle mid-way through the row\'s own scroll never selects a card, it aims again', () => {
   // The row is scrolling itself to card 3 (selected) and the page stalled: the last offset read is card 1.
-  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3 }, 'mid-way: scroll on to the target, report nothing');
-  assert.deepEqual(settleStep({ index: 3, intended: 3, selected: 3 }), { report: null, scrollTo: null }, 'arrived: nothing to do');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3, wait: false }, 'mid-way: scroll on to the target, report nothing');
+  assert.deepEqual(settleStep({ index: 3, intended: 3, selected: 3 }), { report: null, scrollTo: null, wait: false }, 'arrived: nothing to do');
   // The reader's own scroll (nothing intended): a different card is reported, the same one is not.
-  assert.deepEqual(settleStep({ index: 2, intended: null, selected: 3 }), { report: 2, scrollTo: null });
-  assert.deepEqual(settleStep({ index: 3, intended: null, selected: 3 }), { report: null, scrollTo: null });
+  assert.deepEqual(settleStep({ index: 2, intended: null, selected: 3 }), { report: 2, scrollTo: null, wait: false });
+  assert.deepEqual(settleStep({ index: 3, intended: null, selected: 3 }), { report: null, scrollTo: null, wait: false });
 });
 
 test('explore-carousel audit 3: the names are on or off by one boolean, so the map is not sent a new Busy view on every camera move', () => {
@@ -197,4 +197,56 @@ test('fix carousel-live-select: a card is selected as the reader scrolls past it
   assert.equal(liveReport({ index: 1, intended: null, selected: 2, last: 2 }), 1, 'scrolling back reports the earlier card');
   assert.equal(liveReport({ index: 0, intended: null, selected: 0, last: 1 }), 0, 'fix carousel-live-select audit 1: back to the stale selection after a report still reports');
   assert.equal(liveReport({ index: 2, intended: 3, selected: 1, last: null }), null, 'the row scrolling itself to a card never selects on the way');
+});
+
+test('fix carousel-snap-back: a settle while the reader\'s finger is down or the row is gliding waits, so it never sets a target the swipe is then sent back to', () => {
+  // The finger paused between cards 0 and 1 (selected 0, nearest 0) for the settle's 120 ms: easing onto card 0 there made it the
+  // row's own target, and the release, which was heading for card 1, was then aimed back at 0 (the reader had to swipe twice).
+  assert.deepEqual(settleStep({ index: 0, intended: null, selected: 0, held: true }), { report: null, scrollTo: null, wait: true }, 'held: nothing, and wait');
+  assert.deepEqual(settleStep({ index: 1, intended: null, selected: 0, held: true }), { report: null, scrollTo: null, wait: true }, 'held: a card passed is reported live, never by the settle');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3, held: true }), { report: null, scrollTo: null, wait: true }, 'held beats the row\'s own target too');
+  assert.deepEqual(settleStep({ index: 1, intended: null, selected: 0, held: false }), { report: 1, scrollTo: null, wait: false }, 'let go: the settle reports as before');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3, wait: false }, 'held is optional');
+});
+
+test('fix carousel-snap-back audit 1: a finger on the row holds the settle (touch events, the only ones the web build fires), and lifting it lets go', () => {
+  assert.equal(isHeld(HOLD_NONE), false);
+  const down = holdStep(HOLD_NONE, 'down');
+  assert.equal(isHeld(down), true, 'finger down');
+  assert.equal(isHeld(holdStep(down, 'scroll')), true, 'scrolling under the finger');
+  assert.equal(isHeld(holdStep(down, 'up')), false, 'finger up, nothing gliding');
+});
+
+test('fix carousel-snap-back audit 2, 3: a release that glides stays held until the glide ends; a glide that never reports its end is let go after a cap', () => {
+  const glide = holdStep(holdStep(holdStep(HOLD_NONE, 'down'), 'up'), 'glide');
+  assert.equal(isHeld(glide), true, 'gliding after the release');
+  assert.equal(isHeld(holdStep(glide, 'rest')), false, 'the glide ended');
+  assert.equal(isHeld(holdStep(holdStep(HOLD_NONE, 'down'), 'glide')), true, 'a touch end and a glide in either order');
+  // The settle keeps waiting and asking again; after the cap with no scroll between, the hold is dropped.
+  let h = glide;
+  for (let i = 0; i < HOLD_MAX_WAITS - 1; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'one wait short of the cap');
+  assert.equal(isHeld(holdStep(h, 'waited')), false, 'the cap lets it go');
+  assert.equal(isHeld(holdStep(holdStep(h, 'scroll'), 'waited')), true, 'a scroll event restarts the count');
+});
+
+test('fix carousel-snap-back audit 4: a new touch ends a glide it interrupts', () => {
+  const glide = holdStep(HOLD_NONE, 'glide');
+  const down = holdStep(glide, 'down');
+  assert.equal(down.glide, false, 'the glide it stopped is over');
+  assert.equal(isHeld(holdStep(down, 'up')), false, 'and lifting lets go');
+});
+
+test('fix carousel-snap-back audit 5: a finger held still stays held past the glide\'s cap, and is only dropped when its end is plainly lost', () => {
+  let h = holdStep(HOLD_NONE, 'down');
+  for (let i = 0; i < HOLD_MAX_WAITS * 2; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'a real finger is not dropped when a glide would be');
+  for (let i = HOLD_MAX_WAITS * 2; i < FINGER_MAX_WAITS - 1; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'one wait short of the finger cap');
+  assert.equal(isHeld(holdStep(h, 'waited')), false, 'a touch end that never came lets go');
+  // A glide dropped by its cap leaves a finger that is down.
+  let both = holdStep(holdStep(HOLD_NONE, 'glide'), 'down');
+  both = holdStep(both, 'glide');
+  for (let i = 0; i < HOLD_MAX_WAITS; i++) both = holdStep(both, 'waited');
+  assert.deepEqual([both.finger, both.glide], [true, false]);
 });
