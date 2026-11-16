@@ -35,7 +35,7 @@ Verdict: aligned if reshaped
 Shape: a mention of a photo or a video draws as its picture, on its own line at the page's width, a rounded corner, no
 caption; a video as its still under the play mark. Presentation only: the stored note, the schema, the moment and the
 pasted-image rule (NP13) are unchanged. In the composer and in the reader.
-Criteria: NI1-NI18 below.
+Criteria: NI1-NI19 below.
 Open: none.
 
 ## Decisions
@@ -49,14 +49,16 @@ Open: none.
 - **2026-11-16, editing** (the owner, later the same day): tapping a picture while writing offers a quick action menu,
   and "full support to edit it using the available tools that we currently have". Built as the existing `MediaEditor`
   as an overlay inside the page (iOS: no Modal over a Modal), so every tool it has works: rotate, crop, filter, draw,
-  text, and trim for a video. The menu holds one entry, **Edit**, the owner's pick (Remove and Open the moment were
-  offered and not chosen). This replaces the earlier "a tap does nothing while writing".
+  text, and trim for a video. The menu first held one entry, **Edit**, the owner's pick (Remove and Open the moment
+  were offered and not chosen); the UI review's U1 found no visible way to take a picture out of a page, and the
+  owner, the same day, asked for **Remove from page** to be added (NI19). This replaces the earlier "a tap does
+  nothing while writing".
 - **2026-11-16, context** (the owner, on the steward's S2): a picture shows no caption when its photo is from the
   page's own walk; when it is from another day or walk, one muted line beneath it says its date, place and walk, in
   the card's words.
 - **Defaults in the plan, the owner may change them:** a note, a voice memo and a gone moment keep their chip and card
   (NI9, NI8); other places that read a note (threads' bubbles, `NoteText`, the replay) are not changed here (NI12); the
-  menu has only Edit, so a picture is removed from the page with the keyboard (NI4).
+  menu has Edit and Remove from page (NI13, NI19); Backspace still takes a picture out (NI4).
 - **An edit is the moment's own** (`Capture.edit`, decision 0090): editing a picture from the page changes that photo
   everywhere it is shown, in the Chronicle, the gallery and the replay, as the viewer's Edit does. The page is one more
   place to reach the same editor, never a copy of the photo.
@@ -104,8 +106,8 @@ Open: none.
     each page host; the reader has neither (it opens the moment, NI5). Not in this slice, said so: the mention cards in
     a thread's bubbles (`NoteText`), the memory preview and the replay, which draw a note's words as text; they keep
     their cards.
-13. **NI13 · A quick menu on a picture.** While writing, a tap on a picture opens a small menu with one entry, **Edit**;
-    it never covers the page's keyboard bar and closes on a tap outside, Back or Escape, changing nothing. It is a
+13. **NI13 · A quick menu on a picture.** While writing, a tap on a picture opens a small menu with **Edit** first and
+    **Remove from page** last (NI19); it never covers the page's keyboard bar and closes on a tap outside, Back or Escape, changing nothing. It is a
     menu or sheet inside the page, never a second Modal (iOS). Found by a tap on the picture the person is looking at.
 14. **NI14 · Full editing.** Edit opens the existing media editor over the page, with every tool a photo has (rotate,
     crop, filter, draw, text) and a video's trim, as the viewer's Edit does; the editor is the same one (`MediaEditor`),
@@ -125,6 +127,13 @@ Open: none.
 18. **NI18 · The decision is on record.** A decision record cites the owner's Nov 16 call, and `docs/DEFERRED.md`'s
     "photos inline: out" line says what stays out (no stored, pasted or typed image, no resize, drag or caption of a
     picture) and that a mention drawn as its picture is allowed.
+
+19. **NI19 · Remove from page.** The menu's last row, **Remove from page**, in the destructive colour and with a bin, takes
+    the picture's mention out of the note and nothing else: the photo stays its own moment, in the Chronicle with its
+    own time, fix and walk, and the words around it stay as they were (the space the camera wrote after it goes with
+    it). It acts at once, with no question, and a line in place of the menu says "Taken out of the page" with **Undo**,
+    which puts the picture back where it was; the line stays until Undo, a tap on another picture, or the next thing
+    typed (Undo stays until used or dismissed, ui-patterns F3). The page's own undo brings it back too.
 
 ## Retired or amended
 

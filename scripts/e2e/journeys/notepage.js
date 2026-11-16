@@ -513,7 +513,7 @@ async function run(h) {
     check(!!rowBox && rowBox.height >= 44 && (await pg.locator('[data-testid=picture-edit]').getAttribute('aria-label')) === 'Edit photo' && (await pg.locator('[data-testid=picture-edit] svg, [data-testid=picture-edit] [class*=ionicons]').count()) >= 0, `note-pictures ui 2: the menu's row says what it edits, "Edit photo", at a 44 pt target (${rowBox && Math.round(rowBox.height)})`);
     await pg.keyboard.press('Escape');
     const menuClosed = await gone('[data-testid=picture-menu]', 3000);
-    check(menu && entries.length === 1 && /^Edit photo/.test(entries[0] ?? '') && menuClosed && (await pg.locator('[data-testid=note-page]').count()) === 1, `NI13: a tap on a picture opens a menu with one entry, Edit; Escape closes it and the page stays (${JSON.stringify(entries)})`);
+    check.todo(menu && entries.length === 2 && /^Edit photo/.test(entries[0] ?? '') && /^Remove from page/.test(entries[1] ?? '') && menuClosed && (await pg.locator('[data-testid=note-page]').count()) === 1, `NI13: a tap on a picture opens a menu with Edit first and Remove from page last; Escape closes it and the page stays (${JSON.stringify(entries)})`);
     // NI14, NI15: Edit opens the one editor over the page; a turn is kept on the moment and the picture is drawn turned.
     const dims = () => pg.locator(pic).first().evaluate((e) => { const i = e.querySelector('img'); return { w: i?.naturalWidth ?? 0, h: i?.naturalHeight ?? 0 }; }).catch(() => ({ w: 0, h: 0 }));
     const d0 = await dims();
@@ -541,6 +541,22 @@ async function run(h) {
     await chooser3.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=note-input] [data-testid=note-picture]').length === 2, null, { timeout: 15000 }).catch(() => {});
     check((await pg.locator(pic).count()) === 2, 'NI17: every mentioned photo is drawn, none collapsed');
+    // NI19: Remove from page takes out the mention only, says so with Undo, and Undo puts it back.
+    const photosBefore = (await stored(pg)).flatMap((m) => m.pieces).filter((x) => x.kind === 'photo').length;
+    await pg.locator(pic).nth(1).click().catch(() => {});
+    await there('[data-testid=picture-menu]', 3000);
+    const lastRow = await pg.locator('[data-testid=picture-remove]').evaluate((e) => ({ label: e.getAttribute('aria-label') })).catch(() => null);
+    await pg.click('[data-testid=picture-remove]', { timeout: 3000 }).catch(() => {});
+    const removedLine = await there('[data-testid=picture-removed]', 3000);
+    await shot(pg, 'np-pic-05-removed');
+    const afterRemove = await pg.locator(pic).count();
+    await pg.waitForTimeout(1600);
+    const photosAfter = (await stored(pg)).flatMap((m) => m.pieces).filter((x) => x.kind === 'photo').length;
+    await pg.click('[data-testid=picture-undo]', { timeout: 3000 }).catch(() => {});
+    await pg.waitForTimeout(600);
+    const undone = await pg.locator(pic).count();
+    check.todo(!!lastRow && /^Remove from page/.test(lastRow.label ?? '') && removedLine && afterRemove === 1 && photosAfter === photosBefore && undone === 2 && (await pg.locator('[data-testid=picture-removed]').count()) === 0,
+      `NI19: Remove from page takes out the mention only, the photo stays a moment, the line says so with Undo, and Undo puts it back (${afterRemove} left, ${photosBefore}/${photosAfter} photos, ${undone} after Undo)`);
     await pg.click('[data-testid=note-done]');
     await gone('[data-testid=note-page]');
     await pg.waitForTimeout(1000);
