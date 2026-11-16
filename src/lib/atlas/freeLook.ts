@@ -19,6 +19,12 @@ export interface LookWords {
   empty: string;
 }
 
+/** A look made by picking a place by name (specs/place-search, GZ6): the place's name and its region. */
+export interface NamedLook {
+  name: string;
+  region: string;
+}
+
 export interface MoveMapLabel {
   label: string;
   hint: string;
@@ -33,7 +39,7 @@ const WORDS: LookWords = {
 };
 
 /** The title, subtitle, announcement and empty line of a looked page (FL7, FL13, FL20). */
-export function lookWords(): LookWords {
+export function lookWords(_named?: NamedLook): LookWords {
   return WORDS;
 }
 
@@ -45,7 +51,7 @@ export function moveMapLabel(on: boolean): MoveMapLabel {
 }
 
 /** The row's accessible name while looking (FL7): what it is around, never near you. */
-export function lookRowLabel(towns: boolean): string {
+export function lookRowLabel(towns: boolean, _named?: NamedLook): string {
   return towns ? 'Towns around the middle of the map' : 'Areas around the middle of the map';
 }
 
