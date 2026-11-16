@@ -235,7 +235,7 @@ Filling gaps
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
   presence/presence.ts       what a place is: the one table from poi classes, Overture's taxonomy, the places archive's classes and landcover to classes, each class's weight, category and kind; named (historic_name, historic); the unnamed pois kept and transit stops; SOURCE_TAGS; PRESENCE_CODE and PRESENCE_CARRIED (decision 0140, PR1-PR8, PS1-PS11)
-  presence/notable.ts        the one name rule (notableName, notable.json) and the museum's read-past of a neighbourhood (PS3)
+  presence/notable.ts        the one name rule (notableName, notable.json) and the read-past of a neighbourhood (NEIGHBOURHOOD, after normalizeWords: the museum's, PS3, and community parks', decision 0172)
   discovery/tilePois.ts      the poi layer's adapter: places from points, their category and kind from presence
   discovery/curation.ts      what makes a mark, over presence classes: NEVER_MARK, BY_NAME (with recorded or historic_name), countsToward (the atlas's and the planner's rule) (PR7, PS5, PS6)
   discovery/archivePois.ts   the places archive's schema: placesFromArchive (the only file that knows it; decision 0103); its classes are presence's, ARCHIVE_CLASSES lists them (pinned, PW5)

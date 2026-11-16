@@ -28,9 +28,17 @@ export function notableName(name: string): boolean {
 }
 
 /**
+ * The phrases of a neighbourhood's name that say nothing of a place: "Old Town", "Old City", "Old Quarter", "Old Village"
+ * (a possessive too: "Old Town's") and "old and new". Read over a name after `normalizeWords`, so "Old-Town", "Old_Town",
+ * "Old.Town" and "Old&New" read as "Old Town" and "Old & New" do (decision 0172). The one list, for presence and community
+ * parks alike.
+ */
+export const NEIGHBOURHOOD = /\bold (?:(?:town|city|quarter|village)s?|and new)\b/g;
+
+/**
  * presence-and-kinds audit 5: "Old" in a neighbourhood's name (Old Town, Old City) or in "old and new" says nothing of the
  * place, so the step that makes a museum historic reads those phrases past (community parks reads them past only just
  * before a community word, `discovery/parkKind.ts`, tend explore T9 and audit 1); marks read the name whole (the steward, S1).
+ * The read-past runs after `normalizeWords` (decision 0172, tend presence 1).
  */
-export const notableBeyondNeighbourhood = (name: string): boolean =>
-  notableName(name.replace(/\bold\s+(town|city|quarter|village)\b/gi, ' ').replace(/\bold\s+(and|&)\s+new\b/gi, ' '));
+export const notableBeyondNeighbourhood = (name: string): boolean => notableName(normalizeWords(name).replace(NEIGHBOURHOOD, ' '));

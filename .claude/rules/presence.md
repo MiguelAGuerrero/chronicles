@@ -44,3 +44,4 @@ paths:
   read "What I'm into" and count both as parks. It is curation (0140), so a change to the words bumps `ATLAS_CODE`'s own
   part, never `PRESENCE_CODE`.
   Its two word files are the refinement's curation, never a second notable rule (PS3, 0146); outlines read presence (PS4).
+- **The neighbourhood read-past is one list, read after `normalizeWords`** (decision 0172, tend presence 1): `NEIGHBOURHOOD` in `presence/notable.ts` ("old town/city/quarter/village", a possessive "towns" too, and "old and new", over the normalized name), read by `notableBeyondNeighbourhood` and by `parkKind.ts`'s `pastNeighbourhood`, so "Old-Town", "Old_Town", "Old.Town" and "Old&New" read as "Old Town" and "Old & New" do. The owner made a change to it a `PRESENCE_CODE` bump with nothing carried (p5), whichever reader it moves; a regex on the raw name misses every spelling `normalizeWords` folds.
