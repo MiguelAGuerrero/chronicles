@@ -15,9 +15,11 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * The version of the vocabulary and its tables: part of the atlas's and the landing's cache codes (PR6). Bump on any change here.
  * p2: the archive, names and landcover read here (specs/presence-readers); nothing derived changed, so p1 rows are carried (PS9).
  * p3: only storefronts weigh toward density (specs/storefronts SF10, decision 0180); a weight changed, so nothing is carried (SF11).
+ * p4: small places (specs/small-places SP12, SP13): presence's small classes with their subset and bar weight; a weight
+ *     changed, so nothing is carried.
  * p5: a neighbourhood's "Old Town" and "old and new" are read past after `normalizeWords`, for a museum's History and a
- *     community park alike ("Old-Town", "Old&New"; decision 0172, tend presence 1); what an area derives may move, so
- *     nothing is carried and every area is derived again.
+ *     community park alike ("Old-Town", "Old&New", "Olde Towne"; decision 0172, tend presence 1 and audit 1); what an
+ *     area derives may move, so nothing is carried and every area is derived again.
  */
 export const PRESENCE_CODE = 'p5';
 

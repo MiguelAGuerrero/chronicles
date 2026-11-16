@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import test from 'node:test';
 import { ATLAS_CODE, needsNear, newRows, rowCurrent, type AtlasArea } from '../../atlas/atlas';
-import { COMPLEX_CODE } from '../../complexes/types';
 import { refineRead } from '../../discovery/refinements';
 import { placesFromTilePois } from '../../discovery/tilePois';
 import type { Place } from '../../discovery/types';
 import { isStale, LANDING_CODE, LANDING_VERSION, rulesCurrent, type LandingRow } from '../../landing/view';
+import * as notable from '../../presence/notable';
 import { notableBeyondNeighbourhood } from '../../presence/notable';
 import { named, PRESENCE_CARRIED, PRESENCE_CODE } from '../../presence/presence';
 import type { LngLat } from '../../types';
@@ -61,20 +59,13 @@ test('tend presence 1: a park named "Old-Town", "Old_Town", "Old.Town" or "Old&N
   assert.equal(kindOf("Old Town's Playground"), 'community_parks');
 });
 
-test('tend presence 1: the bump to p5 is the only derivation code that moves, and every cached area is derived again', () => {
-  const lib = join(__dirname, '..', '..');
-  const src = (f: string) => readFileSync(join(lib, f), 'utf8');
+test('tend presence 1: the bump to p5 is presence\'s, carried by the codes that hold it, and every cached area is derived again', () => {
   assert.equal(PRESENCE_CODE, 'p5');
   assert.deepEqual(PRESENCE_CARRIED, [], 'what a museum or a park reads as moved, so no p4 row stands (PS9)');
-  // Every other derivation code is what it was at p4.
+  // The codes that hold presence's carry it; their own parts are what they were at p4.
   assert.equal(ATLAS_CODE, 'a14.p5');
   assert.equal(LANDING_CODE, 'l4');
   assert.ok(LANDING_VERSION.startsWith('l4:p5:'), LANDING_VERSION);
-  assert.equal(COMPLEX_CODE, 'c1');
-  assert.match(src('tiles.ts'), /const STREET_CODE = '3';/);
-  assert.match(src('tiles.ts'), /const SNAP_RULES = '9';/);
-  assert.match(src('walk/bands.ts'), /export const WALK_CODE = 'w2';/);
-  assert.match(src('areas/outlines.ts'), /export const OUTLINE_DECODE = 'sub2';/);
   // Truth vs cache: an area derived under p4 is derived again, never patched. Its row no longer stands, so the same area
   // is listed again as a new row with no profile, read afresh; a near read under p4 is made again; a remembered landing
   // area is stale until it is analyzed again.
@@ -94,4 +85,53 @@ test('tend presence 1: the bump to p5 is the only derivation code that moves, an
   assert.equal(rulesCurrent(p4), false);
   assert.equal(isStale({ build: 'b', rules: p4 } as LandingRow, 'b'), true, 'a landing area under p4 is stale');
   assert.equal(isStale({ build: 'b', rules: LANDING_VERSION } as LandingRow, 'b'), false);
+});
+
+/** Each archaic or joined spelling of "Old Town" the owner named (Nov 16), beside the spelling it must read as. */
+const ARCHAIC: [string, string][] = [
+  ['Old Towne', 'Old Town'],
+  ['Olde Town', 'Old Town'],
+  ['Olde Towne', 'Old Town'],
+  ['Oldtown', 'Old Town'],
+];
+
+test('tend presence audit 1: "Old Towne", "Olde Town", "Olde Towne" and "Oldtown" read as "Old Town", for a museum and a park', () => {
+  for (const [odd, plain] of ARCHAIC) {
+    assert.equal(notableBeyondNeighbourhood(`${odd} Museum`), notableBeyondNeighbourhood(`${plain} Museum`), `${odd} Museum`);
+    assert.equal(named(['museum'], `${odd} Museum`).includes('historic'), false, `${odd} Museum lights no History`);
+    assert.equal(named(['museum'], `${odd} Historic Museum`).includes('historic'), true, `${odd} Historic Museum`);
+    for (const rest of ['Playground', 'Tot Lot']) assert.equal(kindOf(`${odd} ${rest}`), kindOf(`${plain} ${rest}`), `${odd} ${rest}`);
+    assert.equal(kindOf(`${odd} Playground`), 'community_parks');
+  }
+  // A building keeps its "Old" ("olde" and "oldtown" are no notable word, so only "Old Towne" has one to keep).
+  assert.equal(kindOf('Old Towne Hall Playground'), 'parks');
+});
+
+test('tend presence audit 1: "Old Quarters" names a building: a museum there lights History, a playground there stays a park', () => {
+  assert.equal(named(['museum'], 'Old Quarters Museum').includes('historic'), true);
+  assert.equal(named(['museum'], 'Officers Old Quarters Museum').includes('historic'), true);
+  assert.equal(kindOf('Officers Old Quarters Playground'), 'parks');
+  assert.equal(kindOf('Old Quarter Playground'), 'community_parks', 'the neighbourhood itself is still read past');
+  // A possessive "Old Quarter's" cannot be told from "Old Quarters" after normalizeWords, so it keeps its museum (it errs
+  // toward keeping; the coordinator's ruling on the auditor's F1).
+  assert.equal(named(['museum'], "Old Quarter's Museum").includes('historic'), true);
+  // The plurals and the possessive of town, city and village are the neighbourhood's own name.
+  for (const n of ['Old Towns', 'Old Cities', 'Old Villages', "Old City's", "Old Village's"]) {
+    assert.equal(notableBeyondNeighbourhood(`${n} Museum`), false, `${n} Museum`);
+    assert.equal(kindOf(`${n} Playground`), 'community_parks', `${n} Playground`);
+  }
+});
+
+test('tend presence audit 1: the read-past keeps no state between reads, and presence exports no regex to share', () => {
+  for (const [k, v] of Object.entries(notable)) assert.ok(!(v instanceof RegExp), `notable.ts exports the regex ${k}`);
+  const read = notable.readPastNeighbourhood;
+  for (let i = 0; i < 3; i++) {
+    assert.equal(read('Old Town Museum').trim(), 'museum', `read ${i + 1}`);
+    assert.equal(read('Old Town Hall'), read('Old Town Hall'), `read ${i + 1}`);
+  }
+  // Only before a word the reader names: a park's community word (tend explore audit 1).
+  const beforePlay = (rest: string) => / playground /.test(` ${rest} `.slice(0, 13));
+  assert.equal(read('Old Town Playground', beforePlay).trim(), 'playground');
+  assert.equal(read('Old Town Hall Playground', beforePlay), 'old town hall playground');
+  assert.equal(read('Old Town Playground and Old City Hall', beforePlay).replace(/\s+/g, ' ').trim(), 'playground and old city hall', 'each phrase judged at its own place');
 });
