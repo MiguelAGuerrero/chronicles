@@ -2,23 +2,34 @@
 // about 15 minutes. It runs only when the owner asks (decision 0074). It has no `covers` and no row in
 // SCENARIOS. Each block is a journey file's `checks(h)`, which continues from the screen the one before
 // it left; the fresh-browser flows and the five named journeys run after the shared page's story.
+//
+// STEPS is the one list of what it runs: `npm run e2e:all` (scripts/e2e-all.js) reads `journeys` to run every
+// other journey by name, and the `# journey: <name>` line before each block to count each journey's checks.
 
 const journey = (name) => require(`./${name}`);
 
+const STEPS = [
+  ['launch', 'checks'],
+  ['walk', 'checks'],
+  ['chronicle', 'checks'],
+  ['notifications', 'checks'],
+  ['atlas', 'checks'],
+  ['memories', 'checks'],
+  ['days', 'checks'],
+  ['sensors', 'checks'],
+  ['launch', 'fresh'],
+  ...['tabs', 'gaps', 'ready', 'hidden', 'nudge', 'snap'].map((name) => [name, 'run']),
+  ['deletion', 'checks'],
+];
+
 async function run(h) {
-  await journey('launch').checks(h);
-  await journey('walk').checks(h);
-  await journey('chronicle').checks(h);
-  await journey('notifications').checks(h);
-  await journey('atlas').checks(h);
-  await journey('memories').checks(h);
-  await journey('days').checks(h);
-  await journey('sensors').checks(h);
-  await journey('launch').fresh(h);
-  for (const name of ['tabs', 'gaps', 'ready', 'hidden', 'nudge', 'snap']) await journey(name).run(h);
-  await journey('deletion').checks(h);
+  for (const [name, step] of STEPS) {
+    console.log(`# journey: ${name}`);
+    await journey(name)[step](h);
+  }
+  console.log('# journey: full');
   h.nothingLeaves();
   h.noConsoleErrors();
 }
 
-module.exports = { name: 'full', full: true, run };
+module.exports = { name: 'full', full: true, run, journeys: [...new Set(STEPS.map(([name]) => name))] };
