@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { liveReport, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -207,4 +207,32 @@ test('fix carousel-snap-back: a settle while the reader\'s finger is down or the
   assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3, held: true }), { report: null, scrollTo: null, wait: true }, 'held beats the row\'s own target too');
   assert.deepEqual(settleStep({ index: 1, intended: null, selected: 0, held: false }), { report: 1, scrollTo: null, wait: false }, 'let go: the settle reports as before');
   assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3, wait: false }, 'held is optional');
+});
+
+test('fix carousel-snap-back audit 1: a finger on the row holds the settle (touch events, the only ones the web build fires), and lifting it lets go', () => {
+  assert.equal(isHeld(HOLD_NONE), false);
+  const down = holdStep(HOLD_NONE, 'down');
+  assert.equal(isHeld(down), true, 'finger down');
+  assert.equal(isHeld(holdStep(down, 'scroll')), true, 'scrolling under the finger');
+  assert.equal(isHeld(holdStep(down, 'up')), false, 'finger up, nothing gliding');
+});
+
+test('fix carousel-snap-back audit 2, 3: a release that glides stays held until the glide ends; a glide that never reports its end is let go after a cap', () => {
+  const glide = holdStep(holdStep(holdStep(HOLD_NONE, 'down'), 'up'), 'glide');
+  assert.equal(isHeld(glide), true, 'gliding after the release');
+  assert.equal(isHeld(holdStep(glide, 'rest')), false, 'the glide ended');
+  assert.equal(isHeld(holdStep(holdStep(HOLD_NONE, 'down'), 'glide')), true, 'a touch end and a glide in either order');
+  // The settle keeps waiting and asking again; after the cap with no scroll between, the hold is dropped.
+  let h = glide;
+  for (let i = 0; i < HOLD_MAX_WAITS - 1; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'one wait short of the cap');
+  assert.equal(isHeld(holdStep(h, 'waited')), false, 'the cap lets it go');
+  assert.equal(isHeld(holdStep(holdStep(h, 'scroll'), 'waited')), true, 'a scroll event restarts the count');
+});
+
+test('fix carousel-snap-back audit 4: a new touch ends a glide it interrupts', () => {
+  const glide = holdStep(HOLD_NONE, 'glide');
+  const down = holdStep(glide, 'down');
+  assert.equal(down.glide, false, 'the glide it stopped is over');
+  assert.equal(isHeld(holdStep(down, 'up')), false, 'and lifting lets go');
 });

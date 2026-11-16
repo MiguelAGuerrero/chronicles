@@ -102,6 +102,28 @@ export function settleStep(p: { index: number; intended: number | null; selected
 }
 
 /**
+ * Whether the reader holds the row (fix carousel-snap-back audits 1-4): a finger on it (`finger`, from the touch events, the only
+ * ones the web build fires; the native drag events say the same), or a release still gliding (`glide`, native's momentum events).
+ * `waits` counts the settles that waited since the row last scrolled, so an event that never comes (a glide with no end, a
+ * touch the system cancelled) lets go after `HOLD_MAX_WAITS` instead of freezing the row.
+ */
+export type Hold = { finger: boolean; glide: boolean; waits: number };
+export const HOLD_NONE: Hold = { finger: false, glide: false, waits: 0 };
+export const HOLD_MAX_WAITS = 12;
+export const isHeld = (h: Hold): boolean => h.finger || h.glide;
+export function holdStep(h: Hold, e: 'down' | 'up' | 'glide' | 'rest' | 'scroll' | 'waited'): Hold {
+  switch (e) {
+    // A new touch ends the glide it stopped.
+    case 'down': return { finger: true, glide: false, waits: 0 };
+    case 'up': return { ...h, finger: false, waits: 0 };
+    case 'glide': return { ...h, glide: true };
+    case 'rest': return { ...h, glide: false };
+    case 'scroll': return { ...h, waits: 0 };
+    case 'waited': return h.waits + 1 >= HOLD_MAX_WAITS ? HOLD_NONE : { ...h, waits: h.waits + 1 };
+  }
+}
+
+/**
  * The card to select while the reader's own scroll is still moving (fix carousel-live-select): the one nearest the middle, as
  * soon as it is not the selected one nor the one last reported, so each card previews as it passes, not after the scroll
  * settles. Never while the row is scrolling itself to a card (`intended`).
