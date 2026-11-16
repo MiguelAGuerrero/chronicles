@@ -5,7 +5,6 @@ const path = require('path');
 
 async function run(h) {
   const { exploreUrl, check, freshPage, snapWorld, hosts, shot } = h;
-  const todo = check.todo;
   snapWorld.serve = true;
   const { c, pg } = await freshPage('placesearch');
   const safe = async (fn, fallback = null) => fn().catch(() => fallback);
@@ -30,7 +29,7 @@ async function run(h) {
     // GZ1: a magnifier is drawn in the title row, named Search places, 44 px.
     const mBox = await safe(() => magnifier.boundingBox(), null);
     const tBox = await safe(() => pg.locator('[data-testid=atlas-title-card]').boundingBox(), null);
-    todo(!!mBox && mBox.width >= 44 && mBox.height >= 44 && /search places/i.test((await safe(() => magnifier.getAttribute('aria-label'), '')) || '') && !!tBox && Math.abs(mBox.y - tBox.y) < 60,
+    check(!!mBox && mBox.width >= 44 && mBox.height >= 44 && /search places/i.test((await safe(() => magnifier.getAttribute('aria-label'), '')) || '') && !!tBox && Math.abs(mBox.y - tBox.y) < 60,
       'GZ1: a magnifier is drawn in the title row, named Search places, at least 44 px');
     await shot(pg, 'place-search-0-magnifier');
 
@@ -41,24 +40,32 @@ async function run(h) {
     const label = await safe(() => pg.locator('[data-testid=atlas-search-label]').innerText(), '');
     const focused = await safe(() => pg.evaluate(() => document.activeElement?.getAttribute('data-testid')), null);
     const fontPx = await safe(() => field.evaluate((e) => parseFloat(getComputedStyle(e).fontSize)), 0);
-    todo(/search towns and cities/i.test(label) && focused === 'atlas-search-field' && fontPx >= 16 && !(await present(clear)) && (await present(close)),
+    check(/search towns and cities/i.test(label) && focused === 'atlas-search-field' && fontPx >= 16 && !(await present(clear)) && (await present(close)),
       `GZ2: the field is focused, labelled, 16 px and has Close, and no Clear until there is text (${label}, ${focused}, ${fontPx})`);
     await shot(pg, 'place-search-1-open');
     await type('zuric');
-    todo(await present(clear) && /Zürich/.test(await safe(() => results.first().innerText(), '')),
+    check(await present(clear) && /Zürich/.test((await safe(() => results.allInnerTexts(), [])).join('\n')),
       'GZ3: "zuric" finds Zürich by its plain spelling, and Clear is there once there is text');
+    // place-search ui 1-2 (the UI review): Clear and Close are told apart (Close is a word) and Clear is a 44 px target; the field draws no stray outline.
+    const cBox = await safe(() => clear.boundingBox(), null);
+    const closeText = ((await safe(() => close.innerText(), '')) || '').trim();
+    check(!!cBox && cBox.width >= 44 && cBox.height >= 44 && /^close$/i.test(closeText), `place-search ui 1: Clear is a 44 px target and Close is a word (${cBox && Math.round(cBox.width)}x${cBox && Math.round(cBox.height)}, "${closeText}")`);
+    check(await safe(() => field.evaluate((e) => { const st = getComputedStyle(e); return st.outlineStyle === 'none' || parseFloat(st.outlineWidth) === 0; }), false), 'place-search ui 2: the field draws no outline box of its own');
     await type('s');
-    todo((await safe(() => results.count(), 0)) === 0, 'GZ3: one letter lists nothing');
+    check((await safe(() => results.count(), 0)) === 0, 'GZ3: one letter lists nothing');
     await type('spr');
     const rowText = await safe(() => results.first().innerText(), '');
-    todo((await safe(() => results.count(), 0)) > 1 && !/\d|\bkm\b|\baway\b/i.test(rowText) && /,/.test(rowText) && /keep typing to narrow it\./i.test(await body()),
+    check((await safe(() => results.count(), 0)) > 1 && !/\d|\bkm\b|\baway\b/i.test(rowText) && /,/.test(rowText) && /keep typing to narrow it\./i.test(await body()),
       `GZ4/GZ5: a capped list ends with "Keep typing to narrow it.", each row is a name with its region and country and no digit (${JSON.stringify(rowText)})`);
+    check(await safe(() => results.first().evaluate((e) => parseFloat(getComputedStyle(e).borderBottomWidth) > 0), false), 'place-search ui 3: result rows are separated by a hairline');
+    await shot(pg, 'place-search-4-list');
     await type('qqzzqq');
-    todo(/no towns or cities start like that\./i.test(await body()) && /smaller places are reached by move map\./i.test(await body()),
+    await shot(pg, 'place-search-5-none');
+    check(/no towns or cities start like that\./i.test(await body()) && /smaller places are reached by move map\./i.test(await body()),
       'GZ8: no match says so, with the way on');
 
     // GZ9: nothing was asked of the network by typing, and the text is in no request.
-    todo(asked.slice(reqsBefore).every((u) => !/zuric|spr|qqzz/i.test(u)) && [...hosts].sort().join() === hostsBefore,
+    check(asked.slice(reqsBefore).every((u) => !/zuric|spr|qqzz/i.test(u)) && [...hosts].sort().join() === hostsBefore,
       'GZ9: typing asks no new host and the text is in no request');
 
     // GZ16: Close, reopen: the field is empty and nothing was stored.
@@ -69,11 +76,11 @@ async function run(h) {
     const refocus = await safe(() => pg.evaluate(() => document.activeElement?.getAttribute('data-testid')), null);
     await open();
     const keysAfter = await safe(() => pg.evaluate(() => JSON.stringify(Object.keys(localStorage).sort())), '');
-    todo(((await safe(() => field.inputValue(), 'x')) === '') && keysBefore === keysAfter && refocus === 'atlas-search',
+    check(((await safe(() => field.inputValue(), 'x')) === '') && keysBefore === keysAfter && refocus === 'atlas-search',
       'GZ16/GZ11: after Close the field is empty on reopening, nothing is stored, and focus returned to the magnifier');
     await safe(() => pg.keyboard.press('Escape'));
     await pg.waitForTimeout(300);
-    todo(!(await present(sheet)), 'GZ2: Escape closes the search');
+    check(!(await present(sheet)), 'GZ2: Escape closes the search');
 
     // GZ11: arrows step the results, Enter picks.
     await open();
@@ -85,20 +92,20 @@ async function run(h) {
     // GZ6: a pick looks at that place; the words name it, none says the middle of the map; Locate returns.
     const t = await title();
     const text = await body();
-    todo(!(await present(sheet)) && /^around cranston/i.test(t) && !/middle of the map|not around you|you.?re here/i.test(text),
+    check(!(await present(sheet)) && /^around cranston/i.test(t) && !/middle of the map|not around you|you.?re here/i.test(text),
       `GZ6: a pick looks at the place: the page is "Around Cranston", never "the middle of the map" (${JSON.stringify(t)})`);
-    todo(/around cranston/i.test(await safe(() => pg.locator('[data-testid=atlas-snap-said]').textContent(), '')),
+    check(/around cranston/i.test(await safe(() => pg.locator('[data-testid=atlas-snap-said]').textContent(), '')),
       'GZ6: the look is announced with the place\'s name');
     await shot(pg, 'place-search-2-looked');
     // GZ7: the map data there is not the fixture's: the look says so in its words, Locate and Move map stay.
-    todo((await present(pg.locator('[data-testid=locate]'))) && (await present(pg.locator('[data-testid=atlas-move-map]'))),
+    check((await present(pg.locator('[data-testid=locate]'))) && (await present(pg.locator('[data-testid=atlas-move-map]'))),
       'GZ7: a look with no readable map data keeps Locate and Move map on screen');
     // GZ17: the magnifier is on a look's page too.
-    todo(await present(magnifier), 'GZ17: the magnifier is on a look\'s page');
+    check(await present(magnifier), 'GZ17: the magnifier is on a look\'s page');
     await safe(() => pg.locator('[data-testid=locate]').click());
     await pg.waitForTimeout(3500);
-    todo(/near you/i.test(await title()), 'GZ6: Locate ends the look');
-    todo(await present(magnifier), 'GZ17: the magnifier is on the page near you');
+    check(/near you/i.test(await title()), 'GZ6: Locate ends the look');
+    check(await present(magnifier), 'GZ17: the magnifier is on the page near you');
 
     // GZ17: Move map on, a pick leaves it on.
     await safe(() => pg.locator('[data-testid=atlas-move-map]').click());
@@ -106,24 +113,25 @@ async function run(h) {
     await type('cranston');
     await safe(() => results.first().click());
     await pg.waitForTimeout(2500);
-    todo((await safe(() => pg.locator('[data-testid=atlas-move-map]').getAttribute('aria-pressed'), null)) === 'true',
+    check((await safe(() => pg.locator('[data-testid=atlas-move-map]').getAttribute('aria-pressed'), null)) === 'true',
       'GZ17: with Move map on, a pick leaves it on');
     await safe(() => pg.locator('[data-testid=atlas-move-map]').click());
     await safe(() => pg.locator('[data-testid=locate]').click());
     await pg.waitForTimeout(2500);
 
     // GZ14: the credit names the dataset where the map credits are.
-    const credit = await safe(() => pg.locator('.maplibregl-ctrl-attrib').first().innerText(), '');
-    todo(/geonames/i.test(credit) && /CC BY 4\.0/i.test(credit), `GZ14: the map's credit names the place-name dataset (${JSON.stringify(credit)})`);
+    const credit = await safe(() => pg.locator('.maplibregl-ctrl-attrib').first().textContent(), '');
+    check(/geonames/i.test(credit) && /CC BY 4\.0/i.test(credit), `GZ14: the map's credit names the place-name dataset (${JSON.stringify(credit)})`);
 
     // GZ10: offline, the field matches and picks.
     await c.setOffline(true);
     await open();
     await type('zuric');
     const offline = await safe(() => results.count(), 0);
+    const picked = ((await safe(() => results.first().innerText(), '')) || '').split('\n')[0];
     await safe(() => results.first().click());
     await pg.waitForTimeout(1500);
-    todo(offline >= 1 && /around z/i.test(await title()), `GZ10: offline, the field matches and a pick looks there (${offline})`);
+    check(offline >= 1 && !!picked && (await title()).includes(picked), `GZ10: offline, the field matches and a pick looks there (${offline}, ${picked}, ${await title()})`);
     await c.setOffline(false);
     await safe(() => pg.locator('[data-testid=locate]').click());
     await pg.waitForTimeout(1500);
@@ -142,10 +150,10 @@ async function run(h) {
       const sh = await safe(() => sheet.boundingBox(), null);
       const cl = await safe(() => close.boundingBox(), null);
       const rowRows = await safe(() => results.first().evaluate((e) => e.scrollWidth <= e.clientWidth + 1), false);
-      todo(!!row && !!sh && !!cl && row.x >= sh.x - 1 && row.x + row.width <= sh.x + sh.width + 1 && rowRows,
+      check(!!row && !!sh && !!cl && row.x >= sh.x - 1 && row.x + row.width <= sh.x + sh.width + 1 && rowRows,
         `GZ18: the longest name (${longName.length} chars) fits its row at ${width} px`);
       const rowTile = await safe(() => pg.locator('[data-testid=atlas-carousel]').boundingBox(), null);
-      todo(!!sh && (!rowTile || sh.y + sh.height <= rowTile.y + 1) && sh.x >= 0 && sh.x + sh.width <= width + 1,
+      check(!!sh && (!rowTile || sh.y + sh.height <= rowTile.y + 1) && sh.x >= 0 && sh.x + sh.width <= width + 1,
         `GZ19: the search sheet clears the row and the tabs and stays on screen at ${width} px`);
       if (width === 320) await shot(pg, 'place-search-3-long-320');
       await safe(() => pg.keyboard.press('Escape'));

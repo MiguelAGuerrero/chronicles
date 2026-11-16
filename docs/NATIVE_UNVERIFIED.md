@@ -267,6 +267,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** open Explore, select a card past the first, leave the tab and come back (or let the list go empty and return). **Expect:** the row remounts scrolled to the selected card: a `scrollTo` issued before layout is not dropped (it would leave the row at the first card with another selected). (EC4)
 - [ ] **Do:** with a right-to-left language on, open Explore. **Expect:** the row's first card is on the reading side and a swipe steps in the reading direction, or the mirroring is recorded as not done (DEFERRED). (EC4)
 - [ ] **Do:** pull one card's name long ("Lehigh Valley Industrial Park District"). **Expect:** the name wraps in full and the row stays aligned to its top. (EC4)
+- [ ] **Do:** on a fresh install, tap Explore's magnifier for the first time and wait, then type "zur". **Expect:** "Getting ready…" draws first, the field stays usable, the matches list within a moment of the build (the index of about 250,000 keys builds on the JS thread, about 0.7 s in Node; note the phone's time), and the keyboard does not cover the field or the list (GZ2, GZ15).
+- [ ] **Do:** with VoiceOver or TalkBack on, open the search, type "carl" and listen, then double-tap a result. **Expect:** the field is named "Search towns and cities", the list's change is announced once as "Matches listed" and never on each keystroke or with a number, each row reads its name, region and country then "Shows areas there", and the pick announces "Showing areas around <name>" with focus back on the magnifier (GZ6, GZ11).
+- [ ] **Do:** open the search with the phone offline (airplane mode), type "zuric" and pick Zürich. **Expect:** the matches list with no signal, the map moves there and the page says "Around Zürich"; only the map's own reads report their failure (GZ10).
 
 ## Explore atlas
 

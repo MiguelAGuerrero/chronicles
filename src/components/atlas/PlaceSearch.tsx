@@ -37,6 +37,7 @@ export function SearchSheet(props: { top: number; origin: LngLat | null; onPick:
   const [text, setText] = useState('');
   const [active, setActive] = useState(-1);
   const [said, setSaid] = useState('');
+  const [focused, setFocused] = useState(true);
   const last = useRef<SearchStatus>('idle');
 
   const found = useMemo(() => (state.status === 'ready' ? search(state.index, text, props.origin) : null), [state, text, props.origin]);
@@ -70,7 +71,7 @@ export function SearchSheet(props: { top: number; origin: LngLat | null; onPick:
   return (
     <View style={[styles.sheet, { top: props.top }]} testID="atlas-search-sheet" accessibilityViewIsModal>
       <Text testID="atlas-search-label" style={styles.label} nativeID="atlas-search-label">{words.label}</Text>
-      <View style={styles.fieldRow}>
+      <View style={[styles.fieldRow, focused && styles.fieldRowFocus]}>
         <TextInput
           testID="atlas-search-field"
           style={styles.field}
@@ -79,6 +80,8 @@ export function SearchSheet(props: { top: number; origin: LngLat | null; onPick:
           onKeyPress={(e) => onKey(e.nativeEvent.key)}
           onSubmitEditing={() => pick(active >= 0 ? active : 0)}
           autoFocus
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
@@ -142,9 +145,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 8,
   },
   label: { fontSize: 13, color: theme.muted, marginBottom: 4 },
-  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 4, borderBottomWidth: 1, borderColor: theme.line },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 4, borderBottomWidth: 2, borderColor: theme.line },
+  // The field's own outline is off (a box round half the row); the focused row's ink underline is the visible focus (WCAG 2.4.7).
+  fieldRowFocus: { borderColor: theme.ink },
   // 16 px at least on web, or a phone browser zooms the page on focus.
-  field: { flex: 1, minWidth: 0, minHeight: 44, fontSize: 16, color: theme.ink },
+  field: { flex: 1, minWidth: 0, minHeight: 44, fontSize: 16, color: theme.ink, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   line: { fontSize: 15, color: theme.muted, paddingVertical: 10 },
   fail: { gap: 8, paddingVertical: 6, alignItems: 'flex-start' },

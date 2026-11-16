@@ -478,9 +478,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-  'place-search': { branch: 'claude/exciting-mccarthy-0ktfgm', since: '2026-11-16' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

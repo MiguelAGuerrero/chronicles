@@ -103,6 +103,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] At 320 px Fox Point's card cuts its kind rows' word: "some" reads "so…", and History's is lost beside its Suggest a walk (picture `after/explore-here-card-320`, the same before; WCAG 2.2, 1.4.10 Reflow; the review of `/tend explore`, Nov 14, ux-reviewer; low)
 - [loop] Explore's toast "Zoom in to look closer" sits over the map's credits (i) (picture `after/explore-toast-390`, the same before; ui-patterns, a control may not be covered, T7: lift the toast above the credits; the review of `/tend explore`, Nov 14, ux-reviewer; low)
 - [loop] With no fix, Move map floats alone in Locate's column with two empty slots under it (the compass's and Locate's), since the edge Locate steps aside for Find me (tend explore 8); the column could close up (picture `after/explore-nofix-390`; the review of `/tend explore`, Nov 14, auditor, UI notes; low, opinion)
+- **A precomputed index in the pack.** The search builds its sorted key index (about 250,000 keys) on the JS thread the first time it opens: about 0.7 s in Node, not measured on a phone. If it is slow there, the keys are built into the pack by the script instead (decision 0182).
+- **Villages and a larger gazetteer.** `cities5000` omits places under about 5,000 people; `cities1000` or a country pack is another pack through `GazetteerSource`, and a download would need its own decision. Move map reaches smaller places meanwhile (decision 0182).
+- **A visible word on the magnifier, and a distance on a result row.** The magnifier is an icon with no word; the cold find placed it on the first tap but called it low-to-medium opinion that it hides that the search reaches any town, not only nearby ones. A "Search a town" word, or a distance in words on each row, are the owner's call (specs/place-search).
 
 ## Activity density (AD1-AD16, decision 0080)
 

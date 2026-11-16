@@ -662,3 +662,12 @@ stores the record whole.
 
 - **Built outside the app, in chronicles-data** (decision 0108): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app. The listing rule of Remarkable and public, built in this repo before the move, is handed to it in `specs/remarkable-and-public/handoff.md`. `npm run places:coverage` (`scripts/places-coverage.ts`, `scripts/places-archive/coverage.mjs`) measures what the app keeps of seven areas' destinations.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.
+
+## The gazetteer (Place search, decision 0182)
+
+`src/lib/gazetteer/` reads a **pack** (`assets/gazetteer/places.json`, columnar: names, ASCII names, alternates, region and country
+indexes, points in 1e-4 degrees, region codes), built by `scripts/build-gazetteer.js` from GeoNames `cities5000`. The app reads
+packs only (`pack.ts`, validated: no population or any field outside `PACK_FIELDS`); another dataset or a downloaded region is
+another pack read through `GazetteerSource` (`source.ts`, adapter; the bundled one `require`s the asset lazily on first use).
+`search.ts` (core) builds a sorted key index once (`indexOf`, cached per source) and answers a prefix query in a few ms; order is by
+distance from the argument `origin`, else name then region, never by size. A read-only bundled asset: no schema, no migration.
