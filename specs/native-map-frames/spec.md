@@ -55,4 +55,17 @@ but what the code says. The web build is not affected (it glides outside React, 
 
 ## Record
 
-Not built yet.
+Built 2026-11-16 on `claude/bold-hawking-dx3pc8`, the plan approved by the owner first.
+
+- **Tests:** `src/lib/__tests__/map/mapFrames.test.ts` (NF1-NF6; NF1-NF5 read the source with the TypeScript
+  compiler API and failed before the code, NF6 a regression guard that passed before and after). Test-first by
+  history: 5 of 6 (`check:test-first`); NF6 was written passing, as a guard, so it was never a todo.
+  `endsPaint.test.ts`'s two native regexes follow the ends into their own source.
+- **Checks:** typecheck, lint, `npm test` (2605), docs, vision, records; the ten journeys `check:affected` named
+  (`qol`, `replay`, `days`, `layers`, `walkability`, `dense`, `switches`, `carousel`, `freelook`, `snap`), once each, all
+  green (526 checks). `scripts/perf-walk.js` did not run: it waits for Start on `/`, which now opens Chronicle (the
+  harness predates the home's change; the slice changes nothing on the web's walk screen).
+- **NF7** is device-only (`UNTESTED`); four checks in `docs/NATIVE_UNVERIFIED.md`. Native has never run on a device.
+- **Deferred** (`docs/DEFERRED.md`, "Native map frames"): the React Compiler (the owner's own slice), the replay
+  screen's own 30 fps render, the hidden `omt-query` source on every map, a native follow camera.
+- Not audited; no screen changed, so no UI review.
