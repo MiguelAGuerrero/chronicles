@@ -93,8 +93,8 @@ export function SearchSheet(props: { top: number; origin: LngLat | null; onPick:
             <Icon name="close-circle" size={20} color={theme.muted} />
           </Pressable>
         ) : null}
-        <Pressable testID="atlas-search-close" accessibilityRole="button" accessibilityLabel={words.close} onPress={props.onClose} style={styles.iconBtn}>
-          <Icon name="close" size={22} color={theme.ink} />
+        <Pressable testID="atlas-search-close" accessibilityRole="button" accessibilityLabel={words.close} onPress={props.onClose} style={styles.closeBtn}>
+          <Text style={styles.closeText}>{words.closeWord}</Text>
         </Pressable>
       </View>
       <ScrollView style={{ maxHeight: Math.max(120, Math.min(300, height * 0.35)) }} keyboardShouldPersistTaps="handled">
@@ -149,11 +149,14 @@ const styles = StyleSheet.create({
   // The field's own outline is off (a box round half the row); the focused row's ink underline is the visible focus (WCAG 2.4.7).
   fieldRowFocus: { borderColor: theme.ink },
   // 16 px at least on web, or a phone browser zooms the page on focus.
-  field: { flex: 1, minWidth: 0, minHeight: 44, fontSize: 16, color: theme.ink, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+  field: { flex: 1, minWidth: 0, minHeight: 44, fontSize: 16, color: theme.ink },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // A word, not a second x beside Clear's (place-search ui 1).
+  closeBtn: { minWidth: 44, minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  closeText: { fontSize: 16, fontWeight: '600', color: theme.accent },
   line: { fontSize: 15, color: theme.muted, paddingVertical: 10 },
   fail: { gap: 8, paddingVertical: 6, alignItems: 'flex-start' },
-  row: { minHeight: 52, justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 4, borderRadius: 8 },
+  row: { minHeight: 52, justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   rowActive: { backgroundColor: theme.bg },
   name: { fontSize: 17, fontWeight: '700', color: theme.ink, minWidth: 0 },
   where: { fontSize: 14, color: theme.muted, minWidth: 0 },

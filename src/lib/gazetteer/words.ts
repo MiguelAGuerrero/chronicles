@@ -5,6 +5,8 @@ export type SearchStatus = 'idle' | 'loading' | 'none' | 'some' | 'unavailable';
 export interface SearchWords {
   open: string;
   close: string;
+  /** The visible word on the Close button (place-search ui 1). */
+  closeWord: string;
   clear: string;
   label: string;
   prompt: string;
@@ -19,6 +21,7 @@ export interface SearchWords {
 const WORDS: SearchWords = {
   open: 'Search places',
   close: 'Close search',
+  closeWord: 'Close',
   clear: 'Clear',
   label: 'Search towns and cities',
   prompt: 'Type the start of a name.',
