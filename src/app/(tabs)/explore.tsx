@@ -758,6 +758,7 @@ export default function Explore() {
           scaleInset={{ bottom: slots.scaleBottom, left: SCALE_LEFT }}
           // No scale bar over a blank world while no fix places the map (T17).
           hideScaleOnBlank
+          placeNamesCredit
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}

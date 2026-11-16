@@ -143,6 +143,8 @@ export interface WalkMapProps {
   onViewChange?: (view: { zoom: number; lat: number }) => void;
   /** The star drawn as selected (ringed), by id. */
   selectedStar?: string | null;
+  /** Credits the place-name dataset in the map's attribution: only Explore's map, where the search reads it (GZ14). */
+  placeNamesCredit?: boolean;
   /** Puts the map's attribution at the top right, clear of a bottom sheet. */
   attributionTop?: boolean;
   /** A route being navigated, drawn bold under the trace (N6). */
