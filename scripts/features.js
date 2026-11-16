@@ -217,7 +217,7 @@ const FEATURES = [
       'src/lib/unitsStore/**',
     ],
     journeys: ['qol'],
-    specs: ['quality-of-life', 'compass'],
+    specs: ['quality-of-life', 'compass', 'native-map-frames'],
   },
   {
     name: 'captures',

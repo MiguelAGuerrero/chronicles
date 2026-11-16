@@ -45,8 +45,9 @@ but what the code says. The web build is not affected (it glides outside React, 
    zoom bucket, a pin added, a beat's opacity on another source).
 4. **NF4** Pins, memory pins, "?" marks, stars, area points and complex labels re-render only when their own content
    or the set shown changes; the marks' declutter runs only when the marks or the rounded zoom change.
-5. **NF5** The phone's line sources (the trace, rides, faint, gap links, drawing, route, alternates, fog, walked) use
-   the same simplification as the web's (`tolerance: 1, buffer: 64`), from one shared definition.
+5. **NF5** The phone's line sources (fog, walked, alternates, the route's grades, the route, gap links, faint, rides,
+   the trace's history, tail and link, and a way being drawn: the web's own list) use the same simplification as the
+   web's (`tolerance: 1, buffer: 64`), from one shared definition.
 6. **NF6** Everything the map draws and every tap on it is unchanged: pins, memory pins, marks and stars open what
    they opened, the scale bar, the blank-map check and the fit behave as before.
 7. **NF7** (device) On a phone, during a walk with fog and at least 30 pins, React's profiler shows the map's static
