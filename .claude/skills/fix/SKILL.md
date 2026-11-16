@@ -104,7 +104,9 @@ do not keep trying variations.
 - `none`: skip.
 - `self`: re-read your own diff against the covering rule files and the
   AGENTS.md invariants (truth vs cache, raw fixes, nothing is a score, local
-  only); run `/simplify` on it.
+  only) and the cost checklist (`.claude/rules/performance.md`: what the diff
+  reads, how often, over what n); run `/simplify` on it. A fix for slowness
+  gives the harness's number before and after.
 - `adversarial`: `.claude/skills/ship.md`, "Review", which adds the screenshots and the `ux-reviewer`
   whenever the fix changes a screen (decision 0145). The auditor has no spec
   for a fix, so give it the issue, the root cause, the diff and the rule

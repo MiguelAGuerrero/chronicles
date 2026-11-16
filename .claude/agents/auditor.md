@@ -57,6 +57,10 @@ commands, or anything that changes the tree.
    - the file and function (`src/lib/rides.ts` `readTrace`), with the line
      that does it;
    - which criterion or invariant it breaks;
+   - for a **cost** finding (`.claude/rules/performance.md`): the realistic n, how often it runs (launch,
+     focus, per fix, per frame, at Stop), on which thread, and whether it was measured or inferred. A
+     visible stall or unbounded growth on a common path is `high`; a cost that scales badly past the
+     realistic n, or a per-frame render of a costly subtree, is `medium`, not polish;
    - a proposed regression test name: `<slice> audit N: <what it proves>`,
      and whether it is a unit test or an e2e check.
 2. **UI/UX review**: against the spec's criteria, its "## Vision" section,
@@ -71,6 +75,10 @@ commands, or anything that changes the tree.
    that cannot fail (asserts nothing, mocks what it checks). Run
    `npm run test:coverage <feature>` for the slice's feature and list the
    lines of the slice's own files that no test runs; a report, never a score.
+
+Before reporting, look the finding up in `docs/DEFERRED.md`: one already recorded (a trade-off, an
+owner's call) is reported only with what reopens it ("on record at DEFERRED:<line>; reopen because
+<measurement or new scenario>"), never as new.
 
 ## What not to do
 
@@ -109,10 +117,18 @@ commands, or anything that changes the tree.
   before stopping the recorder; captures survive a reload mid-walk.
 - **Concurrency.** One queue for voice actions, one for SQLite writes, one
   read at a time for streets, explore, memories.
+- **Cost** (`.claude/rules/performance.md`). No whole-table read for one row
+  or a count; independent reads in one `Promise.all` and one state update;
+  no React state at frame rate above a costly subtree (on native every inline
+  `GeoJSONSource` re-serializes per render); O(n log n) over features. The
+  reactivity budget is measured on the web only: a native cost is a device
+  check under "Native unverified".
 
 Ask of every change: what happens on a reload, in the background, with no
 fix yet, with a 50 m accuracy fix, during a pause, on a ride, with the
-store empty, twice at once, and on the web as a fallback.
+store empty, twice at once, and on the web as a fallback. And at scale: a
+4-hour walk, a library of a few thousand moments, a dense downtown, two
+hundred pins.
 
 ## Output format
 

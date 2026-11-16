@@ -95,9 +95,11 @@ source.
 4. **The promises.** Each shipped criterion in the area's specs against what
    the build does now, beyond what its test pins; each line of the rule files.
 5. **The code.** The `auditor` subagent on the area's modules against the
-   AGENTS.md invariants: truth vs cache, `readTrace` inputs, layers, anything
-   over features not indexed, re-renders on the walk screen
-   (`scripts/perf-walk.js`), dead code, a layer baseline entry that is fixed.
+   AGENTS.md invariants: truth vs cache, `readTrace` inputs, layers, dead code,
+   a layer baseline entry that is fixed, and cost (`.claude/rules/performance.md`):
+   anything over features not indexed, whole-table reads, per-frame state above
+   a map, re-renders on the area's screens (`scripts/perf-walk.js`,
+   `scripts/perf-explore.js`, `perfCount`), each against `docs/DEFERRED.md` first.
 6. **The identity.** `npm run check:vision -- --list`; score words, numerals
    and accent colour in the area's copy and pictures.
 7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:

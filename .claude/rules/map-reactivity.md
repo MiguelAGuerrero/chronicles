@@ -3,6 +3,9 @@ paths:
   - "src/components/map/WalkMap*.tsx"
   - "src/components/map/types.ts"
   - "src/lib/perfCount.ts"
+  - "src/lib/{useGlidingWalker,useLiveTrace,liveDot,markNames}.ts"
+  - "src/components/ceremony/useCeremonyClock.ts"
+  - "src/app/replay/*.tsx"
   - "scripts/{perf-walk,perf-explore}.js"
   - "src/lib/__tests__/map/{storefrontNames,storefrontNamesAudit,storefrontNamesUi,perfCount}.test.ts"
 ---
@@ -23,8 +26,13 @@ paths:
     It skips follow moves under 2 px.
   - The trace is a history source re-sent once per 100 fixes, plus a live
     tail (`splitTrace`). On native, `TraceSource` is memoized, because MapLibre
-    RN serializes a source's data on every render.
-  - Line sources use `tolerance: 1, buffer: 64`.
+    RN serializes a source's data on every render (`JSON.stringify` in its
+    `GeoJSONSource`, checked in v11.5). **The budget is the web's**: native glides
+    through React state at ~15 fps (`useGlidingWalker`) and the replay's clock at
+    30, re-rendering every inline source under them; memo each source that does
+    not change per frame, and give the per-frame part its own small component.
+  - Line sources use `tolerance: 1, buffer: 64` (web; native's `GeoJSONSource` takes the same props
+    and does not set them yet).
   - Profiling shows the app's own JavaScript under 2% of a desktop core; the
     rest is the map drawing. Fewer updates is what helps.
   - **A setState with the value already held still renders** when React can't
