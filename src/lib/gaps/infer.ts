@@ -551,6 +551,18 @@ export function fillsOf(stretches: Stretch[]): Fill[] {
   return stretches.filter((s) => s.how !== 'offer').map((s) => ({ t0: s.t0, t1: s.t1, path: s.path }));
 }
 
+/** The stretches only offered, none yet walked (G15). */
+export function offersOf(stretches: Stretch[]): Stretch[] {
+  return stretches.filter((s) => s.how === 'offer');
+}
+
+/** The walk's-end prompt (G15), in words and never a count; null with nothing offered. */
+export function keepAllWords(n: number): { title: string; sub: string } | null {
+  if (n <= 0) return null;
+  const sub = n === 1 ? 'One gap has a likely way along the streets.' : n === 2 ? 'Two gaps have a likely way along the streets.' : 'A few gaps have a likely way along the streets.';
+  return { title: 'Keep the likely way?', sub };
+}
+
 /**
  * The stretch a tap at `p` reaches (G9): the nearest within `radiusM`, or
  * null. A tap near either end is the recorded trace there, where captures

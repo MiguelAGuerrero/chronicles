@@ -100,4 +100,9 @@ export function decide(walkId: string, s: Stretch, state: GapDecision['state'], 
   return db.putGapDecision({ walk_id: walkId, t0: s.t0, t1: s.t1, state, path: s.path, length_m: s.lengthM, street: s.street, decided_at: now });
 }
 
+/** Keeps every offered stretch at once (G15): one stored decision each, as Keep on its card. */
+export async function keepAll(walkId: string, offers: Stretch[], now = Date.now()): Promise<void> {
+  await Promise.all(offers.map((s) => decide(walkId, s, 'kept', now)));
+}
+
 export { fillsOf, gapKey, stretchAt, type Stretch } from './infer';

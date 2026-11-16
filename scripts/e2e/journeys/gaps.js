@@ -133,6 +133,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
     await pg.waitForTimeout(1500);
     const firstCard = await mapState();
+    check((await pg.locator('[data-testid=keep-gaps-card]').count()) === 0, 'G15: nothing offered at the walk\'s end, so the first replay asks nothing');
     // A later session: nothing inferred is remembered, and the filled stretch must still be there (gaps audit 2).
     await pg.reload();
     await pg.waitForSelector('[data-testid=skip], [data-testid=to-name], [data-testid=done]', { timeout: 60000 });
@@ -210,7 +211,7 @@ module.exports = {
   name: 'gaps',
   covers: [
     'src/lib/gaps/**',
-    'src/components/{GapCard,GapDraw}.tsx',
+    'src/components/{GapCard,GapDraw,KeepGapsCard}.tsx',
     'src/app/replay/**',
     'src/app/walk.tsx',
   ],

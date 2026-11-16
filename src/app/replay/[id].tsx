@@ -27,13 +27,14 @@ import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
 import { snapWalk } from '../../lib/finish';
-import { decide } from '../../lib/gaps';
-import { emptyGapAt, emptyGaps, gapKey, stretchAt, type Gap } from '../../lib/gaps/infer';
+import { decide, keepAll } from '../../lib/gaps';
+import { emptyGapAt, emptyGaps, gapKey, keepAllWords, offersOf, stretchAt, type Gap } from '../../lib/gaps/infer';
 import type { DrawnLine } from '../../lib/gaps/draw';
 import { useGapDraw } from '../../lib/gaps/useGapDraw';
 import { GapDraw } from '../../components/GapDraw';
 import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
+import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
 import { backFrom, beatWords, FOG_MS, pinHint } from '../../lib/replay';
@@ -159,6 +160,25 @@ export default function Replay() {
     const d = await loadReplay(id).catch(() => null);
     if (d) setData(d);
     setGapOpen(null);
+    setGapBusy(false);
+  };
+  // Settled at walk's end (G15): the first replay asks once whether to keep every offered way.
+  const [keepAsked, setKeepAsked] = useState(false);
+  const keepThem = async () => {
+    if (!data) return;
+    setGapBusy(true);
+    setGapError(null);
+    try {
+      await keepAll(data.walk.id, offersOf(data.stretches));
+    } catch {
+      setGapError('Couldn’t save that. Try again.');
+      setGapBusy(false);
+      return;
+    }
+    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+    const d = await loadReplay(id).catch(() => null);
+    if (d) setData(d);
+    setKeepAsked(true);
     setGapBusy(false);
   };
   const showHere = (at: LngLat, radiusM?: number) => {
@@ -578,6 +598,17 @@ export default function Replay() {
           onClose={() => setGapOpen(null)}
           onKeep={() => void decideGap('kept')}
           onDismiss={() => void decideGap('dismissed')}
+        />
+      )}
+
+      {!rewatch && !keepAsked && beat === 'card' && data && !gapOpen && !isDrawing && !here && !viewing && keepAllWords(offersOf(data.stretches).length) && (
+        <KeepGapsCard
+          words={keepAllWords(offersOf(data.stretches).length)!}
+          busy={gapBusy}
+          error={gapError}
+          style={{ bottom: sheetH + 12, zIndex: 5 }}
+          onKeep={() => void keepThem()}
+          onLeave={() => setKeepAsked(true)}
         />
       )}
 

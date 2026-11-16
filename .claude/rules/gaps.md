@@ -2,6 +2,7 @@
 paths:
   - "src/lib/gaps/**"
   - "src/components/GapCard.tsx"
+  - "src/components/KeepGapsCard.tsx"
   - "src/lib/tileCollector/**"
   - "src/lib/__tests__/gaps/**"
 ---
@@ -133,5 +134,11 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
   (`display: none`: Playwright counts `opacity: 0` as visible); on the replay
   the card's sheet steps aside. The web map writes `data-gaplinks` and
   `data-drawing`.
+- **Settled at walk's end** (G15, the owner, Nov 16): the first replay, never a
+  re-watch, asks once on the card beat when gaps are offered, `KeepGapsCard`
+  ("Keep the likely way?", words, no count). Keep them stores every offer as a
+  kept decision (`keepAll`) and snaps once; Leave them stores nothing, so
+  offers stay decidable from their cards. Opt-in is kept (0060); only the asking
+  moved to the walk's end.
 - **Native** (unverified on a device): migration 14, the faint layer, the
   card over the native map.

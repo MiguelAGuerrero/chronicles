@@ -22,6 +22,7 @@ How it decides: the likely way is the shortest walk over the streets between the
 12. **G12 · Where.** On the walk screen once a new fix closes a gap (back in the app, or GPS back), and on the replay. Deciding on the replay snaps the walk again, so its card and streets follow.
 13. **G13 · Every walk.** The rule change marks every walk to snap again when its replay next opens, so old walks with gaps get their stretches then.
 14. **G14 · Deleting.** Deleting a walk deletes its kept and dismissed stretches.
+15. **G15 · Settled at walk's end.** On the first replay after a walk (never a re-watch), when gaps are offered, the card beat asks once, in words: "Keep the likely way?" with Keep them and Leave them. Keep them stores every offer as a kept decision (G10), then the walk is snapped once, so distance, streets and the replay stop changing on later opens. Leave them stores nothing: each gap stays offered and is still decided from its card. It never asks with nothing offered, never while a gap's card, a drawing or a viewer is open, and never counts in numbers (the owner's call, Nov 16).
 
 ## Tests
 

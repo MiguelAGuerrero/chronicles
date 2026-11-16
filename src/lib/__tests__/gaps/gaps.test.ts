@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwells, type Bounds } from '../../geo';
-import { fillsOf, GAP_RULES, gapsOf, inferGap, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../../gaps/infer';
+import { fillsOf, GAP_RULES, gapsOf, inferGap, keepAllWords, offersOf, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../../gaps/infer';
 import { liveRuns, readTrace, traceDistances, withFilled } from '../../rides';
 import { tilesNear } from '../../tileMath';
 import { snap } from '../../snapper';
@@ -445,4 +445,18 @@ test('G1 (Nov 3): a break within 10 m is joined straight and filled by itself, w
   assert.equal(inf.path.length, 2);
   const filled = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.06, 0), at(2, 0)], 300), 0, [], [], fillsOf(stretchesFor(gaps, [inf], [])));
   assert.equal(liveRuns(filled).length, 1, 'one line');
+});
+
+// G15: settled at walk's end (the owner's call, Nov 16).
+test('G15 offers are the stretches only offered, and the prompt is words', () => {
+  const mk = (t0: number, how: 'offer' | 'kept' | 'certain') => ({ t0, t1: t0 + 1, path: [at(0, 0), at(1, 0)], lengthM: 100, street: null, how }) as never;
+  const list = [mk(1, 'offer'), mk(3, 'kept'), mk(5, 'offer'), mk(7, 'certain')];
+  assert.deepEqual(offersOf(list).map((s) => s.t0), [1, 5]);
+  assert.deepEqual(offersOf([mk(3, 'kept')]), []);
+  assert.deepEqual(keepAllWords(0), null);
+  for (const n of [1, 2, 3, 12]) {
+    const w = keepAllWords(n)!;
+    assert.equal(w.title, 'Keep the likely way?');
+    assert.ok(!/\d/.test(w.sub), `no number in "${w.sub}"`);
+  }
 });
