@@ -477,7 +477,9 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'quick-circuit': { branch: 'claude/lucid-gates-810ryf', since: '2026-11-16' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
