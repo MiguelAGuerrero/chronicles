@@ -181,6 +181,12 @@
       "swept": "2026-11-12",
       "main": "5da9460089118733f8b71c2b3c2fc8451a3194a4",
       "note": "First sweep, not whole: the largest text size and the screen reader are phone-only (T23, T24). One high and seven medium loop findings; fourteen commits shipped (beat one's headline under Skip, the end ring on the walker, the day card's units, Back and Escape on the name step, Tap for sound, a card over the note at 320 and 375, the memo's time, the announcements, the day's frame and rides, landscape's stack, the day card's line, the headline's colour, six checks that could not fail), and the review's audit 2-6 (the memo's time on one line, a card under a status bar, a held Escape, the pills in landscape, the headline under Skip). Filed [loop]: loadReplay's full scans (medium), the caption on one line, the day card's scroll, two comments, the browser's Back on the name step. T19-T22 [owner], T23-T24 [phone] open; decision 0153 holds the owner's answers."
+    },
+    "presence": {
+      "state": "rough",
+      "swept": "2026-11-16",
+      "main": "d50d8a512f5c45e385e488945fa5ede2737f1124",
+      "note": "First run, not a sweep (lenses 1-6 not run): built the owner's answer to the [arch] neighbourhood read-past (decision 0172) as tend presence 1, the read-past after normalizeWords in presence and community parks alike under PRESENCE_CODE p5, nothing carried; the auditor's F1, F2, F3, F4, F6 (the owner's Nov 16 answer: Old Towne, Olde Town, Oldtown) and F7 fixed as tend presence audit 1, F5 rejected. Goldens unchanged. No [loop] item of presence's own files left in DEFERRED."
     }
   },
   "declined": []
