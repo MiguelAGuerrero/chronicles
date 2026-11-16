@@ -183,6 +183,14 @@ const FEATURES = [
     specs: ['map-layers', 'explore-dense-city', 'smooth-switches'],
   },
   {
+    name: 'storefronts',
+    about: 'the shops as data (a storefront pack family from chronicles-data) and an off-by-default Storefronts layer on every map with a Layers button, kept apart from presence and Explore',
+    rule: 'storefronts',
+    source: ['src/lib/storefronts/**', 'src/components/StorefrontCard.tsx'],
+    journeys: ['storefronts'],
+    specs: ['storefronts'],
+  },
+  {
     name: 'walkability',
     about: 'how a street treats someone on foot: the bands, the walkability layer and its icons, the area card\'s line, the heads-up',
     rule: 'walkability',

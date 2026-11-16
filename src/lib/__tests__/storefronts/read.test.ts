@@ -1,0 +1,104 @@
+/// <reference types="node" />
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+// Storefronts (specs/storefronts): the pure read, written before the code.
+type At = [number, number];
+type Shop = { type: string; name: string; at: At; chain: boolean };
+type Mark = { at: At; merged: boolean; place?: Shop };
+type Target = 'control' | 'pin' | 'mark' | 'zoom' | 'card' | 'none';
+const read = () =>
+  import('../../storefronts/read' as string) as Promise<{
+    storefrontsFromTile: (f: { geometry: { type: string; coordinates: unknown }; properties?: Record<string, unknown> }[]) => Shop[];
+    thin: (places: readonly Shop[], zoom: number) => Mark[];
+    nearest: (marks: readonly Mark[], at: At, radiusM: number) => Mark | null;
+    withinOf: (places: readonly Shop[], you: At, m: number) => Shop[];
+    pressTarget: (i: { control: boolean; capturePin: boolean; mark: boolean; storefront: Mark | null }) => Target;
+    storefrontOrder: () => string[];
+  }>;
+
+const pt = (lon: number, lat: number, properties: Record<string, unknown>) => ({ geometry: { type: 'Point', coordinates: [lon, lat] }, properties });
+const shop = (name: string, at: At, o: Partial<Shop> = {}): Shop => ({ type: 'second_hand', name, at, chain: false, ...o });
+
+test('SF4: a record keeps its type, name, position and chain flag, and every other field is dropped', { todo: 'test first' }, async () => {
+  const { storefrontsFromTile } = await read();
+  const [s] = storefrontsFromTile([pt(-75.19, 40.69, { type: 'second_hand', name: 'Second Chance', rating: 4.8, popularity: 9, hours: 'Mo-Su 9-5', phone: '1', website: 'x', description: 'd', id: 'n1', brand: 'b', stars: 5 })]);
+  assert.deepEqual(Object.keys(s).sort(), ['at', 'chain', 'name', 'type']);
+  assert.deepEqual([s.type, s.name, s.at, s.chain], ['second_hand', 'Second Chance', [-75.19, 40.69], false]);
+});
+
+test('SF4, SF9: a record with no name, a bad position or a value that is not drawn is not a place', { todo: 'test first' }, async () => {
+  const { storefrontsFromTile } = await read();
+  const got = storefrontsFromTile([
+    pt(-75.19, 40.69, { type: 'second_hand' }),
+    pt(-75.19, 40.69, { type: 'second_hand', name: '  ' }),
+    pt(NaN, 40.69, { type: 'second_hand', name: 'Nowhere' }),
+    pt(-75.19, 40.69, { type: 'supermarket', name: 'Grocer' }),
+    { geometry: { type: 'LineString', coordinates: [] }, properties: { type: 'books', name: 'Line' } },
+    pt(-75.19, 40.69, { type: 'books', name: 'Page One' }),
+  ]);
+  assert.deepEqual(got.map((p) => p.name), ['Page One']);
+});
+
+test('SF5: the chain flag is kept when the record says so, and is never inferred from a name', { todo: 'test first' }, async () => {
+  const { storefrontsFromTile } = await read();
+  const got = storefrontsFromTile([pt(0, 0, { type: 'charity', name: 'Goodwill', chain: true }), pt(0, 1, { type: 'charity', name: 'Goodwill' }), pt(0, 2, { type: 'charity', name: 'Goodwill', chain: 'yes' })]);
+  assert.deepEqual(got.map((p) => p.chain), [true, false, false], 'only a boolean true is a flag');
+});
+
+test('SF10: marks are one size: a mark holds a position, whether it is merged and, if single, its place, and no count', { todo: 'test first' }, async () => {
+  const { thin } = await read();
+  const marks = thin([shop('A', [-75.19, 40.69]), shop('B', [-75.1901, 40.6901]), shop('C', [-75.1902, 40.6902]), shop('Far', [-75.0, 40.5])], 14);
+  for (const m of marks) assert.ok(Object.keys(m).every((k) => ['at', 'merged', 'place'].includes(k)), Object.keys(m).join());
+  assert.ok(marks.some((m) => m.merged && !m.place), 'close places merge into one mark with no place');
+  assert.ok(marks.some((m) => !m.merged && m.place?.name === 'Far'));
+});
+
+test('SF10: close places merge at a low zoom and split at a high one', { todo: 'test first' }, async () => {
+  const { thin } = await read();
+  const two = [shop('A', [-75.19, 40.69]), shop('B', [-75.1903, 40.6903])];
+  assert.equal(thin(two, 14).length, 1, 'zoom 14: one mark');
+  assert.equal(thin(two, 19).length, 2, 'zoom 19: two marks');
+});
+
+test('SF12: on the walk maps only places within the distance of you', { todo: 'test first' }, async () => {
+  const { withinOf } = await read();
+  const you: At = [-75.19, 40.69];
+  const got = withinOf([shop('Near', [-75.19, 40.695]), shop('Far', [-75.19, 40.71])], you, 800);
+  assert.deepEqual(got.map((p) => p.name), ['Near']);
+});
+
+test('SF12: the marks draw above the base map and under the dot, trace, route, capture pins, mark pins and busy names', { todo: 'test first' }, async () => {
+  const { storefrontOrder } = await read();
+  const o = storefrontOrder();
+  const i = o.indexOf('storefronts');
+  assert.ok(i > o.indexOf('base'), 'above the base map');
+  for (const above of ['dot', 'trace', 'route', 'capture-pins', 'mark-pins', 'busy-names']) assert.ok(o.indexOf(above) > i, `${above} is above the storefronts`);
+});
+
+test('SF14: the nearest unmerged mark within the reach is the one tapped, and none beyond', { todo: 'test first' }, async () => {
+  const { thin, nearest } = await read();
+  const marks = thin([shop('Near', [-75.19, 40.6901]), shop('Nearer', [-75.19, 40.69002]), shop('Far', [-75.19, 40.71])], 18);
+  assert.equal(nearest(marks, [-75.19, 40.69], 60)?.place?.name, 'Nearer');
+  assert.equal(nearest(marks, [-75.19, 40.80], 60), null);
+});
+
+test('SF14: a capture pin, a mark or the walker\'s controls take a tap before a storefront; a merged mark zooms and opens no card', { todo: 'test first' }, async () => {
+  const { pressTarget } = await read();
+  const single: Mark = { at: [0, 0], merged: false, place: shop('A', [0, 0]) };
+  const merged: Mark = { at: [0, 0], merged: true };
+  const base = { control: false, capturePin: false, mark: false, storefront: single };
+  assert.equal(pressTarget(base), 'card');
+  assert.equal(pressTarget({ ...base, storefront: merged }), 'zoom');
+  assert.equal(pressTarget({ ...base, mark: true }), 'mark');
+  assert.equal(pressTarget({ ...base, capturePin: true, mark: true }), 'pin');
+  assert.equal(pressTarget({ ...base, control: true, capturePin: true }), 'control');
+  assert.equal(pressTarget({ ...base, storefront: null }), 'none');
+});
+
+test('SF18: nothing a read returns can say a shop was visited, passed, found or done', { todo: 'test first' }, async () => {
+  const { storefrontsFromTile, thin } = await read();
+  const [p] = storefrontsFromTile([pt(0, 0, { type: 'books', name: 'B', visited: true, passed: true, found: true, done: true })]);
+  const keys = [...Object.keys(p), ...thin([p], 18).flatMap((m) => Object.keys(m))];
+  assert.ok(!keys.some((k) => /visit|pass|found|done|seen|count|rank/i.test(k)), keys.join());
+});

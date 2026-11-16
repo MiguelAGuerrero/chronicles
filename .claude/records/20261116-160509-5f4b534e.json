@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Storefronts (the shops as data, a pack family built in chronicles-data from OpenStreetMap shop=*, each place with its shop type and a chain flag, and an off-by-default Storefronts layer on Explore, Navigate ready and the live walk, kept apart from presence and Explore; SF1-SF18, gated aligned if reshaped Nov 14, amends 0044; circuits are a later slice) | `claude/nice-hopper-nvpwap` | spec, plan and steward triage done 2026-11-14; tests first committed 2026-11-16 (43 unit todos and the `storefronts` journey's todo checks); the app half is built against fixtures, the pack's adapter belongs in chronicles-data (not attached); native unverified |\n"
+    }
+  ]
+}
