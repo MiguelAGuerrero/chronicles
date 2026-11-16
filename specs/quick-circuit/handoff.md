@@ -5,14 +5,18 @@ is the contract it must meet. It follows the places archive's contract (`src/lib
 
 ## The record (one store)
 
-`id` (opaque, stable, from the crosswalk), `name`, `at` ([lon, lat]), `what` (one or more of the closed list below), `src` (a source's
-short code). Nothing else: no rating, review count, price level, popularity, foot traffic, photo, or "open now". `hours` is reserved
+`id` (opaque, stable, from the crosswalk), `name`, `at` ([lon, lat]), `facets` (a map from a dimension to one or more values of its closed
+list, below), `src` (a source's short code). Nothing else: no rating, review count, price level, popularity, foot traffic, photo, or "open now". `hours` is reserved
 (absent in v1) so a later contract version can add it without renaming anything.
 
-## The closed list of specialisms (v1)
+## Dimensions and their closed lists
 
-`antiques`, `vintage`, `books`, `records`, `maps`, `art_supplies`, `crafts`. A shop with none of them is not in the pack. The app's
-vocabulary maps entries to these (`outing/wants.ts`); an entry may match several.
+A dimension is added by a contract version, never by a record; the app ignores a dimension or value it does not know (QC40).
+
+- **`what`** (v1, what a shop sells): `antiques`, `vintage`, `books`, `records`, `maps`, `art_supplies`, `crafts`. A shop with none is not in the pack.
+- **`how`** (reserved, not emitted in v1; the owner's example, "vintage versus thrift"): `vintage`, `thrift`, `new`, from OpenStreetMap's `second_hand` and `charity`/thrift tags. Never "cheap", "quality" or any measure.
+
+The app's vocabulary maps entries to facets (`outing/wants.ts`); an entry may match several values or combine dimensions.
 
 ## What may enter, and from where
 

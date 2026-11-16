@@ -33,7 +33,7 @@ Verdict: aligned if reshaped
 Shape: one proposal; a vocabulary of what a place is (never how good, dear, busy or open); stops by kind, named on a tap or on arrival
   from the data, never stored; a stores layer whose records hold what a shop sells and nothing a crowd says; Swap without wrap or repeat;
   hours not known and said once
-Criteria: QC1-QC36 below
+Criteria: QC1-QC40 below
 Open: the owner's calls of Nov 16 are in Decisions; a decision record for the stores layer (it amends 0115 and 0044) is the owner's
 ```
 
@@ -50,7 +50,17 @@ Open: the owner's calls of Nov 16 are in Decisions; a decision record for the st
 - **Named stops, but as you arrive** (the owner, after the gate's pushback, Nov 16): a slot says its kind and how far; its name shows on a
   tap or when you reach it; no name is stored (the steward's S1).
 - **No opening hours or admission in v1**: the page says once that they are not known.
-- **BLOCKING, the owner's decision record** (written before any code, `npm run book:next-decision`; the slice does not start without it,
+- **Shops are presence, not points of interest** (the owner, Nov 16, second round): they matter to understanding where you are and are
+  already in presence; a shop is not a mark or a place to find unless something particular (a listing, a history) makes it one, which the
+  existing gates already decide. The stores layer is presence data for outings and never makes a store a point of interest (QC31). This
+  answers the blocking item below; the record is decision 0182.
+- **The stores pack should ship** (the owner, Nov 16): the app's reader is built for it; the pack itself is built and published by
+  chronicles-data (`handoff.md`), which this session cannot reach unless it is added.
+- **Books is the second entry** (confirmed).
+- **Extensible to dimensions** (the owner, Nov 16): what a shop sells is the first dimension; a second may follow ("vintage versus thrift"),
+  and the user will eventually craft what they want to see from a rich dataset. The engine therefore makes no assumption about what it
+  displays: it plans over candidates carrying facets in named dimensions, and an entry of the vocabulary is a predicate over facets (QC37-QC40).
+- ~~BLOCKING, the owner's decision record~~ (answered above; kept for the record) (written before any code, `npm run book:next-decision`; the slice does not start without it,
   and without it QC11-QC15 and QC31 are deferred and the outing runs on the tiles alone): a stores layer enters a shop by what it sells and
   by nothing a crowd says, amending 0115 ("ordinary shops stay out") and 0044, for this layer and for `outing/` only (QC31). Its shape
   is the steward's R1; the vision's Shapes table gains a line for outings with it.
@@ -71,7 +81,7 @@ The owner's task, and finding it:
 
 The vocabulary:
 
-- **QC4.** Entries are data (`outing/wants.ts`): each has an id, a label, aliases and the specialisms it matches. v1 ships Antiques and
+- **QC4.** Entries are data (`outing/wants.ts`): each has an id, a label, aliases and a match, a predicate over a candidate's facets (QC37). v1 ships Antiques and
   Books. Adding an entry adds a table row and its tests, no planner code (a fixture entry proves it). The vocabulary and the specialism
   list are a gate of kinds (what a shop sells), never a measure: no field orders, weights or prefers an entry, held by a comment and a test;
   the list grows only by the owner's decision (0103; steward R4).
@@ -93,9 +103,10 @@ The proposal:
 
 The stores layer (the richer data):
 
-- **QC11.** A store record holds an id, a name, a position, one or more specialisms from a closed list and its source, and nothing else:
-  no rating, review count, price level, popularity, foot traffic, photo or "open now". Hours are reserved in the contract and not
-  emitted in v1. A schema test over the adapter fails on any other field.
+- **QC11.** A store record holds an id, a name, a position, its facets (a map from a dimension to one or more values of that dimension's
+  closed list; v1's one dimension is `what`, what it sells) and its source, and nothing else: no rating, review count, price level,
+  popularity, foot traffic, photo or "open now". Hours are reserved in the contract and not emitted in v1. A schema test over the adapter
+  fails on any other field.
 - **QC12.** A store enters by what it sells (a specialism from open data such as OpenStreetMap's shop tags) and by nothing a crowd says:
   the reading reads no rating, count of mentions, popularity or page views (as PP5-PP7 hold for the archive).
 - **QC13.** A chain is never a stop (`chains.json`, whole leading words).
@@ -150,6 +161,16 @@ What never leaks (the steward's S1-S8, accepted):
 - **QC30.** With no position the page says it needs one and proposes nothing (no simulation). While a walk is recording the page carries the capture stack, as the planner does (WP23): a
   moment needs a walk to belong to, `PlannerCapture` takes a walk's id, and with no walk Start is what begins one.
 
+- **QC37.** (extensibility) The core plans over a `Candidate` (an id, a position and facets by dimension) and a `Want` (an entry: its match over
+  facets) and holds no word of any dimension, value or kind of place. A store is only the first source of candidates. A test plans with a
+  fixture second dimension (`how`: vintage, thrift) and a fixture non-store source (murals) through the same code, with nothing changed.
+- **QC38.** Several dimensions combine by the rule that picking across dimensions narrows (all must match) and picking within one widens (any
+  may match), said once on the page in words; an entry may be a single value or a combination (a "vintage books" entry is a row).
+- **QC39.** (granularity without cost to the experience) The page's first screen is the same however many dimensions the data holds: the
+  search box and the entries; dimensions are groups of chips opened from it, never a form of dropdowns; no dimension is required to get a
+  proposal; the first proposal still needs one pick and one tap. Held by the journey with the fixture second dimension.
+- **QC40.** The contract is versioned: a dimension and its closed list are added by a new contract version and read by the app only when it
+  knows them; an unknown dimension or value in a pack is ignored, never fails the read and never shows (the archive's contract rule).
 - **QC31.** (the edge, R1) The stores layer is read only by `outing/`. No store reaches the places archive, `markable`, the atlas's kinds,
   Explore's marks, the landing's finds or a checklist; a grep over the importers and a test over `isMarkable` hold it.
 - **QC32.** (R8) QC1's finding criterion is a review criterion: the `ux-reviewer`'s cold find, not a unit test.

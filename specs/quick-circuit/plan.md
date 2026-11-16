@@ -1,4 +1,4 @@
-# Plan an outing: plan (QC1-QC36)
+# Plan an outing: plan (QC1-QC40)
 
 Written 2026-11-16 (second version, after the owner's reframe), for the owner's review before any code. It reuses the walk planner (0102)
 and the places archive's reader pattern (0103, 0108) and adds no second planner and no second map.
@@ -17,11 +17,12 @@ New, `src/lib/outing/` (each starts with `// @layer`):
 
 | File | Layer | Holds |
 |---|---|---|
-| `wants.ts` | core | `WANTS`: `{ id, label, aliases, specialisms, slotWord }`; Antiques and Books; `matchWants(query)` over label and aliases only (QC2, QC4, QC5) |
-| `stores.ts` | core | `Store` (id, name, at, specialisms, src), the closed `SPECIALISMS` list, `isStore` (rejects any other field) (QC11, QC12) |
+| `candidates.ts` | core | `Candidate` (id, at, facets by dimension), `Want` (id, label, aliases, `match`, `slotWord`), `matches(want, candidate)`: across dimensions all, within one any (QC37, QC38) |
+| `wants.ts` | core | `WANTS`: the table, Antiques and Books (`what: antiques`, `what: books`); `matchWants(query)` over label and aliases only (QC2, QC4, QC5) |
+| `stores.ts` | core | `Store` (id, name, at, facets, src), the contract's `DIMENSIONS` (v1: `what` and its closed list), `isStore` (rejects any other field), `asCandidate` (QC11, QC12, QC40) |
 | `storesRead.ts` | adapter | the only file that knows the pack's schema (as `archivePois.ts`): `storesFromPack`, and `StoresSource` with an in-memory source (QC14) |
 | `storesMerge.ts` | core | the pack's stores and the tiles' shop places into one list: chains out, one place within 200 m for the same name and kind (QC13, QC15) |
-| `pick.ts` | core | `pickStops(stores, wants, from, ceilingM, offered)`: the union of the picked wants' stores, ordered by position only; the tie rule; no quota per want (QC7-QC9) |
+| `pick.ts` | core | `pickStops(candidates, wants, from, ceilingM, offered)`: the candidates the picked wants match, ordered by position only; the tie rule; no quota per want (QC7-QC9) |
 | `plan.ts` | core | `planOuting(input, leg)`: picks, orders with the planner's `fitOrder`, loop or one way, the ceiling and the retrace rule; reasons (`noPosition`, `few`, `noRoute`, `noLoop`, and the wants with none) (QC6-QC10, QC30, QC36) |
 | `swap.ts` | core | `swapStop(plan, i, stores, offered)`: nearest other of the same want, not held, not offered for that slot; none says so; no wrap (QC21) |
 | `words.ts` | core | slot line, distance-on words, the hours line, the reasons; banned-word grep (QC17, QC20, QC25, QC28) |
@@ -55,6 +56,7 @@ presence's class (a code, not a schema); `PRESENCE_CODE` makes atlas and landing
 | QC1 | journey `outing`: the control on Explore, its word; one tap opens the page; picking an entry gives a proposal. The cold find: the `ux-reviewer`, given the picture and "plan an outing for antiques from where you are" |
 | QC2 | `wants.test.ts` (alphabetical; typing narrows by label and aliases only, picks nothing; no match shows nothing and stores nothing); journey |
 | QC3 | `plan.test.ts` (loop first; One way replans; no `fakePorts` meta write); journey |
+| QC37-QC40 | `candidates.test.ts` (a fixture `how` dimension and a murals source plan with no code change; across narrows, within widens; an unknown dimension or value is ignored); journey (the first screen is the same with the fixture dimension) |
 | QC4 | `wants.test.ts` (a fixture entry plans with no code change; no field orders or weights); a grep that `plan.ts`/`pick.ts` hold no entry word |
 | QC5 | `wants.test.ts` (the banned-word grep over labels and aliases) |
 | QC6 | `plan.test.ts` (one proposal); journey (one route, no rows) |
@@ -114,7 +116,8 @@ chip, not a banner; Swap is text, not an inked button; v1's vocabulary has two e
 
 ## For the owner
 
-1. **BLOCKING: the decision record for the stores layer** (the owner's; before any code): a shop enters this layer by what it sells and by
+1. **Settled by the owner's Nov 16 message, recorded as decision 0182 (drafted, for the owner to confirm):** shops are presence, never points of interest;
+   the stores pack ships; Books second; the engine extensible to dimensions. What follows is the question as first asked, kept for the record: a shop enters this layer by what it sells and by
    nothing a crowd says, amending 0115's "ordinary shops stay out" and 0044 for this layer and for `outing/` only (QC31); the vision's Shapes
    table gains a line for outings. Is "one layer, outing only" a lasting line or the start of a wider shift? Without the record the slice
    runs on the tiles alone and QC11-QC15 and QC31 are deferred.
