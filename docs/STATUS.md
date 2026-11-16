@@ -222,7 +222,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
 
-### From /fix
+### From /fix carousel-snap-back
 
 - The `atlas` journey's check "AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring" fails on `main` as well (seen Nov 16 on `acb18b0` with and without the carousel-snap-back fix: "ring "" → ", Fox Point at (0.0, 0.5) px from the middle). Not touched by this fix; the journey is the only place it shows, since CI runs no journey.
 
