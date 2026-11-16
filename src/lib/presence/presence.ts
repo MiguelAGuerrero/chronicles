@@ -16,7 +16,7 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * p2: the archive, names and landcover read here (specs/presence-readers); nothing derived changed, so p1 rows are carried (PS9).
  * p3: only storefronts weigh toward density (specs/storefronts SF10, decision 0180); a weight changed, so nothing is carried (SF11).
  */
-export const PRESENCE_CODE = 'p3';
+export const PRESENCE_CODE = 'p4';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
@@ -56,6 +56,15 @@ const DEFS = {
   structure: { weight: FULL, category: 'history', kind: 'structures' },
   heritage: { weight: FULL, storefront: true },
   attraction: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'viewpoints' },
+  // Small places (specs/small-places, decision 0182): each a subset of its kind (`subset`, a switch in "What I'm into"),
+  // weighing in a bar by the size of the stop (`bar`); none is a storefront (SP14). A community garden has no switch.
+  plaque: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'plaques' },
+  small_memorial: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'small_memorials' },
+  old_stone: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'structures', subset: 'old_stones' },
+  wayside_shrine: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'churches', subset: 'wayside_shrines' },
+  time_capsule: { weight: QUARTER, bar: QUARTER, category: 'viewpoints', kind: 'curiosities', subset: 'time_capsules' },
+  bookcase: { weight: HALF, bar: HALF, category: 'culture', kind: 'community', subset: 'little_libraries' },
+  community_garden: { weight: HALF, bar: HALF, category: 'parks', kind: 'parks' },
   // Everyday and civic places, green and views.
   community: { weight: HALF, storefront: true, category: 'culture', kind: 'community' },
   civic_hall: { weight: HALF, storefront: true, category: 'history', kind: 'monuments' },
@@ -87,7 +96,16 @@ const DEFS = {
   historic: { weight: 0, category: 'history' },
 } as const satisfies Record<string, ClassDef>;
 
-export type ClassDef = { readonly weight: number; readonly storefront?: true; readonly category?: CategoryId; readonly kind?: Kind };
+export type ClassDef = {
+  readonly weight: number;
+  readonly storefront?: true;
+  readonly category?: CategoryId;
+  readonly kind?: Kind;
+  /** SP3: the subset of `kind` a small place belongs to, its own switch (decision 0182). */
+  readonly subset?: Kind;
+  /** SP12: how much it counts toward its bar (the size of the stop); absent, a whole place. */
+  readonly bar?: number;
+};
 export type PresenceClass = keyof typeof DEFS;
 export const CLASSES: Readonly<Record<PresenceClass, ClassDef>> = DEFS;
 export const classDef = (c: PresenceClass): ClassDef => CLASSES[c];
@@ -238,7 +256,10 @@ export function classesOfOverture(hierarchy: readonly string[]): PresenceClass[]
 const ARCHIVE: Record<string, PresenceClass> = {
   folly: 'curiosity', novelty_building: 'curiosity', roadside_giant: 'curiosity', natural_oddity: 'curiosity', odd_engineering: 'curiosity',
   marks_a_fact: 'curiosity', art_environment: 'curiosity', ruin: 'curiosity',
-  monument: 'monument', statue: 'monument', marker: 'monument', memorial: 'memorial_site',
+  monument: 'monument', statue: 'monument', memorial: 'memorial_site',
+  // SP3 (decision 0182): a marker is a plaque whoever lists it (the owner, Nov 16), and the other small places of contract v3.
+  marker: 'plaque', small_memorial: 'small_memorial', old_stone: 'old_stone', wayside_shrine: 'wayside_shrine', time_capsule: 'time_capsule',
+  public_bookcase: 'bookcase', community_garden: 'community_garden',
   mural: 'artwork', sculpture: 'artwork',
   overlook: 'viewpoint', tower: 'viewpoint',
   // RP8 (decisions 0109, 0111): listed places by type.
@@ -271,6 +292,27 @@ const UNNAMED: Record<string, string> = { artwork: 'Public art', viewpoint: 'A v
 /** D4: the words an unnamed poi of this subclass shows, or null where an unnamed one is no place. */
 export const unnamedLabel = (sub: string): string | null => own(UNNAMED, sub) ?? null;
 
+/** SP5: the archive's classes that may come unnamed (contract v3), and the words such a place shows, as an unnamed viewpoint. */
+const ARCHIVE_UNNAMED: Record<string, string> = {
+  marker: 'A plaque', small_memorial: 'A memorial', old_stone: 'An old stone', wayside_shrine: 'A wayside shrine', time_capsule: 'A time capsule',
+  public_bookcase: 'A little library', community_garden: 'A community garden', statue: 'A statue', mural: 'Public art', sculpture: 'Public art',
+};
+
+/** SP5: the words an unnamed archive place of this class shows, or null where an unnamed one is no place. */
+export const archiveUnnamedLabel = (cls: string): string | null => own(ARCHIVE_UNNAMED, cls) ?? null;
+
+/** SP3: the subset (a switch of its own) a place of these classes belongs to, read from its mark class; null for none. */
+export function subsetOf(classes: readonly PresenceClass[]): Kind | null {
+  const c = markClassOf(classes);
+  return (c && CLASSES[c].subset) ?? null;
+}
+
+/** SP12: how much a place of these classes counts toward its bar: its mark class's `bar`, a whole place by default. */
+export function barWeight(classes: readonly PresenceClass[] | undefined): number {
+  const c = classes ? markClassOf(classes) : null;
+  return (c && CLASSES[c].bar) ?? 1;
+}
+
 /** L7: transit the landing prefers to start from: railway stations and halts, bus stations, ferry terminals (moved from `tilePois.ts`). */
 const TRANSIT: Record<string, readonly string[]> = {
   railway: ['station', 'halt', 'subway', 'light_rail'],
@@ -292,7 +334,7 @@ export const SOURCE_TAGS: readonly string[] = [
     ...Object.keys(OVERTURE_ROOT), ...Object.keys(OVERTURE_DEEPER), ...OVERTURE_NEVER,
     ...Object.keys(ARCHIVE),
     ...Object.entries(LANDCOVER).flatMap(([cls, rules]) => [cls, ...rules.flatMap(([subs]) => (subs === '*' ? [] : subs))]),
-    ...Object.keys(UNNAMED), ...Object.entries(TRANSIT).flatMap(([cls, subs]) => [cls, ...subs]),
+    ...Object.keys(UNNAMED), ...Object.keys(ARCHIVE_UNNAMED), ...Object.entries(TRANSIT).flatMap(([cls, subs]) => [cls, ...subs]),
   ]),
 ];
 

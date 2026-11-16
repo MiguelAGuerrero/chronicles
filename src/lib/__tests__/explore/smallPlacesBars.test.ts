@@ -1,7 +1,8 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { characterLine, ringOf, type AtlasProfile } from '../../atlas/atlas';
+import * as atlasModule from '../../atlas/atlas';
+import { characterLine, ringOf } from '../../atlas/atlas';
 import { archivePlace } from '../../discovery/archivePois';
 import type { Kind } from '../../discovery/types';
 import { parseHidden } from '../../explore/explore';
@@ -14,13 +15,10 @@ const O: LngLat = [-75.37, 40.61];
 const mLon = 111320 * Math.cos((O[1] * Math.PI) / 180);
 const at = (e: number, n = 0): LngLat => [O[0] + e / mLon, O[1] + n / 110540];
 const V = 'us-20261116';
-const atlas = () => import(String('../../atlas/atlas')) as Promise<{
-  presenceTally(places: unknown[], centre: LngLat): { counts: Record<string, number>; shares: Record<string, Record<string, number>> };
-  stepsShown(profile: Pick<AtlasProfile, 'steps'> & { tally?: unknown }, hidden: Set<Kind>): Record<string, number>;
-}>;
+const atlas = async () => atlasModule;
 const arch = (cls: string, n: number, name = '') => Array.from({ length: n }, (_, i) => archivePlace(name ? `${name} ${i}` : '', cls, at(i * 30, 40), V)!);
 
-test('SP12: four plaques light History\'s first dot with plaques on, none with them off; weights by the size of the stop', { todo: 'test first' }, async () => {
+test('SP12: four plaques light History\'s first dot with plaques on, none with them off; weights by the size of the stop', async () => {
   const { presenceTally, stepsShown } = await atlas();
   const ring = ringOf(arch('marker', 4, 'Plaque'), null, O).ring;
   const tally = presenceTally(ring, O);
@@ -39,7 +37,7 @@ test('SP12: four plaques light History\'s first dot with plaques on, none with t
   assert.equal(fixed.counts.art, 1);
 });
 
-test('SP13: flipping a switch changes the dots and the character line from the stored profile alone', { todo: 'test first' }, async () => {
+test('SP13: flipping a switch changes the dots and the character line from the stored profile alone', async () => {
   const { presenceTally, stepsShown } = await atlas();
   const ring = ringOf(arch('marker', 16, 'Plaque'), null, O).ring;
   const profile = { steps: { history: 0, art: 0, food: 0, shops: 0, parks: 0, culture: 0, viewpoints: 0, nightlife: 0 }, tally: presenceTally(ring, O) } as never;

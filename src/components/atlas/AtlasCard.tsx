@@ -23,6 +23,7 @@ import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT } from '../map/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { foundRows } from '../../lib/discovery/smallPlaces';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
 import { KindRow } from './KindStrip';
 import { MiniMap } from './MiniMap';
@@ -68,7 +69,7 @@ export function AtlasCard(props: {
   fam: Familiarity;
   walked: Set<string>;
   waiting: { category: CategoryId; at: LngLat }[];
-  finds: { name: string; category: CategoryId; at: LngLat }[];
+  finds: { name: string; category: CategoryId; at: LngLat; generic?: boolean }[];
   you: LngLat | null;
   nextDoor: { area: AtlasArea; distanceM: number }[];
   walkTo: { at: LngLat; label: string; via: string | null } | null;
@@ -330,7 +331,8 @@ export function AtlasCard(props: {
             <View style={styles.sec}>
               <Text style={styles.secTitle} accessibilityRole="header">Found</Text>
               <View testID="atlas-found">
-                {props.finds.map((f, i) => (
+                {/* SP21: unnamed finds of one type are one row in the plural, never a column of the same word. */}
+                {foundRows(props.finds).map((f, i) => (
                   <View key={`${f.name}-${i}`} style={styles.found}>
                     <Icon name={KIND_ICON_OF[f.category]} size={18} color={KIND_COLOR[f.category]} />
                     <Text style={styles.foundName}>{f.name}</Text>

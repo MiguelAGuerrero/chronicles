@@ -3,6 +3,7 @@ import type { RoadFeature } from '../streets';
 import { outlinesOf } from './green';
 import { communityParks } from './parkKind';
 import { refine, type Refinement } from './refine';
+import { SMALL_REFINEMENTS } from './smallPlaces';
 import type { Kind, Place } from './types';
 
 /*
@@ -12,7 +13,7 @@ import type { Kind, Place } from './types';
  */
 
 /** The refinements, in the order they run. */
-export const REFINEMENTS: readonly Refinement[] = [communityParks];
+export const REFINEMENTS: readonly Refinement[] = [communityParks, ...SMALL_REFINEMENTS];
 
 /** PC18: a read's places with the registry applied; `landcover` and the archive's places are what the read holds. */
 export const refineRead = (places: readonly Place[], read: { landcover?: RoadFeature[]; archive?: readonly Place[] | null }): Place[] =>

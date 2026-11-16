@@ -54,8 +54,8 @@ async function run(h) {
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
   const first = await walkLeg(0, 23);
-  check.todo(first.some((l) => /A time capsule/.test(String(l))), `SP1: an exploring walk names the archive's unnamed time capsule "A time capsule" (${JSON.stringify([...new Set(first)])})`);
-  check.todo(first.every((l) => !/Founders Plaque/.test(String(l))), `SP7, SP11: no plaque is drawn while Plaques and markers is off by default (${JSON.stringify([...new Set(first)])})`);
+  check(first.some((l) => /A time capsule/.test(String(l))), `SP1: an exploring walk names the archive's unnamed time capsule "A time capsule" (${JSON.stringify([...new Set(first)])})`);
+  check(first.every((l) => !/Founders Plaque/.test(String(l))), `SP7, SP11: no plaque is drawn while Plaques and markers is off by default (${JSON.stringify([...new Set(first)])})`);
 
   // SP2: the walk's options; the row sits under Monuments and memorials, indented, off.
   await pg.click('[data-testid=walk-summary]');
@@ -66,18 +66,18 @@ async function run(h) {
   const on = await pg.locator('[data-testid=kind-plaques]').getAttribute('aria-checked').catch(() => null);
   const label = await pg.locator('[data-testid=kind-plaques]').innerText().catch(() => '');
   await shot(pg, 'small-places-what-im-into');
-  check.todo(!!mon && !!row && row.y > mon.y && on === 'false' && /Plaques and markers/.test(label),
+  check(!!mon && !!row && row.y > mon.y && on === 'false' && /Plaques and markers/.test(label),
     `SP2: "What I'm into" lists Plaques and markers under Monuments and memorials, off (${JSON.stringify({ mon: mon?.y, at: row?.y, on, label })})`);
   const monText = await pg.locator('[data-testid=kind-monuments]').evaluate((e) => e.getBoundingClientRect().left + parseFloat(getComputedStyle(e).paddingLeft || '0')).catch(() => null);
   const rowText = await pg.locator('[data-testid=kind-plaques]').evaluate((e) => e.getBoundingClientRect().left + parseFloat(getComputedStyle(e).paddingLeft || '0')).catch(() => null);
-  check.todo(monText != null && rowText != null && rowText > monText, `SP2: the row is indented under its parent (${monText} < ${rowText})`);
+  check(monText != null && rowText != null && rowText > monText, `SP2: the row is indented under its parent (${monText} < ${rowText})`);
 
   // SP11: switched on, the plaque is drawn on the way back.
   await pg.locator('[data-testid=kind-plaques]').click();
   await pg.keyboard.press('Escape');
   await pg.waitForTimeout(500);
   const back = await walkLeg(0, 23);
-  check.todo(back.some((l) => /Founders Plaque/.test(String(l))), `SP11: with Plaques and markers on, the walk draws the plaque (${JSON.stringify([...new Set(back)])})`);
+  check(back.some((l) => /Founders Plaque/.test(String(l))), `SP11: with Plaques and markers on, the walk draws the plaque (${JSON.stringify([...new Set(back)])})`);
   await c.close();
   places.files = {};
   places.manifest = JSON.stringify({ schema: 1, regions: [] });

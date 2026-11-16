@@ -8,6 +8,7 @@ import { normalizeWords, notableName } from '../presence/notable';
 import parkNotable from './parkNotable.json';
 import type { Refinement } from './refine';
 import type { Place } from './types';
+import { isSmallPlace } from './smallPlaces';
 
 /*
  * Community parks (specs/community-parks, PC1-PC5, PC11): the first refinement of the kind pipeline (`refine.ts`). The parks
@@ -63,7 +64,8 @@ const pastNeighbourhood = (name: string): string =>
 const notablePark = (name: string): boolean => hasWord(name, NOTABLE) || notableName(pastNeighbourhood(name));
 
 /** A place a park is not plain for (PC2): something to find that is not a park itself. */
-const isSignal = (p: Place): boolean => p.markable === true && !!p.kind && p.kind !== 'parks' && p.kind !== 'community_parks' && p.kind !== 'community';
+// SP19 (decision 0182): a small place (a bench, a plaque, an old stone) is no reason either, switched on or off.
+const isSignal = (p: Place): boolean => p.markable === true && !!p.kind && p.kind !== 'parks' && p.kind !== 'community_parks' && p.kind !== 'community' && !isSmallPlace(p);
 
 /** The area of a polygon's rings in square metres: the outside less its holes. */
 function areaM2(rings: LngLat[][]): number {
@@ -100,7 +102,7 @@ export const communityParks: Refinement = {
       if (!communityName(p.name) && !small) return false;
       if (held.length && (area! >= PARK_RULES.largeM2 || held.some((o) => signals.some((s) => inRings(s.at, [o.rings[0]]))))) return false;
       if (signals.some((s) => distanceM(s.at, p.at) <= PARK_RULES.signalNearM)) return false;
-      return !ctx.archive.some((a) => distanceM(a.at, p.at) <= PARK_RULES.archiveNearM);
+      return !ctx.archive.some((a) => !isSmallPlace(a) && distanceM(a.at, p.at) <= PARK_RULES.archiveNearM);
     };
   },
 };

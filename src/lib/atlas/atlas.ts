@@ -1,5 +1,6 @@
 // @layer core
-import { PRESENCE_CARRIED, PRESENCE_CODE, type PresenceClass } from '../presence/presence';
+import { barWeight, PRESENCE_CARRIED, PRESENCE_CODE, subsetOf, type PresenceClass } from '../presence/presence';
+import { SMALL_SUBSETS } from '../discovery/smallPlaces';
 import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
@@ -37,7 +38,8 @@ import type { Pocket } from './pockets';
 /** a12: a park with a small outline and nothing notable in or near it is a community park whatever its name (fix community-park, 0163); none carried. */
 /** a13: a profile keeps each storefront street's point, so the card lists them nearest first (specs/storefronts SF3); none carried. */
 /** The atlas's own part of a row's code (a13). */
-const ATLAS_OWN = 'a13';
+// a14: small places (specs/small-places SP12, SP13): the bars keep counts and each small subset's share apart.
+const ATLAS_OWN = 'a14';
 /** A row's code: the atlas's own (a13) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
@@ -129,9 +131,21 @@ export interface Sketch {
   parks: number[];
 }
 
+/**
+ * SP12, SP13: what the bars are counted from, kept so a reader's switches re-add them without reading the area again:
+ * each category's weighted count of the places with no switch of their own, and each small subset's weighted share.
+ */
+export interface Tally {
+  counts: Partial<Record<CategoryId, number>>;
+  shares: Partial<Record<Kind, Partial<Record<CategoryId, number>>>>;
+}
+
 /** What a full ring read leaves (cache). */
 export interface AtlasProfile {
+  /** The bars with every small subset left out; a reader's own come from `stepsShown` (SP13). */
   steps: Steps;
+  /** SP13: what `steps` was counted from, with the small subsets' shares (absent on a profile from before a14). */
+  tally?: Tally;
   /** Storefront streets, the densest first (its order is never shown: the card lists them nearest first, SF3). */
   strips: string[];
   /** SF3: each street's point, beside `strips` (absent on a profile from before a13). */
@@ -211,17 +225,54 @@ function inRing<T extends AtlasPlace>(places: T[], centre: LngLat, within: Withi
  * church counts toward nothing); food, shops and nightlife count every place.
  */
 export function presenceSteps(places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): Steps {
+  return stepsFrom(presenceTally(places, centre, within), ALL_SMALL_OFF);
+}
+
+/**
+ * SP12: the weighted counts the bars are read from. A place counts by the size of the stop (presence's `barWeight`: a
+ * plaque a quarter, a little library a half, the rest whole); a small place goes to its subset's share, never the count.
+ */
+export function presenceTally(places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): Tally {
   const seen = new Set<string>();
-  const counts = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Record<CategoryId, number>;
+  const counts: Partial<Record<CategoryId, number>> = {};
+  const shares: Tally['shares'] = {};
   for (const p of places) {
     if (!countsToward(p)) continue;
     if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
+    const w = barWeight(p.classes);
+    const subset = p.classes ? subsetOf(p.classes) : null;
     // PK1-PK4: a place lights each of its bars once (a museum the data calls historic, History and Culture).
-    for (const bar of barsOf(p)) counts[bar] += 1;
+    for (const bar of barsOf(p)) {
+      if (subset) {
+        const sh = (shares[subset] ??= {});
+        sh[bar] = (sh[bar] ?? 0) + w;
+      } else counts[bar] = (counts[bar] ?? 0) + w;
+    }
   }
-  return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => counts[c] >= s).length as Step])) as Steps;
+  return { counts, shares };
 }
+
+/** Every small subset off: what a stored `steps` is counted with. */
+const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SMALL_SUBSETS.map((s) => s.kind));
+
+/** SP12, SP13: the bars from a tally, adding the shares of the subsets the reader has on (a parent off hides its subsets). */
+export function stepsFrom(t: Tally, hidden: ReadonlySet<Kind>): Steps {
+  const total = (c: CategoryId) =>
+    (t.counts[c] ?? 0) + Object.entries(t.shares).reduce((sum, [k, sh]) => (isKindHidden(hidden as Set<Kind>, k as Kind) ? sum : sum + (sh?.[c] ?? 0)), 0);
+  return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => total(c) >= s - 1e-9).length as Step])) as Steps;
+}
+
+/**
+ * SP13: listed areas as a reader sees them: each profile's `steps` read again with their switches, so every view of the
+ * bars (the tile's dots, the card's rows, the character line, the spoken label) follows a switch without a read.
+ */
+export function withShownSteps<T extends { area: AtlasArea }>(list: readonly T[], hidden: ReadonlySet<Kind>): T[] {
+  return list.map((l) => (l.area.profile?.tally ? { ...l, area: { ...l.area, profile: { ...l.area.profile, steps: stepsShown(l.area.profile, hidden) } } } : l));
+}
+
+/** SP13: the bars a reader sees for a profile: from its tally and their switches, or its stored steps before a14. */
+export const stepsShown = (p: Pick<AtlasProfile, 'steps' | 'tally'>, hidden: ReadonlySet<Kind>): Steps => (p.tally ? stepsFrom(p.tally, hidden) : p.steps);
 
 /** AG3: the map knows almost nothing about this ring: fewer than `thinPlaces` places of the eight kinds, ordinary ones included. */
 export const thinRing = (places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): boolean =>
@@ -801,5 +852,6 @@ export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centr
   // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
   const ring = counted.filter((p) => within(p.at)).map((p) => ({ ...p, markable: isMarkable(p) }));
   const mapRing = tilePlaces.filter((p) => within(p.at));
-  return { ring, steps: presenceSteps(ring, centre, within), marks: marksOf(ring, isMarkable), thin: thinRing(mapRing, centre, within) };
+  const tally = presenceTally(ring, centre, within);
+  return { ring, steps: stepsFrom(tally, ALL_SMALL_OFF), tally, marks: marksOf(ring, isMarkable), thin: thinRing(mapRing, centre, within) };
 }
