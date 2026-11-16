@@ -6,7 +6,7 @@ import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
-import { isKindHidden } from '../discovery/refinements';
+import { isKindHidden, kindParent } from '../discovery/refinements';
 import { DEFAULT_OFF, keepTheLows, passedNames, SMALL_SUBSETS } from '../discovery/smallPlaces';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
@@ -57,7 +57,8 @@ export interface KindInfo {
 /** SP3: the small subsets of a parent, as rows of "What I'm into", with their own icons. */
 function small(parent: Kind): KindInfo[] {
   const ICON: Partial<Record<Kind, string>> = {
-    plaques: 'easel-outline', small_memorials: 'flower-outline', old_stones: 'trail-sign-outline',
+    // small-places ui 1: an easel read as art; a sheet with lines reads as a sign with words on it.
+    plaques: 'document-text-outline', small_memorials: 'flower-outline', old_stones: 'trail-sign-outline',
     wayside_shrines: 'flame-outline', time_capsules: 'hourglass-outline', little_libraries: 'bookmarks-outline',
   };
   return SMALL_SUBSETS.filter((s) => s.parent === parent).map((s) => ({ id: s.kind, label: s.label, icon: ICON[s.kind] ?? 'ellipse-outline' }));
@@ -88,6 +89,12 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
   ...small('curiosities'),
 ];
+
+/** small-places ui 2: what a subset row tells a screen reader of its parent ("Part of Monuments and memorials"); none for a kind of its own. */
+export function kindHint(id: Kind): string | undefined {
+  const parent = kindParent(id);
+  return parent ? `Part of ${kindOf(parent).label}` : undefined;
+}
 
 export const kindOf = (id: Kind): KindInfo => KINDS.find((k) => k.id === id) ?? KINDS[0];
 

@@ -43,7 +43,7 @@ The owner's task, in their words: "find small things like a time capsule while e
 - **SP4** an unknown class, or a known small class with a tag outside the table, is left out (never guessed).
 - **SP5** an unnamed small place enters, named by its type as an unnamed viewpoint is ("A plaque", "A little library", "A time capsule", "A memorial", "An old stone", "A wayside shrine", "A statue", "Public art", "A community garden"); its card and find say that name once ("Found: A little library", never "A little library · Little libraries"); an unnamed place of any other archive class is still left out.
 - **SP6** two unnamed small places of the same type in one ~10 m cell are one place.
-- **SP7** on a fresh install, Plaques and markers, Small memorials, Old stones and Wayside shrines and crosses are off; Time capsules and Little libraries are on.
+- **SP7** on a fresh install, Plaques and markers, Small memorials, Milestones and old stones and Wayside shrines and crosses are off; Time capsules and Little libraries are on.
 - **SP8** after the update, a reader with saved switches from before gets the same defaults; a parent they had switched off still hides its new subsets.
 - **SP9** a subset switched on stays on after a reload and a new archive version; one switched off by the reader stays off.
 - **SP10** a subset's row shows only while its parent is on, and is off and locked under a parent switched off (as Community parks).
@@ -70,6 +70,22 @@ The owner's task, in their words: "find small things like a time capsule while e
 - Silent 1, a Stolperstein's name is the victim's: the owner, Nov 16: their own name.
 - Silent 2, an unfound unnamed place named for its kind (0143): rejected as a conflict. 0143 keeps the subset's label ("Community parks") off unfound places; "Time capsule" says what the thing is, as an unnamed artwork has read "Public art" since v1.
 
+## UI review (Nov 16)
+
+The cold find (decision 0167), told only "turn plaques on" and "turn little libraries off", placed both on their rows,
+sure. The UI review (decision 0145), on the walk's drawer:
+- U1 (low), icons that point elsewhere: accepted in part, `small-places ui 1` (plaques wear a sheet with lines, not an
+  easel); little libraries keep `bookmarks-outline`, since `book-outline` is a tab's and `library-outline` History's (a
+  test forbids both); the hourglass and the flame stay (opinion).
+- U2 (low), only the indent shows the parent: accepted, `small-places ui 2` (a subset row's hint, "Part of …").
+- U3 (low), the row and the find's words differ: accepted, `small-places ui 3` ("Milestones and old stones").
+- U4 (low), eighteen rows with no headings: deferred (`docs/DEFERRED.md`), a change to the whole list.
+- U5 (low, opinion), "Plaques" alone in Found: rejected; the steward's S3 shape, and the same word as the passed line.
+- U6 (low, before this slice), the drawer's grabber over a row: deferred.
+
 ## Record
 
-Not built. The plan waits for the owner.
+Built Nov 16 on `claude/epic-darwin-m94owv`, test-first (22 of 22). SP1-SP22 pass: unit tests (`smallPlaces.test.ts`,
+`smallPlacesBars.test.ts`, the older tests the slice re-pinned: ATLAS_CODE a14.p4, the archive table, the kinds' order,
+PS8's listed change), typecheck, lint, and the e2e `small-places` on the web build. The data side is chronicles-data's
+SL1-SL11 on its branch of the same name (70 of 70 tests). Native unverified (`docs/NATIVE_UNVERIFIED.md`).

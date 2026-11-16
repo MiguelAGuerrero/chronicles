@@ -1,0 +1,43 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "a time capsule and a plaque from the places archive",
+        "--reason",
+        "small-places ui 3 renamed the row"
+      ],
+      "body": "- [ ] **Do:** on a phone with switches saved before this update, open \"What I'm into\", then walk (Explore on) past a time capsule and a plaque from the places archive. **Expect:** Plaques and markers, Small memorials, Milestones and old stones and Wayside shrines and crosses sit indented under their kinds and are off; Time capsules and Little libraries are on; the time capsule is a \"?\" named \"A time capsule\" within 60 m and the plaque is not drawn until its row is switched on; an area's dots change at once when the row is switched (SP2, SP7, SP8, SP11, SP13).\n",
+      "target": "sha256:ec986bff5bd402dd8016a62176ab9857291570f7406bdab3d36a4086713c7014"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Small places (SP1-SP22, decision 0182)"
+      ],
+      "body": "- **Category headings in \"What I'm into\"** (the UI review's U4): eighteen rows with no group names, so a card's \"History\" cannot be matched to a block of rows; the five categories as headers would answer it, a change to the whole list rather than to this slice.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Small places (SP1-SP22, decision 0182)"
+      ],
+      "body": "- **The drawer's grabber over a row** (the UI review's U6, before this slice): in the walk's drawer the grabber is drawn over the half-clipped first row; it wants its own strip above the scrolling list.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Small places (OpenStreetMap locates a pinned table of small places, the kind Pikmin Bloom's postcards reach: time capsules and little libraries on, plaques and markers, small memorials, milestones and old stones, wayside shrines off by default, each a switch under its kind; unnamed ones named by type; the bars weigh them by the size of the stop only when switched on; never a park's signal, never a route's lean, never drowning the lows; SP1-SP22, decision 0182; the data side is chronicles-data's SL1-SL11) | built 2026-11-16, test-first (22 of 22): unit tests, typecheck, lint, docs and vision checks; e2e `small-places` (new), `marks`, `curiosities` and the journeys covering its files; cold find and UI review triaged (`small-places ui 1-3`); not deployed; chronicles-data's branch not merged; native unverified | `claude/epic-darwin-m94owv` (both repos) | `specs/small-places/spec.md` (repo first) | no |\n"
+    }
+  ]
+}

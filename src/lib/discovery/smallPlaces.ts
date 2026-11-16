@@ -27,7 +27,7 @@ export interface SmallSubset {
 export const SMALL_SUBSETS: readonly SmallSubset[] = [
   { kind: 'plaques', parent: 'monuments', label: 'Plaques and markers', plural: 'Plaques', single: 'A plaque', on: false },
   { kind: 'small_memorials', parent: 'monuments', label: 'Small memorials', plural: 'Memorials', single: 'A memorial', on: false },
-  { kind: 'old_stones', parent: 'structures', label: 'Milestones and boundary stones', plural: 'Old stones', single: 'An old stone', on: false },
+  { kind: 'old_stones', parent: 'structures', label: 'Milestones and old stones', plural: 'Old stones', single: 'An old stone', on: false },
   { kind: 'wayside_shrines', parent: 'churches', label: 'Wayside shrines and crosses', plural: 'Wayside shrines', single: 'A wayside shrine', on: false },
   { kind: 'time_capsules', parent: 'curiosities', label: 'Time capsules', plural: 'Time capsules', single: 'A time capsule', on: true },
   { kind: 'little_libraries', parent: 'community', label: 'Little libraries', plural: 'Little libraries', single: 'A little library', on: true },

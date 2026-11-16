@@ -6,7 +6,7 @@ import { mergePlaces } from '../../discovery/archiveMerge';
 import { kindRows, kindSwitch, refineRead } from '../../discovery/refinements';
 import { placesFromTilePois } from '../../discovery/tilePois';
 import type { Kind, Place } from '../../discovery/types';
-import { foundLine, KINDS, parseHidden, passedLine, passedPlaces, visibleMarks, type ChecklistItem } from '../../explore/explore';
+import { foundLine, KINDS, kindHint, parseHidden, passedLine, passedPlaces, visibleMarks, type ChecklistItem } from '../../explore/explore';
 import { waitingMarks, type AtlasMark } from '../../atlas/atlas';
 import { sightsFrom } from '../../nav/scenicSignals';
 import { classesOfArchive, isStorefront, storefrontWeight } from '../../presence/presence';
@@ -202,21 +202,21 @@ test('SP17: the app pins chronicles-data\'s contract v3, its classes exactly the
 });
 
 // The UI review's accepted findings (specs/small-places, UI review), each before its fix.
-const explore = () => import(String('../../explore/explore')) as Promise<{ KINDS: { id: string; icon: string; label: string }[]; kindHint?: (k: Kind) => string | undefined }>;
+const explore = async () => ({ KINDS, kindHint });
 
-test('small-places ui 1: the plaques row never wears an easel, which reads as art', { todo: 'test first' }, async () => {
+test('small-places ui 1: the plaques row never wears an easel, which reads as art', async () => {
   const { KINDS: kinds } = await explore();
   assert.equal(kinds.find((k) => k.id === 'plaques')?.icon, 'document-text-outline');
 });
 
-test('small-places ui 2: a subset row tells a screen reader which kind it belongs to; a kind of its own says nothing', { todo: 'test first' }, async () => {
+test('small-places ui 2: a subset row tells a screen reader which kind it belongs to; a kind of its own says nothing', async () => {
   const { kindHint } = await explore();
   assert.equal(kindHint?.('plaques' as Kind), 'Part of Monuments and memorials');
   assert.equal(kindHint?.('community_parks' as Kind), 'Part of Parks and gardens');
   assert.equal(kindHint?.('monuments' as Kind), undefined);
 });
 
-test('small-places ui 3: the old stones row carries the words a find of it says', { todo: 'test first' }, async () => {
+test('small-places ui 3: the old stones row carries the words a find of it says', async () => {
   const { KINDS: kinds } = await explore();
   assert.match(kinds.find((k) => k.id === 'old_stones')?.label ?? '', /old stones/i);
 });
