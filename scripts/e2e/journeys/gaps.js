@@ -4,7 +4,7 @@
 // it is offered faint until kept. E2E_ONLY=gaps runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles } = h;
+  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles, shot } = h;
     const { c, pg } = await freshPage('gaps');
     await c.addInitScript(() => { window.__perf = {}; });
     const here = at(3.0, -0.5);
@@ -205,6 +205,92 @@ async function run(h) {
         `GW5: Done keeps the drawn way: one line again, no dotted join (${JSON.stringify(drawn)}, ${JSON.stringify(keptNow)})`);
     }
     await c.close();
+
+    // G15: an offer left undecided at Stop is asked about once, on the first replay's card.
+    {
+      const { c: c2, pg: p2 } = await freshPage('gaps-end');
+      await c2.addInitScript(() => { window.__perf = {}; });
+      const here2 = at(3.0, -0.5);
+      await p2.goto(navUrl);
+      await p2.waitForSelector('[data-testid=start]');
+      await p2.click('[data-testid=start]');
+      await p2.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      for (let k = 0; k < 3; k++) {
+        await c2.setGeolocation({ longitude: here2[0], latitude: here2[1] + k * 0.000001, accuracy: 6 });
+        await p2.waitForTimeout(1000);
+      }
+      for (let k = 0; k < 15 && !(await metaOf(p2, 'tile_url')); k++) await p2.waitForTimeout(1000);
+      const w2 = await openWalk(p2);
+      const t2 = Date.now();
+      const m = 60_000;
+      const run2 = (from, to, t0) => {
+        const pts = [];
+        const n = Math.max(1, Math.round(Math.hypot((to[0] - from[0]) * 100, (to[1] - from[1]) * 100) / 7));
+        for (let k = 0; k <= n; k++) {
+          const q = at(from[0] + ((to[0] - from[0]) * k) / n, from[1] + ((to[1] - from[1]) * k) / n);
+          pts.push({ walk_id: w2.id, t: t0 + k * 5000, lon: q[0], lat: q[1], accuracy_m: 6, speed: 1.4, course: null });
+        }
+        return pts;
+      };
+      const pts2 = [...run2([-1.9, -0.5], [-1.2, -0.5], t2 - 27 * m), ...run2([2.2, -0.5], [3.0, -0.5], t2 - 16 * m)];
+      await p2.evaluate(([id, startedAt, pts]) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['walk', 'trace_point'], 'readwrite');
+          const w = tx.objectStore('walk').get(id);
+          w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+          for (const q of pts) tx.objectStore('trace_point').add(q);
+          tx.oncomplete = () => resolve(true);
+        };
+      }), [w2.id, t2 - 27 * m - 1000, pts2]);
+      await p2.reload();
+      await p2.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      await c2.setGeolocation({ longitude: here2[0], latitude: here2[1], accuracy: 6 });
+      const state2 = () => p2.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint) }));
+      let s2 = await state2();
+      for (let k = 0; k < 20 && s2.faint !== 1; k++) {
+        await p2.waitForTimeout(1000);
+        s2 = await state2();
+      }
+      const stop2 = await p2.locator('[data-testid=stop]').boundingBox();
+      await p2.mouse.move(stop2.x + stop2.width / 2, stop2.y + stop2.height / 2);
+      await p2.mouse.down();
+      await p2.waitForTimeout(1100);
+      await p2.mouse.up();
+      await p2.waitForURL(/replay/, { timeout: 30000 });
+      await p2.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+      await p2.click('[data-testid=skip]');
+      await p2.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await p2.waitForSelector('[data-testid=keep-gaps-card]', { timeout: 20000 }).catch(() => {});
+      await p2.waitForTimeout(800);
+      const asked = await p2.locator('[data-testid=keep-gaps-card]').innerText().catch(() => '');
+      check(/Keep the likely way\?/.test(asked) && !/\d/.test(asked.replace('Keep the likely way?', '')), `G15: the first replay asks once about the offered gap, in words ("${asked.replace(/\n/g, ' · ')}")`);
+      await shot(p2, 'g15-keep-gaps');
+      await p2.click('[data-testid=leave-gaps]');
+      await p2.waitForTimeout(500);
+      const left = await state2();
+      check((await p2.locator('[data-testid=keep-gaps-card]').count()) === 0 && left.faint === 1, `G15: Leave them stores nothing; the gap stays offered (${JSON.stringify(left)})`);
+      await p2.reload();
+      await p2.waitForSelector('[data-testid=skip], [data-testid=to-name]', { timeout: 60000 });
+      if (await p2.locator('[data-testid=skip]').count()) await p2.click('[data-testid=skip]');
+      await p2.waitForSelector('[data-testid=keep-gaps-card]', { timeout: 30000 }).catch(() => {});
+      await p2.click('[data-testid=keep-gaps]');
+      let kept2 = await state2();
+      for (let k = 0; k < 30 && kept2.faint !== 0; k++) {
+        await p2.waitForTimeout(500);
+        kept2 = await state2();
+      }
+      const stored = await p2.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('gap_fill', 'readonly').objectStore('gap_fill').getAll();
+          g.onsuccess = () => resolve(g.result.map((r) => r.state));
+        };
+      }));
+      check(kept2.faint === 0 && JSON.stringify(stored) === '["kept"]' && (await p2.locator('[data-testid=keep-gaps-card]').count()) === 0,
+        `G15: Keep them keeps the offered way and the card goes (${JSON.stringify(kept2)}, ${JSON.stringify(stored)})`);
+      await c2.close();
+    }
 }
 
 module.exports = {
