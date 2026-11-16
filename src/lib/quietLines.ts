@@ -22,11 +22,15 @@ export function newStreetsLine(names: string[], o: { bind?: boolean } = {}): str
 /**
  * The walk card's streets after its distance and time: "one street walked, your first time down Transit Street", "seven
  * streets walked, three streets new to you" (tend replay T31), the count kept on its noun's line, as a day's walk line
- * keeps its (tend tabs audit 24); null with neither.
+ * keeps its (tend tabs audit 24); when every street walked is new and they are counted, one clause, "three streets, all
+ * new to you" (tend replay audit 14, the owner's answer, Nov 16). `newStreets` is null while the streets are not read.
+ * Null with neither.
  */
-export function walkCardStreets(walked: number, fresh: string | null): string | null {
-  const said = walked > 0 ? `${numberWord(walked)}\u00a0${walked === 1 ? 'street' : 'streets'} walked` : null;
-  return [said, fresh].filter(Boolean).join(', ') || null;
+export function walkCardStreets(walked: number, newStreets: string[] | null): string | null {
+  const fresh = newStreets ? newStreetsLine(newStreets, { bind: true }) : null;
+  const streets = `${numberWord(walked)}\u00a0${walked === 1 ? 'street' : 'streets'}`;
+  if (newStreets && newStreets.length > 2 && newStreets.length === walked) return `${streets}, all new to you`;
+  return [walked > 0 ? `${streets} walked` : null, fresh].filter(Boolean).join(', ') || null;
 }
 
 /**

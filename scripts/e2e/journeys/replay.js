@@ -551,8 +551,10 @@ async function run(h) {
         };
         return { line: read('card-line'), finds: read('card-finds') };
       });
-      check(new RegExp(`· ${NUM} streets? walked, three streets new to you$`).test(said.line?.text ?? '') && !/\d+ streets?\b/.test(said.line.text) && said.line.right <= w && !said.line.cut,
-        `tend replay T31: at ${w} px the walk's card says its streets walked and new in words, whole (${JSON.stringify(said.line)})`);
+      // Every street this walk walked is new to you, so the card says it once (tend replay audit 14, the owner's "three
+      // streets, all new to you"); with an old street among them it would say both clauses.
+      check(new RegExp(`· ${NUM} streets, all new to you$`).test(said.line?.text ?? '') && !/\d+ streets?\b/.test(said.line.text) && !/walked, .* new to you/.test(said.line.text) && said.line.right <= w && !said.line.cut,
+        `tend replay T31, tend replay audit 14: at ${w} px the walk's card says its streets in words, once when all are new, whole (${JSON.stringify(said.line)})`);
       check(said.finds?.text === 'Found Hessian Memorial · Coffee Exchange · Grace Church and two more' && said.finds.right <= w && !said.finds.cut,
         `tend replay T31: at ${w} px the walk's card says "and two more" of its finds, whole (${JSON.stringify(said.finds)})`);
       await shot(pg, `rr-t31-card-${w}`);

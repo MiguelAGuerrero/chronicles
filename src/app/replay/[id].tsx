@@ -434,9 +434,8 @@ export default function Replay() {
   const head = headline(s, data);
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
-  const freshLine = s?.streets_read ? newStreetsLine(data.newStreets, { bind: true }) : null;
-  // Streets walked and new, in words (tend replay T31).
-  const streetsLine = walkCardStreets(s?.streets_walked ?? 0, freshLine);
+  // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
+  const streetsLine = walkCardStreets(s?.streets_walked ?? 0, s?.streets_read ? data.newStreets : null);
 
   const save = async () => {
     if (saving) return;

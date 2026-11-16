@@ -129,12 +129,12 @@ test('tend replay audit 13: the day\'s card reads its places from what the day s
 // The walk's card and the fog beat say their last counts in words, through numberWord (tend replay T31, the owner's
 // yes, Nov 14): streets walked, streets new to you past two, and the finds past four.
 test('tend replay T31: the walk card says its streets walked and its new streets in words', () => {
-  assert.equal(walkCardStreets(1, newStreetsLine(['Transit Street'], { bind: true })), 'one\u00a0street walked, your first time down Transit Street');
-  assert.equal(walkCardStreets(7, newStreetsLine(['A Street', 'B Street', 'C Street'], { bind: true })), 'seven\u00a0streets walked, three\u00a0streets new to you');
-  assert.equal(walkCardStreets(12, null), 'twelve\u00a0streets walked');
+  assert.equal(walkCardStreets(1, ['Transit Street']), 'one\u00a0street walked, your first time down Transit Street');
+  assert.equal(walkCardStreets(7, ['A Street', 'B Street', 'C Street']), 'seven\u00a0streets walked, three\u00a0streets new to you');
+  assert.equal(walkCardStreets(12, []), 'twelve\u00a0streets walked');
   // Past fifty-nine, numberWord's "many".
-  assert.equal(walkCardStreets(75, null), 'many\u00a0streets walked');
-  assert.equal(walkCardStreets(0, null), null);
+  assert.equal(walkCardStreets(75, []), 'many\u00a0streets walked');
+  assert.equal(walkCardStreets(0, []), null);
   // The fog beat's headline takes the same words with a capital, and a screen reader hears plain spaces.
   assert.equal(newStreetsLine(['A Street', 'B Street', 'C Street']), 'three streets new to you');
   assert.equal(newStreetsLine(Array.from({ length: 21 }, (_, i) => `S${i}`)), 'twenty-one streets new to you');
@@ -146,4 +146,14 @@ test('tend replay T31: the walk card says how many more it found in words', () =
   assert.equal(foundList(['A', 'B', 'C', 'D', 'E']), 'Found A · B · C and two more');
   assert.equal(foundList(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O']), 'Found A · B · C and twelve more');
   assert.equal(foundList(['A', 'B', 'C', 'D']), 'Found A · B · C · D');
+});
+
+// tend replay audit 14 (the review's silent question; the owner's answer in person, Nov 16, "three streets, all new to
+// you"): when every street walked is new, the card says one clause, never the count twice. Otherwise both stay; one or
+// two new streets are still named; streets not read yet say no new streets.
+test('tend replay audit 14: every street walked new reads "three streets, all new to you"', () => {
+  assert.equal(walkCardStreets(3, ['A Street', 'B Street', 'C Street']), 'three\u00a0streets, all new to you');
+  assert.equal(walkCardStreets(4, ['A Street', 'B Street', 'C Street']), 'four\u00a0streets walked, three\u00a0streets new to you');
+  assert.equal(walkCardStreets(2, ['A Street', 'B Street']), 'two\u00a0streets walked, your first time down A Street and B Street');
+  assert.equal(walkCardStreets(3, null), 'three\u00a0streets walked');
 });
