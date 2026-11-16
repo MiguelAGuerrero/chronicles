@@ -1,136 +1,158 @@
-<!-- Quick circuit. Written in the repo first (2026-11-16) from the owner's session and their calls below. To be copied into the
-     concept doc as a tab; the doc wins once it exists. Prefix QC. -->
+<!-- Plan an outing (slug quick-circuit, prefix QC). Written in the repo first (2026-11-16) from the owner's session and their calls below.
+     To be copied into the concept doc as a tab; the doc wins once it exists. -->
 
-# Quick circuit: one tap proposes an outing for a kind of place (QC)
+# Plan an outing: describe what you want to see, get one proposed circuit (QC)
 
 Nov 16, 2026 · @Miguel Guerrero
 
 The owner: "a quick start action, that you supply some preferences and the app auto-generates a circuit for you. It has a beginning
-and end, and it's treated as a proposal on how to accomplish a specific type of experience ... an antique expedition ... it will
-select a couple of places and just put me on a route. I don't know what these places are, and I can feel free to detour and shape
-the journey how I want to." Later, "multi-dimensional considerations" (hours, admission, other kinds of outing); not this slice.
+and end, and it's treated as a proposal ... an antique expedition ... it will select a couple of places and just put me on a route. I
+don't know what these places are, and I can feel free to detour." Then, reframing it: "there shouldn't be an antiques entry ... a
+surface that allows a user to describe the sorts of things they want to see and the app proposes one route ... part of the antiques is
+to give an example of how a rich data set of stores can be leveraged to produce a circuit, which may not be possible from just points of
+interest alone." Later: closing times, admission, other dimensions; not this slice.
 
-From Explore, one tap on "Antiques" opens a page that proposes one circuit from where you stand: a start, a few stops that are antiques
-shops, an end. The stops are said as slots ("An antiques shop, a short walk on") and are named only when you tap one or when you
-reach it. Each slot can be swapped for another shop of the same kind. Start begins an ordinary walk that follows the proposal
-and never insists on it.
+From Explore, one control, "Plan an outing", opens a page. You say what you want to see by picking from a vocabulary (a search box over
+chips: Antiques, Books). The app proposes one circuit from where you stand: a start, a few stops, an end. Stops are slots said by
+kind ("An antiques shop, a short walk on"), named only when you tap one or reach it. Each slot can be swapped. Start begins an ordinary
+walk that follows the proposal and never insists on it.
 
 ## Vision
 
 ```
-Idea: One tap plans a circuit (a start, an end, a few stops that can be swapped and wandered from) for one intent, antiques first;
-  v1 knows no opening hours or admission and says so
-Verb: earn (it helps the walker notice where a kind of place is, and gives them a way through it; the stops are found on foot)
-Touches: Never "Several ways ranked by minutes; 'fastest' as a label"; "Ratings, reviews, 'best of'"; "Popularity, trending";
-  "Tallies such as '12 of 87'"; "Nagging"; Always "A route is a suggestion; drifting is never nagged", "Guidance is structural",
-  "Counts are words", "Capture is one tap away"; Who it is for "not tourists working through a list"; 0127 ("a route leans on places
-  you pass, by kind, never named"); 0115 (ordinary shops stay out of the places archive; the tiles carry the shops); 0102 (the planner:
-  a distance, never a time); 0095 (distance in words, no minutes compared)
+Idea: A page opened from Explore where you describe what you want to see by picking from a fixed on-device vocabulary; the app proposes
+  one circuit; antiques is one entry, an example of a rich store dataset making a route that points of interest alone cannot
+Verb: earn (it helps the walker notice where a kind of place gathers and gives them a way through it; the stops are found on foot)
+Touches: Never "Ratings, reviews, stars, 'best of'", "Popularity, trending, foot traffic", "Several ways ranked by minutes; 'fastest'",
+  "Tallies such as '12 of 87'", "Nagging", "Data leaving the device without a tap"; Always "A route is a suggestion; drifting is never
+  nagged", "Guidance is structural", "Counts are words", "Capture is one tap away"; Who it is for "wander a town with no plan",
+  "not tourists working through a list"; 0044 (a mark is for an attraction), 0103 (significance is a gate, never a measure), 0108 (the
+  gate reads no counts; community sources only nominate), 0115 (ordinary shops stay out of the places archive), 0127 (a route leans on
+  places you pass, by kind, never named), 0102 and 0095 (a distance, never a time)
 Verdict: aligned if reshaped
-Shape: one proposal, not several; the stops are slots said by kind and named on a tap or on arrival, so the outing stays a discovery
-  and not a checklist; swap offers another place of the same kind; hours are not known and are said once; the walk is an ordinary
-  walk with a suggested destination (distance only, drifting never nagged)
-Criteria: QC1-QC24 below
-Open: the owner's answers of Nov 16 are in Decisions; the entry's place and the loop default are the plan's (plan.md, "For the owner")
+Shape: one proposal; a vocabulary of what a place is (never how good, dear, busy or open); stops by kind, named on a tap or on arrival
+  from the data, never stored; a stores layer whose records hold what a shop sells and nothing a crowd says; Swap without wrap or repeat;
+  hours not known and said once
+Criteria: QC1-QC30 below
+Open: the owner's calls of Nov 16 are in Decisions; a decision record for the stores layer (it amends 0115 and 0044) is the owner's
 ```
 
 ## Decisions (the owner, 2026-11-16)
 
-- **Named stops they can swap**, then, after the gate's pushback, **named as you arrive**: a slot says its kind and how far it is; its
-  name shows on a tap or when you reach it. 0127's "never named" is not amended: the stops are named by the walker's own act.
-- **Opening hours and admission are out of v1**: the page says once that they are not known. The structure (a place has a window)
-  is left for a later slice and is not designed here.
-- **One intent first, antiques**, as the quick start. Antiques is data (an entry in a table of intents), so a second intent adds an
-  entry and no planner code.
-- **Loop or one-way is chosen each time**: neither is remembered between outings.
+- **Not an antiques button, a describing surface** (the owner's reframe): a page from Explore where you pick what you want to see; antiques
+  is one entry of a vocabulary, the worked example of what a rich store dataset allows.
+- **A vocabulary on the device**, picked from (over the recommended): chips and a search box over a fixed table; no free text is read.
+- **One page from Explore** (over the alternatives): one control, "Plan an outing".
+- **Design the richer data first** (over tiles-first): the store dataset's contract and its reader are specified here; the pack is built
+  by chronicles-data (`handoff.md`). Until a pack covers an area the tiles' shop subtypes serve the same table.
+- **Loop first, One way on the page, not remembered**; **Swap: no wrap, no repeats**; **a new presence class `antiques` beside
+  `boutique`** (the owner, Nov 16).
+- **Named stops, but as you arrive** (the owner, after the gate's pushback, Nov 16): a slot says its kind and how far; its name shows on a
+  tap or when you reach it; no name is stored (the steward's S1).
+- **No opening hours or admission in v1**: the page says once that they are not known.
+- **For the owner's decision record** (written after the go-ahead, `npm run book:next-decision`): a stores layer enters a shop by what it
+  sells and by nothing a crowd says, amending 0115 ("ordinary shops stay out") and 0044 for this layer only; the places archive and
+  marks are unchanged.
 
 ## Criteria
 
-The owner's task, in their words, and finding it:
+The owner's task, and finding it:
 
-- **QC1.** "Start an antiques outing from where I am": from Explore, one tap on a control worded "Antiques" opens a page with one
-  proposed circuit from the walker's position. *Finding criterion:* someone who was not told where it is finds it on Explore from the
-  word and an icon people know (a shop or a compass), without opening a menu or a card first.
-- **QC2.** The page shows Loop and One way, and the first proposal is a loop. The choice is not remembered: the page opens on Loop each
-  time and writes no setting. One way replans without leaving the page.
+- **QC1.** "Describe what I want to see and get an outing": from Explore, one tap on a control worded "Plan an outing" opens a page where
+  I pick what I want to see and one proposed circuit appears from my position. *Finding criterion:* someone who was not told where it is
+  finds it on Explore from the word and an icon people know (a compass or a route), without opening a menu or a card first.
+- **QC2.** The page opens with a search box and the vocabulary's entries as chips. Picking one or more makes the proposal; typing narrows
+  the entries by their label and aliases (not by anything else) and picks nothing itself.
+- **QC3.** The page shows Loop and One way, the first proposal is a loop, and the choice is not remembered: no setting is written, the page
+  opens on Loop each time. One way replans without leaving the page.
+
+The vocabulary:
+
+- **QC4.** Entries are data (`outing/wants.ts`): each has an id, a label, aliases and the specialisms it matches. v1 ships Antiques and
+  Books. Adding an entry adds a table row and its tests, no planner code (a fixture entry proves it).
+- **QC5.** An entry's label and aliases say what a place is. None says quality, price, popularity, time or an opinion ("best", "cheap",
+  "hidden gem", "quiet", "open late"), held by the banned-word grep over the table.
 
 The proposal:
 
-- **QC3.** The stops are places whose presence class is antiques (the tiles' `shop=antiques`), read around the walker. A stop is only a
-  place the tiles carry; nothing is added from a rating, a count of visits, a popularity or a review field.
-- **QC4.** The proposal has two or three stops, said "a few" and never as a digit; with fewer than two reachable within the distance
-  ceiling it proposes nothing and says why in words ("Few antiques shops close by.").
-- **QC5.** The same position, ceiling and mode always give the same proposal: no randomness and no order by anything but position
-  (a tie goes to the more southern, then the more western place).
-- **QC6.** The distance ceiling is the planner's `kindwalk_budget` (2 km by default); the whole circuit, from the walker and in a loop
-  back, stays within it and runs over itself by no more than a tenth (the planner's own rule, WP10, KW16).
-- **QC7.** A one-way proposal ends at its last stop; a loop ends where it began.
+- **QC6.** The page proposes exactly one circuit, never several rows, and nothing is ranked or labelled fastest or best.
+- **QC7.** The stops are stores whose specialism an entry matches, read around the walker. Each picked entry gets at least one stop when its
+  places are within the ceiling; an entry with none is named in words ("Nothing for books close by.") and the rest still proposes.
+- **QC8.** Two or three stops, said "a few", never a digit; with fewer than two reachable within the ceiling nothing is proposed and the
+  words say why ("Few of those close by.").
+- **QC9.** The same position, ceiling, entries and mode always give the same proposal: no randomness; a tie goes to the more southern, then
+  the more western place; nothing orders stops by anything but position and the entry they serve.
+- **QC10.** The ceiling is the planner's `kindwalk_budget` (2 km by default); the whole circuit, from the walker and in a loop back, stays
+  within it and runs over itself by no more than a tenth (WP10, KW16). A one-way proposal ends at its last stop; a loop where it began.
+
+The stores layer (the richer data):
+
+- **QC11.** A store record holds an id, a name, a position, one or more specialisms from a closed list and its source, and nothing else:
+  no rating, review count, price level, popularity, foot traffic, photo or "open now". Hours are reserved in the contract and not
+  emitted in v1. A schema test over the adapter fails on any other field.
+- **QC12.** A store enters by what it sells (a specialism from open data such as OpenStreetMap's shop tags) and by nothing a crowd says:
+  the reading reads no rating, count of mentions, popularity or page views (as PP5-PP7 hold for the archive).
+- **QC13.** A chain is never a stop (`chains.json`, whole leading words).
+- **QC14.** The stores reader is an adapter (`outing/storesRead.ts`, the only file that knows the pack's schema), behind a `StoresSource`
+  with an in-memory source for tests; no dataset is hard-coded (AGENTS.md). It reads by tile, like the places archive, and a read that
+  fails or finds no pack leaves the tiles' shop subtypes serving the same table, with nothing said of it.
+- **QC15.** A store in the pack and the same shop in the tiles are one stop (`mergePlaces`' rule: one place within 200 m for the same name
+  and kind).
+- **QC16.** Presence reads `shop=antiques` (and Overture's antiques) as the class `antiques` beside `boutique`: bars, weights, storefront
+  streets and marks are unchanged, held by the readers' golden; `PRESENCE_CODE` is bumped.
 
 The stops are discoveries:
 
-- **QC8.** A slot reads "An antiques shop" and how far it is from the one before, in words ("a short walk on"); it carries no name, no
-  number, no rank and no time. Its name is not in the page's text, its accessible name or its map layer.
-- **QC9.** A tap on a slot names the shop on a card (name, kind and distance in words) and nowhere else. The card does not say anything of hours.
-- **QC10.** On the walk, within 60 m of a stop the walk screen says its name once, as an on-screen chip; the name is resolved from the
-  tiles at that moment, is not kept as a find and is not a moment. Passing it unseen says nothing.
-- **QC11.** The page says once, apart from the slots and cards, "Opening hours aren't known here." It is a statement: no imperative or
-  modal ("check", "call ahead", "may be closed"). No slot or card says a shop is open or closed or that its hours are unknown.
+- **QC17.** A slot reads "An antiques shop" (its entry's word) and how far it is from the one before, in words ("a short walk on"); it carries
+  no name, number, rank or time.
+- **QC18.** A tap on a slot names the shop on a card (name, kind and distance in words) and nowhere else. The card says nothing of hours.
+- **QC19.** On the walk, within 60 m of a stop the walk screen says its name once, as an on-screen chip; the name is resolved from the data
+  at that moment, is not kept as a find and is not a moment. Passing a stop unseen says nothing.
+- **QC20.** The page says once, apart from the slots and cards, "Opening hours aren't known here." It is a statement with no imperative or
+  modal ("check", "call ahead", "may be closed"). No slot or card says a shop is open or closed.
 
 Swap and detour:
 
-- **QC12.** Each slot has Swap, labelled "Swap this stop", never with a shop's name. It replaces that stop with the nearest other antiques
-  shop within the ceiling that the circuit does not hold, and replans the order. It closes any open card, and the new slot is unnamed.
-  With none it says "No other antiques shop within reach." and changes nothing. Swap keeps no history and does not wrap: a place
-  offered in place of a slot is not offered for it again (the steward's S2; the owner may lift this, plan "For the owner" 3).
-- **QC13.** Start begins an ordinary walk (or routes the open one) whose destination is the proposal: its stops as `via`, its path
-  followed as planned, `suggested` so the walk screen says distance only and never a time (as the planner's, WP19, WP24).
-- **QC14.** Leaving the proposed path is never flagged: no alarm, banner or "off route" nag beyond what any suggested destination
-  already does (a quiet re-route that rejoins the plan). A stop skipped is let go like the planner's passed-or-let-go (WP9, WP25).
-- **QC15.** Walk me back is still the shortest way and is not changed by an outing.
+- **QC21.** Each slot has Swap, labelled "Swap this stop", never with a shop's name. It replaces that stop with the nearest other store of
+  the same entry within the ceiling that the circuit does not hold and has not already been offered for that slot, and replans. It closes any
+  open card, and the new slot is unnamed. With none it says "No other one within reach." and changes nothing. It does not wrap.
+- **QC22.** Start begins an ordinary walk (or routes the open one) whose destination is the proposal: its stops as `via`, its path followed
+  as planned, `suggested`, so the walk screen says distance only and never a time (WP19, WP24).
+- **QC23.** Leaving the proposed path is never flagged: no alarm, banner or "off route" nag beyond what any suggested destination already
+  does (a quiet re-route that rejoins the plan); a stop skipped is let go (WP9, WP25). Walk me back is still the shortest way.
 
-Words and rules:
+What never leaks (the steward's S1-S8, accepted):
 
-- **QC16.** No sentence of the page, its cards or the walk's line holds a digit count of stops or shops, minutes, hours of walking, an
-  ETA, a pace, "best", "most", "top", "popular", "rated", "fastest", "shorter" or "longer" (the planner's banned-word grep,
-  `words.test.ts`, extended to this file).
-- **QC17.** Nothing is stored or sent: no new meta key, store or migration; the proposal is recomputed from the position and the
-  tiles, never patched; nothing leaves the device.
-- **QC18.** Antiques is data, not code: the planner and the page hold no word "antiques" outside the intents table and presence;
-  adding an intent adds an entry and its tests.
-- **QC19.** Presence reads `shop=antiques` (and Overture's antiques) as the class `antiques` beside `boutique`: the bars, weights,
-  storefront streets and marks are unchanged, held by the readers' golden; `PRESENCE_CODE` is bumped.
-- **QC20.** With no position the page says it needs one and proposes nothing (no simulation). With the drawer open the capture stack is
-  visible and reachable in one tap, before or during a walk, or this spec records why it is not, as the planner's precedent (WP23)
-  does; decided at test-first by reading `PlannerCapture` and `useHideTabs`.
-
-The steward's review (S1-S8, 2026-11-16), accepted:
-
-- **QC21.** (S1, S3) No stop's name is in the walk's destination, the stored walk, anything handed to Maps or shared, the page's text or
-  accessible names, or any map label or marker text: the destination holds positions only, and a name is resolved from the tiles at
-  the moment of a tap or of arrival. On the page and on the followed walk the basemap's shop and POI labels are not drawn near a stop;
-  the stops are plain unlabelled points. Tested by serialising the destination (no place name in it) and by the map style's layer
-  filter; the e2e picture checks it.
-- **QC22.** (S4) No slot, accessible name or walk line carries an ordinal, "of N", a progress glyph or a remaining count; slots are not
-  numbered; after a stop is reached nothing marks it done, and the walk screen never says how many stops remain.
-- **QC23.** (S6) The arrival line is an on-screen chip only: no haptic, sound, notification or accent colour; it never overlaps or
-  displaces the capture stack and fades without a tap.
-- **QC24.** (S8) The entry is one control in the map controls' existing style, with no badge, no count and no nearby-count text.
+- **QC24.** No stop's name is in the walk's destination, the stored walk, anything handed to Maps or shared, the page's text or accessible
+  names, or any map label or marker text: the destination holds positions only, and a name is resolved from the data at a tap or on arrival.
+  On the page and on the followed walk the basemap's shop and POI labels are not drawn near a stop; stops are plain unlabelled points.
+- **QC25.** No slot, accessible name or walk line carries an ordinal, "of N", a progress glyph or a remaining count; slots are not numbered;
+  after a stop is reached nothing marks it done.
+- **QC26.** The arrival line is an on-screen chip only: no haptic, sound, notification or accent colour; it never overlaps or displaces the
+  capture stack and fades without a tap.
+- **QC27.** The entry is one control in the map controls' existing style, with no badge, count or nearby-count text.
+- **QC28.** No sentence of the page, its cards or the walk's line holds a count of stops or shops as a digit, minutes, hours of walking, an
+  ETA, a pace, "best", "most", "top", "popular", "rated", "fastest", "shorter" or "longer" (the planner's banned-word grep, extended).
+- **QC29.** Nothing is stored or sent: no new meta key, store or migration; the proposal is recomputed from the position and the data, never
+  patched; the only network reads are the stores pack's tiles from the pages site the archive already uses.
+- **QC30.** With no position the page says it needs one and proposes nothing (no simulation). With the page open the capture stack is visible
+  and reachable in one tap, before or during a walk, or this spec records why it is not, as the planner's precedent (WP23) does; decided at
+  test-first by reading `PlannerCapture` and `useHideTabs`.
 
 ## Surfaces (from the code)
 
-Hosts of what this adds, from `grep`, and why each does or does not carry it:
-
-- Explore tab (the entry; QC1): yes. `src/app/(tabs)/explore.tsx`, a control beside the map's controls.
+- Explore tab (the entry; QC1, QC27): yes, `src/app/(tabs)/explore.tsx`, a control beside the map's controls.
 - The outing page: a full-screen drawer over Explore, like `PlannerDrawer` (it shares its shell, `useHideTabs`, `PlannerCapture`).
-- The area card's kind rows ("Suggest a walk", `KindStrip`): no. Antiques is an intent, not a kind of the atlas; the kinds stay the
-  eight (decision 0102).
-- Navigate's ready screen and the walk screen: the walk screen carries the arrival name (QC10); the ready screen carries no entry in v1.
-- The recording bar and Chronicle: no change.
+- The area card's kind rows ("Suggest a walk", `KindStrip`): no. The vocabulary is not the atlas's eight kinds (decision 0102).
+- "What I'm into" and the kind switches: no. A vocabulary entry is not a kind, and a switched-off kind does not hide a store here.
+- Navigate's ready screen and the walk screen: the walk carries the arrival chip (QC19); the ready screen has no entry in v1.
+- Chronicle, the replay, the recording bar: no change.
 
-## Not in this slice (the owner's later direction)
+## Not in this slice
 
-Opening hours, admission and closing times; other intents; a stop chosen by what is near it; a detour via a named stop; a chosen
-time of day. Recorded in `docs/DEFERRED.md` when the slice is tracked.
+Opening hours, admission and closing times (the reserved field); more vocabulary entries; a detour via a named stop; the stores pack
+itself (built in chronicles-data from `handoff.md`); other kinds of place in the same outing than stores. Recorded in `docs/DEFERRED.md`
+when the slice is tracked.
 
 ## Record
 
