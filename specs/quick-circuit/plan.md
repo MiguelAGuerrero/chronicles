@@ -1,4 +1,4 @@
-# Plan an outing: plan (QC1-QC40)
+# Plan an outing: plan (QC1-QC42)
 
 Written 2026-11-16 (second version, after the owner's reframe), for the owner's review before any code. It reuses the walk planner (0102)
 and the places archive's reader pattern (0103, 0108) and adds no second planner and no second map.
@@ -28,6 +28,8 @@ New, `src/lib/outing/` (each starts with `// @layer`):
 | `words.ts` | core | slot line, distance-on words, the hours line, the reasons; banned-word grep (QC17, QC20, QC25, QC28) |
 | `dest.ts` | core | `outingDest(plan)`: a `Waypoint` like `destFor` (`via`, `path`, `suggested`, `loop`), positions only (QC22, QC24) |
 | `arrival.ts` | core | `stopWithin(dest, fix, said)`: which stop is within 60 m, once (QC19) |
+| `settings.ts` | core | `DEFAULT_CHAINS` (off) and `isChainsPref` (QC41) |
+| `prefs.ts` | shell | `createOutingPrefs(ports)`: the one switch, "Include chains", in meta `outing_chains` (as `kindWalk/prefs.ts`); a Store the page reads (QC41) |
 | `service.ts` | shell | `createOutingService(deps)`: reads the tiles and the pack around the walker (the planner's `read` plus `StoresSource`), calls `planOuting`; resolves a stop's name on a tap and on arrival; keeps nothing (QC24, QC29) |
 | `useOuting.ts` | view | the hook the page calls |
 
@@ -35,6 +37,8 @@ Touched:
 
 - `src/lib/walkPlanner/planner.ts`: export `fitOrder` (one word) and nothing else.
 - `src/lib/presence/presence.ts`: `shop/antiques` gives `['boutique', 'antiques']`; `PresenceClass` gains `antiques` (weight and storefront as `boutique`, no category, so bars and marks cannot move); `PRESENCE_CODE` bumped, `PRESENCE_CARRIED` set only if the readers' golden shows nothing derived changed; Overture's antiques the same (QC16). The goldens are re-captured and listed in the spec.
+- `src/lib/discovery/chains.json` (data): Goodwill, Salvation Army, Savers, Value Village, Half Price Books and Books-A-Million join the `shops` list, so `isChain` knows them; shops are never marks, so no derived data changes (checked by the goldens).
+- `src/lib/meta.ts`: `outing_chains` (owner `outing`, `onOff`), the slice's one new key (QC29, QC41).
 - `src/lib/discovery/archiveManifest.ts`: the manifest may name a stores pack per region (`stores` beside `archive`); absent in older manifests, as `hashes` was (QC14). The pack is read by tile through `net/tileReader`.
 - `src/lib/nav/useNavigation.ts` (or the walk screen's chip row): the arrival chip, from `arrival.ts` and the service (QC19, QC26).
 - The page's `WalkMap` and the walk's map: the basemap's shop and POI labels dropped near a stop (QC24). Whether `WalkMap` can filter its basemap labels is the first thing to check at test-first; if it cannot, the page draws the route on a style without POI labels and the walk's map is a native, unverified gap in `docs/DEFERRED.md`.
@@ -57,6 +61,8 @@ presence's class (a code, not a schema); `PRESENCE_CODE` makes atlas and landing
 | QC2 | `wants.test.ts` (alphabetical; typing narrows by label and aliases only, picks nothing; no match shows nothing and stores nothing); journey |
 | QC3 | `plan.test.ts` (loop first; One way replans; no `fakePorts` meta write); journey |
 | QC37-QC40 | `candidates.test.ts` (a fixture `how` dimension and a murals source plan with no code change; across narrows, within widens; an unknown dimension or value is ignored); journey (the first screen is the same with the fixture dimension) |
+| QC41 | `prefs.test.ts` over `fakePorts()` (off by default; kept in `outing_chains`; read on load; a failed write leaves the store changed); `storesMerge` test (off excludes a chain, on includes it, a mark is never made of it); journey (the switch, default off) |
+| QC42 | `wants.test.ts` (Thrifting matches second_hand, antiques, vintage; Antiques only antiques; with Books it widens); `stores.test.ts` (the three values are in the contract) |
 | QC4 | `wants.test.ts` (a fixture entry plans with no code change; no field orders or weights); a grep that `plan.ts`/`pick.ts` hold no entry word |
 | QC5 | `wants.test.ts` (the banned-word grep over labels and aliases) |
 | QC6 | `plan.test.ts` (one proposal); journey (one route, no rows) |

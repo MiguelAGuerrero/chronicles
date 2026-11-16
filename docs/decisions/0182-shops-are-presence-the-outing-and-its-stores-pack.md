@@ -6,7 +6,7 @@ Date: 2026-11-16 · Status: accepted · Area: explore, discovery, walk-planner, 
 The owner asked for a quick start that proposes a circuit for what the walker wants to see (antiques first), then reframed it: no per-intent
 button, a page where you describe what you want from a vocabulary, with antiques as the example of how a rich dataset of stores makes a
 route that points of interest alone cannot. The gate (`/vision`, Nov 16) found it aligned if reshaped and the steward (S1-S8, R1-R8) shaped it
-(`specs/quick-circuit/`, QC1-QC40). 0115 keeps ordinary shops out of the places archive and 0044 keeps them out of marks.
+(`specs/quick-circuit/`, QC1-QC42). 0115 keeps ordinary shops out of the places archive and 0044 keeps them out of marks.
 
 ## Decision
 The owner's calls, Nov 16:
@@ -20,6 +20,8 @@ The owner's calls, Nov 16:
   an entry is a predicate over them; what a shop sells is the first dimension, how it trades (vintage, thrift) a likely second; granularity
   grows without a heavier first screen (QC37-QC40).
 - A shop enters the layer by what it sells and by nothing a crowd says: no rating, review count, price, popularity or hours as an ordering.
+- **Second-hand and antiques are separate values of what a shop sells** (`second_hand`, `antiques`, `vintage`); a Thrifting entry of the vocabulary matches all three, Antiques only its own.
+- **Chains are in the layer; whether they are stops is a setting, off by default** ("Include chains", meta `outing_chains`): a thrifting trip across several Goodwills is a legitimate outing. A chain is never a mark or a point of interest, whatever the setting says.
 
 ## Consequences
 - 0115's "ordinary shops stay out" and 0044's "food, shops and nightlife stay in the place cache" are unchanged for the archive and for marks;

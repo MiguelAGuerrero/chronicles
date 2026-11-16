@@ -16,7 +16,7 @@ export interface Store {
 
 /** The contract's dimensions and their closed lists (v1: what a shop sells). `how` is reserved and not here yet (QC40). */
 export const DIMENSIONS: Readonly<Record<string, readonly string[]>> = {
-  what: ['antiques', 'vintage', 'books', 'records', 'maps', 'art_supplies', 'crafts'],
+  what: ['antiques', 'vintage', 'books', 'records', 'maps', 'art_supplies', 'crafts', 'second_hand'],
 };
 
 const FIELDS = ['at', 'facets', 'id', 'name', 'src'];

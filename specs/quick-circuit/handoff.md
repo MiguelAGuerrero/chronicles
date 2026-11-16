@@ -13,7 +13,7 @@ list, below), `src` (a source's short code). Nothing else: no rating, review cou
 
 A dimension is added by a contract version, never by a record; the app ignores a dimension or value it does not know (QC40).
 
-- **`what`** (v1, what a shop sells): `antiques`, `vintage`, `books`, `records`, `maps`, `art_supplies`, `crafts`. A shop with none is not in the pack.
+- **`what`** (v1, what a shop sells): `antiques`, `second_hand` (Goodwill-type thrift and charity shops), `vintage` (curated vintage dealers), `books`, `records`, `maps`, `art_supplies`, `crafts`. A shop with none is not in the pack.
 - **`how`** (reserved, not emitted in v1; the owner's example, "vintage versus thrift"): `vintage`, `thrift`, `new`, from OpenStreetMap's `second_hand` and `charity`/thrift tags. Never "cheap", "quality" or any measure.
 
 The app's vocabulary maps entries to facets (`outing/wants.ts`); an entry may match several values or combine dimensions.
@@ -24,7 +24,7 @@ The app's vocabulary maps entries to facets (`outing/wants.ts`); an entry may ma
   instances of the same shop types. Open data only; attribution carried as the archive's is.
 - **Never**: Google Places, Yelp, Foursquare or any source whose records carry ratings, reviews or popularity; a source's fields of those
   kinds are dropped before the record is built (PP5-PP7's rule: the gate reads no count).
-- **Chains** are left out by `chains.json`'s rule (whole leading words) at build time as well as in the app.
+- **Chains stay in the pack** (the owner, Nov 16): a trip across several Goodwills is a legitimate outing. The record gains no chain field; the app identifies chains by name from its own list and includes them only when its "Include chains" setting is on (off by default). The pack never marks a chain as a point of interest.
 - **A nominating source** (a forum, a list) only nominates to the review list, never a pack (0108).
 
 ## Checks at the build (the steward's R5)

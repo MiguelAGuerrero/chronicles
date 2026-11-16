@@ -8,7 +8,7 @@ import { shop } from './fixtures';
 const BANNED = /\b(best|top|most|popular|rated|cheap(er|est)?|hidden|gem|quiet|open|late|new|good|great|famous|fast(er|est)?|minutes?|hours?)\b/i;
 
 test('QC4: v1 ships Antiques and Books, each a match over facets', () => {
-  assert.deepEqual(WANTS.map((w) => w.id).sort(), ['antiques', 'books']);
+  assert.deepEqual(WANTS.map((w) => w.id).sort(), ['antiques', 'books', 'thrifting']);
   assert.equal(matches(mergeFacets([WANTS.find((w) => w.id === 'antiques')!]), shop('x', 0, 0, ['antiques'])), true);
   assert.equal(matches(mergeFacets([WANTS.find((w) => w.id === 'books')!]), shop('x', 0, 0, ['antiques'])), false);
 });
@@ -33,4 +33,23 @@ test('QC5: an entry says what a place is: no word of quality, price, popularity,
 test('QC4: no field orders, weights or prefers an entry', () => {
   for (const w of WANTS) assert.deepEqual(Object.keys(w).sort(), ['aliases', 'id', 'label', 'match', 'slotWord']);
   assert.match(readFileSync(new URL('../../outing/wants.ts', import.meta.url), 'utf8'), /never a measure/);
+});
+
+test('QC42: Thrifting matches second_hand, antiques and vintage; Antiques only antiques; Books widens it', () => {
+  const by = (id: string) => WANTS.find((w) => w.id === id)!;
+  const thrifting = mergeFacets([by('thrifting')]);
+  for (const v of ['second_hand', 'antiques', 'vintage']) assert.equal(matches(thrifting, shop('x', 0, 0, [v])), true, v);
+  assert.equal(matches(thrifting, shop('x', 0, 0, ['books'])), false);
+  const antiques = mergeFacets([by('antiques')]);
+  assert.equal(matches(antiques, shop('x', 0, 0, ['second_hand'])), false, 'second-hand is not antiques');
+  const both = mergeFacets([by('thrifting'), by('books')]);
+  assert.equal(matches(both, shop('x', 0, 0, ['books'])), true);
+  assert.equal(matches(both, shop('x', 0, 0, ['second_hand'])), true);
+});
+
+test('QC2: the entries stay alphabetical with Thrifting, and Thrifting is found by its words', () => {
+  assert.deepEqual(WANTS.map((w) => w.label), ['Antiques', 'Books', 'Thrifting']);
+  assert.deepEqual(matchWants('thrift').map((w) => w.id), ['thrifting']);
+  assert.deepEqual(matchWants('goodwill').map((w) => w.id), ['thrifting']);
+  assert.deepEqual(matchWants('second').map((w) => w.id), ['thrifting']);
 });

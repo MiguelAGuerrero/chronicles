@@ -29,14 +29,15 @@ function tileFacets(classes: readonly string[] | undefined): Facets | null {
 
 /**
  * QC13, QC15, QC31: the pack's stores and the tiles' shops as candidates, one place once with the pack's record kept by rule (never by
- * a field of either), and a chain never a candidate. Read only by `outing/`.
+ * a field of either), and a chain a candidate only when `opts.chains` is on (QC13, QC41; off by default). Read only by `outing/`.
  */
-export function outingCandidates(stores: readonly Store[], tiles: readonly TileShop[]): Candidate[] {
-  const packed = stores.filter((s) => !isChain(s.name, 'shops')).map(asCandidate);
+export function outingCandidates(stores: readonly Store[], tiles: readonly TileShop[], opts: { chains?: boolean } = {}): Candidate[] {
+  const chainsOk = opts.chains === true;
+  const packed = stores.filter((s) => chainsOk || !isChain(s.name, 'shops')).map(asCandidate);
   const out: Candidate[] = [...packed];
   for (const t of tiles) {
     const facets = tileFacets(t.classes);
-    if (!facets || isChain(t.name, 'shops')) continue;
+    if (!facets || (!chainsOk && isChain(t.name, 'shops'))) continue;
     const n = normalizeName(t.name);
     if (packed.some((p) => normalizeName(p.name) === n && distanceM(p.at, t.at) <= SAME_SHOP_M)) continue;
     const id = `t:${n}@${t.at[0].toFixed(4)},${t.at[1].toFixed(4)}`;

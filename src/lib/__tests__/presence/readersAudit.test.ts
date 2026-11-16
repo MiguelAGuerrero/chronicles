@@ -54,6 +54,7 @@ const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
   // read for what a place is
   antiques: ['outing/'],
   books: ['outing/'],
+  second_hand: ['outing/'],
 };
 const plainIn = (w: string, rel: string) => !!PLAIN_IN[w]?.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p));
 

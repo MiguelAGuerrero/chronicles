@@ -52,3 +52,8 @@ test('QC14: an in-memory source answers by distance; a failing or missing source
   assert.deepEqual(await readStores(failing, [0, 0], 1500), []);
   assert.equal(asCandidate(near).name, 'Old Door');
 });
+
+test('QC42: antiques, second_hand and vintage are three separate values of what', () => {
+  for (const v of ['antiques', 'second_hand', 'vintage']) assert.ok(DIMENSIONS.what.includes(v), v);
+  assert.equal(isStore({ ...good, facets: { what: ['second_hand'] } }), true);
+});

@@ -33,7 +33,7 @@ Verdict: aligned if reshaped
 Shape: one proposal; a vocabulary of what a place is (never how good, dear, busy or open); stops by kind, named on a tap or on arrival
   from the data, never stored; a stores layer whose records hold what a shop sells and nothing a crowd says; Swap without wrap or repeat;
   hours not known and said once
-Criteria: QC1-QC40 below
+Criteria: QC1-QC42 below
 Open: the owner's calls of Nov 16 are in Decisions; a decision record for the stores layer (it amends 0115 and 0044) is the owner's
 ```
 
@@ -60,6 +60,12 @@ Open: the owner's calls of Nov 16 are in Decisions; a decision record for the st
 - **Extensible to dimensions** (the owner, Nov 16): what a shop sells is the first dimension; a second may follow ("vintage versus thrift"),
   and the user will eventually craft what they want to see from a rich dataset. The engine therefore makes no assumption about what it
   displays: it plans over candidates carrying facets in named dimensions, and an entry of the vocabulary is a predicate over facets (QC37-QC40).
+- **Second-hand and antiques are separate, and both are thrifting** (the owner, Nov 16, third round): a Goodwill-type shop is `second_hand`, an
+  antiques dealer `antiques`, a curated vintage dealer `vintage`, three values of `what`; a **Thrifting** entry matches all three, and Antiques
+  stays an entry of its own. v1's entries: Antiques, Books, Thrifting.
+- **Chains are in the stores dataset; whether they are stops is a setting, off by default** (the owner, Nov 16, third round): a thrifting trip
+  across several Goodwills is a legitimate outing (each one holds something different), so the pack keeps chains unmarked and the app decides by
+  name; "Include chains" is a switch, off by default, and turning it on never makes a chain a point of interest.
 - ~~BLOCKING, the owner's decision record~~ (answered above; kept for the record) (written before any code, `npm run book:next-decision`; the slice does not start without it,
   and without it QC11-QC15 and QC31 are deferred and the outing runs on the tiles alone): a stores layer enters a shop by what it sells and
   by nothing a crowd says, amending 0115 ("ordinary shops stay out") and 0044, for this layer and for `outing/` only (QC31). Its shape
@@ -109,7 +115,8 @@ The stores layer (the richer data):
   fails on any other field.
 - **QC12.** A store enters by what it sells (a specialism from open data such as OpenStreetMap's shop tags) and by nothing a crowd says:
   the reading reads no rating, count of mentions, popularity or page views (as PP5-PP7 hold for the archive).
-- **QC13.** A chain is never a stop (`chains.json`, whole leading words).
+- **QC13.** A chain is a stop only when "Include chains" is on, and it is off by default (QC41); a chain is known by name from the app's own
+  list (`chains.json`, whole leading words), never by a field of the pack.
 - **QC14.** The stores reader is an adapter (`outing/storesRead.ts`, the only file that knows the pack's schema), behind a `StoresSource`
   with an in-memory source for tests; no dataset is hard-coded (AGENTS.md). It reads by tile, like the places archive, and a read that
   fails or finds no pack leaves the tiles' shop subtypes serving the same table, with nothing said of it.
@@ -154,7 +161,7 @@ What never leaks (the steward's S1-S8, accepted):
 - **QC27.** The entry is one control in the map controls' existing style, with no badge, count or nearby-count text.
 - **QC28.** No sentence of the page, its cards or the walk's line holds a count of stops or shops as a digit, minutes, hours of walking, an
   ETA, a pace, "best", "most", "top", "popular", "rated", "fastest", "shorter" or "longer" (the planner's banned-word grep, extended).
-- **QC29.** Nothing is stored or sent: no new meta key, store or migration; the proposal is recomputed from the position and the data, never
+- **QC29.** Nothing is stored or sent: the one new meta key is `outing_chains` (QC41); no new store or migration; the proposal is recomputed from the position and the data, never
   patched; the only network reads are the stores pack's tiles from the pages site the archive already uses, made only after the walker
   picks an entry (never on opening the page or on Explore), carrying no identifier, header or query beyond the tile path; a test over
   `fakePorts` shows no pack read before the pick (steward R7).
@@ -171,6 +178,11 @@ What never leaks (the steward's S1-S8, accepted):
   proposal; the first proposal still needs one pick and one tap. Held by the journey with the fixture second dimension.
 - **QC40.** The contract is versioned: a dimension and its closed list are added by a new contract version and read by the app only when it
   knows them; an unknown dimension or value in a pack is ignored, never fails the read and never shows (the archive's contract rule).
+- **QC41.** The page has one switch, "Include chains", off by default, kept in meta `outing_chains` and read when the page opens; turning it on or
+  off replans; it makes a chain a candidate and never a mark, a find or a point of interest (QC31); the switch is the only setting the outing
+  stores and it is not one of the planner's (`kindwalk_*`).
+- **QC42.** `what` has `antiques`, `second_hand` and `vintage` as separate values (the contract); the Thrifting entry matches all three
+  (within a dimension, so it widens) and the Antiques entry only `antiques`; picking Thrifting and Books widens to all four.
 - **QC31.** (the edge, R1) The stores layer is read only by `outing/`. No store reaches the places archive, `markable`, the atlas's kinds,
   Explore's marks, the landing's finds or a checklist; a grep over the importers and a test over `isMarkable` hold it.
 - **QC32.** (R8) QC1's finding criterion is a review criterion: the `ux-reviewer`'s cold find, not a unit test.
