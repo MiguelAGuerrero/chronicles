@@ -1123,10 +1123,11 @@ test('records audit 37: section add puts a "From <skill>" section after "From /t
   assert.throws(() => records.apply('status', 'section remove', item, { section: 'From /fix' }), /entries|empty/);
   assert.equal(records.apply('status', 'section remove', gone, { section: 'From /fix' }).text, STATUS, 'add and remove leave every byte');
   // The real document, as the owner keeps it, takes one.
+  // A name no one files under: the document the owner keeps may already hold a "From /fix" of its own.
   const real = read('docs/STATUS.md');
-  const r = records.apply('status', 'section add', real, { section: 'From /fix' }).text;
+  const r = records.apply('status', 'section add', real, { section: 'From /records audit 37' }).text;
   // Newest first: right after "From /tend", above any older "From" section the document holds, before Next evolutions.
-  assert.ok(/### From \/tend\n[\s\S]*\n\n### From \/fix\n\n### (From [^\n]+|Next evolutions)\n/.test(r) && r.indexOf('### From /fix') < r.indexOf('### Next evolutions'));
+  assert.ok(/### From \/tend\n[\s\S]*\n\n### From \/records audit 37\n\n### (From [^\n]+|Next evolutions)\n/.test(r) && r.indexOf('### From /records audit 37') < r.indexOf('### Next evolutions'));
   assert.ok(records.apply('status', 'section item add', r, { section: 'From the journal and note pages', body: '**One more** (Nov 13).' }).text.includes('**One more** (Nov 13).'), 'the owner\'s own "From" sections take bullets too');
   assert.throws(() => records.apply('status', 'section item add', r, { section: 'From /tend', body: 'x' }), /inbox/, 'From /tend is the inbox\'s');
 });
