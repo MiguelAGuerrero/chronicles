@@ -35,7 +35,7 @@ Verdict: aligned if reshaped
 Shape: a mention of a photo or a video draws as its picture, on its own line at the page's width, a rounded corner, no
 caption; a video as its still under the play mark. Presentation only: the stored note, the schema, the moment and the
 pasted-image rule (NP13) are unchanged. In the composer and in the reader.
-Criteria: NI1-NI12 below.
+Criteria: NI1-NI18 below.
 Open: none.
 
 ## Decisions
@@ -44,10 +44,22 @@ Open: none.
   schema change; the photo stays its own moment (NP14). The composer and the reader both.
 - **2026-11-16, layout** (the owner): an own block at the page's width with a rounded corner; no caption, the head gives
   the context.
-- **2026-11-16, video** (the owner): its still under the play mark; a tap does nothing while writing; in the reader a
-  tap opens the moment, as a card does (RF4).
+- **2026-11-16, video** (the owner): its still under the play mark; in the reader a tap opens the moment, as a card
+  does (RF4). Stills only: no motion in a page.
+- **2026-11-16, editing** (the owner, later the same day): tapping a picture while writing offers a quick action menu,
+  and "full support to edit it using the available tools that we currently have". Built as the existing `MediaEditor`
+  as an overlay inside the page (iOS: no Modal over a Modal), so every tool it has works: rotate, crop, filter, draw,
+  text, and trim for a video. The menu holds one entry, **Edit**, the owner's pick (Remove and Open the moment were
+  offered and not chosen). This replaces the earlier "a tap does nothing while writing".
+- **2026-11-16, context** (the owner, on the steward's S2): a picture shows no caption when its photo is from the
+  page's own walk; when it is from another day or walk, one muted line beneath it says its date, place and walk, in
+  the card's words.
 - **Defaults in the plan, the owner may change them:** a note, a voice memo and a gone moment keep their chip and card
-  (NI9, NI8); other places that read a note (threads' bubbles, `NoteText`, the replay) are not changed here (NI12).
+  (NI9, NI8); other places that read a note (threads' bubbles, `NoteText`, the replay) are not changed here (NI12); the
+  menu has only Edit, so a picture is removed from the page with the keyboard (NI4).
+- **An edit is the moment's own** (`Capture.edit`, decision 0090): editing a picture from the page changes that photo
+  everywhere it is shown, in the Chronicle, the gallery and the replay, as the viewer's Edit does. The page is one more
+  place to reach the same editor, never a copy of the photo.
 
 ## Acceptance criteria
 
@@ -58,14 +70,16 @@ Open: none.
 2. **NI2 · Its look.** The picture is an own block at the page's width (the 640 px column's, never wider than the
    photo), its aspect kept, a rounded corner, a hairline edge on the page's ground; no caption, date, count, badge or
    button over it. The words go on beneath it.
-3. **NI3 · A video.** A video's mention is its still under the play mark (as the gallery and pile draw it); a tap does
-   nothing while writing. A video whose still is not made yet shows its glyph on the soft ground and the still when
-   it is made, without the page moving under the caret.
-4. **NI4 · Writing around it.** The caret goes before and after a picture; typing before it keeps the picture; with
-   the caret just after it, Backspace removes the mention (and so the picture) as it removes any one character; the
-   removal is undone by the page's undo. A selected picture is not draggable, and the page offers no resize or caption.
-5. **NI5 · The reader.** A note read in the viewer (NoteReader) shows the same pictures in the same places; a tap on a
-   picture opens its moment, as the card did (RF4), and a tap on the words still asks to edit (NP5).
+3. **NI3 · A video.** A video's mention is its still under the play mark (as the gallery and pile draw it); it never
+   plays on the page. A video whose still is not made yet shows its glyph on the soft ground and the still when it is
+   made, without the page moving under the caret.
+4. **NI4 · Writing around it.** The caret goes before and after a picture; typing before it keeps the picture. The
+   camera writes a space after the mention (NP14), so Backspace from after that space takes the space, and the next
+   Backspace takes the mention and so the picture, as it takes any one character; the page's undo brings it back. A
+   picture is not draggable, and the page offers no resize.
+5. **NI5 · The reader.** A note read in the viewer (NoteReader) shows the same pictures in the same places; a tap on the
+   picture itself opens its moment, as the card did (RF4); a tap on the words, or on the page beside a picture narrower
+   than the column, still asks to edit (NP5).
 6. **NI6 · The stored note is unchanged.** The body is the same `@[id|words]` token, `body_format` 'md'; the photo is
    its own moment with its own time, fix and walk; no new column, no new table, no migration; an older note that
    mentions a photo shows its picture too, with no rewrite of the note.
@@ -77,16 +91,40 @@ Open: none.
    are being read, no mention is called gone and no picture flashes in.
 9. **NI9 · Only pictures become pictures.** A mention of a note, a voice memo or a text moment keeps its chip while
    writing and its card in the reader; a photo whose file is lost or undecodable keeps its card, not a broken picture.
-10. **NI10 · Spoken.** Each picture has a spoken name ("Photo: A photo. Nov 16, near the bridge, on your walk"; a video
-    "Video: ..."), as the card's, a button role in the reader (it opens the moment) and plain in the composer; no
-    picture is exposed as an unnamed image.
+10. **NI10 · Spoken.** Each picture has a spoken name, the card's ("Photo. Nov 16, near the bridge, on your walk"; a
+    video "Video. ..."); the camera's default words ("A photo", "A video") are not said again after the kind. In the
+    reader it is a button that opens the moment; in the composer a button that opens the menu (NI13); no picture is
+    exposed as an unnamed image.
 11. **NI11 · Cost is bounded.** A page of many pictures stays typeable: each picture's data is made once per photo and
     edit, not per keystroke, and is no larger than a phone's page width needs (about 720 px on the long edge, JPEG);
     nothing is written to disk and nothing is cached across launches (a derived view of the moment, never truth).
-12. **NI12 · Every surface, from the code.** The pictures show in the three hosts of the page's editor: the new page
-    (`NewNotePage`, which has the camera), a note's page opened from the viewer's Edit (`NotePage`), and the reader
-    (`NoteReader`), and in a reply's page. Not in this slice, said so: the mention cards in a thread's bubbles
-    (`NoteText`), the memory preview and the replay, which draw a note's words as text; they keep their cards.
+12. **NI12 · Every surface, from the code.** The pictures show in every host of the page's editor: the new page
+    (`NewNotePage`, which has the camera), a note's page opened from the viewer's Edit (`NotePage`), a reply's page
+    (no camera there, so only moments picked with @), and the reader (`NoteReader`). The menu and its editor are in
+    each page host; the reader has neither (it opens the moment, NI5). Not in this slice, said so: the mention cards in
+    a thread's bubbles (`NoteText`), the memory preview and the replay, which draw a note's words as text; they keep
+    their cards.
+13. **NI13 · A quick menu on a picture.** While writing, a tap on a picture opens a small menu with one entry, **Edit**;
+    it never covers the page's keyboard bar and closes on a tap outside, Back or Escape, changing nothing. It is a
+    menu or sheet inside the page, never a second Modal (iOS). Found by a tap on the picture the person is looking at.
+14. **NI14 · Full editing.** Edit opens the existing media editor over the page, with every tool a photo has (rotate,
+    crop, filter, draw, text) and a video's trim, as the viewer's Edit does; the editor is the same one (`MediaEditor`),
+    not a copy. Done keeps the edit on the moment (`setEdit`), closes the editor and returns to the page with the
+    caret where it was, the words unchanged, and the picture redrawn as edited; Close with no change writes nothing
+    and Close with changes asks (ME); Escape and Back go through the editor's own Close before the page's (media-editing
+    audit 5). The note body is not touched by an edit.
+15. **NI15 · The picture is the moment as the viewer shows it.** A photo with a crop, rotation, filter or drawn lines is
+    drawn on the page with them, caption left out as the small copy leaves it (ME20); a video's still follows its
+    trim (VS6). A moment whose edit cannot be drawn falls back to the picture without it, never a broken one.
+16. **NI16 · Context when it differs.** A picture whose moment is from another day or another walk than the page's head
+    shows one muted line beneath it, that moment's date, place and walk in the card's words (`refCardLine`); a picture
+    from the page's own walk shows none. The line is not a button and carries no count.
+17. **NI17 · Nothing is chosen, hidden or counted.** Every mentioned photo or video draws, in the order written: none is
+    skipped, collapsed to "+N more", chosen as a cover or ranked (the lows stay in). A page with only pictures is kept
+    as it is today (a mention is content); no draft is dropped.
+18. **NI18 · The decision is on record.** A decision record cites the owner's Nov 16 call, and `docs/DEFERRED.md`'s
+    "photos inline: out" line says what stays out (no stored, pasted or typed image, no resize, drag or caption of a
+    picture) and that a mention drawn as its picture is allowed.
 
 ## Retired or amended
 
