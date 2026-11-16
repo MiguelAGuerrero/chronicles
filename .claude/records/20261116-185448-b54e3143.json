@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Plan an outing (QC1-QC40, decision 0182) | `claude/lucid-gates-810ryf` | tests first (core criteria as failing todos); the page, the Explore control, the journey and the stores pack are not built, 2026-11-16 |\n"
+    }
+  ]
+}
