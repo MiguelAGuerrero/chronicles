@@ -1191,6 +1191,48 @@ async function run(h) {
         if (vp) await pg.setViewportSize(vp);
       }
     });
+
+    // tend chronicle audit 5: Enter (a phone's Done) in the line while the ask shows is Keep editing, never a hidden
+    // Save: the ask goes, the editor keeps the words, and nothing is stored. Escape here is pressed with the focus in
+    // the changed field.
+    await qstep('tend chronicle audit 5', async () => {
+      const titles = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.map((w) => [w.title, w.epilogue]).sort());
+        };
+      }));
+      try {
+        const before = await titles();
+        await pg.locator('[data-testid=walk-more]').first().click();
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-epilogue]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        const line = pg.locator('[data-testid=rename-epilogue]');
+        await line.fill('Words not yet kept');
+        await line.press('Escape');
+        await pg.waitForTimeout(400);
+        const asked = await pg.locator('[data-testid=rename-ask]').count();
+        await line.press('Enter');
+        await pg.waitForTimeout(600);
+        const after = {
+          ask: await pg.locator('[data-testid=rename-ask]').count(),
+          editor: await pg.locator('[data-testid=rename-editor]').count(),
+          save: await pg.locator('[data-testid=rename-save]').count(),
+          line: (await line.count()) ? await line.inputValue() : null,
+        };
+        const stored = await titles();
+        check(asked === 1 && after.ask === 0 && after.editor === 1 && after.save === 1 && after.line === 'Words not yet kept'
+          && JSON.stringify(stored) === JSON.stringify(before),
+          `tend chronicle audit 5: Enter while Rename asks keeps editing and stores nothing (${JSON.stringify({ asked, after, before, stored })})`);
+      } finally {
+        await pg.click('[data-testid=rename-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=rename-discard]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=actions-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      }
+    });
     await c.close();
 
     // tend map 3 at 320 px: the credits stay reachable, and open over no control, on every map of a narrow phone.

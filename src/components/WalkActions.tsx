@@ -246,7 +246,8 @@ export function WalkActions(props: {
               placeholder="e.g. The bakery was closed, the river was not."
               placeholderTextColor={theme.muted}
               returnKeyType="done"
-              onSubmitEditing={saveRename}
+              // While the ask shows, Done is Keep editing, never a hidden Save (tend chronicle audit 5).
+              onSubmitEditing={discarding ? () => setDiscarding(false) : saveRename}
               maxLength={EPILOGUE_MAX}
               style={styles.input}
             />
