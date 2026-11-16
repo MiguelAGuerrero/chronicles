@@ -38,6 +38,9 @@ export function AtlasCarousel(props: {
   // The card (by key, so a changed list never misleads it) the reader's own scroll is on: while it is set, the selection follows
   // the scroll and the effect never scrolls the row (fix carousel-live-select audits 1, 3). The settle clears it.
   const lastKey = useRef<string | null>(null);
+  // The reader's finger is down, or a release is still gliding: the settle waits (fix carousel-snap-back).
+  const dragging = useRef(false);
+  const gliding = useRef(false);
   const index = useMemo(() => items.findIndex((l) => l.area.key === selected), [items, selected]);
 
   // What the settle needs, as the screen last drew it: a timer's callback must never read an older row.
@@ -62,11 +65,13 @@ export function AtlasCarousel(props: {
   }, [index, step, scrollTo]);
 
   const settle = useCallback(() => {
-    lastKey.current = null;
     const { items: list, selected: now, step: s, onSettle } = latest.current;
     const i = settledIndex(offset.current, s, list.length);
     const at = list.findIndex((l) => l.area.key === now);
-    const step = settleStep({ index: i, intended: intended.current, selected: at });
+    const step = settleStep({ index: i, intended: intended.current, selected: at, held: dragging.current || gliding.current });
+    // A pause under the finger or mid-glide is not a stop: leave the scroll and the live selection as they are.
+    if (step.wait) return;
+    lastKey.current = null;
     // The row's own scroll ended where it was sent: nothing to report; one that stalled short of it aims on (audit 2).
     if (intended.current != null) {
       if (step.scrollTo != null) scrollTo(step.scrollTo);
@@ -106,6 +111,22 @@ export function AtlasCarousel(props: {
       // A reader's own drag takes the scroll back from the row's (explore-carousel audit 2).
       onScrollBeginDrag={() => {
         intended.current = null;
+        dragging.current = true;
+        gliding.current = false;
+      }}
+      // A release that glides on keeps the settle waiting until it ends; one that stops at once settles now.
+      onScrollEndDrag={() => {
+        dragging.current = false;
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(settle, SETTLE_MS);
+      }}
+      onMomentumScrollBegin={() => {
+        gliding.current = true;
+      }}
+      onMomentumScrollEnd={() => {
+        gliding.current = false;
+        if (timer.current) clearTimeout(timer.current);
+        settle();
       }}
       showsHorizontalScrollIndicator={false}
       snapToInterval={step}
