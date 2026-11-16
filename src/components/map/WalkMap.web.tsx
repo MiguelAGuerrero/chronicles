@@ -24,7 +24,7 @@ import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
-import { refitOnResize, type FitFlight } from '../../lib/atlas/fitFlight';
+import { FIT_IDLE, fitStep, type FitState } from '../../lib/atlas/fitFlight';
 import { mapLabel } from '../../lib/atlas/freeLook';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
@@ -281,6 +281,9 @@ const settled = (map: MapLibreMap) =>
     });
   });
 
+/** A fit as asked of maplibre, kept to ask it again (tend explore 17). */
+type FitAsk = { bounds: [[number, number], [number, number]]; options: { padding: { top: number; right: number; bottom: number; left: number }; maxZoom: number; duration: number; bearing?: number } };
+
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -301,6 +304,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCreditsOpen = useRef(props.onCreditsOpen);
   const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
+  // The fit flying and whether a refit's own call is under way (tend explore 17, audit 19), read by the settle listeners.
+  const fit = useRef<FitState<FitAsk>>(FIT_IDLE);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMoveState = useRef(props.onMoveState);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
@@ -636,6 +642,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // Only a real change of zoom or latitude band re-renders: a follow camera's moveend each fix
     // would otherwise re-render the map component and re-send the cone (perf, Nov 1).
     const track = () => {
+      if (fit.current.refitting) return;
       const zoom = map.getZoom();
       const lat = map.getCenter().lat;
       // The canvas's own middle: getCenter() is the padded centre a fit leaves behind, which a map
@@ -673,6 +680,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('rotateend', turned);
     // Any move's end (the ease to north done, or cut by a drag or a fit) ends the request.
     map.on('moveend', () => {
+      // A refit's own stop is not a move's end (tend explore audit 19).
+      if (fit.current.refitting) return;
       northAsked.current = false;
     });
     // explore-dense-city ui 3: the storefront names fold upright for the bearing the map settles on (a turn, resetNorth).
@@ -709,6 +718,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       onMoveState.current?.(true);
     });
     map.on('moveend', () => {
+      // DC9: the moveend a refit's own stop fires mid-air is not the settle (tend explore audit 19).
+      if (fit.current.refitting) return;
       perfMark('mark:settled');
       onMoveState.current?.(false);
     });
@@ -896,6 +907,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // The rooms follow the map: once it settles, and when the screen changes size. A switch's held names go out here,
     // once, a frame on: a move cut short by the next one ends before that one starts (SS5).
     const again = () => {
+      if (fit.current.refitting) return;
       if (!namesHeld.current) {
         if (landingRef.current) sendNames.current();
         return;
@@ -1316,31 +1328,41 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.follow, props.followZoom, glideOn]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const fitAtMount = useRef(props.fitKey);
-  // The fit flying, until its move ends (tend explore 17): resized meanwhile, it is asked again at the new size.
-  const flight = useRef<(FitFlight & { bounds: [[number, number], [number, number]]; options: Parameters<MapLibreMap['fitBounds']>[1] }) | null>(null);
+  // A fit settles once its move has run, if the map is still up then; a refit restarts it (tend explore audit 19, F1).
+  const settleAfter = (key: number, ms: number) => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => {
+      settleTimer.current = null;
+      onFitSettled.current?.(key);
+    }, ms + 150);
+  };
+  // The fit flying (tend explore 17): resized meanwhile, it is asked again at the new size. An area's card folds the
+  // tabs away as it opens, so Explore's map grows mid-flight, which maplibre lands at the bounds' own middle (AT9).
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
     const landed = () => {
-      flight.current = null;
+      fit.current = fitStep(fit.current, { kind: 'moveend' }).state;
     };
-    // An area's card folds the tabs away as it opens, so Explore's map grows mid-flight, which maplibre lands at the
-    // bounds' own middle, the padding lost (AT9).
     const resized = () => {
-      const f = flight.current;
       const box = { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight };
-      if (!f || !refitOnResize(f, box, map.isMoving())) return;
+      const r = fitStep(fit.current, { kind: 'resize', box, moving: map.isMoving() });
+      fit.current = r.state;
+      if (r.do.kind !== 'refit') return;
       perfCount('refit');
-      // The new fit stops the flight under way, whose end clears the record: it is the new flight's.
-      map.fitBounds(f.bounds, f.options);
-      flight.current = { ...f, ...box };
+      // Its own stop fires a moveend mid-air, which the settle listeners skip while `refitting` (DC9).
+      map.fitBounds(r.do.ask.bounds, r.do.ask.options);
+      fit.current = fitStep(fit.current, { kind: 'refitted' }).state;
+      settleAfter(r.do.settle, r.do.ask.options.duration ?? 0);
     };
     map.on('moveend', landed);
     map.on('resize', resized);
     return () => {
       map.off('moveend', landed);
       map.off('resize', resized);
+      if (settleTimer.current) clearTimeout(settleTimer.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
   useEffect(() => {
     if (ready && props.fitBounds && props.fitKey !== fitAtMount.current) {
@@ -1352,13 +1374,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // bearing; tend map 2).
       const map = mapRef.current;
       // While the compass's ease to north runs, north: the bearing read mid-ease would stop the map part-way (tend map audit 4).
-      const options = { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map?.getBearing() };
-      map?.fitBounds([[w, s], [e, n]], options);
-      if (map?.isMoving()) flight.current = { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight, bounds: [[w, s], [e, n]], options };
-      // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
+      const ask: FitAsk = { bounds: [[w, s], [e, n]], options: { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map?.getBearing() } };
       const key = props.fitKey ?? 0;
-      const t = setTimeout(() => onFitSettled.current?.(key), duration + 150);
-      return () => clearTimeout(t);
+      map?.fitBounds(ask.bounds, ask.options);
+      if (map) fit.current = fitStep(fit.current, { kind: 'fit', key, ask, box: { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight }, moving: map.isMoving() }).state;
+      // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
+      settleAfter(key, duration);
+      return () => {
+        if (settleTimer.current) clearTimeout(settleTimer.current);
+      };
     }
     // Refits when the caller changes fitKey, not on every new bounds array.
     // eslint-disable-next-line react-hooks/exhaustive-deps
