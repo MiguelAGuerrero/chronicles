@@ -472,11 +472,13 @@ recording, and a recording bar brings a minimized walk back.
 - Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
-- **Share diagnostics** (decision 0179), after Distances in the walk settings: every error the app caught, handled
-  by its kind and kept on the device (the newest 500, none older than 30 days), handed to the share sheet as text
-  (copied on a desktop browser). It never holds a place, a time of a walk or the walker's words, and leaves the
-  device only on that tap. A save of something the walker made or chose that fails says so in one line beside the
-  capture buttons, with Retry.
+- **Share diagnostics** (decision 0179), under Help after Distances in the walk settings: every error the app
+  caught, handled by its kind and kept on the device (the newest 500, none older than 30 days), handed to the share
+  sheet as text (copied on a desktop browser, "paste it into a message or an email"). Each line carries its day,
+  never its time, and a platform's error only as its type; it never holds a place or the walker's words, and leaves
+  the device only on that tap. A save of something the walker made or chose that fails says so in one line, with
+  Retry, on the screen where it happened (beside the capture buttons; Explore and the gallery too); on a walk, Hide
+  sets it aside until something new fails or the walk ends.
 - There is no Settings screen, no dark mode (light forced), and no account.
 
 ## Platforms

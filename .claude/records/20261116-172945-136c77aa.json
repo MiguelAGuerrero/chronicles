@@ -1,0 +1,25 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Errors handled by kind (no swallowed errors: each caught"
+      ],
+      "body": "| Errors handled by kind (no swallowed errors: each caught error is handled by its kind and written to a diagnostics log on the device, 500 entries and 30 days, a line per failure with its day, never its time, and a platform's message as its error type; Share diagnostics in the walk settings, under Help, hands it to the share sheet as text or copies it; a failed save of the walker's is one line with Retry on the screen where it happened, beside the captures, hidden on the walk until something new fails; EH1-EH14, EH3a, decision 0179) | built 2026-11-14 and audited 2026-11-16 (22 findings: 20 fixed, 2 of them with a part deferred, 1 deferred, 1 rejected; the owner answered 4); test-first by history (14 of 14); unit tests (2,614), typecheck, lint, docs, records and quality checks (no frozen file grew; the baseline tightened); 18 journeys after the audit, `diagnostics`, `walk` and `upgrade` twice (a share bug and a version pin); native never run on a phone; not deployed | `claude/serene-sagan-ig8te6` | `specs/errors-handled/spec.md` | yes (tests `errors-handled audit 1-20`, `ui 1-3`) |\n",
+      "target": "sha256:750b9426472c4a1b02903b0ea2cdcb5f0b49d011d2780baad6a6c1ec6b012c21"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Errors handled by kind (no swallowed",
+        "--reason",
+        "audited"
+      ],
+      "body": "| Errors handled by kind (no swallowed errors: a caught error handled by its kind and written to a diagnostics log on the device, shared as text from the walk settings; EH1-EH14, decision 0179) | `claude/serene-sagan-ig8te6` | built and audited 2026-11-16 (see Slices); next on this branch, as filed: the palette slice, the decomposition slices for walk.tsx and WalkMap.web.tsx, map/types into src/lib/map, the walk-me-back fix. Before `/deploy`, merge main and write the quality baseline again from the merged tree (the code-quality row says how). Spec `specs/errors-handled/spec.md` |\n",
+      "target": "sha256:bab0aab18a5093e3bfdc077548fd865739b46f49a11636d71aa7c9fa5f6ca87b"
+    }
+  ]
+}
