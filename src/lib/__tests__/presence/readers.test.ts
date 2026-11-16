@@ -233,7 +233,7 @@ test('PS9: the presence code moves on; atlas and landing rows from the last code
   assert.notEqual(PRESENCE_CODE, 'p1');
   assert.ok(ATLAS_CODE.endsWith(PRESENCE_CODE));
   // presence-readers audit 2: p1's rows stand only while the code is p2; the next bump decides its carry afresh.
-  if (PRESENCE_CODE === 'p2') {
+  if ((PRESENCE_CODE as string) === 'p2') {
     // The carry is spelled with the atlas's own part (decision 0146): a9.p1 under a9.p2, a10.p1 under a10.p2 (tend explore T9).
     const carried = `${ATLAS_CODE.split('.')[0]}.p1`;
     for (const level of ['neighborhood', 'town'] as const) assert.equal(rowCurrent({ build: 'b', code: carried, level }, 'b'), true, `${level} ${carried} stands`);

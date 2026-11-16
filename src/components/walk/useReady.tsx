@@ -38,7 +38,7 @@ import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { layerNotes } from '../../lib/layers/notes';
-import { useBusyLayer } from '../../lib/layers/useBusyLayer';
+import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { BAR_H, CAP, raisedHeight, useStackLayout } from './layout';
@@ -222,15 +222,15 @@ export function useReady(props: {
   // Map layers (ML3-ML9): around you, one setting for every map.
   const layers = useLayers();
   const wk = useWalkability(fix, !!layers.on.walkability);
-  const busy = useBusyLayer(fix, !!layers.on.busy);
+  const storefronts = useStorefrontsLayer(fix, !!layers.on.storefronts);
   // SM12: around you only, within 800 m, a hard cut from you.
   const shopsRead = useShopMarks({ on: !!layers.on.storefronts && SHOP_MARKS_BASE !== '', centre: fix, zoom: mapZoom, near: { at: fix, m: WALK_NEAR_M } });
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
     walkability: wk.draw,
-    landing: busy.view,
+    landing: storefronts.view,
     // DC18: names only near you.
-    busyNamesNear: namesNearYou(fix),
+    storefrontNamesNear: namesNearYou(fix),
     /** A tap on the map closes the Layers panel (ML4). */
     onPress: () => layers.closePanel(),
     trace: NONE,
@@ -313,7 +313,7 @@ export function useReady(props: {
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
       {shopCard && !!layers.on.storefronts ? <ShopCard place={shopCard} onClose={() => setShopCard(null)} box={cardBox({ width: screenW, height: screenH, topInset: at.insets.top + 152 })} /> : null}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, shopMarks: shopsRead.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, shopMarks: shopsRead.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 

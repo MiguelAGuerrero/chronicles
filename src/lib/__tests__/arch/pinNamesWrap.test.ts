@@ -1,4 +1,4 @@
-// @tree-wide: the map's name labels (marks, stars, area points, busy-street names)
+// @tree-wide: the map's name labels (marks, stars, area points, storefront-street names)
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -16,11 +16,11 @@ for (const file of LABELS) {
   });
 }
 
-// The busy-street names are the map's own text since explore-dense-city (DC1): a long name wraps at its width, and a name
+// The storefront-street names are the map's own text since explore-dense-city (DC1): a long name wraps at its width, and a name
 // with no room is left out, never cut.
 test('fix long-names: the busy names wrap or are left out, never cut', async () => {
-  const { busyNameLayers } = await import('../../../components/map/types');
-  const { layout } = busyNameLayers();
+  const { storefrontNameLayers } = await import('../../../components/map/types');
+  const { layout } = storefrontNameLayers();
   assert.ok(typeof layout['text-max-width'] !== 'undefined', 'a long name wraps');
   assert.doesNotMatch(JSON.stringify(layout), /slice|substring|ellipsis|…/, 'nothing cuts a name');
 });

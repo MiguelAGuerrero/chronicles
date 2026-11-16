@@ -61,9 +61,8 @@ async function run(h) {
   // On Memories a page opens from the journal's open line (chronicle journal JN25, decision 0155): a tap in the line,
   // then Open as a page. The pencil that opened it in one tap went with the band; the line itself is the one tap.
   const openPage = async () => {
-    // The caret goes on the page by a tap on the field, the empty page's first line (JN32); then Open as a page.
-    // Not a forced click on the empty page: that lands on whatever is still over it (a page fading out) and types nowhere.
-    await pg.click('[data-testid=line-input]');
+    // The composer (JN47, JN51): the toolbar's field opens it; Open as a page is in its tools.
+    await pg.click('[data-testid=bar-compose]');
     await pg.click('[data-testid=line-page]');
   };
   const before = (await stored(pg)).length;
@@ -434,7 +433,7 @@ async function run(h) {
     };
   }), re.source).catch(() => null);
   await pg.goto(url);
-  await pg.waitForSelector('[data-testid=line-input]', { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=bar-compose]', { timeout: 30000 });
   await pg.waitForTimeout(1200);
   await openPage();
   await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 10000 });
@@ -461,6 +460,8 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const tool12 = await pg.locator('[data-testid=note-reaction-tool]').getAttribute('aria-label').catch(() => null);
   const typeTool12 = await pg.locator('[data-testid=note-type-row]').count();
+  const face7 = await pg.locator('[data-testid=note-reaction-tool] [data-testid=note-reaction-face]').count();
+  check(face7 === 1, `RL7: the page's Reaction tool is the face with a plus, whatever is chosen (${face7})`);
   await pg.click('[data-testid=note-reaction-tool]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-sad]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
@@ -468,8 +469,8 @@ async function run(h) {
   await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForTimeout(1000);
   const got12 = await rxOf(/A page reacted to before its words/);
-  check(tool12 === 'Reaction, Like' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
-    `RX12: a note's page has a Reaction tool in place of Type, showing the first reaction; a choice is kept on the moment and leaves the words alone (${JSON.stringify({ tool12, typeTool12, got12 })})`);
+  check(tool12 === 'Reaction, Like, Emphasis' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
+    `RX12: a note's page has a Reaction tool in place of Type, saying what is chosen (RL7); a choice is kept on the moment and leaves the words alone (${JSON.stringify({ tool12, typeTool12, got12 })})`);
 
   await c.close();
 }

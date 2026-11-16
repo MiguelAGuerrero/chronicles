@@ -451,12 +451,17 @@ eight journeys for 27 minutes where three, about 12, proved every fix):
 4. **Run a new or edited check alone first**, in its own journey, before any batch: a wrong assumption in
    the check (an item that screen never offers) costs one journey, not a batch.
 5. **After a fix, rerun only the journeys whose files or checks the fix touched.**
+6. **The loop's lane** (`/tend` and the orchestrator's runs; decision 0181): before publishing, the
+   journeys holding a new or changed check, plus `launch` as the smoke, and no other. The rest of the
+   reached set waits for the weekly full pass, which a run makes when the run log
+   (`.claude/skills/tend/runs.jsonl`) has no `"e2e":"full"` line in seven days; CI runs no journey.
 
 State in the report which journeys ran, which were reached and skipped, and why.
 
 A slice that changes a screen adds or extends its own journey (`/e2e`); one
 that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15
-minutes) and `/audit` run only when the owner asks (decision 0074).
+minutes) and `/audit` run only when the owner asks (decision 0074); the loop's
+weekly full pass is that ask, made once (0181).
 
 The Stop hook (`.claude/hooks/check-done.sh`) runs `check:docs` on any
 change; with `.ts`/`.tsx` changed, the typecheck; and with TypeScript or a

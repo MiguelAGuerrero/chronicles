@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { BASE_FIRST_LABEL, busyLayerOrder, busyNameLayers, busyNamesGeoJSON, roomCells } from '../../../components/map/types';
+import { BASE_FIRST_LABEL, storefrontLayerOrder, storefrontNameLayers, storefrontNamesGeoJSON, roomCells } from '../../../components/map/types';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
 
@@ -20,7 +20,7 @@ const view: LandingView = {
 };
 
 test('explore-dense-city audit 1: only a near-level name may slide off its point; a turned one stays centred on its street', () => {
-  const l = busyNameLayers() as unknown as { layout: Record<string, unknown>; filter: unknown[]; turned: { layout: Record<string, unknown>; filter: unknown[] } };
+  const l = storefrontNameLayers() as unknown as { layout: Record<string, unknown>; filter: unknown[]; turned: { layout: Record<string, unknown>; filter: unknown[] } };
   assert.deepEqual(l.layout['text-variable-anchor'], ['center', 'left', 'right']);
   assert.equal(l.turned.layout['text-variable-anchor'], undefined, 'a turned name never slides: maplibre would shift it across the street');
   assert.equal(l.turned.layout['text-anchor'], 'center');
@@ -31,12 +31,12 @@ test('explore-dense-city audit 1: only a near-level name may slide off its point
 });
 
 test('explore-dense-city audit 6: off Explore, native puts the busy lines and then the names under the base labels, names over lines', () => {
-  assert.deepEqual(busyLayerOrder(false), { lines: BASE_FIRST_LABEL, names: BASE_FIRST_LABEL });
-  assert.deepEqual(busyLayerOrder(true), { lines: BASE_FIRST_LABEL, names: undefined }, 'on Explore the names go over everything');
+  assert.deepEqual(storefrontLayerOrder(false), { lines: BASE_FIRST_LABEL, names: BASE_FIRST_LABEL });
+  assert.deepEqual(storefrontLayerOrder(true), { lines: BASE_FIRST_LABEL, names: undefined }, 'on Explore the names go over everything');
 });
 
 test('explore-dense-city audit 8: with the Busy layer off, no names and no rooms: nothing hides a base label', () => {
-  const off = busyNamesGeoJSON(null, { name: 'Mount Hill', at: at(0, 0) }, [at(10, 10)]);
+  const off = storefrontNamesGeoJSON(null, { name: 'Mount Hill', at: at(0, 0) }, [at(10, 10)]);
   assert.deepEqual(off.features, []);
 });
 
@@ -59,8 +59,8 @@ test('explore-dense-city audit 13: the font fixture ships its licence and copyri
 });
 
 test('DC18: off Explore, names only within 800 m of you; the lines are untouched', () => {
-  const near = busyNamesGeoJSON(view, null, [], { at: at(0, 0), m: 800 });
+  const near = storefrontNamesGeoJSON(view, null, [], { at: at(0, 0), m: 800 });
   assert.deepEqual(near.features.map((f) => f.properties?.name).sort(), ['Level Street', 'Upright Avenue']);
-  assert.equal(busyNamesGeoJSON(view).features.length, 3, 'Explore passes no limit here (EC7 has its own)');
-  assert.equal((busyNameLayers() as unknown as { minzoom?: number }).minzoom, 13, 'from zoom 13');
+  assert.equal(storefrontNamesGeoJSON(view).features.length, 3, 'Explore passes no limit here (EC7 has its own)');
+  assert.equal((storefrontNameLayers() as unknown as { minzoom?: number }).minzoom, 13, 'from zoom 13');
 });

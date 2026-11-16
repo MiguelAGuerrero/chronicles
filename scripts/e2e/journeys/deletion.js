@@ -111,10 +111,29 @@ async function checks(h) {
       const media = (await capsOf()).filter((c) => c.kind !== 'text');
       const mediaRefs = media.flatMap((c) => [c.file_path, c.thumb_path]).filter((r) => r && r !== 'none');
       check(media.length >= 3 && mediaRefs.every(Boolean), `the walk has media to remove (${media.map((c) => c.kind).join(', ')})`);
+      // tend replay audit 10: on a card with finds and a low the hint still stands last, right above the buttons.
+      const hintLast = await page.evaluate(() => {
+        const again = [...document.querySelectorAll('[role=button]')].find((b) => b.textContent.trim() === 'Watch again');
+        let prev = again?.parentElement?.previousElementSibling;
+        while (prev && !prev.textContent.trim()) prev = prev.previousElementSibling;
+        return { before: prev?.textContent ?? null, finds: document.querySelector('[data-testid=card-finds]')?.textContent ?? null, low: document.querySelector('[data-testid=card-low]')?.textContent ?? null };
+      });
+      check(hintLast.before === 'Tap a pin to open it' && !!(hintLast.finds || hintLast.low),
+        `tend replay audit 10: a walk's card with finds or a low ends on its hint, right above its buttons (${JSON.stringify(hintLast)})`);
       await page.click('[data-testid=card-more]');
       await page.click('[data-testid=action-media]');
       await page.waitForSelector('[data-testid=confirm]');
       const askMedia = await page.locator('[data-testid=confirm]').innerText();
+      // tend deletion T30 (decision 0170, "All in words"): what goes is said in the pins' words, whole at 390 and 320 px.
+      for (const w of [390, 320]) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(400);
+        const said = (await page.locator('[data-testid=confirm]').innerText()).replace(/\s+/g, ' ');
+        check(/(^| )(A|Two|Three|Four|Five) (photo|video|voice memo)s?\b[^.]* go(es)?\. The walk, its notes and its streets stay\./.test(said) && !/\d+ (photo|video|voice)/.test(said),
+          `tend deletion T30: at ${w} px removing media says what goes in words (${said})`);
+        await shot(page, `27b-media-confirm-${w}`);
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
       check(/Remove photos, videos and memos\?/.test(askMedia) && /photo/.test(askMedia) && /stay/.test(askMedia), `removing media says what goes and what stays (D4: ${askMedia.replace(/\n/g, ' · ')})`);
       await page.click('[data-testid=confirm-delete]');
       await page.waitForSelector('[data-testid=undo-toast]');
@@ -142,6 +161,20 @@ async function checks(h) {
         await page.waitForTimeout(800);
         await shot(page, '27-walk-confirm');
         const t = await page.locator('[data-testid=confirm]').innerText();
+        // tend deletion T30: the walk's moments and streets in words, whole at 320 px too.
+        if (!deleteFirst.seen) {
+          deleteFirst.seen = true;
+          await page.setViewportSize({ width: 320, height: 844 });
+          await page.waitForTimeout(400);
+          await shot(page, '27-walk-confirm-320');
+          const narrow = await page.evaluate(() => {
+            const c = document.querySelector('[data-testid=confirm]');
+            return [...c.querySelectorAll('div, span')].every((e) => e.getBoundingClientRect().right <= window.innerWidth + 0.5);
+          });
+          await page.setViewportSize({ width: 390, height: 844 });
+          check(/^Its trace[a-z ,\u00a0-]*[ \u00a0]go(es)?\./.test(t.replace(/\n/g, ' ').replace(/^.*?(Its trace)/, '$1')) && !/\d+ (moment|street)/.test(t) && narrow,
+            `tend deletion T30, tend deletion audit 2: deleting a walk says its moments and streets in words, whole at 320 px (${t.replace(/\n/g, ' · ')})`);
+        }
         await page.click('[data-testid=confirm-delete]');
         return t;
       };

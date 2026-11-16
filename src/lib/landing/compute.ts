@@ -20,7 +20,7 @@ export interface ComputeInput {
   build: string;
   overturePoints: ActivityPoint[];
   archivePlaces: Place[] | null;
-  /** When set, the area is measured around it (What's good here, the Busy layer); otherwise not (a quiet walk's read). */
+  /** When set, the area is measured around it (What's here, the Storefronts layer); otherwise not (a quiet walk's read). */
   analyzeAt: LngLat | null;
 }
 

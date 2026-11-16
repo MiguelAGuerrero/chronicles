@@ -165,7 +165,7 @@ test('PC12: nothing is fetched to sort: the judgement is synchronous and the mod
 });
 
 test('PC13: ATLAS_CODE is past a8 (a9, a10 since tend explore T9) and a stored place carries no kind', () => {
-  assert.ok(/^a1[012]\./.test(ATLAS_CODE), ATLAS_CODE);
+  assert.ok(/^a1[0-3]\./.test(ATLAS_CODE), ATLAS_CODE);
   const p = read([park('Elm Street Playground')])[0];
   assert.equal(p.kind, CP);
   assert.ok(!('kind' in placeToRow(p)));

@@ -3,7 +3,7 @@ import type { Faced } from './moment';
 import { distanceM, pausedMs, type PauseSpan } from './geo';
 import { ordered, type ReactionInfo, type ReactionSet } from './reactions/core';
 import { dayPartLine, JUST_AFTER_MS, minutesInLine } from './resurface/context';
-import { numberWord } from './resurface/lines';
+import { agoLine, daysAgo, numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
 
@@ -130,6 +130,19 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
  * video's file: while the copy is being made, or for one that won't decode, the
  * pin keeps its icon, so a map never decodes full media. A pin of several shows its kinds (`pinHeadKinds`, tend map T14).
  */
+/** Where a pin's reaction bubbles sit, from the head's top left (a 36 pt head; 15 pt bubbles whose white edges meet). */
+const BUBBLE_STEP = 13;
+/**
+ * The bubbles' places on a pin of one moment (RX17, reactions ui 1, RL12): a row across the head's lower part from just
+ * outside its left edge; on a video's pin, whose play mark takes the bottom right, an L: two along the bottom-left and
+ * the third above them at the head's left edge, each on the head and clear of the mark (the owner, Nov 14, 0177).
+ */
+export function reactionSpots(count: number, video: boolean): { left: number; top: number }[] {
+  const row = (i: number) => ({ left: -8 + i * BUBBLE_STEP, top: 22 });
+  if (!video) return Array.from({ length: count }, (_, i) => row(i));
+  return Array.from({ length: count }, (_, i) => (i < 2 ? row(i) : { left: -8, top: 22 - BUBBLE_STEP }));
+}
+
 /**
  * The reactions a pin wears as bubbles (RX17, RX19): a pin of exactly one moment, its reactions in the families' order;
  * a pin of several, none. The head is never one of them (RX18).
@@ -184,10 +197,21 @@ const MANY: Record<CaptureKind, string> = { photo: 'photos', video: 'videos', vo
  * too (tend explore T29), its moments put in the order taken first.
  */
 export function pinKindsWords(pin: KindsTaken): string {
-  const parts = kindsInOrder(pin).map((k) => {
-    const n = pin.captures.filter((c) => c.kind === k).length;
-    return n === 1 ? ONE[k] : `${numberWord(n)} ${MANY[k]}`;
-  });
+  return kindsClause(kindsInOrder(pin).map((k) => [k, pin.captures.filter((c) => c.kind === k).length]));
+}
+
+/**
+ * Kinds and how many of each, as one clause in the pins' words, in the order given, kinds with none left out: "Two
+ * photos, a video, a voice memo and a note" (tend replay T19, decision 0165). A pin, a reminder, a walk's card and
+ * its row, and what a removal of media takes all say their kinds with it. Empty when there are none. `bind`, for a line
+ * on screen, joins "a" to its noun with a no-break space.
+ */
+export function kindsClause(counts: readonly (readonly [CaptureKind, number])[], o: { bind?: boolean; its?: boolean } = {}): string {
+  // A line that wraps keeps "a" on its noun's line, "a video" never split (tend tabs audit 23); spoken words keep spaces.
+  const one = (k: CaptureKind) => (o.bind ? ONE[k].replace(/^a /, 'a\u00a0') : ONE[k]);
+  // Past fifty-nine, where numberWord says "many", a confirm says "its photos" (the owner, Nov 14; tend deletion audit 1).
+  const many = (k: CaptureKind, n: number) => (o.its && numberWord(n) === 'many' ? `its ${MANY[k]}` : `${numberWord(n)} ${MANY[k]}`);
+  const parts = counts.filter(([, n]) => n > 0).map(([k, n]) => (n === 1 ? one(k) : many(k, n)));
   const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] ?? '';
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -216,16 +240,25 @@ function dayOf(t: number): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
+/** The small hours (before five) belong to the evening before, as `dayPartLine` reckons them. */
+const eveningOf = (t: number) => (new Date(t).getHours() < 5 ? t - 5 * 3_600_000 : t);
+
 /**
- * When a pin no walk clock holds was taken (tend map T28): its first moment's part of the day; when its moments fall on
- * different days, the span of their days (tend map audit 27, the owner's answer to ux 1): "from three weeks ago to
- * Tuesday evening", an end whose line carries its own comma ("three weeks ago, afternoon") giving the part before it.
+ * A moment's when on a pin: within a week its part of the day, "Tuesday evening"; past a week the span alone, "two
+ * years ago", no month and no part of the day (tend map 11, decision 0172, the owner's "The span alone").
+ */
+const momentWhen = (t: number, now: number) => (daysAgo(eveningOf(t), now) >= 7 ? agoLine(eveningOf(t), now) : afterComma(dayPartLine(t, now)));
+
+/**
+ * When a pin no walk clock holds was taken (tend map T28): its first moment's part of the day, past a week how long
+ * ago alone (tend map 11); when its moments fall on different days, the span of their days (tend map audit 27, the
+ * owner's answer to ux 1): "from two years ago to Tuesday evening".
  */
 function dayWhen(pin: CapturePin, now: number): string {
   const first = pin.captures[0].t;
   const last = pin.captures[pin.captures.length - 1].t;
-  if (dayOf(first) === dayOf(last)) return afterComma(dayPartLine(first, now));
-  const end = (t: number) => afterComma(dayPartLine(t, now).replace(/, [^,]+$/, ''));
+  if (dayOf(first) === dayOf(last)) return momentWhen(first, now);
+  const end = (t: number) => momentWhen(t, now);
   // Two days whose ends read alike ("three weeks ago") are said once.
   return end(first) === end(last) ? end(first) : `from ${end(first)} to ${end(last)}`;
 }

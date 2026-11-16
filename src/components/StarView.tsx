@@ -8,13 +8,13 @@ import { theme } from './ui';
 
 /** Every star is this size, whatever its walks (criterion 14): a star marks "walked here", not how much. */
 export const STAR_SIZE = 36;
-/** At most this many stars carry their name, the busiest first, so the map stays readable. */
+/** At most this many stars carry their name, the fullest first, so the map stays readable. */
 export const NAMED_STARS = 8;
 const NAME_WIDTH = 140;
 /** The selected star's ring, outside its white edge (tend places audit 1). */
 const RING = 3;
 
-/** The ids of the stars that show their name: the busiest NAMED_STARS single places. */
+/** The ids of the stars that show their name: the fullest NAMED_STARS single places. */
 export function namedStars(stars: Star[]): Set<string> {
   return new Set(
     stars
@@ -30,7 +30,7 @@ export function namedStars(stars: Star[]): Set<string> {
  * T15, decision 0154: ink, never the accent), the same for places merged at
  * this zoom, which draw no numeral (their spoken name says how many, in words).
  * The selected one keeps its disc and gains an ink ring outside its white edge
- * (ink, white, ink: filled stays chosen, tend places audit 1); the busiest carry
+ * (ink, white, ink: filled stays chosen, tend places audit 1); the fullest carry
  * their name.
  */
 const ownStar = (prev: boolean, next: boolean) => starEnter(prev, next);

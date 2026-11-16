@@ -9,7 +9,7 @@ import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
-import { cancelLook, endLook, IDLE, isLive, runLook, startLook, type Look } from '../../lib/atlas/look';
+import { cancelLook, endLook, IDLE, isLive, LOOK_LABEL, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
@@ -24,8 +24,8 @@ import type { Shop } from '../../lib/shopMarks/read';
 import { useShopMarks } from '../../lib/shopMarks/useShopMarks';
 import { layerNotes } from '../../lib/layers/notes';
 import { createMotion } from '../../lib/layers/motion';
-import { busyHold } from '../../lib/layers/state';
-import { useBusyLayer } from '../../lib/layers/useBusyLayer';
+import { storefrontsHold } from '../../lib/layers/state';
+import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
@@ -35,12 +35,12 @@ import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, readerTook, townPicked, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, areaPins, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, readerTook, townPicked, townReachM, storefrontsOf, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, shouldDrawRing, stepKey, townNote } from '../../lib/atlas/carousel';
+import { storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, shouldDrawRing, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
@@ -80,9 +80,9 @@ const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Meta: the long press was used once, so its hint stops showing (atlas round 3). */
 const PRESS_HINT_KEY = 'atlas_press_seen';
-/** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
-const BUSY_NAMES_ZOOM = 13;
-/** audit 11: Explore's controls over the map, whose room no busy name takes. */
+/** The Storefronts layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
+const STOREFRONT_NAMES_ZOOM = 13;
+/** audit 11: Explore's controls over the map, whose room no storefront name takes. */
 const NAMES_CLEAR_OF = ['atlas-title-card', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
@@ -99,7 +99,7 @@ const fmt = (m: number) => formatDistance(m);
  * One is always selected, highlighted on the map and the only one named there. The selected town's card
  * opens its page, the selected neighborhood's its card, a sheet that keeps the map in sight. Rings are
  * read by themselves while the tab is open. A long press on the map offers
- * What's good here and Walk here, over the map. It never tracks you: it reads
+ * What's here and Walk here, over the map. It never tracks you: it reads
  * one fix as the app opens (it is the first tab, NV2), then moves with your last
  * fix, or a Locate tap.
  */
@@ -337,15 +337,15 @@ export default function Explore() {
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
-  // DC14: the selected area's name keeps its room on the map; no busy name is placed under it.
+  // DC14: the selected area's name keeps its room on the map; no storefront name is placed under it.
   const namedPoint = areaPoints.find((p) => p.selected && p.name);
   const reserveName = namedPoint?.name ?? null;
   const reserveAt = namedPoint?.at ?? null;
-  const busyReserve = useMemo(() => (reserveName && reserveAt ? { name: reserveName, at: reserveAt } : null), [reserveName, reserveAt]);
+  const storefrontReserve = useMemo(() => (reserveName && reserveAt ? { name: reserveName, at: reserveAt } : null), [reserveName, reserveAt]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // HB9: the selected neighborhood's own ground, from the kept tiles; its ring until they are known (HB12).
   const hoodCands = useMemo(() => candidatesOf([...neighborhoods, ...allTowns].map((l) => l.area)), [neighborhoods, allTowns]);
-  // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the busy read waits for a settle.
+  // DC9: whether the map moves, kept outside React so a move never re-renders the screen; the storefronts read waits for a settle.
   // A map taken down mid-move reports still (audit 7), so a read waiting for its settle goes on.
   const [motion] = useState(createMotion);
   const onMoveState = useCallback((moving: boolean) => motion.set(moving), [motion]);
@@ -398,26 +398,26 @@ export default function Explore() {
   const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
-  // SS4: on a town's page the Busy areas within its reach stay drawn while its neighborhoods are switched.
+  // SS4: on a town's page the Storefront areas within its reach stay drawn while its neighborhoods are switched.
   const hoodsAtKey = townSeen ? shown.filter((l) => l.area.level === 'neighborhood').map((l) => l.area.at.join(',')).join('|') : '';
   const hold = useMemo(
-    () => (townSeen ? busyHold(townSeen.at, hoodsAtKey ? hoodsAtKey.split('|').map((p) => p.split(',').map(Number) as LngLat) : []) : null),
+    () => (townSeen ? storefrontsHold(townSeen.at, hoodsAtKey ? hoodsAtKey.split('|').map((p) => p.split(',').map(Number) as LngLat) : []) : null),
     [townSeen, hoodsAtKey],
   );
-  const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness, hold);
+  const storefronts = useStorefrontsLayer(layersAt, !!layers.on.storefronts, stillness, hold);
   // Shop marks (SM1-SM3): the shops around the same centre, only while the layer is on and offered; its card is one shop at a time.
   const [shopCard, setShopCard] = useState<Shop | null>(null);
   const shopsRead = useShopMarks({ on: !!layers.on.storefronts && SHOP_MARKS_BASE !== '', centre: layersAt, zoom: view?.zoom ?? null });
-  // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
+  // The Storefronts layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
-  const namesOn = busyNamesOn(view?.zoom ?? 0, BUSY_NAMES_ZOOM);
+  const namesOn = storefrontNamesOn(view?.zoom ?? 0, STOREFRONT_NAMES_ZOOM);
   // The names stay near the selected area itself, your town's too, so they never reach into the next town (audit 12).
   const namesAt = sel?.area.at ?? null;
   const selLevel = sel?.area.level ?? 'neighborhood';
   const selReach = sel ? sel.area.reachM : 0;
-  const namesM = busyRadiusM(selLevel, ATLAS_RULES.ringM, Math.min(selReach, ATLAS_RULES.townNeighborhoodsM));
-  const busyView = useMemo(() => busyNamesNear(busy.view, namesAt, namesOn ? BUSY_NAMES_ZOOM : 0, namesM, BUSY_NAMES_ZOOM), [busy.view, namesAt, namesOn, namesM]);
+  const namesM = storefrontRadiusM(selLevel, ATLAS_RULES.ringM, Math.min(selReach, ATLAS_RULES.townNeighborhoodsM));
+  const storefrontView = useMemo(() => storefrontNamesNear(storefronts.view, namesAt, namesOn ? STOREFRONT_NAMES_ZOOM : 0, namesM, STOREFRONT_NAMES_ZOOM), [storefronts.view, namesAt, namesOn, namesM]);
   // A card is only ever one of the areas shown, with its real distance (explore-atlas audit 7).
   const card = focused ? shown.find((l) => l.area.key === open) ?? null : null;
   const shownRef = useRef(shown);
@@ -543,7 +543,7 @@ export default function Explore() {
     setSpot(null);
     setOpen(null);
     setSelected(key);
-    // SS5: the busy names leave as this move starts and come back once when it settles.
+    // SS5: the storefront names leave as this move starts and come back once when it settles.
     setNamesSwitch((n) => n + 1);
     if (l.area.level === 'town') {
       // Its whole border when known, each time it is selected (fix town-fit); the page's frame then leaves it be.
@@ -681,14 +681,14 @@ export default function Explore() {
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
-          landing={busyView}
+          landing={storefrontView}
           shopMarks={shopsRead.marks}
           shopCardOpen={!!shopCard}
           shopSelected={shopCard && layers.on.storefronts ? shopCard.at : null}
           onShopPress={(m) => setShopCard(m?.place ?? null)}
-          busyNamesOver
-          busyNamesReserve={busyReserve}
-          busyNamesClearOf={NAMES_CLEAR_OF}
+          storefrontNamesOver
+          storefrontNamesReserve={storefrontReserve}
+          storefrontNamesClearOf={NAMES_CLEAR_OF}
           onMoveState={onMoveState}
           onLongPress={(at) => {
             if (looking) return;
@@ -719,7 +719,7 @@ export default function Explore() {
           onViewChange={setView}
           fitBounds={fit.bounds}
           fitKey={fit.key}
-          busyNamesSwitch={namesSwitch}
+          storefrontNamesSwitch={namesSwitch}
           onFitSettled={onFitSettled}
           fitPadding={mapPad}
           initialCenter={savedCamera?.center ?? from ?? WORLD.center}
@@ -761,7 +761,7 @@ export default function Explore() {
         <View style={styles.spot} testID="atlas-spot">
           <Button
             testID="look-here"
-            label="What's good here?"
+            label={LOOK_LABEL}
             disabled={looking}
             style={styles.spotBtn}
             onPress={() => {
@@ -827,7 +827,7 @@ export default function Explore() {
         <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
       ) : null}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, shopMarks: shopsRead.status ?? undefined })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, shopMarks: shopsRead.status ?? undefined })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
       {focused && !plan && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
@@ -923,7 +923,7 @@ export default function Explore() {
           walkTo={!card.here ? walkTarget(card.area) : null}
           // DW14: too far to walk (N5) offers When I get there alone.
           farOff={!card.unplaced && !canWalkTo(card.distanceM)}
-          busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!you && canWalkTo(metresBetween(you, b.at)) }))}
+          storefronts={storefrontsOf(card.area, you).map((b) => ({ ...b, walkable: !!you && !!b.at && canWalkTo(metresBetween(you, b.at)) }))}
           // CX4: the complexes of the selected area, nearest its point first, "See more" for the rest.
           complexSection={(expanded) => {
             if (!sel || sel.area.key !== card.area.key) return null;

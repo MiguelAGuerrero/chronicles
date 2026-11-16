@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, FOG_MS } from '../../lib/replay';
+import { backFrom, beatWords, FOG_MS, pinHint } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -45,7 +45,7 @@ import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
-import { newStreetsLine } from '../../lib/quietLines';
+import { moreFor, newStreetsLine, walkCardStreets } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
 
@@ -434,7 +434,8 @@ export default function Replay() {
   const head = headline(s, data);
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
-  const freshLine = s?.streets_read ? newStreetsLine(data.newStreets) : null;
+  // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
+  const streetsLine = walkCardStreets(s?.streets_walked ?? 0, s?.streets_read ? data.newStreets : null);
 
   const save = async () => {
     if (saving) return;
@@ -627,7 +628,8 @@ export default function Replay() {
                     <Pressable
                       testID="card-more"
                       accessibilityRole="button"
-                      accessibilityLabel="More for this walk"
+                      // Named by the title the card shows, as the walk's row names it (tend tabs 11).
+                      accessibilityLabel={moreFor(data.walk.title ?? suggestTitle(data.walk))}
                       onPress={() => setActionsOpen(true)}
                       style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
                       hitSlop={4}
@@ -639,16 +641,19 @@ export default function Replay() {
                 {/* New streets are a clause in the line, never a big orange number (tabs audit U13). */}
                 <Text testID="card-line" style={styles.cardLine}>
                   <Text testID="card-distance">{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
-                  {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
-                  {freshLine ? `, ${freshLine}` : ''}
+                  {streetsLine ? ` · ${streetsLine}` : ''}
                 </Text>
                 {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
                 {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
-                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
+                {/* What was kept, a clause (tend replay T19). */}
+                {s && formatCaptures(s) ? <Text testID="card-kept" style={styles.cardMuted}>{formatCaptures(s)}</Text> : null}
                 {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
                 {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
                 {passed ? <Text testID="card-low" style={styles.cardMuted}>{passed}</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
+                {/* The one hint, the card's last line before its buttons, as on the day's card (tend replay T19, audit 10);
+                    no pin, no hint (audit 11). */}
+                {pinHint(pinned) ? <Text style={styles.cardMuted}>{pinHint(pinned)}</Text> : null}
                 <View style={styles.row}>
                   <Button
                     variant="secondary"

@@ -25,11 +25,11 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - **Unnamed:** only subclass `artwork` ("Public art") and `viewpoint` ("A viewpoint")
     are kept. Two unnamed artworks in one ~10 m cell are one place (accepted).
 - **A mark is for an attraction** (the owner's call, Nov 2: scans kept offering
-  food, bars and a Domino's). The ordinary activity of an area shows as its busy
-  streets instead.
+  food, bars and a Domino's). The ordinary activity of an area shows as its
+  storefronts instead.
   - `MARK_CATEGORIES` (`discovery/noise.ts`): art, history, parks, culture,
     viewpoints. Food, shops and nightlife stay in the place cache for the
-    atlas's bars. Busy-street density reads presence's class weights for both sources
+    atlas's bars. Storefront density reads presence's storefront weights (SF10) for both sources
     (`activity/`, AD1-AD2, PR4): every kind of place, OSM and Overture, never marks.
   - `tilePois` sets `markable` per place, from `curation.ts` over presence classes. Cinemas, dog parks and picnic sites are
     never marks. Places of worship, town halls, courthouses, cemeteries,
@@ -68,7 +68,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     the area's point (else the fix), plus a z11 read for towns, builds the
     checklists of the areas it saw whole (`buildChecklists`: an area's reach,
     capped at 1.5 km, inside the read), never rebuilding or taking from an area
-    already built for this build (`built`, `known`). Busy streets are saved only
+    already built for this build (`built`, `known`). Storefronts are saved only
     on an exploring walk (`remember`); switching Explore on reads them at once
     where a quiet read skipped them. One read at a time; a failure waits 2 min
     and 100 m (`retryAllowed`), route reads too. The build is checked at most

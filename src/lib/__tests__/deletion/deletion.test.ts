@@ -227,14 +227,14 @@ test('D11: the size shows from 0.1 MB, rounded as people say it', () => {
 test('D4: the confirm says what goes', () => {
   assert.deepEqual(walkDeleteText({ moments: 12, streets: 9, bytes: 34_000_000 }), {
     title: 'Delete this walk?',
-    body: 'Its trace, 12 moments and 9 streets walked go. Frees about 34 MB.',
+    body: 'Its trace, twelve moments and nine streets walked\u00a0go. Frees about 34 MB.',
     confirm: 'Delete walk',
   });
-  assert.equal(walkDeleteText({ moments: 0, streets: 0, bytes: 0 }).body, 'Its trace goes.');
-  assert.equal(walkDeleteText({ moments: 1, streets: 1, bytes: 0 }).body, 'Its trace, 1 moment and 1 street walked go.');
+  assert.equal(walkDeleteText({ moments: 0, streets: 0, bytes: 0 }).body, 'Its trace\u00a0goes.');
+  assert.equal(walkDeleteText({ moments: 1, streets: 1, bytes: 0 }).body, 'Its trace, one moment and one street walked\u00a0go.');
   assert.deepEqual(mediaRemoveText({ photos: 3, videos: 0, voices: 1, bytes: 5_000_000 }), {
     title: 'Remove photos, videos and memos?',
-    body: '3 photos and 1 voice memo go. The walk, its notes and its streets stay. Frees about 5 MB.',
+    body: 'Three photos and a voice memo go. The walk, its notes and its streets stay. Frees about 5 MB.',
     confirm: 'Remove',
   });
   assert.deepEqual(momentDeleteText('voice', 0), { title: 'Delete this voice memo?', body: 'You can undo it.', confirm: 'Delete' });

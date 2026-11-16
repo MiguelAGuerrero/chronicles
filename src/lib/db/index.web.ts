@@ -781,6 +781,23 @@ export const db: Db = {
     else tx.objectStore('reaction').put({ moment_id: r.moment_id, family: r.family, reaction: r.reaction, set_at: r.set_at });
     await committed(tx);
   },
+  async setReactions(rows) {
+    if (!rows.length) return;
+    const tx = (await conn()).transaction('reaction', 'readwrite');
+    const st = tx.objectStore('reaction');
+    try {
+      for (const r of rows) {
+        if (!r.moment_id || !r.family) throw new DOMException('a reaction row needs its moment and family', 'DataError');
+        if (r.reaction == null) st.delete([r.moment_id, r.family]);
+        else st.put({ moment_id: r.moment_id, family: r.family, reaction: r.reaction, set_at: r.set_at });
+      }
+    } catch (e) {
+      // One transaction: a bad row takes back the rows before it (RL10).
+      tx.abort();
+      throw e;
+    }
+    await committed(tx);
+  },
   async listReactions() {
     return (await done((await store('reaction')).getAll())) as StoredReaction[];
   },

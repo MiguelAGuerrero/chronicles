@@ -135,14 +135,14 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     behind `atlas-town-head`.
   - A pin's viewer has Go here.
 - **Scenic routes** (SR1-SR15, decision 0095, the owner's calls, Nov 4): Go here offers Direct and one
-  route per leaning switched on (green, sights, streets with life), side by side, at most 30% longer.
+  route per leaning switched on (green, sights, storefronts), side by side, at most 30% longer.
   - `nav/scenic.ts` (core): `scenicPlan` (who gets the preview: not `start`, not with all leanings off, not
     past `SCENIC.maxM` 5 km), `routeOptions`, `scenicRouteSource` (re-routes keep the leaning, SR10),
     `rowWords` and `passesLine` (in words, never a score). `SCENIC` lives in `nav/rules.ts`.
   - **Distance over minutes** (VISION.md, Never; the owner, Nov 5): every row gives its route's own distance
     through `formatDistance` in the units setting (`rowWords(option, units)`, the card's `useUnits()`).
     Never a time, a difference ("N min longer", "60 m more"), "faster" or "fastest" on a route.
-  - Green and busy: a search where an appealing metre costs `1 - s × appeal`, tried at `SCENIC.strengths`;
+  - Green and storefronts: a search where an appealing metre costs `1 - s × appeal`, tried at `SCENIC.strengths`;
     the one gaining most within the detour wins, if it gains 100 m. Sights: stops on the way, chosen by
     one bounded search from each end (`StreetSource.reach`), never a full search per candidate.
   - `nav/scenicSignals.ts` (core): green from the tiles' `landcover`, as presence reads it (`classesOfLandcover`:
@@ -161,7 +161,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - E2E: `E2E_ONLY=scenic` (India Point Park, `scenicWorld`). Other journeys reach a route through the
     harness's `routed`, which takes Direct when a preview shows.
 - **Only the routes while choosing** (fix preview-clutter, the owner's phone screenshot): with the preview open, the live map draws
-  none of the walked trace, rides, gap stretches and links, fog, walked streets, busy streets' shading, town borders, walkability tint or the "unwalked" veil
+  none of the walked trace, rides, gap stretches and links, fog, walked streets, storefront streets' shading, town borders, walkability tint or the "unwalked" veil
   (`forPreview` in `nav/previewView.ts`, applied in `walk.tsx`); they come back as it closes. The e2e reads which of them carry anything
   (`data-drawn`, under `window.__perf`). Pins and the walker stay.
 - **Time left** (QL17, QL18; `lib/nav/eta.ts`, pure): the walk's own pace (walked

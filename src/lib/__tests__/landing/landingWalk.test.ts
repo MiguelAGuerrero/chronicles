@@ -27,7 +27,7 @@ test('walk: a dead zone nudges once, after 10 min more than 400 m from every poc
   assert.equal(deadZoneNudge({ ...base, farSinceMs: 11 * 60_000, quiet: true }), null, 'quiet walk');
   assert.equal(deadZoneNudge({ ...base, here: m(0, 300), farSinceMs: 11 * 60_000 }), null, 'within 400 m: not a dead zone');
   assert.equal(deadZoneNudge({ ...base, pockets: [{ name: 'Far', centre: m(0, 1700) }], farSinceMs: 11 * 60_000 }), null, 'none within 1.5 km');
-  assert.equal(deadZoneNudge({ ...base, pockets: [{ name: 'A busy pocket', centre: m(-500, 0) }], farSinceMs: 11 * 60_000 })!.text, 'A busy pocket, 500 m west');
+  assert.equal(deadZoneNudge({ ...base, pockets: [{ name: 'A pocket of storefronts', centre: m(-500, 0) }], farSinceMs: 11 * 60_000 })!.text, 'A pocket of storefronts, 500 m west');
 });
 
 // Audit regressions (v1.5 slice 3).

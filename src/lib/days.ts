@@ -1,9 +1,12 @@
 // @layer core
 import type { Faced } from './moment';
 import { formatDistance } from './format';
-import { boundsOf, distanceM, type Bounds } from './geo';
+import { boundsOf, distanceM, distanceToLinesM, type Bounds } from './geo';
 import type { Units } from './units';
-import type { LngLat, Walk } from './types';
+import type { LngLat, StreetSegment, Walk } from './types';
+import { STREET_REACH_M, streetAt } from './resurface/context';
+import { numberWord } from './resurface/lines';
+import { pinHint } from './replay';
 
 /**
  * Moments and days (the concept doc's "Moments and days" tab). A capture is a
@@ -98,13 +101,26 @@ export function dayLabel(key: string, now: number): string {
   return new Date(dayStart(key)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** A day's counts in words, "three moments", "one walk"; a day whose walk kept nothing says no count of moments. */
+function countWords(day: Day, space: string): string[] {
+  const said = (n: number, one: string, many: string) => `${numberWord(n)}${space}${n === 1 ? one : many}`;
+  return [day.moments > 0 ? said(day.moments, 'moment', 'moments') : null, day.walks > 0 ? said(day.walks, 'walk', 'walks') : null]
+    .filter((x): x is string => !!x);
+}
 
-/** "3 moments · 1 walk" for the days list (M7). */
-export function dayCounts(day: Day): string {
-  const parts = [plural(day.moments, 'moment', 'moments')];
-  if (day.walks) parts.push(plural(day.walks, 'walk', 'walks'));
-  return parts.join(' · ');
+/**
+ * "Three moments · one walk" for the days list and a day's header (M7), in words as the timeline under them says its
+ * own (tend tabs T32, the owner's yes, Nov 14). A day whose walk kept nothing says "One walk", never "zero moments" (as
+ * tend tabs audit 22). `bind`, for the days row, which has room, keeps each count on its noun's line; a day's header,
+ * about 88 px wide at 320 px, wraps between words instead, so no word is broken (tend tabs audit 25).
+ */
+export function dayCounts(day: Day, o: { bind?: boolean } = {}): string {
+  return capWord(countWords(day, o.bind ? '\u00a0' : ' ').join(' · '));
+}
+
+/** A day's row as a screen reader says it: "Today, three moments, one walk" (tend tabs T32), plain spaces. */
+export function daySpoken(label: string, day: Day): string {
+  return [label, ...countWords(day, ' ')].join(', ');
 }
 
 /** Every moment of a day, loose or in a walk, in time order. */
@@ -133,18 +149,96 @@ export function dayFrame(moments: Faced[], walks: { runs: LngLat[][]; rideRuns: 
 /** Meta key set once a day's replay has been watched to its end (M12). */
 export const watchedKey = (key: string) => `day_watched:${key}`;
 
-/** The day's closing card: quiet, no streaks or badges (M13). Its distance in the units setting, as the walk's card (tend replay 3). */
-export function dayCard(day: Day, now: number, distanceByWalk: Map<string, number>, units?: Units) {
+/** What a walk's replay knows of where its moments were: its streets, and the places its moments found. */
+export interface WalkPlaces {
+  walked: StreetSegment[];
+  fog: StreetSegment[];
+  found: { capture_id: string; name: string; generic: boolean }[];
+}
+
+/**
+ * The named place of a placed moment of a walk (tend replay T19, decision 0153: named places only): the place it
+ * found, else its street as a moment's own line states it (`streetAt`). A loose moment, or one with no street within
+ * reach, has none.
+ */
+export function momentPlace(c: Pick<Faced, 'id' | 'lat' | 'lon' | 'segment_id'>, walk: WalkPlaces | null | undefined): string | null {
+  if (!walk || c.lat == null || c.lon == null) return null;
+  const found = walk.found.find((f) => f.capture_id === c.id && !f.generic);
+  if (found) return found.name;
+  return streetAt([c.lon, c.lat], [...walk.walked, ...walk.fog], c.segment_id ?? null)?.name ?? null;
+}
+
+/**
+ * The day card's line, a clause (tend replay T19, decision 0165): "Four moments, around Wickenden Street and the Old
+ * Mill" when every moment given has a named place and there are one or two; else "Four moments around Fox Point",
+ * the day's area; else "Four moments". Null with no moments. `dayPlaces` says which places and area it may use.
+ */
+export function dayLine(moments: number, places: readonly (string | null)[], area: string | null): string | null {
+  if (moments < 1) return null;
+  const said = `${capWord(numberWord(moments))} ${moments === 1 ? 'moment' : 'moments'}`;
+  const named = [...new Set(places.filter((p): p is string => !!p))];
+  if (places.length && places.every(Boolean) && named.length <= 2) return `${said}, around ${named.join(' and ')}`;
+  return area ? `${said} around ${area}` : said;
+}
+
+/** The day's area: the one area its walks share, if they share one. */
+export function dayArea(day: Day): string | null {
+  const areas = new Set(day.entries.flatMap((e) => (e.kind === 'walk' && e.walk.area ? [e.walk.area] : [])));
+  return areas.size === 1 ? [...areas][0] : null;
+}
+
+/**
+ * Where the day's card may say its moments were (the owner, Nov 14, "Only when all are placed"; tend replay audit 12):
+ * a named place for each moment, and the day's area, only when every moment of the day has a place inside it. A walk's
+ * moment is inside its walk; a loose one is checked against the streets the day's walks read: on a named one it is
+ * there, within reach of any it is inside the area, else outside. A moment with no place, or one outside, leaves the
+ * card its count alone (`names` empty, `area` null).
+ */
+export function dayPlaces(day: Day, walks: ReadonlyMap<string, WalkPlaces> | undefined): { names: (string | null)[]; area: string | null } {
+  const caps = dayCaptures(day);
+  const none = { names: [], area: null };
+  if (!caps.length || caps.some((c) => c.lat == null || c.lon == null)) return none;
+  const read = day.entries.flatMap((e) => {
+    const w = e.kind === 'walk' ? walks?.get(e.walk.id) : undefined;
+    return w ? [...w.walked, ...w.fog] : [];
+  });
+  const inside = (c: Faced) => read.some((s) => distanceToLinesM([c.lon!, c.lat!], s.geometry) <= STREET_REACH_M);
+  if (caps.some((c) => !c.walk_id && !inside(c))) return none;
+  const names = caps.map((c) =>
+    c.walk_id ? momentPlace(c, walks?.get(c.walk_id)) : streetAt([c.lon!, c.lat!], read, c.segment_id ?? null)?.name ?? null,
+  );
+  return { names, area: dayArea(day) };
+}
+
+const capWord = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * What the day screen loaded that its card reads (tend replay audit 13): each walk's distance, and each walk's replay
+ * for where its moments were. One value, handed over whole, so the card cannot be built without the walks.
+ */
+export interface DayLoaded {
+  distance: ReadonlyMap<string, number>;
+  walks: ReadonlyMap<string, WalkPlaces>;
+}
+
+/**
+ * The day's closing card: quiet, no streaks or badges (M13). Its distance in the units setting, as the walk's card (tend
+ * replay 3); its moments a clause, with their named places or the day's area (tend replay T19).
+ */
+export function dayCard(day: Day, now: number, loaded: DayLoaded, units?: Units) {
+  const { distance: distanceByWalk, walks } = loaded;
   const date = new Date(dayStart(day.key));
   const label = dayLabel(day.key, now);
   const weekday = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
   const caps = dayCaptures(day);
-  const spots = spotCount(caps);
+  const where = dayPlaces(day, walks);
   const metres = day.entries.reduce((m, e) => m + (e.kind === 'walk' ? distanceByWalk.get(e.walk.id) ?? 0 : 0), 0);
   return {
     title: label === 'Today' || label === 'Yesterday' ? `${label} · ${weekday}` : weekday,
-    line: `${plural(caps.length, 'moment', 'moments')} · ${plural(spots, 'place', 'places')}`,
+    line: dayLine(caps.length, where.names, where.area),
     walked: metres > 0 ? `${formatDistance(metres, units)} walked` : null,
+    // No pin, no hint (tend replay audit 11).
+    hint: pinHint(caps),
   };
 }
 

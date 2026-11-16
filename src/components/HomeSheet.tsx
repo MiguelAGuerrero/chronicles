@@ -10,9 +10,9 @@ import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
-import { emptyPeek, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
+import { emptyPeek, moreFor, placeSheetLine, timelineWalkLine, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
-import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
+import { dayCounts, dayLabel, daySpoken, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
 import type { Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
@@ -285,13 +285,14 @@ export function HomeSheet(props: {
           {day ? (
             <View style={styles.headerText}>
               <Text testID="day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{dayLabel(day.key, nowT)}</Text>
-              <Text style={styles.meta} numberOfLines={1}>{dayCounts(day)}</Text>
+              {/* In words since tend tabs T32, so it may take two lines, as the place's line does, wrapping between words (tend tabs audit 25). */}
+              <Text testID="day-meta" style={styles.meta} numberOfLines={2}>{dayCounts(day)}</Text>
             </View>
           ) : place ? (
             <View style={styles.headerText}>
               <Text testID="place-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{place.title}</Text>
-              <Text style={styles.meta} numberOfLines={2}>
-                {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
+              <Text testID="place-meta" style={styles.meta} numberOfLines={2}>
+                {placeSheetLine(place.subtitle, place.walks.length, formatDistance(place.metres))}
               </Text>
             </View>
           ) : noWalks && !expanded ? (
@@ -402,12 +403,12 @@ export function HomeSheet(props: {
                   key={d.key}
                   testID="day-row"
                   accessibilityRole="button"
-                  accessibilityLabel={`${dayLabel(d.key, nowT)}, ${dayCounts(d)}`}
+                  accessibilityLabel={daySpoken(dayLabel(d.key, nowT), d)}
                   onPress={() => props.onMode({ kind: 'day', key: d.key })}
                   style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
                 >
                   <Text style={styles.rowTitle}>{dayLabel(d.key, nowT)}</Text>
-                  <Text style={styles.rowMeta}>{dayCounts(d)}</Text>
+                  <Text testID="day-row-meta" style={styles.rowMeta}>{dayCounts(d, { bind: true })}</Text>
                 </Pressable>
               ))
             : day
@@ -465,7 +466,7 @@ function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: stri
     <Pressable
       testID="walk-more"
       accessibilityRole="button"
-      accessibilityLabel={`More for ${title}`}
+      accessibilityLabel={moreFor(title)}
       // While old walks are being placed, a walk's streets may still be read (deletion audit 2).
       disabled={disabled}
       accessibilityState={{ disabled: !!disabled }}
@@ -481,7 +482,7 @@ function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: stri
 function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Faced[]) => void; onMore?: (walkId: string) => void }) {
   if (e.kind === 'walk') {
     const n = e.captures.length;
-    const line = ['Walk', s ? formatDistance(s.distance_m) : null, `${n} ${n === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');
+    const line = timelineWalkLine(s ? formatDistance(s.distance_m) : null, n);
     const title = e.walk.title ?? suggestTitle(e.walk);
     return (
       <View style={styles.withMore}>

@@ -27,7 +27,7 @@ test('RX8: a failed write leaves the reactions as they were and says so (a failu
   const p = fakePorts();
   const r = createReactions(p);
   await r.load();
-  (p.db as unknown as { failNext: (m: string) => void }).failNext('setReaction');
+  (p.db as unknown as { failNext: (m: string) => void }).failNext('setReactions');
   await assert.rejects(r.choose('m1', 'idea'));
   assert.deepEqual(r.get('m1'), {});
 });

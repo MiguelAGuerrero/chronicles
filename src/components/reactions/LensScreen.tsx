@@ -19,15 +19,18 @@ export function LensScreen(props: {
   context: Record<string, ContextEntry | undefined>;
   now: number;
   onBack: () => void;
+  /** Where Back goes (reaction-links live 1): the Reactions list it was opened from, or the journal (RL2, RL3). */
+  backTo?: 'reactions' | 'journal';
   onOpen: (m: MomentView) => void;
   onWalk: (walkId: string) => void;
   onMore: (m: MomentView) => void;
 }) {
+  const toJournal = props.backTo === 'journal';
   return (
     <View style={styles.wrap} testID="lens-screen">
-      <Pressable testID="lens-back" accessibilityRole="button" accessibilityLabel="Back to Reactions" onPress={props.onBack} style={styles.back}>
+      <Pressable testID="lens-back" accessibilityRole="button" accessibilityLabel={toJournal ? 'Back to the journal' : 'Back to Reactions'} onPress={props.onBack} style={styles.back}>
         <Icon name="chevron-back" size={20} color={theme.ink} />
-        <Text style={styles.backText}>Reactions</Text>
+        <Text style={styles.backText}>{toJournal ? 'Journal' : 'Reactions'}</Text>
       </Pressable>
       <View style={styles.head}>
         <Icon name={props.reaction.glyph as IconName} size={26} color={theme.ink} />

@@ -57,7 +57,7 @@ test('SR13: only the tile host and Overture are asked, for the corridor\'s tiles
   assert.ok(r.segments.length > 0, 'the streets');
   assert.equal(r.signals.green.length, 1);
   assert.equal(r.signals.green[0].name, 'Fox Point Park', 'named by the park inside it');
-  assert.ok(Array.isArray(r.signals.busy), 'no Overture: busy from the map alone');
+  assert.ok(Array.isArray(r.signals.storefronts), 'no Overture: storefronts from the map alone');
 });
 
 test('SR13: Cancel during the read gives nothing', async () => {

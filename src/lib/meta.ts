@@ -96,7 +96,7 @@ export const META = {
   tile_build: { owner: 'tiles', codec: text },
   tile_url: { owner: 'tiles', codec: text },
   snap_rules: { owner: 'tiles', codec: text },
-  /** The Overture release busy streets are measured with, and when the listing was last checked (AD6). */
+  /** The Overture release storefront streets are measured with, and when the listing was last checked (AD6). */
   overture_release: { owner: 'activity', codec: text },
   overture_checked_at: { owner: 'activity', codec: number },
   /** The places archive's manifest as last read, and when it was checked (PW2, decision 0103). */

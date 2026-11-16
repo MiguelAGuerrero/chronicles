@@ -12,7 +12,7 @@ import { NEAR_ZOOM } from './types';
 const READ_M = 1500;
 const READ_TILES = 9;
 
-/** A centre to about 1 km: a read is tried once for it, and again only when the map moves that far (as Busy streets'). */
+/** A centre to about 1 km: a read is tried once for it, and again only when the map moves that far (as the Storefronts layer's). */
 const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
 
 const idOf = (s: Shop) => `${s.type}|${s.name}|${s.at[0]}|${s.at[1]}`;

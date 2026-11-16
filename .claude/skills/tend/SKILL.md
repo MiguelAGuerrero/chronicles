@@ -128,7 +128,9 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    (`tend <area> N`, in the feature's folder under `src/lib/__tests__/`) or a
    journey step, then the smallest change that removes its cause; no
    refactors beside it. No finding shares a commit; none rides along
-   untested. The message, exactly in this form:
+   untested. Logic: a unit test that fails when its wiring is reverted;
+   words only: one unit test of the words, seen failing
+   (`ship.md`, "The faster lane"). The message, exactly in this form:
 
    ```
    tend memories 3: the Undo toast is a button with a spoken name
@@ -140,8 +142,9 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    in the worktree, the size tripwire `npm run book:files -- HEAD --max-src 8`
    (the finding's source files, untracked included; past it, "Hard stops"). For storage, the
    recorder, the walk screen, the replay, and any change to what a screen
-   shows: `npm test` and the journey that covers it, once, with a before and
-   after picture kept for the report.
+   shows: `npm test` and the journey holding the commit's new or changed
+   check, once, with an after picture at 320 px kept for the report (a
+   before picture only as `ship.md`, "The faster lane", allows).
 3. **A hard stop** (`.claude/skills/ship.md`, "Hard stops") reclassifies the
    finding and drops the half-made change.
 4. Stop at `--cap`; file what is left as `[loop]` in `docs/DEFERRED.md`.
@@ -384,15 +387,17 @@ The owner picks; the loop never starts a `G` entry unasked.
    npm run tend:log -- origin/main..HEAD '{"mode":"sweep","area":"memories","deploy":"main","base":"<the worktree's base>",
      "lenses":{"whole":false,"skipped":["2: offline not pictured"]},
      "found":{"loop":{"high":0,"medium":2,"low":5},"owner":2,"arch":0,"phone":1,"out":1},
-     "filed":{"T":["T4","T5","T6"],"G":[]},"answers":[],"state":{"from":"rough","to":"settling"}}'
+     "filed":{"T":["T4","T5","T6"],"G":[]},"answers":[],"state":{"from":"rough","to":"settling"},
+     "e2e":["memories","launch"]}'
    ```
 
    The script adds the date and what the commits say (findings shipped, the
    review's fixes, entries built, reverts) and refuses a line that leaves a
    count out. `found` counts everything the sweep found, shipped or not,
    zeros included; `answers` is each entry the owner answered this run, as
-   `yes`, `no` or `reshape`; `review` is the auditor's findings
-   (`accepted`, `rejected`, `deferred`). The line is written once: when the
+   `yes`, `no` or `reshape`; `review` is the review's findings
+   (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e`
+   is the journeys run, or `"full"` for the full pass. The line is written once: when the
    review of step 2 leads to a second record commit, write it there.
    Write facts, never a judgment of the run: no lesson, no rating, no advice.
 2. **Checks:** `npm run check:docs` and `npm run check:records -- origin/main..HEAD`
@@ -401,11 +406,18 @@ The owner picks; the loop never starts a `G` entry unasked.
    build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
    a loop commit with its own named, real test and its source, and none
    touches what the loop may not), `npm run typecheck && npm run lint &&
-   npm test`, then `.claude/skills/ship.md`, "Review": one `auditor` pass over
-   the run's whole diff, one round, fixes named `tend <area> audit N`, N on from
+   npm test`, then `.claude/skills/ship.md`, "Review", in its faster lane: the
+   reviewers by risk over the run's whole diff (the `auditor` on any behaviour
+   change; one reviewer for words or style; none for records only), one round,
+   medium and above fixed, named `tend <area> audit N`, N on from
    `npm run book:next-audit -- "tend <area>"` in the worktree (main's, the branch's and the
-   working tree's highest, in files and commit messages). A `G`
+   working tree's highest, in files and commit messages), lows filed `[loop]`. A `G`
    build runs the slice's step 9 and the same review in place of `check:tend`.
+   **Journeys** before publishing: those holding a new or changed check, and
+   `launch`. **The weekly full pass:** when no run-log line of the last seven
+   days says `"e2e":"full"`, a run that changed code runs the full flow
+   (`npm run e2e:web`, no `E2E_ONLY`) before publishing, and a failing check
+   is triaged as a finding of the run.
 3. **Publish**, by `--deploy`:
    - `main`: `.claude/skills/ship.md`, "Publish to main", once (a decision
      record the run wrote: `npm run book:next-decision -- --check <NNNN> <file>`

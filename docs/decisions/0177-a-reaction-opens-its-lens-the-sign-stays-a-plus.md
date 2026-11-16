@@ -20,3 +20,12 @@ The owner's calls, Nov 14, at the audit's end:
 - A follow-up slice amends RX9 and RX12 (the sign and the Reaction tool show the face with a plus whatever is chosen)
   and adds a criterion for the marks as links (a moment shown in context, Back to where it was opened).
 - 0176's "lenses live in the journal's contents" now has a second way in; 0168's "marked, the type's own glyph" ends.
+
+## Addendum, Nov 14 (the slice's calls, `specs/reaction-links`)
+At the plan's review, the owner:
+- **Outside Memories the reactions stay plain words** (the walk screen, a replay, a day, Chronicle's Map, Navigate,
+  Media; and the slip's and a reminder's viewers, the steward's call): a tap never pulls the walker off to Chronicle.
+- **A video's pin wears its bubbles in an L**: two along the bottom-left, the third above them at the head's left edge,
+  all on the pin, clear of the play mark (the reactions audit 15).
+- From the owner's phone: once marked, the sign became the reaction's own glyph, larger than the same mark under the
+  time, so it read as another kind of control. The sign is the face with a plus at one size, whatever is chosen.

@@ -4,7 +4,7 @@ For the owner to read before any code. Spec: `specs/shop marks/spec.md`. The gat
 
 ## Shape in one paragraph
 
-A second pack family, `shop marks`, built in chronicles-data from OpenStreetMap `shop=*` and published beside the places archive on the same Pages site. The app reads it by z12 tile through `lib/net` exactly as it reads the places archive, but the reader is its own module, never stored, never merged with the map's places. A new `Shop marks` entry in the layer registry turns the read on and the drawing on; three screens host it (Explore, Navigate ready, the live walk). Nothing in presence, discovery, the atlas or the landing knows it exists.
+A second pack family, "shops", built in chronicles-data from OpenStreetMap `shop=*` and published beside the places archive on the same Pages site. The app reads it by z12 tile through `lib/net` exactly as it reads the places archive, but the reader is its own module (`src/lib/shopMarks/`), never stored, never merged with the map's places. There is no layer of its own: the marks are a second drawing inside main's one Storefronts layer (decision 0180, the renamed the Storefronts layer's street shading). The layer's switch turns the read on, its legend gets a "Shop marks" row (only where a pack address is set) and its panel line says what the marks are; three screens host it (Explore, Navigate ready, the live walk). Nothing in presence, discovery, the atlas or the landing knows it exists.
 
 ## Two halves
 
@@ -39,8 +39,8 @@ New, all under `src/lib/shop marks/` unless said (each starts with `// @layer`):
 - `src/lib/__tests__/shop marks/` (tests, below) and `contract/` (the pinned copy).
 
 Existing, changed:
-- `src/lib/layers/registry.ts`: a `shop marks` entry, `defaultOn: false`, icon `bag-handle-outline`, one legend row "Shops" (a new `SwatchKey`, `'shop'`; the legend shows only in the two drawers), a note naming the source and nothing about types ("From OpenStreetMap. Tap a mark for its name."; steward S1). The entry is offered only when a shop base is set (SM2).
-- `src/lib/layers/notes.ts`: the lines for Shop marks: "Zoom in to see them", "Not covered here yet", "Couldn't read the shops" (SM7), with the words grep extended to this file (SM13).
+- `src/lib/layers/registry.ts`: the Storefronts entry gets a second legend row, "Shop marks" (a new `SwatchKey`, `'shop-mark'`; the legend shows only in the two drawers), a tip that names the source and no list of types (steward S1); `legendRows(layer, { shopMarksBase })` leaves the row out where no address is set (SM2). No new layer, icon or setting.
+- `src/lib/layers/notes.ts`: the marks' lines join the Storefronts layer's one line: "Zoom in to see shops", "No shop marks here yet", "Couldn't read the shops" (SM7), after the shading's own "Reading…" and "Not available now"; the words grep covers them (SM13).
 - `src/components/map/types.ts` and `WalkMap.web.tsx`, `WalkMap.native.tsx`: a `shop marks` prop, a source and one circle layer drawn like `found-pins` (web `setData('shop marks', ...)`; native a `GeoJSONSource` with a `CircleLayer`), placed under the dot, trace, route and pins (SM12); the press handler's hit order gets the shop last (SM14). No text layer (SM11).
 - `src/app/(tabs)/explore.tsx`, `src/components/walk/useReady.tsx`, `src/app/walk.tsx`: each calls `useShopMarks` with its fix or centre and passes the result and the card to the map (SM1, SM3); the walk's and ready's pass `near` (800 m of the fix).
 - `src/components/StartSettings.tsx`: its `LayersKey` lists the new row (SM3, from the registry, so it is one line if any).
@@ -56,9 +56,9 @@ A new feature folder `src/lib/__tests__/shop marks/` and a journey `scripts/e2e/
 
 | Id | Test (name starts with the id) | File |
 |---|---|---|
-| SM1 | the three hosts each draw the marks of the fixture pack when the layer is on; the Layers button on each opens a panel with a "Shop marks" switch row, its note and an icon that is not Busy streets' (no legend in the panel) | journey `shop marks`; `registry.test.ts` (distinct icon and name) |
-| SM2 | off by default; a stored `map_layers` with no `shop marks` key reads off; while off the shell is never called and the harness serves no shop request; with no base set the row is absent and nothing is asked | `layerState.test.ts`; journey (request log) |
-| SM3 | one setting for every map; the note on Explore and Navigate ready, the legend row reaching both `LayersKey` drawers | `layerState.test.ts`; journey on `ready`, Explore and the walk |
+| SM1 | the three hosts each draw the marks of the fixture pack when the Storefronts layer is on; the panel's one line says what a mark is; the Storefronts layer has a second legend row for the marks (no layer of its own) | journey `shopmarks`; `registry.test.ts` |
+| SM2 | the marks add no switch or setting; with no address the legend row is absent, nothing is asked and the layer is the shading alone | `registry.test.ts`; journey (request log) |
+| SM3 | one setting for every map (the Storefronts one); the line on Explore and Navigate ready, the legend row reaching both `LayersKey` drawers | `registry.test.ts`; journey on `ready`, Explore and the walk |
 | SM4 | a tile feature with extra fields (rating, hours, phone, website, id, description) yields a place holding only type, name, position and chain | `read.test.ts` |
 | SM5 | `chain: true` is kept; absent is not flagged; nothing is inferred from a name ("Goodwill" with no flag is not a chain) | `read.test.ts` |
 | SM6 | a shell over `fakePorts()`: manifest at most daily, region by position, tiles by z12, nothing written to the place cache, only the two meta keys, a host check against `ALLOWED_HOSTS` | `shell.test.ts` |
@@ -83,7 +83,7 @@ Tests go in first as todos in their own commit (`Shop marks: tests first (SM1-SM
 
 | Goal | How often, where | Control | Matrix row | Where the owner will look first |
 |---|---|---|---|---|
-| Turn the shops on or off on the map | Occasional, a map on any of the three screens | The Shop marks switch in the existing Layers panel | #14 Toggle a setting | The Layers button on the map they are looking at, the same place as Busy streets and Town borders |
+| Turn the shops on or off on the map | Occasional, a map on any of the three screens | The Shop marks switch in the existing Layers panel | #14 Toggle a setting | The Layers button on the map they are looking at, the same place as the Storefronts layer's street shading and Town borders |
 | Know what the marks mean | Passing | The panel's one quiet note under the switch on Explore and Navigate ready; a legend row in the two drawers that hold `LayersKey` (the legend never sits over the map, the layers rule, Nov 5) | #19 A passive status | Under the switch |
 | Know why the layer is not drawing | Passing | The panel's quiet line ("Zoom in to see them", "Not covered here yet", "Couldn't read the shops") | #19, #21 | Under the switch |
 | Learn what one mark is | Occasional, a map on any of the three | A tap on an unmerged mark opens a small card in a fixed place at the map's top: name, kind in words, a chain line only if flagged | #24 A quick, scoped sub-task without losing context (a card, not a sheet, so the map stays in view) | On the mark itself |
@@ -101,7 +101,7 @@ No new top-level control, no capture behind a tap, nothing over the capture stac
 6. **The card has no action.** No Walk here, no Open in Maps, no route; circuits and the hand-off to Maps come later. It sits at the map's top (as 0115's card does), never at the mark, so it cannot reach the capture stack.
 6b. **The layer is not offered until a pack exists**: with no shop base set the row is absent (SM2). Production gets the base only when chronicles-data publishes its first shop pack; until then nobody meets a switch that does nothing.
 6c. **The 800 m edge on the walk maps is a hard cut from you, not from the pan**: the marks move with you, and a pan neither extends nor shrinks it.
-7. **Icon `bag-handle-outline`** for the layer. Busy streets already uses `shop-outline` and its row says "Busy with places: streets with many shops"; the two sound alike, which is a confusion risk the cold find will test (SM1). If it fails, the fix is words or icon, not a merge.
+7. **No icon of its own**: the marks are inside the Storefronts layer (the owner, Nov 16), so there is no second row to confuse with the Storefronts layer's street shading, which no longer exists as a name (decision 0180).
 
 ## Every surface (from the code, not from memory)
 

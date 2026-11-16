@@ -95,9 +95,13 @@ export const editedRecall = (fresh: Recall, frequency: RecallFrequency, until: n
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** "Two memories here", "Many memories here": a count in words (VISION.md, "Counts are words"; tend explore T29). */
+/**
+ * "Two memories here", a count in words (VISION.md, "Counts are words"; tend explore T29), up to twelve; "Many memories
+ * here" from thirteen, so the card's one line holds at 320 px (tend explore 16, decision 0172, the owner's "Many sooner").
+ */
 function severalHere(n: number): string {
-  const w = numberWord(n);
+  // The reminder's title alone: a memory preview keeps its number words (tend explore audit 18).
+  const w = n >= 13 ? 'many' : numberWord(n);
   return `${w.charAt(0).toUpperCase()}${w.slice(1)} memories here`;
 }
 

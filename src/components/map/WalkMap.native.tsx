@@ -32,7 +32,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, busyLayerOrder, busyNameLayers, busyNameRotate, busyNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, shopMarksGeoJSON, shopMarkLayers, shopSelectedGeoJSON, shopSelectedLayers, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, shopMarksGeoJSON, shopMarkLayers, shopSelectedGeoJSON, shopSelectedLayers, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -173,14 +173,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [landingPockets]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const strips = useMemo(() => stripsGeoJSON(props.landing), [landingGraded]);
-  // The busy names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
-  const reserveKey = props.busyNamesReserve ? `${props.busyNamesReserve.name}|${props.busyNamesReserve.at.join(',')}` : '';
+  // The storefront names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
+  const reserveKey = props.storefrontNamesReserve ? `${props.storefrontNamesReserve.name}|${props.storefrontNamesReserve.at.join(',')}` : '';
   // DC17: every "?" pin keeps its room; re-made only when the pins move.
   const pinsKey = props.landing ? (props.discoveries ?? []).map((d) => d.at.join(',')).join('|') : '';
   // DC18: the walk maps' names near you, re-made only when you move about 100 m.
-  const nearKey = props.busyNamesNear ? `${props.busyNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.busyNamesNear.m}` : '';
-  const busyNameData = useMemo(
-    () => busyNamesGeoJSON(props.landing, props.busyNamesReserve ?? null, (props.discoveries ?? []).map((d) => d.at), props.busyNamesNear ?? null),
+  const nearKey = props.storefrontNamesNear ? `${props.storefrontNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.storefrontNamesNear.m}` : '';
+  const storefrontNameData = useMemo(
+    () => storefrontNamesGeoJSON(props.landing, props.storefrontNamesReserve ?? null, (props.discoveries ?? []).map((d) => d.at), props.storefrontNamesNear ?? null),
     // The reserved name, the pins and where you are are read through their keys: a new object for the same is no change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.landing, reserveKey, pinsKey, nearKey],
@@ -190,11 +190,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // Set only when it changes: the same value set again still renders (map rules, DC12).
   const namesBearingNow = useRef(0);
   const nameLayers = useMemo(() => {
-    const l = busyNameLayers();
-    const rotate = busyNameRotate(namesBearing);
+    const l = storefrontNameLayers();
+    const rotate = storefrontNameRotate(namesBearing);
     return { ...l, layout: { ...l.layout, 'text-rotate': rotate }, turned: { ...l.turned, layout: { ...l.turned.layout, 'text-rotate': rotate } } };
   }, [namesBearing]);
-  // DC16, audit 6: the busy lines under the base labels, as on the web; the names over the lines (added after them), and
+  // DC16, audit 6: the storefront lines under the base labels, as on the web; the names over the lines (added after them), and
   // on Explore over everything.
   // audit 7: a map taken down mid-move reports no settle; say it is still, so whatever waits for its settle goes on.
   const onMoveStateRef = useRef(props.onMoveState);
@@ -202,8 +202,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onMoveStateRef.current = props.onMoveState;
   });
   useEffect(() => () => onMoveStateRef.current?.(false), []);
-  const busyOrder = busyLayerOrder(!!props.busyNamesOver);
-  const namesBelow = busyOrder.names;
+  const storefrontOrder = storefrontLayerOrder(!!props.storefrontNamesOver);
+  const namesBelow = storefrontOrder.names;
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
   const waitingDots = useMemo(() => waitingDotsGeoJSON(props.waitingDots), [props.waitingDots]);
   // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
@@ -400,7 +400,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           // SM14: of the taps no pin, mark or control took, a single shop opens its card, a merged one zooms apart, an open
           // card only closes, and anything else is the screen's own tap as before (the same rule as the web map).
           const hit = nearest(props.shopMarks ?? [], at, radius);
-          const action = pressAction({ cardOpen: !!props.shopCardOpen, target: pressTarget({ control: false, capturePin: false, mark: false, shop: hit }) });
+          const action = pressAction({ cardOpen: !!props.shopCardOpen, target: pressTarget({ control: false, capturePin: false, mark: false, shopMark: hit }) });
           if (action === 'card') props.onShopPress?.(hit);
           else if (action === 'close') props.onShopPress?.(null);
           else if (action === 'zoom' && hit) cameraRef.current?.easeTo({ center: hit.at, zoom: Math.min((view?.zoom ?? 16) + 2, 20), duration: props.animate === false || reduced ? 0 : MOTION.ease });
@@ -487,10 +487,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <GeoJSONSource id="pockets" data={pockets}>
-          <Layer id="pockets" type="fill" beforeId={busyOrder.lines} paint={{ 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] }} />
+          <Layer id="pockets" type="fill" beforeId={storefrontOrder.lines} paint={{ 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] }} />
         </GeoJSONSource>
         <GeoJSONSource id="strips" data={strips}>
-          <Layer id="strips" type="line" beforeId={busyOrder.lines} layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{
+          <Layer id="strips" type="line" beforeId={storefrontOrder.lines} layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{
             'line-color': HOTSPOT,
             // Graded (AD12): each feature carries its grade's width and opacity.
             'line-width': ['interpolate', ['linear'], ['zoom'], 12, ['*', 3, ['get', 'width']], 17, ['*', 10, ['get', 'width']]],
@@ -599,13 +599,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             'circle-stroke-width': 2,
           }} />
         </GeoJSONSource>
-        {/* The busy names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
-        <GeoJSONSource id="busy-names" data={busyNameData}>
-          <Layer id="busy-names" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.filter as never} layout={nameLayers.layout as never} paint={nameLayers.paint as never} />
+        {/* The storefront names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
+        <GeoJSONSource id="storefront-names" data={storefrontNameData}>
+          <Layer id="storefront-names" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.filter as never} layout={nameLayers.layout as never} paint={nameLayers.paint as never} />
           {/* A turned name, centred or left out, never slid across its street (audit 1). */}
-          <Layer id="busy-names-turned" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.turned.filter as never} layout={nameLayers.turned.layout as never} paint={nameLayers.turned.paint as never} />
+          <Layer id="storefront-names-turned" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.turned.filter as never} layout={nameLayers.turned.layout as never} paint={nameLayers.turned.paint as never} />
           {/* The room the selected area's name and each "?" pin keep (DC14, DC17), placed first. */}
-          <Layer id="busy-names-room" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.room.filter as never} layout={nameLayers.room.layout as never} paint={nameLayers.room.paint as never} />
+          <Layer id="storefront-names-room" type="symbol" minzoom={nameLayers.minzoom} beforeId={namesBelow} filter={nameLayers.room.filter as never} layout={nameLayers.room.layout as never} paint={nameLayers.room.paint as never} />
         </GeoJSONSource>
         {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4), drawn
             before this walk's pins so those stay on top (audit 6). */}

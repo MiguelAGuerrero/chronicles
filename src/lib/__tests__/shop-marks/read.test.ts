@@ -13,7 +13,7 @@ const read = () =>
     thin: (places: readonly Shop[], zoom: number) => Mark[];
     nearest: (marks: readonly Mark[], at: At, radiusM: number) => Mark | null;
     withinOf: (places: readonly Shop[], you: At, m: number) => Shop[];
-    pressTarget: (i: { control: boolean; capturePin: boolean; mark: boolean; shop: Mark | null }) => Target;
+    pressTarget: (i: { control: boolean; capturePin: boolean; mark: boolean; shopMark: Mark | null }) => Target;
     shopMarkOrder: () => string[];
   }>;
 
@@ -87,13 +87,13 @@ test('SM14: a capture pin, a mark or the walker\'s controls take a tap before a 
   const { pressTarget } = await read();
   const single: Mark = { at: [0, 0], merged: false, place: shop('A', [0, 0]) };
   const merged: Mark = { at: [0, 0], merged: true };
-  const base = { control: false, capturePin: false, mark: false, shop: single };
+  const base = { control: false, capturePin: false, mark: false, shopMark: single };
   assert.equal(pressTarget(base), 'card');
-  assert.equal(pressTarget({ ...base, shop: merged }), 'zoom');
+  assert.equal(pressTarget({ ...base, shopMark: merged }), 'zoom');
   assert.equal(pressTarget({ ...base, mark: true }), 'mark');
   assert.equal(pressTarget({ ...base, capturePin: true, mark: true }), 'pin');
   assert.equal(pressTarget({ ...base, control: true, capturePin: true }), 'control');
-  assert.equal(pressTarget({ ...base, shop: null }), 'none');
+  assert.equal(pressTarget({ ...base, shopMark: null }), 'none');
 });
 
 test('SM18: nothing a read returns can say a shop was visited, passed, found or done', async () => {

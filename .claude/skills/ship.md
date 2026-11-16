@@ -138,6 +138,29 @@ Each round is: review, fix what was accepted, run the caller's checks again. Sto
 round limit or at the first round with no new accepted finding. With accepted findings still open at
 the limit, nothing goes to `main`: push `<branch>` so the owner can look, and list them.
 
+### The faster lane
+
+`/tend` and the runs `/tend-orchestrator` briefs take this lane in place of the above where they differ
+(decision 0181: faster turnaround over comprehensive testing, keeping what caught real defects); a
+`/fix` or a slice the owner typed keeps the above.
+
+- **Reviewers by risk.** Wording or style only: one, the `ux-reviewer`, or the `steward` when the words
+  are the replay's or a `docs/VISION.md` line's. Behaviour that touches recording, storage, navigation,
+  timing or data: the `auditor`, always, with the `ux-reviewer` beside it when a screen changed. Records
+  only (the record documents, the ledger, the run log): none.
+- **Fixes in the run: medium and above.** A low is deferred: filed `[loop]` in its area's section of
+  `docs/DEFERRED.md` (`npm run records -- deferred item add`) for the area's next sweep.
+- **Pictures: after only**, each changed state at 320 px (`pg.setViewportSize({ width: 320, … })`, then
+  `shot()`, as the `tabs` journey does), and at 390 too where width matters. Before pictures (a worktree
+  at the base, its export, the journey) only when a reviewer cannot judge a visual change without them.
+- **Journeys before publishing:** those holding a new or changed check, plus `launch` as the smoke;
+  after a rebase, again only if the new commits touch their files. The rest of `check:affected`'s set
+  is left to CI (typecheck, `npm test`, lint, the export: CI runs no journey) and the weekly full pass,
+  recorded in the run log (`/tend` section 10).
+- **Tests.** Test-first stays for logic, and a unit test must fail when its wiring is reverted (undo
+  the call, see it fail, restore). A words-only change needs one unit test of the words, seen failing,
+  not every journey check seen failing first.
+
 ## Publish to main
 
 Only under a grant, and only what the grant covers. `/deploy`'s preconditions hold (its section 1),

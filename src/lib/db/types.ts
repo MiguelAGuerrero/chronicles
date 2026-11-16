@@ -161,6 +161,8 @@ export interface Db {
    * `reaction: null` deletes the family's row. `deleteMoments` and `deleteWalk` take a moment's rows; a piece split out takes none.
    */
   setReaction(r: StoredReaction): Promise<void>;
+  /** A moment's changed rows in one transaction (RL10): every one is kept, or none; a row with `reaction: null` deletes. */
+  setReactions(rows: StoredReaction[]): Promise<void>;
   listReactions(): Promise<StoredReaction[]>;
 
   /** A memo's words, read on the phone (decision 0169): one per capture, replaced by capture. A cache beside the memo. */

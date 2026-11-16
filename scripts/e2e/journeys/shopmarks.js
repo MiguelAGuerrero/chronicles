@@ -1,4 +1,4 @@
-// Shop marks (SM1-SM3, SM10, SM11, SM13, SM14, SM16): the Shop marks layer on the maps that have a Layers button, over a fixture pack
+// Shop marks (SM1-SM3, SM10, SM11, SM13, SM14, SM16): shop marks inside the Storefronts layer on the maps that have a Layers button, over a fixture pack
 // the harness serves at /shop-marks-e2e/: off by default and nothing asked while off; on, the drawn shops are marks (an errand shop is
 // not one, two close ones are one); a tap on a lone mark opens its card at the map's top, a tap elsewhere only closes it, a tap on
 // the merged mark zooms and opens none; the card never meets the capture stack. E2E_ONLY=shopmarks runs it alone.
@@ -45,18 +45,18 @@ async function run(h) {
   const here = at(0, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
 
-  // SM1, SM2, SM13: the Explore map's panel has a Shop marks switch of its own, off on a fresh install, and nothing is asked of the pack.
+  // SM1, SM2, SM13: the Explore map's panel has the one Storefronts switch, off on a fresh install, and no switch of its own for shop marks, and nothing is asked of the pack.
   await pg.goto(exploreUrl);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await pg.waitForTimeout(2500);
   await shot(pg, 'shopmarks-explore-closed');
   await openPanel();
-  check((await count('[data-testid=layer-storefronts]')) === 1, 'SM1: the Explore map\'s Layers panel has a Shop marks switch');
+  check((await count('[data-testid=layer-storefronts]')) === 1, 'SM1: the Explore map\'s Layers panel has the Storefronts switch');
   check((await pg.locator('[data-testid=layer-storefronts]').getAttribute('aria-checked')) === 'false', 'SM2: it is off on a fresh install');
   check(shopPack.asked.length === 0, `SM2: while it is off nothing is asked of the shop pack (${shopPack.asked.length})`);
   check(!/\d|%/.test(await pg.locator('[data-testid=layers-panel]').innerText()), 'SM13: no number, count or percentage in the panel');
   const rowIcons = await pg.locator('[data-testid=layers-panel]').evaluate((el) => [...el.querySelectorAll('[data-testid^=layer-]')].map((e) => e.getAttribute('data-testid')));
-  check(rowIcons.includes('layer-busy') && rowIcons.includes('layer-storefronts'), `SM1: Busy streets and Shop marks are two rows (${JSON.stringify(rowIcons)})`);
+  check(JSON.stringify(rowIcons.filter((id) => /^layer-(walkability|storefronts|borders|busy|shops?)$/.test(id))) === JSON.stringify(['layer-walkability', 'layer-storefronts', 'layer-borders']), `SM1, SM2: three layers and none of its own for shop marks (${JSON.stringify(rowIcons)})`);
   await shot(pg, 'shopmarks-explore-panel');
   await pg.keyboard.press('Escape');
 
@@ -70,8 +70,9 @@ async function run(h) {
   await pg.click('[data-testid=layer-storefronts]');
   await pg.waitForFunction(() => Number(document.querySelector('[data-shop-marks]')?.getAttribute('data-shop-marks') ?? 0) > 0, null, { timeout: 30000 }).catch(() => {});
   check((await attr('data-shop-marks')) === '3', `SM1, SM9, SM10: three marks: two shops and the twins as one, no supermarket (${await attr('data-shop-marks')})`);
+  await pg.waitForFunction(() => /Shops from OpenStreetMap/.test(document.querySelector('[data-testid=layer-status-storefronts]')?.textContent ?? ''), null, { timeout: 20000 }).catch(() => {});
   const note = await pg.locator('[data-testid=layer-status-storefronts]').innerText().catch(() => '');
-  check(/Tap a mark/.test(note) && !/\d/.test(note), `SM1, SM13: the panel's one line says what a mark is, in words (${JSON.stringify(note)})`);
+  check(/Shops from OpenStreetMap\. Tap a mark/.test(note) && !/\d/.test(note), `SM1, SM13: the panel's one line says what a mark is, in words (${JSON.stringify(note)})`);
   check(shopPack.asked.every((q) => q.cookie == null && q.referer == null), 'SM6: the pack is asked for with no cookie or referer');
   await pg.keyboard.press('Escape');
   await pg.reload();
@@ -117,8 +118,9 @@ async function run(h) {
   await pg.click('[data-testid=layer-storefronts]');
   // The map reports its zoom a moment after it loads: until it does the line says "Zoom in to see them", and then the layer reads.
   await pg.waitForFunction(() => Number(document.querySelector('[data-shop-marks]')?.getAttribute('data-shop-marks') ?? 0) > 0, null, { timeout: 30000 }).catch(() => {});
+  await pg.waitForFunction(() => /Shops from OpenStreetMap/.test(document.querySelector('[data-testid=layer-status-storefronts]')?.textContent ?? ''), null, { timeout: 20000 }).catch(() => {});
   const exLine = await pg.locator('[data-testid=layer-status-storefronts]').innerText().catch(() => '');
-  check(/Tap a mark/.test(exLine) && !/\d/.test(exLine), `SM3, SM7: Explore's panel says what a mark is, in words (${JSON.stringify(exLine)})`);
+  check(/Shops from OpenStreetMap\. Tap a mark/.test(exLine) && !/\d/.test(exLine), `SM3, SM7: Explore's panel says what a mark is, in words (${JSON.stringify(exLine)})`);
   check((await attr('data-shop-marks')) === '3', `SM3: Explore's map draws the shops too (${await attr('data-shop-marks')} at zoom ${await attr('data-zoom')})`);
   await shot(pg, 'shopmarks-explore-on');
   await pg.keyboard.press('Escape');
@@ -141,7 +143,7 @@ async function run(h) {
 }
 
 module.exports = {
-  name: 'shop marks',
+  name: 'shopmarks',
   covers: [
     'src/lib/shop marks/**',
     'src/components/ShopCard.tsx',

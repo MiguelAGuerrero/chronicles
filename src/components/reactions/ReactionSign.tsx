@@ -1,15 +1,14 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { signLabel, signOf, type ReactionSet } from '../../lib/reactions/core';
-import { Icon, type IconName } from '../icons';
+import { signLabel, type ReactionSet } from '../../lib/reactions/core';
+import { Icon } from '../icons';
 import { theme } from '../ui';
 
 /**
- * The sign that adds a reaction (RX1, RX6, RX9; decision 0168): a face with a small plus while the moment has none, its
- * first reaction's glyph once it has one. In ink, at a target's size, with no word: the sign people know for adding a
- * reaction (0167, found before quiet). Says "Reaction, Happy" or "Reaction, none".
+ * The sign that adds a reaction (RX1, RX6; RL6, decision 0177): always the face with a small plus, at one size, whatever is
+ * chosen; what is chosen is read under the dateline. In ink, at a target's size, with no word: the sign people know for
+ * adding a reaction (0167, found before quiet). Says "Reaction, Happy, Idea" or "Reaction, none".
  */
 export function ReactionSign(props: { set: ReactionSet; open?: boolean; onPress: () => void; testID?: string }) {
-  const first = signOf(props.set);
   return (
     <Pressable
       testID={props.testID ?? 'reaction-sign'}
@@ -19,12 +18,10 @@ export function ReactionSign(props: { set: ReactionSet; open?: boolean; onPress:
       onPress={props.onPress}
       style={({ pressed }) => [styles.sign, props.open && styles.open, pressed && styles.pressed]}
     >
-      <Icon name={(first?.glyph ?? 'happy-outline') as IconName} size={22} color={theme.ink} testID="reaction-sign-face" />
-      {first ? null : (
-        <View style={styles.add} testID="reaction-sign-add">
-          <Icon name="add" size={13} color={theme.bg} />
-        </View>
-      )}
+      <Icon name="happy-outline" size={22} color={theme.ink} testID="reaction-sign-face" />
+      <View style={styles.add} testID="reaction-sign-add">
+        <Icon name="add" size={13} color={theme.bg} />
+      </View>
     </Pressable>
   );
 }

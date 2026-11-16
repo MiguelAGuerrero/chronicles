@@ -1,0 +1,69 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 ("
+      ],
+      "body": "- **A walk starting or ending remounts the open line, and its Undo can take over the viewer's** (chronicle-journal audit 67): since the delete's `UndoToast` sits in the line's column (JN40), `Line`'s remount (keyed by the walk) registers it again as the newest host, so a walk stopped from the notification while a moment's viewer is open can hide the viewer's Undo. Recommended: keep the host registered across the remount (a host id held above `Line`).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 ("
+      ],
+      "body": "- **The failed page says nothing was read, then shows today's entries** (chronicle-journal audit 75; the row's audit U1, H9): \"Couldn't read your moments.\" sits under today's date above the entries kept this sitting, so it reads as today's state. Recommended: \"Couldn't read your earlier days.\", above the date.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The top entry's reaction sign"
+      ],
+      "body": "Audit 76 (Nov 14): worse than ux 4 said: in the resting pictures the face itself is half gone, not only its sign, and an earlier day's dateline is cut by the held date. Reopen with these pictures.\n",
+      "target": "sha256:d4e709bab0508e0721de4d81150218da780ae0674f918877b645f7afcdc240a7"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver on, swipe through Memories at rest; then pull the page down slowly past the line's row and back, and start a voice note from the row with the screen then locked for ten seconds. **Expect:** VoiceOver never lands on the \"+\", and reads the line, then the camera, then the mic; the bar comes up once as the row leaves and goes once as it returns, with nothing on the page jumping; the note records through the lock and Stop is where the mic was. (JN34-JN38, chronicle-journal audit 61, 69)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, tap \"What’s on your mind?\" in the journal's toolbar, type two lines, take a photo from the composer, then press Android Back (or tap the dimmed edge on iPhone). **Expect:** the composer rises to the keyboard with the caret in it, the photo joins the entry, Back or the edge closes it with the words kept, and the entry is on the page; the toolbar never sits behind the keyboard. (JN41, JN47-JN50, decision 0179)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Chronicle journal, cut 1 ("
+      ],
+      "body": "| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; a voice note plays in line with its bar; since Nov 14 a toolbar at the foot (\"What’s on your mind?\", the camera, the mic) opens a composer sheet where an entry is written, the page for reading (the row under the line of 0175 built, deployed, audited and replaced the same day); JN1-JN51, decisions 0155, 0175, 0178, 0179) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, audited 2026-11-13 with the owner's answers built (the pen in the bar when the page is pulled down, fixed places for the camera and the mic, an edge under the held date, the recording's mark while writing); the in-line voice note built and audited 2026-11-13 from the owner's request; JN34-JN40 built 2026-11-14 on `claude/chronicles-action-button-layout-x4cg4k` from the owner's mock-up review, test-first (7 of 7), the UI review's 8 findings: 1 fixed, 1 deferred, 3 to the owner, 3 rejected as before this slice; deployed by `/deploy` 2026-11-14 after a rebase onto main, the decision renumbered 0175; the toolbar and the composer built 2026-11-14 from three mock-ups, merged with Reactions (decisions renumbered 0178, 0179) (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page`, `claude/determined-heisenberg-b894d7`, `fix/journal-audit-2`, `claude/chronicles-action-button-layout-x4cg4k` | `specs/chronicle-journal/spec.md` | yes (the row under the line, 18: 10 fixed, 3 deferred, 5 rejected; 39 findings: 25 fixed, 6 deferred, 7 rejected; the `/fix` review, 19: 11 fixed, 6 deferred; JN28-JN33, 23: 15 fixed, 4 deferred, 4 rejected; the in-line voice note, 19: 12 fixed, 3 deferred, 3 rejected, 1 a pass) |\n",
+      "target": "sha256:4d4f79374f91acee076e3725a9d1a5997b32330c4139249b70181e5a0884c3c9"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice: the row under the line"
+      ],
+      "body": "- **A photo from the toolbar leaves Done beside the field, with nothing saying what it finishes** (UI review U4). Recommended: a photo taken from the toolbar opens the composer with it in, so the entry is finished where it is written.\n"
+    }
+  ]
+}

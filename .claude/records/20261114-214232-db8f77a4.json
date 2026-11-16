@@ -1,0 +1,116 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Reaction links slice (RL1-RL12, `specs/reaction-links/spec.md`, decision 0177) | `claude/trusting-gates-cd90zs` | built 2026-11-14; waits for the deploy |\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The top entry's reaction sign is half under the held date's edge at rest",
+        "--reason",
+        "built in reaction-links (RL8): an entry right under a date, and the peek's first entry under the held date, start below the edge"
+      ],
+      "target": "sha256:ab52933d3024c3bb5412a79c0786010ea0b1cd65a662bc15d4799bb14b6c5808"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "(reactions audit 7, 11, 12, 15)",
+        "--reason",
+        "built in reaction-links: RL9 (Not kept yet), RL10 (setReactions in one transaction), RL11 (a keep under way is not dropped), RL12 (a video pin's L)"
+      ],
+      "target": "sha256:3d6a4ab6ba7c4c6d933602c8ea01de40cee0c47fbbb78633543cf162c6893359"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--after",
+        "open a note's page with the keyboard up and open its Reaction tool"
+      ],
+      "body": "- [ ] **Do:** on a phone, in Memories, tap \"Idea\" under an entry with VoiceOver or TalkBack off and then on; open the entry, tap \"Happy\" under the viewer's info line. **Expect:** \"Idea\" is its own target inside the entry's button, said as a link named \"Ideas\", and opens the Ideas lens; Back returns to the journal; in the viewer, the native Modal closes first and the Happy moments lens opens with no flash of the journal (RL1-RL5, decision 0177)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--after",
+        "on a phone, in Memories, tap \"Idea\" under an entry"
+      ],
+      "body": "- [ ] **Do:** on a phone, react to a moment with two families at once from a new note's page (Happy, then Idea, before any words), keep the note, and quit the app while it saves; also react to a video and look at its pin. **Expect:** the moment has both reactions or neither, never one (`setReactions` in one SQLite transaction through the write queue, RL10, RL11); the video pin's bubbles sit in an L at its left, the third above the first, none over the play mark nor clipped by the Marker on Android (RL12)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--after",
+        "(UI review U6, U8, U9)"
+      ],
+      "body": "- [loop] **Reaction links** (UI review U3, U5): a reaction panel does not say which moment it acts on (a subtitle with the moment's first words, or the entry scrolled into view above the sheet); Neutral's circled minus reads as \"remove\" now that a mark is tappable (Ionicons has no neutral face; a drawn one, or another glyph, is a choice for a phone).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /slice reaction-links"
+      ],
+      "intro": "What the reaction-links slice left for the owner (`specs/reaction-links/spec.md`, Record).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reaction-links"
+      ],
+      "body": "- **Back from a lens opened from the viewer** (UI review U6): a reaction in the viewer closes it and opens its lens (RL3), so Back returns to the journal, not to the moment that was open. Recommended: keep it (the lens is a new place, and the moment is one tap away in the journal); the alternative is that Back reopens the viewer on that moment.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice reactions",
+        "The sign once a moment has a reaction",
+        "--reason",
+        "built in reaction-links (decision 0177)"
+      ],
+      "target": "sha256:2fb8c5935d0b821da097910ab440516144c89a51fae466f06a89b425c9280940"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice reactions",
+        "\"Contents\" as the way to the lenses",
+        "--reason",
+        "built in reaction-links (decision 0177)"
+      ],
+      "target": "sha256:e0661c5504683bf7541411a38618722cac338ac91b5e3d15a649489055b47851"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Reaction links (in Memories a reaction under an entry or the viewer's line is a link to its lens, its word underlined in ink, Back to the journal; elsewhere plain words; the sign and a page's Reaction tool always the face with a plus; the first entry under a date clears the date's edge; \"Not kept yet\" in ink at a panel's top; a moment's rows kept together by `setReactions`; a keep under way is not dropped; a video's pin wears its bubbles in an L; RL1-RL12, decision 0177) | built 2026-11-14, test-first (12 of 12): unit tests, typecheck, lint, docs and vision checks; e2e `reactions`, `journal`, `notepage`, `qol`, `capturehome`, `dense`, `edit`, `responses`, `resurface`, `stacks`, `threads`, `upgrade`, `videothumbs`, `voicetrim`, `walk`; cold find and UI review triaged (`reaction-links ui 1-2`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reaction-links/spec.md` | no |\n"
+    }
+  ]
+}

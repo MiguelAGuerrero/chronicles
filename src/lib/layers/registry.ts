@@ -8,7 +8,10 @@ import { bandWhy } from '../walk/bandWords';
  */
 
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
-export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line';
+export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'shop-mark';
+
+/** SF1, storefronts ui 2: what counts as a storefront, one sentence: the layer's tip and the line under the card's Storefronts heading. */
+export const STOREFRONTS_WHAT = 'Streets lined with shops, food, drink, services and offices you walk into.';
 
 export interface LegendRow {
   key: string;
@@ -45,11 +48,15 @@ export const LAYERS: readonly LayerDef[] = [
     note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",
   },
   {
-    id: 'busy',
-    name: 'Busy streets',
+    id: 'storefronts',
+    name: 'Storefronts',
     icon: 'storefront-outline',
     defaultOn: false,
-    legend: [{ key: 'places', text: 'Busy with places', swatch: 'hotspot', tip: 'Busy with places: streets with many shops, food and services along them.' }],
+    legend: [
+      { key: 'places', text: 'Storefronts', swatch: 'hotspot', tip: STOREFRONTS_WHAT },
+      // Shop marks (specs/shop-marks, SM1, SM3, SM9): the shops themselves, where a pack covers the map; the tip names the source and no list of types.
+      { key: 'shops', text: 'Shop marks', swatch: 'shop-mark', tip: 'A shop from OpenStreetMap. Tap one for its name.' },
+    ],
   },
   {
     id: 'borders',
@@ -62,3 +69,11 @@ export const LAYERS: readonly LayerDef[] = [
     ],
   },
 ];
+
+/**
+ * SM2: a layer's legend rows. The "Shop marks" row is listed only where a shop pack's address is set, so nobody is told of marks that
+ * cannot draw; with none, the Storefronts layer is the street shading alone, as before.
+ */
+export function legendRows(l: LayerDef, o: { shopMarksBase: string }): readonly LegendRow[] {
+  return l.legend.filter((r) => r.key !== 'shops' || o.shopMarksBase !== '');
+}

@@ -49,10 +49,6 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   onWrite?: () => void;
   /** The field has the keyboard. */
   writing?: boolean;
-  /** The empty page went out of view, or came back (audit 50): out of view, the bar holds the pen. */
-  onAway?: (away: boolean) => void;
-  /** The sheet has opened (it is seen): until then the bar holds the capture controls (JN35). */
-  onOpen?: (open: boolean) => void;
   /** Memories is the screen in front. Coming back to it is a new sitting: the page opens on the last entry again (audit 42). */
   focused?: boolean;
   /** Said under today's date when the page could not be read. */
@@ -99,8 +95,6 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   // the peek leaves, in the browser's own layout. Sized from measured heights it lagged a render behind, and a peek
   // that grew (a dateline wrapping when its place was read) moved the sheet's end and the entry with it.
   const box = view > 0 ? restBox({ view, foot: props.footPad, sticky }) : { room: 0, blankMin: 0 };
-  // The empty page's height as laid out, for `onAway`.
-  const blankH = useRef(0);
   // The sheet opens once, when what sizes the empty page is known (fix entry-jitter). Taken to its end before that,
   // the entry sat above its resting place and slid down as each height arrived, on a page seen for the first time.
   // The read must have answered (a slow one would show today's date alone); a row that never reports (a reused view on the web) is waited for `OPEN_WAIT_MS`, a read that never answers `OPEN_HARD_MS`.
@@ -129,10 +123,6 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     moving.current = false;
     scroll.current?.scrollToEnd({ animated: false });
   }, [open]);
-  const { onOpen } = props;
-  useEffect(() => {
-    onOpen?.(open);
-  }, [onOpen, open]);
   // The stack sliding up as the keyboard comes and goes is a movement the eye follows (JN33); anything else that
   // changes the sheet's length while the reader is at its end just keeps the end in view.
   const moving = useRef(false);
@@ -185,28 +175,12 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     scroll.current?.scrollToEnd({ animated: false });
   });
 
-  const away = useRef(false);
-  const lineRoom = useRef(0);
-  // A page just drawn is at its foot, with the empty page in view (audit 60).
-  const { onAway } = props;
-  useEffect(() => {
-    onAway?.(false);
-  }, [onAway]);
   const { more, onMore } = props;
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     at.current = { y: contentOffset.y, height: contentSize.height, view: layoutMeasurement.height };
     if (!hold.current && armed.current) pinned.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 24;
     if (pinned.current) opened.current = true;
-    // The empty page is the sheet's last `blankH` px (as measured) above its foot's padding; the line and the row under it are its
-    // first `lineRoom` px. Out of view: the row is not wholly above the foot's padding (audit 61, JN37). A bar that
-    // comes in adds its height to that padding, so the row must clear it before the bar goes again.
-    const foot = contentSize.height - props.footPad;
-    const out = contentOffset.y + layoutMeasurement.height - (props.footPad - FOOT_GAP) < foot - blankH.current + Math.max(24, lineRoom.current) - 4;
-    if (out !== away.current) {
-      away.current = out;
-      props.onAway?.(out);
-    }
     if (opened.current && contentOffset.y < NEAR_TOP && contentSize.height > layoutMeasurement.height && more && !adding.current) {
       adding.current = true;
       askedAt.current = count;
@@ -246,6 +220,8 @@ export const JournalPage = forwardRef<JournalPageHandle, {
   // Each day's date is held at the top while its entries pass (JN31). Those before the peek are the sheet's own
   // children; a date inside the peek's box is held by the browser within the box (web), and not held on native.
   const dates = props.rows.slice(0, from).flatMap((r, i) => (r.k === 'day' ? [i] : []));
+  // An entry right under a date, and the peek's first entry under the date held over it, start below the date's edge (RL8).
+  const underDate = new Set(props.rows.flatMap((r, i) => (r.k === 'entry' && ((i > 0 && props.rows[i - 1].k === 'day') || (i === from && held != null)) ? [r.key] : [])));
   const row = (r: JournalRow, inBox: boolean) => {
     const onLayout = (e: { nativeEvent: { layout: { height: number } } }) => measured(r.key, Math.round(e.nativeEvent.layout.height));
     if (r.k === 'day') {
@@ -262,7 +238,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
       return inBox && Platform.OS === 'web' ? <View key={r.key} style={HELD}>{day}</View> : day;
     }
     if (r.k === 'slip') return <View key={r.key} onLayout={onLayout}>{props.slip}</View>;
-    return <View key={r.key} onLayout={onLayout}>{props.entry(r.m)}</View>;
+    return <View key={r.key} onLayout={onLayout} style={underDate.has(r.key) ? styles.underDate : undefined}>{props.entry(r.m)}</View>;
   };
   return (
     <ScrollView
@@ -292,9 +268,6 @@ export const JournalPage = forwardRef<JournalPageHandle, {
           key="blank"
           style={[styles.blank, { minHeight: box.blankMin }]}
           testID="empty-page"
-          onLayout={(e) => {
-            blankH.current = Math.round(e.nativeEvent.layout.height);
-          }}
         >
           {/* Under the field, the whole of it: the room above the line takes the tap too (audit 45). The field has
               the name for a screen reader; this is the same thing to a finger, so it is not said twice (audit 44). */}
@@ -307,10 +280,7 @@ export const JournalPage = forwardRef<JournalPageHandle, {
             aria-hidden
             tabIndex={-1}
           />
-          {/* The field and the row under it (JN34): their height says where the row ends, for JN37's "in view". */}
-          <View onLayout={(e) => { lineRoom.current = Math.round(e.nativeEvent.layout.height); }} pointerEvents="box-none">
-            {props.field}
-          </View>
+          {props.field}
         </View>
       </View>
     </ScrollView>
@@ -330,6 +300,8 @@ const styles = StyleSheet.create({
   blank: { flexGrow: 1 },
   edge: { position: 'absolute', left: 0, right: 0, top: '100%' },
   edgeBand: { height: 4, backgroundColor: theme.bg },
+  // The edge's height: EDGE's bands of 4 (RL8).
+  underDate: { paddingTop: EDGE.length * 4 },
   scroll: { flex: 1 },
   // Laid out and measured, but not yet seen (fix entry-jitter).
   unopened: { opacity: 0 },

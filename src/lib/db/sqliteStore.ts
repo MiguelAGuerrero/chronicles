@@ -667,6 +667,16 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         : t.runAsync('INSERT OR REPLACE INTO reaction (moment_id, family, reaction, set_at) VALUES (?, ?, ?, ?)', r.moment_id, r.family, r.reaction, r.set_at)
       ).then(() => {}));
     },
+    setReactions(rows) {
+      if (!rows.length) return Promise.resolve();
+      // One exclusive transaction through the write queue: a failed row rolls the rest back (RL10).
+      return write(async (t) => {
+        for (const r of rows) {
+          if (r.reaction == null) await t.runAsync('DELETE FROM reaction WHERE moment_id = ? AND family = ?', r.moment_id, r.family);
+          else await t.runAsync('INSERT OR REPLACE INTO reaction (moment_id, family, reaction, set_at) VALUES (?, ?, ?, ?)', r.moment_id, r.family, r.reaction, r.set_at);
+        }
+      });
+    },
     async listReactions() {
       return (await conn()).getAllAsync<StoredReaction>('SELECT moment_id, family, reaction, set_at FROM reaction');
     },

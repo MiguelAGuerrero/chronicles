@@ -2,10 +2,11 @@
 import { useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { cornerPanelBox, panelBox } from '../lib/layers/layout';
-import { LAYERS, type LegendRow, type SwatchKey } from '../lib/layers/registry';
+import { LAYERS, legendRows, type LegendRow, type SwatchKey } from '../lib/layers/registry';
+import { SHOP_MARKS_BASE } from '../lib/shopMarks';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
-import { BORDER, HOTSPOT, WALK_STYLE } from './map/types';
+import { SHOP_MARK, BORDER, HOTSPOT, WALK_STYLE } from './map/types';
 import { SwitchRow } from './SwitchRow';
 import { Tooltip } from './Tooltip';
 import { theme } from './ui';
@@ -17,6 +18,7 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
   car: { color: WALK_STYLE.car.color, opacity: WALK_STYLE.car.opacity },
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
+  'shop-mark': { color: SHOP_MARK.color, opacity: SHOP_MARK.swatchFill, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
 };
 
@@ -68,7 +70,7 @@ export function LayersKey(props: { layers: ReturnType<typeof useLayers> }) {
         <View key={l.id} testID={`layer-legend-${l.id}`}>
           <Text style={styles.keyTitle} accessibilityRole="header">{l.name}</Text>
           <View style={styles.legend}>
-            {l.legend.map((r) => <Legend key={r.key} row={r} />)}
+            {legendRows(l, { shopMarksBase: SHOP_MARKS_BASE }).map((r) => <Legend key={r.key} row={r} />)}
             {l.note ? <Text testID={`layer-note-${l.id}`} style={styles.note}>{l.note}</Text> : null}
           </View>
         </View>

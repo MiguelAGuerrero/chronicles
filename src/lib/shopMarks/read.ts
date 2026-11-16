@@ -96,12 +96,12 @@ export type PressTarget = 'control' | 'pin' | 'mark' | 'zoom' | 'card' | 'none';
  * SM14: what a tap on the map is for. The walker's controls, a capture pin and a mark (or a "?") take it before a
  * shop; a merged mark zooms in to separate; only a single mark opens its card.
  */
-export function pressTarget(i: { control: boolean; capturePin: boolean; mark: boolean; shop: Mark | null }): PressTarget {
+export function pressTarget(i: { control: boolean; capturePin: boolean; mark: boolean; shopMark: Mark | null }): PressTarget {
   if (i.control) return 'control';
   if (i.capturePin) return 'pin';
   if (i.mark) return 'mark';
-  if (!i.shop) return 'none';
-  return i.shop.merged ? 'zoom' : 'card';
+  if (!i.shopMark) return 'none';
+  return i.shopMark.merged ? 'zoom' : 'card';
 }
 
 /** SM12: the map's layers from the bottom up; the shop marks sit above the base map and under everything the walker meets. */

@@ -29,7 +29,7 @@ test('SM17: reading shop marks touches no cache: the shop modules import no plac
 test('SM17: the three derivation codes are the values they had before the slice', async () => {
   const { ATLAS_CODE } = await import('../../atlas/atlas');
   const { PRESENCE_CODE } = await import('../../presence/presence');
-  assert.equal(PRESENCE_CODE, 'p2');
+  assert.equal(PRESENCE_CODE, 'p3', 'main\'s code (decision 0180); the slice leaves it alone');
   assert.equal(typeof ATLAS_CODE, 'string');
   const { LANDING_CODE } = await import('../../landing/view');
   assert.equal(LANDING_CODE, 'l4');

@@ -12,5 +12,5 @@ export const offPage = createOffPage({
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: (t) => clearTimeout(t as ReturnType<typeof setTimeout>),
   pause: () => new Promise((resolve) => setTimeout(resolve, 0)),
-  onWorker: () => perfCount('busy:worker'),
+  onWorker: () => perfCount('storefronts:worker'),
 });

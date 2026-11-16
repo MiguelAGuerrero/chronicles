@@ -31,7 +31,7 @@ export function isChain(name: string, category: CategoryId): boolean {
 /**
  * A ? mark is for an attraction or a unique place (S18): the categories a
  * sightseer goes out of their way for. Food, shops and nightlife are an
- * area's ordinary activity; they show as its busy streets instead.
+ * area's ordinary activity; they show as its storefront streets instead.
  */
 export const MARK_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'parks', 'culture', 'viewpoints'];
 

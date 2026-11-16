@@ -71,19 +71,16 @@ export function ordered(set: ReactionSet): ReactionInfo[] {
   return REACTIONS.filter((r) => set[r.family] === r.id);
 }
 
-/** The sign on an entry (RX9): its first reaction in the families' order, or null for the face with a plus. */
-export function signOf(set: ReactionSet): ReactionInfo | null {
-  return ordered(set)[0] ?? null;
-}
-
 /** What is said after a moment's kind (RX16, RX21): each reaction's name in lower case, in order. */
 export function spokenReactions(set: ReactionSet): string[] {
   return ordered(set).map((r) => r.name.toLowerCase());
 }
 
-/** The sign's spoken name (RX9, RX12): "Reaction, Happy", or "Reaction, none". */
+/** The sign's spoken name (RL6, RL7): "Reaction, Happy, Idea", or "Reaction, none". */
 export function signLabel(set: ReactionSet): string {
-  return `Reaction, ${signOf(set)?.name ?? 'none'}`;
+  // Everything chosen, in the families' order (RL6, RL7): the sign itself is always the face with a plus.
+  const names = ordered(set).map((r) => r.name);
+  return `Reaction, ${names.length ? names.join(', ') : 'none'}`;
 }
 
 /** Whether two sets hold the same reactions. */

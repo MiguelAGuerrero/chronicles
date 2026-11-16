@@ -1,4 +1,8 @@
+import { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { reactions } from '../../lib/reactions';
+import type { ReactionsState } from '../../lib/reactions/shell';
+import { useStore } from '../../lib/useStore';
 import { familyRows, type ReactionId, type ReactionSet } from '../../lib/reactions/core';
 import { Icon, type IconName } from '../icons';
 import { theme } from '../ui';
@@ -13,9 +17,15 @@ const ROWS = familyRows();
  * columns, so the families line up (reactions ui 5). Drawn where it is asked for (above the journal's bar, in a sheet,
  * above a page's bar); never a Modal of its own.
  */
-export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId) => void; testID?: string }) {
+export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId) => void; testID?: string; /** The moment chosen for: a choice not kept is said for it, and forgotten when the panel closes (RL9). */ moment?: string | null }) {
+  const { moment } = props;
+  const notKept = useStore(reactions.store, useCallback((s: ReactionsState) => !!moment && s.notKept === moment, [moment]));
+  useEffect(() => () => reactions.closed(moment), [moment]);
   return (
     <View testID={props.testID ?? 'reaction-panel'} style={styles.panel} accessibilityLabel="Reactions">
+      {/* A choice that could not be kept, said once in the journal's words (RL9); never a count, never a nag. In ink at
+          the top, right under the panel's header, where it is seen (reaction-links ui 2). */}
+      {notKept ? <Text style={styles.notKept} testID="reaction-not-kept" accessibilityLiveRegion="polite">Not kept yet</Text> : null}
       {ROWS.map((f) => (
         <View key={f.id} style={styles.family} testID={`reaction-family-${f.id}`} accessibilityRole="radiogroup" accessibilityLabel={f.name}>
           <Text style={styles.familyName} testID="reaction-group-name">{f.name}</Text>
@@ -59,4 +69,5 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   name: { color: theme.ink, fontSize: 12 },
   nameOn: { fontWeight: '700' },
+  notKept: { color: theme.ink, fontSize: 14, paddingHorizontal: 6, paddingTop: 4 },
 });
