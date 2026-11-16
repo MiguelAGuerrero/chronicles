@@ -18,10 +18,10 @@ import { CATEGORIES } from '../../lib/discovery/categories';
 import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
 import { LayersControl } from '../../components/LayersControl';
-import { StorefrontCard } from '../../components/StorefrontCard';
-import { STOREFRONTS_BASE } from '../../lib/storefronts';
-import type { Storefront } from '../../lib/storefronts/read';
-import { useStorefronts } from '../../lib/storefronts/useStorefronts';
+import { ShopCard } from '../../components/ShopCard';
+import { SHOP_MARKS_BASE } from '../../lib/shopMarks';
+import type { Shop } from '../../lib/shopMarks/read';
+import { useShopMarks } from '../../lib/shopMarks/useShopMarks';
 import { layerNotes } from '../../lib/layers/notes';
 import { createMotion } from '../../lib/layers/motion';
 import { busyHold } from '../../lib/layers/state';
@@ -405,9 +405,9 @@ export default function Explore() {
     [townSeen, hoodsAtKey],
   );
   const busy = useBusyLayer(layersAt, !!layers.on.busy, stillness, hold);
-  // Storefronts (SF1-SF3): the shops around the same centre, only while the layer is on and offered; its card is one shop at a time.
-  const [sfCard, setSfCard] = useState<Storefront | null>(null);
-  const sf = useStorefronts({ on: !!layers.on.storefronts && STOREFRONTS_BASE !== '', centre: layersAt, zoom: view?.zoom ?? null });
+  // Shop marks (SM1-SM3): the shops around the same centre, only while the layer is on and offered; its card is one shop at a time.
+  const [shopCard, setShopCard] = useState<Shop | null>(null);
+  const shopsRead = useShopMarks({ on: !!layers.on.storefronts && SHOP_MARKS_BASE !== '', centre: layersAt, zoom: view?.zoom ?? null });
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
@@ -682,10 +682,10 @@ export default function Explore() {
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
           landing={busyView}
-          storefronts={sf.marks}
-          storefrontCardOpen={!!sfCard}
-          storefrontSelected={sfCard && layers.on.storefronts ? sfCard.at : null}
-          onStorefrontPress={(m) => setSfCard(m?.place ?? null)}
+          shopMarks={shopsRead.marks}
+          shopCardOpen={!!shopCard}
+          shopSelected={shopCard && layers.on.storefronts ? shopCard.at : null}
+          onShopPress={(m) => setShopCard(m?.place ?? null)}
           busyNamesOver
           busyNamesReserve={busyReserve}
           busyNamesClearOf={NAMES_CLEAR_OF}
@@ -733,9 +733,9 @@ export default function Explore() {
           hideScaleOnBlank
         />
       )}
-      {/* SF14-SF16: a shop's card, in a fixed place under the title and clear of the buttons' column; the map's own tap closes it. */}
-      {focused && !plan && sfCard && !!layers.on.storefronts && (
-        <StorefrontCard place={sfCard} onClose={() => setSfCard(null)} box={{ x: 12, y: topInset + 8 + 60, w: Math.max(200, screen.w - 24 - 60), h: 76 }} />
+      {/* SM14-SM16: a shop's card, in a fixed place under the title and clear of the buttons' column; the map's own tap closes it. */}
+      {focused && !plan && shopCard && !!layers.on.storefronts && (
+        <ShopCard place={shopCard} onClose={() => setShopCard(null)} box={{ x: 12, y: topInset + 8 + 60, w: Math.max(200, screen.w - 24 - 60), h: 76 }} />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
       {focused && !plan && !!waitingSaid && (
@@ -827,7 +827,7 @@ export default function Explore() {
         <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
       ) : null}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, storefronts: sf.status ?? undefined })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, shopMarks: shopsRead.status ?? undefined })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
       {focused && !plan && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}

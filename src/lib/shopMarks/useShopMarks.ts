@@ -1,11 +1,11 @@
 // @layer view
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { StorefrontsStatus } from '../layers/notes';
+import type { ShopMarksStatus } from '../layers/notes';
 import { tilesNear } from '../tileMath';
 import type { LngLat } from '../types';
-import { storefronts } from '.';
-import { thin, withinOf, type Mark, type Storefront } from './read';
-import type { StorefrontState } from './shell';
+import { shopMarks } from '.';
+import { thin, withinOf, type Mark, type Shop } from './read';
+import type { ShopMarkState } from './shell';
 import { NEAR_ZOOM } from './types';
 
 /** How far around the map's middle a read reaches, and the most z14 tiles it asks for. */
@@ -15,25 +15,25 @@ const READ_TILES = 9;
 /** A centre to about 1 km: a read is tried once for it, and again only when the map moves that far (as Busy streets'). */
 const areaKey = (c: LngLat) => `${c[0].toFixed(2)},${c[1].toFixed(2)}`;
 
-const idOf = (s: Storefront) => `${s.type}|${s.name}|${s.at[0]}|${s.at[1]}`;
+const idOf = (s: Shop) => `${s.type}|${s.name}|${s.at[0]}|${s.at[1]}`;
 
 /**
- * The Storefronts layer's reads (SF1, SF2, SF6, SF7, SF10, SF12): the shops near `centre`, read from the pack only while `on` and
+ * The Shop marks layer's reads (SM1, SM2, SM6, SM7, SM10, SM12): the shops near `centre`, read from the pack only while `on` and
  * zoomed in, kept for the session, never stored, and handed to the map as marks. `near` (the walk maps) keeps only those within
- * its distance of you. Nothing is asked while off. `status` is what the panel's quiet line says (SF7).
+ * its distance of you. Nothing is asked while off. `status` is what the panel's quiet line says (SM7).
  */
-export function useStorefronts(o: {
+export function useShopMarks(o: {
   on: boolean;
   centre: LngLat | null;
   zoom: number | null;
-  /** The walk maps: draw only within `m` of `at` (a hard cut from you, SF12). */
+  /** The walk maps: draw only within `m` of `at` (a hard cut from you, SM12). */
   near?: { at: LngLat | null; m: number } | null;
-}): { marks: Mark[]; status: StorefrontsStatus | null } {
-  const [places, setPlaces] = useState<Storefront[]>([]);
-  const [state, setState] = useState<StorefrontState | null>(null);
+}): { marks: Mark[]; status: ShopMarksStatus | null } {
+  const [places, setPlaces] = useState<Shop[]>([]);
+  const [state, setState] = useState<ShopMarkState | null>(null);
   const [reading, setReading] = useState(false);
   const tried = useRef(new Set<string>());
-  const seen = useRef(new Map<string, Storefront>());
+  const seen = useRef(new Map<string, Shop>());
   // A read is dropped only when the screen is gone, never because a render gave the centre a new identity (the live walk's fix does).
   const mounted = useRef(true);
   useEffect(() => {
@@ -49,7 +49,7 @@ export function useStorefronts(o: {
     if (!o.on || !zoomedIn || !centre || tried.current.has(key)) return;
     tried.current.add(key);
     setReading(true);
-    storefronts
+    shopMarks
       .read(tilesNear([centre], READ_M, READ_TILES), centre)
       .then((r) => {
         if (!mounted.current) return;
@@ -81,6 +81,6 @@ export function useStorefronts(o: {
     // `o.near` is read through its two parts, which are what change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [o.on, zoom, places, nearAt, nearM]);
-  const status: StorefrontsStatus | null = !o.on ? null : !zoomedIn ? 'far' : reading ? 'reading' : (state ?? null);
+  const status: ShopMarksStatus | null = !o.on ? null : !zoomedIn ? 'far' : reading ? 'reading' : (state ?? null);
   return { marks, status };
 }

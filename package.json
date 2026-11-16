@@ -67,7 +67,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "export:web": "EXPO_PUBLIC_PLACES_BASE=/places-e2e/ EXPO_PUBLIC_STOREFRONTS_BASE=/storefronts-e2e/ expo export --platform web",
+    "export:web": "EXPO_PUBLIC_PLACES_BASE=/places-e2e/ EXPO_PUBLIC_SHOP_MARKS_BASE=/shop-marks-e2e/ expo export --platform web",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test 'src/lib/__tests__/**/*.test.ts'",
     "test:affected": "node scripts/affected.js test",

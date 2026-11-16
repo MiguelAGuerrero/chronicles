@@ -2,11 +2,10 @@
 import { useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { cornerPanelBox, panelBox } from '../lib/layers/layout';
-import { offeredLayers, type LegendRow, type SwatchKey } from '../lib/layers/registry';
-import { STOREFRONTS_BASE } from '../lib/storefronts';
+import { LAYERS, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
-import { BORDER, HOTSPOT, STOREFRONT, WALK_STYLE } from './map/types';
+import { BORDER, HOTSPOT, WALK_STYLE } from './map/types';
 import { SwitchRow } from './SwitchRow';
 import { Tooltip } from './Tooltip';
 import { theme } from './ui';
@@ -19,11 +18,7 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
-  storefront: { color: STOREFRONT.color, opacity: STOREFRONT.swatchFill, outline: true },
 };
-
-/** SF2: the layers this build offers (Storefronts only where a pack's address is set). */
-const OFFERED = offeredLayers({ storefrontsBase: STOREFRONTS_BASE });
 
 const BUTTON = 44;
 /** In the walk's corner the button and panel sit under the walk's cards (2) and drawer (3), over the map (fix layers-corner audit 1, 2). */
@@ -65,7 +60,7 @@ function Legend(props: { row: LegendRow }) {
  * (the owner, Nov 5: "The tooltip is intrusive"). Nothing renders while every layer is off.
  */
 export function LayersKey(props: { layers: ReturnType<typeof useLayers> }) {
-  const on = OFFERED.filter((l) => props.layers.on[l.id]);
+  const on = LAYERS.filter((l) => props.layers.on[l.id]);
   if (!on.length) return null;
   return (
     <View testID="layers-key" style={styles.key}>
@@ -116,7 +111,7 @@ export function LayersControl(props: {
   const box = fromLeft
     ? cornerPanelBox({ windowW: winW, windowH: winH, left: props.left!, bottom, button: BUTTON, rightClear: props.rightClear ?? 80, clearTop: props.clearTop ?? 152 })
     : panelBox({ windowW: winW, windowH: winH, buttonTop, right, paneWidth: props.paneWidth, clearBottom: props.clearBottom ?? 160 });
-  const anyOn = OFFERED.some((l) => layers.on[l.id]);
+  const anyOn = LAYERS.some((l) => layers.on[l.id]);
   // A panel left open never follows the person to another screen: it closes when its button goes (layers audit 5).
   useEffect(() => closePanel, [closePanel]);
   useEffect(() => {
@@ -147,7 +142,7 @@ export function LayersControl(props: {
       {layers.open ? (
         <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[styles.card, fromLeft ? { left: props.left! + BESIDE, bottom, zIndex: CORNER_Z } : { right: right + BESIDE, top: buttonTop }, { width: box.width, maxHeight: box.maxHeight }]}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            {OFFERED.map((l) => {
+            {LAYERS.map((l) => {
               const on = !!layers.on[l.id];
               return (
                 <View key={l.id}>

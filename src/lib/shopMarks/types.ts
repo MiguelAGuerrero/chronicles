@@ -1,16 +1,16 @@
 // @layer core
-import { STOREFRONT_SHOPS } from '../presence/presence';
+import { SHOP_MARK_TYPES } from '../presence/presence';
 
 /*
- * Storefronts (specs/storefronts, SF9): which shop values the layer draws, said once. The pack carries every named shop with its
- * OpenStreetMap value; the layer draws only the list presence keeps (`STOREFRONT_SHOPS`: presence is the only file that spells a
+ * Shop marks (specs/shop-marks, SM9): which shop values the layer draws, said once. The pack carries every named shop with its
+ * OpenStreetMap value; the layer draws only the list presence keeps (`SHOP_MARK_TYPES`: presence is the only file that spells a
  * source's tags, PR2), a stated rule and not a verdict: no copy calls a drawn type worth going to or another an errand. A value
- * not listed never draws and is never guessed. Kept apart from presence otherwise (SF17): presence says what a place is to density
+ * not listed never draws and is never guessed. Kept apart from presence otherwise (SM17): presence says what a place is to density
  * and marks; this says what a layer draws.
  */
 
 /** The shop values the layer draws. */
-export const DRAWN_TYPES: readonly string[] = STOREFRONT_SHOPS;
+export const DRAWN_TYPES: readonly string[] = SHOP_MARK_TYPES;
 
 const DRAWN: ReadonlySet<string> = new Set(DRAWN_TYPES);
 
@@ -27,8 +27,8 @@ export function typeWords(type: string): string {
   return words[0].toUpperCase() + words.slice(1);
 }
 
-/** SF10: below this zoom nothing is drawn (the tiles' own places are complete at z14), and the panel says to zoom in. */
+/** SM10: below this zoom nothing is drawn (the tiles' own places are complete at z14), and the panel says to zoom in. */
 export const NEAR_ZOOM = 14;
 
-/** SF12: on the two walk maps the marks draw only within this of you, a hard cut from you and not from a pan. */
+/** SM12: on the two walk maps the marks draw only within this of you, a hard cut from you and not from a pan. */
 export const WALK_NEAR_M = 800;

@@ -7,12 +7,12 @@ import { AccessibilityInfo, BackHandler, Linking, Platform, Pressable, StyleShee
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
 import { LayersControl } from '../LayersControl';
-import { StorefrontCard } from '../StorefrontCard';
-import { cardBox } from '../../lib/storefronts/card';
-import { STOREFRONTS_BASE } from '../../lib/storefronts';
-import type { Storefront } from '../../lib/storefronts/read';
-import { WALK_NEAR_M } from '../../lib/storefronts/types';
-import { useStorefronts } from '../../lib/storefronts/useStorefronts';
+import { ShopCard } from '../ShopCard';
+import { cardBox } from '../../lib/shopMarks/card';
+import { SHOP_MARKS_BASE } from '../../lib/shopMarks';
+import type { Shop } from '../../lib/shopMarks/read';
+import { WALK_NEAR_M } from '../../lib/shopMarks/types';
+import { useShopMarks } from '../../lib/shopMarks/useShopMarks';
 import { MomentBar } from '../MomentBar';
 import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
@@ -98,9 +98,9 @@ export function useReady(props: {
   const moments = useVisible(storedMoments);
   const [viewing, setViewing] = useState<Faced[] | null>(null);
   const [pinZoom, setPinZoom] = useState(() => (fix ? 16 : WORLD.zoom) >= MOMENT_PIN_ZOOM);
-  // Storefronts (SF1): the map's zoom, for the layer's near-zoom rule, and the one shop whose card is open.
+  // Shop marks (SM1): the map's zoom, for the layer's near-zoom rule, and the one shop whose card is open.
   const [mapZoom, setMapZoom] = useState<number | null>(null);
-  const [sfCard, setSfCard] = useState<Storefront | null>(null);
+  const [shopCard, setShopCard] = useState<Shop | null>(null);
   const momentPins = useMemo(() => (pinZoom ? moments : NONE), [moments, pinZoom]);
 
   // Each time the screen comes to the front: the choices, the moments, the first-walk note; and one fix.
@@ -223,8 +223,8 @@ export function useReady(props: {
   const layers = useLayers();
   const wk = useWalkability(fix, !!layers.on.walkability);
   const busy = useBusyLayer(fix, !!layers.on.busy);
-  // SF12: around you only, within 800 m, a hard cut from you.
-  const sf = useStorefronts({ on: !!layers.on.storefronts && STOREFRONTS_BASE !== '', centre: fix, zoom: mapZoom, near: { at: fix, m: WALK_NEAR_M } });
+  // SM12: around you only, within 800 m, a hard cut from you.
+  const shopsRead = useShopMarks({ on: !!layers.on.storefronts && SHOP_MARKS_BASE !== '', centre: fix, zoom: mapZoom, near: { at: fix, m: WALK_NEAR_M } });
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
     walkability: wk.draw,
@@ -244,10 +244,10 @@ export function useReady(props: {
       setPinZoom(v.zoom >= MOMENT_PIN_ZOOM);
       setMapZoom(v.zoom);
     },
-    storefronts: sf.marks,
-    storefrontCardOpen: !!sfCard,
-    storefrontSelected: sfCard && layers.on.storefronts ? sfCard.at : null,
-    onStorefrontPress: (m: { place?: Storefront } | null) => setSfCard(m?.place ?? null),
+    shopMarks: shopsRead.marks,
+    shopCardOpen: !!shopCard,
+    shopSelected: shopCard && layers.on.storefronts ? shopCard.at : null,
+    onShopPress: (m: { place?: Shop } | null) => setShopCard(m?.place ?? null),
     walker: fix,
     // No scale bar over a blank world while no fix places the map (T17).
     hideScaleOnBlank: true,
@@ -312,8 +312,8 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      {sfCard && !!layers.on.storefronts ? <StorefrontCard place={sfCard} onClose={() => setSfCard(null)} box={cardBox({ width: screenW, height: screenH, topInset: at.insets.top + 152 })} /> : null}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, storefronts: sf.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      {shopCard && !!layers.on.storefronts ? <ShopCard place={shopCard} onClose={() => setShopCard(null)} box={cardBox({ width: screenW, height: screenH, topInset: at.insets.top + 152 })} /> : null}
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, shopMarks: shopsRead.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 

@@ -1,21 +1,21 @@
 // @layer view
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CLOSE_MIN_PX, cardLines, type Box } from '../lib/storefronts/card';
-import type { Storefront } from '../lib/storefronts/read';
+import { CLOSE_MIN_PX, cardLines, type Box } from '../lib/shopMarks/card';
+import type { Shop } from '../lib/shopMarks/read';
 import { Icon } from './icons';
 import { theme } from './ui';
 
 /**
- * The Storefronts layer's tap card (SF14-SF16): a shop's name, what it is in words and, only when the map data records it, a
+ * The Shop marks layer's tap card (SM14-SM16): a shop's name, what it is in words and, only when the map data records it, a
  * chain line. In a fixed place at the map's top, clear of the capture stack, never at the mark; a close control of at least 44 px;
  * no action, no rating, hours, count or id. Inline over the map, never a Modal.
  */
-export function StorefrontCard(props: { place: Storefront; onClose: () => void; box?: Box }) {
+export function ShopCard(props: { place: Shop; onClose: () => void; box?: Box }) {
   const l = cardLines(props.place);
   const b = props.box;
   return (
     <View
-      testID="storefront-card"
+      testID="shop-card"
       accessibilityRole="summary"
       accessibilityLiveRegion="polite"
       accessibilityLabel={`${l.name}, ${l.kind}${l.chain ? `, ${l.chain}` : ''}`}
@@ -26,7 +26,7 @@ export function StorefrontCard(props: { place: Storefront; onClose: () => void; 
         <Text style={styles.kind}>{l.kind}</Text>
         {l.chain ? <Text style={styles.kind}>{l.chain}</Text> : null}
       </View>
-      <Pressable testID="storefront-card-close" accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.close}>
+      <Pressable testID="shop-card-close" accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.close}>
         <Icon name="close" size={22} color={theme.ink} />
       </Pressable>
     </View>

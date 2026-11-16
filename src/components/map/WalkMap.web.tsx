@@ -21,7 +21,7 @@ import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scal
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
 import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
-import { nearest, pressAction, pressTarget } from '../../lib/storefronts/read';
+import { nearest, pressAction, pressTarget } from '../../lib/shopMarks/read';
 import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
@@ -34,7 +34,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, storefrontLayers, storefrontSelectedGeoJSON, storefrontSelectedLayers, storefrontsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, busyNameLayers, busyNameRotate, busyNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, shopMarkLayers, shopSelectedGeoJSON, shopSelectedLayers, shopMarksGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -77,7 +77,7 @@ function addOverlay(map: MapLibreMap) {
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
   for (const id of ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing']) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots', 'complexes', 'ground', 'storefronts', 'storefront-selected']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots', 'complexes', 'ground', 'shop-marks', 'shop-selected']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -90,8 +90,8 @@ function addOverlay(map: MapLibreMap) {
       'line-width': ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
     paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 8] } }, firstSymbol);
-  // Storefronts (SF10-SF12): above the walked streets, under the route, the trace, the pins and the dot; circles only, so no label.
-  for (const l of [...storefrontLayers(), ...storefrontSelectedLayers()]) map.addLayer(l as unknown as CircleLayerSpecification, firstSymbol);
+  // Shop marks (SM10-SM12): above the walked streets, under the route, the trace, the pins and the dot; circles only, so no label.
+  for (const l of [...shopMarkLayers(), ...shopSelectedLayers()]) map.addLayer(l as unknown as CircleLayerSpecification, firstSymbol);
   // A preview's other routes, faint, under the one highlighted (SR2).
   map.addLayer({ id: 'alternates-edge', type: 'line', source: 'alternates', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.8 } });
   map.addLayer({ id: 'alternates', type: 'line', source: 'alternates', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 6, 'line-opacity': 0.4 } });
@@ -304,9 +304,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
   const onMoveState = useRef(props.onMoveState);
-  const storefrontMarks = useRef(props.storefronts);
-  const onStorefrontPress = useRef(props.onStorefrontPress);
-  const storefrontCardOpen = useRef(!!props.storefrontCardOpen);
+  const shopMarkMarks = useRef(props.shopMarks);
+  const onShopPress = useRef(props.onShopPress);
+  const shopCardOpen = useRef(!!props.shopCardOpen);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
@@ -320,9 +320,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     freePan.current = !!props.freePan;
     fitPadding.current = props.fitPadding;
     onMoveState.current = props.onMoveState;
-    storefrontMarks.current = props.storefronts;
-    onStorefrontPress.current = props.onStorefrontPress;
-    storefrontCardOpen.current = !!props.storefrontCardOpen;
+    shopMarkMarks.current = props.shopMarks;
+    onShopPress.current = props.onShopPress;
+    shopCardOpen.current = !!props.shopCardOpen;
   });
   const pointerDown = useRef(false);
   const creditsRef = useRef<ClosedAttribution | null>(null);
@@ -474,13 +474,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const at: LngLat = [e.lngLat.lng, e.lngLat.lat];
       pressTimer = setTimeout(() => {
         const radius = pressRadiusM(map.getZoom(), at[1]);
-        // SF14: a pin, a mark or a control is its own element and never reaches here; of what is left a single storefront opens its
+        // SM14: a pin, a mark or a control is its own element and never reaches here; of what is left a single shop opens its
         // card, a merged one zooms apart, an open card only closes, and anything else is the screen's own tap as before.
-        const hit = nearest(storefrontMarks.current ?? [], at, radius);
-        const target = pressTarget({ control: false, capturePin: false, mark: false, storefront: hit });
-        const action = pressAction({ cardOpen: storefrontCardOpen.current, target });
-        if (action === 'card') onStorefrontPress.current?.(hit);
-        else if (action === 'close') onStorefrontPress.current?.(null);
+        const hit = nearest(shopMarkMarks.current ?? [], at, radius);
+        const target = pressTarget({ control: false, capturePin: false, mark: false, shop: hit });
+        const action = pressAction({ cardOpen: shopCardOpen.current, target });
+        if (action === 'card') onShopPress.current?.(hit);
+        else if (action === 'close') onShopPress.current?.(null);
         else if (action === 'zoom' && hit) map.easeTo({ center: hit.at, zoom: Math.min(map.getZoom() + 2, 20) });
         else onPress.current?.(at, radius);
       }, DOUBLE_TAP_MS);
@@ -805,13 +805,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => { if (ready) setData('route-grades', routeGradesGeoJSON(props.routeGrades)); }, [ready, props.routeGrades]);
   useEffect(() => { if (ready) setData('found-pins', pinsGeoJSON(props.foundPins)); }, [ready, props.foundPins]);
-  useEffect(() => { if (ready) setData('storefront-selected', storefrontSelectedGeoJSON(props.storefrontSelected)); }, [ready, props.storefrontSelected]);
+  useEffect(() => { if (ready) setData('shop-selected', shopSelectedGeoJSON(props.shopSelected)); }, [ready, props.shopSelected]);
   useEffect(() => {
     if (!ready) return;
-    setData('storefronts', storefrontsGeoJSON(props.storefronts));
+    setData('shop-marks', shopMarksGeoJSON(props.shopMarks));
     // For the e2e only (never shown): how many marks the map was given.
-    container.current?.setAttribute('data-storefronts', String(props.storefronts?.length ?? 0));
-  }, [ready, props.storefronts]);
+    container.current?.setAttribute('data-shop-marks', String(props.shopMarks?.length ?? 0));
+  }, [ready, props.shopMarks]);
   const hasLanding = !!props.landing;
   useEffect(() => {
     if (!ready) return;

@@ -6,7 +6,7 @@ import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
 import type { ComplexMap } from '../../lib/complexes/mapLayer';
 import type { LandingView } from '../../lib/landing/view';
-import type { Mark as StorefrontMark } from '../../lib/storefronts/read';
+import type { Mark as ShopMark } from '../../lib/shopMarks/read';
 import { busyNames } from '../../lib/landing/names';
 import { distanceM } from '../../lib/geo';
 import type { StyleProp, ViewStyle } from 'react-native';
@@ -48,45 +48,45 @@ export const HOTSPOT = '#d6268c';
 export const HOTSPOT_INK = '#86145a';
 
 /**
- * Storefronts (specs/storefronts, SF10): every mark is one size and one colour, a neutral ink that is neither the accent, the busy
- * magenta nor the borders' colours; none varies with how many shops a mark stands for. The map draws circles only, so no text can name
- * a shop (SF11).
+ * Shop marks (specs/shop-marks, SM10): every mark is one size and one colour, a neutral ink that is neither the accent, the storefront
+ * shading's magenta nor the borders' colours; none varies with how many shops a mark stands for. The map draws circles only, so no text can name
+ * a shop (SM11).
  */
-export const STOREFRONT = { color: '#4a4540', radius: 5, ring: 2.5, swatchFill: 0.15 } as const;
+export const SHOP_MARK = { color: '#4a4540', radius: 5, ring: 2.5, swatchFill: 0.15 } as const;
 
-/** The marks as map points with no properties at all: a tap is resolved against the marks, never against what the map holds (SF11). */
-export function storefrontsGeoJSON(marks: readonly { at: LngLat }[] | null | undefined): GeoJSON.FeatureCollection {
+/** The marks as map points with no properties at all: a tap is resolved against the marks, never against what the map holds (SM11). */
+export function shopMarksGeoJSON(marks: readonly { at: LngLat }[] | null | undefined): GeoJSON.FeatureCollection {
   return { type: 'FeatureCollection', features: (marks ?? []).map((m) => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: m.at } })) };
 }
 
 /**
- * SF10, SF11: the one circle layer storefronts draw with: a hollow ring, so its shape and not only its tone tells it from the walker's
- * solid dot (UI review, storefronts ui 1); no symbol layer, no data-driven paint.
+ * SM10, SM11: the one circle layer shop marks draw with: a hollow ring, so its shape and not only its tone tells it from the walker's
+ * solid dot (UI review, shop-marks ui 1); no symbol layer, no data-driven paint.
  */
-export function storefrontLayers(): { id: string; type: 'circle'; source: string; paint: Record<string, unknown> }[] {
+export function shopMarkLayers(): { id: string; type: 'circle'; source: string; paint: Record<string, unknown> }[] {
   return [
     {
-      id: 'storefronts',
+      id: 'shop-marks',
       type: 'circle',
-      source: 'storefronts',
-      paint: { 'circle-radius': STOREFRONT.radius, 'circle-color': STOREFRONT.color, 'circle-opacity': 0, 'circle-stroke-width': STOREFRONT.ring, 'circle-stroke-color': STOREFRONT.color, 'circle-stroke-opacity': 1 },
+      source: 'shop-marks',
+      paint: { 'circle-radius': SHOP_MARK.radius, 'circle-color': SHOP_MARK.color, 'circle-opacity': 0, 'circle-stroke-width': SHOP_MARK.ring, 'circle-stroke-color': SHOP_MARK.color, 'circle-stroke-opacity': 1 },
     },
   ];
 }
 
-/** Storefronts ui 2: the shop whose card is open, one point or none. */
-export function storefrontSelectedGeoJSON(at: LngLat | null | undefined): GeoJSON.FeatureCollection {
+/** Shop marks ui 2: the shop whose card is open, one point or none. */
+export function shopSelectedGeoJSON(at: LngLat | null | undefined): GeoJSON.FeatureCollection {
   return { type: 'FeatureCollection', features: at ? [{ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: at } }] : [] };
 }
 
-/** Storefronts ui 2: a larger ring round the chosen mark while its card is open; every mark keeps one size at rest. */
-export function storefrontSelectedLayers(): { id: string; type: 'circle'; source: string; paint: Record<string, unknown> }[] {
+/** Shop marks ui 2: a larger ring round the chosen mark while its card is open; every mark keeps one size at rest. */
+export function shopSelectedLayers(): { id: string; type: 'circle'; source: string; paint: Record<string, unknown> }[] {
   return [
     {
-      id: 'storefront-selected',
+      id: 'shop-selected',
       type: 'circle',
-      source: 'storefront-selected',
-      paint: { 'circle-radius': STOREFRONT.radius + 5, 'circle-color': STOREFRONT.color, 'circle-opacity': 0, 'circle-stroke-width': 3, 'circle-stroke-color': STOREFRONT.color, 'circle-stroke-opacity': 1 },
+      source: 'shop-selected',
+      paint: { 'circle-radius': SHOP_MARK.radius + 5, 'circle-color': SHOP_MARK.color, 'circle-opacity': 0, 'circle-stroke-width': 3, 'circle-stroke-color': SHOP_MARK.color, 'circle-stroke-opacity': 1 },
     },
   ];
 }
@@ -196,14 +196,14 @@ export interface WalkMapProps {
   routeGrades?: { path: LngLat[]; grade: number }[] | null;
   /** Places already found, as small pins on the walk planner's map (WP16); never a place not yet found. */
   foundPins?: LngLat[] | null;
-  /** Storefronts (SF1, SF10): the marks to draw, one size and no label; absent draws none. */
-  storefronts?: readonly StorefrontMark[] | null;
-  /** Storefronts ui 2: where the open card's shop is, ringed on the map; null when no card is open. */
-  storefrontSelected?: LngLat | null;
-  /** SF14: a tap on one single mark opens its card (the mark); a tap that closes an open card says null. */
-  onStorefrontPress?: (mark: StorefrontMark | null) => void;
-  /** Whether a storefront card is open, so a tap elsewhere only closes it and does nothing else (SF14). */
-  storefrontCardOpen?: boolean;
+  /** Shop marks (SM1, SM10): the marks to draw, one size and no label; absent draws none. */
+  shopMarks?: readonly ShopMark[] | null;
+  /** Shop marks ui 2: where the open card's shop is, ringed on the map; null when no card is open. */
+  shopSelected?: LngLat | null;
+  /** SM14: a tap on one single mark opens its card (the mark); a tap that closes an open card says null. */
+  onShopPress?: (mark: ShopMark | null) => void;
+  /** Whether a shop card is open, so a tap elsewhere only closes it and does nothing else (SM14). */
+  shopCardOpen?: boolean;
   /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
   onDiscoveryPress?: (id: string) => void;

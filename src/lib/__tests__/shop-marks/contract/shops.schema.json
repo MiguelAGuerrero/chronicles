@@ -1,7 +1,7 @@
 {
-  "$comment": "The storefront pack's record, as the app pins it (specs/storefronts, SF4, SF8). Generated from chronicles-data's src schema once that exists.",
+  "$comment": "The shop pack's record, as the app pins it (specs/shop-marks, SM4, SM8). Generated from chronicles-data's src schema once that exists.",
   "contractVersion": 1,
-  "layer": "storefronts",
+  "layer": "shops",
   "zoom": 12,
   "record": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",

@@ -82,7 +82,7 @@ export function archiveTag(file: ArchiveFile, at: LngLat): string {
 
 /**
  * PW2: the manifest, or null for anything that isn't one (then no archive is read). `prefix` is the pack family's file
- * name: the places archive's `places`, the storefront pack's `storefronts` (specs/storefronts, SF6).
+ * name: the places archive's `places`, the shop pack's `shops` (specs/shop-marks, SM6).
  */
 export function parseManifest(text: string, prefix = 'places'): Manifest | null {
   let raw: unknown;

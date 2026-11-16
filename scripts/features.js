@@ -183,12 +183,12 @@ const FEATURES = [
     specs: ['map-layers', 'explore-dense-city', 'smooth-switches'],
   },
   {
-    name: 'storefronts',
-    about: 'the shops as data (a storefront pack family from chronicles-data) and an off-by-default Storefronts layer on every map with a Layers button, kept apart from presence and Explore',
-    rule: 'storefronts',
-    source: ['src/lib/storefronts/**', 'src/components/StorefrontCard.tsx'],
-    journeys: ['storefronts'],
-    specs: ['storefronts'],
+    name: 'shop-marks',
+    about: 'the shops as data (a shop pack family from chronicles-data) and shop marks inside the Storefronts layer on every map with a Layers button, kept apart from presence and Explore',
+    rule: 'shop-marks',
+    source: ['src/lib/shopMarks/**', 'src/components/ShopCard.tsx'],
+    journeys: ['shopmarks'],
+    specs: ['shop-marks'],
   },
   {
     name: 'walkability',
@@ -483,8 +483,8 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  // Storefronts: the shops as data (a pack family from chronicles-data) and an off-by-default layer (SF1-SF18, the owner, Nov 14).
-  storefronts: { branch: 'claude/nice-hopper-nvpwap', since: '2026-11-14' },
+  // Shop marks: the shops as data (a pack family from chronicles-data) and marks inside the Storefronts layer (SM1-SM18, the owner, Nov 14-16).
+  'shop-marks': { branch: 'claude/nice-hopper-nvpwap', since: '2026-11-14' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

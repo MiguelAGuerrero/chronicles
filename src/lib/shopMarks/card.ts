@@ -1,9 +1,9 @@
 // @layer core
-import type { Storefront } from './read';
+import type { Shop } from './read';
 import { typeWords } from './types';
 
 /*
- * The tap card's words and place (SF15, SF16): a name, a kind in words and, only for a shop the pack flags, a line saying what
+ * The tap card's words and place (SM15, SM16): a name, a kind in words and, only for a shop the pack flags, a line saying what
  * the map data records. Nothing is said of a shop that is not flagged: no brand tag does not make it independent.
  */
 
@@ -16,9 +16,9 @@ export interface CardLines {
   chain: string | null;
 }
 
-export const cardLines = (p: Pick<Storefront, 'name' | 'type' | 'chain'>): CardLines => ({ name: p.name, kind: typeWords(p.type), chain: p.chain ? CHAIN_LINE : null });
+export const cardLines = (p: Pick<Shop, 'name' | 'type' | 'chain'>): CardLines => ({ name: p.name, kind: typeWords(p.type), chain: p.chain ? CHAIN_LINE : null });
 
-/** SF16: the close control is at least this many pixels each way. */
+/** SM16: the close control is at least this many pixels each way. */
 export const CLOSE_MIN_PX = 44;
 
 export interface Box {
@@ -33,7 +33,7 @@ const CARD_H = 88;
 const GAP = 12;
 
 /**
- * SF16: where the card sits: a fixed region of the map's top, under the status bar and clear of the capture stack, which
+ * SM16: where the card sits: a fixed region of the map's top, under the status bar and clear of the capture stack, which
  * lives in the bottom half of the screen. Never at the mark, so it cannot reach the stack. `topInset` is where the screen's free
  * top begins: the status bar, and on the walk screens the navigation card above the map.
  */

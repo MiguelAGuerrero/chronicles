@@ -4,20 +4,20 @@ import test from 'node:test';
 import { LAYERS } from '../../layers/registry';
 import { decodeLayers, layerDefaults } from '../../layers/state';
 
-// Storefronts (specs/storefronts, SF1-SF3, SF13): the layer in the registry and the state, written before the code.
-const entry = () => LAYERS.find((l) => l.id === 'storefronts');
+// Shop marks (specs/shop-marks, SM1-SM3, SM13): the layer in the registry and the state, written before the code.
+const entry = () => LAYERS.find((l) => l.id === 'shop marks');
 const registry = () => import('../../layers/registry') as Promise<{ offeredLayers?: (o: { storefrontsBase: string }) => readonly { id: string }[] }>;
 
-test('SF1: Storefronts is a layer of its own, named for what it is, with an icon and words that are not Busy streets\'', () => {
+test('SM1: Shop marks is a layer of its own, named for what it is, with an icon and words that are not Busy streets\'', () => {
   const s = entry();
-  assert.ok(s, 'the registry has a storefronts entry');
+  assert.ok(s, 'the registry has a shop marks entry');
   const busy = LAYERS.find((l) => l.id === 'busy')!;
-  assert.equal(s!.name, 'Storefronts');
+  assert.equal(s!.name, 'Shop marks');
   assert.notEqual(s!.icon, busy.icon);
   assert.ok(!/busy|streets/i.test(`${s!.name} ${s!.note ?? ''}`));
 });
 
-test('SF1, SF3: the meaning is in the panel\'s one note and one legend row for the drawers; neither names a list of types', () => {
+test('SM1, SM3: the meaning is in the panel\'s one note and one legend row for the drawers; neither names a list of types', () => {
   const s = entry();
   assert.ok(s);
   assert.equal(s!.legend.length, 1);
@@ -25,28 +25,28 @@ test('SF1, SF3: the meaning is in the panel\'s one note and one legend row for t
   for (const t of [s!.note ?? '', ...s!.legend.flatMap((r) => [r.text, r.tip ?? ''])]) assert.ok(!/thrift|antique|books|records|worth|errand|best/i.test(t), t);
 });
 
-test('SF2: it is off by default, and a stored setting from before it reads it off', () => {
+test('SM2: it is off by default, and a stored setting from before it reads it off', () => {
   assert.equal(entry()?.defaultOn, false);
-  assert.equal(layerDefaults().storefronts, false);
-  assert.equal(decodeLayers(JSON.stringify({ walkability: true, busy: true, borders: false }), null).storefronts, false);
-  assert.equal(decodeLayers(JSON.stringify({ storefronts: true }), null).storefronts, true, 'once chosen, it stays chosen');
+  assert.equal(layerDefaults().shop marks, false);
+  assert.equal(decodeLayers(JSON.stringify({ walkability: true, busy: true, borders: false }), null).shop marks, false);
+  assert.equal(decodeLayers(JSON.stringify({ shop marks: true }), null).shop marks, true, 'once chosen, it stays chosen');
 });
 
-test('SF2: with no storefront address the row is not offered; with one it is', async () => {
+test('SM2: with no shop address the row is not offered; with one it is', async () => {
   const { offeredLayers } = await registry();
   assert.equal(typeof offeredLayers, 'function', 'offeredLayers exists');
-  assert.ok(!offeredLayers!({ storefrontsBase: '' }).some((l) => l.id === 'storefronts'));
-  assert.ok(offeredLayers!({ storefrontsBase: 'https://data.example/storefronts/' }).some((l) => l.id === 'storefronts'));
+  assert.ok(!offeredLayers!({ storefrontsBase: '' }).some((l) => l.id === 'shop marks'));
+  assert.ok(offeredLayers!({ storefrontsBase: 'https://data.example/shop marks/' }).some((l) => l.id === 'shop marks'));
   assert.deepEqual(offeredLayers!({ storefrontsBase: '' }).map((l) => l.id), ['walkability', 'busy', 'borders']);
 });
 
-test('SF3: the setting is one for every map: switching it on in one is on in a fresh load', async () => {
+test('SM3: the setting is one for every map: switching it on in one is on in a fresh load', async () => {
   const { createLayers } = await import('../../layers/shell');
   const { fakePorts } = await import('../fakes');
   const p = fakePorts();
   const a = createLayers(p);
   await a.load();
-  await a.set('storefronts', true);
+  await a.set('shop marks', true);
   const b = createLayers(p);
   await b.load();
   assert.equal(b.store.get().on.storefronts, true);

@@ -1,5 +1,5 @@
 // @layer adapter
-// @instance: the storefront pack (storefronts/shell.ts) on the app's ports, read through lib/net
+// @instance: the shop pack (shop marks/shell.ts) on the app's ports, read through lib/net
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import { PMTiles } from 'pmtiles';
@@ -7,17 +7,17 @@ import type { TileFeature } from '../areas/tilePlaces';
 import { ARCHIVE_ZOOM } from '../discovery/archiveManifest';
 import { net } from '../net';
 import { ports } from '../ports';
-import { createStorefronts } from './shell';
+import { createShopMarks } from './shell';
 
 /**
- * SF2: where the storefront manifest and packs are served; empty until a pack is published, and then the Storefronts row is not
- * offered and nothing is asked. The e2e build points at `/storefronts-e2e/` on the harness's server.
+ * SM2: where the shop manifest and packs are served; empty until a pack is published, and then the Shop marks row is not
+ * offered and nothing is asked. The e2e build points at `/shop-marks-e2e/` on the harness's server.
  */
-export const STOREFRONTS_BASE = process.env.EXPO_PUBLIC_STOREFRONTS_BASE ?? '';
+export const SHOP_MARKS_BASE = process.env.EXPO_PUBLIC_SHOP_MARKS_BASE ?? '';
 
-/** The pack's `storefronts` layer as features (the record's fields are read by `read.ts`, which drops every other). */
+/** The pack's `shop marks` layer as features (the record's fields are read by `read.ts`, which drops every other). */
 function decode(bytes: ArrayBuffer, x: number, y: number): TileFeature[] {
-  const layer = new VectorTile(new PbfReader(new Uint8Array(bytes))).layers.storefronts;
+  const layer = new VectorTile(new PbfReader(new Uint8Array(bytes))).layers.shops;
   if (!layer) return [];
   const out: TileFeature[] = [];
   for (let i = 0; i < layer.length; i++) {
@@ -33,7 +33,7 @@ async function fetchText(url: string): Promise<string> {
   return res.text();
 }
 
-export const storefronts = createStorefronts({
+export const shopMarks = createShopMarks({
   ...ports,
-  io: { base: STOREFRONTS_BASE, fetchText, open: (url) => new PMTiles(net.source(url)), decode },
+  io: { base: SHOP_MARKS_BASE, fetchText, open: (url) => new PMTiles(net.source(url)), decode },
 });

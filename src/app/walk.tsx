@@ -16,12 +16,12 @@ import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
 import { LayersControl, LayersKey } from '../components/LayersControl';
-import { StorefrontCard } from '../components/StorefrontCard';
-import { cardBox } from '../lib/storefronts/card';
-import { STOREFRONTS_BASE } from '../lib/storefronts';
-import type { Storefront } from '../lib/storefronts/read';
-import { WALK_NEAR_M } from '../lib/storefronts/types';
-import { useStorefronts } from '../lib/storefronts/useStorefronts';
+import { ShopCard } from '../components/ShopCard';
+import { cardBox } from '../lib/shopMarks/card';
+import { SHOP_MARKS_BASE } from '../lib/shopMarks';
+import type { Shop } from '../lib/shopMarks/read';
+import { WALK_NEAR_M } from '../lib/shopMarks/types';
+import { useShopMarks } from '../lib/shopMarks/useShopMarks';
 import { COLORS, HOTSPOT, namesNearYou, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
@@ -720,9 +720,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const busy = useBusyLayer(live.here, !!layers.on.busy);
-  // Storefronts (SF1, SF12): within 800 m of you, a hard cut from you; the map's zoom is shared with the ready screen, whose map the live walk reuses.
-  const [sfCard, setSfCard] = useState<Storefront | null>(null);
-  const sf = useStorefronts({ on: !!layers.on.storefronts && STOREFRONTS_BASE !== '', centre: live.here, zoom: ready.mapZoom, near: { at: live.here, m: WALK_NEAR_M } });
+  // Shop marks (SM1, SM12): within 800 m of you, a hard cut from you; the map's zoom is shared with the ready screen, whose map the live walk reuses.
+  const [shopCard, setShopCard] = useState<Shop | null>(null);
+  const shopsRead = useShopMarks({ on: !!layers.on.storefronts && SHOP_MARKS_BASE !== '', centre: live.here, zoom: ready.mapZoom, near: { at: live.here, m: WALK_NEAR_M } });
   // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the busy streets' shading and the rest
   // come back as it closes (fix preview-clutter).
   const drawn = forPreview(!!navigation.preview, {
@@ -1221,10 +1221,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <WalkMap
         {...drawn}
         busyNamesNear={namesNearYou(live.here)}
-        storefronts={sf.marks}
-        storefrontCardOpen={!!sfCard}
-        storefrontSelected={sfCard && layers.on.storefronts ? sfCard.at : null}
-        onStorefrontPress={(m) => setSfCard(m?.place ?? null)}
+        shopMarks={shopsRead.marks}
+        shopCardOpen={!!shopCard}
+        shopSelected={shopCard && layers.on.storefronts ? shopCard.at : null}
+        onShopPress={(m) => setShopCard(m?.place ?? null)}
         onViewChange={(v) => ready.setMapZoom(v.zoom)}
         captures={captures}
         clocks={clocks}
@@ -1726,8 +1726,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      {sfCard && !!layers.on.storefronts ? <StorefrontCard place={sfCard} onClose={() => setSfCard(null)} box={cardBox({ width, height: screenH, topInset: at.insets.top + 152 })} /> : null}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, storefronts: sf.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      {shopCard && !!layers.on.storefronts ? <ShopCard place={shopCard} onClose={() => setShopCard(null)} box={cardBox({ width, height: screenH, topInset: at.insets.top + 152 })} /> : null}
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed, shopMarks: shopsRead.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).

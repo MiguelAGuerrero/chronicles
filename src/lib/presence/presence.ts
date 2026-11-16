@@ -100,11 +100,11 @@ const own = <T>(table: Readonly<Record<string, T>>, key: string): T | undefined 
 type Rule = [subclasses: readonly string[] | '*', cls: PresenceClass];
 
 /**
- * The shop values a storefront layer draws (specs/storefronts, SF9): the individual shops presence weights as `boutique`, as of
- * Nov 14, never a mall or a department store (one place of Shops, TP11, and not one storefront). Spelled here because presence is
+ * The shop values a shop-mark layer draws (specs/shop-marks, SM9): the individual shops presence weights as `boutique`, as of
+ * Nov 14, never a mall or a department store (one place of Shops, TP11, and not one shop mark). Spelled here because presence is
  * the only file that holds a table keyed by a source's tags (PR2); the layer imports this list and spells none of them.
  */
-export const STOREFRONT_SHOPS: readonly string[] = [
+export const SHOP_MARK_TYPES: readonly string[] = [
   'antiques', 'second_hand', 'charity', 'gift', 'florist', 'boutique', 'jewelry', 'toys', 'outdoor', 'photo', 'stationery',
   'clothes', 'bag', 'books', 'music', 'musical_instrument',
 ];
