@@ -253,30 +253,24 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 16, `/tend inbox T31 yes T32 yes --deploy=main`, with O16 and O11 of decision 0172** (from `181a35dc`, rebased on
-`8675953b`; the owner's own answers, one theme: the last counts and time words. The coordinator ruled as the owner's
-proxy that the four build in this one run, one commit each; the review ran in the faster lane of decision 0181, the
-steward alone).
-- `tend replay T31`: the walk's card says "three streets walked, three streets new to you" and "Found A · B · C and two
-  more"; the fog beat's headline "Three streets new to you".
-- `tend tabs T32`: the days row and a day's header say "Three moments · one walk"; the row is said "Today, three
-  moments, one walk".
-- `tend map 11` (O16): a pin of moments past a week says how long ago alone, "A photo and a note, two years ago".
-- `tend explore 16` (O11): a reminder of thirteen or more says "Many memories here".
-- The review (one round, the steward; decision 0181). The owner answered four of its questions in person, Nov 16:
-  "Elapsed time" (steward 3: O16's words count whole months and years elapsed; Dec 15, 2024, heard Jan 5, 2026, is "a
-  year ago"), "Number words in the preview" (steward 4: the memory preview keeps "and twelve more here" up to
-  fifty-nine; only the reminder's title says "Many" from thirteen), "three streets, all new to you" (when every street
-  walked is new, one clause) and "Accept commas" (the day row's spoken name stays). Fixed: `tend tabs audit 25`
-  (steward 1: a day's header wraps between words, no word broken at 320 px), `tend map audit 32`, `tend explore audit
-  18`, `tend replay audit 14`. Steward 2 is the "Open before the loop" item below.
-- Filed: the spec and rule wording (the replay rule, M7, MR4, the map rule, the pins' examples, R7, and "many streets
-  walked" past fifty-nine for the owner to confirm) in "Open before the loop"; a phone check in
-  `docs/NATIVE_UNVERIFIED.md`. No inbox entry.
-- Not run: the balance (an inbox run); on the final export only the journeys holding this run's checks (replay, days,
-  memories with walk inside it) and launch; chronicle, tabs, qol, resurface, gaps, marks and nudge were green on the
-  branch before the last two rebases and the review's fixes and were not run again (decision 0181). Nothing here has
-  run on a phone.
+**Nov 16, `/tend chronicle --deploy=main`, building the owner's answer to O17 of decision 0172** (from `6c5174cd`, rebased
+on `edf96c57`; a ledger run, lenses 1-6 not run; the review in the faster lane of decision 0181, one auditor round).
+- `tend chronicle 9` (O17, "Typed words go without asking"): in Rename, a tap outside, Escape or Back with words Save
+  would store differently asks "Discard these edits?" with Keep editing and Discard, the media editor's Close confirm
+  and its words; Escape or a tap outside the ask keeps editing; Cancel and unchanged words leave at once. The note
+  half is moot (a note is a page saved as you write, decision 0151).
+- `tend chronicle 10` (Quality of life 14, medium): a figure keeps to its unit at a line's end in Chronicle's walks
+  row, a place's header and a day's walk line, "589 m" never "589 / m"; the tests that pinned the plain space restated.
+- The review (one round, the auditor: 0 high or medium, 6 low). Fixed: `tend chronicle audit 5` (F1: Enter or Done
+  while the ask shows keeps editing and stores nothing). Filed `[loop]` low: the ask's focus and announcement, in
+  Rename and the media editor (F2); a pure `renameClose` (F4); "a voice / memo" at 320 px (F6); Name it on the first
+  replay asking before its words go, with the owner's answer of Nov 16, "Ask there too" (F5). F3's spec wording (QL22)
+  went to the owner's list by the coordinator; the rule line is added.
+- Filed `[loop]` medium: `qol`'s `tend map audit 25/26` red at Hold at 390 on `main` since the Place search commits,
+  not this run's. A note on `formatDistance`'s item; a note on the native Rename check (Back now asks).
+- The balance: outgrowing its base (seven areas rough); no `G` entry filed. No inbox entry.
+- Not run: lenses 1-6; of the journeys, `qol` (holding the new checks; red only on main's 25/26), `chronicle` and
+  `launch`, the last two before the audit fix. Nothing here has run on a phone.
 
 ### Open before the loop
 

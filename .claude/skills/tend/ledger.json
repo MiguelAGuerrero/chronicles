@@ -2,7 +2,7 @@
   "lastT": 32,
   "lastG": 4,
   "balance": {
-    "date": "2026-11-14",
+    "date": "2026-11-16",
     "days": 14,
     "slicesGrown": [
       "AD",
@@ -20,6 +20,7 @@
       "G",
       "GT",
       "GW",
+      "GZ",
       "H",
       "HB",
       "HC",
@@ -38,6 +39,7 @@
       "N",
       "NB",
       "NH",
+      "NI",
       "NP",
       "NR",
       "NV",
@@ -54,13 +56,17 @@
       "R",
       "RB",
       "RF",
+      "RL",
       "RM",
       "RP",
       "RR",
       "RT",
+      "RX",
       "SA",
       "SB",
+      "SF",
       "SH",
+      "SP",
       "SR",
       "SS",
       "TB",
@@ -77,9 +83,9 @@
       "WT"
     ],
     "commits": {
-      "growth": 174,
-      "refinement": 460,
-      "other": 574
+      "growth": 182,
+      "refinement": 492,
+      "other": 604
     },
     "areas": {
       "rough": [
@@ -112,6 +118,7 @@
       "notify",
       "places",
       "presence",
+      "reactions",
       "recording",
       "resurface",
       "rides",
@@ -124,9 +131,9 @@
       "web"
     ],
     "open": {
-      "openT": 6,
+      "openT": 4,
       "phoneT": 4,
-      "openG": 1
+      "openG": 0
     },
     "reading": "outgrowing its base",
     "propose": false,
@@ -135,9 +142,9 @@
   "areas": {
     "chronicle": {
       "state": "rough",
-      "swept": "2026-11-11",
-      "main": "83a3f257b6c64c9aad10c3ce6e2ef5c5501ce9c2",
-      "note": "First sweep. Found two medium loop findings (the @ picker and Escape, the walks row unspoken on the web) and shipped eight; three low or test-bound loop items wait in DEFERRED Quality of life 12-14; T1-T3 open. Lens 2 not whole: 320 px, 200% text, offline and an interrupted rename were not pictured."
+      "swept": "2026-11-16",
+      "main": "6c5174cddc722d0e0b9568efb29dedf9de5de6a3",
+      "note": "Ledger run, not whole (lenses 1-6 not run). Built the owner's answer O17 (decision 0172) as tend chronicle 9, Rename asking before a tap outside, Escape or Back drops changed words, and the medium [loop] item on figures broken from their units as tend chronicle 10; the review's F1 shipped as audit 5. Left [loop]: four low filed from the review (the ask's focus, a pure renameClose, \"a voice / memo\", Name it on the first replay with the owner's Nov 16 answer), and Quality of life 12, 13, 17, 19, 20."
     },
     "explore": {
       "state": "rough",
