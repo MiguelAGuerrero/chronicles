@@ -352,7 +352,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
         {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
         <View testID="capture-card" style={styles.pageArea}>
-        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
+        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} pageAt={{ t: capture.t, walkId: capture.walk_id ?? null }} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
         <View style={[styles.metaRow, styles.pageMeta]}>
           <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
           {actions(false)}
@@ -910,6 +910,8 @@ export function CaptureViewer(props: {
             reaction={{ set: notingSet, moment: noting.id, onPick: (id) => void reactions.choose(noting.id, id).catch(() => {}) }}
             head={headOf(noting)}
             self={noting.id}
+            pageAt={{ t: noting.t, walkId: noting.walk_id ?? null }}
+            onEditMedia={props.onSaveEdit ? (c, patch) => props.onSaveEdit!(c, patch) : undefined}
             onClose={() => setNoting(null)}
             store={{
               kept: true,

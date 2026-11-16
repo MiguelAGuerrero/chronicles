@@ -155,7 +155,7 @@ recording, and a recording bar brings a minimized walk back.
   place in both the map and the archive, of the same name and kind within
   200 m, is one place. The rule that takes a National Register listing when the
   place is public (its type, a sign it is open, or a Landmark) is built and
-  moves to chronicles-data's pipeline. **Small places** (decision 0182): OpenStreetMap adds places of its own for a
+  moves to chronicles-data's pipeline. **Small places** (decision 0183): OpenStreetMap adds places of its own for a
   fixed table of small things, the kind Pikmin Bloom's postcards reach: time capsules and little libraries (on by
   default), plaques and markers, small memorials (benches, ghost bikes, Stolpersteine), milestones and boundary stones,
   and wayside shrines and crosses (off by default), each a switch under its kind in "What I'm into"; typed murals,
@@ -235,6 +235,12 @@ recording, and a recording bar brings a minimized walk back.
   "Not saved yet" in its top bar. In the viewer a note reads as its page, its mentions as cards of their moments;
   a tap on its words or a box opens it for writing. A note holds up to 20,000 characters; near the end the page says "Room for a few more lines". Checklists are
   never counted. Everywhere else a page reads as its words; a note written before pages reads as it was typed.
+  A photo or video mentioned on a page (the camera's, or one picked with Mention) is drawn as the photo itself, on its
+  own line at the page's width, in the page and in the viewer's reader (decision 0182): a video as its still under the
+  play mark; a line under it says where it is from only when it is from another day or walk. While writing, a tap on
+  a picture outlines it and offers **Edit photo**, which opens the media editor over the page with every tool it has
+  (rotate, crop, filter, draw, text, and trim for a video; the edit is the photo's own, everywhere), and **Remove from
+  page**, which takes out the mention only, says so with Undo, and leaves the photo in the Chronicle. The note still stores only the mention.
 - When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
   never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why

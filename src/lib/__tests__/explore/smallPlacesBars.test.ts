@@ -8,7 +8,7 @@ import type { Kind } from '../../discovery/types';
 import { parseHidden } from '../../explore/explore';
 import type { LngLat } from '../../types';
 
-// Small places' bars (specs/small-places SP12, SP13; decision 0182): a small place weighs by the size of the stop, only
+// Small places' bars (specs/small-places SP12, SP13; decision 0183): a small place weighs by the size of the stop, only
 // while its subset is on, and a switch changes the dots without reading the area again. Written before the code.
 
 const O: LngLat = [-75.37, 40.61];

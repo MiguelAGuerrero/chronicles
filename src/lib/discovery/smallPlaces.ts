@@ -4,7 +4,7 @@ import type { Refinement } from './refine';
 import type { Kind, Place } from './types';
 
 /*
- * Small places (specs/small-places SP3-SP22, decision 0182): time capsules, plaques, little libraries and the like, from
+ * Small places (specs/small-places SP3-SP22, decision 0183): time capsules, plaques, little libraries and the like, from
  * the places archive (OpenStreetMap locates them, chronicles-data's SL1-SL11). Each is a subset of an existing kind with a
  * switch of its own; the repetitive ones start off. What a place is (its subset, its weight) is presence's; this module
  * says how the subsets read: their rows, their defaults, their words in a sentence and their refinements.

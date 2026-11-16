@@ -64,7 +64,7 @@ const pastNeighbourhood = (name: string): string =>
 const notablePark = (name: string): boolean => hasWord(name, NOTABLE) || notableName(pastNeighbourhood(name));
 
 /** A place a park is not plain for (PC2): something to find that is not a park itself. */
-// SP19 (decision 0182): a small place (a bench, a plaque, an old stone) is no reason either, switched on or off.
+// SP19 (decision 0183): a small place (a bench, a plaque, an old stone) is no reason either, switched on or off.
 const isSignal = (p: Place): boolean => p.markable === true && !!p.kind && p.kind !== 'parks' && p.kind !== 'community_parks' && p.kind !== 'community' && !isSmallPlace(p);
 
 /** The area of a polygon's rings in square metres: the outside less its holes. */

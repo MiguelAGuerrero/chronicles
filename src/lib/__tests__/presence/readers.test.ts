@@ -189,7 +189,7 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
     const was = new Set(want);
     return got.map((m) => (m.endsWith('|community_parks') && !was.has(m) && was.has(m.replace(/\|community_parks$/, '|parks')) ? m.replace(/\|community_parks$/, '|parks') : m)).sort();
   };
-  // specs/small-places SP3, SP12 (decision 0182), the third listed change: the archive's markers are Plaques and markers,
+  // specs/small-places SP3, SP12 (decision 0183), the third listed change: the archive's markers are Plaques and markers,
   // a subset that starts off, so their marks move from `monuments` to `plaques` and the stored bars (every small subset left
   // out) may only lose History; nothing else of the ring moves.
   const sp = (marks: string[], markers: Set<string>) =>

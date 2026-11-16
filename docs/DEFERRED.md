@@ -507,7 +507,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - **Remarkable and public's data side is built in chronicles-data** (its remarkable-and-public spec, RD1-RD14, Nov 10): the listing rule, OSM's corroboration over Geofabrik's extracts and osmium, the ODbL pack, contract v2. Its OSM fetch has never run (the first weekly build runs it); RP1-RP7, RP10 and RP12 are tested there.
 - **OpenStreetMap's signals in production:** RP2 (shown open by an OSM tag) and RP5 (`access=private|no`) act only once the weekly job passes the build `--osm`, built from the Overpass query of `specs/remarkable-and-public/handoff.md` (only elements with a `wikidata` tag, so far smaller than a US extract). Until then, a listed house or building is shown open only by its Wikidata type, and none is kept out as closed.
-- **Places only OpenStreetMap knows** (the Bethlehem Steel blast furnaces' own feature): the owner's call, corroborate only (0110); adding them makes the archive a derived ODbL database. Answered in part by decision 0182 (Nov 14): OSM may locate a pinned table of small types (plaques, time capsules, little libraries and the like); every other type, the furnaces' feature among them, still only corroborates.
+- **Places only OpenStreetMap knows** (the Bethlehem Steel blast furnaces' own feature): the owner's call, corroborate only (0110); adding them makes the archive a derived ODbL database.
 - **Contributing buildings of a listed district:** a church inside a listed district with no designation of its own in Wikidata (Central Moravian Church, in the Historic Moravian Bethlehem Landmark district and World Heritage site) is not lifted past the name rule. A public-type place inside a Landmark district could be; the owner's call.
 - **Registers outside the US:** Zurich's 199 listed misses are on Swiss registers; another region is the same rule with its register's id.
 - **From the audit (Nov 9), deferred:** the review's atlas History step before and after per test area (audit 3: the build reads no tiles; the benchmark could compute it); the reach line under a "?" reads beside "Walk within 60 m to see what it is." as two instructions (copy, the owner's); whether "Buildings and structures" should ever take unlisted structures (OSM `man_made` bridges, towers, mills), so it names a type rather than standing in for a register (steward S3, rejected for now); whether a find should invite a capture at a Landmark private house (the steward's silent question).
@@ -689,10 +689,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Note pages (NP1-NP14, decision 0151)
 
-- **A mention's card has no picture** (NP5, RF4): the reader draws a card of the moment's kind, words, date, place and walk, and the page while writing a chip; the editor runs in a WebView on phones, which may not reach the app's media files. Drawing the picture needs the file passed in as data, a cost per mention.
 - **"Added to on Nov 30"**: words added to a note weeks later carry its first time (the steward, silent 1); saying so needs a stored edit time.
 - **The page's camera is on capture surfaces only** (the pencil on Navigate, the walk and Memories' band): a reply's page and Edit in the viewer have none, since the viewer holds no camera of its own.
-- **Selection across a whole page, dragging blocks, a "/" menu, links, tables, photos inline**: out by the owner's calls (Nov 12).
+- **Selection across a whole page, dragging blocks, a "/" menu, links, tables, a picture stored in the document**: out by the owner's calls (Nov 12). "Photos inline" was narrowed on Nov 16 (decision 0182): a mention of a photo you took is drawn as its picture, with no image ever stored in, pasted into or typed into the page.
 - **Undo of a whole session's writing**: TipTap's history covers the page while it is open.
 - **An older note's lines read as paragraphs on its page**, a little spaced, until it is written in (NP7 keeps its characters, not its spacing).
 - **The room left is counted by the editor's words as shown**, a mention as "@" and its words, one more than `shownLength`'s count.
@@ -720,6 +719,10 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   Built: a transcript is read from a copy of the kept span (TX13, decision 0165).
 - **The trim bar's handles overlap on a short kept span** (voice-trim ui review U2): their 12 px grips and hit boxes touch, so the one underneath is hard to grab; the same bar serves videos. A fix draws the caps outside the kept span, or keeps a minimum on-screen gap; its test is `voice-trim ui 2` (`elementFromPoint` at the start handle's centre after the end handle is dragged to the middle).
 - **Voice trim audit** (Nov 13): a seek that fails or is slow (`seekMemo` swallows a rejection; a refused autoplay that seeks once at load may audibly start at 0:00 before jumping, audit 7). Every photo or video editor builds an audio player with no source (`useAudioPlayer(undefined, ...)` in `MediaEditor`) and the voice preview belongs in a voice-only child component (audit 8). Saving a trim after a replay is already waiting on a memo changes `updateInterval`, which recreates the replay bubble's player mid-play (audit 5, in part: the viewer itself unmounts its capture while the editor is up). A note's text edit on a moment's non-face piece patches the face's `body` the same way an edit did (audit 1's flaw, still open for `notePatch`).
+- **Mention cards elsewhere keep their card** (note pictures NI12, decision 0182): a thread's bubbles (`NoteText`), the memory preview, the replay and the Chronicle's index draw a photo's or video's mention as text or a card, not a picture; each is its own screen and its own gate.
+- **A new page does not know its walk** (note pictures NI16): a page begun on a capture surface compares a mentioned photo's day alone, so a photo from another walk the same day shows no line; the viewer's page and the reader know the walk and compare both.
+- **A picture sits after the camera's space** (note pictures NI4): the page's camera writes a space after the mention (NP14), which reads as a small indent on the line under a picture.
+- **A page of many pictures** (note pictures NI11): each is about 60-120 KB of data through the web view, once. If a device shows it slow, every picture beyond a count would be drawn smaller, never hidden or collapsed (NI17); not built.
 
 ## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)
 
@@ -813,13 +816,3 @@ What the reactions slice left out (`specs/reactions`, decision 0176).
 - [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
 - [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.
 - [loop] **Reaction links** (UI review U3, U5): a reaction panel does not say which moment it acts on (a subtitle with the moment's first words, or the entry scrolled into view above the sheet); Neutral's circled minus reads as "remove" now that a mark is tappable (Ionicons has no neutral face; a drawn one, or another glyph, is a choice for a phone).
-
-## Small places (SP1-SP22, decision 0182)
-
-Small places (decision 0182): what the slice left for later.
-
-- **A bar's breakdown by type** on a neighbourhood or town card (the types present, in words, in a fixed order, no counts): the owner's own later slice, with its own gate (decision 0182); the tension recorded there, that weighting is a form of curation.
-- **Switched-on small subsets leaning a route:** the planner and scenic Sights leave every small subset out, on or off (SP16, a default the owner may overrule); whether a reader's switched-on ones should lean is for the breakdown slice.
-- **The data side is on chronicles-data's branch, not its main:** contract v3 and OSM's small places (its SL1-SL11) reach a pack only once that branch merges and the weekly job's OSM fetch runs; the noise review per test area comes with that first build, before a pack is published (decision 0109). Until then the app takes the new classes and nothing new shows.
-- **Category headings in "What I'm into"** (the UI review's U4): eighteen rows with no group names, so a card's "History" cannot be matched to a block of rows; the five categories as headers would answer it, a change to the whole list rather than to this slice.
-- **The drawer's grabber over a row** (the UI review's U6, before this slice): in the walk's drawer the grabber is drawn over the half-clipped first row; it wants its own strip above the scrolling list.

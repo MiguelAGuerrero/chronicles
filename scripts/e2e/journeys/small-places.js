@@ -1,4 +1,4 @@
-// Small places (specs/small-places SP1, SP2, SP11; decision 0182): the places archive brings an unnamed time capsule and a
+// Small places (specs/small-places SP1, SP2, SP11; decision 0183): the places archive brings an unnamed time capsule and a
 // plaque beside the walk; an exploring walk names the time capsule ("A time capsule") and draws no plaque, since Plaques
 // and markers starts off; "What I'm into" lists Plaques and markers indented under Monuments and memorials, off; switched
 // on, the plaque is drawn. E2E_ONLY=small-places runs it alone.

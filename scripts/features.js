@@ -309,7 +309,7 @@ const FEATURES = [
     rule: 'note-pages',
     source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
     journeys: ['notepage'],
-    specs: ['note-pages'],
+    specs: ['note-pages', 'note-pictures'],
   },
   {
     name: 'motion',

@@ -13,7 +13,7 @@ import { classesOfArchive, isStorefront, storefrontWeight } from '../../presence
 import type { LngLat } from '../../types';
 import * as smallPlaces from '../../discovery/smallPlaces';
 
-// Small places (specs/small-places, SP1-SP22; decision 0182), written from the spec before the code. New modules are loaded
+// Small places (specs/small-places, SP1-SP22; decision 0183), written from the spec before the code. New modules are loaded
 // by a path TypeScript doesn't resolve, so a todo runs before they exist.
 
 const O: LngLat = [-75.37, 40.61];

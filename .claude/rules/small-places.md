@@ -4,7 +4,7 @@ paths:
   - "src/lib/__tests__/explore/smallPlaces*.test.ts"
   - "scripts/e2e/journeys/small-places.js"
 ---
-# Small places (SP1-SP22, decision 0182)
+# Small places (SP1-SP22, decision 0183)
 
 Time capsules, plaques, little libraries and the like: OpenStreetMap locates them in chronicles-data (its SL1-SL11,
 contract v3); here each is a subset of an existing kind with a switch of its own.

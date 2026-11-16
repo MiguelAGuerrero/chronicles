@@ -107,7 +107,7 @@ export function createPlanner(deps: PlannerDeps) {
       // presence-readers audit 3: a place read before `markable` existed is judged as the atlas's ring judges it (`ringOf`).
       const counted = places0
         .map((p) => (p.markable === undefined ? { ...p, markable: isMarkable(p) } : p))
-        // SP16: the planner never leans on small places (decision 0182).
+        // SP16: the planner never leans on small places (decision 0183).
         .filter((p) => distanceM(p.at, i.area.at) <= radiusM && countsToward(p) && !isSmallPlace(p));
       // PK8, PS5: the places that light the bar by their classes, a museum the data calls historic among History's.
       const places = counted.filter((p) => barsOf(p).includes(i.kind));

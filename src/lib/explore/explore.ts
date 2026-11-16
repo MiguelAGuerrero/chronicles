@@ -73,7 +73,7 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'community', label: 'Community spaces', icon: 'reader-outline' },
   ...small('community'),
   { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline' },
-  // SP2, SP3, SP10 (decision 0182): small places, each a subset after its parent; the History ones start off (SP7).
+  // SP2, SP3, SP10 (decision 0183): small places, each a subset after its parent; the History ones start off (SP7).
   ...small('monuments'),
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
   { id: 'structures', label: 'Buildings and structures', icon: 'home-outline' },

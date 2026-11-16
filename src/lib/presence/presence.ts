@@ -56,7 +56,7 @@ const DEFS = {
   structure: { weight: FULL, category: 'history', kind: 'structures' },
   heritage: { weight: FULL, storefront: true },
   attraction: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'viewpoints' },
-  // Small places (specs/small-places, decision 0182): each a subset of its kind (`subset`, a switch in "What I'm into"),
+  // Small places (specs/small-places, decision 0183): each a subset of its kind (`subset`, a switch in "What I'm into"),
   // weighing in a bar by the size of the stop (`bar`); none is a storefront (SP14). A community garden has no switch.
   plaque: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'plaques' },
   small_memorial: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'small_memorials' },
@@ -101,7 +101,7 @@ export type ClassDef = {
   readonly storefront?: true;
   readonly category?: CategoryId;
   readonly kind?: Kind;
-  /** SP3: the subset of `kind` a small place belongs to, its own switch (decision 0182). */
+  /** SP3: the subset of `kind` a small place belongs to, its own switch (decision 0183). */
   readonly subset?: Kind;
   /** SP12: how much it counts toward its bar (the size of the stop); absent, a whole place. */
   readonly bar?: number;
@@ -257,7 +257,7 @@ const ARCHIVE: Record<string, PresenceClass> = {
   folly: 'curiosity', novelty_building: 'curiosity', roadside_giant: 'curiosity', natural_oddity: 'curiosity', odd_engineering: 'curiosity',
   marks_a_fact: 'curiosity', art_environment: 'curiosity', ruin: 'curiosity',
   monument: 'monument', statue: 'monument', memorial: 'memorial_site',
-  // SP3 (decision 0182): a marker is a plaque whoever lists it (the owner, Nov 16), and the other small places of contract v3.
+  // SP3 (decision 0183): a marker is a plaque whoever lists it (the owner, Nov 16), and the other small places of contract v3.
   marker: 'plaque', small_memorial: 'small_memorial', old_stone: 'old_stone', wayside_shrine: 'wayside_shrine', time_capsule: 'time_capsule',
   public_bookcase: 'bookcase', community_garden: 'community_garden',
   mural: 'artwork', sculpture: 'artwork',

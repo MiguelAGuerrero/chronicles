@@ -46,7 +46,7 @@ const SIGHT_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'culture', 'v
 /** SR6: the places a Sights route leans toward: marks of a kind switched on in "What I'm into". */
 export function sightsFrom(places: Place[], hidden: Set<Kind>, found: Set<string>): Sight[] {
   return places
-    // SP16: a Sights route never leans on small places, on or off (decision 0182).
+    // SP16: a Sights route never leans on small places, on or off (decision 0183).
     .filter((p) => SIGHT_CATEGORIES.includes(p.category) && isMarkable(p) && !isKindHidden(hidden, p.kind) && !isSmallPlace(p))
     .map((p) => ({ key: p.key, at: p.at, name: p.name, found: found.has(p.key) }));
 }

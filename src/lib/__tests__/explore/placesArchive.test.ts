@@ -89,7 +89,7 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     overlook: ['viewpoints', 'viewpoints'], tower: ['viewpoints', 'viewpoints'],
     church: ['history', 'churches'], cemetery: ['history', 'cemeteries'], theatre: ['culture', 'theatres'], museum: ['culture', 'museums'],
     historic_site: ['history', 'monuments'], building_structure: ['history', 'structures'],
-    // Contract v3 (specs/small-places SP3, decision 0182): the parent kind; the subset is a refinement's (plaques and the rest).
+    // Contract v3 (specs/small-places SP3, decision 0183): the parent kind; the subset is a refinement's (plaques and the rest).
     small_memorial: ['history', 'monuments'], old_stone: ['history', 'structures'], wayside_shrine: ['history', 'churches'],
     time_capsule: ['viewpoints', 'curiosities'], public_bookcase: ['culture', 'community'], community_garden: ['parks', 'parks'],
   }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111), v3 too (SP3)');

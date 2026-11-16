@@ -126,7 +126,7 @@ Home / tabs
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
-  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and the Reaction tool; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap; its reactions held until it is kept)
+  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and the Reaction tool, a mention's picture and its Edit menu over the media editor; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap; its reactions held until it is kept)
   CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a pin of one moment wears its reactions as ink bubbles from its bottom-left (`pinReactions`, RX17), an L on a video's pin (`reactionSpots`, RL12)
   reactions/                 ReactionPanel (the three families, RX6), ReactionMarks (glyphs and names, RX14-RX16; links to their lens with `onOpen`, RL2-RL5), ReactionSign (the face with a plus, always, RL6), ReactionsScreen and LensScreen (the contents' lenses, RX22-RX25)
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
@@ -242,7 +242,7 @@ Discovery and Explore (v1)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), keepFindKeys (a find keeps its key); the owner's edits are applied in chronicles-data (decision 0108)
   discovery/refine.ts        the kind pipeline's engine: Refinement, refine() (pure, in order; PC18-PC19, decision 0144)
   discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch, kindRows (PC20-PC23)
-  discovery/smallPlaces.ts   small places (SP3-SP22, decision 0182): SMALL_SUBSETS (rows, plurals, defaults), DEFAULT_OFF, SMALL_REFINEMENTS (a subset by presence's `subset`), isSmallPlace, passedNames, keepTheLows, foundRows
+  discovery/smallPlaces.ts   small places (SP3-SP22, decision 0183): SMALL_SUBSETS (rows, plurals, defaults), DEFAULT_OFF, SMALL_REFINEMENTS (a subset by presence's `subset`), isSmallPlace, passedNames, keepTheLows, foundRows
   discovery/parkKind.ts      communityParks: the first refinement, Parks into Community parks by name and what is near (PC1-PC5; its curation in communityWords.json, parkNotable.json; notable names are presence's notableName, PS3)
   discovery/green.ts         the tiles' park outlines, from presence's classesOfLandcover (PS4): GreenArea, greenFromTiles, outlinesOf; scenic routes re-export it
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
@@ -331,7 +331,7 @@ Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
   reactions/                 reactions (decision 0176): core.ts (the eight in three families, `pick`, `ordered`, `setsOf`, `migrateTypes`), lens.ts (the only gathering by reaction), shell.ts (read whole, `choose`, `hold`/`keep` for a new page, `saving` so a keep under way is not dropped, `notKept`; index.ts the instance), useReactions.ts
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
-  notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
+  notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words]); pictures.ts (core: which mentions are pictures, their spoken name, when one says where it is from, the key a picture is made by), csp.ts (the page's Content-Security-Policy), pictureStore.ts (shell: each picture made once per photo and edit); `media/pictureData.ts` (adapter: a 720 px `data:` URL of a photo or a video's still; decision 0182)
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
   transcript/                memo transcripts (decision 0169): core (needsTranscript, isStale, spanOf), shell (the queue, one memo at a time), engine and cutter adapters (`.native` over expo-speech-recognition and the local module's `exportTrimmedAudio`), the `transcript` cache table
   useTranscript.ts           a memo's words for the caption (view); `components/MemoTranscript.tsx` draws it

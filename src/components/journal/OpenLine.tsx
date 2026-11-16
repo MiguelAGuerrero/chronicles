@@ -773,6 +773,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             bodyFormat={null}
             head={noteHead({ t: page.entry.t, now: pageNow, time: timeOf(page.entry.t), context: null, placing: false, draft: null, placed: page.entry.placed, onWalk: walking })}
             self={page.entry.momentId}
+            pageAt={{ t: page.entry.t }}
+            onEditMedia={(c, patch) => cap.setEdit(c, patch)}
             // The page's Reaction tool, on the moment the line was writing (RX12).
             reaction={{ set: pageSet, moment: page.entry.momentId, onPick: (id) => void reactions.choose(page.entry!.momentId, id).catch(() => {}) }}
             onClose={closePage}

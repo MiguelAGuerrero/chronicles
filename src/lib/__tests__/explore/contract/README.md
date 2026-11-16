@@ -2,7 +2,7 @@
 
 A copy of chronicles-data's `contract/` (https://github.com/MiguelAGuerrero/chronicles-data, decision 0108), taken
 from its branch `claude/epic-darwin-m94owv` on 2026-11-16, contract version 3 (Small places, its SL10; the app's
-specs/small-places, decision 0182: the classes small_memorial, old_stone, wayside_shrine, time_capsule, public_bookcase
+specs/small-places, decision 0183: the classes small_memorial, old_stone, wayside_shrine, time_capsule, public_bookcase
 and community_garden; OpenStreetMap's `locates` in sources.json; an empty name only for the small classes). Version 2
 (Remarkable and public, RD13) added church, cemetery, theatre, museum and historic_site, and renamed heritage_building
 building_structure. `placesContract.test.ts` (PP17)

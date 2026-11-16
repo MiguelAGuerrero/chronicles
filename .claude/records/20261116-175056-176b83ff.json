@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /slice"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice"
+      ],
+      "body": "- **A visible way to take a picture out of a page** (note pictures, the UI review's U1): the menu has one row, Edit, as chosen on Nov 16, so a picture leaves a page only with Backspace from after it, which a phone does not show. Recommended: a second row, \"Remove from page\", last, taking out the mention only (the photo stays its own moment) with the usual Undo; one more row and a check.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Note pictures (a photo or video mentioned"
+      ],
+      "body": "| Note pictures (a photo or video mentioned on a note's page is drawn as the photo itself, in the page and the reader: an own block at the page's width, a video's still under the play mark, a line only when it is from another day or walk; a tap while writing outlines it and offers Edit photo or Edit video, which opens the media editor over the page; the note still stores only the mention; NI1-NI18, decision 0182) | Built 2026-11-16 on `claude/peaceful-goodall-wtqgm5`, test-first by history (18 of 18): unit tests, typecheck, lint, docs and vision checks; `notepage` and nine more journeys pass on the web build; the cold find and the UI review run (2 fixed, 1 to the owner, 3 rejected); native unverified (four items in `docs/NATIVE_UNVERIFIED.md`); not deployed | `claude/peaceful-goodall-wtqgm5` | `specs/note-pictures/spec.md` | no (UI review only) |\n",
+      "target": "sha256:791dad7196cb20c40b8da5326d596cfe28ea95688f70d5bf443a76f8a4bcb128"
+    }
+  ]
+}

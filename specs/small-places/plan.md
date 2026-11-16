@@ -81,7 +81,7 @@ Precedent: Community parks under Parks and gardens (decision 0143), the same row
 
 ## Deferred
 
-- The breakdown of a bar by type (the owner's own later slice, decision 0182).
+- The breakdown of a bar by type (the owner's own later slice, decision 0183).
 - Labels in other languages (the app's copy is English).
 - Overture places of these types (0109: Overture stays for storefronts).
 

@@ -1,6 +1,6 @@
 # Small places: the data side (chronicles-data)
 
-What chronicles-data builds for this slice (decision 0182); its own spec numbers these there. The app side (SP1-SP18)
+What chronicles-data builds for this slice (decision 0183); its own spec numbers these there. The app side (SP1-SP18)
 takes the contract this produces (SP17) and cannot pass PP17 before it.
 
 ## Contract v3

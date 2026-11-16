@@ -131,7 +131,7 @@ same argument is not had twice.
 | 0107 | Storage awareness: the room left said in words beside the captures, once for each level; every failed save held for Retry; no gauge, no limit on capturing, no Storage screen (reshaped at the gate, Nov 9) |
 | 0108 | The places archive becomes a pipeline of adapters; a community source may only nominate, and a nomination reaches only the owner's review list, never a pack (the steward's finding, the owner's call, Nov 9) |
 | 0109 | Listed places enter when remarkable and public: a listing is the gate, reachable from public ground the bar (reshaped at the gate, Nov 9) |
-| 0110 | The slice's calls: OSM only corroborates (in part undone by 0182); no kind named for significance; passed places whisper as the card does; reachability said, never a filter |
+| 0110 | The slice's calls: OSM only corroborates (in part undone by 0183); no kind named for significance; passed places whisper as the card does; reachability said, never a filter |
 | 0111 | The audit's calls: one place within 200 m for the same name and kind; a listed site, battlefield or wreck is a Monument, not a building |
 | 0112 | The app opens on Chronicle's Memories, which keeps a moment in one tap: the stack's three kinds in plain ink, fixed low, never a hero block (reshaped at the gate, Nov 9) |
 | 0115 | Places out of town: kinds filter what you see, never what exists; one-of-a-kind businesses only by a structural signal, never ratings or popularity; "?" within 50 km in countless stars, named only on a tap, never listed or counted (reshaped at the gate, Nov 9) |
@@ -142,4 +142,4 @@ same argument is not had twice.
 | 0147 | Complexes: information only; the street kept; a viewing never fetches (reshaped at the gate, Nov 11) |
 | 0155 | Chronicle is a journal: writing in it captures |
 | 0176 | Reactions on moments: one per family, the owner's own; gathered in lenses; never counted or said of a place (reshaped at the gate, Nov 14) |
-| 0182 | Small places from OSM: a pinned table, repetitive types off by default, never counted, weighed only when on |
+| 0183 | Small places from OSM: a pinned table, repetitive types off by default, never counted, weighed only when on |

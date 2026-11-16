@@ -16,7 +16,7 @@ export type Kind =
   | 'community'
   /** Parks whose name says a playground or the like and nothing notable lies in them: a subset of Parks the reader can switch off (community-parks, PC1). */
   | 'community_parks'
-  /** Small places of the places archive, each a subset of its kind with a switch of its own (specs/small-places, decision 0182). */
+  /** Small places of the places archive, each a subset of its kind with a switch of its own (specs/small-places, decision 0183). */
   | 'plaques' | 'small_memorials' | 'old_stones' | 'wayside_shrines' | 'time_capsules' | 'little_libraries';
 
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */

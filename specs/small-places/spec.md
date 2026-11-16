@@ -1,4 +1,4 @@
-<!-- Repo first: from the owner's request of Nov 14 (Pikmin Bloom's postcards; decision 0182). Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The data side is chronicles-data's: handoff.md. -->
+<!-- Repo first: from the owner's request of Nov 14 (Pikmin Bloom's postcards; decision 0183). Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The data side is chronicles-data's: handoff.md. -->
 
 # Small places: time capsules, little libraries, plaques and the like, from OpenStreetMap
 
@@ -10,7 +10,7 @@ Idea: OpenStreetMap contributes small places of its own, the kind Pikmin Bloom's
 Verb: earn ("what makes a place itself": the small things a walk passes without noticing)
 Touches: VISION.md Never, "Tallies such as '12 of 87'" (nothing counts these places or treats them as a set; a find is a memory, never a postcard); Always, "Restraint… the content is the novelty, not the chrome" (the repetitive types start off); decisions 0103 ("an unmapped class is left out, never guessed"; type decides), 0108 (OSM is a source that locates, not a community nominator), 0109 (`access=private|no` keeps a place out), 0110 (superseded in part: OSM locates for this table only; the bounded whispers hold), 0115 (an exception: these weigh in the bars only when switched on), 0144 (subsets are refinements), 0180 (storefronts: none of these is a storefront).
 Verdict: aligned if reshaped
-Shape: a pinned table of OSM types, each a subset of an existing kind with a default (decision 0182); unnamed places named by their type; bars weigh them by the size of the stop, only when switched on; nothing counted.
+Shape: a pinned table of OSM types, each a subset of an existing kind with a default (decision 0183); unnamed places named by their type; bars weigh them by the size of the stop, only when switched on; nothing counted.
 Criteria: SP1-SP22.
 Open: none for the gate; the plan's questions are the owner's.
 
@@ -20,7 +20,7 @@ The places archive (chronicles-data) reads OpenStreetMap's tags only to confirm 
 
 ## Decisions
 
-- **OpenStreetMap locates the small types** (the owner, Nov 14, decision 0182): "Yes, OpenStreetMap should contribute their places."
+- **OpenStreetMap locates the small types** (the owner, Nov 14, decision 0183): "Yes, OpenStreetMap should contribute their places."
 - **Defaults** (the owner, Nov 14, "Yes, as proposed"): off: Plaques and markers, Small memorials (benches, ghost bikes, Stolpersteine), Old stones (milestones, boundary stones), Wayside shrines and crosses; on: Time capsules, Little libraries, murals and sculptures, community gardens.
 - **Unnamed places are named by their type** (the owner, Nov 14).
 - **Ghost bikes and Stolpersteine are found places, off by default** (the owner, Nov 14).

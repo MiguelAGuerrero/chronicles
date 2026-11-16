@@ -1,6 +1,6 @@
 # Small places: where Pikmin Bloom's postcards come from, and the open data that covers the same ground
 
-A look (Nov 14) for decision 0182. The owner asked how Pikmin Bloom's postcards reach small places, a time capsule
+A look (Nov 14) for decision 0183. The owner asked how Pikmin Bloom's postcards reach small places, a time capsule
 for one, and whether Chronicles could use that data.
 
 ## Where Pikmin Bloom's places come from

@@ -9,7 +9,9 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor, type ReactNodeViewProps } from '@tiptap/react';
 import { CharacterCount, Placeholder } from '@tiptap/extensions';
+import { closeHistory } from '@tiptap/pm/history';
 import { IS_DOM, useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from 'expo/dom';
+import { NOTE_CSP } from '../../lib/notePage/csp';
 import { noteExtensions, toBody, toDoc, type BodyFormat } from '../../lib/notePage/schema';
 
 export type Formats = { h1: boolean; h2: boolean; bold: boolean; italic: boolean; bullet: boolean; ordered: boolean; task: boolean; quote: boolean };
@@ -21,19 +23,48 @@ export interface JournalHandle extends DOMImperativeFactory {
   format: (...args: JSONValue[]) => void;
   insertMention: (...args: JSONValue[]) => void;
   focus: (...args: JSONValue[]) => void;
+  /** Lets go of the caret, so the keyboard goes down while another layer is up (note pictures NI14). */
+  blur: (...args: JSONValue[]) => void;
+  /** Takes a picture's mention out of the page, and the space the camera wrote after it (note pictures NI19). */
+  removeMention: (...args: JSONValue[]) => void;
+  /** The page's own undo: puts a removed picture back where it was (NI19). */
+  undo: (...args: JSONValue[]) => void;
 }
 type JSONValue = Parameters<DOMImperativeFactory[string]>[number];
 
 /** A mention as the reader draws it: `useMentionCards`' JSON (RF4, RF5). */
-type Card = { gone: true; text: string } | { gone: false; name: string; line: string; spoken: string };
+type Picture = { src: string; video: boolean; spoken: string; context: string | null };
+type Card = { gone: true; text: string } | { gone: false; name: string; line: string; spoken: string; picture?: Picture };
 const Cards = createContext<Record<string, Card> | undefined>(undefined);
 
-/** A mention in the reader: a card of its moment, its words and its date, place and walk; or that it is gone (RF4, RF5). */
+/** Whether the page is being written: a mention is then a chip or a picture, and a tap on a picture asks for its menu. */
+const Writing = createContext(false);
+/** The picture whose menu is open (note pictures ui 1): drawn with an outline, so what Edit applies to is seen. */
+const Selected = createContext<string | null>(null);
+
+/**
+ * A mention: while writing a chip; a photo's or video's picture where it has been made (note pictures NI1-NI3, NI10);
+ * in the reader a card of its moment, its words and its date, place and walk, or that it is gone (RF4, RF5).
+ */
 function MentionView(p: ReactNodeViewProps) {
   const cards = useContext(Cards);
+  const writing = useContext(Writing);
+  const selected = useContext(Selected);
   const id = String(p.node.attrs.id);
   const c = cards?.[id];
-  if (!c) return <NodeViewWrapper as="span" className="mention" data-id={id}>@{String(p.node.attrs.label ?? 'a moment')}</NodeViewWrapper>;
+  if (c && !c.gone && c.picture) {
+    const pic = c.picture;
+    return (
+      <NodeViewWrapper as="span" className={`mention picture${writing && selected === id ? ' selected' : ''}`} data-id={id} aria-expanded={writing ? selected === id : undefined} data-testid="note-picture" role="button" tabIndex={0} aria-label={`${pic.spoken}${writing ? '. Edit' : '. Open'}`}>
+        <span className="pic-frame">
+          <img src={pic.src} alt="" draggable={false} />
+          {pic.video ? <span className="pic-play" aria-hidden="true" /> : null}
+        </span>
+        {pic.context ? <span className="pic-context" data-testid="note-picture-context">{pic.context}</span> : null}
+      </NodeViewWrapper>
+    );
+  }
+  if (!c || (writing && !c.gone)) return <NodeViewWrapper as="span" className="mention" data-id={id} role={writing ? 'link' : undefined} tabIndex={writing ? 0 : undefined}>@{String(p.node.attrs.label ?? 'a moment')}</NodeViewWrapper>;
   if (c.gone) return <NodeViewWrapper as="span" className="card gone" data-testid="ref-card-gone">{c.text}</NodeViewWrapper>;
   return (
     <NodeViewWrapper as="span" className="card mention" data-id={id} data-testid="ref-card" role="button" tabIndex={0} aria-label={c.spoken}>
@@ -45,7 +76,7 @@ function MentionView(p: ReactNodeViewProps) {
 
 type Props = {
   dom?: DOMProps;
-  /** The reader's cards of the moments mentioned (RF4); while writing, a mention is a chip. */
+  /** The cards of the moments mentioned (RF4), and their pictures; while writing, a mention is a chip unless it has a picture. */
   mentions?: Record<string, Card>;
   ref?: Ref<JournalHandle>;
   body: string;
@@ -62,6 +93,10 @@ type Props = {
   /** @ was typed (the picker opens); the @ stays as typed if nothing is picked (RF1). */
   onMention: () => void;
   onOpenMention: (id: string) => void;
+  /** A tap on a picture while writing: the app opens its menu (note pictures NI13). */
+  onPictureTap?: (id: string | null) => void;
+  /** The picture whose menu is open. */
+  selectedId?: string | null;
   /** A tap on the words while reading (NP5). */
   onTapToEdit: () => void;
   /** The head has scrolled away (NP2): the top bar shows its short form. */
@@ -79,9 +114,6 @@ const formatsOf = (e: Editor): Formats => ({
   quote: e.isActive('blockquote'),
 });
 
-/** On a phone the page's document may load nothing from anywhere (NP13); the web's page is the app's own. */
-const CSP = "default-src 'self' 'unsafe-inline' 'unsafe-eval' file: data: blob:; connect-src 'none'; img-src data: blob:; frame-src 'none'; form-action 'none'";
-
 export default function JournalEditor(props: Props) {
   const { ref } = props;
   const cb = useRef(props);
@@ -96,7 +128,7 @@ export default function JournalEditor(props: Props) {
     if (!IS_DOM) return;
     const meta = document.createElement('meta');
     meta.httpEquiv = 'Content-Security-Policy';
-    meta.content = CSP;
+    meta.content = NOTE_CSP;
     document.head.appendChild(meta);
   }, []);
 
@@ -108,7 +140,7 @@ export default function JournalEditor(props: Props) {
     extensions: [
       ...noteExtensions({
         readOnlyTicks: false,
-        mentionView: props.editable ? undefined : ReactNodeViewRenderer(MentionView, { as: 'span' }),
+        mentionView: ReactNodeViewRenderer(MentionView, { as: 'span' }),
         checkboxLabel: (text, checked) => `Checkbox, ${checked ? 'ticked' : 'not ticked'}${text ? `: ${text}` : ''}`,
         mention: {
           HTMLAttributes: { class: 'mention' },
@@ -170,9 +202,40 @@ export default function JournalEditor(props: Props) {
       range.current = null;
       editor?.commands.focus();
     },
+    blur: () => {
+      editor?.commands.blur();
+    },
+    removeMention: (...args) => {
+      const id = String(args[0]);
+      if (!editor) return;
+      let at: { from: number; to: number } | null = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (at || node.type.name !== 'mention' || String(node.attrs.id) !== id) return;
+        const end = pos + node.nodeSize;
+        const next = editor.state.doc.textBetween(end, Math.min(end + 1, editor.state.doc.content.size), '');
+        at = { from: pos, to: next === ' ' ? end + 1 : end };
+      });
+      // Its own step of the page's history, never merged with the photo just put in (they are within half a second of
+      // each other when one is taken and taken out at once), so Undo puts back only what was removed (NI19).
+      const range = at as { from: number; to: number } | null;
+      if (range) {
+        editor
+          .chain()
+          .command(({ tr }) => {
+            closeHistory(tr);
+            tr.delete(range.from, range.to);
+            return true;
+          })
+          .run();
+      }
+    },
+    undo: () => {
+      editor?.chain().focus().undo().run();
+    },
   }), [editor]);
 
   const p = props.palette;
+  // vision-ok: CSS sizing (an image no wider than its column), not a tally or a score of anything
   const css = `
     .page, .page:focus, .page:focus-visible, [data-testid=note-input]:focus-visible { outline: none !important; }
     .page { font-size: 17px; line-height: 1.5; color: ${p.ink}; min-height: 40vh; padding-bottom: 96px; }
@@ -189,6 +252,13 @@ export default function JournalEditor(props: Props) {
     .page ul[data-type=taskList] > li > div p { margin: 0 0 6px; }
     .page blockquote { margin: 0 0 10px; padding-left: 14px; border-left: 3px solid ${p.muted}; }
     .page .mention { border: 1px solid ${p.edge}; border-radius: 8px; padding: 1px 6px; background: ${p.surface}; white-space: nowrap; cursor: pointer; }
+    .page .mention.picture { display: block; width: fit-content; max-width: 100%; margin: 8px 0; padding: 0; border: 0; background: none; white-space: normal; cursor: pointer; }
+    .page .pic-frame { position: relative; display: block; line-height: 0; }
+    .page .pic-frame img { display: block; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid ${p.edge}; background: ${p.surface}; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
+    .page .mention.picture.selected img { outline: 3px solid ${p.ink}; outline-offset: 2px; }
+    .page .pic-play { position: absolute; inset: 0; margin: auto; width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.55); }
+    .page .pic-play::after { content: ''; position: absolute; left: 17px; top: 12px; border-style: solid; border-width: 10px 0 10px 16px; border-color: transparent transparent transparent #fff; }
+    .page .pic-context { display: block; margin-top: 4px; font-size: 13px; line-height: 1.3; color: ${p.muted}; }
     .page .card { display: flex; flex-direction: column; gap: 2px; margin: 8px 0; padding: 8px 10px; border: 1px solid ${p.edge}; border-radius: 12px; background: ${p.surface}; cursor: pointer; white-space: normal; }
     .page .card-name { font-weight: 600; font-size: 15px; }
     .page .card-line { font-size: 13px; color: ${p.muted}; }
@@ -215,6 +285,13 @@ export default function JournalEditor(props: Props) {
           cb.current.onOpenMention(mention.getAttribute('data-id') ?? '');
           return;
         }
+        // While writing, a tap on a picture is a way to its menu (NI13); a tap elsewhere on the page closes it.
+        if (cb.current.editable) {
+          if (mention?.classList.contains('picture')) {
+            e.preventDefault();
+            cb.current.onPictureTap?.(mention.getAttribute('data-id') ?? '');
+          } else cb.current.onPictureTap?.(null);
+        }
         // A box in the reader is a way in, like the words: it opens the page and ticks nothing (note-pages audit 23).
         if (!cb.current.editable && el.closest('.page')) {
           if (el.closest('label')) e.preventDefault();
@@ -229,7 +306,11 @@ export default function JournalEditor(props: Props) {
           <p style={{ fontSize: 15, margin: 0, color: p.muted }} data-testid="note-line">{props.head.line}</p>
         </header>
         <Cards.Provider value={props.mentions}>
-          <EditorContent editor={editor} />
+          <Writing.Provider value={props.editable}>
+            <Selected.Provider value={props.selectedId ?? null}>
+              <EditorContent editor={editor} />
+            </Selected.Provider>
+          </Writing.Provider>
         </Cards.Provider>
       </div>
     </div>
