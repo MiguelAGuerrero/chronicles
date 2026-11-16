@@ -9,7 +9,7 @@ import { FROM, SHOPS } from './fixtures';
 const ANTIQUES = { what: ['antiques'] } as const;
 const plan = (mode: 'loop' | 'oneway') => planOuting({ cands: SHOPS, match: ANTIQUES, from: FROM, mode, ceilingM: 3500 }, leg).outing!;
 
-test('QC22: the destination is an ordinary suggested one: the stops as via, the path followed as planned', { todo: 'test first' }, () => {
+test('QC22: the destination is an ordinary suggested one: the stops as via, the path followed as planned', () => {
   const o = plan('oneway');
   const d = outingDest(o);
   assert.equal(d.suggested, true);
@@ -19,7 +19,7 @@ test('QC22: the destination is an ordinary suggested one: the stops as via, the 
   assert.deepEqual({ ...d, label: '' }, { ...same, label: '' }, 'the planner\'s shape');
 });
 
-test('QC22: a loop ends where it began and carries its stops', { todo: 'test first' }, () => {
+test('QC22: a loop ends where it began and carries its stops', () => {
   const o = plan('loop');
   const d = outingDest(o);
   assert.equal(d.loop, true);
@@ -27,14 +27,14 @@ test('QC22: a loop ends where it began and carries its stops', { todo: 'test fir
   assert.deepEqual(d.via, o.stops.map((s) => s.at));
 });
 
-test('QC24: no stop name is in the destination, however it is serialised', { todo: 'test first' }, () => {
+test('QC24: no stop name is in the destination, however it is serialised', () => {
   const o = plan('oneway');
   const json = JSON.stringify(outingDest(o));
   for (const s of o.stops) assert.ok(!json.includes(s.name), s.name);
   assert.doesNotMatch(json, /Shop|antiques|books/i);
 });
 
-test('QC23: Walk me back reads no via of the outing', { todo: 'test first' }, () => {
+test('QC23: Walk me back reads no via of the outing', () => {
   const d = outingDest(plan('oneway'));
   assert.ok(d.suggested && d.label.length > 0);
 });

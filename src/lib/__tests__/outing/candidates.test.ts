@@ -4,7 +4,7 @@ import { knownFacets, matches, mergeFacets, type Want } from '../../outing/candi
 
 const want = (id: string, match: Want['match']): Want => ({ id, label: id, aliases: [], match, slotWord: 'a place' });
 
-test('QC38: picking within a dimension widens, across dimensions narrows', { todo: 'test first' }, () => {
+test('QC38: picking within a dimension widens, across dimensions narrows', () => {
   const within = mergeFacets([want('a', { what: ['antiques'] }), want('b', { what: ['books'] })]);
   assert.equal(matches(within, { facets: { what: ['books'] } }), true);
   assert.equal(matches(within, { facets: { what: ['antiques'] } }), true);
@@ -15,11 +15,11 @@ test('QC38: picking within a dimension widens, across dimensions narrows', { tod
   assert.equal(matches(across, { facets: { what: ['books'] } }), false, 'a missing dimension does not match');
 });
 
-test('QC38: an empty match matches nothing', { todo: 'test first' }, () => {
+test('QC38: an empty match matches nothing', () => {
   assert.equal(matches({}, { facets: { what: ['books'] } }), false);
 });
 
-test('QC37: the core holds no word of any dimension or kind of place', { todo: 'test first' }, async () => {
+test('QC37: the core holds no word of any dimension or kind of place', async () => {
   const { readFileSync } = await import('node:fs');
   for (const f of ['candidates', 'pick', 'plan', 'swap', 'dest', 'arrival']) {
     const src = readFileSync(new URL(`../../outing/${f}.ts`, import.meta.url), 'utf8');
@@ -27,7 +27,7 @@ test('QC37: the core holds no word of any dimension or kind of place', { todo: '
   }
 });
 
-test('QC40: unknown dimensions and values are ignored, never an error', { todo: 'test first' }, () => {
+test('QC40: unknown dimensions and values are ignored, never an error', () => {
   const dims = { what: ['antiques', 'books'] };
   assert.deepEqual(knownFacets({ what: ['books', 'teapots'], mood: ['calm'] }, dims), { what: ['books'] });
   assert.deepEqual(knownFacets({ mood: ['calm'] }, dims), {});

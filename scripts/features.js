@@ -177,8 +177,8 @@ const FEATURES = [
   {
     name: 'outing',
     about: 'plan an outing: describe what you want to see from a vocabulary, get one proposed circuit over candidates with facets; stops named on a tap or on arrival',
-    rule: 'walk-planner',
-    source: ['src/lib/outing/**', 'src/components/outing/**'],
+    rule: 'outing',
+    source: ['src/lib/outing/**'],
     journeys: [],
     specs: ['quick-circuit'],
   },

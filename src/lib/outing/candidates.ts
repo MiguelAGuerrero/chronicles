@@ -6,7 +6,7 @@ import type { LngLat } from '../types';
  * picks: a match over facets). The core holds no word of any dimension, value or kind of place; a store is only the first source.
  */
 
-/** A dimension's values for one candidate: `{ what: ['antiques'] }`, later `{ how: ['thrift'] }`. */
+/** A dimension's values for one candidate: `{ a: ['x'] }`, later more dimensions beside it. */
 export type Facets = Readonly<Record<string, readonly string[]>>;
 
 export interface Candidate {
@@ -23,21 +23,38 @@ export interface Want {
   aliases: readonly string[];
   /** The facets it matches: within a dimension any value, across dimensions all. */
   match: Facets;
-  /** What a slot says before its place is named: "an antiques shop". */
+  /** What a slot says before its place is named. */
   slotWord: string;
 }
 
 /** QC38: the picked entries as one match: per dimension the union of their values, so picking within a dimension widens. */
-export function mergeFacets(_wants: readonly Want[]): Facets {
-  throw new Error('not built: quick-circuit QC38');
+export function mergeFacets(wants: readonly Want[]): Facets {
+  const out: Record<string, string[]> = {};
+  for (const w of wants) {
+    for (const [dim, values] of Object.entries(w.match)) {
+      const have = (out[dim] ??= []);
+      for (const v of values) if (!have.includes(v)) have.push(v);
+    }
+  }
+  return out;
 }
 
 /** QC38: every dimension of `match` has a value the candidate has (across dimensions narrows); an empty match matches nothing. */
-export function matches(_match: Facets, _c: Pick<Candidate, 'facets'>): boolean {
-  throw new Error('not built: quick-circuit QC38');
+export function matches(match: Facets, c: Pick<Candidate, 'facets'>): boolean {
+  const dims = Object.keys(match);
+  if (!dims.length) return false;
+  return dims.every((d) => (c.facets[d] ?? []).some((v) => match[d].includes(v)));
 }
 
 /** QC40: the facets of a raw record kept to the dimensions and values `dims` knows; anything else is ignored, never an error. */
-export function knownFacets(_raw: unknown, _dims: Readonly<Record<string, readonly string[]>>): Facets {
-  throw new Error('not built: quick-circuit QC40');
+export function knownFacets(raw: unknown, dims: Readonly<Record<string, readonly string[]>>): Facets {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, string[]> = {};
+  for (const [dim, allowed] of Object.entries(dims)) {
+    const v = (raw as Record<string, unknown>)[dim];
+    if (!Array.isArray(v)) continue;
+    const keep = v.filter((x): x is string => typeof x === 'string' && allowed.includes(x));
+    if (keep.length) out[dim] = [...new Set(keep)];
+  }
+  return out;
 }
