@@ -23,6 +23,12 @@ vocabulary maps entries to these (`outing/wants.ts`); an entry may match several
 - **Chains** are left out by `chains.json`'s rule (whole leading words) at build time as well as in the app.
 - **A nominating source** (a forum, a list) only nominates to the review list, never a pack (0108).
 
+## Checks at the build (the steward's R5)
+
+A schema validator rejects any record with a field outside the list above; a fixture pack is published in the contract directory and the app's
+test reads it (as the archive's contract is pinned in `src/lib/__tests__/explore/contract/`). Wikidata sitelink counts and OpenStreetMap
+`wikipedia=` are not read. Where a shop is in the pack and the tiles, the pack's record wins by rule.
+
 ## Packaging
 
 Tiles inside one region file per region, listed in the manifest as `stores` beside `archive` (absent in older manifests, as `hashes` was);
