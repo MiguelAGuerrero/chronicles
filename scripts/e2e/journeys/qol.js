@@ -1748,21 +1748,23 @@ async function run(h) {
         const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
 
         // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.
+        // tend map 12: the loop's path beat runs the whole loop in about a second, so the hold is timed in the page and
+        // tapped where the button is. A poll of three round trips and a click that waits for the button to hold still
+        // took 140 to 780 ms: a race the check lost now and then before, and mostly once the place-name pack (decision
+        // 0184) doubled the web bundle, the dot on the end when Hold landed.
         const holdApart = async (w) => {
           await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
-          let d = null;
-          for (let k = 0; k < 400; k++) {
-            const [ends, walker] = [await mapAttr('data-ends'), await mapAttr('data-walker')];
-            const endAt = lonLatOf((ends ?? '').split('|')[1]);
-            const walkerAt = lonLatOf(walker);
-            if (endAt && walkerAt) {
-              const [a, b] = await pg9.evaluate(([p, q]) => [window.__project(p), window.__project(q)], [endAt, walkerAt]);
-              d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-              if (d >= 40) break;
-            }
-            await pg9.waitForTimeout(40);
-          }
-          await pg9.click('[data-testid=hold]');
+          const hb = await pg9.locator('[data-testid=hold]').boundingBox();
+          await pg9.waitForFunction(() => {
+            const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+            const ll = (v) => (v ? v.split(',').map(Number) : null);
+            const endAt = el && ll((el.getAttribute('data-ends') ?? '').split('|')[1]);
+            const walkerAt = el && ll(el.getAttribute('data-walker'));
+            if (!endAt || !walkerAt || typeof window.__project !== 'function') return false;
+            const [a, b] = [window.__project(endAt), window.__project(walkerAt)];
+            return Math.hypot(a[0] - b[0], a[1] - b[1]) >= 40;
+          }, null, { polling: 'raf', timeout: 30000 }).catch(() => null);
+          await pg9.mouse.click(hb.x + hb.width / 2, hb.y + hb.height / 2);
           await pg9.waitForTimeout(600);
           const ends = await mapAttr('data-ends');
           const endAt = lonLatOf((ends ?? '').split('|')[1]);
