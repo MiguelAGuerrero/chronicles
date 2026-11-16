@@ -137,7 +137,8 @@ a test named `errors-handled audit N` in `src/lib/__tests__/diagnostics/audit.te
 14. Every line said the minute it happened, against the note's "no times of walks" (steward 1): accept, the owner's
     way. A line carries the day only.
 15. The walk's line could not be set aside, so a full phone kept it on the map all walk (steward 3): accept, the
-    owner's way. Hide keeps it hidden until something new fails, and the walk's end says it again in words.
+    owner's way. Hide keeps it hidden until something new fails; once the walk ends it shows again, on the next
+    screen that draws the line (the replay draws none, EH14).
 16. "Free some room first" beside Retry, and a retry that failed said nothing new (ux 2): accept. "Free some room,
     then Retry"; a retry that fails again says "still".
 17. Retry 13 px from the capture stack (ux 3): accept. The line keeps 16 px clear of the stack.
@@ -150,6 +151,12 @@ a test named `errors-handled audit N` in `src/lib/__tests__/diagnostics/audit.te
     owner's call (0179), and the cold find found it by scrolling.
 22. The sheet's grab handle draws over the text under it (ux 8, auditor's picture note): defer. The ready bar's, not
     this slice's (DEFERRED).
+
+**22 findings: 20 fixed, 1 deferred, 1 rejected** (2026-11-16). Of the fixed, 2 leave a part deferred (a line lost
+on reload; the map layers' failures not said on Explore, both in DEFERRED) and 12 rejects its wording part. Tests:
+`errors-handled audit 1-16, 18, 20` in `src/lib/__tests__/diagnostics/audit.test.ts` (3 also by a `putStill` contract
+case), `audit 14, 17, 19` as checks in the `diagnostics` journey. Each failed before its fix, at its import or its
+assertion.
 
 ## Decisions
 

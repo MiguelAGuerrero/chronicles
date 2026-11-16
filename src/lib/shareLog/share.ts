@@ -14,7 +14,7 @@ export const deviceName = (): string => (Platform.OS === 'web' ? navigator.userA
 export async function shareLogText(text: string, title = 'Chronicles GPS log'): Promise<'shared' | 'copied' | 'cancelled' | 'failed'> {
   const clip = Platform.OS === 'web' && typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
   const result: ShareResult = await Share.share({ message: text, title }).then(
-    (r) => ({ action: r.action }),
+    (r: { action?: string } | undefined) => ({ action: r?.action }),
     (e: unknown) => {
       const name = (e as { name?: unknown } | null)?.name;
       // A cancel is the walker's; anything else is the platform refusing (errors-handled audit 13).

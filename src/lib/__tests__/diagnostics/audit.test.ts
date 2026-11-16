@@ -183,6 +183,7 @@ test('errors-handled audit 12: a failed snap is recorded, and the Baker\'s failu
 
 test('errors-handled audit 13: a cancelled share copies nothing, and a dismissed sheet is not "Shared"', () => {
   assert.equal(shareOutcome({ action: 'sharedAction' }, true), 'shared');
+  assert.equal(shareOutcome({ action: undefined }, true), 'shared', 'a browser resolves with nothing when it shared');
   assert.equal(shareOutcome({ action: 'dismissedAction' }, true), 'cancelled');
   assert.equal(shareOutcome({ error: { name: 'AbortError' } }, true), 'cancelled');
   assert.equal(shareOutcome({ error: { name: 'TypeError' } }, true), 'copy');

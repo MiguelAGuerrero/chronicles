@@ -658,5 +658,8 @@ What the reactions slice wrote and has not run on a phone (`specs/reactions`, de
 
 Every caught error is handled by its kind and kept in a log on the device (decision 0179, specs/errors-handled). Nothing here has run on a phone.
 
-- [ ] **Do:** with the phone nearly full, change Distances in the walk settings. **Expect:** one line beside the capture buttons, "A setting wasn’t saved: the phone is full.", with Retry; it never covers the capture buttons, and Retry after freeing room clears it (EH7, EH13, EH14)
+- [ ] **Do:** with the phone nearly full, change Distances in the walk settings. **Expect:** one line beside the capture buttons, 16 px clear of them, "Your Distances choice wasn’t saved: there’s no room left. Free some room, then Retry."; Retry after freeing room clears it, a Retry that fails again says "still" (EH7, EH13, EH14, errors-handled audit 16, 17)
 - [ ] **Do:** play a voice memo in the viewer, then in a day replay and in the media editor. **Expect:** play, pause and seek work as before (`lib/playerControls`, moved out of each screen)
+- [ ] **Do:** with the phone nearly full, walk, stand still for a minute, walk on, then free room and tap Retry. **Expect:** the still spell is saved closed, with its end, and later spells are kept as they happen (`putStill`, errors-handled audit 3); Hide on the walk's line sets it aside until something new fails, and it shows again after Stop (audit 15)
+- [ ] **Do:** make the database unable to open (a full disk at launch), then use the app for a minute. **Expect:** no runaway: the app stays responsive and the battery steady; Share diagnostics still shares the session's entries (errors-handled audit 1)
+- [ ] **Do:** tap Share diagnostics, then dismiss the share sheet without choosing an app. **Expect:** the note keeps saying what the text holds, never "Shared."; the header names the platform and its version, never the model (errors-handled audit 11, 13)

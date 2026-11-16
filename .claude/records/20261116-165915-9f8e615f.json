@@ -1,0 +1,72 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Errors handled",
+        "--new"
+      ],
+      "body": "- **A failed-save line doesn't survive a reload** (errors-handled audit 2): the failures and their retries are kept in memory, so after a reload the choice that wasn't saved falls back without a word. A store that just refused a write can't keep the line either; a later slice could keep it in memory-backed meta written when the store has room again.\n",
+      "intro": "Every caught error is handled by its kind and kept in a log on the device (decision 0179, specs/errors-handled). Left from its audit (Nov 16):\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Errors handled"
+      ],
+      "body": "- **The ready bar's grab handle draws over the text under it** (errors-handled audit 22, seen in the diagnostics journey's picture): the scrolling settings run under the 28 px handle band. The ready bar's, not this slice's; clip the scroll below the band.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Errors handled"
+      ],
+      "body": "- **A failed save of the map layers shows on the walk and ready screens, not on Explore** (errors-handled audit 7): the layers' shell is shared by every map and doesn't know which screen set it; it is tagged as a setting. Passing the screen through `layers.set` would place it.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "with the phone nearly full, change Distances",
+        "--reason",
+        "the words changed in the audit (errors-handled audit 16, 17)"
+      ],
+      "body": "- [ ] **Do:** with the phone nearly full, change Distances in the walk settings. **Expect:** one line beside the capture buttons, 16 px clear of them, \"Your Distances choice wasn’t saved: there’s no room left. Free some room, then Retry.\"; Retry after freeing room clears it, a Retry that fails again says \"still\" (EH7, EH13, EH14, errors-handled audit 16, 17)\n",
+      "target": "sha256:3ab5e7055e329312a27b6aff2b724ca24a9be452a6b94d2a195e6a25f682d6ef"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Diagnostics"
+      ],
+      "body": "- [ ] **Do:** with the phone nearly full, walk, stand still for a minute, walk on, then free room and tap Retry. **Expect:** the still spell is saved closed, with its end, and later spells are kept as they happen (`putStill`, errors-handled audit 3); Hide on the walk's line sets it aside until something new fails, and it shows again after Stop (audit 15)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Diagnostics"
+      ],
+      "body": "- [ ] **Do:** make the database unable to open (a full disk at launch), then use the app for a minute. **Expect:** no runaway: the app stays responsive and the battery steady; Share diagnostics still shares the session's entries (errors-handled audit 1)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Diagnostics"
+      ],
+      "body": "- [ ] **Do:** tap Share diagnostics, then dismiss the share sheet without choosing an app. **Expect:** the note keeps saying what the text holds, never \"Shared.\"; the header names the platform and its version, never the model (errors-handled audit 11, 13)\n"
+    }
+  ]
+}
