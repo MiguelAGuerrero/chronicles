@@ -22,9 +22,10 @@ export interface GoHereChoice {
  * GH2: Chronicles first, the phone's maps app second, neither marked better. The maps row names the app that gets the
  * destination, so what leaves the device (only the destination, on a tap, 0058) is plain before the tap.
  */
-export function goHereChoices(mapsApp: string, mapsHint = 'Opens walking directions in your maps app'): GoHereChoice[] {
+export function goHereChoices(mapsApp: string, mapsHint = 'Opens walking directions in your maps app', walkOpen = false): GoHereChoice[] {
   return [
-    { id: 'app', label: 'Chronicles', hint: 'Opens Navigate, ready' },
+    // GE4: with a walk open the choice routes that walk (NV10), and the hint says so.
+    { id: 'app', label: 'Chronicles', hint: walkOpen ? 'Routes your walk' : 'Opens Navigate, ready' },
     { id: 'maps', label: mapsApp, hint: mapsHint },
   ];
 }
@@ -38,4 +39,27 @@ export function goHereDo(choice: GoHereChoice['id'], walkOpen: boolean): 'maps' 
 /** The sheet's own words: its heading, and, when a destination is already saved, that this replaces it (said once). */
 export function goHereWords(name: string, replaces: boolean): string[] {
   return replaces ? [`Go to ${name}`, 'Replaces where you were heading'] : [`Go to ${name}`];
+}
+
+/** GE5: a busy-area or complex row has Go here whether or not Walk to is offered: Go here works at any distance. */
+export function rowActions(o: { walkable: boolean }): { walk: boolean; go: true } {
+  return { walk: o.walkable, go: true };
+}
+
+/** GE7: the area's card has Go here unless it is the area you are in (no Walk to there) or its far question is open. */
+export function cardCanGoHere(o: { here: boolean; asking: boolean }): boolean {
+  return !o.here && !o.asking;
+}
+
+/** GE7: Explore's long-press card has Go here where it has Walk here (zoom 12 and over), and not while its question is open. */
+export function spotCanGoHere(o: { zoom: number; asking: boolean }): boolean {
+  return o.zoom >= 12 && !o.asking;
+}
+
+/**
+ * GE13: the label that rides in the maps link (Android's `geo:` link carries one). An area, a complex or a street goes by its
+ * name; a star's title or a pressed spot is the owner's own, and only "Destination" leaves the device (0058).
+ */
+export function shareLabel(kind: 'area' | 'star' | 'spot', label: string): string {
+  return kind === 'area' ? label : 'Destination';
 }

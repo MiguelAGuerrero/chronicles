@@ -281,6 +281,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on a phone, drag the Explore row slowly about a third of a card toward the next one and let go. **Expect:** the platform's own snap decides (`snapToInterval`, `decelerationRate="fast"`) and the row ends on one card with that card selected and the map on it, never jumping on to a card the snap did not choose (fix carousel-flick: the flick bias in `snapTarget` is web only, `Platform.OS === 'web'`).
 - [ ] **Do:** on an iPhone, open Explore, tap Go here on a tile, then Apple Maps. **Expect:** Apple Maps opens with walking directions to that area's place; back in Chronicles the sheet is closed and recording (if a walk is open) went on (GH4, decision 0180)
   - [ ] **Do:** on a phone, tap Go here on a tile, then Chronicles. **Expect:** Navigate opens ready, "To <place>", no walk started and nothing recorded until you tap Start (GH5, GH6)
+- [ ] **Do:** on an iPhone, open Explore, open a town's card and tap Go here under Walk to, then Apple Maps; also a complex's row. **Expect:** Apple Maps opens with walking directions to that place; the card is as it was (GE1, GE3, decision 0182)
+  - [ ] **Do:** on an iPhone, on Chronicle's Map section, select a place and tap Go here under Walk here, then Apple Maps; then long-press the map at street zoom and do the same. **Expect:** the sheet opens at the top, Apple Maps opens with walking directions, and the star stays selected (GE2, GE3, GE9)
 
 ## Explore atlas
 

@@ -70,6 +70,9 @@ async function run(h) {
     check(!!rb[0] && !!rb[1] && rb[1].top - rb[0].bottom >= 8, `explore-go-here ui 2: the rows are 8 px apart (${rb[0] && rb[1] ? Math.round(rb[1].top - rb[0].bottom) : 'n/a'})`);
     await shot(pg, 'gohere-2-sheet');
 
+    // go-here-everywhere ui 3: each sheet row has room at its foot (a three-line hint no longer touches its border).
+    const pad = await pg.evaluate(() => ['go-here-app', 'go-here-maps'].map((id) => parseFloat(getComputedStyle(document.querySelector(`[data-testid=${id}]`)).paddingBottom)));
+    check(pad.every((p) => p >= 6), `go-here-everywhere ui 3: each sheet row has at least 6 px below its text (${pad.join(', ')})`);
     // GH2 close: Escape closes it; nothing saved, nothing opened, no walk.
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(500);
@@ -186,7 +189,7 @@ async function hosts(h) {
     const label = await pg.locator('[data-testid=atlas-card-go-here]').first().getAttribute('aria-label').catch(() => '');
     const walkBox = await pg.locator('[data-testid=atlas-walk]').first().boundingBox().catch(() => null);
     const goBox = await pg.locator('[data-testid=atlas-card-go-here]').first().boundingBox().catch(() => null);
-    check.todo(!!foot && /^Go here, Cranston/.test(label ?? '') && foot.h >= 44 && /rgba\(0, 0, 0, 0\)|transparent/.test(foot.bg) && foot.border === '0px' && !!walkBox && !!goBox && goBox.y > walkBox.y,
+    check(!!foot && /^Go here, Cranston/.test(label ?? '') && foot.h >= 44 && /rgba\(0, 0, 0, 0\)|transparent/.test(foot.bg) && foot.border === '0px' && !!walkBox && !!goBox && goBox.y > walkBox.y,
       `GE1, GE8: the card's footer has a ghost "Go here" under Walk to, named for the place, 44 px high (${JSON.stringify({ foot, label })})`);
     await shot(pg, 'gohere-5-card');
 
@@ -194,11 +197,11 @@ async function hosts(h) {
     await pg.click('[data-testid=atlas-card-go-here]').catch(() => {});
     await pg.waitForSelector('[data-testid=go-here-sheet]', { timeout: 5000 }).catch(() => {});
     const rows = await pg.evaluate(() => ['go-here-app-label', 'go-here-maps-label'].map((id) => document.querySelector(`[data-testid=${id}]`)?.textContent ?? null));
-    check.todo(rows[0] === 'Chronicles' && /Maps/.test(rows[1] ?? ''), `GE2: the card's Go here opens the same sheet, Chronicles first (${JSON.stringify(rows)})`);
+    check(rows[0] === 'Chronicles' && /Maps/.test(rows[1] ?? ''), `GE2: the card's Go here opens the same sheet, Chronicles first (${JSON.stringify(rows)})`);
     await pg.click('[data-testid=go-here-maps]').catch(() => {});
     await pg.waitForTimeout(500);
     const opened = await pg.evaluate(() => window.__opened);
-    check.todo(opened.length === 1 && /destination=-?[\d.]+,-?[\d.]+/.test(opened[0]) && !/Your spot/.test(opened[0]), `GE3: the card hands the maps app its destination alone (${opened[0]})`);
+    check(opened.length === 1 && /destination=-?[\d.]+,-?[\d.]+/.test(opened[0]) && !/Your spot/.test(opened[0]), `GE3: the card hands the maps app its destination alone (${opened[0]})`);
 
     // GE4: Chronicles saves the place and opens Navigate, ready; no walk.
     await pg.click('[data-testid=atlas-card-go-here]').catch(() => {});
@@ -206,7 +209,8 @@ async function hosts(h) {
     await pg.click('[data-testid=go-here-app]').catch(() => {});
     await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 15000 }).catch(() => {});
     const dest = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-    check.todo(/^To Cranston · .*away/.test(dest) && !(await openWalk(pg)), `GE4: Chronicles opens Navigate, ready, to the card's place, no walk (${dest})`);
+    check(/^To Cranston · .*away/.test(dest) && !(await openWalk(pg)), `GE4: Chronicles opens Navigate, ready, to the card's place, no walk (${dest})`);
+    const navSaved = await metaOf(pg, 'nav');
     await pg.goto(exploreUrl);
     await pg.waitForSelector('[data-testid=atlas-tile][data-name="Cranston"]', { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(1500);
@@ -214,27 +218,28 @@ async function hosts(h) {
 
     // GE7: while the far question is open Go here is not shown, and it returns when it closes.
     await pg.click('[data-testid=atlas-walk]').catch(() => {});
-    await pg.waitForTimeout(600);
+    await pg.waitForSelector('[data-testid=atlas-walk-now]', { timeout: 5000 }).catch(() => {});
     const asking = await pg.locator('[data-testid=atlas-walk-now]').count();
     const goWhileAsking = await pg.locator('[data-testid=atlas-card-go-here]').count();
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(500);
-    check.todo(asking === 1 && goWhileAsking === 0 && (await pg.locator('[data-testid=atlas-card-go-here]').count()) === 1,
+    check(asking === 1 && goWhileAsking === 0 && (await pg.locator('[data-testid=atlas-card-go-here]').count()) === 1,
       `GE7: Go here is not shown while the far question is open, and returns after (${asking} asking, ${goWhileAsking} Go here)`);
-    check.todo((await pg.locator('[data-testid=atlas-walk]').count()) === 1, "GE6: the card's Walk to is as it was");
+    check((await pg.locator('[data-testid=atlas-walk]').count()) === 1, "GE6: the card's Walk to is as it was");
 
     // GE1, GE5: each busy-area and complex row has Go here, whether or not Walk to is offered (rows exist only where the map has them).
-    for (const [rowId, goId] of [['atlas-busy-area', 'atlas-busy-go-here'], ['atlas-complex', 'atlas-complex-go-here']]) {
-      const n = await pg.locator(`[data-testid=${rowId}]`).count();
-      const g = await pg.locator(`[data-testid=${goId}]`).count();
-      check.todo(g === n, `GE1, GE5: every ${rowId} row has a Go here, with or without Walk to (${g} of ${n})`);
+    {
+      // No journey's world has a town with busy areas, so this holds for none here; the rows share the card's one `goLink`.
+      const n = await pg.locator('[data-testid=atlas-busy-area]').count();
+      const g = await pg.locator('[data-testid=atlas-busy-go-here]').count();
+      check(g === n, `GE1, GE5: every busy-area row that is there has a Go here (${g} of ${n}; this world has none: docs/DEFERRED.md)`);
     }
 
     // GE10: at 320 px with the card open nothing is clipped.
     await pg.setViewportSize({ width: 320, height: 640 });
     await pg.waitForTimeout(800);
     const clip = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-card-go-here], [data-testid=atlas-busy-go-here], [data-testid=atlas-complex-go-here]')].some((e) => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > window.innerWidth));
-    check.todo(!clip, 'GE10: at 320 px every Go here on the card shows whole');
+    check(!clip, 'GE10: at 320 px every Go here on the card shows whole');
     await shot(pg, 'gohere-6-card-320');
     await pg.setViewportSize({ width: 390, height: 844 });
 
@@ -250,7 +255,7 @@ async function hosts(h) {
     await pg.waitForSelector('[data-testid=atlas-spot]', { timeout: 8000 }).catch(() => {});
     const walkHere = await pg.locator('[data-testid=walk-here]').count();
     const goHere = await pg.locator('[data-testid=spot-go-here]').count();
-    check.todo((await pg.locator('[data-testid=atlas-spot]').count()) === 1 && goHere === walkHere,
+    check((await pg.locator('[data-testid=atlas-spot]').count()) === 1 && goHere === walkHere,
       `GE1, GE7: the long-press card has Go here exactly when it has Walk here (${goHere} / ${walkHere})`);
     if (goHere) {
       await pg.click('[data-testid=spot-go-here]').catch(() => {});
@@ -258,12 +263,71 @@ async function hosts(h) {
       await pg.click('[data-testid=go-here-maps]').catch(() => {});
       await pg.waitForTimeout(500);
       const o2 = await pg.evaluate(() => window.__opened);
-      check.todo(o2.length === 1 && /destination=-?[\d.]+,-?[\d.]+/.test(o2[0]) && !/Your|spot/i.test(decodeURIComponent(o2[0])), `GE3, GE13: the pressed spot goes to the maps app as coordinates alone (${o2[0]})`);
+      check(o2.length === 1 && /destination=-?[\d.]+,-?[\d.]+/.test(o2[0]) && !/Your|spot/i.test(decodeURIComponent(o2[0])), `GE3, GE13: the pressed spot goes to the maps app as coordinates alone (${o2[0]})`);
     }
-    check.todo(!(await metaOf(pg, 'nav')) && !(await openWalk(pg)), 'GE11: nothing was saved and no walk started by the maps choice');
+    check((await metaOf(pg, 'nav')) === navSaved && !(await openWalk(pg)), 'GE11: the maps choice saved nothing and started no walk (the destination is still the one Chronicles saved)');
     await c.close();
   } finally {
     snapWorld.serve = false;
+  }
+}
+
+/** GE1, GE5, GE10: a complex row, with the longest name the app meets, has Go here beside its Walk to, whole at 320 px. */
+async function complexRows(h) {
+  const { exploreUrl, at, check, shot, freshPage, areaTile, complexWorld } = h;
+  complexWorld.serve = true;
+  try {
+    const { c, pg } = await freshPage('gohere-complex');
+    await c.addInitScript(() => {
+      window.__opened = [];
+      window.open = (u) => { window.__opened.push(String(u)); return null; };
+    });
+    const here = at(0, 0);
+    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+    await pg.goto(exploreUrl);
+    const tile = await areaTile(pg, 'Fox Point');
+    await pg.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 60000 }).catch(() => {});
+    await tile.click().catch(() => {});
+    if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await tile.click().catch(() => {});
+    await pg.waitForSelector('[data-testid=atlas-complexes]', { timeout: 60000 }).catch(() => {});
+    await pg.locator('[data-testid=atlas-complexes]').scrollIntoViewIfNeeded().catch(() => {});
+    const rows = await pg.locator('[data-testid=atlas-complex]').count();
+    const goes = pg.locator('[data-testid=atlas-complex-go-here]');
+    const label = await goes.first().getAttribute('aria-label').catch(() => '');
+    const gb = await goes.first().boundingBox().catch(() => null);
+    check(rows === 1 && (await goes.count()) === 1 && /^Go here, The Wickenden Street Arcade/.test(label ?? '') && !!gb && gb.height >= 44,
+      `GE1, GE5: the complex row has Go here, named for it, 44 px high (${rows} rows, "${label}")`);
+    await pg.setViewportSize({ width: 320, height: 640 });
+    await pg.waitForTimeout(800);
+    await pg.locator('[data-testid=atlas-complexes]').scrollIntoViewIfNeeded().catch(() => {});
+    const fit = await pg.evaluate(() => {
+      const row = document.querySelector('[data-testid=atlas-complex]');
+      const go = document.querySelector('[data-testid=atlas-complex-go-here]');
+      const name = row?.querySelector('div,span')?.getBoundingClientRect();
+      const g = go?.getBoundingClientRect();
+      return { right: g?.right, width: window.innerWidth, nameH: row ? row.getBoundingClientRect().height : null, clip: !!go && go.scrollWidth > go.clientWidth + 1, name: !!name };
+    });
+    check(!fit.clip && fit.right <= fit.width && fit.nameH < 200, `GE10: at 320 px, with the longest name, the row's Go here shows whole and the row stays readable (${JSON.stringify(fit)})`);
+    // go-here-everywhere ui 1: the complex's Go here sits under its name, in the name's column, so the name keeps the width Walk to left it.
+    const stack = await pg.evaluate(() => {
+      const go = document.querySelector('[data-testid=atlas-complex-go-here]')?.getBoundingClientRect();
+      const walk = document.querySelector('[data-testid=atlas-complex-walk]')?.getBoundingClientRect();
+      const row = document.querySelector('[data-testid=atlas-complex]');
+      const name = row ? [...row.querySelectorAll('div')].find((d) => /Wickenden/.test(d.textContent ?? '') && d.children.length === 0)?.getBoundingClientRect() : null;
+      return { goLeft: go?.left, walkLeft: walk?.left, goTop: go?.top, nameBottom: name?.bottom, nameRight: name?.right };
+    });
+    check(stack.goLeft < stack.walkLeft && stack.goTop >= stack.nameBottom - 1,
+      `go-here-everywhere ui 1: the complex's Go here sits under its name, left of Walk to (${JSON.stringify(stack)})`);
+    await shot(pg, 'gohere-7-complex-320');
+    await goes.first().click().catch(() => {});
+    await pg.waitForSelector('[data-testid=go-here-maps]', { timeout: 5000 }).catch(() => {});
+    await pg.click('[data-testid=go-here-maps]').catch(() => {});
+    await pg.waitForTimeout(500);
+    const o = await pg.evaluate(() => window.__opened);
+    check(o.length === 1 && /destination=-?[\d.]+,-?[\d.]+/.test(o[0]), `GE3: the complex's Go here hands its own point to the maps app (${o[0]})`);
+    await c.close();
+  } finally {
+    complexWorld.serve = false;
   }
 }
 
@@ -276,12 +340,13 @@ module.exports = {
     'src/lib/nav/handoff.ts',
     'src/lib/nav/openInMaps.ts',
     'src/components/atlas/AtlasTile.tsx',
-    'src/components/atlas/GoHereSheet.tsx',
+    'src/components/GoHereSheet.tsx',
     'src/components/GoHere.tsx',
     'src/components/atlas/AtlasCard.tsx',
   ],
   run: async (h) => {
     await run(h);
     await hosts(h);
+    await complexRows(h);
   },
 };

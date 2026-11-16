@@ -1,0 +1,42 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Go here (decision 0180) is only on Explore's area tiles",
+        "--reason",
+        "decision 0182 puts Go here on the card, its rows, the long presses and the star sheet; the peeking-tile limit is filed again below"
+      ],
+      "target": "sha256:95bb8c4c682e5cbdf98952b2b5522e179b5bc06b73153ac06197a2be17528d44"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] Go here on a tile that peeks at the row's edge is off-screen until the row scrolls it in, and scrolling selects that tile (`explore-go-here` cold find: \"not found\" at the edge, found once centred). The row's own pattern, kept. Fix, if the owner wants it: the action on the selected tile alone, or one Go here in the row's header for the selected tile (Explore Go here, Nov 14, cold find)\n- [loop] Go here on a town card's busy-area rows (`atlas-busy-go-here`, decision 0182) is reached by no journey: no e2e world has a town with busy areas, so its check holds for none; the rows share the card's one `goLink` with the complex rows, which `gohere` does cover. Fix: a world with a graded town (go-here-everywhere, Nov 16)\n- [loop] Capture is not on Chronicle's map section (the journal's camera and mic live in Memories), so GE9's boxes there are empty and hold by construction; they will catch a capture band added to the map section (go-here-everywhere, Nov 16)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open Explore, open a town's card and tap Go here under Walk to, then Apple Maps; also a complex's row. **Expect:** Apple Maps opens with walking directions to that place; the card is as it was (GE1, GE3, decision 0182)\n- [ ] **Do:** on an iPhone, on Chronicle's Map section, select a place and tap Go here under Walk here, then Apple Maps; then long-press the map at street zoom and do the same. **Expect:** the sheet opens at the top, Apple Maps opens with walking directions, and the star stays selected (GE2, GE3, GE9)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Go here on the rest of the surfaces (Explore's area card footer, its complex and busy-area rows, its long-press card; Chronicle's star sheet and long-press card: the same two-choice sheet, at the top on Chronicle; only coordinates and a neutral label leave; GE1-GE13, decision 0182) | built 2026-11-16 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/go-here-everywhere/spec.md` | plan audited by the steward (1 breach, 1 breach in the criteria, 5 drifts, 1 tone: all accepted); cold find and UI review run; the built slice not audited |\n"
+    }
+  ]
+}

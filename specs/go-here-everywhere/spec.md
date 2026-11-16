@@ -83,3 +83,15 @@ No new route, truth or cache, migration or dependency. One shared hook, `useGoHe
 ## Tests
 
 See `plan.md`.
+
+## Record (Nov 16)
+
+- **Passed:** GE1-GE13, by `src/lib/__tests__/explore/goHere.test.ts` (GE4, GE5, GE7, GE12, GE13) and the journeys `gohere` (the card, its footer, the far question, a complex row with the longest name, the long-press card) and `gohere-chronicle` (the star sheet, the long press, the capture-band boxes, 320 px), with typecheck and lint.
+- **Found by the tests, fixed:** with the sheet open, Escape on Chronicle also deselected the star (the home sheet listens for Escape too), so the next tap had nothing to hit; `ownKeys` is now false while the sheet is open, and the journey checks the star stays selected.
+- **Cold find:** all three tasks placed (card, star, pressed spot), by elimination: "Go here" is the quietest thing on each screen and its label does not say "maps". On the star sheet the outlined "Map" button (the section switch) may be tried first. Kept: the quiet default and the owner's own words, "Go here".
+- **UI review:** U1 accepted (`go-here-everywhere ui 1`: a complex row's long name wrapped to four lines at 320 px beside two links, so Go here now sits under the name in its column, and the name keeps the width Walk to left it); U4 accepted (`go-here-everywhere ui 2`: the star sheet's Go here lines up with Walk here); the padding part of U5 accepted (`go-here-everywhere ui 3`: 8 px at each sheet row's foot). Rejected: U2 (the wording "Go here" beside "Walk here" is the owner's own word; the sheet carries the difference, and the pairing is accepted); U3 (the close button under Walk here and the attribution overlap were the card's before this slice); U5's "Opens Navigate, ready" and a scrim (the spec's wording; no scrim by design, GH12); U6 (opinion; the label is a Text and scales with the system size).
+- **One flake, said:** `GE7`'s count of the far question's button failed once, 600 ms after the tap, and passed on the next run; the journey now waits for the button.
+- **Weak spots, said:** no journey world has a town with busy areas, so the busy-area rows' Go here is covered by the shared code and the complex rows' journey, not its own (`docs/DEFERRED.md`). Chronicle's map section has no capture band (the journal's camera and mic live in Memories), so GE9's boxes there hold by construction.
+- **Deferred:** the peeking-tile limit (0180), the two lines above.
+- **Not audited** (`/audit` is the owner's to ask). Native has never run on a device (`docs/NATIVE_UNVERIFIED.md`).
+

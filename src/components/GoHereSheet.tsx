@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { goHereChoices, goHereWords, type GoHereChoice } from '../../lib/atlas/goHere';
-import { Icon } from '../icons';
-import { theme } from '../ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { goHereChoices, goHereWords, type GoHereChoice } from '../lib/atlas/goHere';
+import { Icon } from './icons';
+import { theme } from './ui';
 
 /**
  * Go here's two choices (GH2): Chronicles first, then the phone's maps app. A plain card over the row, never a Modal (iOS
@@ -14,12 +15,18 @@ export function GoHereSheet(props: {
   mapsHint?: string;
   /** A destination is already saved: said once, that this replaces it. */
   replaces: boolean;
+  /** A walk is open: the Chronicles row routes it (GE4). */
+  walkOpen?: boolean;
+  /** Where the sheet sits: Explore's at the foot, Chronicle's at the top, clear of the capture band (GE9). */
+  anchor?: 'top' | 'bottom';
   onChoose: (id: GoHereChoice['id']) => void;
   onClose: () => void;
 }) {
   const [title, ...notes] = goHereWords(props.name, props.replaces);
+  const insets = useSafeAreaInsets();
+  const top = props.anchor === 'top';
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View style={[styles.wrap, top ? { top: insets.top } : { bottom: 0 }]} pointerEvents="box-none">
       <View style={styles.sheet} testID="go-here-sheet" accessibilityViewIsModal>
         <View style={styles.head}>
           <View style={styles.headText}>
@@ -30,7 +37,7 @@ export function GoHereSheet(props: {
             <Icon name="close" size={20} color={theme.ink} />
           </Pressable>
         </View>
-        {goHereChoices(props.mapsApp, props.mapsHint).map((c) => (
+        {goHereChoices(props.mapsApp, props.mapsHint, props.walkOpen).map((c) => (
           <Pressable
             key={c.id}
             testID={`go-here-${c.id}`}
@@ -53,14 +60,14 @@ export function GoHereSheet(props: {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 8, zIndex: 15 },
+  wrap: { position: 'absolute', left: 0, right: 0, padding: 8, zIndex: 15 },
   sheet: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, padding: 12, gap: 8, maxWidth: 520, width: '100%', alignSelf: 'center' },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingBottom: 4 },
   headText: { flex: 1, minWidth: 0 },
   title: { fontSize: 16, fontWeight: '700', color: theme.ink, lineHeight: 20 },
   note: { fontSize: 12, color: theme.muted, lineHeight: 16 },
   close: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: -10, marginRight: -10 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: theme.line },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.line },
   rowText: { flex: 1, minWidth: 0 },
   label: { fontSize: 15, fontWeight: '600', color: theme.ink },
   hint: { fontSize: 12, color: theme.muted, lineHeight: 16 },
