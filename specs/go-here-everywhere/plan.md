@@ -1,4 +1,4 @@
-# Go here on the rest of the surfaces: the plan (GE1-GE12)
+# Go here on the rest of the surfaces: the plan (GE1-GE13)
 
 For the owner's review before any code.
 
@@ -6,13 +6,13 @@ For the owner's review before any code.
 
 | File | Change |
 |---|---|
-| `src/components/GoHere.tsx` (new, view) | `useGoHere({ walkOpen, start, later, say })` returns `{ ask(target: { at, label }), sheet }`: the state (the target, whether a destination is already saved), Back and Escape, the maps and Chronicles calls (`goHereDo`, `openInMaps`, the failure notice). It renders the sheet it moved here (`GoHereSheet`, from `components/atlas/`). One place for the words and the calls. |
+| `src/components/GoHere.tsx` (new, view) | `useGoHere({ walkOpen, start, later, say, anchor })` (`anchor`: `'bottom'` on Explore, `'top'` on Chronicle) returns `{ ask(target: { at, label }), sheet }`: the state (the target, whether a destination is already saved), Back and Escape, the maps and Chronicles calls (`goHereDo`, `openInMaps`, the failure notice). It renders the sheet it moved here (`GoHereSheet`, from `components/atlas/`). One place for the words and the calls. |
 | `src/components/atlas/GoHereSheet.tsx` | Moved to `src/components/GoHere.tsx`'s directory as `GoHereSheet.tsx` (a path change only). |
 | `src/app/(tabs)/explore.tsx` | The tile's `goHere` state and `chooseGoHere` become `useGoHere`; passes `ask` to `AtlasCard` (`onGoHere`) and to the spot card's new "Go here". |
-| `src/components/atlas/AtlasCard.tsx` | Footer: a quiet ghost "Go here" under the primary (and under When I get there far off); each busy-area and complex row gets a "Go here" link beside its "Walk to", shown whether or not the row is walkable. New prop `onGoHere(at, label)`. |
-| `src/lib/atlas/goHere.ts` (core) | `rowActions({ walkable })`: `{ walk: walkable, go: true }` (GE5), and `spotCanGoHere({ zoom })` (GE7). |
-| `src/components/HomeSheet.tsx` | A secondary "Go here" pill beside `place-go` "Walk here" (`place-go-here`); new prop `onGoHere`. |
-| `src/app/(tabs)/index.tsx` | `useGoHere` with its own `startWalk` and `walkStart.later`; passes `onGoHere` to the sheet; the long-press stack gets a secondary "Go here" under "Walk here", above the capture stack, never over it (GE9). |
+| `src/components/atlas/AtlasCard.tsx` | Footer: a ghost "Go here" line under the primary (and under When I get there far off), hidden while the card is asking; each busy-area and complex row gets a "Go here" text link beside its "Walk to", shown whether or not the row is walkable. New prop `onGoHere(at, label)`. |
+| `src/lib/atlas/goHere.ts` (core) | `rowActions({ walkable })`: `{ walk: walkable, go: true }` (GE5); `spotCanGoHere({ zoom, asking })` and `cardCanGoHere({ here, asking })` (GE7); `goHereChoices(mapsApp, hint?, walkOpen?)`: the Chronicles hint is "Routes your walk" with a walk open (GE4); `shareLabel(kind, label)`: the label for the maps link, "Destination" for a star or a spot (GE3). |
+| `src/components/HomeSheet.tsx` | A ghost "Go here" text link under the `place-go` pill (`place-go-here`); new prop `onGoHere`. |
+| `src/app/(tabs)/index.tsx` | `useGoHere` with its own `startWalk` and `walkStart.later`; passes `onGoHere` to the sheet; the long-press card gets a ghost "Go here" line under "Walk here"; the card stays above the capture stack and the sheet is anchored at the top (GE9). |
 
 Nothing changes `SNAP_RULES`, `STREET_CODE` or `LANDING_CODE`.
 
@@ -35,7 +35,8 @@ None new (GE11). The destination goes to meta `nav` through `useStartWalk().late
 | GE9 | `GE9: the capture stack stays put and answers, with Go here shown and the sheet open, at 320 px` (boxes before and after; a tap on `cap-note`) | `gohere-chronicle` |
 | GE10 | `GE10: at 320 px with the longest names nothing wraps past two lines or clips` | both journeys |
 | GE11 | `GE11: nothing but meta nav is written; no host asked; a tap changes nothing familiarity says` | both journeys |
-| GE12 | `GE12: a record cites 0180, 0058 and 0121 and lists the hosts` | `goHere.test.ts` |
+| GE13 | `GE13: the link carries coordinates only; the label is the area's name or "Destination"` (core `shareLabel`, `mapsUrls`; journey reads the opened link) | `goHere.test.ts`; both journeys |
+| GE12 | `GE12: a record cites 0180, 0058 and 0121, lists the hosts and keeps the dead-zone nudge deferred` | `goHere.test.ts` |
 
 A new journey `scripts/e2e/journeys/gohere-chronicle.js` (`E2E_ONLY=gohere-chronicle`); the Explore hosts extend `gohere.js`. Both belong to the `explore` feature, with `go-here-everywhere` in `specs` and `IN_PROGRESS` while it is built. The UI review runs with pictures of every host (390 x 844 and 320), then the cold find.
 

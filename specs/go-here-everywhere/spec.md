@@ -14,7 +14,7 @@ Verb: earn (Navigate: getting to a place you noticed, which feeds the walk and i
 Touches: 0180 (the tile's Go here: the same two choices, the same words, aligned at the gate Nov 14); 0058 (Open in Maps: only the destination, on a tap; it lists the Explore mark card and the home's Walk here as deferred); 0121 (Walk to starts at once near, asks far; "When I get there" starts nothing); Always "A route is a suggestion", "Capture is one tap away on every screen you walk or capture from" (Chronicle's surfaces carry the capture stack); Never "Several ways ranked by minutes" and "Data leaving the device without a tap" (both hold).
 Verdict: aligned
 Shape: One shared sheet and one set of words on every host (GH2's); the host's own Walk to or Walk here is untouched; Go here is the weakest control on its host, in ink; no minutes, no ranking. On Chronicle's surfaces it never covers or moves the capture stack.
-Criteria: GE1-GE12.
+Criteria: GE1-GE13.
 Open: none (the owner, Nov 16: "the rest of the surfaces that allow it"; which those are comes from the code, below).
 ```
 
@@ -52,25 +52,32 @@ Not hosts, each with its reason:
 
 ### The choices
 
-3. **GE3 · The maps app.** Each host hands its own destination to the maps app, straight from the tap: the card's walk target, the row's point, the pressed spot, the star's point. Only the destination leaves the device (0058). A maps app that won't open says so once, with the wording the tile uses (GH7).
-4. **GE4 · Chronicles.** On each host Chronicles saves the place as Navigate's destination and opens Navigate, ready (0121's When I get there); no walk starts. With a walk open it does what that host's own Walk to or Walk here does with a walk open (NV10). A destination already saved is said to be replaced, once (0180).
-5. **GE5 · Any distance, and a row too far to walk.** Both choices work at any distance and with no position fix. A busy-area or complex row too far to walk, which has no Walk to, still has Go here; the far question (DW2) is never asked by Go here.
+3. **GE3 · The maps app.** Each host hands its own destination to the maps app, straight from the tap: the card's walk target, the row's point, the pressed spot, the star's point. Only the destination leaves the device (0058). A maps app that won't open says so once, with the wording the tile uses (GH7). The link carries the coordinates; the label that Android's `geo:` link also carries is the area's name for an area, a complex or a street, and a neutral "Destination" for a star or a pressed spot, so the owner's own words (a star's title) never leave the device (the steward's S7, 0058).
+4. **GE4 · Chronicles.** On each host Chronicles saves the place as Navigate's destination and opens Navigate, ready (0121's When I get there); no walk starts. With a walk open it does what that host's own Walk to or Walk here does with a walk open (NV10), and the Chronicles row's hint says "Routes your walk" instead of "Opens Navigate, ready", on every host including the tiles (the steward's silence 2, amending 0180's tile). A destination already saved is said to be replaced, once (0180).
+5. **GE5 · Any distance, and a row too far to walk.** Both choices work at any distance and with no position fix. A busy-area or complex row too far to walk, which has no Walk to, still has Go here, whose sheet says "Opens Navigate, ready" and no distance or minutes; the far question (DW2) is never asked by Go here. On the card's footer that is only "When I get there" (too far to walk), Go here is shown too: the sheet is the way to the maps app, and its Chronicles row does the same as the footer's button (a default the owner can overrule).
 
 ### Hosts as they were
 
 6. **GE6 · The host's own walk is unchanged.** Each host's Walk to or Walk here behaves as DW1-DW14 and NV12 say, with or without the sheet open.
-7. **GE7 · Where it isn't.** The card of the area you are in, which says "You're in <area>" and has no Walk to, has no Go here; a long press below zoom 12 on Explore, and below street zoom on Chronicle (no Walk here there), has none.
+7. **GE7 · Where it isn't.** The card of the area you are in, which says "You're in <area>" and has no Walk to, has no Go here; a long press below zoom 12 on Explore, and below street zoom on Chronicle (no Walk here there), has none. While a host's far question is open (the card's "Walk now / When I get there / Not now", the long-press card's asked state), Go here is not shown, so no card holds five actions (the steward's S4).
 
 ### Restraint
 
-8. **GE8 · No minutes, no ranking, quiet.** No host shows minutes, an arrival time, "fastest", a digit of its own or a count in Go here or its sheet. Go here is the weakest control on its host: ink, no fill or border at rest where it is a link, and a secondary (not the accent) button where its host's controls are buttons; the host's primary action keeps the accent (0172).
-9. **GE9 · Capture stays one tap away.** On Chronicle's surfaces, with Go here shown and with the sheet open, at 320 px wide, the camera, mic and note buttons stay where they were, visible and answering one tap each (DW13).
+8. **GE8 · No minutes, no ranking, quiet.** No host shows minutes, an arrival time, "fastest", a digit of its own or a count in Go here or its sheet; the scan covers the button's and the sheet's own words, not the place's name. Go here is the weakest control on its host: a ghost text link on its own line under the host's buttons (on the cards, the star sheet and the long-press cards) or beside "Walk to" (on a row): its computed background is transparent and its border zero, never the accent. Each host has exactly one accent-filled control, as before, and at 320 px its buttons stack into no more rows than before Go here was added (0172, the steward's S2).
+9. **GE9 · Capture stays one tap away.** On Chronicle's surfaces, with Go here shown, at 320 px wide, at the home sheet's peek and half heights, the long-press card sits above the capture stack without overlapping it and the pressed spot's mark stays visible (a box test); with the sheet open, the sheet's box intersects neither the camera, mic and note buttons nor the recording bar, and each answers one tap (DW13; the steward's S1, S3). On Chronicle the sheet is placed where the capture band is not (see the open choice below).
 10. **GE10 · Nothing wraps, nothing is clipped.** At 320 px wide, with the longest place names, each host's Go here shows unclipped; a row keeps its name readable (it wraps to two lines at most) and the host's other control stays.
 
 ### Truth
 
 11. **GE11 · Nothing new is kept.** The only thing saved is the destination Navigate already holds for no walk (meta `nav`); no new truth or cache, migration or dependency, and no host is asked beyond the maps app's own link on a tap. A tap is not a visit: it feeds familiarity and "New to you" nothing (GH15).
-12. **GE12 · A record.** A decision record cites 0180, 0058 and 0121, lists each host above, and says 0058's deferred "Explore mark card" has no card and the home's Walk here now has Go here beside it.
+12. **GE12 · A record.** A decision record cites 0180, 0058 and 0121, lists each host above, says 0058's deferred "Explore mark card" has no card, that the home's Walk here now has Go here beside it, and that the dead-zone nudge stays deferred. It says the star sheet is a place's surface of Navigate, not a moment's toolbar, so 0114's rule on a moment's actions does not apply.
+13. **GE13 · What leaves the device is the destination.** The link handed to the maps app carries the coordinates; the only label on it (Android's `geo:` link) is the area's name for an area, a complex or a street, and "Destination" for a star or a pressed spot. Neither a star's title (the owner's words) nor "Your spot" leaves the device (the steward's S7, 0058).
+
+## Open choices (defaults taken in the plan; the owner decides)
+
+- **Where the sheet sits on Chronicle**: at the top of the screen under the status bar (a default: it can never touch the capture band, which is at the foot), against above the card in place (reach is better, a collision is more likely).
+- **Chronicle's long-press card**: Go here is offered at a bare spot named only "Your spot" (a default: yes, the same job as Explore's).
+- **The far footer**: Go here is shown beside "When I get there", whose Chronicles row repeats the button (a default).
 
 ## Routes and data
 
