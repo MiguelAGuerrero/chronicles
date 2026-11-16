@@ -16,23 +16,31 @@ drops it instead: no replay, the walk deleted, one quiet line with Undo.
 Idea: stopping a walk that is empty (no moments, no streets, no real movement) skips the replay and deletes the walk, with an Undo notice
 Verb: honour (it keeps the record to what happened; a mistaken start is not a memory)
 Touches: Never "Editing out the lows" (a low is a walk that happened; this has no trace, street or moment, so only a strict test is
-  allowed); Always "Moments and the trace are truth" (a delete the owner did not ask for, so Undo must wait, 0113);
+  allowed); Always "Moments and the trace are truth" (a delete the owner did not ask for: Undo waits and a kill restores);
   Always "Counts are words" and "Restraint" (no figure, no celebration in the notice); 0041 (a walk delete is as if it never
   happened); 0113 (Undo waits for the owner, a kill completes the delete)
 Verdict: aligned if reshaped
 Shape: a strict pure test, uncertain means keep; Stop on an empty walk goes back where the walker was; one line in words with Undo
   that waits; one decision shared by both stop paths
-Criteria: EW1-EW10 below
-Open: threshold (see Decisions)
+Criteria: EW1-EW12 below
+Open: none (the owner's calls are in Decisions)
 ```
 
 ## Decisions
 
 - Nov 16, the owner: empty means no moments or captures, no streets, no real distance. Stopping an empty walk skips the replay and
   deletes it with a short Undo notice. Stop paths only: no sweep of existing walks.
-- Recommended, not yet the owner's: the movement threshold is a named constant in core, **30 m** farthest from the first walked fix,
-  checked against `jitter.test.ts` fixtures; a walk stopped within seconds but with real movement is kept (content, never time).
-  The notice shows on the tab the walker is on.
+- Nov 16, the owner: movement is the **spread of the read fixes within 15 m** (farthest pair), whatever the time spent. Time never
+  decides: a long stand with no capture and no movement is dropped, a 40 m stroll is kept. The 15 m is a named constant in core,
+  checked against `jitter.test.ts` fixtures before the test-first commit.
+- Nov 16, the owner: the notice reads "Walk not kept." with Undo (a plain fact, no verdict on the walk).
+- Nov 16, the owner: a killed app **restores** the walk. A drop is the app's call, not the owner's, so unlike 0113 it is never
+  finished by a launch; it is not written to `pending_delete`. The 0113 whole-walk confirm is waived: the walk holds nothing, and Undo
+  is offered.
+- Nov 16, the owner: a narrow exception to 0113's "flush on every route change": the navigation Stop itself causes does not store the
+  drop; any later route change does. To be recorded as a decision amending 0113 when the slice ships.
+- Steward (Nov 16), accepted: absence of data is uncertainty, not emptiness (S1); spread, not distance from the first fix (S6);
+  neutral copy (S5). The drop leaves no trace in Chronicle afterwards, which is the point.
 
 ## Criteria
 
@@ -40,16 +48,22 @@ Open: threshold (see Decisions)
   no real movement does not play the replay and removes the walk. *Finding criterion:* the walker does nothing new: the same Stop
   that ended walks before; the result is seen on the screen they were on, in one line, with Undo.
 - **EW2.** `isEmptyWalk` is a pure function of the walk's moments, pauses, stills, fills and read trace. It is true only when there is
-  no moment, no pause, still or fill, and every walked fix lies within the threshold of the first.
+  no moment, no pause, still or fill, at least one read fix, and every read fix lies within `EMPTY_WALK_M` (15 m) of every other.
 - **EW3.** Any moment (photo, video, memo, note, text) keeps the walk, however short. One test per kind.
-- **EW4.** Movement past the threshold, or a street derived from the trace, keeps the walk and plays the replay.
+- **EW4.** Movement past the threshold, or a street derived from the trace, keeps the walk and plays the replay. A courtyard stroll of
+  about 40 m is kept.
 - **EW5.** A walk with a pause, a still or a gap fill is never empty.
-- **EW6.** Fixes the reader gates out (stale, poor accuracy) do not count as movement, and a walk with no fixes at all and no moments is empty.
+- **EW6.** A walk with no read fixes (none stored, or all gated out by `readTrace` for accuracy or staleness) is kept and replays,
+  moments or not.
 - **EW7.** Both stop paths (walk screen hold-to-stop, recording bar Stop) reach the same decision in core; neither view duplicates it.
-- **EW8.** The notice says "Nothing to keep. Walk dropped." with Undo, names no count and no judgement, and waits for the owner (0113).
-- **EW9.** Undo brings the walk back whole (trace, pauses, anything the delete took); a killed app after an empty stop completes the
-  delete on the next launch (0113).
-- **EW10.** The decision is made after the stop is written (`stopWalk`), so a failure to read the trace keeps the walk and plays the replay.
+- **EW8.** The notice says "Walk not kept." with Undo, names no count and no judgement ("nothing", "empty", "wasted"), and waits for the
+  owner: it is stored only when dismissed or on a later route change.
+- **EW9.** Undo brings the walk back whole (trace, pauses, anything the delete took), in the lists and as an ordinary walk with its
+  replay. A killed app after an empty stop leaves the walk in place: the drop is not saved for the next launch.
+- **EW10.** The decision is made after the stop is written, so a failure to read the trace keeps the walk and plays the replay.
+- **EW11.** A cold-start jump in the first fix does not by itself decide empty versus kept.
+- **EW12.** Time spent does not decide: a walk of any length with one place and nothing else is dropped; the same with movement past
+  the threshold is kept.
 
 ## Surfaces (from the code)
 
