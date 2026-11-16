@@ -6,7 +6,6 @@ import type { Recall, RecallFrequency } from './types';
 import { plainNote } from '../refs';
 import { KIND_NAME, pinKindsWords } from '../pins';
 import { numberWord } from '../resurface/lines';
-import { manyHere } from '../memories';
 
 /** Remind me here's numbers (R2, R4, R5). */
 export const RECALL_RULES = {
@@ -101,7 +100,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
  * here" from thirteen, so the card's one line holds at 320 px (tend explore 16, decision 0172, the owner's "Many sooner").
  */
 function severalHere(n: number): string {
-  const w = manyHere(n) ? 'many' : numberWord(n);
+  // The reminder's title alone: a memory preview keeps its number words (tend explore audit 18).
+  const w = n >= 13 ? 'many' : numberWord(n);
   return `${w.charAt(0).toUpperCase()}${w.slice(1)} memories here`;
 }
 

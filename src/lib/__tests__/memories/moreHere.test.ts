@@ -8,8 +8,7 @@ test('tend memories T30: the preview says "and two more here", never a digit', (
   assert.equal(moreHere(0), null);
   assert.equal(moreHere(1), 'and one more here');
   assert.equal(moreHere(2), 'and two more here');
-  // Twelve more is a spot of thirteen: "many" since tend explore 16, as its reminder says.
-  assert.equal(moreHere(12), 'and many more here');
+  assert.equal(moreHere(12), 'and twelve more here');
 });
 
 test('tend memories T30: a screen reader hears the same words as the preview shows', () => {

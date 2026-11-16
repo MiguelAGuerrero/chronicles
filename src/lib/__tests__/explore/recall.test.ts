@@ -163,17 +163,22 @@ test('tend explore audit 6: the announcement says the card title, for every mome
 });
 
 // tend explore 16 (decision 0172, O11, "Many sooner"): a reminder of several says its count in words up to twelve and
-// "Many memories here" from thirteen, so the card's one line holds at 320 px; a memory preview of the same spot agrees,
-// "and many more here" once the spot holds thirteen (the T19 review's auditor).
-test('tend explore 16: "Many memories here" from thirteen, and the preview of the same spot agrees', () => {
+// "Many memories here" from thirteen, so the card's one line holds at 320 px.
+test('tend explore 16: "Many memories here" from thirteen', () => {
   const notes = (n: number) => Array.from({ length: n }, (_, i) => capture(`n${i}`, { kind: 'text', body: 'x', t: new Date(2026, 9, 20, 15, i).getTime() }));
   assert.equal(reminderText(notes(12)).title, 'Twelve memories here');
   assert.equal(reminderText(notes(13)).title, 'Many memories here');
   assert.equal(reminderText(notes(13)).body, 'Thirteen notes');
   assert.equal(reminderText(notes(27)).title, 'Many memories here');
-  // The preview shows one and the rest: twelve shown with eleven more, thirteen with "many more".
-  assert.equal(moreHere(11), 'and eleven more here');
-  assert.equal(moreHere(12), 'and many more here');
-  assert.equal(moreHere(14), 'and many more here');
-  assert.equal(previewSpoken({ date: 'Nov 2, 2026', line: 'Bought two plums', stack: null, more: 12 }), 'Memory from Nov 2, 2026: Bought two plums, and many more here. Open');
+});
+
+// tend explore audit 18 (the review's steward 4; the owner's answer in person, Nov 16, "Number words in the
+// preview"): the memory preview has the card's width, so it keeps its number words up to fifty-nine, "and twelve more
+// here"; only a reminder's one-line title says "Many" from thirteen.
+test('tend explore audit 18: the memory preview keeps number words to fifty-nine; only the reminder says "Many" from thirteen', () => {
+  assert.equal(moreHere(12), 'and twelve more here');
+  assert.equal(moreHere(14), 'and fourteen more here');
+  assert.equal(moreHere(59), 'and fifty-nine more here');
+  assert.equal(moreHere(60), 'and many more here');
+  assert.equal(previewSpoken({ date: 'Nov 2, 2026', line: 'Bought two plums', stack: null, more: 12 }), 'Memory from Nov 2, 2026: Bought two plums, and twelve more here. Open');
 });
