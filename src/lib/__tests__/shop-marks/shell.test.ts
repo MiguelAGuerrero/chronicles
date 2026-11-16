@@ -8,9 +8,9 @@ type At = [number, number];
 type Shop = { type: string; name: string; at: At; chain: boolean };
 type Read = { state: 'ok' | 'empty' | 'uncovered' | 'failed'; places: Shop[] };
 type Io = { base: string; fetchText(url: string): Promise<string>; open(url: string): { getZxy(z: number, x: number, y: number): Promise<{ data: ArrayBuffer } | undefined> }; decode(bytes: ArrayBuffer, x: number, y: number): unknown[] };
-const mod = () => import('../../shopMarks/shell' as string) as Promise<{ createShopMarks: (p: ReturnType<typeof fakePorts> & { io: Io; tileMs?: number; readMs?: number }) => { read(tiles: [number, number][], centre: At): Promise<Read>; refresh(): Promise<void> } }>;
+const mod = () => import('../../shopMarks/shell') as Promise<{ createShopMarks: (p: ReturnType<typeof fakePorts> & { io: Io; tileMs?: number; readMs?: number }) => { read(tiles: [number, number][], centre: At): Promise<Read>; refresh(): Promise<void> } }>;
 
-const BASE = 'https://data.example/shop marks/';
+const BASE = 'https://data.example/shops/';
 const MANIFEST = JSON.stringify({
   schema: 1,
   regions: [{ id: 'us', current: { file: 'shops-us-20261114.pmtiles', version: '20261114', bytes: 1000, sha256: 'ab', minzoom: 12, maxzoom: 12, bounds: [-125, 24, -66.9, 49.4] }, previous: [] }],

@@ -8,7 +8,7 @@ type Shop = { type: string; name: string; at: At; chain: boolean };
 type Mark = { at: At; merged: boolean; place?: Shop };
 type Target = 'control' | 'pin' | 'mark' | 'zoom' | 'card' | 'none';
 const read = () =>
-  import('../../shopMarks/read' as string) as Promise<{
+  import('../../shopMarks/read') as Promise<{
     shopsFromTile: (f: { geometry: { type: string; coordinates: unknown }; properties?: Record<string, unknown> }[]) => Shop[];
     thin: (places: readonly Shop[], zoom: number) => Mark[];
     nearest: (marks: readonly Mark[], at: At, radiusM: number) => Mark | null;
@@ -104,7 +104,7 @@ test('SM18: nothing a read returns can say a shop was visited, passed, found or 
 });
 
 test('SM14: with the card open a tap anywhere else only closes it; a tap on another single mark swaps the card; nothing falls through', async () => {
-  const { pressAction } = (await import('../../shopMarks/read' as string)) as { pressAction: (i: { cardOpen: boolean; target: Target }) => 'card' | 'zoom' | 'close' | 'press' };
+  const { pressAction } = (await import('../../shopMarks/read')) as { pressAction: (i: { cardOpen: boolean; target: Target }) => 'card' | 'zoom' | 'close' | 'press' };
   assert.equal(pressAction({ cardOpen: false, target: 'none' }), 'press', 'no card: the map\'s own tap goes on as before');
   assert.equal(pressAction({ cardOpen: false, target: 'card' }), 'card');
   assert.equal(pressAction({ cardOpen: false, target: 'zoom' }), 'zoom');

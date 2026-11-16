@@ -11,7 +11,7 @@ where it fails.
   no name is not a record.
 - **`chain`** is set by the build from `brand`, `brand:wikidata` or `operator`, which are then dropped. Absent means "not flagged", never
   "independent".
-- **The pack carries every named shop**; the app draws only the types in its own list (`shop marks/types.ts`), so a new type
+- **The pack carries every named shop**; the app draws only the types in its own list (`shopMarks/types.ts`), so a new type
   is drawn by an app change and never by a rebuild. `shop-types.json` lists the values the build may write.
-- **Files:** `shop marks-<region>-<yyyymmdd>[.n].pmtiles`, one z12 tile layer named `shop marks`, with a `manifest.json` of the
+- **Files:** `shops-<region>-<yyyymmdd>[.n].pmtiles`, one z12 tile layer named `shops`, with a `manifest.json` of the
   places manifest's shape (schema 1, regions, current and previous files, bounds) beside them.

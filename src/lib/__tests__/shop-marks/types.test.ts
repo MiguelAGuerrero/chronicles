@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 // Shop marks (specs/shop-marks, SM1-SM18), written from the spec before the code: the modules are reached by name, so this file runs before they exist.
-const types = () => import('../../shopMarks/types' as string) as Promise<{ isDrawn: (t: string) => boolean; DRAWN_TYPES: readonly string[]; typeWords: (t: string) => string; NEAR_ZOOM: number; WALK_NEAR_M: number }>;
+const types = () => import('../../shopMarks/types') as Promise<{ isDrawn: (t: string) => boolean; DRAWN_TYPES: readonly string[]; typeWords: (t: string) => string; NEAR_ZOOM: number; WALK_NEAR_M: number }>;
 
 const LISTED = ['antiques', 'second_hand', 'charity', 'gift', 'florist', 'boutique', 'jewelry', 'toys', 'outdoor', 'photo', 'stationery', 'clothes', 'bag', 'books', 'music', 'musical_instrument'];
 

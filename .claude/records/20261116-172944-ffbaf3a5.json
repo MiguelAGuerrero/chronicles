@@ -1,0 +1,79 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "--new",
+        "Shop marks (SM1-SM18, decision 0182)"
+      ],
+      "body": "- [ ] **Do:** on a phone with a shop pack published, switch Storefronts on in the Layers panel on Explore, Navigate and during a walk, and zoom in on a town. **Expect:** small hollow rings of one size appear over the street shading, above the walked streets and under the route, the trace, the pins and your dot, with no text on them, and the panel's line says \"Shops from OpenStreetMap. Tap a mark for its name.\" (SM1, SM10-SM12; the circle layer and its source on MapLibre React Native)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Shop marks"
+      ],
+      "body": "- [ ] **Do:** on a phone, tap a lone shop mark, then tap an empty part of the map, then tap a merged mark. **Expect:** the first rings the mark and opens a card at the top of the map (clear of the capture stack, a close control of at least 44 pt), the second only closes it and starts nothing else, the third zooms in and opens no card (SM14, SM16; the press rule in the native map's `onPress`, which the pins and marks never reach, and the selected-ring layer)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Shop marks"
+      ],
+      "body": "- [ ] **Do:** on a phone during a walk, with Storefronts on, walk past shops for a few minutes. **Expect:** only shops within 800 m of you are drawn, the capture stack is never covered and starting a capture works with a card open, and the map stays smooth at walking pace (SM3, SM12, SM16; the layer over the live walk's map)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Shop marks"
+      ],
+      "body": "- [ ] **Do:** on a phone on cellular data, switch Storefronts on in a town the shop pack covers, then in one it does not. **Expect:** the covered town draws its shop marks after a short read (byte-range reads of the pack through `lib/net`), the other says \"No shop marks here yet\" and nothing else, and with the network off it says \"Couldn't read the shops\" quietly, with no alert (SM6, SM7)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "--new",
+        "Shop marks (specs/shop-marks, decision 0182)"
+      ],
+      "body": "- **Circuits**: planning, saving and revisiting a journey across several towns through the shops of a kind. The data and the marks here are its substrate. Open for the owner before it: may a shop on a circuit read \"passed\" or \"walked\", and may a moment say \"just after the bookshop\"? Neither is decided (decision 0182; SM18 forbids both for now).\n",
+      "intro": "Left out of Shop marks on purpose (the owner's calls, Nov 14-16; the spec's \"Not in this slice\"). Circuits are the next slice and read this data.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Shop marks"
+      ],
+      "body": "- **Shop marks**: per-type switches and a chain filter in the panel (the panel holds switches and status lines only today); labels at high zoom; opening hours; a Walk here or Open in Maps action on the card; errand shops (supermarket, hairdresser and the rest) as a drawable set, which the pack already carries; shops outside the first pack's US region; a glyph per type on the marks (one ring, one size and colour today).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Shop marks"
+      ],
+      "body": "- **Shop marks**: the pack itself. The adapter (OpenStreetMap `shop=*`, a `chain` flag from brand and operator tags, regional z12 packs of file prefix `shops`, the manifest) belongs in chronicles-data, which this session could not reach; the app's contract is pinned in `src/lib/__tests__/shop-marks/contract/` and moves there. Until a pack is published and `EXPO_PUBLIC_SHOP_MARKS_BASE` is set in the production build, the layer is the street shading alone and its legend has no \"Shop marks\" row.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Shop marks"
+      ],
+      "body": "- **Shop marks** (cold find, Nov 16): the Layers button is a glyph with no word, and nothing on the map says the layers include shops; a first-time walker finds the button but cannot tell what it offers. Shared by every layer, so not changed here; the owner may want a word or a first-use hint for it.\n"
+    }
+  ]
+}

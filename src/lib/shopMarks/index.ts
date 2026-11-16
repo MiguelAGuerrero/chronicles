@@ -1,5 +1,5 @@
 // @layer adapter
-// @instance: the shop pack (shop marks/shell.ts) on the app's ports, read through lib/net
+// @instance: the shop pack (shopMarks/shell.ts) on the app's ports, read through lib/net
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import { PMTiles } from 'pmtiles';

@@ -145,7 +145,7 @@ async function run(h) {
 module.exports = {
   name: 'shopmarks',
   covers: [
-    'src/lib/shop marks/**',
+    'src/lib/shopMarks/**',
     'src/components/ShopCard.tsx',
     'src/lib/layers/**',
     'src/components/map/{types,WalkMap.web,WalkMap.native}.ts*',

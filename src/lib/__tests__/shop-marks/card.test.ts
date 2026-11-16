@@ -8,7 +8,7 @@ import test from 'node:test';
 type Shop = { type: string; name: string; at: [number, number]; chain: boolean };
 type Box = { x: number; y: number; w: number; h: number };
 const card = () =>
-  import('../../shopMarks/card' as string) as Promise<{
+  import('../../shopMarks/card') as Promise<{
     cardLines: (p: Shop) => { name: string; kind: string; chain: string | null };
     cardBox: (v: { width: number; height: number; topInset: number }) => Box;
     CLOSE_MIN_PX: number;

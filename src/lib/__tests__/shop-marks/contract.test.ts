@@ -24,9 +24,9 @@ test('SM8: the pinned contract names the version, the record\'s four fields and 
 
 test('SM8: the pinned type list holds every drawn type, and the reader draws nothing the contract does not list', async () => {
   const listed = (json('shop-types.json') as { types: string[] }).types;
-  const { DRAWN_TYPES } = (await import('../../shopMarks/types' as string)) as { DRAWN_TYPES: readonly string[] };
+  const { DRAWN_TYPES } = (await import('../../shopMarks/types')) as { DRAWN_TYPES: readonly string[] };
   for (const t of DRAWN_TYPES) assert.ok(listed.includes(t), `${t} is in the contract`);
-  const { shopsFromTile } = (await import('../../shopMarks/read' as string)) as { shopsFromTile: (f: unknown[]) => { type: string }[] };
+  const { shopsFromTile } = (await import('../../shopMarks/read')) as { shopsFromTile: (f: unknown[]) => { type: string }[] };
   const got = shopsFromTile(listed.map((type, i) => ({ geometry: { type: 'Point', coordinates: [i / 100, 0] }, properties: { type, name: `S${i}` } })));
   assert.ok(got.every((p) => DRAWN_TYPES.includes(p.type)));
   assert.ok(listed.length > DRAWN_TYPES.length, 'the pack carries more than the layer draws (errand shops stay in it)');
