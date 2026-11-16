@@ -10,6 +10,7 @@ import { createContext, useContext, useEffect, useRef, useState, type CSSPropert
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor, type ReactNodeViewProps } from '@tiptap/react';
 import { CharacterCount, Placeholder } from '@tiptap/extensions';
 import { IS_DOM, useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from 'expo/dom';
+import { NOTE_CSP } from '../../lib/notePage/csp';
 import { noteExtensions, toBody, toDoc, type BodyFormat } from '../../lib/notePage/schema';
 
 export type Formats = { h1: boolean; h2: boolean; bold: boolean; italic: boolean; bullet: boolean; ordered: boolean; task: boolean; quote: boolean };
@@ -79,9 +80,6 @@ const formatsOf = (e: Editor): Formats => ({
   quote: e.isActive('blockquote'),
 });
 
-/** On a phone the page's document may load nothing from anywhere (NP13); the web's page is the app's own. */
-const CSP = "default-src 'self' 'unsafe-inline' 'unsafe-eval' file: data: blob:; connect-src 'none'; img-src data: blob:; frame-src 'none'; form-action 'none'";
-
 export default function JournalEditor(props: Props) {
   const { ref } = props;
   const cb = useRef(props);
@@ -96,7 +94,7 @@ export default function JournalEditor(props: Props) {
     if (!IS_DOM) return;
     const meta = document.createElement('meta');
     meta.httpEquiv = 'Content-Security-Policy';
-    meta.content = CSP;
+    meta.content = NOTE_CSP;
     document.head.appendChild(meta);
   }, []);
 
