@@ -309,7 +309,7 @@ const FEATURES = [
     rule: 'note-pages',
     source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
     journeys: ['notepage'],
-    specs: ['note-pages'],
+    specs: ['note-pages', 'note-pictures'],
   },
   {
     name: 'motion',
@@ -477,7 +477,9 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'note-pictures': { branch: 'claude/peaceful-goodall-wtqgm5', since: '2026-11-16' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
