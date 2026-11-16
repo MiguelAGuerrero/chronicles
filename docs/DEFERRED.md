@@ -810,3 +810,12 @@ What the reactions slice left out (`specs/reactions`, decision 0176).
 - [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.
 - [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.
 - [loop] **Reaction links** (UI review U3, U5): a reaction panel does not say which moment it acts on (a subtitle with the moment's first words, or the entry scrolled into view above the sheet); Neutral's circled minus reads as "remove" now that a mark is tappable (Ionicons has no neutral face; a drawn one, or another glyph, is a choice for a phone).
+
+## Native map frames
+
+What the native map frames slice (NF1-NF7, specs/native-map-frames) left out, from the performance investigation of Nov 16.
+
+- **The React Compiler is not on** (the owner, Nov 16: its own slice, measured before and after, with a decision record). `app.json` has no `experiments.reactCompiler`, and babel-preset-expo 58 turns it on only from that flag, so only its lint rules run; `docs/research-reactivity.md` assumed it was on. It would still skip `WalkMap.native.tsx`'s main component (its `eslint-disable` lines) and all of `explore.tsx` (a `try` without `catch`).
+- **The replay screen still renders at the clock's 30 fps** (`useCeremonyClock` sets state on the screen): since native map frames it no longer reaches the map's sources or pins; the stage and its overlays are the ceremony's own, left for a measurement on a device.
+- **The hidden `omt-query` source is mounted on every native map** (the replay, a day, the planner drawer, Chronicle), five invisible layers on the base tiles again, though only the maps that read tiles or hide the scale over a blank world need it: mount it only there (performance investigation, Nov 16).
+- **A native follow camera** (`Camera` `trackUserLocation`): it would move without JS per fix, but follows the OS fix, not the filtered one (`docs/research-reactivity.md`); the follow stays `GlideFollow`'s `jumpTo`.

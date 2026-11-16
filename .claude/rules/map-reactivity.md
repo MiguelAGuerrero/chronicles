@@ -27,12 +27,17 @@ paths:
   - The trace is a history source re-sent once per 100 fixes, plus a live
     tail (`splitTrace`). On native, `TraceSource` is memoized, because MapLibre
     RN serializes a source's data on every render (`JSON.stringify` in its
-    `GeoJSONSource`, checked in v11.5). **The budget is the web's**: native glides
-    through React state at ~15 fps (`useGlidingWalker`) and the replay's clock at
-    30, re-rendering every inline source under them; memo each source that does
-    not change per frame, and give the per-frame part its own small component.
-  - Line sources use `tolerance: 1, buffer: 64` (web; native's `GeoJSONSource` takes the same props
-    and does not set them yet).
+    `GeoJSONSource`, checked in v11.5; its own `memo` never holds with inline
+    `<Layer>` children). **The budget is the web's.** Native (native map frames,
+    NF1-NF7): every source is a memo component handed its data and primitives,
+    never an inline object; the glide runs into a frame store (`useGlideFrames`)
+    read only by `ConeSource`, `PointsSource` and `GlideFollow`, three leaves
+    because layer order is mount order; pins are memo lists that read presses
+    from a handlers ref. `mapFrames.test.ts` reads the source for this shape.
+    The React Compiler is **not** on (DEFERRED): nothing memoizes what the code
+    doesn't.
+  - Line sources use `LINE_SOURCE` (`tolerance: 1, buffer: 64`) on both maps, the ids in `LINE_SOURCE_IDS`
+    (`map/types.ts`, NF5).
   - Profiling shows the app's own JavaScript under 2% of a desktop core; the
     rest is the map drawing. Fewer updates is what helps.
   - **A setState with the value already held still renders** when React can't

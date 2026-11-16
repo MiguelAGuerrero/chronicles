@@ -1,5 +1,11 @@
 # Native map frames: plan (NF1-NF7)
 
+**As built (Nov 16):** the glide is not one `GlideLayer`: native layer order is mount order, and the cone and the dot
+sit at different depths, so the frames run into a store and three memo leaves read it (`ConeSource`, `PointsSource`,
+`GlideFollow`). `WalkMap.native.tsx` stays one file (the source scans read it). `glideShown` was pulled out of the hook
+as a pure function so a unit test reaches `useGlidingWalker.ts`. `endsPaint.test.ts`'s two native regexes follow the
+ends into their own source.
+
 For the owner's review before any code. Native only, apart from one shared constant and, if the check below finds one,
 a memo in the replay screens. No screen changes, no data, no migration, no new dependency.
 

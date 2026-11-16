@@ -419,6 +419,8 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Native map frames: the source scans hold the shape; the frame rate is a profiler's on a phone.
+  'native-map-frames': { NF7: 'device: React DevTools on a development build during a walk; npm test cannot render MapLibre RN' },
   // Free look: the out-of-town stars (decision 0115) are queued, not built; FL19 is the call their slice carries.
   'free-look': { FL17: 'deferred: a launch fix that arrives late cannot be staged in the harness; the guard is the screen\'s `lookedRef` and `freeRef` in the fix handler, read by code review', FL19: 'deferred: the out-of-town stars of decision 0115 are not built yet; 0150 records that they follow the look, and that slice carries it' },
   // react-native-web always reports a screen reader, so the check that keeps the viewer's bars is a phone's (UC8).
