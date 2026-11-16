@@ -14,7 +14,7 @@ For the owner to review before any code. Criteria are in `spec.md` (GZ1-GZ19). T
 
 1. **The pack (data).** `scripts/build-gazetteer.js <cities5000.txt> <admin1CodesASCII.txt> <countryInfo.txt> <out.json>` reads GeoNames's tab files and writes the app's pack, **columnar** so it parses fast and stays small:
    `{ id: "geonames-cities5000-2026-11-16", names: [...], ascii: [...], region: [...index into regions], country: [...index into countries], lat: [...int, 1e-4 deg], lon: [...int], regions: [...], countries: [...] }`.
-   Fields kept: the name, its ASCII name, region (admin1 name), country (name), the point. **Population is read at build time to choose alternates (call 2) and then dropped**; GZ13's test fails if the pack holds anything else. Sorted by normalized name at build so the app need not sort. Size is measured and recorded; over 6 MB stops the build and goes to the owner.
+   Fields kept: the name, its ASCII name, region (admin1 name), country (name), the point. **Population is not read at all; alternates are kept for every place that has them, up to three English-looking ASCII ones (steward S1)**; GZ13's test fails if the pack holds anything else. Sorted by normalized name at build so the app need not sort. Size is measured and recorded; over 6 MB stops the build and goes to the owner.
 2. **Core, `src/lib/gazetteer/` (`@layer core`, no React Native).**
    - `normalize.ts`: `fold(text)` (lowercase, NFD, strip combining marks, punctuation to space, "saint"/"st" equivalence, collapsed spaces) and `words(text)`.
    - `pack.ts`: `GazetteerPack` type, `validatePack` (GZ13), `placeAt(pack, i)`.
@@ -77,7 +77,7 @@ Defaults I took that make a control quieter, for the owner to overrule: the magn
 ## Open calls for the owner (recommendation first)
 
 1. **Where the data comes from.** `download.geonames.org` is blocked in this cloud environment. (a) **Allow the host in the environment** (`download.geonames.org`, one proposal you approve), so I build and commit the real pack here. (b) You run the script on your computer and commit the file. (c) I finish everything against a fixture and the real pack lands later, with the unit tests over it still todo. Recommend (a).
-2. **Names people type that are not the local name** ("Munich" for München, "Florence" for Firenze, "Vienna" for Wien). `cities5000` has them in its alternate-names column. Recommend: keep up to three ASCII alternates for places over 100,000 people (population chosen at build time, then dropped), which costs about a fifth in pack size and covers the exonyms an English reader types. Alternatively none, and accept that Munich finds nothing.
+2. **Names people type that are not the local name** ("Munich" for München, "Florence" for Firenze). Revised by the steward (S1): a population test on who gets alternates is a quiet size ranking, so **every place keeps up to three ASCII alternates, by no size test**. Cost: pack size, measured at build; over 6 MB comes back to you. The alternative is none, and Munich finds nothing.
 3. **The magnifier's place.** Recommend beside the title card at the top; the alternative is the right column under Layers. The cold find is the check.
 
 ## Deferred
@@ -96,6 +96,17 @@ The pack's `require` of a 3-5 MB JSON on Hermes (first-open cost); the on-screen
 
 Decision record for this slice (numbered by `npm run book:next-decision` at ship), amending 0150; `docs/PRODUCT.md` (Explore's search); `docs/ARCHITECTURE.md` (the gazetteer pack, one more bundled asset); `.claude/rules/explore-search.md` (narrow `paths:`); a `/docs-gc`.
 
-## Steward's findings
+## Steward's findings (Nov 16)
 
-<!-- Triaged here after the steward runs. -->
+One breach, five drifts, one tone; nothing edited by the steward. Accepted: all but where noted.
+
+- **S1 accept** (alternates by size, a hidden cut): no population test; GZ13 adds the alternates rule; GZ4 ends a capped list with "Keep typing to narrow it.", the nearest kept, later words may match region and country so every place is reachable (GZ3).
+- **S2 accept**: no distance on rows (GZ5); "Distance on a result" stays deferred.
+- **S3 accept**: the order's origin is an argument; a unit test shows a search after a pick uses the live map's middle, not `savedCamera` (GZ4).
+- **S4 accept**: the planner hides the magnifier; wide layout, no-fix state, an open card and a banner join GZ17/GZ19; the magnifier's id goes in `NAMES_CLEAR_OF` and `exploreSlots`; a pick cancels an in-flight Look here (`look-cancel`) first (GZ6). Journey rows added to GZ6, GZ17, GZ19.
+- **S5 accept**: `lookWords(named)` covers title, subtitle, row label, announcement and empty line (GZ6); unit test "GZ6: no named word says the middle of the map".
+- **S6 accept**: the live region speaks on none/some/loading changes only (GZ11).
+- **S7 accept**: "Search is unavailable." without an apology (GZ8).
+- **Credits**: the real places are `AtlasCard.tsx` (the credit line), `WalkMap.web.tsx` (MapLibre attribution, `OVERTURE_CREDIT`) and the native path; `index.tsx` has none. GZ14 names them; check decision 0115 PW15's planned GeoNames credit is not duplicated.
+- **Testability**: GZ15 uses a generous bound and a comparison count; GZ6's announcement is checked with the announcement spy; the cold find is recorded in the spec's Record.
+- **Owner questions**: (1) a row's region and country is context, not a moment: no conflict. (2) A capped list is reachable by typing more (S1). (3) Move map is named as the way on (GZ7). (4) Exonyms: now kept for all places. (5) The decision record amends 0150 and also 0092/EC10 (a pick moves the map with Move map off): confirm.
