@@ -1,4 +1,4 @@
-# Quick circuit: plan (QC1-QC20)
+# Quick circuit: plan (QC1-QC24)
 
 Written 2026-11-16, for the owner's review before any code. It reuses the walk planner (0102) rather than adding a second one.
 
@@ -21,16 +21,17 @@ New, `src/lib/outing/` (each starts with `// @layer`):
 | `plan.ts` | core | `planOuting(input, leg)`: picks, then orders with the planner's fitting; a loop or one way; the ceiling and retrace rules; reasons (`noPosition`, `few`, `noRoute`, `noLoop`) (QC4-QC7, QC20) |
 | `swap.ts` | core | `swapStop(plan, index, places, ...)`: the nearest other place of the class not held, wrapping, none says so (QC12) |
 | `words.ts` | core | the slot line, the distance-on-from-the-last-point words, the one hours line, the reasons in words; banned-word grep test (QC8, QC11, QC16) |
-| `dest.ts` | core | `outingDest(plan)`: a `Waypoint` like `destFor` (`via`, `path`, `suggested`, `loop`) plus `stopNames` (QC13) |
+| `dest.ts` | core | `outingDest(plan)`: a `Waypoint` like `destFor` (`via`, `path`, `suggested`, `loop`), positions only (QC13, QC21) |
 | `service.ts` | shell | `createOutingPlanner(deps)`: reads the tiles around the walker (the planner's `read`), calls `planOuting`; keeps nothing (QC17) |
-| `arrival.ts` | core | `stopNameWithin(dest, fix, said)`: the name of a stop within 60 m, once (QC10) |
+| `arrival.ts` | core | `stopWithin(dest, fix, said)`: which stop is within 60 m, once; the shell resolves its name from the tiles then (QC10, QC21) |
 | `useOuting.ts` | view | the hook the page calls |
 
 Touched:
 
 - `src/lib/walkPlanner/planner.ts`: export `fitOrder` (a one-word change) and nothing else.
 - `src/lib/presence/presence.ts`: `shop/antiques` gives `['boutique', 'antiques']`; `PresenceClass` gains `antiques` (weight and storefront as `boutique`, no category of its own, so bars and marks cannot move); `PRESENCE_CODE` bumped, `PRESENCE_CARRIED` set only if the readers' golden shows nothing derived changed (QC19). Overture's antiques category gets the same. The goldens are re-captured and listed in this spec.
-- `src/lib/nav/types.ts`: `Waypoint.stopNames?: (string | null)[]`, parallel to `via`. Held only so the walk can say a name on arrival; the destination already lives with its walk and is cleared with it (QC17).
+- `src/lib/nav/types.ts`: no change. The names are not stored (steward S1): the arrival's shell reads the tiles around the fix and names the place nearest the stop.
+- The page's `WalkMap` and the walk's map: the basemap's shop and POI labels are dropped near a stop in the circuit's style, the stops being plain points (QC21). Whether `WalkMap` can filter its basemap labels is the first thing to check at test-first; if it cannot, the proposal's page draws the route on a map style without POI labels and the walk's map is a native, unverified gap recorded in DEFERRED.
 - `src/lib/nav/useNavigation.ts` (or the walk screen's chip row): shows the arrival line from `arrival.ts` (QC10).
 - `src/components/outing/OutingDrawer.tsx`: the planner's drawer shell (`useHideTabs`, `PlannerCapture`, the map `WalkMap` with the proposal's route), slots, Swap, the Loop/One way pair, the hours line, Start. `RouteRows` is not used: there is one proposal.
 - `src/app/(tabs)/explore.tsx`: the entry control, state `outingOpen`, and the map stepping aside as the planner's does (NV4).
@@ -66,7 +67,11 @@ every presence change does (PS9).
 | QC17 | `service.test.ts` over `fakePorts()` (no db write, no meta write); `meta.test.ts` unchanged |
 | QC18 | `intents.test.ts` (a second fixture intent plans with no code change); a grep test that `planner.ts`/`plan.ts` hold no 'antiques' |
 | QC19 | `presence.test.ts` (the class pair); `readers.golden.json` re-captured |
-| QC20 | `plan.test.ts` (no position); journey (the capture stack on the page while a walk records) |
+| QC20 | `plan.test.ts` (no position); journey (the capture stack on the page, with and without a walk) |
+| QC21 | `dest.test.ts` (serialised destination holds no place name); `mapStyle.test.ts` (no POI label layer near a stop); journey picture |
+| QC22 | `words.test.ts` (no ordinal, "of", remaining count in any string); journey (no glyph, accessible names) |
+| QC23 | `arrival.test.ts` (the view calls no `feedback()`, notifier or accent token: a source grep) |
+| QC24 | journey (one control, no badge or count text) |
 
 The journey `outing` (new, `scripts/e2e/journeys/outing.js`) runs on the e2e's fake street grid; a loop needs a grid, as the planner's note
 says, so the journey checks a loop on the grid and the `noLoop` sentence where it has one street. Journeys to run at the end: `outing`,
@@ -102,7 +107,9 @@ chip, not a banner; Swap is text, not a button with ink.
    Start; a row in "What I'm into".
 2. **Loop first, with One way on the page, not remembered** (my reading of "choose each time"). The alternative asks Loop or One way before any
    proposal, which is two taps.
-3. **A new presence class `antiques` beside `boutique`** (no category of its own), so bars, marks and weights do not move. The alternative, a
+3. **Swap's limit.** Recommended: no wrap, and a place offered for a slot is not offered for it again, so Swap cannot be pressed round the town
+   like a shop window (the steward's S2). The alternative keeps the wrap; names are still shown only on a tap.
+4. **A new presence class `antiques` beside `boutique`** (no category of its own), so bars, marks and weights do not move. The alternative, a
    subset of Shops through the kind pipeline (0144), makes a "kind" the owner can switch in "What I'm into" and touches the atlas.
-4. **The stop names ride in the walk's destination**, shown only within 60 m. They are not displayed before, but they are data in the walk's stored
-   destination. The alternative is to look the name up again on arrival from the tiles (no data at rest, one more read on the walk).
+Settled, not a choice: **the steward's S1.** no name is stored; it is looked up from the tiles on arrival or on a tap. The cost is one
+   tile read on the walk (the planner's `read`), and a name can differ if the tiles changed.

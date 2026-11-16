@@ -30,7 +30,7 @@ Verdict: aligned if reshaped
 Shape: one proposal, not several; the stops are slots said by kind and named on a tap or on arrival, so the outing stays a discovery
   and not a checklist; swap offers another place of the same kind; hours are not known and are said once; the walk is an ordinary
   walk with a suggested destination (distance only, drifting never nagged)
-Criteria: QC1-QC20 below
+Criteria: QC1-QC24 below
 Open: the owner's answers of Nov 16 are in Decisions; the entry's place and the loop default are the plan's (plan.md, "For the owner")
 ```
 
@@ -70,16 +70,18 @@ The stops are discoveries:
 
 - **QC8.** A slot reads "An antiques shop" and how far it is from the one before, in words ("a short walk on"); it carries no name, no
   number, no rank and no time. Its name is not in the page's text, its accessible name or its map layer.
-- **QC9.** A tap on a slot names the shop on a card (name and kind and distance in words, "Hours unknown") and nowhere else.
-- **QC10.** On the walk, within 60 m of a stop the walk screen says its name once, quietly; the name is not kept as a find and is not a
-  moment. Passing it unseen says nothing.
-- **QC11.** The page says once, apart from the slots, that opening hours are not known here. No slot says a shop is open or closed.
+- **QC9.** A tap on a slot names the shop on a card (name, kind and distance in words) and nowhere else. The card does not say anything of hours.
+- **QC10.** On the walk, within 60 m of a stop the walk screen says its name once, as an on-screen chip; the name is resolved from the
+  tiles at that moment, is not kept as a find and is not a moment. Passing it unseen says nothing.
+- **QC11.** The page says once, apart from the slots and cards, "Opening hours aren't known here." It is a statement: no imperative or
+  modal ("check", "call ahead", "may be closed"). No slot or card says a shop is open or closed or that its hours are unknown.
 
 Swap and detour:
 
-- **QC12.** Each slot has Swap. It replaces that stop with the nearest other antiques shop within the ceiling that the circuit does not
-  already hold, and replans the order. With none it says "No other antiques shop within reach." and changes nothing. Swap keeps no
-  history: pressing it past the last shop wraps to the first it replaced.
+- **QC12.** Each slot has Swap, labelled "Swap this stop", never with a shop's name. It replaces that stop with the nearest other antiques
+  shop within the ceiling that the circuit does not hold, and replans the order. It closes any open card, and the new slot is unnamed.
+  With none it says "No other antiques shop within reach." and changes nothing. Swap keeps no history and does not wrap: a place
+  offered in place of a slot is not offered for it again (the steward's S2; the owner may lift this, plan "For the owner" 3).
 - **QC13.** Start begins an ordinary walk (or routes the open one) whose destination is the proposal: its stops as `via`, its path
   followed as planned, `suggested` so the walk screen says distance only and never a time (as the planner's, WP19, WP24).
 - **QC14.** Leaving the proposed path is never flagged: no alarm, banner or "off route" nag beyond what any suggested destination
@@ -97,8 +99,22 @@ Words and rules:
   adding an intent adds an entry and its tests.
 - **QC19.** Presence reads `shop=antiques` (and Overture's antiques) as the class `antiques` beside `boutique`: the bars, weights,
   storefront streets and marks are unchanged, held by the readers' golden; `PRESENCE_CODE` is bumped.
-- **QC20.** With no position the page says it needs one and proposes nothing (no simulation); with a walk recording the page carries the
-  capture stack as the planner's does (WP23).
+- **QC20.** With no position the page says it needs one and proposes nothing (no simulation). With the drawer open the capture stack is
+  visible and reachable in one tap, before or during a walk, or this spec records why it is not, as the planner's precedent (WP23)
+  does; decided at test-first by reading `PlannerCapture` and `useHideTabs`.
+
+The steward's review (S1-S8, 2026-11-16), accepted:
+
+- **QC21.** (S1, S3) No stop's name is in the walk's destination, the stored walk, anything handed to Maps or shared, the page's text or
+  accessible names, or any map label or marker text: the destination holds positions only, and a name is resolved from the tiles at
+  the moment of a tap or of arrival. On the page and on the followed walk the basemap's shop and POI labels are not drawn near a stop;
+  the stops are plain unlabelled points. Tested by serialising the destination (no place name in it) and by the map style's layer
+  filter; the e2e picture checks it.
+- **QC22.** (S4) No slot, accessible name or walk line carries an ordinal, "of N", a progress glyph or a remaining count; slots are not
+  numbered; after a stop is reached nothing marks it done, and the walk screen never says how many stops remain.
+- **QC23.** (S6) The arrival line is an on-screen chip only: no haptic, sound, notification or accent colour; it never overlaps or
+  displaces the capture stack and fades without a tap.
+- **QC24.** (S8) The entry is one control in the map controls' existing style, with no badge, no count and no nearby-count text.
 
 ## Surfaces (from the code)
 
