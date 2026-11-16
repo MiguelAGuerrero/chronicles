@@ -57,7 +57,7 @@ test('GH10: the sheet\'s own words hold no digit, minutes, "fastest" or count; t
 
 test('GH14: a decision record cites 0058 and 0121 and lists the tile as a host', () => {
   const dir = new URL('../../../../docs/decisions/', import.meta.url);
-  const hit = readdirSync(dir).filter((f) => /go-here/.test(f)).map((f) => readFileSync(new URL(f, dir), 'utf8'));
+  const hit = readdirSync(dir).filter((f) => f.startsWith('0180')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
   assert.ok(hit.length === 1, 'one record for Go here');
   assert.match(hit[0], /0058/);
   assert.match(hit[0], /0121/);
@@ -69,4 +69,48 @@ test('GH15: a Go here tap decides only between the maps app, saving a destinatio
   const seen = new Set<string>();
   for (const choice of ['app', 'maps'] as const) for (const open of [false, true]) seen.add(goHereDo(choice, open));
   assert.deepEqual([...seen].sort(), ['later', 'maps', 'start']);
+});
+
+// ---- Go here on the rest of the surfaces (specs/go-here-everywhere, GE1-GE13). Test first: todos until the code lands. ----
+
+test('GE5: a row too far to walk still has Go here, and Go here never asks the far question', { todo: 'test first' }, async () => {
+  const { rowActions } = await import('../../atlas/goHere');
+  assert.deepEqual(rowActions({ walkable: true }), { walk: true, go: true });
+  assert.deepEqual(rowActions({ walkable: false }), { walk: false, go: true });
+});
+
+test('GE7: not on the card of the area you are in, nor while a far question is open, nor below the long press\'s zoom', { todo: 'test first' }, async () => {
+  const { cardCanGoHere, spotCanGoHere } = await import('../../atlas/goHere');
+  assert.equal(cardCanGoHere({ here: false, asking: false }), true);
+  assert.equal(cardCanGoHere({ here: true, asking: false }), false, 'You\'re in <area>: no Walk to, no Go here');
+  assert.equal(cardCanGoHere({ here: false, asking: true }), false, 'the question is open');
+  assert.equal(spotCanGoHere({ zoom: 12, asking: false }), true);
+  assert.equal(spotCanGoHere({ zoom: 11.9, asking: false }), false, 'below zoom 12 Explore\'s long press has no Walk here');
+  assert.equal(spotCanGoHere({ zoom: 15, asking: true }), false);
+});
+
+test('GE4: the Chronicles row says it routes your walk when one is open, and opens Navigate otherwise', { todo: 'test first' }, async () => {
+  const { goHereChoices } = await import('../../atlas/goHere');
+  assert.match(goHereChoices('Apple Maps', undefined, false)[0].hint, /Opens Navigate, ready/);
+  assert.match(goHereChoices('Apple Maps', undefined, true)[0].hint, /Routes your walk/);
+  assert.doesNotMatch(goHereChoices('Apple Maps', undefined, true)[0].hint, /Navigate, ready/);
+});
+
+test('GE13: only the destination leaves; a star\'s title and "Your spot" never ride in the link', { todo: 'test first' }, async () => {
+  const { shareLabel } = await import('../../atlas/goHere');
+  const { mapsUrls } = await import('../../nav/handoff');
+  assert.equal(shareLabel('area', 'Cranston'), 'Cranston');
+  assert.equal(shareLabel('star', 'The bakery smelled of cardamom'), 'Destination');
+  assert.equal(shareLabel('spot', 'Your spot'), 'Destination');
+  for (const kind of ['star', 'spot'] as const) {
+    const urls = mapsUrls([-71.4, 41.8], shareLabel(kind, 'Your spot and my words'), 'geo').join(' ');
+    assert.doesNotMatch(decodeURIComponent(urls), /Your spot|my words/);
+  }
+});
+
+test('GE12: a decision record cites 0180, 0058 and 0121, lists the hosts and keeps the dead-zone nudge deferred', { todo: 'test first' }, () => {
+  const dir = new URL('../../../../docs/decisions/', import.meta.url);
+  const hit = readdirSync(dir).filter((f) => /go-here/.test(f) && !f.startsWith('0180')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
+  assert.ok(hit.length === 1, 'one record for Go here on the rest of the surfaces');
+  for (const need of [/0180/, /0058/, /0121/, /busy/i, /complex/i, /long-press|long press/i, /star/i, /dead-zone/i]) assert.match(hit[0], need);
 });

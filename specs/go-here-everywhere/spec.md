@@ -41,6 +41,9 @@ Not hosts, each with its reason:
 ## Decisions (the owner's calls)
 
 - **Every surface above** (Nov 16: "the rest of the surfaces that allow it").
+- **The sheet on Chronicle sits at the top**, under the status bar, so it can never cover the capture band; Explore's stays at the foot (the owner, Nov 16).
+- **Chronicle's long-press card offers Go here at a bare spot**, "Your spot", as Explore's does (the owner, Nov 16).
+- **The far footer shows Go here** beside "When I get there"; the sheet is the way to the maps app, and its Chronicles row repeating the button is harmless (the owner, Nov 16).
 - **Inherited from 0180** (Nov 14): Chronicles first, the phone's maps app second; the sheet is a plain card, never a Modal; ink, no fill or border at rest; a saved destination is said to be replaced, once.
 
 ## Criteria
@@ -72,12 +75,6 @@ Not hosts, each with its reason:
 11. **GE11 · Nothing new is kept.** The only thing saved is the destination Navigate already holds for no walk (meta `nav`); no new truth or cache, migration or dependency, and no host is asked beyond the maps app's own link on a tap. A tap is not a visit: it feeds familiarity and "New to you" nothing (GH15).
 12. **GE12 · A record.** A decision record cites 0180, 0058 and 0121, lists each host above, says 0058's deferred "Explore mark card" has no card, that the home's Walk here now has Go here beside it, and that the dead-zone nudge stays deferred. It says the star sheet is a place's surface of Navigate, not a moment's toolbar, so 0114's rule on a moment's actions does not apply.
 13. **GE13 · What leaves the device is the destination.** The link handed to the maps app carries the coordinates; the only label on it (Android's `geo:` link) is the area's name for an area, a complex or a street, and "Destination" for a star or a pressed spot. Neither a star's title (the owner's words) nor "Your spot" leaves the device (the steward's S7, 0058).
-
-## Open choices (defaults taken in the plan; the owner decides)
-
-- **Where the sheet sits on Chronicle**: at the top of the screen under the status bar (a default: it can never touch the capture band, which is at the foot), against above the card in place (reach is better, a collision is more likely).
-- **Chronicle's long-press card**: Go here is offered at a bare spot named only "Your spot" (a default: yes, the same job as Explore's).
-- **The far footer**: Go here is shown beside "When I get there", whose Chronicles row repeats the button (a default).
 
 ## Routes and data
 
