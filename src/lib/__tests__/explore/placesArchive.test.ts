@@ -89,7 +89,10 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     overlook: ['viewpoints', 'viewpoints'], tower: ['viewpoints', 'viewpoints'],
     church: ['history', 'churches'], cemetery: ['history', 'cemeteries'], theatre: ['culture', 'theatres'], museum: ['culture', 'museums'],
     historic_site: ['history', 'monuments'], building_structure: ['history', 'structures'],
-  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111)');
+    // Contract v3 (specs/small-places SP3, decision 0183): the parent kind; the subset is a refinement's (plaques and the rest).
+    small_memorial: ['history', 'monuments'], old_stone: ['history', 'structures'], wayside_shrine: ['history', 'churches'],
+    time_capsule: ['viewpoints', 'curiosities'], public_bookcase: ['culture', 'community'], community_garden: ['parks', 'parks'],
+  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111), v3 too (SP3)');
   const got = placesFromArchive([pt(-75.19, 40.69, { name: 'Bushkill Park Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(-75.19, 40.691, { name: 'A shop', class: 'shop', src: 'osm', id: 'n2' })], 'v20261108');
   assert.equal(got.length, 1, 'the shop\'s class is not in the table: left out, never guessed');
   assert.deepEqual([got[0].category, got[0].kind, got[0].markable, got[0].build], ['viewpoints', 'curiosities', true, 'v20261108']);
@@ -233,7 +236,7 @@ test('PW10: a read without the archive never replaces one measured with it; a ri
 });
 
 test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again too (PK7: the bars changed at every level); a9 too (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a13.p3', 'a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
+  assert.equal(ATLAS_CODE, 'a14.p4', 'a14.p4 (small places, SP12, SP13), a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
   for (const level of ['neighborhood', 'town'] as const)
     assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), false, `${level} rows from a6 are read again`);
 });

@@ -155,7 +155,14 @@ recording, and a recording bar brings a minimized walk back.
   place in both the map and the archive, of the same name and kind within
   200 m, is one place. The rule that takes a National Register listing when the
   place is public (its type, a sign it is open, or a Landmark) is built and
-  moves to chronicles-data's pipeline. `npm run places:coverage` measures what
+  moves to chronicles-data's pipeline. **Small places** (decision 0183): OpenStreetMap adds places of its own for a
+  fixed table of small things, the kind Pikmin Bloom's postcards reach: time capsules and little libraries (on by
+  default), plaques and markers, small memorials (benches, ghost bikes, Stolpersteine), milestones and boundary stones,
+  and wayside shrines and crosses (off by default), each a switch under its kind in "What I'm into"; typed murals,
+  sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
+  capsule"). An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
+  reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among
+  plaques. `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
 - **Complexes** (CX1-CX16, decision 0147). A named place made of other places (Strawberry Square,
   the Lehigh Valley Mall; a market, a campus, a station, a civic centre) is a subdivision of the area

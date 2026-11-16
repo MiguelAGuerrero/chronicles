@@ -6,7 +6,8 @@ import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
-import { isKindHidden } from '../discovery/refinements';
+import { isKindHidden, kindParent } from '../discovery/refinements';
+import { DEFAULT_OFF, keepTheLows, passedNames, SMALL_SUBSETS } from '../discovery/smallPlaces';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
@@ -53,6 +54,16 @@ export interface KindInfo {
   icon: string;
 }
 
+/** SP3: the small subsets of a parent, as rows of "What I'm into", with their own icons. */
+function small(parent: Kind): KindInfo[] {
+  const ICON: Partial<Record<Kind, string>> = {
+    // small-places ui 1: an easel read as art; a sheet with lines reads as a sign with words on it.
+    plaques: 'document-text-outline', small_memorials: 'flower-outline', old_stones: 'trail-sign-outline',
+    wayside_shrines: 'flame-outline', time_capsules: 'hourglass-outline', little_libraries: 'bookmarks-outline',
+  };
+  return SMALL_SUBSETS.filter((s) => s.parent === parent).map((s) => ({ id: s.kind, label: s.label, icon: ICON[s.kind] ?? 'ellipse-outline' }));
+}
+
 /** The "What I'm into" switches, in their order (E16). */
 export const KINDS: readonly KindInfo[] = [
   { id: 'public_art', label: 'Public art', icon: 'color-palette-outline' },
@@ -60,10 +71,15 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'theatres', label: 'Theatres', icon: 'ticket-outline' },
   // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
   { id: 'community', label: 'Community spaces', icon: 'reader-outline' },
+  ...small('community'),
   { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline' },
+  // SP2, SP3, SP10 (decision 0183): small places, each a subset after its parent; the History ones start off (SP7).
+  ...small('monuments'),
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
   { id: 'structures', label: 'Buildings and structures', icon: 'home-outline' },
+  ...small('structures'),
   { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
+  ...small('churches'),
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
   // PC6: a subset of Parks the reader can switch off; the rest stay. Named only here and on a found place (PC16).
@@ -71,7 +87,14 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
+  ...small('curiosities'),
 ];
+
+/** small-places ui 2: what a subset row tells a screen reader of its parent ("Part of Monuments and memorials"); none for a kind of its own. */
+export function kindHint(id: Kind): string | undefined {
+  const parent = kindParent(id);
+  return parent ? `Part of ${kindOf(parent).label}` : undefined;
+}
 
 export const kindOf = (id: Kind): KindInfo => KINDS.find((k) => k.id === id) ?? KINDS[0];
 
@@ -526,7 +549,8 @@ export function passedPlaces(o: { items: ChecklistItem[]; fixes: { at: LngLat; t
   const shown = o.items.filter((i) => !isKindHidden(o.hidden, i.kind));
   const named = revealedKeys(shown, o.fixes.filter((f) => f.t >= o.since).map((f) => f.at));
   const seen = new Set<string>();
-  return shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key));
+  // SP20: small places only when nothing else was passed.
+  return keepTheLows(shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key)));
 }
 export const passedCount = (o: Parameters<typeof passedPlaces>[0]): number => passedPlaces(o).length;
 
@@ -549,10 +573,9 @@ export function passedAlong(o: Parameters<typeof passedPlaces>[0]): (ChecklistIt
  * reads in the sentence's case.
  */
 export function passedLine(places: { name: string; generic: boolean }[]): string | null {
-  if (!places.length) return null;
-  if (places.length > 2) return 'Passed a few places without stopping';
-  const names = places.map((p) => (p.generic ? p.name.charAt(0).toLowerCase() + p.name.slice(1) : p.name));
-  return `Passed ${names.join(' and ')} without stopping`;
+  // SP22: two unnamed of one type in the plural ("Passed plaques without stopping").
+  const names = passedNames(places);
+  return names ? `Passed ${names} without stopping` : null;
 }
 
 const kindsIn = (raw: string | null): Kind[] => {
@@ -571,6 +594,9 @@ const kindsIn = (raw: string | null): Kind[] => {
  */
 export function parseHidden(raw: string | null, known: string | null = null): Set<Kind> {
   const out = new Set(kindsIn(raw));
-  if (out.has('museums') && !kindsIn(known).includes('community')) out.add('community');
+  const knew = kindsIn(known);
+  if (out.has('museums') && !knew.includes('community')) out.add('community');
+  // SP7, SP8: a subset that starts off is off until the reader has seen it (a save writes every kind as known), fresh or updated.
+  for (const k of DEFAULT_OFF) if (!knew.includes(k)) out.add(k);
   return out;
 }

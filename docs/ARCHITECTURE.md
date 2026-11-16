@@ -242,6 +242,7 @@ Discovery and Explore (v1)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), keepFindKeys (a find keeps its key); the owner's edits are applied in chronicles-data (decision 0108)
   discovery/refine.ts        the kind pipeline's engine: Refinement, refine() (pure, in order; PC18-PC19, decision 0144)
   discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch, kindRows (PC20-PC23)
+  discovery/smallPlaces.ts   small places (SP3-SP22, decision 0183): SMALL_SUBSETS (rows, plurals, defaults), DEFAULT_OFF, SMALL_REFINEMENTS (a subset by presence's `subset`), isSmallPlace, passedNames, keepTheLows, foundRows
   discovery/parkKind.ts      communityParks: the first refinement, Parks into Community parks by name and what is near (PC1-PC5; its curation in communityWords.json, parkNotable.json; notable names are presence's notableName, PS3)
   discovery/green.ts         the tiles' park outlines, from presence's classesOfLandcover (PS4): GreenArea, greenFromTiles, outlinesOf; scenic routes re-export it
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)

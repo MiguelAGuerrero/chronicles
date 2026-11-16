@@ -6,6 +6,7 @@ import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, projector, type Bounds } from '../geo';
 import type { LngLat } from '../types';
 import { NAV, SCENIC } from './rules';
+import { isSmallPlace } from '../discovery/smallPlaces';
 
 /**
  * What a scenic route leans toward (specs/scenic-routes, SR6, SR15), from one read of the tiles
@@ -45,7 +46,8 @@ const SIGHT_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'culture', 'v
 /** SR6: the places a Sights route leans toward: marks of a kind switched on in "What I'm into". */
 export function sightsFrom(places: Place[], hidden: Set<Kind>, found: Set<string>): Sight[] {
   return places
-    .filter((p) => SIGHT_CATEGORIES.includes(p.category) && isMarkable(p) && !isKindHidden(hidden, p.kind))
+    // SP16: a Sights route never leans on small places, on or off (decision 0183).
+    .filter((p) => SIGHT_CATEGORIES.includes(p.category) && isMarkable(p) && !isKindHidden(hidden, p.kind) && !isSmallPlace(p))
     .map((p) => ({ key: p.key, at: p.at, name: p.name, found: found.has(p.key) }));
 }
 
