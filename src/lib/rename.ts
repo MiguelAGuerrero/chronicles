@@ -29,3 +29,20 @@ export function renamePatch(
   const suggested = [suggestTitle(walk), offered].filter((s): s is string => !!s).map((s) => cut(s, TITLE_MAX));
   return { title: t && !suggested.includes(t) ? t : null, epilogue: e || null };
 }
+
+/** The words Rename opens with (QL22): the stored title, else the suggestion, and the stored line. */
+export function renameFields(walk: Walk): { title: string; epilogue: string } {
+  return { title: walk.title ?? suggestTitle(walk), epilogue: walk.epilogue ?? '' };
+}
+
+/**
+ * Whether stepping out of Rename by a tap outside, Escape or Back asks first (decision 0172, O17, as the media
+ * editor's Close does): when Save would store other words than the editor opened with. Both are read through
+ * `renamePatch`, so spaces at either end, or a suggestion kept or cleared, close at once.
+ */
+export function renameChanged(walk: Walk, title: string, epilogue: string): boolean {
+  const opened = renameFields(walk);
+  const was = renamePatch(walk, opened.title, opened.epilogue);
+  const now = renamePatch(walk, title, epilogue);
+  return was.title !== now.title || was.epilogue !== now.epilogue;
+}

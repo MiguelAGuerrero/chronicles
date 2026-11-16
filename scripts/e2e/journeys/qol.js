@@ -1126,6 +1126,71 @@ async function run(h) {
       await pg.click('[data-testid=actions-cancel]');
       await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
     });
+
+    // tend chronicle 9 (decision 0172, O17): a tap outside or Escape with changed words in Rename asks first, in the
+    // media editor's words; Escape on the ask keeps editing, Discard steps out to the menu with nothing stored, and
+    // words left as they opened close at once. Pictured at 320 px with the ask open.
+    await qstep('tend chronicle 9', async () => {
+      const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 640 });
+      const storedTitles = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.map((w) => w.title).sort());
+        };
+      }));
+      const state = async () => ({
+        ask: await pg.locator('[data-testid=rename-ask]').count(),
+        editor: await pg.locator('[data-testid=rename-editor]').count(),
+        menu: await pg.locator('[data-testid=walk-actions]').count(),
+        askText: (await pg.locator('[data-testid=rename-ask]').allInnerTexts()).join(' | '),
+        title: (await pg.locator('[data-testid=rename-title]').count()) ? await pg.locator('[data-testid=rename-title]').inputValue() : null,
+      });
+      try {
+        const before = await storedTitles();
+        await pg.locator('[data-testid=walk-more]').first().click();
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        await pg.locator('[data-testid=rename-title]').fill('A name half typed');
+        // The backdrop, above the sheet.
+        await pg.mouse.click(160, 30);
+        await pg.waitForTimeout(400);
+        const tapped = await state();
+        await shot(pg, 'qol-04c-rename-ask-320');
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(400);
+        const kept = await state();
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(400);
+        const escaped = await state();
+        await pg.click('[data-testid=rename-discard]');
+        await pg.waitForTimeout(400);
+        const discarded = await state();
+        const after = await storedTitles();
+        // Opened again and left as it was: a tap outside steps out at once.
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        await pg.mouse.click(160, 30);
+        await pg.waitForTimeout(400);
+        const unchanged = await state();
+        check(tapped.ask === 1 && tapped.editor === 1 && tapped.title === 'A name half typed'
+          && /Discard these edits\?/.test(tapped.askText) && /Keep editing/.test(tapped.askText) && /Discard$/.test(tapped.askText.trim())
+          && kept.ask === 0 && kept.editor === 1 && kept.title === 'A name half typed'
+          && escaped.ask === 1 && escaped.editor === 1
+          && discarded.editor === 0 && discarded.menu === 1 && JSON.stringify(after) === JSON.stringify(before)
+          && unchanged.ask === 0 && unchanged.editor === 0 && unchanged.menu === 1,
+          `tend chronicle 9: a tap outside or Escape with changed words asks first, Escape keeps editing, Discard stores nothing, unchanged words close at once (${JSON.stringify({ tapped, kept, escaped, discarded, unchanged, before, after })})`);
+      } finally {
+        await pg.click('[data-testid=rename-discard]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=rename-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=actions-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        if (vp) await pg.setViewportSize(vp);
+      }
+    });
     await c.close();
 
     // tend map 3 at 320 px: the credits stay reachable, and open over no control, on every map of a narrow phone.

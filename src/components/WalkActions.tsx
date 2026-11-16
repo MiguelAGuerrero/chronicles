@@ -3,7 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleShee
 import { db } from '../lib/db';
 import { deleteWalk, planWalk, removeWalkMedia, type WalkPlan } from '../lib/deletion';
 import type { DeleteKind } from '../lib/deletion/core';
-import { EPILOGUE_MAX, renamePatch, TITLE_MAX } from '../lib/rename';
+import { EPILOGUE_MAX, renameChanged, renameFields, renamePatch, TITLE_MAX } from '../lib/rename';
 import { shareLogText, walkLogText } from '../lib/shareLog';
 import { suggestTitle } from '../lib/summary';
 import { ConfirmCard } from './ConfirmCard';
@@ -29,6 +29,8 @@ export function WalkActions(props: {
   const [failed, setFailed] = useState(false);
   const [asking, setAsking] = useState<'walk' | 'media' | null>(null);
   const [renaming, setRenaming] = useState(false);
+  // A tap outside, Escape or Back with changed words asks first, as the media editor's Close does (tend chronicle 9).
+  const [discarding, setDiscarding] = useState(false);
   const [title, setTitle] = useState('');
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -59,6 +61,7 @@ export function WalkActions(props: {
       setFailed(false);
       setAsking(null);
       setRenaming(false);
+      setDiscarding(false);
       setSaving(false);
       setSaveError(false);
       setLogNote(null);
@@ -78,18 +81,29 @@ export function WalkActions(props: {
     });
   };
 
-  // Escape and Back step out of the confirm or the editor first, then the sheet (QL22).
+  // Escape and Back step out of the confirm or the editor first, then the sheet (QL22). Out of the editor, words
+  // that would store something new ask first, and Escape or a tap outside the ask keeps editing (tend chronicle 9;
+  // decision 0172, O17). Cancel is a choice already made: it leaves at once.
   const close = () => {
     if (asking) setAsking(null);
     else if (renaming) {
-      if (!saving) setRenaming(false);
+      if (saving) return;
+      if (discarding) setDiscarding(false);
+      else if (plan && renameChanged(plan.walk, title, epilogue)) setDiscarding(true);
+      else setRenaming(false);
     } else props.onClose();
+  };
+  const leaveRename = () => {
+    setDiscarding(false);
+    setRenaming(false);
   };
   const startRename = () => {
     if (!plan) return;
-    setTitle(plan.walk.title ?? suggestTitle(plan.walk));
-    setEpilogue(plan.walk.epilogue ?? '');
+    const fields = renameFields(plan.walk);
+    setTitle(fields.title);
+    setEpilogue(fields.epilogue);
     setSaveError(false);
+    setDiscarding(false);
     setRenaming(true);
   };
   const saveRename = async () => {
@@ -237,16 +251,29 @@ export function WalkActions(props: {
               style={styles.input}
             />
             {saveError ? <Text style={styles.error} accessibilityRole="alert">Couldn’t save. Try again.</Text> : null}
-            <Button testID="rename-save" label="Save" onPress={saveRename} busy={saving} busyLabel="Saving…" style={styles.save} />
-            <Pressable
-              testID="rename-cancel"
-              accessibilityRole="button"
-              disabled={saving}
-              onPress={close}
-              style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
+            {discarding ? (
+              // The media editor's Close confirm, in its words (tend chronicle 9).
+              <View testID="rename-ask" style={styles.ask} accessibilityLiveRegion="polite">
+                <Text style={styles.askText}>Discard these edits?</Text>
+                <View style={styles.askRow}>
+                  <Button testID="rename-keep" label="Keep editing" variant="secondary" onPress={() => setDiscarding(false)} style={styles.flex} />
+                  <Button testID="rename-discard" label="Discard" variant="danger" onPress={leaveRename} style={styles.flex} />
+                </View>
+              </View>
+            ) : (
+              <>
+                <Button testID="rename-save" label="Save" onPress={saveRename} busy={saving} busyLabel="Saving…" style={styles.save} />
+                <Pressable
+                  testID="rename-cancel"
+                  accessibilityRole="button"
+                  disabled={saving}
+                  onPress={leaveRename}
+                  style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         )}
         {asking && plan && (
@@ -281,4 +308,8 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },
   error: { fontSize: 14, color: theme.danger },
   save: { marginTop: 8 },
+  ask: { gap: 10, marginTop: 8 },
+  askText: { fontSize: 16, color: theme.ink, textAlign: 'center' },
+  askRow: { flexDirection: 'row', gap: 8 },
+  flex: { flex: 1 },
 });
