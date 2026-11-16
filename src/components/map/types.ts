@@ -42,6 +42,8 @@ export const FOG_BOLD = '#3f4a5a';
  */
 /** AD16: storefront streets are measured with Overture's places too, so the map's credits name it. */
 export const OVERTURE_CREDIT = 'Places: Overture Maps Foundation';
+/** GZ14: Explore's place search reads names from a bundled pack of this dataset, so the map's credits name it (a test holds it equal to the pack's own credit). */
+export const GAZETTEER_CREDIT = 'Place names: GeoNames (geonames.org), CC BY 4.0, 2026-11-16';
 
 export const HOTSPOT = '#d6268c';
 export const HOTSPOT_INK = '#86145a';

@@ -39,8 +39,14 @@ const WORDS: LookWords = {
 };
 
 /** The title, subtitle, announcement and empty line of a looked page (FL7, FL13, FL20). */
-export function lookWords(_named?: NamedLook): LookWords {
-  return WORDS;
+export function lookWords(named?: NamedLook): LookWords {
+  if (!named) return WORDS;
+  return {
+    title: `Around ${named.name}`,
+    subtitle: named.region,
+    announcement: `Showing areas around ${named.name}`,
+    empty: `No towns or neighborhoods are mapped around ${named.name}.`,
+  };
 }
 
 /** The Move map toggle's name, hint and pressed state (FL2). */
@@ -51,7 +57,8 @@ export function moveMapLabel(on: boolean): MoveMapLabel {
 }
 
 /** The row's accessible name while looking (FL7): what it is around, never near you. */
-export function lookRowLabel(towns: boolean, _named?: NamedLook): string {
+export function lookRowLabel(towns: boolean, named?: NamedLook): string {
+  if (named) return towns ? `Towns around ${named.name}` : `Areas around ${named.name}`;
   return towns ? 'Towns around the middle of the map' : 'Areas around the middle of the map';
 }
 
@@ -99,6 +106,6 @@ export function lookPage(centre: LngLat): string {
 }
 
 /** The empty line when a settled look has no area to show, else null (FL20). */
-export function emptyLook(shown: number, status: 'idle' | 'listing' | 'reading' | 'offline'): string | null {
-  return shown === 0 && status === 'idle' ? WORDS.empty : null;
+export function emptyLook(shown: number, status: 'idle' | 'listing' | 'reading' | 'offline', named?: NamedLook): string | null {
+  return shown === 0 && status === 'idle' ? lookWords(named).empty : null;
 }

@@ -7,7 +7,7 @@ import test from 'node:test';
 const ROOT = join(__dirname, '../../../..');
 const files = (dir: string) => readdirSync(join(ROOT, dir)).filter((f) => /\.tsx?$/.test(f)).map((f) => join(ROOT, dir, f));
 
-test('GZ12: no dataset is named in src', { todo: 'test first' }, () => {
+test('GZ12: no dataset is named in src', () => {
   const all = [...files('src/lib/gazetteer'), ...files('src/components/atlas')];
   assert.ok(files('src/lib/gazetteer').length > 4, 'the gazetteer folder exists');
   const named = all.filter((f) => /geonames/i.test(readFileSync(f, 'utf8')));
@@ -15,7 +15,7 @@ test('GZ12: no dataset is named in src', { todo: 'test first' }, () => {
   assert.ok(files('src/components/atlas').some((f) => f.endsWith('PlaceSearch.tsx')), 'PlaceSearch.tsx exists');
 });
 
-test('GZ16: a search stores nothing: the gazetteer and its view import no db, ports, store or storage', { todo: 'test first' }, () => {
+test('GZ16: a search stores nothing: the gazetteer and its view import no db, ports, store or storage', () => {
   const mine = [...files('src/lib/gazetteer'), join(ROOT, 'src/components/atlas/PlaceSearch.tsx')];
   for (const f of mine) {
     const text = readFileSync(f, 'utf8');
