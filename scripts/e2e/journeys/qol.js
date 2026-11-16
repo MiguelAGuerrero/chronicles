@@ -1774,22 +1774,34 @@ async function run(h) {
         // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.
         // tend map 12: the loop's path beat runs the whole loop in about a second, so the hold is timed in the page and
         // tapped where the button is. A poll of three round trips and a click that waits for the button to hold still
-        // took 140 to 780 ms: a race the check lost now and then before, and mostly once the place-name pack (decision
-        // 0184) doubled the web bundle, the dot on the end when Hold landed.
+        // took 140 to 784 ms, and the check lost the race now and then from the start (2 of 5 scratch runs on 6c5174cd,
+        // 4 of 5 on main; the larger web bundle since the place-name pack is a possible contributor, not shown).
+        // tend map audit 34 (the review's F35, F36): the tap is on Hold itself (the stage under it holds the replay too),
+        // Hold then reads Play and the dot and the clock stand still for a second, and a dot that never leaves the end
+        // fails saying so.
         const holdApart = async (w) => {
           await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
           const hb = await pg9.locator('[data-testid=hold]').boundingBox();
-          await pg9.waitForFunction(() => {
+          const tap = hb ? [hb.x + hb.width / 2, hb.y + hb.height / 2] : [0, 0];
+          const left = await pg9.waitForFunction(([x, y]) => {
             const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
             const ll = (v) => (v ? v.split(',').map(Number) : null);
             const endAt = el && ll((el.getAttribute('data-ends') ?? '').split('|')[1]);
             const walkerAt = el && ll(el.getAttribute('data-walker'));
             if (!endAt || !walkerAt || typeof window.__project !== 'function') return false;
             const [a, b] = [window.__project(endAt), window.__project(walkerAt)];
-            return Math.hypot(a[0] - b[0], a[1] - b[1]) >= 40;
-          }, null, { polling: 'raf', timeout: 30000 }).catch(() => null);
-          await pg9.mouse.click(hb.x + hb.width / 2, hb.y + hb.height / 2);
+            if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 40) return false;
+            return { onHold: !!document.elementFromPoint(x, y)?.closest('[data-testid=hold]') };
+          }, tap, { polling: 'raf', timeout: 30000 }).then((hd) => hd.jsonValue(), () => null);
+          await pg9.mouse.click(tap[0], tap[1]);
+          const still = async () => [await pg9.locator('[data-testid=replay-clock]').getAttribute('aria-label').catch(() => null), await mapAttr('data-walker')].join(' @ ');
           await pg9.waitForTimeout(600);
+          const at600 = await still();
+          await pg9.waitForTimeout(1000);
+          const at1600 = await still();
+          const label = (await pg9.locator('[data-testid=hold]').innerText().catch(() => '')).trim();
+          check(!!left && left.onHold && at600 === at1600 && label === 'Play',
+            `tend map audit 34: at Hold on the loop at ${w}, ${left ? '' : 'the dot never left the end; '}the tap is on Hold (${left && left.onHold}), Hold reads Play ("${label}") and the dot and the clock stand still (${at600} → ${at1600})`);
           const ends = await mapAttr('data-ends');
           const endAt = lonLatOf((ends ?? '').split('|')[1]);
           const walkerAt = lonLatOf(await mapAttr('data-walker'));

@@ -31,7 +31,7 @@ const view = readFileSync(join(__dirname, '..', '..', '..', 'components', 'StarV
 test('tend places T15: the star is drawn in ink, never the accent, and a merged star draws no numeral', () => {
   assert.doesNotMatch(view, /theme\.accent|COLORS\.walked|#c2410c/i, 'no accent in the star');
   assert.match(view, /backgroundColor: theme\.ink/, 'the star is ink');
-  assert.doesNotMatch(view, /\{\s*star\.count\s*\}|star\.count\s*>/, 'no numeral, and no other drawing for a merged star');
+  assert.doesNotMatch(view, /\{\s*star\.count\s*\}|star\.count\s*>/, 'no numeral (a merged star draws two stars through starGlyphs since O14, tend map audit 34)');
   // Both maps name the star through the one spoken name.
   assert.match(view, /starSpoken/, 'the maps\' starLabel is starSpoken');
 });
