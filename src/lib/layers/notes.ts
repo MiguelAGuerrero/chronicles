@@ -17,12 +17,17 @@ const SHOP_MARK_LINES: Record<ShopMarksStatus, string | null> = {
 /**
  * The quiet line under a layer while it works or can't (layers audit 7): in words, and never for a layer that is off. The Storefronts
  * layer is one layer with two drawings, the street shading and the shop marks: the shading's own reading or failure is said first, else
- * the shop marks' line.
+ * the shop marks' line (`withShopMarks`, applied by the panel).
  */
-export function layerNotes(s: { walkability: WalkStatus; storefrontsReading: boolean; storefrontsFailed: boolean; shopMarks?: ShopMarksStatus }): Record<string, string | null> {
+export function layerNotes(s: { walkability: WalkStatus; storefrontsReading: boolean; storefrontsFailed: boolean }): Record<string, string | null> {
   const walk = s.walkability;
   return {
     walkability: walk === 'reading' ? 'Reading…' : walk === 'unavailable' ? 'Not available now' : walk === 'waiting' ? 'Waiting for your position' : null,
-    storefronts: s.storefrontsReading ? 'Reading…' : s.storefrontsFailed ? 'Not available now' : s.shopMarks ? SHOP_MARK_LINES[s.shopMarks] : null,
+    storefronts: s.storefrontsReading ? 'Reading…' : s.storefrontsFailed ? 'Not available now' : null,
   };
+}
+
+/** SM7: the marks' line joins the Storefronts layer's one line, after the shading's own state. */
+export function withShopMarks(notes: Record<string, string | null | undefined>, status: ShopMarksStatus | null): Record<string, string | null | undefined> {
+  return { ...notes, storefronts: notes.storefronts ?? (status ? SHOP_MARK_LINES[status] : null) };
 }

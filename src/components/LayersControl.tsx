@@ -4,6 +4,9 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimen
 import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { LAYERS, legendRows, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import { SHOP_MARKS_BASE } from '../lib/shopMarks';
+import { shopMarksStatus } from '../lib/shopMarks/status';
+import { useStore } from '../lib/useStore';
+import { withShopMarks } from '../lib/layers/notes';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
 import { SHOP_MARK, BORDER, HOTSPOT, WALK_STYLE } from './map/types';
@@ -106,6 +109,9 @@ export function LayersControl(props: {
   const { width: winW, height: winH } = useWindowDimensions();
   const right = props.right ?? Math.max(12, (winW - 640) / 2 + 12);
   const { layers } = props;
+  // SM7: the marks' status joins the Storefronts line here, so a finished read re-renders the panel and not the screen.
+  const shopStatus = useStore(shopMarksStatus, (s) => s);
+  const notes = withShopMarks(props.notes ?? {}, shopStatus);
   const { closePanel } = layers;
   const buttonTop = props.top !== undefined ? props.top : winH - (props.bottom ?? 0) - BUTTON;
   const fromLeft = props.left !== undefined;
@@ -151,9 +157,9 @@ export function LayersControl(props: {
                   <View style={styles.rowPad}>
                     <SwitchRow testID={`layer-${l.id}`} label={l.name} icon={l.icon as IconName} value={on} onChange={() => layers.toggle(l.id)} />
                   </View>
-                  {on && props.notes?.[l.id] ? (
+                  {on && notes[l.id] ? (
                     <View style={[styles.legend, styles.noteInset]}>
-                      <Text testID={`layer-status-${l.id}`} role="status" accessibilityLiveRegion="polite" style={styles.note}>{props.notes[l.id]}</Text>
+                      <Text testID={`layer-status-${l.id}`} role="status" accessibilityLiveRegion="polite" style={styles.note}>{notes[l.id]}</Text>
                     </View>
                   ) : null}
                 </View>

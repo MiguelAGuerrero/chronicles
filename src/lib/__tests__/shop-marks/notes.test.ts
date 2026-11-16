@@ -1,11 +1,11 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { layerNotes, type ShopMarksStatus } from '../../layers/notes';
+import { layerNotes, withShopMarks, type ShopMarksStatus } from '../../layers/notes';
 
 // Shop marks (specs/shop-marks, SM7, SM13): the panel's one line for the Storefronts layer, which says the shading's own state first and else the marks'.
 const base = { walkability: 'ok' as never, storefrontsReading: false, storefrontsFailed: false };
-const note = (shopMarks?: ShopMarksStatus, over: Partial<typeof base> = {}) => layerNotes({ ...base, ...over, shopMarks }).storefronts ?? null;
+const note = (shopMarks?: ShopMarksStatus, over: Partial<typeof base> = {}) => withShopMarks(layerNotes({ ...base, ...over }), shopMarks ?? null).storefronts ?? null;
 
 test('SM7: no region, a failed read and "zoom in" each have their own words, and a covered empty area has none', () => {
   const lines = [note('uncovered'), note('failed'), note('far')];

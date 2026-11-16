@@ -1727,7 +1727,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
       {shopCard && !!layers.on.storefronts ? <ShopCard place={shopCard} onClose={() => setShopCard(null)} box={cardBox({ width, height: screenH, topInset: at.insets.top + 152 })} /> : null}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, shopMarks: shopsRead.status ?? undefined })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
