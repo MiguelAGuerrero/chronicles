@@ -102,6 +102,9 @@ export const META = {
   /** The places archive's manifest as last read, and when it was checked (PW2, decision 0103). */
   places_archive_manifest: { owner: 'discovery', codec: text },
   places_archive_checked_at: { owner: 'discovery', codec: number },
+  /** The storefront pack's manifest as last read, and when it was checked (specs/storefronts, SF6). */
+  storefronts_manifest: { owner: 'storefronts', codec: text },
+  storefronts_checked_at: { owner: 'storefronts', codec: number },
   street_code: { owner: 'tiles', codec: text },
   /** Memo transcripts: set once the owner refused speech recognition, so it is never asked again (TX6, decision 0169). */
   transcript_off: { owner: 'transcript', codec: text },

@@ -186,7 +186,7 @@ const FEATURES = [
     name: 'storefronts',
     about: 'the shops as data (a storefront pack family from chronicles-data) and an off-by-default Storefronts layer on every map with a Layers button, kept apart from presence and Explore',
     rule: 'storefronts',
-    source: ['src/lib/storefronts/**', 'src/components/StorefrontCard.tsx'],
+    source: ['src/lib/storefronts/**'],
     journeys: ['storefronts'],
     specs: ['storefronts'],
   },

@@ -30,7 +30,7 @@ function fakeIo(o: { manifest?: () => Promise<string>; tile?: () => Promise<{ da
   return { io, log };
 }
 
-test('SF6: a read asks the one current file of the storefront manifest for the z12 tiles its z14 tiles fall in, and nothing else', { todo: 'test first' }, async () => {
+test('SF6: a read asks the one current file of the storefront manifest for the z12 tiles its z14 tiles fall in, and nothing else', async () => {
   const { createStorefronts } = await mod();
   const { io, log } = fakeIo();
   const got = await createStorefronts({ ...fakePorts(), io }).read(READ, CENTRE);
@@ -42,7 +42,7 @@ test('SF6: a read asks the one current file of the storefront manifest for the z
   assert.deepEqual(Object.keys(got.places[0]).sort(), ['at', 'chain', 'name', 'type'], 'SF4: the rating and hours never reach a place');
 });
 
-test('SF6: the manifest is checked at most daily and kept across a restart', { todo: 'test first' }, async () => {
+test('SF6: the manifest is checked at most daily and kept across a restart', async () => {
   const { createStorefronts } = await mod();
   const ports = fakePorts();
   const { io, log } = fakeIo();
@@ -55,7 +55,7 @@ test('SF6: the manifest is checked at most daily and kept across a restart', { t
   assert.equal(log.fetched.length, 2, 'a day later it checks again');
 });
 
-test('SF6, SF18: nothing is written but the two meta keys: no place cache, no table, no moment', { todo: 'test first' }, async () => {
+test('SF6, SF18: nothing is written but the two meta keys: no place cache, no table, no moment', async () => {
   const { createStorefronts } = await mod();
   const ports = fakePorts();
   await createStorefronts({ ...ports, io: fakeIo().io }).read(READ, CENTRE);
@@ -66,7 +66,7 @@ test('SF6, SF18: nothing is written but the two meta keys: no place cache, no ta
   assert.deepEqual([...keys].sort(), ['storefronts_checked_at', 'storefronts_manifest']);
 });
 
-test('SF6: with no address nothing is asked, and outside every region nothing is opened', { todo: 'test first' }, async () => {
+test('SF6: with no address nothing is asked, and outside every region nothing is opened', async () => {
   const { createStorefronts } = await mod();
   const none = fakeIo();
   const off = await createStorefronts({ ...fakePorts(), io: { ...none.io, base: '' } }).read(READ, CENTRE);
@@ -78,7 +78,7 @@ test('SF6: with no address nothing is asked, and outside every region nothing is
   assert.equal(zurich.state, 'uncovered');
 });
 
-test('SF7: no region, a covered area with none, and a failed read are three different states, none throwing', { todo: 'test first' }, async () => {
+test('SF7: no region, a covered area with none, and a failed read are three different states, none throwing', async () => {
   const { createStorefronts } = await mod();
   const uncovered = await createStorefronts({ ...fakePorts(), io: fakeIo().io }).read([[8530, 5740]], [8.54, 47.37]);
   const empty = await createStorefronts({ ...fakePorts(), io: fakeIo({ features: [] }).io }).read(READ, CENTRE);
@@ -88,7 +88,7 @@ test('SF7: no region, a covered area with none, and a failed read are three diff
   for (const r of [uncovered, empty, failedTile, failedManifest]) assert.deepEqual(r.places, []);
 });
 
-test('SF7: a read that stalls gives a failed read, never a hang', { todo: 'test first' }, async () => {
+test('SF7: a read that stalls gives a failed read, never a hang', async () => {
   const { createStorefronts } = await mod();
   const r = await createStorefronts({ ...fakePorts(), io: fakeIo({ tile: () => new Promise<never>(() => {}) }).io, tileMs: 20, readMs: 50 }).read(READ, CENTRE);
   assert.equal(r.state, 'failed');

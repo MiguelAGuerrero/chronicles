@@ -1,0 +1,13 @@
+{
+  "contractVersion": 1,
+  "types": [
+    "antiques", "second_hand", "charity", "gift", "florist", "boutique", "jewelry", "toys", "outdoor", "photo", "stationery",
+    "clothes", "bag", "books", "music", "musical_instrument",
+    "supermarket", "convenience", "greengrocer", "butcher", "bakery", "pastry", "deli", "alcohol", "beverages", "coffee", "tea",
+    "chocolate", "confectionery", "kiosk", "hairdresser", "beauty", "cosmetics", "barber", "laundry", "dry_cleaning", "tailor",
+    "car", "car_repair", "car_parts", "tyres", "bicycle", "motorcycle", "mobile_phone", "electronics", "computer", "hardware",
+    "doityourself", "paint", "furniture", "interior_decoration", "variety_store", "department_store", "mall", "shoes", "fabric",
+    "sports", "pet", "art", "craft", "frame", "video_games", "optician", "hearing_aids", "medical_supply", "tobacco", "e-cigarette",
+    "cannabis", "pawnbroker", "travel_agency", "copyshop", "printing", "bookmaker", "lottery", "locksmith", "storage_rental"
+  ]
+}

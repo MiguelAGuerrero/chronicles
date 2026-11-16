@@ -47,6 +47,30 @@ export const HOTSPOT = '#d6268c';
 export const HOTSPOT_INK = '#86145a';
 
 /**
+ * Storefronts (specs/storefronts, SF10): every mark is one size and one colour, a neutral ink that is neither the accent, the busy
+ * magenta nor the borders' colours; none varies with how many shops a mark stands for. The map draws circles only, so no text can name
+ * a shop (SF11).
+ */
+export const STOREFRONT = { color: '#4a4540', stroke: '#ffffff', radius: 5, opacity: 0.9 } as const;
+
+/** The marks as map points with no properties at all: a tap is resolved against the marks, never against what the map holds (SF11). */
+export function storefrontsGeoJSON(marks: readonly { at: LngLat }[] | null | undefined): GeoJSON.FeatureCollection {
+  return { type: 'FeatureCollection', features: (marks ?? []).map((m) => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: m.at } })) };
+}
+
+/** SF10, SF11: the one circle layer storefronts draw with; no symbol layer, no data-driven paint. */
+export function storefrontLayers(): { id: string; type: 'circle'; source: string; paint: Record<string, unknown> }[] {
+  return [
+    {
+      id: 'storefronts',
+      type: 'circle',
+      source: 'storefronts',
+      paint: { 'circle-radius': STOREFRONT.radius, 'circle-color': STOREFRONT.color, 'circle-opacity': STOREFRONT.opacity, 'circle-stroke-width': 1.5, 'circle-stroke-color': STOREFRONT.stroke },
+    },
+  ];
+}
+
+/**
  * The fog is quiet unless asked for (the owner's call, Nov 1): after a scan
  * it covers every street around, and the trace must still read over it.
  * The trace is green, wider than the fog, on a white edge.

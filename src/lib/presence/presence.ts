@@ -99,6 +99,16 @@ const own = <T>(table: Readonly<Record<string, T>>, key: string): T | undefined 
 /** A class's tags under one poi class: listed subclasses, or every subclass ('*'). The first rule that holds wins. */
 type Rule = [subclasses: readonly string[] | '*', cls: PresenceClass];
 
+/**
+ * The shop values a storefront layer draws (specs/storefronts, SF9): the individual shops presence weights as `boutique`, as of
+ * Nov 14, never a mall or a department store (one place of Shops, TP11, and not one storefront). Spelled here because presence is
+ * the only file that holds a table keyed by a source's tags (PR2); the layer imports this list and spells none of them.
+ */
+export const STOREFRONT_SHOPS: readonly string[] = [
+  'antiques', 'second_hand', 'charity', 'gift', 'florist', 'boutique', 'jewelry', 'toys', 'outdoor', 'photo', 'stationery',
+  'clothes', 'bag', 'books', 'music', 'musical_instrument',
+];
+
 /** OpenMapTiles poi class and subclass to presence (the tab's v1 table, then density's AD1 table, made one). */
 const OSM: Record<string, Rule[]> = {
   art_gallery: [[['artwork'], 'artwork'], [['art'], 'boutique'], [['gallery', 'art_gallery'], 'museum'], [['arts_centre'], 'arts_centre']],

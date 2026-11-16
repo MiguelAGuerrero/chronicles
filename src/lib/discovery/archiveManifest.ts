@@ -46,11 +46,11 @@ export interface Manifest {
 }
 
 /** An archive's file name: a versioned name in the manifest's own folder, never a path. */
-const FILE = /^places-[a-z0-9]+-\d{8}(?:\.\d+)?\.pmtiles$/;
+const fileName = (prefix: string) => new RegExp(`^${prefix}-[a-z0-9]+-\\d{8}(?:\\.\\d+)?\\.pmtiles$`);
 
-function fileOf(v: unknown): ArchiveFile | null {
+function fileOf(v: unknown, prefix: string): ArchiveFile | null {
   const f = v as Partial<ArchiveFile> | null;
-  if (!f || typeof f.file !== 'string' || !FILE.test(f.file) || typeof f.version !== 'string') return null;
+  if (!f || typeof f.file !== 'string' || !fileName(prefix).test(f.file) || typeof f.version !== 'string') return null;
   const b = f.bounds;
   if (!Array.isArray(b) || b.length !== 4 || !b.every((n) => Number.isFinite(n))) return null;
   const out: ArchiveFile = { file: f.file, version: f.version, bounds: [b[0], b[1], b[2], b[3]] };
@@ -80,8 +80,11 @@ export function archiveTag(file: ArchiveFile, at: LngLat): string {
   return file.blocks ? `b:${file.blocks[blockKey(at)] ?? 'none'}` : file.version;
 }
 
-/** PW2: the manifest, or null for anything that isn't one (then no archive is read). */
-export function parseManifest(text: string): Manifest | null {
+/**
+ * PW2: the manifest, or null for anything that isn't one (then no archive is read). `prefix` is the pack family's file
+ * name: the places archive's `places`, the storefront pack's `storefronts` (specs/storefronts, SF6).
+ */
+export function parseManifest(text: string, prefix = 'places'): Manifest | null {
   let raw: unknown;
   try {
     raw = JSON.parse(text);
@@ -92,9 +95,11 @@ export function parseManifest(text: string): Manifest | null {
   if (!m || m.schema !== 1 || !Array.isArray(m.regions)) return null;
   const regions: Region[] = [];
   for (const r of m.regions as { id?: unknown; current?: unknown; previous?: unknown }[]) {
-    const current = fileOf(r?.current);
+    const current = fileOf(r?.current, prefix);
     if (!current || typeof r.id !== 'string') return null;
-    const previous = (Array.isArray(r.previous) ? r.previous : []).map(fileOf).filter((f): f is ArchiveFile => f != null);
+    const previous = (Array.isArray(r.previous) ? r.previous : [])
+      .map((f) => fileOf(f, prefix))
+      .filter((f): f is ArchiveFile => f != null);
     regions.push({ id: r.id, current, previous });
   }
   return { regions };

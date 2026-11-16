@@ -8,7 +8,7 @@ import test from 'node:test';
 const LIB = join(__dirname, '../..');
 const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? (f === '__tests__' ? [] : files(join(dir, f))) : /\.tsx?$/.test(f) ? [join(dir, f)] : []));
 
-test('SF17: no module of presence, discovery, atlas, landing, explore, areas or walkPlanner imports the storefront reader', { todo: 'test first' }, () => {
+test('SF17: no module of presence, discovery, atlas, landing, explore, areas or walkPlanner imports the storefront reader', () => {
   assert.ok(statSync(join(LIB, 'storefronts')).isDirectory(), 'the storefronts folder exists');
   const offenders: string[] = [];
   for (const d of ['presence', 'discovery', 'atlas', 'landing', 'explore', 'areas', 'walkPlanner', 'kindWalk']) {
@@ -17,7 +17,7 @@ test('SF17: no module of presence, discovery, atlas, landing, explore, areas or 
   assert.deepEqual(offenders, []);
 });
 
-test('SF17: reading storefronts touches no cache: the storefront modules import no place cache, atlas, presence code or tile build', { todo: 'test first' }, () => {
+test('SF17: reading storefronts touches no cache: the storefront modules import no place cache, atlas, presence code or tile build', () => {
   const bad: string[] = [];
   for (const f of files(join(LIB, 'storefronts'))) {
     const src = readFileSync(f, 'utf8');
@@ -26,7 +26,7 @@ test('SF17: reading storefronts touches no cache: the storefront modules import 
   assert.deepEqual(bad, []);
 });
 
-test('SF17: the three derivation codes are the values they had before the slice', { todo: 'test first' }, async () => {
+test('SF17: the three derivation codes are the values they had before the slice', async () => {
   const { ATLAS_CODE } = await import('../../atlas/atlas');
   const { PRESENCE_CODE } = await import('../../presence/presence');
   assert.equal(PRESENCE_CODE, 'p2');

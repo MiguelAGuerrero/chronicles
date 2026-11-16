@@ -8,7 +8,7 @@ import { bandWhy } from '../walk/bandWords';
  */
 
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
-export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line';
+export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'storefront';
 
 export interface LegendRow {
   key: string;
@@ -61,4 +61,22 @@ export const LAYERS: readonly LayerDef[] = [
       { key: 'nearby', text: 'Nearby towns', swatch: 'border-line' },
     ],
   },
+  // Storefronts (specs/storefronts, SF1-SF3, SF9): the shops themselves, apart from Busy streets. The note names the source and
+  // never a list of types (steward S1); the row is offered only where a pack is set (`offeredLayers`).
+  {
+    id: 'storefronts',
+    name: 'Storefronts',
+    icon: 'bag-handle-outline',
+    defaultOn: false,
+    legend: [{ key: 'shops', text: 'Shops', swatch: 'storefront', tip: 'A shop from OpenStreetMap. Tap one for its name.' }],
+    note: 'From OpenStreetMap. Tap a mark for its name.',
+  },
 ];
+
+/**
+ * SF2: the layers the panel offers. Storefronts is offered only where a storefront pack's address is set, so nobody meets a
+ * switch that does nothing before a pack exists; the setting still holds its default (off) either way.
+ */
+export function offeredLayers(o: { storefrontsBase: string }): readonly LayerDef[] {
+  return LAYERS.filter((l) => l.id !== 'storefronts' || o.storefrontsBase !== '');
+}

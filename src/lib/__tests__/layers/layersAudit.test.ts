@@ -75,7 +75,7 @@ test('layers audit 13: the settings load once; a switch made before the load fin
 });
 
 test('the owner\'s call (2026-11-05): Walkability, Busy streets and Town borders all start off', () => {
-  assert.deepEqual(layerDefaults(), { walkability: false, busy: false, borders: false });
+  assert.deepEqual(layerDefaults(), { walkability: false, busy: false, borders: false, storefronts: false });
   assert.ok(LAYERS.every((l) => l.defaultOn === false));
 });
 

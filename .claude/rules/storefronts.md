@@ -1,5 +1,6 @@
 ---
 paths:
+  - "src/lib/storefronts/**"
   - "src/lib/__tests__/storefronts/**"
 ---
 # Storefronts
