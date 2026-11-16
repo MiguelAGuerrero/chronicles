@@ -15,7 +15,7 @@ import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb } from '../../lib/pins';
+import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb, stalkLift } from '../../lib/pins';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { useReminded } from '../../lib/useReminded';
 import { drawnFrom, scaleBar, scaleShown } from '../../lib/scaleBar';
@@ -209,6 +209,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
+  // The markers a pin may stand on, whose edge its stalk stops at (decision 0172, O13): none while hidden with the trace.
+  const markersShown = (props.traceOpacity ?? 1) > 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const standOn = useMemo(() => (markersShown ? [endPoints.start, endPoints.end] : []), [endsKey, markersShown]);
+  // The pin rises by its lift and its target reaches on down over the marker, which never takes a tap (QL3).
+  const liftOf = (at: LngLat) => stalkLift(at, standOn, view?.zoom ?? props.initialZoom ?? 16, namesBearing);
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
   const ground = useMemo(() => groundGeoJSON(props.ground ?? null), [props.ground]);
   const complexLines = useMemo(() => (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, [props.complexes]);
@@ -603,7 +609,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               accessible
               accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
               accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true, pinReminded(pin, reminded), undefined, props.now ?? openedAt, pinReactions(pin, sets))}
-              style={styles.pinHit}
+              style={[styles.pinHit, { paddingBottom: liftOf(pin.lngLat) }]}
             >
               <CapturePinView pin={pin} faint reminded={pinReminded(pin, reminded)} reactions={pinReactions(pin, sets)} />
             </View>
@@ -625,7 +631,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               accessible
               accessibilityRole={props.onPinPress ? 'button' : 'image'}
               accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded), props.clocks, props.now ?? openedAt, pinReactions(pin, sets))}
-              style={styles.pinHit}
+              style={[styles.pinHit, { paddingBottom: liftOf(pin.lngLat) }]}
             >
               <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} reminded={pinReminded(pin, reminded)} reactions={pinReactions(pin, sets)} />
             </View>

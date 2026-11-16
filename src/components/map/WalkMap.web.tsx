@@ -14,7 +14,7 @@ import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReactions, pinReminded, pinThumb, type CapturePin, type WalkClock } from '../../lib/pins';
+import { metersPerPixel, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type WalkClock } from '../../lib/pins';
 import type { ReactionSet } from '../../lib/reactions/core';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
@@ -1082,10 +1082,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const reminded = useReminded();
   // One read of the reactions per map, for the bubbles on its pins (RX17, RX21).
   const sets = useReactionSets(!!props.captures?.length || !!props.memories?.length);
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, sets, props.clocks, props.now);
+  // The start and end markers a pin may stand on (decision 0172, O13): none while they are hidden with the trace.
+  const markersShown = (props.traceOpacity ?? 1) > 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const standOn = useMemo<(LngLat | null)[]>(() => (markersShown ? [ends.start, ends.end] : []), [endsKey, markersShown]);
+  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, sets, props.clocks, props.now, standOn);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, sets, undefined, props.now);
+  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, sets, undefined, props.now, standOn);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -1501,6 +1505,10 @@ const NO_CAPTURES: Faced[] = [];
  * in a ref, so a pin whose members changed never opens stale captures; roots
  * unmount just after React's commit, which would otherwise warn.
  */
+/** A pin's marker is anchored at its bottom, its target's 6 px of padding below the stem's foot. */
+const PIN_FOOT = 6;
+const NO_ENDS: readonly (LngLat | null)[] = [];
+
 function usePinMarkers(
   mapRef: RefObject<MapLibreMap | null>,
   ready: boolean,
@@ -1511,12 +1519,13 @@ function usePinMarkers(
   sets: ReadonlyMap<string, ReactionSet>,
   clocks?: readonly WalkClock[],
   now?: number,
+  standOn: readonly (LngLat | null)[] = NO_ENDS,
 ) {
   const latest = useRef({ pins: new Map<string, CapturePin>(), onPress });
   useEffect(() => {
     latest.current = { pins: new Map(pins.map((p) => [p.id, p])), onPress };
   });
-  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; rx: string; drops: boolean }>());
+  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; rx: string; drops: boolean; lift: number }>());
   const interactive = !!onPress;
   // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
   const [openedAt] = useState(() => Date.now());
@@ -1579,18 +1588,48 @@ function usePinMarkers(
       const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
       for (const c of pin.captures) seen.current.add(c.id);
       root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} reactions={reactions} />);
-      // Anchored at the stem's foot, so the marked point stays visible.
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
+      // Anchored at the stem's foot, so the marked point stays visible; on a start or end, the foot at the marker's edge
+      // above it (decision 0172, O13), its target reaching on down over the marker, which never takes a tap (QL3).
+      const lift = stalkLift(pin.lngLat, standOn, map.getZoom(), map.getBearing());
+      el.style.paddingBottom = `${PIN_FOOT + lift}px`;
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, PIN_FOOT] }).setLngLat(pin.lngLat).addTo(map);
       // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
       marker.getElement().style.zIndex = memory ? '0' : '1';
-      markers.current.set(pin.id, { marker, root, key, bell, rx, drops });
+      markers.current.set(pin.id, { marker, root, key, bell, rx, drops, lift });
     }
     for (const [id, m] of markers.current) {
       if (live.has(id)) continue;
       drop(m);
       markers.current.delete(id);
     }
-  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now]);
+  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now, standOn]);
+  // A pin standing on the walk's start or end stops its stalk at the marker's edge (decision 0172, O13): its lift is
+  // measured on screen, so it follows the map as it zooms or turns, and is set only when it moves. The target's padding
+  // below the foot carries it: the marker is anchored at the target's bottom, so the pin rises and its target still
+  // reaches the point.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const place = () => {
+      const zoom = map.getZoom();
+      const bearing = map.getBearing();
+      for (const pin of pins) {
+        const m = markers.current.get(pin.id);
+        if (!m) continue;
+        const lift = stalkLift(pin.lngLat, standOn, zoom, bearing);
+        if (Math.abs(lift - m.lift) < 0.25) continue;
+        m.lift = lift;
+        m.marker.getElement().style.paddingBottom = `${PIN_FOOT + lift}px`;
+      }
+    };
+    place();
+    map.on('zoom', place);
+    map.on('rotate', place);
+    return () => {
+      map.off('zoom', place);
+      map.off('rotate', place);
+    };
+  }, [mapRef, ready, pins, standOn]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

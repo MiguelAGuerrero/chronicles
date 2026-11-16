@@ -811,6 +811,30 @@ async function run(h) {
       check(Math.abs(turnedReplay) < 0.5, `tend map 1: the replay's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedReplay})`);
     }
     await shot(pg, 'qol-03-replay-card');
+    // tend map 13 (decision 0172, O13; amends QL3's placement): the photo and the note were kept where the trace ends, so
+    // their pin stands on the end marker; its stalk stops at the marker's edge (11 px above its middle), never inside it.
+    // At 390 and at 320.
+    await qstep('tend map 13', async () => {
+      const footOnEnd = async () => {
+        const endAt = lonLat(((await attr('data-ends')) ?? '').split('|')[1]);
+        const [ex, ey] = await pg.evaluate((q) => window.__project(q), endAt);
+        const feet = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker [data-testid=pin-head]')]
+          .filter((h) => !h.closest('[aria-hidden="true"]') && h.getBoundingClientRect().width > 0)
+          .map((h) => { const r = h.getBoundingClientRect(); return [r.x + r.width / 2, r.bottom + 8]; }));
+        const foot = feet.filter(([x]) => Math.abs(x - ex) < 11).sort((a, b) => Math.abs(a[0] - ex) - Math.abs(b[0] - ex))[0] ?? null;
+        return { end: [ex, ey].map(Math.round), foot: foot && foot.map((v) => Math.round(v * 10) / 10), above: foot ? ey - foot[1] : null };
+      };
+      const at390 = await footOnEnd();
+      await pg.setViewportSize({ width: 320, height: 568 });
+      await pg.waitForTimeout(1500);
+      const at320 = await footOnEnd();
+      await shot(pg, 'qol-03b-pin-on-end-320');
+      await pg.setViewportSize({ width: 390, height: 844 });
+      await pg.waitForTimeout(1500);
+      const atEdge = (r) => r.above != null && Math.abs(r.above - 11) <= 1.5;
+      check(atEdge(at390) && atEdge(at320),
+        `tend map 13: a pin standing on the end stops its stalk at the marker's edge, 11 px above its middle, at 390 and 320 (${JSON.stringify({ at390, at320 })})`);
+    });
     await checkAttribution('the replay', 'qol-07-replay-credits-open');
     // QL3: the markers never take a tap: the photo and the note were kept where the trace ends, so their
     // pin stands on the end marker, and a tap there opens it.

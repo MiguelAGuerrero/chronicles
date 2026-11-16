@@ -119,6 +119,48 @@ export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
   return pins;
 }
 
+/**
+ * The start and end markers' outer radius on screen, in px: the start's 7 and its 4 of ring, the end's 9.5 and its 1.5
+ * of white edge (`ENDS_RING_PAINT`, one width across, 22 px).
+ */
+export const END_MARK_R = 11;
+
+/**
+ * How far up, in screen px, a pin is drawn above its point so that a pin standing on a walk's start or end stops its
+ * stalk at the marker's edge, never inside it (decision 0172, O13; amends QL3's placement): a foot inside a marker
+ * moves up to the marker's edge above it, and on past the other marker when a loop walk's two overlap. A foot outside
+ * every marker stays on its point (0). `ends` are the markers drawn (none while they are hidden); `bearing` is the
+ * map's, in degrees. Web mercator, 512 px tiles, as the maps.
+ */
+export function stalkLift(at: LngLat, ends: readonly (LngLat | null)[], zoom: number, bearing = 0, r = END_MARK_R): number {
+  const size = 512 * 2 ** zoom;
+  const world = ([lon, lat]: LngLat) => [
+    ((lon + 180) / 360) * size,
+    ((1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2) * size,
+  ];
+  const turn = (bearing * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+  const [px, py] = world(at);
+  // The foot's offset from each marker's centre on screen (y down), the map turned by its bearing.
+  const from = ends.filter((e): e is LngLat => !!e).map((e) => {
+    const [x, y] = world(e);
+    const [dx, dy] = [px - x, py - y];
+    return [dx * cos + dy * sin, dy * cos - dx * sin] as const;
+  });
+  let lift = 0;
+  for (let pass = 0; pass <= from.length; pass++) {
+    let moved = false;
+    for (const [dx, dy] of from) {
+      const y = dy - lift;
+      if (dx * dx + y * y >= r * r - 1e-9) continue;
+      lift += y + Math.sqrt(r * r - dx * dx);
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  return lift;
+}
+
 /** Whether a pin wears the reminder bell (RB1, RB2): any of its captures has a live reminder. */
 export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean {
   return pin.captures.some((c) => ids.has(c.id));
