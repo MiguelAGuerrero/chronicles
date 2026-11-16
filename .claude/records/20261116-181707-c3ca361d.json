@@ -1,0 +1,42 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /fix",
+        "AT9",
+        "--reason",
+        "moved to a section named for this fix; the plain From /fix name is the records test's"
+      ],
+      "target": "sha256:4b6e6a622f34a1359cc17fbb944506f39beb6ca20a32198da49abced349bf309"
+    },
+    {
+      "argv": [
+        "section",
+        "remove",
+        "From /fix",
+        "--reason",
+        "moved to a section named for this fix; the plain From /fix name is the records test's"
+      ],
+      "target": "sha256:a4d4c9278e43db7523ef66ec054c2b380e80b42635367e4f14c98c9b009f1673"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /fix carousel-snap-back"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /fix carousel-snap-back"
+      ],
+      "body": "- The `atlas` journey's check \"AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring\" fails on `main` as well (seen Nov 16 on `acb18b0` with and without the carousel-snap-back fix: \"ring \"\" → \", Fox Point at (0.0, 0.5) px from the middle). Not touched by this fix; the journey is the only place it shows, since CI runs no journey.\n"
+    }
+  ]
+}

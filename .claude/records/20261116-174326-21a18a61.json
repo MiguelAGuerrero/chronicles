@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel"
+      ],
+      "body": "- [ ] **Do:** On a phone, in Explore's row of area cards, drag slowly to the next card, hold your finger still for a second between the two cards, then let go. Repeat with a quick flick on a slow-loading area. **Expect:** the row settles on the next card the first time, never snapping back to the card you started on (fix carousel-snap-back: the settle waits while the finger is down or a release glides; `onScrollBeginDrag`, `onScrollEndDrag`, `onMomentumScrollBegin`, `onMomentumScrollEnd`).\n"
+    }
+  ]
+}

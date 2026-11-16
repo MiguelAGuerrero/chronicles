@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "[loop] The `atlas` journey's AT9 fails on `acb18b06` twice, in the weekly full pass and alone (Nov 16): after an area's card is opened and closed, neither its 800 m ring nor its own ground is drawn within 10 s, and the selected area sits at the map's middle, not 30 px below it under the title: `not ok - AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring, or its own ground (1 points for 1 tiles, ring \"\" → , Fox Point at (0.0, 0.5) px from the middle)`. It passed on `7ec1aeb6` and on `25a508ac` (Nov 13, Fox Point at (0.0, 31.5)), so it came in since `25a508ac`, among 339 commits, not bisected further. `scripts/e2e/flaky.json` lists AT9 (2 of 3 on `2e47bf94`, Nov 12, in its older wording), but on this build it fails every time (the weekly full pass, Nov 16; medium)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "fails `fix preview-clutter audit 1`"
+      ],
+      "body": "- The weekly full pass on `acb18b06` (Nov 16): still red, twice (the pass, then alone): `not ok - fix preview-clutter audit 1: the trace was drawn before the preview and is drawn again as it closes ( -> )`. The last green known is the check's own commit, `31951663` (Nov 9); not bisected. `drive` passed all 19 of its checks, DW3 and DW14 included. Low: the walker has not moved when the check first reads `data-drawn`, so the empty trace may be the check's own timing; not diagnosed\n",
+      "target": "sha256:55bc1da3c1157f63f42a2f5ca0782952675d6985d7fe0e379b51759cd713ca98"
+    }
+  ]
+}
