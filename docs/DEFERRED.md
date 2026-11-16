@@ -686,10 +686,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 ## Note pages (NP1-NP14, decision 0151)
 
-- **A mention's card has no picture** (NP5, RF4): the reader draws a card of the moment's kind, words, date, place and walk, and the page while writing a chip; the editor runs in a WebView on phones, which may not reach the app's media files. Drawing the picture needs the file passed in as data, a cost per mention.
 - **"Added to on Nov 30"**: words added to a note weeks later carry its first time (the steward, silent 1); saying so needs a stored edit time.
 - **The page's camera is on capture surfaces only** (the pencil on Navigate, the walk and Memories' band): a reply's page and Edit in the viewer have none, since the viewer holds no camera of its own.
-- **Selection across a whole page, dragging blocks, a "/" menu, links, tables, photos inline**: out by the owner's calls (Nov 12).
+- **Selection across a whole page, dragging blocks, a "/" menu, links, tables, a picture stored in the document**: out by the owner's calls (Nov 12). "Photos inline" was narrowed on Nov 16 (decision 0182): a mention of a photo you took is drawn as its picture, with no image ever stored in, pasted into or typed into the page.
 - **Undo of a whole session's writing**: TipTap's history covers the page while it is open.
 - **An older note's lines read as paragraphs on its page**, a little spaced, until it is written in (NP7 keeps its characters, not its spacing).
 - **The room left is counted by the editor's words as shown**, a mention as "@" and its words, one more than `shownLength`'s count.
@@ -717,6 +716,11 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   Built: a transcript is read from a copy of the kept span (TX13, decision 0165).
 - **The trim bar's handles overlap on a short kept span** (voice-trim ui review U2): their 12 px grips and hit boxes touch, so the one underneath is hard to grab; the same bar serves videos. A fix draws the caps outside the kept span, or keeps a minimum on-screen gap; its test is `voice-trim ui 2` (`elementFromPoint` at the start handle's centre after the end handle is dragged to the middle).
 - **Voice trim audit** (Nov 13): a seek that fails or is slow (`seekMemo` swallows a rejection; a refused autoplay that seeks once at load may audibly start at 0:00 before jumping, audit 7). Every photo or video editor builds an audio player with no source (`useAudioPlayer(undefined, ...)` in `MediaEditor`) and the voice preview belongs in a voice-only child component (audit 8). Saving a trim after a replay is already waiting on a memo changes `updateInterval`, which recreates the replay bubble's player mid-play (audit 5, in part: the viewer itself unmounts its capture while the editor is up). A note's text edit on a moment's non-face piece patches the face's `body` the same way an edit did (audit 1's flaw, still open for `notePatch`).
+- **Mention cards elsewhere keep their card** (note pictures NI12, decision 0182): a thread's bubbles (`NoteText`), the memory preview, the replay and the Chronicle's index draw a photo's or video's mention as text or a card, not a picture; each is its own screen and its own gate.
+- **A new page does not know its walk** (note pictures NI16): a page begun on a capture surface compares a mentioned photo's day alone, so a photo from another walk the same day shows no line; the viewer's page and the reader know the walk and compare both.
+- **A picture's menu has one entry, Edit** (decision 0182): Remove from page and Open the moment were offered and not chosen, so a picture leaves a page with Backspace and a moment opens from the reader; each is one more row.
+- **A picture sits after the camera's space** (note pictures NI4): the page's camera writes a space after the mention (NP14), which reads as a small indent on the line under a picture.
+- **A page of many pictures** (note pictures NI11): each is about 60-120 KB of data through the web view, once. If a device shows it slow, every picture beyond a count would be drawn smaller, never hidden or collapsed (NI17); not built.
 
 ## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)
 

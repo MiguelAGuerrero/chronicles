@@ -228,6 +228,11 @@ recording, and a recording bar brings a minimized walk back.
   "Not saved yet" in its top bar. In the viewer a note reads as its page, its mentions as cards of their moments;
   a tap on its words or a box opens it for writing. A note holds up to 20,000 characters; near the end the page says "Room for a few more lines". Checklists are
   never counted. Everywhere else a page reads as its words; a note written before pages reads as it was typed.
+  A photo or video mentioned on a page (the camera's, or one picked with Mention) is drawn as the photo itself, on its
+  own line at the page's width, in the page and in the viewer's reader (decision 0182): a video as its still under the
+  play mark; a line under it says where it is from only when it is from another day or walk. While writing, a tap on
+  a picture offers **Edit**, which opens the media editor over the page with every tool it has (rotate, crop, filter,
+  draw, text, and trim for a video); the edit is the photo's own, everywhere. The note still stores only the mention.
 - When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
   never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why
