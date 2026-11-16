@@ -144,11 +144,11 @@ test('EC7: with no view or no selected area there are no names, and no view stay
 
 test('explore-carousel audit 2: a settle mid-way through the row\'s own scroll never selects a card, it aims again', () => {
   // The row is scrolling itself to card 3 (selected) and the page stalled: the last offset read is card 1.
-  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3 }, 'mid-way: scroll on to the target, report nothing');
-  assert.deepEqual(settleStep({ index: 3, intended: 3, selected: 3 }), { report: null, scrollTo: null }, 'arrived: nothing to do');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3, wait: false }, 'mid-way: scroll on to the target, report nothing');
+  assert.deepEqual(settleStep({ index: 3, intended: 3, selected: 3 }), { report: null, scrollTo: null, wait: false }, 'arrived: nothing to do');
   // The reader's own scroll (nothing intended): a different card is reported, the same one is not.
-  assert.deepEqual(settleStep({ index: 2, intended: null, selected: 3 }), { report: 2, scrollTo: null });
-  assert.deepEqual(settleStep({ index: 3, intended: null, selected: 3 }), { report: null, scrollTo: null });
+  assert.deepEqual(settleStep({ index: 2, intended: null, selected: 3 }), { report: 2, scrollTo: null, wait: false });
+  assert.deepEqual(settleStep({ index: 3, intended: null, selected: 3 }), { report: null, scrollTo: null, wait: false });
 });
 
 test('explore-carousel audit 3: the names are on or off by one boolean, so the map is not sent a new Busy view on every camera move', () => {
@@ -197,4 +197,14 @@ test('fix carousel-live-select: a card is selected as the reader scrolls past it
   assert.equal(liveReport({ index: 1, intended: null, selected: 2, last: 2 }), 1, 'scrolling back reports the earlier card');
   assert.equal(liveReport({ index: 0, intended: null, selected: 0, last: 1 }), 0, 'fix carousel-live-select audit 1: back to the stale selection after a report still reports');
   assert.equal(liveReport({ index: 2, intended: 3, selected: 1, last: null }), null, 'the row scrolling itself to a card never selects on the way');
+});
+
+test('fix carousel-snap-back: a settle while the reader\'s finger is down or the row is gliding waits, so it never sets a target the swipe is then sent back to', () => {
+  // The finger paused between cards 0 and 1 (selected 0, nearest 0) for the settle's 120 ms: easing onto card 0 there made it the
+  // row's own target, and the release, which was heading for card 1, was then aimed back at 0 (the reader had to swipe twice).
+  assert.deepEqual(settleStep({ index: 0, intended: null, selected: 0, held: true }), { report: null, scrollTo: null, wait: true }, 'held: nothing, and wait');
+  assert.deepEqual(settleStep({ index: 1, intended: null, selected: 0, held: true }), { report: null, scrollTo: null, wait: true }, 'held: a card passed is reported live, never by the settle');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3, held: true }), { report: null, scrollTo: null, wait: true }, 'held beats the row\'s own target too');
+  assert.deepEqual(settleStep({ index: 1, intended: null, selected: 0, held: false }), { report: 1, scrollTo: null, wait: false }, 'let go: the settle reports as before');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3, wait: false }, 'held is optional');
 });

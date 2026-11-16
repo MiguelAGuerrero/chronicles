@@ -90,10 +90,15 @@ export function storefrontNamesNear(view: LandingView | null, at: LngLat | null,
  * What a settled scroll means (explore-carousel audit 2). While the row is scrolling itself to a card (`intended`), a settle
  * that stopped short of it (a stalled page) is never the reader's: it aims on. Otherwise the card it stopped on is reported
  * when it is not already the selected one.
+ *
+ * While the reader's finger is down or the row is gliding from a release (`held`), a settle waits (fix carousel-snap-back): a
+ * pause between cards (a still finger, or a page that stalled mid-glide) is not a stop, and easing onto the nearest card then
+ * made it the row's own target, so the release, bound for the next card, was aimed back at the old one.
  */
-export function settleStep(p: { index: number; intended: number | null; selected: number }): { report: number | null; scrollTo: number | null } {
-  if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended };
-  return { report: p.index === p.selected ? null : p.index, scrollTo: null };
+export function settleStep(p: { index: number; intended: number | null; selected: number; held?: boolean }): { report: number | null; scrollTo: number | null; wait: boolean } {
+  if (p.held) return { report: null, scrollTo: null, wait: true };
+  if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended, wait: false };
+  return { report: p.index === p.selected ? null : p.index, scrollTo: null, wait: false };
 }
 
 /**
