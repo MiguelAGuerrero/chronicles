@@ -2,7 +2,7 @@
 name: tend-orchestrator
 description: Run /tend again and again as the owner's proxy (decision 0157) - one subagent per run, the auditor, steward and ux-reviewer spawned by the orchestrator at each run's review points, the inbox answered yes only within 0157's limits and after /vision again, every no, reshape and identity question batched to the owner. It keeps running notes and ends with an insights file and a list of its proxy answers for the owner to keep or revert.
 when_to_use: The owner asks to "run the loop", "orchestrate /tend", "act as my proxy for /tend" or "keep tending until it stalls". Not for one /tend run (type /tend), one bug (/fix) or one feature (/slice).
-argument-hint: "[--runs=N] [--parallel] [--deploy=main|branch]"
+argument-hint: "[--runs=N] [--deploy=main|branch]"
 disable-model-invocation: true
 allowed-tools: Agent, SendMessage, Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, ToolSearch, mcp__github__actions_list, mcp__github__actions_get
 ---
@@ -92,11 +92,12 @@ sweep, and never start a `G` build or a second run.
 
 ## 3. Brief the run
 
-One `general-purpose` subagent per run, in the background, with the run brief from `briefs.md`
-filled in: the grant, the entry and its answer **marked as the proxy's or the owner's**, the review
-handoff, the commit-kind check, the known constraints from the notes, economy, the return shape.
-Keep the brief's known-constraints list current: a run that rediscovers one spends a review round
-on it.
+One `general-purpose` subagent per run, in the background, with the run brief from `briefs.md`:
+its fixed text as it stands, never retyped or reworded, with only this run's specifics filled in
+(decision 0181): the grant, the entry and its answer **marked as the proxy's or the owner's**, the
+tripwires, the kind of run, a constraint the notes learned since the template last changed, the
+attribution lines. A constraint every run needs belongs in the template: propose it in the
+insights file (section 9); a run that rediscovers one spends a review round on it.
 
 Never poll a run: no `sleep`, no reading its transcript, no status loops. You act when its hand-back
 or its completion notice arrives.
@@ -112,8 +113,12 @@ prompt the run wrote. The pauses are:
 | a `T` build | after the diff |
 | a `G` build | after the plan (`steward`, slice step 3); after the diff |
 
-At the diff pause a screen change gets the `ux-reviewer` (0145), every reviewer gets the pictures
-(the auditor too: `ship.md` "Review"), and **a screen the proxy said yes to gets the `steward`** (0157).
+At the diff pause the reviewers are chosen by risk (`ship.md`, "The faster lane"; decision 0181):
+words or style only, one (the `ux-reviewer`, or the `steward` for the replay's or a VISION line's
+words); behaviour that touches recording, storage, navigation, timing or data, **the `auditor`
+always**, with the `ux-reviewer` when a screen changed; records only, none and no pause. Every
+reviewer of a screen gets the after pictures (the auditor too), and **a screen the proxy said yes to
+gets the `steward`** (0157).
 
 1. **Check the paths** a prompt names: `node <main-tools>/scripts/bookkeeping.js review-paths
    <prompt>...` (every absolute path, spaces, `:12` references and `<placeholders>` read); fix each one
@@ -143,6 +148,8 @@ classification; these are what the session learned:
   loop; stands until the owner says otherwise".
 - **Keep the inbox for real questions:** an oddity of existing behaviour mentioned in passing goes to
   `docs/DEFERRED.md`, tagged.
+- **Medium and above are fixed in the run; a low is deferred**, filed `[loop]` in its area's section
+  of `docs/DEFERRED.md` for the area's next sweep (0181).
 - **Say which constraint wins** when two of yours could collide.
 - **Give tripwires**: "if any golden or differential result moves, stop and tell me"; "if the fix
   grows beyond these files, drop the commit and file the finding". A conditional ruling ("if
@@ -171,16 +178,19 @@ What to ask reviewers for:
 - **The tests that cannot fail** (from the auditor): green checks hid a high and three mediums in one
   sweep, where a test asserted a helper's return and not the end effect.
 
-## 6. Main moves; one run at a time
+## 6. Main moves; two runs at once
 
 The owner's other sessions push to `main`. Each run fetches and rebases at every pause (the brief
 says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
 
-- **One run at a time** by default: each moves `main`, `lastT`, `lastG` and the ledger, and each
-  rebase onto a moved `main` costs an export and the journeys again.
-- **Two at once** only with `--parallel`, only when their areas share no files and waiting has a
-  cost (a parked branch going stale). When one lands, send the other one line: "main moved to
-  <sha>; lastT is now N".
+- **Two runs may go at once** on disjoint areas (decision 0181): no file in common
+  (`scripts/features.js` owners) and no record section in common (a `docs/DEFERRED.md` or
+  `docs/NATIVE_UNVERIFIED.md` section, a "From <skill>" section). The inbox, "Last tend" and the
+  ledger are shared; a conflict there resolves with `npm run records -- redo` (`/tend` section
+  10.3). Never two `G` builds, and never a second run late in a usage window.
+- When one lands, send the other one line: "main moved to <sha>; lastT is now N".
+- **The weekly full pass** is a run's (`/tend` section 10, recorded in the run log as
+  `"e2e":"full"`): when the log shows none in seven days, say so in the next code run's brief.
 
 ## 7. When a run completes
 
