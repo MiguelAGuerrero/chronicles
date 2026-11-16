@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { ENDS_RING_PAINT } from '../../../components/map/types';
-import { END_MARK_R, stalkLift } from '../../pins';
+import { END_MARK_R, PIN_STEM, stalkLift } from '../../pins';
 import type { LngLat } from '../../types';
 
 // tend map 13 (decision 0172, O13; amends QL3's placement): a capture pin standing on a walk's start or end put its
@@ -43,9 +43,10 @@ test('tend map 13: a pin standing on a start or end stops its stalk at the marke
   near(stalkLift(px(0, 4), [AT, null], Z), 4 + END_MARK_R, '4 px below');
   // 4 px above the middle: the rest of the way, 11 - 4.
   near(stalkLift(px(0, -4), [AT, null], Z), END_MARK_R - 4, '4 px above');
-  // Outside the marker, the pin stands on its point: just past the edge, beside it, below it.
+  // Its stalk clear of the marker, the pin stands on its point: just past the edge beside it, its stalk's top below it
+  // (tend map audit 33), above it.
   assert.equal(stalkLift(px(11.5, 0), [AT, null], Z), 0);
-  assert.equal(stalkLift(px(0, 12), [AT, null], Z), 0);
+  assert.equal(stalkLift(px(0, 20), [AT, null], Z), 0);
   assert.equal(stalkLift(px(0, -12), [AT, null], Z), 0);
   // No markers drawn (hidden while navigating, or none yet): none.
   assert.equal(stalkLift(AT, [], Z), 0);
@@ -53,11 +54,11 @@ test('tend map 13: a pin standing on a start or end stops its stalk at the marke
 });
 
 test('tend map 13: the lift follows the zoom and the bearing, on screen', () => {
-  // The same 8 px at zoom 16 is 16 px at zoom 17: outside the marker there.
-  const p = px(0, 8);
-  near(stalkLift(p, [AT, null], Z), 8 + END_MARK_R, 'zoom 16');
+  // The same 10 px at zoom 16 is 20 px at zoom 17: the stalk clear of the marker there.
+  const p = px(0, 10);
+  near(stalkLift(p, [AT, null], Z), 10 + END_MARK_R, 'zoom 16');
   assert.equal(stalkLift(p, [AT, null], Z + 1), 0, 'zoom 17');
-  near(stalkLift(p, [AT, null], Z - 1), 4 + END_MARK_R, 'zoom 15: 4 px below');
+  near(stalkLift(p, [AT, null], Z - 1), 5 + END_MARK_R, 'zoom 15: 5 px below');
   // Turned 180°, the point 4 px south of the marker is 4 px above it on screen.
   near(stalkLift(px(0, 4), [AT, null], Z, 180), END_MARK_R - 4, 'bearing 180');
   // Turned 90° (east up), a point 5 px east is 5 px above.
@@ -82,4 +83,26 @@ test('tend map 13: both maps place a pin by its lift over the markers drawn', ()
   assert.match(web, /map\.on\('zoom', place\);\s*map\.on\('rotate', place\);/);
   assert.match(native, /const liftOf = \(at: LngLat\) => stalkLift\(at, standOn,/, 'native lifts its pins');
   assert.equal((native.match(/style=\{\[styles\.pinHit, \{ paddingBottom: liftOf\(pin\.lngLat\) \}\]\}/g) ?? []).length, 2, 'this walk\'s pins and memories');
+});
+
+// tend map audit 33 (the review's F34): only the foot was tested against the marker, so a pin whose foot lay just below
+// a start or end still ran its stalk up through it, the power glyph O13 removed, and the lift jumped from 22 px to none
+// as the foot crossed the marker's lower edge. The whole stalk, the foot up to the head, is cleared of the marker.
+test('tend map audit 33: a pin whose foot is just below a start or end draws no stalk inside it', () => {
+  // The stalk is the pin's 8 pt stem (CapturePinView's `stem`).
+  const pinView = readFileSync(join(__dirname, '../../../components/CapturePinView.tsx'), 'utf8');
+  assert.match(pinView, new RegExp(`stem: \\{ width: 3, height: ${PIN_STEM},`), 'the stem is PIN_STEM tall');
+  // 12 px below the middle: the stalk runs from 12 up to 4, inside; the foot rises to the top edge.
+  near(stalkLift(px(0, 12), [AT, null], Z), 12 + END_MARK_R, '12 px below');
+  // From just inside the lower edge to just past it, no jump: the stalk's top is still inside.
+  near(stalkLift(px(0, 10.9), [AT, null], Z), 10.9 + END_MARK_R, '10.9 px below');
+  near(stalkLift(px(0, 11.1), [AT, null], Z), 11.1 + END_MARK_R, '11.1 px below');
+  // Once the stalk's top clears the edge (foot 8 px past it), the pin stands on its point; its head may cover the
+  // marker as any pin's head does.
+  near(stalkLift(px(0, 18.9), [AT, null], Z), 18.9 + END_MARK_R, 'the stalk\'s top just inside');
+  assert.equal(stalkLift(px(0, 19.1), [AT, null], Z), 0, 'the stalk\'s top clear');
+  // Beside it, the same: the stalk 5 px to one side is inside while it crosses the marker's chord there.
+  const h = Math.sqrt(121 - 25);
+  near(stalkLift(px(5, h + 4), [AT, null], Z), h + 4 + h, 'beside, its top inside');
+  assert.equal(stalkLift(px(5, h + 8.5), [AT, null], Z), 0, 'beside, its top clear');
 });

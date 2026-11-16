@@ -124,15 +124,18 @@ export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
  * of white edge (`ENDS_RING_PAINT`, one width across, 22 px).
  */
 export const END_MARK_R = 11;
+/** A pin's stalk: `CapturePinView`'s stem, from the point it marks up to its head, in pt. */
+export const PIN_STEM = 8;
 
 /**
  * How far up, in screen px, a pin is drawn above its point so that a pin standing on a walk's start or end stops its
- * stalk at the marker's edge, never inside it (decision 0172, O13; amends QL3's placement): a foot inside a marker
- * moves up to the marker's edge above it, and on past the other marker when a loop walk's two overlap. A foot outside
- * every marker stays on its point (0). `ends` are the markers drawn (none while they are hidden); `bearing` is the
+ * stalk at the marker's edge, never inside it (decision 0172, O13; amends QL3's placement): a pin whose stalk (the
+ * foot up to `PIN_STEM` above it) crosses a marker moves up until its foot is at the marker's edge above it, and on
+ * past the other marker when a loop walk's two overlap (tend map audit 33: the whole stalk, not the foot alone). A pin
+ * whose stalk crosses no marker stays on its point (0). `ends` are the markers drawn (none while they are hidden); `bearing` is the
  * map's, in degrees. Web mercator, 512 px tiles, as the maps.
  */
-export function stalkLift(at: LngLat, ends: readonly (LngLat | null)[], zoom: number, bearing = 0, r = END_MARK_R): number {
+export function stalkLift(at: LngLat, ends: readonly (LngLat | null)[], zoom: number, bearing = 0, r = END_MARK_R, stem = PIN_STEM): number {
   const size = 512 * 2 ** zoom;
   const world = ([lon, lat]: LngLat) => [
     ((lon + 180) / 360) * size,
@@ -151,9 +154,13 @@ export function stalkLift(at: LngLat, ends: readonly (LngLat | null)[], zoom: nu
   for (let pass = 0; pass <= from.length; pass++) {
     let moved = false;
     for (const [dx, dy] of from) {
+      const half = r * r - dx * dx;
+      if (half <= 1e-9) continue;
+      // The marker's chord at the stalk's x, from `-h` (its upper edge) to `h`; the stalk runs from `y - stem` to `y`.
+      const h = Math.sqrt(half);
       const y = dy - lift;
-      if (dx * dx + y * y >= r * r - 1e-9) continue;
-      lift += y + Math.sqrt(r * r - dx * dx);
+      if (y <= -h + 1e-9 || y - stem >= h - 1e-9) continue;
+      lift += y + h;
       moved = true;
     }
     if (!moved) break;
