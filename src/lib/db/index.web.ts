@@ -12,9 +12,10 @@ import type { Mark, Place, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import { copyNoteTypes } from './noteTypesStep';
 import { idbLogs } from './idbLogs';
+import { idbStills } from './idbStills';
 import type { Transcript } from '../transcript/core';
 import { DERIVED_STORES } from './stores';
-import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
@@ -538,24 +539,6 @@ export const db: Db = {
   async getPauses(walkId) {
     return (await byWalk<Pause>('pause', walkId)).sort((a, b) => a.started_at - b.started_at);
   },
-  async startStill(walkId, at) {
-    const tx = (await conn()).transaction('still', 'readwrite');
-    const st = tx.objectStore('still');
-    const mine = (await done(st.index('walk_id').getAll(walkId))) as Still[];
-    if (!mine.some((p) => p.ended_at == null)) st.put({ walk_id: walkId, started_at: at, ended_at: null });
-    await committed(tx);
-  },
-  async endStill(walkId, at) {
-    const tx = (await conn()).transaction('still', 'readwrite');
-    const st = tx.objectStore('still');
-    for (const p of (await done(st.index('walk_id').getAll(walkId))) as Still[]) {
-      if (p.ended_at == null) st.put({ ...p, ended_at: at });
-    }
-    await committed(tx);
-  },
-  async getStills(walkId) {
-    return (await byWalk<Still>('still', walkId)).sort((a, b) => a.started_at - b.started_at);
-  },
 
   async getGapDecisions(walkId) {
     return (await byWalk<GapDecision>('gap_fill', walkId)).sort((a, b) => a.t0 - b.t0);
@@ -673,9 +656,15 @@ export const db: Db = {
   },
   async addFind(f) {
     const tx = (await conn()).transaction('find', 'readwrite');
-    // The first find of a place stands.
-    tx.objectStore('find').add(f).onerror = (e) => e.preventDefault();
-    return committed(tx).catch(caught('cache', 'lib/db/index · addFind'));
+    // The first find of a place stands: a find already held is no failure, and nothing else is hidden.
+    const req = tx.objectStore('find').add(f);
+    req.onerror = (e) => {
+      if (req.error?.name !== 'ConstraintError') return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    // A failure is the caller's: a find is the walker's, said with Retry (errors-handled audit 8).
+    return committed(tx);
   },
   async listFinds(walkId) {
     return (walkId ? await byWalk<Find>('find', walkId) : ((await done((await store('find')).getAll())) as Find[]));
@@ -784,6 +773,7 @@ export const db: Db = {
     return (await done((await store('reaction')).getAll())) as StoredReaction[];
   },
   ...idbLogs({ conn, store, done, committed }),
+  ...idbStills({ conn, store, done, committed }),
   async purgeDerived() {
     const tx = (await conn()).transaction([...DERIVED_STORES, 'walk'], 'readwrite');
     for (const s of DERIVED_STORES) tx.objectStore(s).clear();

@@ -15,7 +15,7 @@ import type { useLayers } from '../lib/layers/useLayers';
 import { NotificationSettings } from './NotificationSettings';
 import { RouteLeaningSettings } from './RouteLeaningSettings';
 import { ShareDiagnostics } from './ShareDiagnostics';
-import { failedSave } from '../lib/diagnostics/sink';
+import { saved } from '../lib/diagnostics/sink';
 import { SwitchRow } from './SwitchRow';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
@@ -130,7 +130,7 @@ export function StartSettings(props: {
       <NotificationSettings heading={false} />
 
       <View style={styles.rule} />
-      <Text style={styles.title} accessibilityRole="header">Distances</Text>
+      <Text style={styles.section} accessibilityRole="header">Distances</Text>
       <View style={styles.segment} accessibilityRole="radiogroup">
         {(['km', 'mi'] as const).map((u) => (
           <Pressable
@@ -140,7 +140,7 @@ export function StartSettings(props: {
             accessibilityState={{ checked: units === u }}
             aria-checked={units === u}
             accessibilityLabel={u === 'km' ? 'Kilometres and metres' : 'Miles and feet'}
-            onPress={() => saveUnits(u).catch(failedSave('StartSettings · Distances', 'your Distances choice', () => saveUnits(u)))}
+            onPress={() => void saved('StartSettings · Distances', 'your Distances choice', () => saveUnits(u), { screen: 'settings' })}
             style={[styles.segmentBtn, units === u && styles.segmentOn]}
           >
             <Text style={[styles.segmentText, units === u && styles.segmentTextOn]}>{u === 'km' ? 'km' : 'miles'}</Text>

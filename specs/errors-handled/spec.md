@@ -93,11 +93,72 @@ Told only "send the app's diagnostics", from the walk settings. 5 findings: 3 fi
 5. (low) reject: a dismiss control and a place higher up. The line goes when the save works (S4, by design),
    and it sits in the walk screen's pill slot, beside the captures, never over them.
 
+## Audit (decision 0074, 2026-11-14 to 16)
+
+The `auditor`, the `steward` and the `ux-reviewer` (a cold find first, then the full review) read the built slice at
+`9147aad`, with the `diagnostics` journey's pictures at 390 x 844. 25 findings: the auditor's 13, the steward's 4 and
+the ux-reviewer's 8, merged into the 22 below where two named the same failure. The owner answered four
+(2026-11-16): a line carries the day only; a message from outside the app is kept as its error type; the walk's line
+can be hidden until something new fails; a failure shows on the screen where it happened. Each accepted finding has
+a test named `errors-handled audit N` in `src/lib/__tests__/diagnostics/audit.test.ts` or a check of that name in the
+`diagnostics` journey.
+
+1. One failed SQLite write logged forever (auditor 1): accept. The write queue's own catch reported the failure, and
+   the report's write failed the same way, around and around. The queue now hands its failure to the caller only,
+   and the log stops writing to a store that refused an entry, keeping the session's entries in memory instead.
+2. A later save that succeeded left the old failure, and Retry wrote back the old value (auditor 2): accept. Every
+   save of the walker's goes through `saved`, and a success clears its thing. The line not surviving a reload:
+   defer (a store that just refused a write can't keep the line either).
+3. Retrying a still spell's start after its end left an open spell (auditor 3): accept. The start is retried only
+   while the spell is still open; after its end, start and end are saved together.
+4. Two different things under one key, and the same words said three times (auditor 4): accept. A save names its
+   thing (`key`: the moment, the spell), and the line says each thing once.
+5. A double Retry ran every save twice, and an old retry's success cleared a newer failure (auditor 5): accept.
+6. The scrub let an unquoted name, a low-zoom tile, a scheme-less URL and a path with a space through (auditor 6,
+   steward 2): accept, the owner's way. A message from outside the app is kept as its error type and the reason in
+   words where one is known; only the app's own messages (`AppError`, a fallback's "in place of") keep their words.
+7. Failed saves on Explore and the gallery shown nowhere, and the journal showing a failed Distances choice (auditor
+   7, the steward's question 2): accept, the owner's way. Each failure is tagged with its screen; Explore and the
+   gallery have the line; each screen shows its own, the walk and ready screens the settings too.
+8. Saves of the walker's logged as cache work, so never said (auditor 8): accept. A thread's rename, a split and, on
+   the web, a find go through `saved`.
+9. A repeating error filled the log and pushed out its first cause (auditor 9): accept. The same kind, place and
+   message within a minute of the last is written once.
+10. The shared text read when the settings opened, leaving out later failures (auditor 10): accept. It is read
+    again after each new report, so the tap still shares at once.
+11. "The phone is full" in a browser; the web header without the browser's version; "since" before the log began
+    (auditor 11, steward 4, ux 1): accept. The web says "there's no room left"; the header names the browser and its
+    major version; "since" is no earlier than the log's first day.
+12. A failed snap dropped in the replay, and the Baker's failure logged as a refusal (auditor 12): accept. The
+    codemod's fallback words ("what loadSettings read") are rejected as a finding: they name the read the value
+    stood in for, which is what EH10 asks.
+13. A cancelled share copied the text and said "Copied", and on a phone a dismissed sheet said "Shared" (auditor
+    13): accept.
+14. Every line said the minute it happened, against the note's "no times of walks" (steward 1): accept, the owner's
+    way. A line carries the day only.
+15. The walk's line could not be set aside, so a full phone kept it on the map all walk (steward 3): accept, the
+    owner's way. Hide keeps it hidden until something new fails, and the walk's end says it again in words.
+16. "Free some room first" beside Retry, and a retry that failed said nothing new (ux 2): accept. "Free some room,
+    then Retry"; a retry that fails again says "still".
+17. Retry 13 px from the capture stack (ux 3): accept. The line keeps 16 px clear of the stack.
+18. Help and Distances drawn as a heading of a different level from the sheet's others (ux 4): accept. One heading
+    style for the sheet.
+19. "Copied." with no next step, and no picture of the after-state (ux 5): accept. "Copied: paste it into a message
+    or an email."; the journey shoots it.
+20. Retry's spoken name has no object (ux 6): accept. "Retry saving <the things>".
+21. The sheet's title doesn't say it holds Help (ux 7): reject. The plan put the row in the walk settings, the
+    owner's call (0179), and the cold find found it by scrolling.
+22. The sheet's grab handle draws over the text under it (ux 8, auditor's picture note): defer. The ready bar's, not
+    this slice's (DEFERRED).
+
 ## Decisions
 
 - 2026-11-14 (the owner, decision 0179): no swallowed errors; handled by kind; a local diagnostics log, shared as
   text from the walk settings ("Share sheet, as text").
 - 2026-11-14 (the owner): this slice follows code quality on the same branch.
+- 2026-11-16 (the owner, on the audit): a shared line carries its day, never its time; a message from outside the
+  app is shared as its error type; the walk's failed-save line can be hidden until something new fails; a failure
+  shows on the screen where it happened.
 - 2026-11-14 (the owner, on the plan): one slice, the codemod for the mechanical sites and a hand pass for the saves
   and refusals; the row in the walk settings after Distances (0179's "settings dialog"); the log keeps 500 entries and
   30 days.

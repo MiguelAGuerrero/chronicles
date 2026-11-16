@@ -20,7 +20,7 @@ import { clearNav, loadNav, saveNav } from './store';
 import { streetRouteSource, type StreetSource } from './streetRoute';
 import { traceRouteSource } from './traceRoute';
 import type { Route, RouteSource, Waypoint } from './types';
-import { caught, failedSave, fallback } from '../diagnostics/sink';
+import { caught, fallback, saved } from '../diagnostics/sink';
 
 /** Streets are read this far around both ends of a route. */
 const AREA_PAD_M = 300;
@@ -360,7 +360,7 @@ export function useNavigation(opts: {
     if (!s || s.dest.label === label || !walk) return;
     const dest = { ...s.dest, label };
     apply({ ...s, dest });
-    saveNav(walk.id, dest).catch(failedSave('lib/nav/useNavigation · useNavigation', 'your destination', () => saveNav(walk.id, dest)));
+    void saved('lib/nav/useNavigation · useNavigation', 'your destination', () => saveNav(walk.id, dest), { screen: 'walk' });
   }, []);
 
   return { nav, finding, preview, goTo, end, cancel, relabel, select, choose, dismiss };

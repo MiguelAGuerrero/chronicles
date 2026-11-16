@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { failedLine, kept, KEEP, logText, messageOf, scrub, whyOf, withFailed, type Diagnostic } from '../../diagnostics/core';
+import { AppError, failedLine, kept, KEEP, logText, messageOf, scrub, whyOf, withFailed, type Diagnostic } from '../../diagnostics/core';
 
 // Errors handled by kind: the log's decisions (specs/errors-handled/spec.md, EH3, EH3a, EH6, EH7, EH10).
 
@@ -17,9 +17,9 @@ test('EH3a a message with a position, a tile, a URL, a path, an id and a place n
   }
   assert.match(s, /tiles\.example\.org/, 'the host stays: it says which service failed');
   assert.match(s, /^Could not read/, 'the words around stay');
-  assert.equal(messageOf(new Error(raw)), s, 'an Error is its scrubbed message');
-  assert.equal(messageOf('plain'), 'plain');
-  assert.ok(!messageOf(new Error('one\ntwo')).includes('\n'), 'one line');
+  assert.equal(messageOf(new AppError(raw)), s, 'the app\'s own error is its scrubbed message');
+  assert.equal(messageOf(new Error(raw)), 'Error', 'one from outside the app is its type (errors-handled audit 6)');
+  assert.ok(!messageOf(new AppError('one\ntwo')).includes('\n'), 'one line');
 });
 
 test('EH3 the shared text: header, newest first, one line each, the kinds in words; empty says so', () => {
@@ -53,17 +53,18 @@ test('EH6 the newest 500, none older than 30 days', () => {
 
 test('EH7 why in words when known, one line in a clause for several, never a number; the same thing replaces', () => {
   const full = Object.assign(new Error('The quota has been exceeded.'), { name: 'QuotaExceededError' });
-  assert.equal(whyOf(full), 'the phone is full');
-  assert.equal(whyOf(new Error('database or disk is full')), 'the phone is full');
+  assert.equal(whyOf(full), 'there’s no room left');
+  assert.equal(whyOf(new Error('database or disk is full')), 'there’s no room left');
   assert.equal(whyOf(new Error('SQLITE_IOERR: something odd')), null, 'unknown: no reason rather than the platform\'s words');
   assert.equal(failedLine([]), null);
-  let list = withFailed([], { key: 'nav', what: 'your destination', why: 'the phone is full' });
-  assert.equal(failedLine(list), 'Your destination wasn’t saved: the phone is full. Free some room first.', 'errors-handled ui 3: what to do, where it is known');
-  list = withFailed(list, { key: 'units', what: 'a setting', why: null });
-  list = withFailed(list, { key: 'nav', what: 'your destination', why: null });
+  const f = (key: string, what: string, why: string | null) => ({ key, what, why, screen: 'settings' as const, seq: 1, again: false });
+  let list = withFailed([], f('nav', 'your destination', 'there’s no room left'));
+  assert.equal(failedLine(list), 'Your destination wasn’t saved: there’s no room left. Free some room, then Retry.', 'errors-handled ui 3: what to do, where it is known');
+  list = withFailed(list, f('units', 'a setting', null));
+  list = withFailed(list, f('nav', 'your destination', null));
   assert.equal(list.length, 2, 'the same thing replaces');
   assert.equal(failedLine(list), 'Your destination and a setting weren’t saved.');
-  const three = withFailed(list, { key: 'still', what: 'part of this walk', why: null });
+  const three = withFailed(list, f('still', 'part of this walk', null));
   assert.equal(failedLine(three), 'Your destination, a setting and part of this walk weren’t saved.');
   assert.ok(!/[0-9]/.test(failedLine(three)!), 'no digit');
 });

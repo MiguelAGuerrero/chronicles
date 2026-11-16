@@ -15,6 +15,19 @@ export interface Diagnostic {
   message: string;
 }
 
+/** Where a failed save happened: the line shows on that screen (errors-handled audit 7, the owner, Nov 16). */
+export type SaveScreen = 'settings' | 'walk' | 'chronicle' | 'explore' | 'gallery';
+/** The screens that draw the line. */
+export type LineHost = 'walk' | 'ready' | 'chronicle' | 'explore' | 'gallery';
+/** What each host shows: its own, and the settings on the walk and ready screens, where they are chosen. */
+const HOST_SHOWS: Record<LineHost, SaveScreen[]> = {
+  walk: ['walk', 'settings'],
+  ready: ['settings'],
+  chronicle: ['chronicle'],
+  explore: ['explore'],
+  gallery: ['gallery'],
+};
+
 /** A save of something the walker made or chose that failed, until it is retried (EH7). */
 export interface FailedSave {
   /** One per thing: a new failure of the same thing replaces the old. */
@@ -23,6 +36,19 @@ export interface FailedSave {
   what: string;
   /** Why, in words, when known; never the platform's message. */
   why: string | null;
+  screen: SaveScreen;
+  /** When it failed, in the order of failures: a hidden line shows again on a newer one (audit 15). */
+  seq: number;
+  /** A retry failed too (audit 16). */
+  again: boolean;
+}
+
+/** An error the app throws with its own words: the only message kept as written (errors-handled audit 6). */
+export class AppError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AppError';
+  }
 }
 
 /** What the log keeps (EH6; the owner, Nov 14). */
@@ -61,21 +87,33 @@ export function scrub(message: string): string {
     .trim();
 }
 
-/** The message of anything thrown, scrubbed and cut to one line. */
+/**
+ * The message of anything thrown (EH3a; errors-handled audit 6, the owner, Nov 16): the app's own words
+ * (`AppError`), scrubbed; from outside the app, only its error type, a code when it has one, and the reason in
+ * words where one is known. A platform's message can name a place nobody quoted, so it is never kept.
+ */
 export function messageOf(e: unknown): string {
-  let raw: string;
-  if (e instanceof Error) raw = e.message || e.name;
-  else if (typeof e === 'string') raw = e;
-  else if (e === undefined || e === null) raw = String(e);
-  else {
-    const m = (e as { message?: unknown }).message;
-    raw = typeof m === 'string' ? m : Object.prototype.toString.call(e);
+  if (e instanceof AppError) {
+    const s = scrub(e.message || e.name);
+    return s.length > MAX_MESSAGE ? `${s.slice(0, MAX_MESSAGE - 1)}…` : s;
   }
-  const s = scrub(raw);
-  return s.length > MAX_MESSAGE ? `${s.slice(0, MAX_MESSAGE - 1)}…` : s;
+  if (typeof e === 'string') return 'a thrown string';
+  if (e === undefined || e === null) return String(e);
+  const named = e as { name?: unknown; code?: unknown };
+  const name = typeof named.name === 'string' && /^[A-Za-z_][\w]{0,40}$/.test(named.name) ? named.name : e instanceof Error ? 'Error' : typeof e;
+  const code = typeof named.code === 'string' && /^[A-Za-z_][\w]{0,40}$/.test(named.code) ? ` ${named.code}` : '';
+  const why = whyOf(e);
+  return `${name}${code}${why ? ` (${why})` : ''}`;
 }
 
 const newestFirst = (a: Diagnostic, b: Diagnostic) => b.t - a.t || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
+
+/** A repeat of the same failure within this is written once (errors-handled audit 9). */
+const REPEAT_MS = 60_000;
+/** What makes two reports the same failure. */
+export const repeatKey = (r: { kind: DiagnosticKind; place: string; message: string }) => `${r.kind}|${r.place}|${r.message}`;
+/** Whether a report at `t` repeats one written at `lastAt`. */
+export const isRepeat = (lastAt: number | undefined, t: number) => lastAt != null && t - lastAt < REPEAT_MS;
 
 /** The entries kept: the newest KEEP.entries, none older than KEEP.days before `now` (EH6). */
 export function kept(entries: Diagnostic[], now: number): Diagnostic[] {
@@ -90,11 +128,12 @@ export const keepFrom = (now: number) => now - KEEP.days * DAY_MS;
 export function logText(
   entries: Diagnostic[],
   header: { app: string; version: string; platform: string; day: string; since: string | null },
+  /** An entry's day: never its time (audit 14). */
   when: (t: number) => string,
 ): string {
   const head = [
     `${header.app} ${header.version} · ${header.platform} · shared ${header.day}`,
-    'Each line: when, what happened, where in the app, and the error. No places, times of walks or words.',
+    'Each line: the day, what happened, where in the app, and the error. No places, times of walks or words.',
     '',
   ];
   if (!entries.length) return [...head, header.since ? `Nothing has gone wrong since ${header.since}.` : 'Nothing has gone wrong.'].join('\n');
@@ -102,11 +141,14 @@ export function logText(
   return [...head, ...lines].join('\n');
 }
 
+/** The words for a full store, true on a phone and in a browser (errors-handled audit 11). */
+const ROOM = 'there’s no room left';
+
 /** Why a save failed, in words, when it is known (EH7); null otherwise. */
 export function whyOf(e: unknown): string | null {
   const name = e instanceof Error ? e.name : '';
   const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : '';
-  if (name === 'QuotaExceededError' || /quota|disk is full|no space|ENOSPC|storage is full/i.test(msg)) return 'the phone is full';
+  if (name === 'QuotaExceededError' || /quota|disk is full|no space|ENOSPC|storage is full/i.test(msg)) return ROOM;
   return null;
 }
 
@@ -115,18 +157,55 @@ export function withFailed(list: FailedSave[], f: FailedSave): FailedSave[] {
   return list.some((x) => x.key === f.key) ? list.map((x) => (x.key === f.key ? f : x)) : [...list, f];
 }
 
-/** The failed saves without the one that saved. */
-export const withoutFailed = (list: FailedSave[], key: string): FailedSave[] => list.filter((x) => x.key !== key);
+/** The things in a clause, each named once (errors-handled audit 4). */
+function clause(list: FailedSave[]): string {
+  const whats = [...new Set(list.map((f) => f.what))];
+  return whats.length === 1 ? whats[0] : `${whats.slice(0, -1).join(', ')} and ${whats[whats.length - 1]}`;
+}
 
 /** The one line for every failed save, in a clause, never a number (EH7, EH13); null when none. */
 export function failedLine(list: FailedSave[]): string | null {
   if (!list.length) return null;
-  const whats = list.map((f) => f.what);
-  const joined = whats.length === 1 ? whats[0] : `${whats.slice(0, -1).join(', ')} and ${whats[whats.length - 1]}`;
+  const joined = clause(list);
   const subject = joined.charAt(0).toUpperCase() + joined.slice(1);
   const whys = [...new Set(list.map((f) => f.why).filter((w): w is string => !!w))];
-  const verb = list.length === 1 ? 'wasn’t saved' : 'weren’t saved';
-  // What to do, where it is known (errors-handled ui 3): a full phone needs room before Retry can work.
-  const advice = whys.length === 1 && whys[0] === 'the phone is full' ? ' Free some room first.' : '';
+  const many = new Set(list.map((f) => f.what)).size > 1;
+  // A retry that failed too says so, so the tap visibly did something (audit 16).
+  const verb = `${list.every((f) => f.again) ? 'still ' : ''}${many ? 'weren’t saved' : 'wasn’t saved'}`;
+  // What to do, where it is known (errors-handled ui 3, audit 16): room first, then Retry.
+  const advice = whys.length === 1 && whys[0] === ROOM ? ' Free some room, then Retry.' : '';
   return `${subject} ${verb}${whys.length === 1 ? `: ${whys[0]}` : ''}.${advice}`;
+}
+
+/** Retry's spoken name, with what it saves (errors-handled audit 20). */
+export const retryLabel = (list: FailedSave[]): string => `Retry saving ${clause(list)}`;
+
+/**
+ * The failed saves a host shows (audit 7): its own screen's, and the settings on the walk and ready screens. On the
+ * walk, a line hidden at `hiddenAt` stays hidden until something fails after it (audit 15).
+ */
+export function shownOn(list: FailedSave[], host: LineHost, hiddenAt: number): FailedSave[] {
+  const mine = list.filter((f) => HOST_SHOWS[host].includes(f.screen));
+  if (host === 'walk' && hiddenAt > 0 && mine.every((f) => f.seq <= hiddenAt)) return [];
+  return mine;
+}
+
+/** The local day of `t`, as 2026-11-12, by the offset the device reports (`getTimezoneOffset`): never the time (audit 14). */
+export function dayOf(t: number, offsetMin: number): string {
+  return new Date(t - offsetMin * 60_000).toISOString().slice(0, 10);
+}
+
+/** The browser and its major version, from a user agent, for the web's header (audit 11); never the device. */
+export function browserOf(ua: string): string {
+  const pick: [RegExp, string][] = [
+    [/Edg\/(\d+)/, 'Edge'],
+    [/Firefox\/(\d+)/, 'Firefox'],
+    [/Chrome\/(\d+)/, 'Chrome'],
+    [/Version\/(\d+)[.\d]* (?:Mobile\/\S+ )?Safari/, 'Safari'],
+  ];
+  for (const [re, name] of pick) {
+    const m = re.exec(ua);
+    if (m) return `${name} ${m[1]}`;
+  }
+  return 'a browser';
 }

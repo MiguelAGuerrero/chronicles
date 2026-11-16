@@ -37,7 +37,7 @@ import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { BAR_H, CAP, raisedHeight, useStackLayout } from './layout';
 import { ReadyBar } from './ReadyBar';
-import { caught, failedSave, fallback } from '../../lib/diagnostics/sink';
+import { caught, fallback, saved } from '../../lib/diagnostics/sink';
 
 const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
@@ -134,7 +134,7 @@ export function useReady(props: {
   };
   const changeSettings = (next: ExploreSettings) => {
     setSettings(next);
-    saveSettings(next).catch(failedSave('components/walk/useReady · changeSettings', 'your walk settings', () => saveSettings(next)));
+    void saved('components/walk/useReady · changeSettings', 'your walk settings', () => saveSettings(next), { screen: 'settings' });
   };
   const toggleKind = (k: Kind, on: boolean) => {
     const hidden = new Set(settings.hidden);
@@ -144,7 +144,7 @@ export function useReady(props: {
   };
   const chooseDest = (d: Waypoint | null) => {
     setDest(d);
-    savePendingDest(d).catch(failedSave('components/walk/useReady · chooseDest', 'your destination', () => savePendingDest(d)));
+    void saved('components/walk/useReady · chooseDest', 'your destination', () => savePendingDest(d), { screen: 'settings' });
   };
   const dismissWebNote = () => {
     setWebNoteOff(true);

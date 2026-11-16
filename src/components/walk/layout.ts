@@ -17,6 +17,8 @@ export const CAP = 56;
 export const CAP_SMALL = 48;
 /** Between the stack's buttons, and between the stack and the strip. */
 export const STACK_GAP = 12;
+/** The pills keep 16 clear of the capture stack, a thumb's slip away while walking (X0d; errors-handled audit 17). */
+const PILL_GAP = 16;
 /** The small round edge buttons (Locate or Recenter, unwalked streets, walk me back). */
 export const EDGE = 44;
 /** Between the captures and the first edge button above them. */
@@ -71,6 +73,6 @@ export function useStackLayout() {
     /** What the Layers panel keeps clear on the right: the capture column and its gap. */
     layersRightClear: right + CAP + STACK_GAP,
     /** The pills' area: left of the stack, above the Layers button in the corner (and so above the scale bar). */
-    pills: { left: sideInset + 12, right: right + CAP + STACK_GAP, bottom: pillsBottom(layers) },
+    pills: { left: sideInset + 12, right: right + CAP + PILL_GAP, bottom: pillsBottom(layers) },
   };
 }

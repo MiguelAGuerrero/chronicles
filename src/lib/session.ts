@@ -6,7 +6,7 @@ import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
 import { notifyWalkChanged } from './walkEvents';
-import { caught } from './diagnostics/sink';
+import { caught, walkEnded } from './diagnostics/sink';
 
 /**
  * The walk lifecycle, in one place so every screen goes through the same
@@ -59,6 +59,8 @@ export function stopWalk(walkId: string): Promise<void> {
       await db.updateWalk(walkId, { ended_at: at, open: false });
       await db.endPause(walkId, at);
       await recorder.stop();
+      // A failed-save line hidden during the walk is said again (errors-handled audit 15).
+      walkEnded();
       void notifyWalkChanged();
       void notifier.pauseEnded(walkId);
       void notifier.walkEnded(walkId);

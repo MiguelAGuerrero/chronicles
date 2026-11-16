@@ -13,6 +13,7 @@ import { resurface } from '../../lib/resurface';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { useStore } from '../../lib/useStore';
 import { CaptureViewer } from '../CaptureView';
+import { SaveFailedLine } from '../SpaceLine';
 import { UndoToast } from '../UndoToast';
 import { theme } from '../ui';
 import { GalleryBar } from './GalleryBar';
@@ -31,7 +32,19 @@ const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 
  * a pinned header for each day, or as months and years; a View menu for Sort, Show, Size and Grid, and pinch. A tile
  * opens its moment whole in the viewer. Reads through the `gallery` shell; never the db.
  */
-export function MediaScreen() {
+/** The gallery, with its failed-save line: how it is shown, when that wasn't saved (errors-handled audit 7). */
+export function GallerySection() {
+  return (
+    <View style={styles.section}>
+      <MediaScreen />
+      <View style={styles.saveLine} pointerEvents="box-none">
+        <SaveFailedLine host="gallery" />
+      </View>
+    </View>
+  );
+}
+
+function MediaScreen() {
   const st = useStore(gallery.store, (s) => s);
   const hidden = useHidden();
   const { width: windowW, fontScale } = useWindowDimensions();
@@ -284,6 +297,8 @@ export function MediaScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
+  section: { flex: 1 },
+  saveLine: { position: 'absolute', left: 16, right: 16, bottom: 16, alignItems: 'flex-start' },
   body: { flex: 1 },
   // The row's height is made from these numbers (HEADER_TYPE); neither text may shrink to fit, or the title is cut.
   header: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: HEADER_TYPE.padTop, paddingBottom: HEADER_TYPE.padBottom, justifyContent: 'flex-end' },

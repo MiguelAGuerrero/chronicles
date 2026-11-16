@@ -6,7 +6,7 @@ import { AccessibilityInfo, Animated, Linking, Platform, Pressable, StyleSheet, 
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
-import { MediaScreen } from '../../components/gallery/MediaScreen';
+import { GallerySection } from '../../components/gallery/MediaScreen';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { sectionOfSheet, sheetForSection, type Section } from '../../lib/resurface/section';
 import { useStore } from '../../lib/useStore';
@@ -534,7 +534,7 @@ export default function Chronicle() {
         {section === 'memories' ? (
           <MemoriesScreen />
         ) : section === 'media' ? (
-          <MediaScreen />
+          <GallerySection />
         ) : (
           // The bar above has taken the safe area's top: the map's own offsets start below it. One map across Walks,
           // Days and Map: the bar and the sheet change what it lists, never the map (SB3).

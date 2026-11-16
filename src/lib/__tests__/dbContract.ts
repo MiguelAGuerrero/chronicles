@@ -570,6 +570,17 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.getStills('a')).length, 2);
     });
 
+    test('FC7 putStill: a spell as it stands, the same walk and start replaced (errors-handled audit 3)', async () => {
+      const db = await fresh();
+      await db.startStill('a', 40);
+      await db.putStill({ walk_id: 'a', started_at: 10, ended_at: 30 });
+      await db.putStill({ walk_id: 'a', started_at: 10, ended_at: 32 });
+      assert.deepEqual(await db.getStills('a'), [
+        { walk_id: 'a', started_at: 10, ended_at: 32 },
+        { walk_id: 'a', started_at: 40, ended_at: null },
+      ]);
+    });
+
     test('FC7 putGapDecision, getGapDecisions: per walk in t0 order; the same walk and t0 replaces', async () => {
       const db = await fresh();
       await db.putGapDecision(gap('a', 30));

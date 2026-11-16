@@ -86,8 +86,9 @@ function plan(file, source) {
         const empty = emptyBody(h) && (ts.isBlock(h.body) || ts.isVoidExpression(h.body));
         site(n, n.expression.expression, (place, decided, text) => {
           if (decided && decided.kind === 'save') {
-            used.add('failedSave');
-            return { start: h.getStart(sf), end: h.end, text: `failedSave(${q(place)}, ${q(decided.what)}, () => ${text})` };
+            // The whole call becomes a save of the walker's, so a later success clears it (errors-handled audit 2).
+            used.add('saved');
+            return { start: n.getStart(sf), end: n.end, text: `saved(${q(place)}, ${q(decided.what)}, () => ${text}, { screen: ${q(decided.screen ?? 'settings')} })` };
           }
           if (decided && empty) {
             used.add('caught');

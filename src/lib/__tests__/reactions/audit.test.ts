@@ -90,7 +90,7 @@ test('reactions audit 17: the slip\'s More offers no Reaction: the slip stays qu
 test('reactions audit 2: a page that joins a moment shows and changes that moment\'s reactions, not an empty set', () => {
   const s = src('components/notePage/NewNotePage.tsx');
   assert.match(s, /useReactions\(stamp\.into\)/);
-  assert.match(s, /const into = stamp\.into \?\? kept\.current;\s*if \(into\) void reactions\.choose\(into, id\)/, 'the moment it joins first, then the one it kept');
+  assert.match(s, /const into = stamp\.into \?\? kept\.current;\s*if \(into\) void saved\([^,]+, 'a reaction', \(\) => reactions\.choose\(into, id\)/, 'the moment it joins first, then the one it kept');
 });
 
 test('reactions audit 4: Reactions and a lens are sub-screens: Contents leaves, and Threads or Hidden from the contents leave Reactions', () => {

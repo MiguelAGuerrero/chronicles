@@ -214,7 +214,7 @@ export function CaptureRow(props: {
           </View>
         )}
         {/* Only on the screen in front. */}
-        {!recording && props.focused !== false && <SpaceLine />}
+        {!recording && props.focused !== false && <SpaceLine host="ready" />}
       </View>
       <CaptureStack
         ids={{ photo: `${p}-photo`, voice: `${p}-voice`, note: `${p}-note`, save: `${p}-voice-save`, discard: `${p}-voice-discard`, timer: `${p}-voice-timer` }}

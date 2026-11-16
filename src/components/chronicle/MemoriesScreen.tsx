@@ -46,7 +46,7 @@ import { useThreads } from '../../lib/threads/useThreads';
 import { MyThreads, type MyThreadRow } from '../threads/MyThreads';
 import { OwnThreadScreen } from '../threads/OwnThreadScreen';
 import { ThreadMomentMenu } from '../threads/ThreadMomentMenu';
-import { caught, failedSave, fallback } from '../../lib/diagnostics/sink';
+import { caught, fallback, saved } from '../../lib/diagnostics/sink';
 
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
@@ -381,7 +381,7 @@ export function MemoriesScreen() {
           onOpen={open}
           onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
           onMore={(m) => setOwnMenuFor(m.id)}
-          onRename={(name) => void threads.rename(own.id, name).catch(caught('cache', 'components/chronicle/MemoriesScreen · MemoriesScreen'))}
+          onRename={(name) => void saved('components/chronicle/MemoriesScreen · onRename', 'a thread’s name', () => threads.rename(own.id, name), { screen: 'chronicle', key: `thread-name:${own.id}` })}
           onDelete={() => {
             // At once, with Undo (UC4): a thread can be brought back until the pill is closed.
             setOwnId(null);
@@ -580,7 +580,7 @@ export function MemoriesScreen() {
         open={!!menuMoment}
         onlyType={typeOnly}
         // The slip stays quiet: its More offers no Reaction (reactions audit 17).
-        reaction={menuMoment && !menuFromSlip ? { set: menuSet, onPick: (id) => void reactions.choose(menuMoment.id, id).catch(failedSave('components/chronicle/MemoriesScreen · onPick', 'a reaction', () => reactions.choose(menuMoment.id, id))) } : undefined}
+        reaction={menuMoment && !menuFromSlip ? { set: menuSet, onPick: (id) => { const m = menuMoment.id; void saved('components/chronicle/MemoriesScreen · onPick', 'a reaction', () => reactions.choose(m, id), { screen: 'chronicle', key: `reaction:${m}` }); } } : undefined}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;

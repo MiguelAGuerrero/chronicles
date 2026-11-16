@@ -7,7 +7,7 @@ import { useReactions } from '../../lib/reactions/useReactions';
 import type { CaptureKind } from '../../lib/types';
 import type { useCaptures } from '../../lib/useCaptures';
 import { NotePage, newNoteStore, type NotePageHandle } from './NotePage';
-import { failedSave } from '../../lib/diagnostics/sink';
+import { saved } from '../../lib/diagnostics/sink';
 
 type Cap = Pick<ReturnType<typeof useCaptures>, 'beginNote' | 'keepNote' | 'setNote' | 'takePhoto'>;
 
@@ -55,7 +55,7 @@ export const NewNotePage = forwardRef<NotePageHandle, {
           kept.current = k.id;
           // The note is kept whether or not its reactions are: a failed reaction write must never look like a failed
           // keep, or the page keeps the note a second time (note-types audit 58).
-          await reactions.keep(key, k.id).catch(failedSave('components/notePage/NewNotePage · NewNotePage', 'a reaction', () => reactions.keep(key, k.id)));
+          await saved('components/notePage/NewNotePage · NewNotePage', 'a reaction', () => reactions.keep(key, k.id), { screen: 'chronicle', key: `reaction:${k.id}` });
           setKeptId(k.id);
           onKept?.();
         }
@@ -88,7 +88,7 @@ export const NewNotePage = forwardRef<NotePageHandle, {
         set: stamp.into ? intoSet : keptId ? keptSet : held,
         onPick: (id: ReactionId) => {
           const into = stamp.into ?? kept.current;
-          if (into) void reactions.choose(into, id).catch(failedSave('components/notePage/NewNotePage · onPick', 'a reaction', () => reactions.choose(into, id)));
+          if (into) void saved('components/notePage/NewNotePage · onPick', 'a reaction', () => reactions.choose(into, id), { screen: 'chronicle', key: `reaction:${into}` });
           else setHeld(reactions.hold(key, id));
         },
       } : undefined}

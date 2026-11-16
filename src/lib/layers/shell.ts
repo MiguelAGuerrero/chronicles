@@ -2,7 +2,7 @@
 import type { Ports } from '../ports/types';
 import { createStore, type Store } from '../store';
 import { decodeLayers, encodeLayers, layerDefaults, type LayerState } from './state';
-import { failedSave, fallback } from '../diagnostics/sink';
+import { fallback, saved } from '../diagnostics/sink';
 
 /*
  * The layers' state (ML5, ML7): one setting for every map, kept in meta `map_layers`. Until it is loaded the
@@ -36,7 +36,7 @@ export function createLayers(p: Pick<Ports, 'db'>): Layers {
       await load();
       const next = { ...store.get().on, [id]: on };
       store.set((s) => ({ ...s, on: next }));
-      await p.db.setMeta('map_layers', encodeLayers(next)).catch(failedSave('lib/layers/shell · set', 'your map layers', () => p.db.setMeta('map_layers', encodeLayers(next))));
+      await saved('lib/layers/shell · set', 'your map layers', () => p.db.setMeta('map_layers', encodeLayers(next)), { screen: 'settings' });
     },
     togglePanel() {
       store.set((s) => ({ ...s, open: !s.open }));

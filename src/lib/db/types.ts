@@ -103,6 +103,8 @@ export interface Db {
   startStill(walkId: string, at: number): Promise<void>;
   /** Ends the walk's open still spell, if any. */
   endStill(walkId: string, at: number): Promise<void>;
+  /** A spell as it stands, replacing the same walk and start: a failed save retried (errors-handled audit 3). */
+  putStill(s: Still): Promise<void>;
   getStills(walkId: string): Promise<Still[]>;
 
   /** A walk's kept and dismissed stretches across gaps (Filling gaps, G10): truth, kept with the walk. */

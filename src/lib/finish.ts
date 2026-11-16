@@ -16,7 +16,7 @@ import type { Area, WalkArea } from './areas/types';
 import { fillsOf, walkStretches } from './gaps';
 import { ensureTileBuild } from './tiles';
 import type { LngLat, Moment, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
-import { caught, fallback } from './diagnostics/sink';
+import { caught, fallback, report } from './diagnostics/sink';
 
 const AREA_PAD_M = 150;
 const NEIGHBORHOOD = ['neighbourhood', 'quarter', 'suburb'];
@@ -57,6 +57,17 @@ export interface Collector {
  * whenever the tile build has changed since the walk was last snapped.
  * Everything written here is derived and can be recomputed from the trace.
  */
+/**
+ * Snaps a walk again after a change to its trace (a gap kept); a failed snap is recorded and the walk marked to snap
+ * again later (errors-handled audit 12: the snap's own error was dropped).
+ */
+export function snapAgain(walk: Walk, collector: Collector, place: string): Promise<unknown> {
+  return snapWalk(walk, collector).catch((e: unknown) => {
+    report('cache', `${place} · snap`, e);
+    return db.updateWalk(walk.id, { snapped_build: null }).catch(caught('cache', place));
+  });
+}
+
 export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSummary> {
   const build = await ensureTileBuild();
   const pauses = await db.getPauses(walk.id);

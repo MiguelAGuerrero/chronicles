@@ -19,7 +19,9 @@ test('tend explore 12, tend explore audit 14: Explore\'s toast dwell is its own 
 
 test('tend explore 12, tend explore audit 14: Explore clears its toast after MOTION.exploreToast, never a hard-coded duration', () => {
   const src = readFileSync(join(__dirname, '../../../app/(tabs)/explore.tsx'), 'utf8');
-  const timer = /setTimeout\(\(\) => setToast\(null\), ([^)]+)\)/.exec(src);
-  assert.ok(timer, 'the toast is cleared by a timer');
+  const timer = /useTimedToast\(([^)]+)\)/.exec(src);
+  assert.ok(timer, 'the toast is cleared by a timer (lib/useTimedToast)');
   assert.equal(timer[1].trim(), 'MOTION.exploreToast');
+  const hook = readFileSync(join(__dirname, '../../useTimedToast.ts'), 'utf8');
+  assert.match(hook, /setTimeout\(\(\) => setToast\(null\), ms\)/, 'after the duration it is given, never one of its own');
 });

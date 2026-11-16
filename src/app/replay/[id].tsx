@@ -26,7 +26,7 @@ import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
-import { snapWalk } from '../../lib/finish';
+import { snapAgain, snapWalk } from '../../lib/finish';
 import { decide } from '../../lib/gaps';
 import { emptyGapAt, emptyGaps, gapKey, stretchAt, type Gap } from '../../lib/gaps/infer';
 import type { DrawnLine } from '../../lib/gaps/draw';
@@ -113,7 +113,7 @@ export default function Replay() {
       async (gap: Gap, line: DrawnLine) => {
         if (!data) return;
         await decide(data.walk.id, { t0: gap.t0, t1: gap.t1, path: line.path, lengthM: line.lengthM, street: null, how: 'kept' }, 'kept');
-        await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(caught('cache', 'app/replay/[id] · Replay')));
+        await snapAgain(data.walk, tileCollector(), 'app/replay/[id] · Replay');
         const d = await loadReplay(id).catch(fallback('app/replay/[id] · Replay', null, 'what loadReplay read'));
         if (d) setData(d);
       },
@@ -157,7 +157,7 @@ export default function Replay() {
       return;
     }
     // The card stays, busy, until the card's numbers have followed (audit 14).
-    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(caught('cache', 'app/replay/[id] · decideGap')));
+    await snapAgain(data.walk, tileCollector(), 'app/replay/[id] · decideGap');
     const d = await loadReplay(id).catch(fallback('app/replay/[id] · decideGap', null, 'what loadReplay read'));
     if (d) setData(d);
     setGapOpen(null);

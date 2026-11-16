@@ -375,6 +375,9 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     async endStill(walkId, at) {
       for (const p of stills.where(walkOf, walkId)) if (p.ended_at == null) stills.put({ ...p, ended_at: at });
     },
+    async putStill(s) {
+      stills.put({ ...s });
+    },
     async getStills(walkId) {
       return out(stills.where(walkOf, walkId)).sort(byStart);
     },

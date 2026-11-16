@@ -4,7 +4,7 @@
 // log's shell attaches a writer (`createDiagnostics`, built at startup), and the failed saves until they are
 // retried. Reporting never throws.
 import { createStore, type Store } from '../store';
-import { KEEP, messageOf, whyOf, withFailed, withoutFailed, type DiagnosticKind, type FailedSave } from './core';
+import { KEEP, messageOf, whyOf, withFailed, type DiagnosticKind, type FailedSave, type SaveScreen } from './core';
 
 /** A report before it is an entry: the shell gives it an id and writes it. */
 export interface Report {
@@ -18,9 +18,14 @@ let writer: ((r: Report) => void) | null = null;
 let clock: () => number = () => Date.now();
 const waiting: Report[] = [];
 const retries = new Map<string, () => Promise<unknown>>();
+/** The order of failures and saves, so an older outcome never overrules a newer one (errors-handled audit 2, 5). */
+let seq = 0;
+/** A Retry in flight: a second tap waits for it (audit 5). */
+let retrying: Promise<void> | null = null;
 
-/** The failed saves, for the line (EH7). */
-export const failedSaves: Store<FailedSave[]> = createStore<FailedSave[]>([]);
+/** The failed saves, for the line (EH7), and where the walk's line was hidden (audit 15). */
+export const failedSaves: Store<{ list: FailedSave[]; hiddenAt: number }> = createStore<{ list: FailedSave[]; hiddenAt: number }>({ list: [], hiddenAt: 0 });
+const setList = (f: (list: FailedSave[]) => FailedSave[]) => failedSaves.set((s) => ({ ...s, list: f(s.list) }));
 
 function push(kind: DiagnosticKind, place: string, message: string) {
   const r: Report = { t: clock(), kind, place, message };
@@ -61,41 +66,69 @@ export function fallback<T>(place: string, value: T, standsFor: string): (e: unk
   };
 }
 
-/** A `.catch` handler for a save of the walker's: recorded, and said on screen with Retry (EH7). */
-export function failedSave(place: string, what: string, retry: () => Promise<unknown>): (e: unknown) => void {
-  return (e) => {
-    report('save', place, e);
-    const key = `${place}|${what}`;
-    retries.set(key, retry);
-    failedSaves.set((list) => withFailed(list, { key, what, why: whyOf(e) }));
-  };
+/** Where a save happened, and the thing it saves when the words alone don't tell two apart (a moment's reaction). */
+export interface SaveOpts {
+  screen: SaveScreen;
+  key?: string;
 }
 
-/** A save that says whether it was kept: true, or false with the failure said on screen with Retry (EH7). */
-export function saved(place: string, what: string, save: () => Promise<unknown>): Promise<boolean> {
+/**
+ * A save of something the walker made or chose (EH7): true when it was kept; false with the failure recorded and
+ * said on its screen with Retry. A save that succeeds clears the same thing's older failure, so Retry never writes
+ * an old value over a newer one (errors-handled audit 2). Never rejects.
+ */
+export function saved(place: string, what: string, save: () => Promise<unknown>, opts: SaveOpts): Promise<boolean> {
+  const key = opts.key ?? `${place}|${what}`;
+  const started = ++seq;
   return save().then(
-    () => true,
+    () => {
+      setList((list) => list.filter((f) => f.key !== key || f.seq > started));
+      if (!failedSaves.get().list.some((f) => f.key === key)) retries.delete(key);
+      return true;
+    },
     (e: unknown) => {
-      failedSave(place, what, save)(e);
+      report('save', place, e);
+      const at = ++seq;
+      retries.set(key, save);
+      setList((list) => withFailed(list, { key, what, why: whyOf(e), screen: opts.screen, seq: at, again: false }));
       return false;
     },
   );
 }
 
-/** Repeats every failed save; each that succeeds leaves the line, each that fails again stays with its new reason. */
-export async function retryFailed(): Promise<void> {
+async function retryAll(): Promise<void> {
   for (const [key, retry] of [...retries]) {
+    const was = failedSaves.get().list.find((f) => f.key === key)?.seq;
     await retry().then(
       () => {
+        // Only the failure this retry answers goes: one that came while it was out stays (audit 5).
+        if (failedSaves.get().list.find((f) => f.key === key)?.seq !== was) return;
         retries.delete(key);
-        failedSaves.set((list) => withoutFailed(list, key));
+        setList((list) => list.filter((f) => f.key !== key));
       },
       (e: unknown) => {
         report('save', key.split('|')[0], e);
-        failedSaves.set((list) => list.map((f) => (f.key === key ? { ...f, why: whyOf(e) } : f)));
+        if (failedSaves.get().list.find((f) => f.key === key)?.seq !== was) return;
+        setList((list) => list.map((f) => (f.key === key ? { ...f, why: whyOf(e), again: true } : f)));
       },
     );
   }
+}
+
+/** Repeats every failed save; each that succeeds leaves the line, each that fails again stays, said "still". */
+export function retryFailed(): Promise<void> {
+  if (!retrying) retrying = retryAll().finally(() => (retrying = null));
+  return retrying;
+}
+
+/** The walk's line set aside until something new fails (audit 15, the owner, Nov 16). */
+export function hideFailed(): void {
+  failedSaves.set((s) => ({ ...s, hiddenAt: seq }));
+}
+
+/** The walk ended: a line hidden during it is said again (audit 15). */
+export function walkEnded(): void {
+  failedSaves.set((s) => ({ ...s, hiddenAt: 0 }));
 }
 
 /** The shell attaches its writer: everything reported before is handed to it, oldest first. */
@@ -111,5 +144,7 @@ export function resetSink(): void {
   clock = () => Date.now();
   waiting.length = 0;
   retries.clear();
-  failedSaves.set([]);
+  seq = 0;
+  retrying = null;
+  failedSaves.set({ list: [], hiddenAt: 0 });
 }

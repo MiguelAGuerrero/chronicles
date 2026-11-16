@@ -7,6 +7,8 @@ import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
+import { SaveFailedLine } from '../../components/SpaceLine';
+import { useTimedToast } from '../../lib/useTimedToast';
 import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, runLook, startLook, type Look } from '../../lib/atlas/look';
@@ -161,7 +163,7 @@ export default function Explore() {
   const framed = useRef<PageFramed | null>(null);
   // `ask` is a far Walk here's question, asked before anything starts (FL12, decision 0121).
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number; ask?: 'ask' | 'later' } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useTimedToast(MOTION.exploreToast);
   const pressHint = usePressHint(db, !spot && !!from);
   // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
   const fixSeen = useRef(getLastFix()?.t ?? 0);
@@ -230,12 +232,6 @@ export default function Explore() {
   // tend explore 2: each look has its own token, so a cancelled one never speaks for a newer one.
   const look = useRef<Look>(IDLE);
   const [screen, setScreen] = useState({ w: width, h: height });
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), MOTION.exploreToast);
-    return () => clearTimeout(t);
-  }, [toast]);
 
   const frame = useCallback((points: LngLat[], padM: number) => {
     const box = boundsOf(points, padM);
@@ -624,7 +620,10 @@ export default function Explore() {
   ) : pressHint.shown && !creditsOpen ? (
     // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1).
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
-  ) : null;
+  ) : (
+    // Last, a save made here that failed (the planner's choices), said where it happened (errors-handled audit 7).
+    <SaveFailedLine host="explore" />
+  );
 
   // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.
   const slots = exploreSlots({ spot: !!spot, town: !!town, free });

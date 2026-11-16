@@ -7,10 +7,27 @@ import { subscribeMotion } from './motionSource';
 import type { DotSource } from './liveDot';
 import { StepDetector, STEPS, type MotionState } from './steps';
 import type { Still } from './types';
-import { caught, failedSave, fallback } from './diagnostics/sink';
+import { caught, fallback, saved } from './diagnostics/sink';
+import { stillRetry } from './stillRetry';
 
-/** A still spell's end, said with Retry when it fails (EH7): it is part of this walk. */
-const endStill = (walkId: string, at: number) => db.endStill(walkId, at).catch(failedSave('lib/walkMotion · endStill', 'part of this walk', () => db.endStill(walkId, at)));
+/** Each spell's end, once it has one, so a retry saves the spell as it stands (errors-handled audit 3). */
+const spellEnds = new Map<string, number>();
+const spellKey = (walkId: string, at: number) => `still:${walkId}:${at}`;
+/**
+ * A still spell's save, said with Retry when it fails (EH7): it is part of this walk. The first try is the call
+ * itself; a retry saves the spell as it stands then, open or ended, under one key per spell.
+ */
+function saveSpell(place: string, walkId: string, startedAt: number, first: () => Promise<void>) {
+  let tried = false;
+  const save = () => {
+    if (!tried) {
+      tried = true;
+      return first();
+    }
+    return db.putStill(stillRetry(walkId, startedAt, spellEnds.get(spellKey(walkId, startedAt)) ?? null));
+  };
+  void saved(place, 'part of this walk', save, { screen: 'walk', key: spellKey(walkId, startedAt) });
+}
 
 /**
  * The walk's motion (Motion, MO1-MO10): Expo's DeviceMotion, read only while a
@@ -122,11 +139,14 @@ export function useWalkMotion(
     let live = true;
     restoreMotion().catch(caught('cache', 'lib/walkMotion · useWalkMotion'));
     db.getStills(walkId)
-      .then(async (stored) => {
+      .then((stored) => {
         // A spell left open by a reload, a crash or a killed app ends now: nothing was sensed since (motion audit 2).
-        const open = stored.some((x) => x.ended_at == null);
+        const open = stored.find((x) => x.ended_at == null);
         const at = Date.now();
-        if (open) await endStill(walkId, at);
+        if (open) {
+          spellEnds.set(spellKey(walkId, open.started_at), at);
+          saveSpell('lib/walkMotion · endStill', walkId, open.started_at, () => db.endStill(walkId, at));
+        }
         if (!live) return;
         const closed = stored.map((x) => (x.ended_at == null ? { ...x, ended_at: at } : x));
         // Merged, so a spell begun while the read was on its way is kept (audit 8).
@@ -153,14 +173,16 @@ export function useWalkMotion(
     const begin = (at: number) => {
       open = at;
       setStills((s) => [...s, { walk_id: walkId, started_at: at, ended_at: null }]);
-      db.startStill(walkId, at).catch(failedSave('lib/walkMotion · begin', 'part of this walk', () => db.startStill(walkId, at)));
+      saveSpell('lib/walkMotion · begin', walkId, at, () => db.startStill(walkId, at));
     };
     const end = (at: number) => {
       if (open == null) return;
+      const began = open;
       open = null;
+      spellEnds.set(spellKey(walkId, began), at);
       // Any open spell ends, so the stored and the live lists can't disagree (audit 2).
       setStills((s) => s.map((x) => (x.ended_at == null ? { ...x, ended_at: Math.max(at, x.started_at) } : x)));
-      void endStill(walkId, at);
+      saveSpell('lib/walkMotion · endStill', walkId, began, () => db.endStill(walkId, at));
     };
     const timer = setInterval(() => {
       const now = Date.now();

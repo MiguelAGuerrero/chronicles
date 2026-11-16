@@ -30,7 +30,7 @@ import { exploreBuild, exploreBusy, exploreHold, explorePending, exploreRead, it
 import { createCaptureFinds } from './exploreQueue';
 import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
-import { caught, failedSave, fallback } from '../diagnostics/sink';
+import { caught, fallback, saved } from '../diagnostics/sink';
 
 /** Items are read again around you after this much walking. */
 const RELOAD_M = 500;
@@ -91,7 +91,7 @@ export function useExplore(opts: {
   const record = useCallback(async (item: ChecklistItem, captureId: string) => {
     const walkId = latest.current.walkId;
     if (!walkId) return;
-    await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(failedSave('lib/explore/useExplore · useExplore', 'a find', () => db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() })));
+    await saved('lib/explore/useExplore · useExplore', 'a find', () => db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }), { screen: 'walk', key: `find:${captureId}` });
     if (!mounted.current) return;
     setFound((f) => new Set([...(f ?? []), item.key]));
     setFinds((fs) => [...fs.filter((x) => x.key !== item.key), { key: item.key, capture_id: captureId }]);

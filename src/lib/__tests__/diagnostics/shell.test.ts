@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 import { createDiagnostics } from '../../diagnostics/shell';
-import { caught, failedSave, failedSaves, fallback, report, resetSink, retryFailed } from '../../diagnostics/sink';
+import { AppError } from '../../diagnostics/core';
+import { caught, failedSaves, fallback, report, resetSink, retryFailed, saved } from '../../diagnostics/sink';
 import { fakePorts } from '../fakes';
 import type { Diagnostic } from '../../diagnostics/core';
 
@@ -18,15 +19,15 @@ const settle = () => new Promise((r) => setTimeout(r, 0));
 test('EH5 every handler records; a store that fails keeps the entry in memory and shares it', async () => {
   const p = fakePorts({ now: 1_000 });
   const d = createDiagnostics(p);
-  report('unexpected', 'walk · stop', new Error('boom'));
-  caught('cache', 'tiles · read')(new Error('offline'));
+  report('unexpected', 'walk · stop', new AppError('boom'));
+  caught('cache', 'tiles · read')(new AppError('offline'));
   await settle();
   const first = await d.entries();
   assert.deepEqual(first.map((e) => e.message).sort(), ['boom', 'offline']);
   assert.equal(first.length, 2);
   assert.ok((await logDb(p).getDiagnostics()).length === 2, 'written to the store');
   logDb(p).failNext('addDiagnostic');
-  report('cache', 'landing · read', new Error('lost'));
+  report('cache', 'landing · read', new AppError('lost'));
   await settle();
   const after = await d.entries();
   assert.ok(after.some((e) => e.message === 'lost'), 'kept in memory when the store refused it, and shared');
@@ -34,7 +35,7 @@ test('EH5 every handler records; a store that fails keeps the entry in memory an
 });
 
 test('EH5 what is reported before the log attaches is written when it does', async () => {
-  report('cache', 'early · boot', new Error('first'));
+  report('cache', 'early · boot', new AppError('first'));
   const p = fakePorts({ now: 5 });
   const d = createDiagnostics(p);
   await settle();
@@ -49,11 +50,11 @@ test('EH7 a failed save is one line with Retry; Retry saves and the line goes', 
     tries++;
     if (tries < 2) throw new Error('database or disk is full');
   };
-  await save().catch(failedSave('nav · saveNav', 'your destination', save));
-  assert.deepEqual(failedSaves.get().map((f) => [f.what, f.why]), [['your destination', 'the phone is full']]);
+  await saved('nav · saveNav', 'your destination', save, { screen: 'settings' });
+  assert.deepEqual(failedSaves.get().list.map((f) => [f.what, f.why]), [['your destination', 'there’s no room left']]);
   await retryFailed();
   assert.equal(tries, 2);
-  assert.deepEqual(failedSaves.get(), [], 'the line goes when the save succeeds');
+  assert.deepEqual(failedSaves.get().list, [], 'the line goes when the save succeeds');
   await settle();
   assert.ok((await logDb(p).getDiagnostics()).some((e) => e.kind === 'save' && e.place === 'nav · saveNav'), 'recorded as a failed save');
 });
@@ -63,7 +64,7 @@ test('EH8 a refusal is recorded and shows no message', async () => {
   createDiagnostics(p);
   caught('refused', 'audioMode · set')(new Error('NotAllowedError'));
   await settle();
-  assert.deepEqual(failedSaves.get(), [], 'no line on screen');
+  assert.deepEqual(failedSaves.get().list, [], 'no line on screen');
   assert.ok((await logDb(p).getDiagnostics()).some((e) => e.kind === 'refused'));
 });
 
@@ -72,14 +73,14 @@ test('EH9 cache work is recorded only', async () => {
   createDiagnostics(p);
   await Promise.reject(new Error('tile 404')).catch(caught('cache', 'tiles · read'));
   await settle();
-  assert.deepEqual(failedSaves.get(), []);
+  assert.deepEqual(failedSaves.get().list, []);
   assert.equal((await logDb(p).getDiagnostics())[0].kind, 'cache');
 });
 
 test('EH10 a fallback returns its value and says what it stood in for', async () => {
   const p = fakePorts();
   createDiagnostics(p);
-  const stills = await Promise.reject<number[]>(new Error('closed')).catch(fallback('summary · loadReplay', [] as number[], 'the walk’s still spells'));
+  const stills = await Promise.reject<number[]>(new AppError('closed')).catch(fallback('summary · loadReplay', [] as number[], 'the walk’s still spells'));
   assert.deepEqual(stills, []);
   await settle();
   const [e] = await logDb(p).getDiagnostics();

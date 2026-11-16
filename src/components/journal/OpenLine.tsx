@@ -37,7 +37,7 @@ import { useMomentPool } from '../threads/useMomentPool';
 import { Ticking } from '../Ticking';
 import { theme } from '../ui';
 import { OWNER_FONT } from './type';
-import { caught, failedSave } from '../../lib/diagnostics/sink';
+import { caught, saved } from '../../lib/diagnostics/sink';
 import { BandPill } from './BandPill';
 
 /** What is typed is written this long after the last keystroke, and at once when the line lets go. */
@@ -642,7 +642,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           {cap.discarded && !recording && retryPill('band-voice-undo', 'Voice note discarded', () => cap.undoDiscard(), 'Undo')}
           {cap.unsaved && retryPill('band-voice-retry', 'Voice note not saved', () => cap.retrySave())}
           {cap.held.length > 0 && retryPill('held-captures', heldLabel(cap.held), () => cap.retryHeld())}
-          {!recording && focused && <SpaceLine />}
+          {!recording && focused && <SpaceLine host="chronicle" />}
         </View>
         {/* One bar, one row (JN29). The whole strip is the bar's: a tap between its controls never lands on an entry beneath. */}
         {at === 'foot' ? <View style={[styles.line, under > 0 && { paddingBottom: 8 + under }]} testID="open-line" pointerEvents="auto" onLayout={(e) => setBarH(Math.round(e.nativeEvent.layout.height))}>
@@ -652,7 +652,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             <ReactionPanel
               set={askingSet}
               onPick={(id) => {
-                void reactions.choose(asking.moment, id).catch(failedSave('components/journal/OpenLine · Line', 'a reaction', () => reactions.choose(asking.moment, id)));
+                void saved('components/journal/OpenLine · Line', 'a reaction', () => reactions.choose(asking.moment, id), { screen: 'chronicle', key: `reaction:${asking.moment}` });
                 input.current?.focus();
               }}
             />
@@ -740,7 +740,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             head={noteHead({ t: page.entry.t, now: pageNow, time: timeOf(page.entry.t), context: null, placing: false, draft: null, placed: page.entry.placed, onWalk: walking })}
             self={page.entry.momentId}
             // The page's Reaction tool, on the moment the line was writing (RX12).
-            reaction={{ set: pageSet, onPick: (id) => void reactions.choose(page.entry!.momentId, id).catch(failedSave('components/journal/OpenLine · onPick', 'a reaction', () => reactions.choose(page.entry!.momentId, id))) }}
+            reaction={{ set: pageSet, onPick: (id) => { const m = page.entry!.momentId; void saved('components/journal/OpenLine · onPick', 'a reaction', () => reactions.choose(m, id), { screen: 'chronicle', key: `reaction:${m}` }); } }}
             onClose={closePage}
             onCamera={pageCamera}
             store={{

@@ -55,7 +55,7 @@ import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
-import { caught } from '../lib/diagnostics/sink';
+import { caught, saved } from '../lib/diagnostics/sink';
 import { pausePlayer as pauseMemo, seekPlayer as seekMemo } from '../lib/playerControls';
 
 export { useMediaUri };
@@ -1116,7 +1116,7 @@ export function CaptureViewer(props: {
                     setMenu(false);
                     const m = moment;
                     const { piece_id: _f, ...rest } = m;
-                    void split.split({ id: rest.id, walk_id: rest.walk_id, t: rest.t, lat: rest.lat, lon: rest.lon, segment_id: rest.segment_id, pieces: rest.pieces }, current.piece_id).catch(caught('cache', 'components/CaptureView · CaptureViewer'));
+                    void saved('components/CaptureView · CaptureViewer', 'a moment taken apart', () => split.split({ id: rest.id, walk_id: rest.walk_id, t: rest.t, lat: rest.lat, lon: rest.lon, segment_id: rest.segment_id, pieces: rest.pieces }, current.piece_id), { screen: 'chronicle', key: `split:${rest.id}` });
                     setPieceAt({ moment: m.id, i: Math.max(0, pi - 1) });
                   }}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}

@@ -45,7 +45,7 @@ const FEATURES = [
     about: 'the trace: fixes, the recorder, the live dot, steps, pauses, gaps in time',
     rule: 'recording-and-traces',
     source: [
-      'src/lib/{geo,liveDot,liveTrace,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,hiddenLog,recorderRetry}.ts',
+      'src/lib/{geo,liveDot,liveTrace,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,stillRetry,gpsLog,session,lastFix,hiddenLog,recorderRetry}.ts',
       'src/lib/shareLog/**',
       'src/lib/motionSource/**',
       'src/lib/recorder/**',
@@ -157,7 +157,7 @@ const FEATURES = [
       'src/lib/discovery/**',
       'src/lib/explore/**',
       'src/lib/atlas/**',
-      'src/lib/useReminded.ts',
+      'src/lib/useReminded.ts', 'src/lib/useTimedToast.ts',
       'src/lib/db/{exploreRow,placeRow,stores}.ts', 'src/lib/markNames.ts',
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',

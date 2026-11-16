@@ -124,6 +124,8 @@ export const META = {
   // Complexes (specs/complexes, CX10): the kinds switched off on the card and the map, as a comma list; the data is untouched.
   complex_hidden: { owner: 'explore', codec: text },
   explore_haptic: { owner: 'explore', codec: onOff },
+  // The diagnostics log (specs/errors-handled, audit 11): the day it began, so an empty log claims no time before it.
+  diagnostics_since: { owner: 'diagnostics', codec: number },
   // Explore tab: the long-press hint was seen once (AT, atlas round 2)
   atlas_press_seen: { owner: 'explore', codec: flag },
   // Walkability (lib/walk/switch): the layer on the Explore and Navigate maps, off until switched on (WK13)

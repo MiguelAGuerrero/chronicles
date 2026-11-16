@@ -88,7 +88,7 @@ export function useBaker(): [ReactElement | null, Baker] {
       useRenderInContext: Platform.OS === 'ios',
     })
       .then(j.resolve, j.reject)
-      .finally(() => finish(j)).catch(caught('refused', 'components/Baker · capture'));
+      .finally(() => finish(j)).catch(caught('cache', 'components/Baker · capture'));
   };
   // An overlay has no image to wait for; a photo that never loads (the SVG
   // Image has no error event) is given up on rather than left hanging.

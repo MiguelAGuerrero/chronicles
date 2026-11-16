@@ -163,14 +163,15 @@ Recording and traces
   glide.ts                   the dot's glide between fixes, on a given clock
   steps.ts                   StepDetector: walking vs still from acceleration
   walkMotion.ts              askMotion, restoreMotion, useWalkMotion (expo-sensors permission; samples through motionSource/)
+  stillRetry.ts              a still spell's failed save, retried as the spell stands then (errors-handled audit 3)
   motionSource/              motion samples: DeviceMotion on native, the devicemotion event on web
   useLiveTrace.ts            the walk screen's live trace: reads raw fixes every 2 s, feeds the DotStore, reports gaps and rides
   liveTrace.ts               its decisions, in core: sameRuns (ride lines unchanged), newestGap (the newest gap that isn't a pause)
   useGlidingWalker.ts        runs the glide as a render loop outside React
   traceEnds.ts               where a walk began and ended
   gpsLog.ts                  the raw readings as text for Share GPS log
-  shareLog/                  sharing that text: the share sheet, or a copy on the web (`lib/shareLog`: shell.ts, share.ts, index.ts)
-  diagnostics/               every caught error, handled by its kind (0179, EH1-EH14): core.ts (scrub, the shared text, what is kept, the failed-save line), sink.ts (report, caught, fallback, failedSave, saved: anything may import it), shell.ts (writes to the store, keeps in memory what it can't), index.ts (the instance, loaded by index.js), header(.native).ts
+  shareLog/                  sharing that text: the share sheet, or a copy on the web (`lib/shareLog`: shell.ts, share.ts, index.ts; outcome.ts, core: what a share came to)
+  diagnostics/               every caught error, handled by its kind (0179, EH1-EH14): core.ts (scrub, the shared text, what is kept, the failed-save line), sink.ts (report, caught, fallback, saved, retryFailed, hideFailed: anything may import it), shell.ts (writes to the store, keeps in memory what it can't), index.ts (the instance, loaded by index.js), header(.native).ts
   parse.ts                   errors as values in core: tryJson, tryUrl
   playerControls.ts          seek, play and pause for every memo player (core)
   streetMidpoint.ts          a street piece's middle, for the live fog (core)

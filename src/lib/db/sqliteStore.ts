@@ -17,18 +17,18 @@ import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import { sqliteLogs } from './sqliteLogs';
+import { sqliteStills } from './sqliteStills';
 import { setClause } from './setClause';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
-import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, LngLat, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
 import { SEGMENT_BATCH, type Db } from './types';
 import { serializeEdit } from '../mediaEdit';
 import { foldRows, type JoinedRow } from '../moment';
-import { caught } from '../diagnostics/sink';
 
 
 /** Drops the threads, among `ids`, that fewer than two moments belong to, with their memberships (OT15). */
@@ -72,6 +72,11 @@ const MOMENT_SELECT =
 const ORDER = ' ORDER BY m.t, m.id, c.t';
 
 
+/** The queue goes on after a write, kept or not. */
+const goOn = (): void => undefined;
+/** A failed write is the caller's to handle (`run` rejects to it): the queue goes on. */
+const handedToCaller = (): void => undefined;
+
 export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
   let dbPromise: Promise<SQLiteDatabase> | null = null;
   function conn() {
@@ -100,7 +105,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
   let queue: Promise<unknown> = Promise.resolve();
   function write(task: (txn: SQLiteDatabase) => Promise<void>): Promise<void> {
     const run = queue.then(async () => (await conn()).withExclusiveTransactionAsync(task));
-    queue = run.catch(caught('cache', 'lib/db/sqliteStore · write'));
+    // The failure is the caller's, handed back by `run`; the queue only goes on. Reporting it here wrote to this same
+    // queue, which failed the same way, forever (errors-handled audit 1).
+    queue = run.then(goOn, handedToCaller);
     return run;
   }
 
@@ -321,18 +328,6 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     },
     async getPauses(walkId) {
       return (await conn()).getAllAsync<Pause>('SELECT * FROM pause WHERE walk_id = ? ORDER BY started_at', walkId);
-    },
-    startStill(walkId, at) {
-      return write(async (t) => {
-        const open = await t.getFirstAsync('SELECT 1 FROM still WHERE walk_id = ? AND ended_at IS NULL', walkId);
-        if (!open) await t.runAsync('INSERT OR IGNORE INTO still (walk_id, started_at, ended_at) VALUES (?, ?, NULL)', walkId, at);
-      });
-    },
-    endStill(walkId, at) {
-      return write((t) => t.runAsync('UPDATE still SET ended_at = ? WHERE walk_id = ? AND ended_at IS NULL', at, walkId).then(() => {}));
-    },
-    async getStills(walkId) {
-      return (await conn()).getAllAsync<Still>('SELECT * FROM still WHERE walk_id = ? ORDER BY started_at', walkId);
     },
 
     async getGapDecisions(walkId) {
@@ -664,6 +659,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return (await conn()).getAllAsync<StoredReaction>('SELECT moment_id, family, reaction, set_at FROM reaction');
     },
     ...sqliteLogs(write, conn),
+    ...sqliteStills(write, conn),
     purgeDerived() {
       const clear = DERIVED_STORES.map((s) => `DELETE FROM ${s};`).join(' ');
       return write((t) => t.execAsync(`${clear} UPDATE walk SET snapped_build = NULL;`));

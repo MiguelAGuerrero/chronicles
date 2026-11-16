@@ -4,7 +4,7 @@ import { db } from '../lib/db';
 import { loadNoticePrefs, NOTICE_KINDS, notifier, saveNoticePrefs, type NoticePrefs, type Permission } from '../lib/notify';
 import { SwitchRow } from './SwitchRow';
 import { Button, theme } from './ui';
-import { caught, failedSave } from '../lib/diagnostics/sink';
+import { caught, saved } from '../lib/diagnostics/sink';
 
 /** What the section says about permission (NT5), per platform; nothing when it is granted. */
 function permissionNote(p: Permission | null, dismissed: boolean): string | null {
@@ -57,7 +57,7 @@ export function NotificationSettings(props: { heading?: boolean } = {}) {
   };
   const set = (next: NoticePrefs) => {
     setPrefs(next);
-    saveNoticePrefs(next).catch(failedSave('components/NotificationSettings · set', 'a notification setting', () => saveNoticePrefs(next)));
+    void saved('components/NotificationSettings · set', 'a notification setting', () => saveNoticePrefs(next), { screen: 'settings' });
     db.getOpenWalk().then((w) => notifier.prefsChanged(next, w?.id ?? null), caught('cache', 'components/NotificationSettings · set'));
   };
   if (!prefs) return null;

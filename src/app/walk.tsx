@@ -103,7 +103,7 @@ import { useOutlineSet } from '../lib/areas/useOutlineSet';
 import { SpaceLine } from '../components/SpaceLine';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
-import { caught, failedSave, fallback } from '../lib/diagnostics/sink';
+import { caught, fallback, saved } from '../lib/diagnostics/sink';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -547,7 +547,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const changeSettings = (next: ExploreSettings) => {
     if (!loaded) return;
     setLoaded(next);
-    saveSettings(next).catch(failedSave('app/walk · changeSettings', 'your walk settings', () => saveSettings(next)));
+    void saved('app/walk · changeSettings', 'your walk settings', () => saveSettings(next), { screen: 'settings' });
   };
   const toggleKind = (k: Kind, on: boolean) => {
     const hidden = new Set(settings.hidden);
@@ -900,7 +900,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!walk) return;
     setExploring(on);
     if (!on) setMarkOpen(null);
-    db.setMeta(EXPLORE_KEY, on ? walk.id : '').catch(failedSave('app/walk · setExplore', 'the Explore switch', () => db.setMeta(EXPLORE_KEY, on ? walk.id : '')));
+    void saved('app/walk · setExplore', 'the Explore switch', () => db.setMeta(EXPLORE_KEY, on ? walk.id : ''), { screen: 'walk' });
     // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
     if (on) {
       const key = exploredKey(walk.id);
@@ -1520,7 +1520,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {walk && !recordingVoice && !spot && !openMark && !options && !memory && <SpaceLine />}
+        {walk && !recordingVoice && !spot && !openMark && !options && !memory && <SpaceLine host="walk" />}
       </View>
       {/* The capture stack at the right edge (NR9): where it was on the ready screen. While recording,
           Save takes the mic's own place, so tapping the mic again saves; Discard is smaller, in the
@@ -1871,7 +1871,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                     const at = spot.at;
                     setSpot(null);
                     setChosen({ walkId: walk.id, at });
-                    saveWayBack(walk.id, at).catch(failedSave('app/walk · WalkScreen', 'where to walk back to', () => saveWayBack(walk.id, at)));
+                    void saved('app/walk · WalkScreen', 'where to walk back to', () => saveWayBack(walk.id, at), { screen: 'walk' });
                     setNotice({ message: CHOSEN_NOTICE });
                   }}
                 />

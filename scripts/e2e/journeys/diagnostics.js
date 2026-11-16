@@ -69,16 +69,18 @@ async function run(h) {
     await pg.click(`[data-testid=${other}]`).catch(() => {});
     await drawerTo(pg, 'peek');
     const line = await pg.waitForSelector('[data-testid=save-failed-line]', { timeout: 6000 }).then((e) => e.innerText(), () => '');
-    check(/Your Distances choice wasn’t saved: the phone is full\. Free some room first\./.test(line), `errors-handled ui 3: the line names the setting and says what to do ("${line.replace(/\n/g, ' ')}")`);
+    check(/Your Distances choice wasn’t saved: there’s no room left\. Free some room, then Retry\./.test(line), `errors-handled ui 3: the line names the setting and says what to do ("${line.replace(/\n/g, ' ')}")`);
     check(/wasn’t saved/.test(line) && /Retry/.test(line) && !/[0-9]/.test(line.replace(/\d+\s*(m|km|ft|mi)\b/g, '')), `EH7, EH13: one line in words with Retry, no number ("${line.replace(/\n/g, ' ')}")`);
     const boxes = await pg.evaluate(() => {
       const r = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
       const line = r('save-failed-line');
       const caps = ['moment-photo', 'moment-voice', 'moment-note'].map(r).filter(Boolean);
       const hit = (a, b) => a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-      return { line: !!line, caps: caps.length, over: caps.some((c) => hit(line, c)) };
+      const gap = line && caps.length ? Math.min(...caps.map((c) => c.left - line.right)) : -1;
+      return { line: !!line, caps: caps.length, over: caps.some((c) => hit(line, c)), gap: Math.round(gap) };
     });
     check(boxes.line && boxes.caps === 3 && !boxes.over, `EH14: the line covers no capture button (${JSON.stringify(boxes)})`);
+    check(boxes.gap >= 16, `errors-handled audit 17: the line keeps 16 px clear of the capture stack (${boxes.gap} px)`);
     const role = await pg.locator('[data-testid=save-failed-line]').getAttribute('role').catch(() => null);
     check(role !== 'alert' && role !== 'dialog', `EH13, EH14: the line is no dialog and no alert (role ${role})`);
     await shot(pg, 'diagnostics-02-failed-save');
@@ -105,6 +107,10 @@ async function run(h) {
     const copied = await pg.evaluate(() => window.__copied);
     const note = await pg.locator('[data-testid=share-diagnostics-note]').innerText().catch(() => '');
     check(typeof copied === 'string' && /^Chronicles /.test(copied) && /Copied/.test(note), `EH1: with no share sheet the text is copied, and the note says Copied ("${note}")`);
+    check(/paste it into a message or an email/.test(note), `errors-handled audit 19: "Copied" says what to do next ("${note}")`);
+    check(typeof copied === 'string' && !/\d{1,2}:\d{2}/.test(copied), 'errors-handled audit 14: no line of the copied text carries a time');
+    await pg.locator('[data-testid=share-diagnostics]').scrollIntoViewIfNeeded().catch(() => {});
+    await shot(pg, 'diagnostics-03-copied');
     await c.close();
   }
 }
