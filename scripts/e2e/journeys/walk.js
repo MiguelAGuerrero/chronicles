@@ -384,6 +384,7 @@ async function checks(h) {
         // tend explore 18 (decision 0172, O9; ui-patterns matrix 15): How often and Until are two labelled menus, each
         // button one line at 390 and 320 px, each opening the chips' choices in their order with the chosen one checked.
         const remindMenus = [];
+        const remindLong = [];
         for (const w of [390, 320]) {
           await page.setViewportSize({ width: w, height: 844 });
           await page.waitForTimeout(400);
@@ -412,9 +413,21 @@ async function checks(h) {
           const oftenMenu = await menu('often', `03d-remind-often${sfx}`);
           const untilMenu = await menu('until', `03e-remind-until${sfx}`);
           remindMenus.push({ w, often, until, oftenMenu, untilMenu, editorOpen: await page.locator('[data-testid=remind-editor]').count() === 1 });
+          if (w === 320) {
+            // tend explore audit 20 (the review's U1): the longest choices show whole on the button at 320 px, then back to Once.
+            for (const id of ['weekly', 'monthly', 'once']) {
+              await page.click('[data-testid=remind-often]');
+              await page.click(`[data-testid=remind-${id}]`);
+              await page.waitForSelector('[data-testid=remind-often-menu]', { state: 'detached', timeout: 3000 }).catch(() => null);
+              if (id !== 'once') remindLong.push(await button('often'));
+              if (id === 'monthly') await shot(page, '03a-remind-monthly-320');
+            }
+          }
         }
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(400);
+        check(remindLong.length === 2 && remindLong[0].text === 'How often: Weekly at most' && remindLong[1].text === 'How often: Monthly at most' && remindLong.every((b) => b.oneLine),
+          `tend explore audit 20: "How often: Weekly at most" and "How often: Monthly at most" show whole, on one line, at 320 px (${JSON.stringify(remindLong)})`);
         const sameItems = (got, want) => JSON.stringify(got.map(([t]) => t)) === JSON.stringify(want) && got.filter(([, c]) => c === 'true').map(([t]) => t).join() === want[0];
         const menusOk = remindMenus.every((m) => m.often.text === 'How often: Once' && m.until.text === 'Until: No end' && m.often.oneLine && m.until.oneLine && m.often.h >= 44 && m.until.h >= 44
           && sameItems(m.oftenMenu.items, ['Once', 'Every visit', 'Weekly at most', 'Monthly at most']) && sameItems(m.untilMenu.items, ['No end', '1 month', '3 months', '1 year'])

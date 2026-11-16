@@ -92,7 +92,7 @@ export const RemindEditor = forwardRef<RemindEditorHandle, {
                   onPress={() => pick(it.id)}
                   style={({ pressed }) => [styles.item, pressed && styles.pressed]}
                 >
-                  <Text style={styles.itemText} numberOfLines={1}>{it.label}</Text>
+                  <Text style={styles.itemText}>{it.label}</Text>
                   {on ? <Icon name="checkmark" size={20} color={theme.ink} /> : null}
                 </Pressable>
               );
@@ -130,19 +130,20 @@ function MenuButton(props: { id: MenuId; label: string; open: boolean; onPress: 
       onLayout={props.onLayout}
       style={({ pressed }) => [styles.pick, pressed && styles.pressed]}
     >
-      <Text testID={`remind-${props.id}-text`} style={styles.pickText} numberOfLines={1}>{props.label}</Text>
-      <Icon name="chevron-down" size={18} color={theme.ink} />
+      {/* Whole at 320 px, "How often: Monthly at most" too; at large text it wraps, never cut (tend explore audit 20). */}
+      <Text testID={`remind-${props.id}-text`} style={styles.pickText}>{props.label}</Text>
+      <Icon name="chevron-down" size={16} color={theme.ink} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   back: { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 },
-  card: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },
+  card: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },
   title: { fontSize: 18, fontWeight: '700', color: theme.ink },
   sub: { fontSize: 14, color: theme.muted },
-  pick: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: theme.edge },
-  pickText: { flexShrink: 1, fontSize: 16, fontWeight: '600', color: theme.ink },
+  pick: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.edge },
+  pickText: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
   pressed: { backgroundColor: theme.bg },
   menu: { position: 'absolute', backgroundColor: theme.surface, borderRadius: theme.radius, paddingVertical: 6, elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
   item: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: ITEM_H, paddingHorizontal: 16 },
