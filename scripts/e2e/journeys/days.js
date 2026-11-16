@@ -319,7 +319,8 @@ async function checks(h) {
       p3.on('console', (m) => m.type() === 'error' && errors.push(`old pin: ${m.text()}`));
       await p3.goto(navUrl);
       await p3.waitForSelector('[data-testid=moment-note]');
-      const then = new Date(new Date().getFullYear() - 2, 2, 4, 19).getTime();
+      // About thirty months back, so "two years ago" holds on any date (whole years elapsed, tend map audit 32).
+      const then = new Date(new Date().getFullYear() - 2, new Date().getMonth() - 6, 4, 19).getTime();
       const spot = [start[0] + 0.3 * dLon, start[1]];
       await p3.evaluate(([t, lon, lat]) => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');

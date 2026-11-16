@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { pinHeadKinds, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, walkClocks, type CapturePin, type WalkClock } from '../../pins';
 import { nextDayPartBoundary } from '../../resurface/context';
+import { agoLine } from '../../resurface/lines';
 import type { CaptureKind } from '../../types';
 
 // tend map T14 (the owner's yes, decision 0154; amends QL26, NY10, MR2, RB7): a pin of several moments is drawn with
@@ -273,7 +274,8 @@ test('tend map 11: a pin of moments past a week says the span alone, no month an
   const pair = pinOf(day('a', 'photo', twoYears), day('b', 'text', twoYears + 5 * MIN));
   assert.equal(pinSpoken(pair, { now: NOW }), 'A photo and a note, two years ago');
   assert.equal(pinSpoken(pair, { memory: true, now: NOW }), 'Memories: a photo and a note, two years ago');
-  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2025, 7, 1, 9).getTime())), { now: NOW }), 'Note, last year');
+  // Fifteen months: a whole year has passed, "a year ago" since tend map audit 32 (the owner's "Elapsed time").
+  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2025, 7, 1, 9).getTime())), { now: NOW }), 'Note, a year ago');
   assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2026, 5, 10, 9).getTime())), { now: NOW }), 'Note, five months ago');
   assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2026, 9, 1, 9).getTime())), { now: NOW }), 'Note, last month');
   // A week to a fortnight: "last week", the small hours too (they belong to the evening before).
@@ -284,4 +286,23 @@ test('tend map 11: a pin of moments past a week says the span alone, no month an
   // A span with one old end: that end alone.
   assert.equal(pinSpoken(pinOf(day('a', 'photo', twoYears), day('b', 'text', at(10, 19))), { now: NOW }), 'A photo and a note, from two years ago to Tuesday evening');
   for (const p of [pair]) assert.doesNotMatch(pinSpoken(p, { now: NOW }), /\d|March|evening/);
+});
+
+// tend map audit 32 (the review's steward 3; the owner's answer in person, Nov 16, "Elapsed time"): with no month to
+// anchor them, the ago words count time elapsed, not calendar boundaries: whole months that have passed, and years as
+// whole twelve-month spans. A pin from Dec 15, 2024, heard Jan 5, 2026, says "a year ago", never "two years ago".
+test('tend map audit 32: a pin\'s ago words count whole months and years elapsed', () => {
+  const t = (y: number, m: number, d: number, h = 12) => new Date(y, m, d, h).getTime();
+  assert.equal(agoLine(t(2024, 11, 15), t(2026, 0, 5)), 'a year ago');
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', t(2024, 11, 15))), { now: t(2026, 0, 5) }), 'Photo, a year ago');
+  // Thirty-five days across a year's end: one whole month has passed, not two.
+  assert.equal(agoLine(t(2025, 11, 31), t(2026, 1, 4)), 'last month');
+  // Eleven months and three weeks: eleven whole months.
+  assert.equal(agoLine(t(2025, 0, 20), t(2026, 0, 10)), 'eleven months ago');
+  // Exactly two years, and a day short of it.
+  assert.equal(agoLine(t(2024, 2, 4), t(2026, 2, 4)), 'two years ago');
+  assert.equal(agoLine(t(2024, 2, 5), t(2026, 2, 4)), 'a year ago');
+  // The weeks are as before.
+  assert.equal(agoLine(t(2026, 10, 5), t(2026, 10, 13)), 'last week');
+  assert.equal(agoLine(t(2026, 9, 20), t(2026, 10, 13)), 'three weeks ago');
 });

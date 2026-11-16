@@ -41,9 +41,11 @@ export function whenLine(t: number, now: number): string {
 }
 
 /**
- * How long ago, alone, for a moment past a week: "last week", "three weeks ago", "last month", "five months ago", "last
- * year", "two years ago"; no month and no part of the day (tend map 11, decision 0172, the owner's "The span alone").
- * Months and years are counted by the calendar, as `whenLine` counts its years.
+ * How long ago, alone, for a moment past a week: "last week", "three weeks ago", "last month", "five months ago", "a
+ * year ago", "two years ago"; no month and no part of the day (tend map 11, decision 0172, the owner's "The span
+ * alone"). With no month to anchor them the words count time elapsed (tend map audit 32, the owner's "Elapsed time",
+ * Nov 16): whole months that have passed, and years as whole twelve-month spans, so Dec 15, 2024, heard on Jan 5,
+ * 2026, is "a year ago".
  */
 export function agoLine(t: number, now: number): string {
   const d = daysAgo(t, now);
@@ -51,10 +53,11 @@ export function agoLine(t: number, now: number): string {
   if (d < 35) return `${numberWord(Math.floor(d / 7))} weeks ago`;
   const a = new Date(t);
   const b = new Date(now);
-  const months = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+  // A month has passed only once its day of the month comes round again.
+  const months = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth() - (b.getDate() < a.getDate() ? 1 : 0);
   if (months < 12) return months <= 1 ? 'last month' : `${numberWord(months)} months ago`;
-  const years = b.getFullYear() - a.getFullYear();
-  return years <= 1 ? 'last year' : `${numberWord(years)} years ago`;
+  const years = Math.floor(months / 12);
+  return years === 1 ? 'a year ago' : `${numberWord(years)} years ago`;
 }
 
 /** The label over the resurfaced card: why this moment, now (RM6). */
