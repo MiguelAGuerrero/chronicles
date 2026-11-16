@@ -285,7 +285,7 @@ export function HomeSheet(props: {
           {day ? (
             <View style={styles.headerText}>
               <Text testID="day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{dayLabel(day.key, nowT)}</Text>
-              {/* In words since tend tabs T32, so it may take two lines, as the place's line does. */}
+              {/* In words since tend tabs T32, so it may take two lines, as the place's line does, wrapping between words (tend tabs audit 25). */}
               <Text testID="day-meta" style={styles.meta} numberOfLines={2}>{dayCounts(day)}</Text>
             </View>
           ) : place ? (
@@ -408,7 +408,7 @@ export function HomeSheet(props: {
                   style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
                 >
                   <Text style={styles.rowTitle}>{dayLabel(d.key, nowT)}</Text>
-                  <Text testID="day-row-meta" style={styles.rowMeta}>{dayCounts(d)}</Text>
+                  <Text testID="day-row-meta" style={styles.rowMeta}>{dayCounts(d, { bind: true })}</Text>
                 </Pressable>
               ))
             : day

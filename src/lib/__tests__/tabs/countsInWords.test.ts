@@ -47,12 +47,22 @@ test('tend tabs audit 24: a day\'s walk line keeps its count on its noun\'s line
 // Chronicle's Days say their counts in words, as the timeline under them does (tend tabs T32, the owner's yes, Nov 14).
 test('tend tabs T32: a day says its moments and walks in words, on its row, its header and to a screen reader', () => {
   const day = (moments: number, walks: number): Day => ({ key: '2026-11-14', entries: [], moments, walks });
-  assert.equal(dayCounts(day(3, 1)), 'Three moments · one walk');
-  assert.equal(dayCounts(day(1, 0)), 'One moment');
-  assert.equal(dayCounts(day(12, 2)), 'Twelve moments · two walks');
+  assert.equal(dayCounts(day(3, 1), { bind: true }), 'Three moments · one walk');
+  assert.equal(dayCounts(day(1, 0), { bind: true }), 'One moment');
+  assert.equal(dayCounts(day(12, 2), { bind: true }), 'Twelve moments · two walks');
   // A day whose walk kept nothing says no count of moments, never "zero moments" (as tend tabs audit 22 does).
-  assert.equal(dayCounts(day(0, 1)), 'One walk');
+  assert.equal(dayCounts(day(0, 1), { bind: true }), 'One walk');
   // Spoken: plain spaces, the clauses after the day's name lowercase, as the walks row is said.
   assert.equal(daySpoken('Today', day(3, 1)), 'Today, three moments, one walk');
   assert.equal(daySpoken('Sat, Nov 7', day(0, 2)), 'Sat, Nov 7, two walks');
+});
+
+// tend tabs audit 25 (the T31/T32 review's steward 1): a day's header has about 88 px at 320 px, so "Three moments"
+// could not wrap and the browser broke "moments" itself. The header takes plain spaces and wraps between words; the
+// days row, which has room, keeps each count on its noun's line.
+test('tend tabs audit 25: a day\'s header wraps between words; the row keeps its counts on their nouns', () => {
+  const day = (moments: number, walks: number): Day => ({ key: '2026-11-14', entries: [], moments, walks });
+  assert.equal(dayCounts(day(3, 1)), 'Three moments · one walk');
+  assert.equal(dayCounts(day(3, 1), { bind: true }), 'Three moments · one walk');
+  assert.doesNotMatch(dayCounts(day(12, 2)), / /);
 });

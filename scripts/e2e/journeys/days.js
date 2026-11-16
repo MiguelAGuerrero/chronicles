@@ -179,7 +179,7 @@ async function checks(h) {
       await p2.click('[data-testid=day-row]');
       await p2.waitForSelector('[data-testid=day-title]');
       // Whole at 390 and 375 px, on two lines where it needs them. At 320 px the header's text has about 88 px beside
-      // Days and Map, and its line was cut before this change too ("3 mom…"): logged and pictured, filed apart.
+      // Days and Map: its line wraps between words and ends in an ellipsis (tend tabs audit 25).
       for (const w of [320, 375, 390]) {
         await p2.setViewportSize({ width: w, height: 844 });
         await p2.waitForTimeout(600);
@@ -189,8 +189,27 @@ async function checks(h) {
           const r = e.getBoundingClientRect();
           return { text: e.textContent.replace(/\u00a0/g, ' '), right: Math.round(r.right), cut: e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1 };
         });
-        if (w === 320) console.log(`note: at 320 px a day's header line: ${JSON.stringify(head)}`);
-        else check(head && head.text === 'Three moments · one walk' && head.right <= w && !head.cut,
+        // tend tabs audit 25 (the review's steward 1): at 320 px the header's line wraps between words, no word broken
+        // across two lines; what does not fit ends in an ellipsis.
+        if (w === 320) {
+          const split = await p2.evaluate(() => {
+            const e = document.querySelector('[data-testid=day-meta]');
+            const node = e && [...e.childNodes].find((n) => n.nodeType === 3);
+            if (!node) return null;
+            const broken = [];
+            const re = /\S+/g;
+            let m;
+            while ((m = re.exec(node.textContent))) {
+              const r = document.createRange();
+              r.setStart(node, m.index);
+              r.setEnd(node, m.index + m[0].length);
+              const tops = new Set([...r.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top)));
+              if (tops.size > 1) broken.push(m[0]);
+            }
+            return broken;
+          });
+          check(split && split.length === 0, `tend tabs audit 25: at 320 px a day's header breaks no word across its lines (${JSON.stringify(split)}; ${JSON.stringify(head)})`);
+        } else check(head && head.text === 'Three moments · one walk' && head.right <= w && !head.cut,
           `tend tabs T32: at ${w} px a day's header says "Three moments · one walk", whole (${JSON.stringify(head)})`);
         await shot(p2, `days-t32-header-${w}`);
       }

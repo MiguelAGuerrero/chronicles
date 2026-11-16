@@ -110,11 +110,12 @@ function countWords(day: Day, space: string): string[] {
 
 /**
  * "Three moments · one walk" for the days list and a day's header (M7), in words as the timeline under them says its
- * own (tend tabs T32, the owner's yes, Nov 14); each count kept on its noun's line. A day whose walk kept nothing
- * says "One walk", never "zero moments" (as tend tabs audit 22).
+ * own (tend tabs T32, the owner's yes, Nov 14). A day whose walk kept nothing says "One walk", never "zero moments" (as
+ * tend tabs audit 22). `bind`, for the days row, which has room, keeps each count on its noun's line; a day's header,
+ * about 88 px wide at 320 px, wraps between words instead, so no word is broken (tend tabs audit 25).
  */
-export function dayCounts(day: Day): string {
-  return capWord(countWords(day, '\u00a0').join(' · '));
+export function dayCounts(day: Day, o: { bind?: boolean } = {}): string {
+  return capWord(countWords(day, o.bind ? '\u00a0' : ' ').join(' · '));
 }
 
 /** A day's row as a screen reader says it: "Today, three moments, one walk" (tend tabs T32), plain spaces. */
