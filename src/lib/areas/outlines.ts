@@ -160,9 +160,6 @@ export function boxDistanceM(p: LngLat, [w, s, e, n]: TownOutline['bbox']): numb
   return distanceM(p, [Math.min(Math.max(p[0], w), e), Math.min(Math.max(p[1], s), n)]);
 }
 
-/** How far outside its outline a town's label point may lie and still be that town's (fix carousel-duplicates): the one-area distance. */
-const LABEL_SLACK_M = 1000;
-
 /**
  * TO4, TO5: the candidates with the outlines joined in. A town's label point
  * and its outline are one candidate, at the label point, when the point is
@@ -177,9 +174,7 @@ export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | nul
     let matched = false;
     out.forEach((c, i) => {
       if (c.level !== 'town' || !sameName(c.name, t.name)) return;
-      // A label point a little outside its own outline (a coast, a river, a drawn edge) is still that town's: left alone
-      // it became a second town at the outline's middle, listed twice (fix carousel-duplicates).
-      const mine = inOutline(c.at, t) || boxDistanceM(c.at, t.bbox) <= LABEL_SLACK_M || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= AREA_REACH_M.town);
+      const mine = inOutline(c.at, t) || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= AREA_REACH_M.town);
       if (!mine) return;
       // Already joined to this outline: joining again changes nothing (neighborhood boundaries audit 2).
       if (c.outline?.id === t.id) {
@@ -191,6 +186,20 @@ export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | nul
       out[i] = { ...c, outline: t };
       matched = true;
     });
+    if (!matched) {
+      // A label just outside its own outline (a coast, a river, a drawn edge) is that town's: an outline with no label inside it
+      // adopts the nearest same-named label not yet joined within a town's reach, else it became a second town at its
+      // middle, listed twice (fix carousel-duplicates audits 1-3).
+      let best = -1;
+      out.forEach((c, i) => {
+        if (c.level !== 'town' || c.outline || !sameName(c.name, t.name) || boxDistanceM(c.at, t.bbox) > AREA_REACH_M.town) return;
+        if (best < 0 || distanceM(c.at, outlineCentre(t)) < distanceM(out[best].at, outlineCentre(t))) best = i;
+      });
+      if (best >= 0) {
+        out[best] = { ...out[best], outline: t };
+        continue;
+      }
+    }
     if (!matched) out.push({ level: 'town', name: t.name, at: outlineCentre(t), reachM: AREA_REACH_M.town, kind: 'outline', outline: t });
   }
   return withHoods(out, set);
