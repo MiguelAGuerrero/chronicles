@@ -246,44 +246,59 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 14, `/tend inbox T19 yes T30 yes --deploy=main`, with O15 and O18 of decision 0172** (from `b33399ff`, rebased on
-`83d509eb` and `0c5f4f96`; the owner's own answers, one theme: the remaining counts in digits become words. The
-coordinator ruled as the owner's proxy that T19 and T30 build in one run, since they share `formatCaptures`, as 0170
-records).
-- `tend replay T19`: the day's card says its moments as a clause with their named places or the day's area, the walk's
-  card says what it kept as one clause in the pins' words ("Two photos, a video, a voice memo and a note"), one hint on
-  both, "Tap a pin to open it"; `kindsClause` in `lib/pins.ts` is the one table the clause, the pins and the reminders
-  share, and the walks row takes the clause (T30's walks-row part).
-- `tend memories T30`: a memory preview of a group says "and two more here", shown and spoken.
-- `tend deletion T30`: a delete asks "Its trace, three moments and twelve streets walked go." and "Two photos and a voice
-  memo go.".
-- `tend tabs 10` (O15): the place sheet says "one walk", as its star does.
-- `tend tabs 11` (O18): a day's timeline says "Walk · 1.2 km · three moments"; the walk's card names its More by its
-  title, as the row and the timeline do.
-- The review (one round, the auditor, the ux-reviewer and the steward; decision 0145). The owner answered three of its
-  questions in person, Nov 14: "Only when all are placed" (steward 1: the day's card names a place or area only when
-  every moment of the day has a place inside it, loose moments checked against it; otherwise the count alone, "Three
-  moments"), "Lowercase after a dot" (steward 4, auditor 4, ux 2: in `walkRowMeta` a clause after a middle dot starts
-  lowercase; a capital only where the clause starts a line, as on the card) and "its moments" (steward 6: past
-  fifty-nine the confirm says "Its trace, its moments and its streets walked go.", and the same shape for media).
-  Fixed: `tend tabs audit 22` (a walk that kept nothing reads "Walk · 145 m", never "zero moments"), `tend replay audit
-  10` (the walk card's hint is its last line, above the buttons), `11` (no pin, no hint, on either card), `12` (the
-  owner's "Only when all are placed"), `13` (the day's card is built from what the screen loaded, whole, so its walks
-  cannot be left out), `tend tabs audit 23` (the owner's "Lowercase after a dot", and "a" kept on its noun's line),
-  `tend deletion audit 1` (the owner's "its moments"), `tend tabs audit 24` and `tend deletion audit 2` (no-break
-  spaces: "one moment" and "walked go." keep together), `tend memories audit 3` ("and one more here" holds one line at
-  320 px, across the card).
-- Filed: T31 `[owner]` (the walk card's streets walked, new streets and "and N more" finds in digits, with the fog
-  beat), T32 `[owner]` (the days list's and a day's header's "3 moments · 1 walk"); `[loop]` low, Navigate's spoken
-  "N routes to <place>"; `[loop]` medium, "Delete walk" wraps at 320 px (before this run); `[owner]` low, the day card's
-  old rule line (0135). The kinds-tables item is noted, not closed (two of its tables are one now). A phone check for
-  every changed screen in `docs/NATIVE_UNVERIFIED.md`; the spec wording (M13, MR4, D4, with M8's) in "Open before the
-  loop".
-- Not run: the balance (an inbox run); the journeys gaps, qol, tabs, walk and videothumbs, reached through `pins.ts`,
-  `HomeSheet` and the replay route, whose changes the unit tests hold. Nothing here has run on a phone.
+**Nov 16, `/tend inbox T31 yes T32 yes --deploy=main`, with O16 and O11 of decision 0172** (from `181a35dc`, rebased on
+`8675953b`; the owner's own answers, one theme: the last counts and time words. The coordinator ruled as the owner's
+proxy that the four build in this one run, one commit each; the review ran in the faster lane of decision 0181, the
+steward alone).
+- `tend replay T31`: the walk's card says "three streets walked, three streets new to you" and "Found A · B · C and two
+  more"; the fog beat's headline "Three streets new to you".
+- `tend tabs T32`: the days row and a day's header say "Three moments · one walk"; the row is said "Today, three
+  moments, one walk".
+- `tend map 11` (O16): a pin of moments past a week says how long ago alone, "A photo and a note, two years ago".
+- `tend explore 16` (O11): a reminder of thirteen or more says "Many memories here".
+- The review (one round, the steward; decision 0181). The owner answered four of its questions in person, Nov 16:
+  "Elapsed time" (steward 3: O16's words count whole months and years elapsed; Dec 15, 2024, heard Jan 5, 2026, is "a
+  year ago"), "Number words in the preview" (steward 4: the memory preview keeps "and twelve more here" up to
+  fifty-nine; only the reminder's title says "Many" from thirteen), "three streets, all new to you" (when every street
+  walked is new, one clause) and "Accept commas" (the day row's spoken name stays). Fixed: `tend tabs audit 25`
+  (steward 1: a day's header wraps between words, no word broken at 320 px), `tend map audit 32`, `tend explore audit
+  18`, `tend replay audit 14`. Steward 2 is the "Open before the loop" item below.
+- Filed: the spec and rule wording (the replay rule, M7, MR4, the map rule, the pins' examples, R7, and "many streets
+  walked" past fifty-nine for the owner to confirm) in "Open before the loop"; a phone check in
+  `docs/NATIVE_UNVERIFIED.md`. No inbox entry.
+- Not run: the balance (an inbox run); on the final export only the journeys holding this run's checks (replay, days,
+  memories with walk inside it) and launch; chronicle, tabs, qol, resurface, gaps, marks and nudge were green on the
+  branch before the last two rebases and the review's fixes and were not run again (decision 0181). Nothing here has
+  run on a phone.
 
 ### Open before the loop
 
+- **The replay rule's, M7's, MR4's, the map rule's, the pins' and R7's words after T31, T32, O16 and O11** (Nov 16;
+  the owner's yeses to T31 and T32 in person, Nov 14; decision 0172 for O16 and O11; and the owner's answers in person
+  during the review, Nov 16: "Elapsed time", "Number words in the preview", "three streets, all new to you" and "Accept
+  commas"). What ships: since `tend replay T31` and `tend replay audit 14` the walk's card line says "899 m · 40 min ·
+  three streets walked, three streets new to you", or "three streets, all new to you" when every street walked is new,
+  one or two new streets still named ("one street walked, your first time down Transit Street"); its finds "Found A · B
+  · C and two more"; the fog beat's headline "Three streets new to you". Since `tend tabs T32` and `tend tabs audit 25`
+  the days row and a day's header say "Three moments · one walk", a day whose walk kept nothing "One walk" (never "zero
+  moments"), the row said "Today, three moments, one walk" (the owner's "Accept commas"), the header wrapping between
+  words. Since `tend map 11` and `tend map audit 32` a pin of moments past a week says how long ago alone, no month and
+  no part of the day: "last week" (seven to thirteen days, where it said "last Tuesday evening"), "three weeks ago",
+  "last month", "five months ago", "a year ago", "two years ago", counted as time elapsed (whole months passed, years as
+  whole twelve-month spans: Dec 15, 2024, heard Jan 5, 2026, is "a year ago"), "A photo and a note, two years ago";
+  within a week the part of the day as before. Since `tend explore 16` a reminder of thirteen or more says "Many
+  memories here"; the memory preview keeps number words up to fifty-nine, "and twelve more here" (`tend explore audit
+  18`). Amend, in the docs and their mirrors (the loop may not edit a spec or reword a rule):
+  `.claude/rules/replay.md` l.51-53 ("3 streets new to you"; the card's "one street walked" and "and two more", and
+  "three streets, all new to you"); M7 (`specs/moments-and-days/spec.md` l.33, "\<weekday, date> · N moments · M
+  walks", with "One walk" for a walk that kept nothing); MR4 (`specs/memories-on-revisit/spec.md` l.39, "N more here":
+  number words up to fifty-nine, "and twelve more here", per the owner); `.claude/rules/map.md` l.103-110 (a pin with
+  no clock says "the part of the day of its first moment by `dayPartLine`", and a span's end "whose line has its own
+  comma": past a week it is O16's words above, and seven to thirteen days is "last week"); the pins' examples (QL26,
+  NY10 and RB7, with the item on them below); and R7's (`specs/v1-discovery/spec.md` l.211, "2 memories here"). One word
+  for the owner to confirm, not asked: past fifty-nine the card says "many streets walked" and "many streets new to
+  you" (`numberWord`'s "many"). Until then the words are in `walkCardStreets`', `newStreetsLine`'s, `foundList`'s,
+  `dayCounts`', `agoLine`'s, `severalHere`'s and `moreHere`'s comments.
 - **M13's, MR4's and D4's words after T19 and T30** (Nov 14; decisions 0165, 0170, and the owner's answers in person
   during the review of `tend replay T19`): since `tend replay T19` a day's card says its moments as a clause, "Four
   moments, around Wickenden Street and the Old Mill" (one or two named places: the place a moment found, else the
