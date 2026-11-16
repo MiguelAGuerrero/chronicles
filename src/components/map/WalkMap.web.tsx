@@ -24,6 +24,7 @@ import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
+import { refitOnResize, type FitFlight } from '../../lib/atlas/fitFlight';
 import { mapLabel } from '../../lib/atlas/freeLook';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
@@ -1315,6 +1316,32 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.follow, props.followZoom, glideOn]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const fitAtMount = useRef(props.fitKey);
+  // The fit flying, until its move ends (tend explore 17): resized meanwhile, it is asked again at the new size.
+  const flight = useRef<(FitFlight & { bounds: [[number, number], [number, number]]; options: Parameters<MapLibreMap['fitBounds']>[1] }) | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const landed = () => {
+      flight.current = null;
+    };
+    // An area's card folds the tabs away as it opens, so Explore's map grows mid-flight, which maplibre lands at the
+    // bounds' own middle, the padding lost (AT9).
+    const resized = () => {
+      const f = flight.current;
+      const box = { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight };
+      if (!f || !refitOnResize(f, box, map.isMoving())) return;
+      perfCount('refit');
+      // The new fit stops the flight under way, whose end clears the record: it is the new flight's.
+      map.fitBounds(f.bounds, f.options);
+      flight.current = { ...f, ...box };
+    };
+    map.on('moveend', landed);
+    map.on('resize', resized);
+    return () => {
+      map.off('moveend', landed);
+      map.off('resize', resized);
+    };
+  }, [ready]);
   useEffect(() => {
     if (ready && props.fitBounds && props.fitKey !== fitAtMount.current) {
       fitAtMount.current = undefined;
@@ -1325,7 +1352,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // bearing; tend map 2).
       const map = mapRef.current;
       // While the compass's ease to north runs, north: the bearing read mid-ease would stop the map part-way (tend map audit 4).
-      map?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map.getBearing() });
+      const options = { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map?.getBearing() };
+      map?.fitBounds([[w, s], [e, n]], options);
+      if (map?.isMoving()) flight.current = { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight, bounds: [[w, s], [e, n]], options };
       // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
       const key = props.fitKey ?? 0;
       const t = setTimeout(() => onFitSettled.current?.(key), duration + 150);
