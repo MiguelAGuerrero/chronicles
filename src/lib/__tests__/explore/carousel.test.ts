@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, FINGER_MAX_WAITS, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -235,4 +235,18 @@ test('fix carousel-snap-back audit 4: a new touch ends a glide it interrupts', (
   const down = holdStep(glide, 'down');
   assert.equal(down.glide, false, 'the glide it stopped is over');
   assert.equal(isHeld(holdStep(down, 'up')), false, 'and lifting lets go');
+});
+
+test('fix carousel-snap-back audit 5: a finger held still stays held past the glide\'s cap, and is only dropped when its end is plainly lost', () => {
+  let h = holdStep(HOLD_NONE, 'down');
+  for (let i = 0; i < HOLD_MAX_WAITS * 2; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'a real finger is not dropped when a glide would be');
+  for (let i = HOLD_MAX_WAITS * 2; i < FINGER_MAX_WAITS - 1; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'one wait short of the finger cap');
+  assert.equal(isHeld(holdStep(h, 'waited')), false, 'a touch end that never came lets go');
+  // A glide dropped by its cap leaves a finger that is down.
+  let both = holdStep(holdStep(HOLD_NONE, 'glide'), 'down');
+  both = holdStep(both, 'glide');
+  for (let i = 0; i < HOLD_MAX_WAITS; i++) both = holdStep(both, 'waited');
+  assert.deepEqual([both.finger, both.glide], [true, false]);
 });

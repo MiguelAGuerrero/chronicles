@@ -105,11 +105,13 @@ export function settleStep(p: { index: number; intended: number | null; selected
  * Whether the reader holds the row (fix carousel-snap-back audits 1-4): a finger on it (`finger`, from the touch events, the only
  * ones the web build fires; the native drag events say the same), or a release still gliding (`glide`, native's momentum events).
  * `waits` counts the settles that waited since the row last scrolled, so an event that never comes (a glide with no end, a
- * touch the system cancelled) lets go after `HOLD_MAX_WAITS` instead of freezing the row.
+ * touch the system cancelled) lets go after `HOLD_MAX_WAITS` (a glide) or `FINGER_MAX_WAITS` (a finger) instead of freezing the row.
  */
 export type Hold = { finger: boolean; glide: boolean; waits: number };
 export const HOLD_NONE: Hold = { finger: false, glide: false, waits: 0 };
+/** Settles that may wait on a glide whose end never came (about 3.6 s), and on a finger whose end never came (about 30 s: a real finger can rest). */
 export const HOLD_MAX_WAITS = 12;
+export const FINGER_MAX_WAITS = 100;
 export const isHeld = (h: Hold): boolean => h.finger || h.glide;
 export function holdStep(h: Hold, e: 'down' | 'up' | 'glide' | 'rest' | 'scroll' | 'waited'): Hold {
   switch (e) {
@@ -119,7 +121,10 @@ export function holdStep(h: Hold, e: 'down' | 'up' | 'glide' | 'rest' | 'scroll'
     case 'glide': return { ...h, glide: true };
     case 'rest': return { ...h, glide: false };
     case 'scroll': return { ...h, waits: 0 };
-    case 'waited': return h.waits + 1 >= HOLD_MAX_WAITS ? HOLD_NONE : { ...h, waits: h.waits + 1 };
+    case 'waited': {
+      const waits = h.waits + 1;
+      return { finger: h.finger && waits < FINGER_MAX_WAITS, glide: h.glide && waits < HOLD_MAX_WAITS, waits };
+    }
   }
 }
 

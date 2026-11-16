@@ -268,6 +268,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with a right-to-left language on, open Explore. **Expect:** the row's first card is on the reading side and a swipe steps in the reading direction, or the mirroring is recorded as not done (DEFERRED). (EC4)
 - [ ] **Do:** pull one card's name long ("Lehigh Valley Industrial Park District"). **Expect:** the name wraps in full and the row stays aligned to its top. (EC4)
 - [ ] **Do:** On a phone, in Explore's row of area cards, drag slowly to the next card, hold your finger still for a second between the two cards, then let go. Repeat with a quick flick on a slow-loading area. **Expect:** the row settles on the next card the first time, never snapping back to the card you started on (fix carousel-snap-back: the settle waits while the finger is down or a release glides; `onScrollBeginDrag`, `onScrollEndDrag`, `onMomentumScrollBegin`, `onMomentumScrollEnd`).
+- [ ] **Do:** on a phone, drag the Explore row slowly and hold your finger still between two cards for two seconds, then drag on and let go; then do the same but start the drag on a card's face. **Expect:** the row follows your finger and settles on the next card the first time; a `touchcancel` the phone raises as the scroll takes the gesture never releases the hold early (fix carousel-snap-back audit round 2: `onTouchCancel` is treated as a release; its order against `onScrollBeginDrag` is unknown).
 
 ## Explore atlas
 
