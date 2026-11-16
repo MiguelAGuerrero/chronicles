@@ -1,6 +1,6 @@
-# 0178. Small places from OpenStreetMap: OSM may locate a pinned table of small types; the repetitive ones off by default
+# 0182. Small places from OpenStreetMap: OSM may locate a pinned table of small types; the repetitive ones off by default
 
-Date: 2026-11-14 · Status: accepted · Area: explore, discovery, presence, vision · Supersedes in part: decision 0110 ("OpenStreetMap only corroborates") · An exception to: decision 0115 ("kinds filter what you see, never what exists"), for presence weights only
+Date: 2026-11-16 (the owner's calls of Nov 14) · Status: accepted · Area: explore, discovery, presence, vision · Supersedes in part: decision 0110 ("OpenStreetMap only corroborates") · An exception to: decision 0115 ("kinds filter what you see, never what exists"), for presence weights only
 
 ## Context
 The owner asked how Pikmin Bloom gets the places on its postcards, which reach small things such as a time capsule,
