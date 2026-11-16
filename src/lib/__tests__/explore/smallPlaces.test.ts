@@ -200,3 +200,23 @@ test('SP17: the app pins chronicles-data\'s contract v3, its classes exactly the
   assert.equal(sources.contractVersion, 3);
   for (const c of ['small_memorial', 'old_stone', 'wayside_shrine', 'time_capsule', 'public_bookcase', 'community_garden']) assert.ok(sources.classes.includes(c), c);
 });
+
+// The UI review's accepted findings (specs/small-places, UI review), each before its fix.
+const explore = () => import(String('../../explore/explore')) as Promise<{ KINDS: { id: string; icon: string; label: string }[]; kindHint?: (k: Kind) => string | undefined }>;
+
+test('small-places ui 1: the plaques row never wears an easel, which reads as art', { todo: 'test first' }, async () => {
+  const { KINDS: kinds } = await explore();
+  assert.equal(kinds.find((k) => k.id === 'plaques')?.icon, 'document-text-outline');
+});
+
+test('small-places ui 2: a subset row tells a screen reader which kind it belongs to; a kind of its own says nothing', { todo: 'test first' }, async () => {
+  const { kindHint } = await explore();
+  assert.equal(kindHint?.('plaques' as Kind), 'Part of Monuments and memorials');
+  assert.equal(kindHint?.('community_parks' as Kind), 'Part of Parks and gardens');
+  assert.equal(kindHint?.('monuments' as Kind), undefined);
+});
+
+test('small-places ui 3: the old stones row carries the words a find of it says', { todo: 'test first' }, async () => {
+  const { KINDS: kinds } = await explore();
+  assert.match(kinds.find((k) => k.id === 'old_stones')?.label ?? '', /old stones/i);
+});
