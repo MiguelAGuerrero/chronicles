@@ -253,24 +253,12 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 16, `/tend chronicle --deploy=main`, building the owner's answer to O17 of decision 0172** (from `6c5174cd`, rebased
-on `edf96c57`; a ledger run, lenses 1-6 not run; the review in the faster lane of decision 0181, one auditor round).
-- `tend chronicle 9` (O17, "Typed words go without asking"): in Rename, a tap outside, Escape or Back with words Save
-  would store differently asks "Discard these edits?" with Keep editing and Discard, the media editor's Close confirm
-  and its words; Escape or a tap outside the ask keeps editing; Cancel and unchanged words leave at once. The note
-  half is moot (a note is a page saved as you write, decision 0151).
-- `tend chronicle 10` (Quality of life 14, medium): a figure keeps to its unit at a line's end in Chronicle's walks
-  row, a place's header and a day's walk line, "589 m" never "589 / m"; the tests that pinned the plain space restated.
-- The review (one round, the auditor: 0 high or medium, 6 low). Fixed: `tend chronicle audit 5` (F1: Enter or Done
-  while the ask shows keeps editing and stores nothing). Filed `[loop]` low: the ask's focus and announcement, in
-  Rename and the media editor (F2); a pure `renameClose` (F4); "a voice / memo" at 320 px (F6); Name it on the first
-  replay asking before its words go, with the owner's answer of Nov 16, "Ask there too" (F5). F3's spec wording (QL22)
-  went to the owner's list by the coordinator; the rule line is added.
-- Filed `[loop]` medium: `qol`'s `tend map audit 25/26` red at Hold at 390 on `main` since the Place search commits,
-  not this run's. A note on `formatDistance`'s item; a note on the native Rename check (Back now asks).
-- The balance: outgrowing its base (seven areas rough); no `G` entry filed. No inbox entry.
-- Not run: lenses 1-6; of the journeys, `qol` (holding the new checks; red only on main's 25/26), `chronicle` and
-  `launch`, the last two before the audit fix. Nothing here has run on a phone.
+**Nov 16, `/tend explore --deploy=main`, aimed at one `[loop]` item: the `atlas` journey's AT9** (opened from `19979b34`; a ledger run, lens 7 alone, in the faster lane of decision 0181).
+- Bisected 25a508ac (good) to 19979b34 (bad), the export and `E2E_ONLY=atlas` per step: `d0ca30a3` good, `a4440ca7` bad, `b347dcdb` skipped (its own SF check failed first; `a4440ca7` changes no `src/`, so the first bad app is `b347dcdb`, "Storefronts: busy becomes storefronts everywhere"). AT9's empty ring was not the failure (its own ground was drawn, HB9); the area sat at the map's middle. The card folds the tabs away as it opens, so the map grew (539 to 601 px) while the card's fit flew, and maplibre 6.16 landed that flight at the bounds' middle a zoom out; latent since the card went full screen, steady since the heavier storefronts card.
+- `tend explore 17`: a fit still flying when the map's box changes size is asked again at the new size (`refitOnResize`, `atlas/fitFlight.ts`, wired in `WalkMap.web.tsx`). AT9 green twice, Fox Point 31.5 px below the middle.
+- The review (one round, the auditor): five low. Fixed together as `tend explore audit 19` (F1, F2, F4): the record, its clear and the refit are one core step, `fitStep`; a refit restarts the fit's settle; the moveend its own stop fires is skipped by the settle listeners (DC9); the wiring test fails with the wiring undone. Filed `[loop]` in "Explore atlas": F3 (a fit that started no move recorded as flying) and F5 (move `fitFlight` to the map feature with `features.js`). A phone check in `docs/NATIVE_UNVERIFIED.md`.
+- Left: `scripts/e2e/flaky.json` keeps AT9 in its older wording (a label, it never passes a failure; the loop may not edit `scripts/`); the scenic journey's "fix preview-clutter audit 1" red is another cause (red before `25a508ac`).
+- Not run: lenses 1-6 and the balance; journeys on the final export: atlas twice and launch; the other journeys `check:affected` names are left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
 
 ### Open before the loop
 

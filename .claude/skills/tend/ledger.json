@@ -148,9 +148,9 @@
     },
     "explore": {
       "state": "rough",
-      "swept": "2026-11-14",
-      "main": "e6bdfc6a5ccf94f605ab48dd482902eba662b187",
-      "note": "Ledger run, capped at 8, not whole (lenses 1-6 not run). Built the owner's answers O2, O3, O6+O20, O7, O10 (decision 0172) and three medium [loop] items (cancelled look, capture during a read, shared explore read); the review's fourteen findings shipped as audits 8-17, with the owner's answer of Nov 14 for the blocked card's words. Left [loop]: readNear's write retry and its failed listAtlasAreas (medium, low); five low filed from the review."
+      "swept": "2026-11-16",
+      "main": "19979b347d0f32e30f0ed6529289e17231f15c2b",
+      "note": "Ledger run aimed at the [loop] AT9 item (lens 7 alone, not whole): bisected to b347dcdb; a fit flying while the card folds the tabs away lost its padding (tend explore 17); the review's F1, F2, F4 fixed as audit 19; F3 and F5 left [loop] low. Still [loop]: readNear's write retry (medium) and the older lows."
     },
     "navigation": {
       "state": "rough",
