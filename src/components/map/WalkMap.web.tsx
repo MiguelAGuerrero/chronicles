@@ -33,7 +33,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -189,9 +189,9 @@ class ClosedAttribution extends AttributionControl {
     // maplibre's control is content-box: the open box pads 8 px each side.
     el.style.setProperty('--credits-open-max', `${at.openMaxWidth - OPEN_PAD_X}px`);
   }
-  constructor() {
-    // Overture is credited beside the map data (AD16).
-    super({ compact: true, customAttribution: OVERTURE_CREDIT });
+  constructor(placeNames = false) {
+    // Overture is credited beside the map data (AD16); the place-name dataset only where the search reads it: Explore (GZ14).
+    super({ compact: true, customAttribution: placeNames ? [OVERTURE_CREDIT, GAZETTEER_CREDIT] : OVERTURE_CREDIT });
   }
   onAdd(map: MapLibreMap): HTMLElement {
     const el = super.onAdd(map);
@@ -698,7 +698,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // The credits stay reachable (OSM asks it): top right on Chronicle, where the sheet never covers them; on every
     // other map beside the scale bar, on the strip its screen keeps clear, placed below (tend map 3). Bottom right,
     // they lay under the walk's strip, the replay's card, Locate and the capture stack.
-    const credits = new ClosedAttribution();
+    const credits = new ClosedAttribution(!!props.placeNamesCredit);
     credits.onOpen = (open) => onCreditsOpen.current?.(open);
     creditsRef.current = credits;
     map.addControl(credits, props.attributionTop ? 'top-right' : 'bottom-left');

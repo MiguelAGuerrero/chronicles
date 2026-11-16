@@ -58,4 +58,20 @@ On Explore a magnifier opens a field. Typing the start of a town's name lists th
 
 ## Record
 
-<!-- Filled in as the slice is built. -->
+
+
+### What passed (Nov 16, 2026)
+
+GZ1-GZ19 each have a test: unit (`explore/gazetteer.test.ts`, `gazetteerPack.test.ts`, `arch/gazetteerLayers.test.ts`) and the `placesearch` journey. Unit tests 2611, typecheck, lint, docs and vision checks green; journeys `placesearch`, `freelook`, `carousel`, `snap`, `atlas` green, and the rest `check:affected` names (see STATUS).
+
+**Where to find it:** the magnifier beside the "Near you" title card at the top of Explore.
+
+**Steward** (Nov 16, before code): 7 findings, all accepted into the criteria (`plan.md`, "Steward's findings").
+
+**Cold find** (the `ux-reviewer`, picture and the task only): placed the magnifier on the first tap. Opinion, low to medium: icon-only, and "Near you" may suggest it searches only nearby. Left as the owner's call (DEFERRED).
+
+**UI review** (`ux-reviewer`, 9 findings): accepted and fixed, each behind a regression check in the journey: `place-search ui 1` (Clear and Close told apart: Close is a word, Clear a 44 px target), `ui 2` (the browser's stray focus box on the field is off; the underline is the focus), `ui 3` (rows separated by a hairline); the missing states were pictured (list, no match). Deferred: U6, a marker at the picked place (a map layer). Rejected: U4 (one line is GZ18's own rule), U7 ("km from you" on a card is 0150's distance from your fresh fix), U8 (the gap is already 8 px), U9 (the cold find passed).
+
+**Test-first:** by intent; `check:test-first` finds 5 of 19 (the journey's todos were written through an alias it cannot read).
+
+**Deferred:** a precomputed index in the pack; villages and a larger pack; a visible word on the magnifier or a distance on a row. **Native:** nothing here has run on a device (`docs/NATIVE_UNVERIFIED.md`: first-open cost, the keyboard, VoiceOver, offline).
