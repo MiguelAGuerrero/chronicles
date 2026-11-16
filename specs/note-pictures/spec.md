@@ -134,3 +134,11 @@ Open: none.
   reader.
 - `docs/DEFERRED.md` "A camera mention's words are 'A photo' or 'A video'" stands: the words are the spoken name only
   (NI10).
+
+## Record (2026-11-16)
+
+Built test-first (18 of 18 by history). Unit tests (`notes/pictures.test.ts`), typecheck, lint, docs and vision checks, and the `notepage` journey pass on the web build, with the nine other journeys the changed files reach (`edit`, `journal`, `qol`, `responses`, `stacks`, `threads`, `videothumbs`, `voicetrim`, `walk`). Native has never run: four items in `docs/NATIVE_UNVERIFIED.md`.
+
+**The cold find** (pictures only, no hints): the photo in the page was found at once; editing it from the page was found late (no cue that a picture is tappable; the menu row did not look like a control); taking it out was not found. Accepted and fixed: `note-pictures ui 1` (the picture whose menu is open is outlined), `note-pictures ui 2` (the row says "Edit photo" or "Edit video", with a pencil, at 48 pt). Those two were written with their checks in the same commit, not failing first.
+
+**The UI review** (U1-U5): U1 to the owner (a visible way to remove a picture; recommended: a "Remove from page" row, last, with Undo); U2, U3, U4 rejected (the dismissal, spoken name and rotation are already as the review asked); U5 rejected as before this slice (the existing editor). No audit has been run (decision 0074: when the owner asks).
