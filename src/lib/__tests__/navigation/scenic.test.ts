@@ -37,7 +37,7 @@ const rect = (x0: number, x1: number, y0: number, y1: number, name: string | nul
   rings: [[at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1), at(x0, y0)]], kind, name,
 });
 const sight = (x: number, y: number, name: string, found = false): Sight => ({ key: name, at: at(x, y), name, found });
-const none: Signals = { green: [], sights: [], busy: [] };
+const none: Signals = { green: [], sights: [], storefronts: [] };
 const sig = (s: Partial<Signals>): Signals => ({ ...none, ...s });
 
 const from = at(0, 0);
@@ -54,12 +54,12 @@ const thayer = { name: 'Thayer Street', grade: 3 as const, lines: [[at(1, 1.1), 
 test('SR2: Direct first, then one option per leaning switched on', () => {
   const streets = ladder(south());
   const brook = { name: 'Brook Street', grade: 3 as const, lines: [[at(1, -1.1), at(9, -1.1)]] };
-  const o = opts(streets, sig({ green: [park], busy: [brook] }), ['green', 'sights', 'busy']);
-  assert.deepEqual(o.map((x) => x.leanings), [[], ['green'], ['busy']], 'nothing to see: no Sights row');
+  const o = opts(streets, sig({ green: [park], storefronts: [brook] }), ['green', 'sights', 'storefronts']);
+  assert.deepEqual(o.map((x) => x.leanings), [[], ['green'], ['storefronts']], 'nothing to see: no Sights row');
   assert.ok(north(o[1].route.path) > 1, 'green goes north through the park');
   assert.ok(southmost(o[2].route.path) < -1, 'busy goes south along Brook Street');
   assert.ok(north(o[0].route.path) < 0.1 && southmost(o[0].route.path) > -0.1, 'Direct stays on the straight street');
-  const greenOnly = opts(streets, sig({ green: [park], busy: [brook] }), ['green']);
+  const greenOnly = opts(streets, sig({ green: [park], storefronts: [brook] }), ['green']);
   assert.deepEqual(greenOnly.map((x) => x.leanings), [[], ['green']], 'a leaning switched off gives no row');
 });
 
@@ -73,7 +73,7 @@ test('SR2: scenic applies to Go here within 5 km with a leaning on; SR9 says why
 });
 
 test('SR12: Walk me back gets no options and no notice', () => {
-  assert.deepEqual(scenicPlan({ at: at(10, 0), label: 'Start', kind: 'start' }, from, ['green', 'sights', 'busy']), { scenic: false, notice: null });
+  assert.deepEqual(scenicPlan({ at: at(10, 0), label: 'Start', kind: 'start' }, from, ['green', 'sights', 'storefronts']), { scenic: false, notice: null });
 });
 
 test('SR3: every row says its own distance in the chosen units, never a time or minutes compared', () => {
@@ -93,7 +93,7 @@ test('SR3: every row says its own distance in the chosen units, never a time or 
     assert.doesNotMatch(all, /%|score|rank|points|\bmins?\b|minutes?|hours?|fast|quick|sooner|detour|longer|more/i, 'a distance only: no time, no difference said (VISION.md, Never; the owner, Nov 5)');
   }
   assert.equal(green.label, 'Through green, 1.2 km, through Prospect Park');
-  assert.equal(rowWords({ ...o[1], leanings: ['busy'] }, 'km').title, 'Along busy streets');
+  assert.equal(rowWords({ ...o[1], leanings: ['storefronts'] }, 'km').title, 'Along storefronts');
   assert.equal(rowWords({ ...o[1], leanings: ['sights'] }, 'km').title, 'Past the sights');
 });
 
@@ -105,7 +105,7 @@ test('SR4: parks and streets by name, found places by name, unfound never named'
   assert.equal(rowWords(unnamed[1], 'km').passes, 'through a park');
   const woods = opts(streets, sig({ green: [rect(2, 8, 0.95, 1.25, null, 'wood')] }), ['green']);
   assert.equal(rowWords(woods[1], 'km').passes, 'through woods');
-  const b = opts(streets, sig({ busy: [thayer] }), ['busy']);
+  const b = opts(streets, sig({ storefronts: [thayer] }), ['storefronts']);
   assert.equal(rowWords(b[1], 'km').passes, 'along Thayer Street');
   const one = opts(streets, sig({ sights: [sight(5, 1.3, 'Old Bell')] }), ['sights']);
   assert.equal(one.length, 2);
@@ -123,7 +123,7 @@ test('SR5: a scenic route is never more than 30% longer than the direct one', ()
   const streets = ladder(far());
   const o = opts(streets, sig({ green: [rect(1, 9, 2.8, 3.2, 'Far Park')] }), ['green']);
   assert.equal(o.length, 1, 'the far park is past the budget');
-  // Random parks, places and busy streets over a 10 x 4 grid of 100 m blocks: every option within 30%.
+  // Random parks, places and storefront streets over a 10 x 4 grid of 100 m blocks: every option within 30%.
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const grid: StreetSegment[] = [];
@@ -136,11 +136,11 @@ test('SR5: a scenic route is never more than 30% longer than the direct one', ()
     const s = sig({
       green: [rect(x0, x0 + 1 + rnd() * 3, y0, y0 + 0.5 + rnd())],
       sights: [sight(rnd() * 10, rnd() * 4 - 2, `S${k}`)],
-      busy: [{ name: 'Main', grade: 2, lines: [[at(rnd() * 10, Math.round(rnd() * 4 - 2)), at(rnd() * 10, Math.round(rnd() * 4 - 2))]] }],
+      storefronts: [{ name: 'Main', grade: 2, lines: [[at(rnd() * 10, Math.round(rnd() * 4 - 2)), at(rnd() * 10, Math.round(rnd() * 4 - 2))]] }],
     });
     const a = at(0, Math.round(rnd() * 4 - 2));
     const b = at(10, Math.round(rnd() * 4 - 2));
-    const o2 = routeOptions({ streets: g, signals: s, leanings: ['green', 'sights', 'busy'], from: a, to: b });
+    const o2 = routeOptions({ streets: g, signals: s, leanings: ['green', 'sights', 'storefronts'], from: a, to: b });
     for (const x of o2.slice(1)) assert.ok(lengthOf(x) <= lengthOf(o2[0]) * (1 + SCENIC.detour) + 1e-6, `case ${k}: ${lengthOf(x)} vs ${lengthOf(o2[0])}`);
   }
 });
@@ -177,24 +177,24 @@ test('SR6: Sights are the places worth finding, of the kinds on in "What I\'m in
 });
 
 test('SR6: the Busy route runs more graded length, a stronger grade counting more', () => {
-  const s = sig({ busy: [thayer] });
-  const o = opts(ladder(), s, ['busy']);
+  const s = sig({ storefronts: [thayer] });
+  const o = opts(ladder(), s, ['storefronts']);
   assert.equal(o.length, 2);
-  assert.ok(measure.busy(o[1].route.path, s) >= measure.busy(o[0].route.path, s) + SCENIC.minGainM);
-  const weak = sig({ busy: [{ ...thayer, grade: 1 }] });
-  assert.ok(measure.busy(o[1].route.path, weak) < measure.busy(o[1].route.path, s), 'grade 1 counts less than grade 3');
+  assert.ok(measure.storefronts(o[1].route.path, s) >= measure.storefronts(o[0].route.path, s) + SCENIC.minGainM);
+  const weak = sig({ storefronts: [{ ...thayer, grade: 1 }] });
+  assert.ok(measure.storefronts(o[1].route.path, weak) < measure.storefronts(o[1].route.path, s), 'grade 1 counts less than grade 3');
   // North at grade 1 against south at grade 3: the stronger grade wins.
   const streets = ladder(south());
-  const both = sig({ busy: [{ ...thayer, grade: 1 }, { name: 'Brook Street', grade: 3, lines: [[at(1, -1.1), at(9, -1.1)]] }] });
-  const pick = opts(streets, both, ['busy']);
+  const both = sig({ storefronts: [{ ...thayer, grade: 1 }, { name: 'Brook Street', grade: 3, lines: [[at(1, -1.1), at(9, -1.1)]] }] });
+  const pick = opts(streets, both, ['storefronts']);
   assert.ok(southmost(pick[1].route.path) < -1, 'along Brook Street, the busier');
 });
 
 test('SR6: under 100 m of gain is not offered', () => {
   const small = sig({ green: [rect(4.5, 5.3, 0.95, 1.25)] });
   assert.equal(opts(ladder(), small, ['green']).length, 1, '80 m of park is not worth the detour');
-  const quiet = sig({ busy: [{ name: 'Short', grade: 3, lines: [[at(4.6, 1.1), at(5.4, 1.1)]] }] });
-  assert.equal(opts(ladder(), quiet, ['busy']).length, 1);
+  const quiet = sig({ storefronts: [{ name: 'Short', grade: 3, lines: [[at(4.6, 1.1), at(5.4, 1.1)]] }] });
+  assert.equal(opts(ladder(), quiet, ['storefronts']).length, 1);
 });
 
 test('SR7: two leanings on one way show as one row naming both; one like Direct is dropped', () => {
@@ -227,4 +227,13 @@ test('SR10: off a scenic route, the re-route keeps the leaning within 30% of wha
   const past = src.route(at(9, 0), to)!;
   assert.ok(north(past.path) < 0.1, 'the direct way');
   assert.equal(scenicRouteSource(streets, s, ['green', 'sights']).id, 'scenic:green+sights');
+});
+
+test('SF8: a storefronts route names its streets in the order you pass them, never by how many storefronts', () => {
+  const near = { name: 'Near Lane', grade: 1 as const, lines: [[at(1, 1.1), at(4, 1.1)]] };
+  const farther = { name: 'Far Lane', grade: 3 as const, lines: [[at(6, 1.1), at(9, 1.1)]] };
+  const o = routeOptions({ streets: ladder(), signals: { green: [], sights: [], storefronts: [near, farther] } as unknown as Signals, leanings: ['storefronts'] as unknown as Leaning[], from, to });
+  const row = o.find((x) => (x.leanings as string[]).includes('storefronts'));
+  assert.ok(row, 'a storefronts route');
+  assert.deepEqual(row.passes.streets, ['Near Lane', 'Far Lane']);
 });

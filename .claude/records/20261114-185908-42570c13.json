@@ -1,0 +1,38 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- **The area card's Walk to is a text button beside \"Suggest a walk\"'s bordered one** (`storefronts ui 3`, Nov 14): both start a walk, drawn differently (H4; 0167's \"drawn to be found\"). It is the card's row pattern, the complexes' rows too, so a restyle is card-wide, beyond the storefronts slice.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- **Storefronts' pictures for review** (`storefronts ui 5`, Nov 14): a card listing several storefront streets (the e2e world has one, Thayer Street), the layer's legend open, and the walk settings' Storefronts leaning (the scenic journey stops at main's failing \"fix preview-clutter audit 1\" before it). Nearest first is held by SF3's unit test.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Storefronts (\"busy\" becomes storefronts everywhere the concept shows: the layer, the area card's one list nearest you first with Walk to, \"Starts you on\", \"Where storefronts gather\", \"A pocket of storefronts\", the walk's line, the leaning \"Along storefronts\" naming streets in the order passed; storefronts is presence's own reading and counts only places you walk into; the code renamed, a choice saved as `busy` read across; SF1-SF14, decisions 0140, 0178; from G2) | built 2026-11-14, test-first by history (14 of 14): unit tests (2561), typecheck, lint, docs, vision and records checks; e2e `layers`, `switches`, `dense`, `carousel`, `walk` pass, `atlas` but for AT9 (a recorded flake on main), `scenic` but for \"fix preview-clutter audit 1\" (fails 3 of 3 on main, 83d509eb); steward read once (S1, S2, S4 accepted, S3 filed); cold find and UI review (ui 1, 2 fixed, 3 and 5 deferred, 4 rejected); native renames only, never run on a device; not merged or deployed | `claude/wonderful-mendel-jfw77q` | `specs/storefronts/spec.md` (repo first) | no (decision 0074) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Storefronts (\"busy\" becomes storefronts everywhere the concept shows, listed nearest first"
+      ],
+      "target": "sha256:643f5bbec643041ff9b2eb0e029492e3276f0baa15c272944f81e9cf04c68e85"
+    }
+  ]
+}

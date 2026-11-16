@@ -273,6 +273,34 @@ async function run(h) {
     // viewer open from a pin it leaves nothing (the web's viewer takes no Escape itself: captures-and-media.md).
     await pg.waitForTimeout(800);
     await shot(pg, 'rr-card');
+    // tend replay T19 (decision 0165, "Clauses, one hint"): what the walk kept is one clause in words, and the hint is a
+    // line of its own, worded as the day's card words it.
+    const keptLine = await pg.evaluate(() => {
+      const e = document.querySelector('[data-testid=card-kept]');
+      const card = e && e.closest('[data-testid=card-kept]')?.parentElement;
+      return { kept: e?.textContent ?? null, hint: !!card && [...card.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it'), lower: !!card && /tap a pin to open(?! it)/.test(card.textContent) };
+    });
+    check(/^(A|An|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)[ \u00a0]/.test(keptLine.kept ?? '') && /photo|video|voice memo|note/.test(keptLine.kept) && !/\d|·/.test(keptLine.kept) && keptLine.hint && !keptLine.lower,
+      `tend replay T19: the walk's card says what it kept as one clause in words, the hint "Tap a pin to open it" on its own line (${JSON.stringify(keptLine)})`);
+    // tend tabs 11 (decision 0172, O18): the card's More is named by the title the card shows, as the walk's row is.
+    const cardMore = await pg.evaluate(() => {
+      const more = document.querySelector('[data-testid=card-more]');
+      const head = more?.parentElement?.querySelector('[role=heading]');
+      return { name: more?.getAttribute('aria-label') ?? null, title: head?.textContent?.trim() ?? null };
+    });
+    check(!!cardMore.title && cardMore.name === `More for ${cardMore.title}`, `tend tabs 11: the walk's card names its More by the title it shows (${JSON.stringify(cardMore)})`);
+    // tend replay audit 10: the hint is the card's last line before its buttons, as on the day's card.
+    const hintAt = await pg.evaluate(() => {
+      const again = [...document.querySelectorAll('[role=button]')].find((b) => b.textContent.trim() === 'Watch again');
+      const row = again?.parentElement;
+      let prev = row?.previousElementSibling;
+      while (prev && !prev.textContent.trim()) prev = prev.previousElementSibling;
+      const pins = document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]').length;
+      const hint = [...document.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it');
+      return { before: prev?.textContent ?? null, pins, hint };
+    });
+    check(hintAt.before === 'Tap a pin to open it', `tend replay audit 10: the walk's card ends on its hint, right above its buttons (${JSON.stringify(hintAt)})`);
+    check(hintAt.hint === hintAt.pins > 0, `tend replay audit 11: the walk's card gives its hint only with a pin on its map (${JSON.stringify(hintAt)})`);
     await pg.click('[data-testid=to-name]');
     await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
     await shot(pg, 'rr-name');
@@ -422,6 +450,26 @@ async function run(h) {
     // The day framed above its card once the fit has settled.
     await pg.waitForTimeout(1200);
     await shot(pg, 'rr-day-card');
+    // tend replay T19: the day's line is a clause in words, with the walk card's one hint; whole at 320 px too.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await pg.setViewportSize({ width: w, height: 700 });
+        await pg.waitForTimeout(900);
+        await shot(pg, `rr-day-card-${w}`);
+      }
+      const day = await pg.evaluate(() => {
+        const card = document.querySelector('[data-testid=day-card]');
+        const line = document.querySelector('[data-testid=day-card-line]');
+        const r = line?.getBoundingClientRect();
+        const pins = document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]').length;
+        return { line: line?.textContent ?? null, right: r ? Math.round(r.right) : null, pins, hint: !!card && [...card.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it') };
+      });
+      check(day.hint === day.pins > 0, `tend replay audit 11: at ${w} px the day's card gives its hint only with a pin on its map (${JSON.stringify(day)})`);
+      check(/^(One moment|[A-Z][a-z-]+ moments)(, around .+| around .+)?$/.test(day.line ?? '') && !/\d|·/.test(day.line) && day.hint && day.right <= w,
+        `tend replay T19: at ${w} px the day's card says its moments in a clause, with "Tap a pin to open it" (${JSON.stringify(day)})`);
+    }
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(600);
     // The day's card is as quiet as the walk's (tend replay 12, tabs audit U13): its line set as the walk card's, no
     // large or accent text in it.
     const quiet = await pg.evaluate(() => {
@@ -439,6 +487,95 @@ async function run(h) {
     await pg.keyboard.press('Escape');
     const leftDay = await pg.waitForURL((u) => !u.pathname.includes('/day/'), { timeout: 5000 }).then(() => true, () => false);
     check(leftDay, `tend replay 5: Escape leaves the day's replay from its card (${new URL(pg.url()).pathname})`);
+
+    // tend replay T31 (the owner's yes, Nov 14): a second walk, zigzag over Arnold, Williams and Wickenden Streets (all
+    // new: the first walk took Transit Street) with five places found, so the card's counts pass where it names them.
+    // Its line says the streets walked and new in words, its finds "and two more", and the fog beat's headline "Three
+    // streets new to you"; each whole at 390 and 320 px.
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    for (let k = 0; k < 3; k++) {
+      await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 0.000001, accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    }
+    const walk2 = await openWalk(pg);
+    const t2 = Date.now() - 40 * min;
+    const legs = [[[-1.5, 0.5], [0.5, 0.5]], [[0.5, 0.5], [0.5, 1.5]], [[0.5, 1.5], [2.5, 1.5]], [[2.5, 1.5], [2.5, -1.5]], [[2.5, -1.5], [3.5, -1.5]]];
+    const zig = [];
+    for (const [from, to] of legs) {
+      const n = Math.max(1, Math.round(Math.hypot(to[0] - from[0], to[1] - from[1]) * 100 / 7));
+      for (let k = zig.length ? 1 : 0; k <= n; k++) {
+        const p = at(from[0] + ((to[0] - from[0]) * k) / n, from[1] + ((to[1] - from[1]) * k) / n);
+        zig.push({ walk_id: walk2.id, t: t2 + zig.length * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null });
+      }
+    }
+    const placesFound = ['Hessian Memorial', 'Coffee Exchange', 'Grace Church', 'Gano Park', 'Sunny Bakery'];
+    await pg.evaluate(([id, startedAt, pts, names]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['walk', 'trace_point', 'find'], 'readwrite');
+        const w = tx.objectStore('walk').get(id);
+        w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+        for (const p of pts) tx.objectStore('trace_point').add(p);
+        names.forEach((name, i) => {
+          const p = pts[10 + i * 12];
+          tx.objectStore('find').put({ key: `t31-${i}`, area_key: null, walk_id: id, capture_id: `t31-cap-${i}`, found_at: p.t, name, category: 'culture', kind: 'museums', at: [p.lon, p.lat], generic: false });
+        });
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [walk2.id, zig[0].t - 1000, zig, placesFound]);
+    await pg.reload();
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+    await pg.waitForTimeout(2000);
+    const b2 = await pg.locator('[data-testid=stop]').boundingBox();
+    await pg.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(1100);
+    await pg.mouse.up();
+    await pg.waitForURL(/replay/, { timeout: 30000 });
+    await pg.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+    await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+    const NUM = '(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|(twenty|thirty|forty|fifty)(-[a-z]+)?|many)';
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.waitForTimeout(900);
+      const said = await pg.evaluate(() => {
+        const read = (id) => {
+          const e = document.querySelector(`[data-testid=${id}]`);
+          const r = e?.getBoundingClientRect();
+          return e ? { text: e.textContent.replace(/\u00a0/g, ' '), right: Math.round(r.right), cut: e.scrollWidth > e.clientWidth + 1 } : null;
+        };
+        return { line: read('card-line'), finds: read('card-finds') };
+      });
+      // Every street this walk walked is new to you, so the card says it once (tend replay audit 14, the owner's "three
+      // streets, all new to you"); with an old street among them it would say both clauses.
+      check(new RegExp(`· ${NUM} streets, all new to you$`).test(said.line?.text ?? '') && !/\d+ streets?\b/.test(said.line.text) && !/walked, .* new to you/.test(said.line.text) && said.line.right <= w && !said.line.cut,
+        `tend replay T31, tend replay audit 14: at ${w} px the walk's card says its streets in words, once when all are new, whole (${JSON.stringify(said.line)})`);
+      check(said.finds?.text === 'Found Hessian Memorial · Coffee Exchange · Grace Church and two more' && said.finds.right <= w && !said.finds.cut,
+        `tend replay T31: at ${w} px the walk's card says "and two more" of its finds, whole (${JSON.stringify(said.finds)})`);
+      await shot(pg, `rr-t31-card-${w}`);
+    }
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.getByText('Watch again').click();
+      const up = await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 15000 }).then(() => true, () => false);
+      await pg.waitForTimeout(400);
+      const head = await pg.evaluate(() => {
+        const e = document.querySelector('[data-testid=replay-headline]');
+        const r = e?.getBoundingClientRect();
+        return e ? { text: e.textContent, name: e.getAttribute('aria-label'), left: Math.round(r.left), right: Math.round(r.right) } : null;
+      });
+      check(up && head && /^Three streets new to you/.test(head.text) && head.left >= 16 && head.right <= w - 16,
+        `tend replay T31: at ${w} px the fog beat's headline says "Three streets new to you", inside the screen (${JSON.stringify(head)})`);
+      await shot(pg, `rr-t31-fog-${w}`);
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+    }
+    await pg.setViewportSize({ width: 390, height: 844 });
     await c.close();
     // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.
     for (let i = errors.length - 1; i >= 0; i--) if (/NotAllowedError: refused/.test(errors[i])) errors.splice(i, 1);

@@ -176,11 +176,11 @@ const FEATURES = [
   },
   {
     name: 'layers',
-    about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
+    about: 'map layers: the Layers button and panel, what is on, storefronts and town borders as layers',
     rule: 'layers',
     source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
     journeys: ['layers', 'dense', 'switches'],
-    specs: ['map-layers', 'explore-dense-city', 'smooth-switches'],
+    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts'],
   },
   {
     name: 'walkability',
@@ -192,7 +192,7 @@ const FEATURES = [
   },
   {
     name: 'landing',
-    about: 'what\'s good here: landing analysis, busy streets, activity density',
+    about: 'what\'s good here: landing analysis, storefront streets, activity density',
     rule: 'landing',
     source: ['src/lib/landing/**', 'src/lib/activity/**'],
     journeys: [],
@@ -277,7 +277,7 @@ const FEATURES = [
     rule: 'reactions',
     source: ['src/lib/reactions/**', 'src/components/reactions/**', 'src/lib/pins.ts'],
     journeys: ['reactions'],
-    specs: ['reactions'],
+    specs: ['reactions', 'reaction-links'],
   },
   {
     name: 'journal',
@@ -361,6 +361,9 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // The row under the line (decision 0175) was replaced by a toolbar at the foot the same day (decision 0178, the owner).
+  // The composer (decision 0179) retired writing on the page: JN28-JN30, JN32, JN33, and the toolbar's pen (JN42).
+  'chronicle-journal': ['JN28', 'JN29', 'JN30', 'JN32', 'JN33', 'JN34', 'JN35', 'JN36', 'JN37', 'JN38', 'JN39', 'JN40', 'JN42'],
   // Note types became reactions on any moment (the owner, Nov 14, decision 0176): one per family, their own records,
   // the head always the kind, Type now Reaction. specs/reactions (RX1-RX36) carries what stands of them.
   'note-types': Array.from({ length: 27 }, (_, i) => `NY${i + 1}`),
@@ -474,8 +477,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

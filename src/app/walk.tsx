@@ -79,7 +79,7 @@ import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
 import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
 import { layerNotes } from '../lib/layers/notes';
-import { useBusyLayer } from '../lib/layers/useBusyLayer';
+import { useStorefrontsLayer } from '../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
@@ -713,8 +713,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
-  const busy = useBusyLayer(live.here, !!layers.on.busy);
-  // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the busy streets' shading and the rest
+  const storefronts = useStorefrontsLayer(live.here, !!layers.on.storefronts);
+  // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the storefront streets' shading and the rest
   // come back as it closes (fix preview-clutter).
   const drawn = forPreview(!!navigation.preview, {
     trace: live.runs,
@@ -723,7 +723,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     fog,
     faint: gapView.faint,
     gapLinks: isDrawing ? undefined : gapView.links,
-    landing: busy.view,
+    landing: storefronts.view,
     borders: layers.on.borders ? borders : null,
     walkability: wk.draw,
     veil: showUnwalked,
@@ -756,7 +756,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     previewRangeM: preview,
     onAreas: () => {
       reloadLandings();
-      busy.reload();
+      storefronts.reload();
     },
     onFound: (item) => {
       // Quietly on a quiet walk (E9): kept, shown in the replay, nothing on screen.
@@ -1211,7 +1211,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <WalkMap
         {...drawn}
-        busyNamesNear={namesNearYou(live.here)}
+        storefrontNamesNear={namesNearYou(live.here)}
         captures={captures}
         clocks={clocks}
         now={pinNow}
@@ -1608,7 +1608,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <Text style={styles.optionLabel}>Explore</Text>
                 <Text style={styles.markSub}>
                   {exploring
-                    ? 'Places to find show as “?” when they’re close, with busy streets and reminders.'
+                    ? 'Places to find show as “?” when they’re close, a chip names the storefront street you’re on, and reminders are on.'
                     : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
                 </Text>
               </View>
@@ -1712,7 +1712,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).

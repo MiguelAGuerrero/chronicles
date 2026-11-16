@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Reaction links slice (RL1-RL12, `specs/reaction-links/spec.md`, decision 0177) | `claude/trusting-gates-cd90zs` | started 2026-11-14: plan approved; tests first |\n"
+    }
+  ]
+}

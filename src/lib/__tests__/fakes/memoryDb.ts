@@ -460,6 +460,14 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       if (r.reaction == null) reactions.delete(`${r.moment_id}|${r.family}`);
       else reactions.put({ ...r });
     },
+    async setReactions(rs) {
+      // As the stores: a row with no moment or family fails the whole write, before anything is changed.
+      if (rs.some((r) => !r.moment_id || !r.family)) throw new Error('a reaction row needs its moment and family');
+      for (const r of rs) {
+        if (r.reaction == null) reactions.delete(`${r.moment_id}|${r.family}`);
+        else reactions.put({ ...r });
+      }
+    },
     async listReactions() {
       return out(reactions.all());
     },

@@ -43,8 +43,8 @@ async function run(h) {
   await c.addInitScript(COUNT_GEO);
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
-  // At rest the line's row under the placeholder (JN34, decision 0175); there is no bar at rest.
-  const band = '[data-testid=line-row]';
+  // The journal's toolbar at the foot (JN41, decision 0178).
+  const band = '[data-testid=open-line]';
 
   // HC1, HC14: an empty app opens on Memories, at /, with one tab bar, no map, and no location read.
   await pg.goto(url);
@@ -73,7 +73,9 @@ async function run(h) {
   // here is the launch and the tabs, the walk minimized under Memories, the recording bar and Explore's one fix.
 
   // A note kept before the walk, so Days has a day to open (the bar's Edit offer, below).
-  await pg.click('[data-testid=line-input]').catch(() => {});
+  // The journal's composer (JN47): the toolbar's field opens it with the caret in it.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(600);
   await pg.keyboard.type('A note before the walk.', { delay: 10 });
   await pg.waitForTimeout(1200);
   await pg.click('[data-testid=line-done]').catch(() => {});
@@ -137,7 +139,9 @@ async function run(h) {
   const barBox = await box(pg, '[data-testid=recording-bar]');
   check(!!walkBand && !!barBox && walkBand.y + walkBand.h <= barBox.y + 0.5 && !(await shown('[data-testid=bar-photo]')),
     `HC7: with a walk minimized, the band sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ walkBand, barBox })})`);
-  await pg.click('[data-testid=line-input]').catch(() => {});
+  // The journal's composer (JN47): the toolbar's field opens it with the caret in it.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(600);
   await pg.keyboard.type('Kept on the walk, from Memories.', { delay: 10 });
   await pg.waitForTimeout(1200);
   await pg.click('[data-testid=line-done]').catch(() => {});
@@ -202,7 +206,7 @@ async function run(h) {
     const settingsBtn = err ? await p3.locator('[data-testid=band-error] [role=button]').count() : -1;
     check(err && settingsBtn === 0, `capture-from-chronicle audit 4: on the web a denied mic is said above the band, with no Settings button (${err}, ${settingsBtn})`);
     // An entry written beside the error: the line keeps its box under it (the journal has no toast to stack).
-    const pair = { err: await box(p3, '[data-testid=band-error]'), line: await box(p3, '[data-testid=line-row]') };
+    const pair = { err: await box(p3, '[data-testid=band-error]'), line: await box(p3, '[data-testid=open-line]') };
     check(!!pair.err && !!pair.line && !overlap(pair.err, pair.line),
       `capture-from-chronicle audit 3: an error sits above the open line, never over it (${JSON.stringify(pair)})`);
     await c3.close();

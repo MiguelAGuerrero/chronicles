@@ -9,7 +9,7 @@ import { NAV, SCENIC } from './rules';
 
 /**
  * What a scenic route leans toward (specs/scenic-routes, SR6, SR15), from one read of the tiles
- * between the two ends: green areas, places worth seeing, and the graded busy streets. Pure: the
+ * between the two ends: green areas, places worth seeing, and the graded storefront streets. Pure: the
  * read is the shell's (`scenicRead`), and these are only shapes and indexes over it.
  */
 
@@ -21,8 +21,8 @@ export interface Sight {
   found: boolean;
 }
 
-/** A graded stretch of busy street (activity density, AD12). */
-export interface BusyLine {
+/** A graded stretch of storefront street (activity density, AD12; specs/storefronts). */
+export interface StorefrontLine {
   name: string;
   grade: 1 | 2 | 3;
   lines: LngLat[][];
@@ -33,13 +33,13 @@ export { greenFromTiles, type GreenArea };
 export interface Signals {
   green: GreenArea[];
   sights: Sight[];
-  busy: BusyLine[];
+  storefronts: StorefrontLine[];
 }
 
 /** Whether a point is inside any green area (a plain scan; routes use `greenProbe`). */
 export const insideGreen = (p: LngLat, areas: GreenArea[]): boolean => areas.some((a) => inRings(p, a.rings));
 
-/** The categories whose places are sights; parks are green instead, food and the rest are busy streets. */
+/** The categories whose places are sights; parks are green instead, food and the rest are storefront streets. */
 const SIGHT_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'culture', 'viewpoints'];
 
 /** SR6: the places a Sights route leans toward: marks of a kind switched on in "What I'm into". */
@@ -80,8 +80,8 @@ const CELL = 100;
 export interface Probe {
   /** The green area a point is inside, or null. */
   green(p: LngLat): GreenArea | null;
-  /** The strongest busy line within SCENIC.busyM, or null. */
-  busy(p: LngLat): BusyLine | null;
+  /** The strongest storefront line within SCENIC.storefrontM, or null. */
+  storefront(p: LngLat): StorefrontLine | null;
 }
 
 export function probeOf(signals: Signals, origin: LngLat): Probe {
@@ -100,19 +100,19 @@ export function probeOf(signals: Signals, origin: LngLat): Probe {
       }
   });
   const inXY = (p: XY, rings: XY[][]) => inRings(p as unknown as LngLat, rings as unknown as LngLat[][]);
-  // Busy: each stretch of line under the cells within reach of it.
-  const busyCells = new Map<string, { a: XY; b: XY; i: number }[]>();
-  signals.busy.forEach((line, i) => {
+  // Storefronts: each stretch of line under the cells within reach of it.
+  const storefrontCells = new Map<string, { a: XY; b: XY; i: number }[]>();
+  signals.storefronts.forEach((line, i) => {
     for (const l of line.lines) {
       const pts = l.map(proj);
       for (let k = 1; k < pts.length; k++) {
         const a = pts[k - 1];
         const b = pts[k];
-        const pad = SCENIC.busyM;
+        const pad = SCENIC.storefrontM;
         for (let cx = Math.floor((Math.min(a[0], b[0]) - pad) / CELL); cx <= Math.floor((Math.max(a[0], b[0]) + pad) / CELL); cx++)
           for (let cy = Math.floor((Math.min(a[1], b[1]) - pad) / CELL); cy <= Math.floor((Math.max(a[1], b[1]) + pad) / CELL); cy++) {
             const c = `${cx},${cy}`;
-            (busyCells.get(c) ?? busyCells.set(c, []).get(c)!).push({ a, b, i });
+            (storefrontCells.get(c) ?? storefrontCells.set(c, []).get(c)!).push({ a, b, i });
           }
       }
     }
@@ -130,12 +130,12 @@ export function probeOf(signals: Signals, origin: LngLat): Probe {
       for (const i of greenCells.get(key(xy[0], xy[1])) ?? []) if (inXY(xy, greenXY[i])) return signals.green[i];
       return null;
     },
-    busy(p) {
+    storefront(p) {
       const xy = proj(p);
-      let best: BusyLine | null = null;
-      for (const s of busyCells.get(key(xy[0], xy[1])) ?? []) {
-        const line = signals.busy[s.i];
-        if ((!best || line.grade > best.grade) && segDist(xy, s.a, s.b) <= SCENIC.busyM) best = line;
+      let best: StorefrontLine | null = null;
+      for (const s of storefrontCells.get(key(xy[0], xy[1])) ?? []) {
+        const line = signals.storefronts[s.i];
+        if ((!best || line.grade > best.grade) && segDist(xy, s.a, s.b) <= SCENIC.storefrontM) best = line;
       }
       return best;
     },

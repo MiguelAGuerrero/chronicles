@@ -1,16 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { LEANINGS, type Leaning } from '../lib/nav/scenic';
+import { LEANING_WORDS, LEANINGS, type Leaning } from '../lib/nav/scenic';
 import { routeLeanings } from '../lib/routeLeanings';
 import { useStore } from '../lib/useStore';
 import type { IconName } from './icons';
 import { SwitchRow } from './SwitchRow';
 import { theme } from './ui';
 
-const ROWS: Record<Leaning, { label: string; note: string; icon: IconName }> = {
-  green: { label: 'Green', note: 'Through parks, gardens and woods', icon: 'leaf-outline' },
-  sights: { label: 'Sights', note: 'Past places worth seeing, of the kinds you’re into', icon: 'eye-outline' },
-  busy: { label: 'Streets with life', note: 'Along the busy streets: shops, cafés, the high street', icon: 'storefront-outline' },
-};
+/** Each leaning's icon; its words are `LEANING_WORDS` (SF8). */
+const ICONS: Record<Leaning, IconName> = { green: 'leaf-outline', sights: 'eye-outline', storefronts: 'storefront-outline' };
 
 const all = (s: readonly Leaning[]) => s;
 
@@ -26,7 +23,7 @@ export function RouteLeaningSettings(props: { sectionStyle?: object }) {
       <Text style={[styles.section, props.sectionStyle]} accessibilityRole="header">Scenic routes</Text>
       <Text style={styles.sub}>When you pick a destination: the direct way, and up to three a little longer that lean toward these.</Text>
       {LEANINGS.map((l) => (
-        <SwitchRow key={l} testID={`leaning-${l}`} label={ROWS[l].label} note={ROWS[l].note} icon={ROWS[l].icon} value={on.includes(l)} onChange={(v) => set(l, v)} />
+        <SwitchRow key={l} testID={`leaning-${l}`} label={LEANING_WORDS[l].label} note={LEANING_WORDS[l].note} icon={ICONS[l]} value={on.includes(l)} onChange={(v) => set(l, v)} />
       ))}
     </View>
   );

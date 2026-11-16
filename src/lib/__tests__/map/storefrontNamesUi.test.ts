@@ -1,14 +1,14 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BUSY_NAME_STALE_INK, HOTSPOT_INK, busyNameLayers, busyNameRotate, busyNamesGeoJSON } from '../../../components/map/types';
+import { STOREFRONT_NAME_STALE_INK, HOTSPOT_INK, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON } from '../../../components/map/types';
 import { alongAngle } from '../../landing/names';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
 
 // explore-dense-city's UI review (decision 0145), regression tests written before each fix.
 
-/** The few expression operators `busyNameRotate` uses, evaluated as maplibre does (`%` keeps the dividend's sign, as JS). */
+/** The few expression operators `storefrontNameRotate` uses, evaluated as maplibre does (`%` keeps the dividend's sign, as JS). */
 function evaluate(e: unknown, props: Record<string, number>): number {
   if (typeof e === 'number') return e;
   const [op, ...args] = e as [string, ...unknown[]];
@@ -27,10 +27,10 @@ const contrast = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sor
 test('explore-dense-city ui 1: a stale area\'s names keep 4.5:1 on their halo: a greyer ink at full opacity, never dimmed', () => {
   const at = (x: number): LngLat => [-76.6 + x * 0.001, 39.29];
   const view: LandingView = { pockets: [], graded: [], labels: [], strips: [{ name: 'Charles Street', lines: [[at(0), at(1)]], at: at(0.5), stale: true }] };
-  const f = busyNamesGeoJSON(view).features[0];
+  const f = storefrontNamesGeoJSON(view).features[0];
   assert.equal(f.properties?.opacity, 1, 'never dimmed: opacity takes the halo with it');
-  assert.ok(contrast(BUSY_NAME_STALE_INK, '#ffffff') >= 4.5, `stale ink on the halo ${contrast(BUSY_NAME_STALE_INK, '#ffffff').toFixed(2)}:1`);
-  assert.deepEqual(busyNameLayers().paint['text-color'], ['case', ['get', 'stale'], BUSY_NAME_STALE_INK, HOTSPOT_INK]);
+  assert.ok(contrast(STOREFRONT_NAME_STALE_INK, '#ffffff') >= 4.5, `stale ink on the halo ${contrast(STOREFRONT_NAME_STALE_INK, '#ffffff').toFixed(2)}:1`);
+  assert.deepEqual(storefrontNameLayers().paint['text-color'], ['case', ['get', 'stale'], STOREFRONT_NAME_STALE_INK, HOTSPOT_INK]);
   assert.equal(f.properties?.stale, true);
 });
 
@@ -47,12 +47,12 @@ test('explore-dense-city ui 2: a street within 5 degrees of north-south reads bo
 test('explore-dense-city ui 3: on a turned map every name stays upright on screen', () => {
   for (const bearing of [0, 45, 100, 150, 180, -120, -60]) {
     for (const angle of [-90, -60, 0, 30, 84]) {
-      const r = evaluate(busyNameRotate(bearing), { angle });
+      const r = evaluate(storefrontNameRotate(bearing), { angle });
       // On screen a map-aligned name turns by its rotation less the map's bearing; upright is within [-95, 85).
       const s = ((r - bearing) % 360 + 540) % 360 - 180;
       assert.ok(s >= -95 && s < 85, `bearing ${bearing}, angle ${angle}: on screen ${s}`);
       assert.equal(((r - angle) % 180 + 180) % 180, 0, 'only ever turned half round, so it still runs along its street');
     }
   }
-  assert.deepEqual(busyNameLayers().layout['text-rotate'], busyNameRotate(0));
+  assert.deepEqual(storefrontNameLayers().layout['text-rotate'], storefrontNameRotate(0));
 });

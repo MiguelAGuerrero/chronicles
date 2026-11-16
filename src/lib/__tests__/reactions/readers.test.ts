@@ -83,5 +83,5 @@ test('reactions audit 21: the bubbles on a pin and the lens screens are in ink t
   }
   const pin = readFileSync(join(SRC, 'components/CapturePinView.tsx'), 'utf8');
   assert.match(pin, /reaction: \{[^}]*backgroundColor: theme\.ink/);
-  assert.match(pin, /<Icon name=\{r\.glyph as IconName\} size=\{\d+\} color="#ffffff"/);
+  assert.match(pin, /<Icon name=\{(r|reactions\[i\])\.glyph as IconName\} size=\{\d+\} color="#ffffff"/);
 });

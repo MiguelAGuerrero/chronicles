@@ -1,0 +1,88 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Replay: the walk's card still says digits beside its clauses: streets walked, new streets, more finds** (2026-11-14)\n  Area: replay (the walk's card and the fog beat). Seen: the walk's card line reads \"559 m · 50 min · 1 street walked,\n  your first time down Transit Street\" (picture `rr-card-320` of the T19 review; `src/app/replay/[id].tsx`, the\n  `card-line`, `s.streets_walked`), and past two names `newStreetsLine` (`lib/quietLines.ts`) says \"3 streets new to\n  you\", on the card and as the fog beat's headline; the card's finds read \"Found A · B · C and 2 more\" (`foundList`,\n  `lib/explore/explore.ts` l.514, `card-finds`; the review's auditor 2). All sit beside \"Two photos, a video, a voice\n  memo and a note\" since `tend replay T19`. Rests on: VISION.md Always, \"Counts are words, in a clause. Distances and\n  times are fine.\"; T19 and T30's sibling lens. It changes the fog beat's headline too, which is replay copy outside\n  the cards, so yours (the review's steward 8).\n  Recommended: in words through `numberWord`, one voice with the card's other clauses: \"559 m · 50 min · one street\n  walked, your first time down Transit Street\", \"three streets new to you\" on the card and \"Three streets new to you\"\n  as the fog beat's headline, and \"Found A · B · C and two more\". /vision: aligned (honour; \"Counts are words, in a\n  clause\"); it amends the replay rule's example (\"3 streets new to you\", `.claude/rules/replay.md`, \"The card\").\n  Otherwise: naming over counting, as `newStreetsLine` already does for one or two: the card names up to two new\n  streets and says \"a few streets new to you\" past two, with no count of streets walked (a count of streets walked\n  leans toward coverage, VISION.md Never); or leave it.\n",
+      "number": "T31"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Chronicle's Days say their counts in digits above the timeline's words** (2026-11-14)\n  Area: tabs (Chronicle's Days). Seen: a days list row and a day's header read \"3 moments · 1 walk\" (`dayCounts`,\n  `lib/days.ts`, M7's \"N moments · M walks\"; `HomeSheet.tsx` l.288 and l.410, and the row's spoken name l.405), right\n  above the timeline's \"Walk · 145 m · one moment\" since `tend tabs 11`: two voices for one count on one screen\n  (picture `after2/21-day-timeline.png` of the T19 review). Rests on: VISION.md Always, \"Counts are words, in a\n  clause.\"; T19 and T30's sibling lens (decision 0172 ended 0052's carve-out for the place sheet and a day's walk row,\n  not for the days list).\n  Recommended: in words through `numberWord`, \"Three moments · one walk\", on the row, the header and the row's spoken\n  name. /vision: aligned (return; \"Counts are words\"); it amends M7's example (`specs/moments-and-days/spec.md` l.33).\n  Otherwise: leave it (a list's meta line keeps its digits, as 0052 carved out).\n",
+      "number": "T32"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Every table"
+      ],
+      "body": "  Since `tend replay T19` and `tend deletion T30` (Nov 14): `formatCaptures` (`lib/format.ts`) and `mediaRemoveText`'s nouns (`deletion/core.ts`) say their kinds through `kindsClause` in `lib/pins.ts`, the table `pinKindsWords` shares; the other tables named here are as they were, so the item stays open.\n",
+      "target": "sha256:eb4e4ba457b1882dcf555521b00674138218aa16518804c0dfcfd64f0f3f81d4"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigation and routes",
+        "--reason",
+        "the review of tend replay T19 (steward 8, out of the run's screens), a new [loop] low item; none of the [owner] items this range removed moves here, each answered by the owner (decision 0172) and built: \"The place sheet under a selected star sa\" (tend tabs 10); \"One walk, described three ways: a walks \" (tend tabs 11)"
+      ],
+      "body": "- [loop] Navigate announces a route preview's count in digits, \"3 routes to Fox Point\" (`lib/nav/useNavigation.ts` l.209, `announceForAccessibility`), spoken only; `numberWord` says it \"Three routes to Fox Point\", as the cards and rows now say their counts (VISION.md Always, \"Counts are words\"; the T19 and T30 review's steward 8, Nov 14, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Deletion",
+        "--reason",
+        "the review of tend deletion T30 (ux 6, there before the run), a new [loop] medium item; none of the [owner] items this range removed moves here, each answered by the owner (decision 0172) and built: \"The place sheet under a selected star sa\" (tend tabs 10); \"One walk, described three ways: a walks \" (tend tabs 11)"
+      ],
+      "body": "- [loop] At 320 px the walk delete confirm's \"Delete walk\" wraps in its action row, \"Delete / walk\" (pictures `27-walk-confirm-320` before and after `tend deletion T30`; there before this run): give the two buttons room at narrow widths, or stack the actions below about 340 px as the platforms' alerts do (`.claude/rules/ui-patterns.md`, \"Nothing wraps on a 320 px phone at the default text size\"; the T19 and T30 review's ux 6, Nov 14, medium)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Moments and days",
+        "--reason",
+        "the review of tend replay T19 (auditor 7: a rule line the loop may not reword, 0135), a new [owner] low item; none of the [owner] items this range removed moves here, each answered by the owner (decision 0172) and built: \"The place sheet under a selected star sa\" (tend tabs 10); \"One walk, described three ways: a walks \" (tend tabs 11)"
+      ],
+      "body": "- [owner] `.claude/rules/moments-and-days.md` l.54 still says the day's card reads \"N moments · P places\", places being spots 100 m apart; since `tend replay T19` and `audit 12` it says its moments as a clause, a named place or the day's area only when every moment has a place inside it, else the count alone, and `spotCount` is read only by tests. The loop adds rule lines and never rewords one (0135): reword or remove the old line (the T19 and T30 review's auditor 7, Nov 14, low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay rhythm",
+        "--after",
+        "**Do:** on an iPhone SE"
+      ],
+      "body": "- [ ] **Do:** on an iPhone SE (320 pt wide) at the largest text size, open a walk's card (one with a find and a low, and one whose moments have no place), a day's card (one with a moment that has no place, and one of placeless moments only), Chronicle's walks list, a place under a star, a day's timeline (a walk that kept nothing too), a memory preview of a group on a later walk, and a walk's Delete and Remove photos, videos and memos confirms; then the same with VoiceOver and TalkBack. **Expect:** every count reads in words (\"Two photos, a video, a voice memo and a note\", \"Three moments\" or \"Five moments around Fox Point\", \"one walk\", \"Walk · 1.2 km · three moments\", \"Walk · 145 m\", \"and two more here\", \"Its trace, three moments and twelve streets walked go.\", \"Two photos and a voice memo go.\"), wrapped whole, none cut; \"Tap a pin to open it\" is each card's last line above its buttons and is gone when the map has no pin; the preview's \"and one more here\" is one line across the card, under its top row, clear of the capture row; VoiceOver and TalkBack read the card's, the row's and the timeline's More as \"More for <the title shown>\" and the preview's name with \"and two more here\", once (`tend replay T19`, `audit 10-13`, `tend memories T30`, `audit 3`, `tend deletion T30`, `audit 1-2`, `tend tabs 10`, `11`, `audit 22-24`; the web e2e checks each at 390 and 320 px, where react-native-web sizes text in px).\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **M13's, MR4's and D4's words after T19 and T30** (Nov 14; decisions 0165, 0170, and the owner's answers in person\n  during the review of `tend replay T19`): since `tend replay T19` a day's card says its moments as a clause, \"Four\n  moments, around Wickenden Street and the Old Mill\" (one or two named places: the place a moment found, else the\n  street it was on), else \"Four moments around Fox Point\" (the area the day's walks share), and, the owner's \"Only when\n  all are placed\" (`tend replay audit 12`), a place or area only when every moment of the day has a place inside it,\n  loose moments checked against the streets the day's walks read; otherwise the count alone, \"Three moments\". \"Tap a\n  pin to open it\" is each card's last line above its buttons, and only with a pin on its map (`audit 10`, `11`). The\n  walk's card says \"Two photos, a video, a voice memo and a note\"; the walks row takes that clause lowercase after its\n  dot, the owner's \"Lowercase after a dot\" (\"Nov 14, 2026 · 589 m · 4 min · a photo, a video, a voice memo and a note\",\n  `tend tabs audit 23`). Since `tend memories T30` a memory preview of a group adds \"and two more here\"; since `tend\n  deletion T30` a delete asks \"Its trace, three moments and twelve streets walked go.\" and \"Two photos and a voice memo\n  go.\", and past fifty-nine, the owner's \"its moments\", \"Its trace, its moments and its streets walked go.\" and \"Its\n  photos and a voice memo go.\" (`tend deletion audit 1`). A day's walk that kept nothing reads \"Walk · 145 m\" (`tend\n  tabs audit 22`). Amend, in the docs and their mirrors (the loop may not edit a spec): M13\n  (`specs/moments-and-days/spec.md` l.42, \"\\<weekday> · N moments · P places\"), MR4 (`specs/memories-on-revisit/spec.md`\n  l.39, \"N more here\"), D4's example (`specs/clearing-walks-and-moments/spec.md` l.28, \"Its trace, 12 moments and 9\n  streets walked go.\"), and M8's example (the item below, O18, built as `tend tabs 11`) with its walk that kept\n  nothing. Until then the words are in `dayLine`'s, `dayPlaces`', `formatCaptures`', `walkRowMeta`'s, `moreHere`'s and\n  `walkDeleteText`'s comments.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 14, `/tend inbox T19 yes T30 yes --deploy=main`, with O15 and O18 of decision 0172** (from `b33399ff`, rebased on\n`83d509eb` and `0c5f4f96`; the owner's own answers, one theme: the remaining counts in digits become words. The\ncoordinator ruled as the owner's proxy that T19 and T30 build in one run, since they share `formatCaptures`, as 0170\nrecords).\n- `tend replay T19`: the day's card says its moments as a clause with their named places or the day's area, the walk's\n  card says what it kept as one clause in the pins' words (\"Two photos, a video, a voice memo and a note\"), one hint on\n  both, \"Tap a pin to open it\"; `kindsClause` in `lib/pins.ts` is the one table the clause, the pins and the reminders\n  share, and the walks row takes the clause (T30's walks-row part).\n- `tend memories T30`: a memory preview of a group says \"and two more here\", shown and spoken.\n- `tend deletion T30`: a delete asks \"Its trace, three moments and twelve streets walked go.\" and \"Two photos and a voice\n  memo go.\".\n- `tend tabs 10` (O15): the place sheet says \"one walk\", as its star does.\n- `tend tabs 11` (O18): a day's timeline says \"Walk · 1.2 km · three moments\"; the walk's card names its More by its\n  title, as the row and the timeline do.\n- The review (one round, the auditor, the ux-reviewer and the steward; decision 0145). The owner answered three of its\n  questions in person, Nov 14: \"Only when all are placed\" (steward 1: the day's card names a place or area only when\n  every moment of the day has a place inside it, loose moments checked against it; otherwise the count alone, \"Three\n  moments\"), \"Lowercase after a dot\" (steward 4, auditor 4, ux 2: in `walkRowMeta` a clause after a middle dot starts\n  lowercase; a capital only where the clause starts a line, as on the card) and \"its moments\" (steward 6: past\n  fifty-nine the confirm says \"Its trace, its moments and its streets walked go.\", and the same shape for media).\n  Fixed: `tend tabs audit 22` (a walk that kept nothing reads \"Walk · 145 m\", never \"zero moments\"), `tend replay audit\n  10` (the walk card's hint is its last line, above the buttons), `11` (no pin, no hint, on either card), `12` (the\n  owner's \"Only when all are placed\"), `13` (the day's card is built from what the screen loaded, whole, so its walks\n  cannot be left out), `tend tabs audit 23` (the owner's \"Lowercase after a dot\", and \"a\" kept on its noun's line),\n  `tend deletion audit 1` (the owner's \"its moments\"), `tend tabs audit 24` and `tend deletion audit 2` (no-break\n  spaces: \"one moment\" and \"walked go.\" keep together), `tend memories audit 3` (\"and one more here\" holds one line at\n  320 px, across the card).\n- Filed: T31 `[owner]` (the walk card's streets walked, new streets and \"and N more\" finds in digits, with the fog\n  beat), T32 `[owner]` (the days list's and a day's header's \"3 moments · 1 walk\"); `[loop]` low, Navigate's spoken\n  \"N routes to <place>\"; `[loop]` medium, \"Delete walk\" wraps at 320 px (before this run); `[owner]` low, the day card's\n  old rule line (0135). The kinds-tables item is noted, not closed (two of its tables are one now). A phone check for\n  every changed screen in `docs/NATIVE_UNVERIFIED.md`; the spec wording (M13, MR4, D4, with M8's) in \"Open before the\n  loop\".\n- Not run: the balance (an inbox run); the journeys gaps, qol, tabs, walk and videothumbs, reached through `pins.ts`,\n  `HomeSheet` and the replay route, whose changes the unit tests hold. Nothing here has run on a phone.\n"
+    }
+  ]
+}

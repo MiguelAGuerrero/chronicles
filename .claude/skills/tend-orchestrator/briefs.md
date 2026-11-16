@@ -1,7 +1,9 @@
 # Briefs for the tend orchestrator
 
 Texts the orchestrator fills in and sends. `<…>` is filled; `[…]` is kept or dropped by mode.
-`SCRATCH` is the session's scratchpad directory, written out in full in every brief.
+`SCRATCH` is the session's scratchpad directory, written out in full in every brief. Everything else
+is sent as it stands, never retyped or reworded (decision 0181): a brief is this template plus the
+run's specifics. A change every run needs is made here, by the owner's yes, not in one brief.
 
 ## The run brief
 
@@ -29,14 +31,26 @@ worktree, `npm run book:files -- HEAD --max-src 8`), a dependency or a change el
 Review handoff. You have no Agent tool and never review your own work in place of a reviewer.
 Review points: <a sweep: after the lenses, then after the diff | a T build: after the diff |
 a G build: after the plan (steward), then after the diff>. At each, write each reviewer's complete,
-self-contained prompt (absolute paths that exist; the pictures for every reviewer at the diff
-pause; your own judgment calls for it to rule on) to
+self-contained prompt (absolute paths that exist; at the diff pause the after pictures for every
+reviewer of a screen, each changed state at 320 px and at 390 where width matters, a before picture
+only when the change cannot be judged without one; your own judgment calls for it to rule on) to
 SCRATCH/reviews/<your branch>-<pause>-<agent>-prompt.md. Then give your hand-back (your final
 report, through the hand-back tool you have) as `REVIEW REQUEST:` (agent type and prompt path, one
 per line) and `RESUME WITH: …`. Leave the worktree in place; I resume you with the findings.
-A screen change gets a `ux-reviewer` beside the `auditor` (0145)[, and a `steward`: this yes was
-the proxy's (0157)]. One review round for the diff. For "nothing a person sees changes", write the
-old/new differential as a `*.test.ts` in SCRATCH for the auditor to run (it cannot run scripts).
+Reviewers by risk (ship.md, "The faster lane"): words or style only, one (the `ux-reviewer`, or the
+`steward` for the replay's or a VISION line's words); behaviour that touches recording, storage,
+navigation, timing or data, the `auditor` always, with the `ux-reviewer` when a screen changed;
+records only, none[, and a `steward`: this yes was the proxy's (0157)]. One review round for the
+diff; medium and above are fixed, lows filed `[loop]` in their area's DEFERRED section. For "nothing
+a person sees changes", write the old/new differential as a `*.test.ts` in SCRATCH for the auditor to
+run (it cannot run scripts).
+
+Tests and journeys: test-first for logic, each unit test seen failing with its wiring reverted; a
+words-only change, one unit test of the words seen failing. Before publishing, run the journeys
+holding a new or changed check, plus `launch`; the rest of `check:affected`'s set waits for CI and
+the weekly full pass[; this run is the full pass: `npm run e2e:web` with no `E2E_ONLY` before
+publishing, logged as `"e2e":"full"`] (`/tend` section 10). Log the journeys you ran in the run
+log's `e2e`.
 
 The check for your commits: <sweep or T build: `npm run check:tend -- origin/main..HEAD` |
 G build: `node scripts/tend.js commits --loop-only origin/main..HEAD`; slice commits named the
@@ -48,7 +62,7 @@ an entry the run did not file leaves or changes only with `--reason` (two per se
 and `npm run check:records -- origin/main` passes before you publish: CI replays every loop
 commit's trailers and fails any other change.
 
-Known constraints (do not rediscover them): <from the notes, e.g.
+Known constraints (do not rediscover them):
 - read FORBIDDEN in scripts/tend.js before editing anything outside src/ and the journeys;
 - check:tend wants a named test for any src/ change, comments included;
 - the bookkeeping commands run in your worktree (cut from origin/main, it holds the script):
@@ -65,7 +79,8 @@ Known constraints (do not rediscover them): <from the notes, e.g.
 - the balance reads <reading>: <no G entry | …>;
 - grep a rule line before citing it as a Source;
 - the session's proxy refuses remote branch deletion: report leftovers, never push your run
-  branch by name except as above.>
+  branch by name except as above[;
+- <a constraint the notes learned since this template last changed>].
 
 Main moves under you: fetch at each pause and before publishing; if it moved, rebase; rerun the
 journeys only if the new commits touch files they cover, else typecheck, lint and npm test, and
@@ -101,7 +116,8 @@ it quotes, and your Silent questions verbatim)]; the commands you ran with their
 The reviews are back; read them: <agent>: SCRATCH/reviews/<branch>-<pause>-<agent>.md (<verdict>).
 My rulings:
 - <id> accept as `<scope> audit N`: <the shape>. <Tripwire.>
-- <id> defer: file it as [<tag>] <severity> in DEFERRED's <section> (`npm run records -- deferred item add`).
+- <id> defer: file it as [<tag>] <severity> in DEFERRED's <section> (`npm run records -- deferred item add`);
+  every low is deferred as `[loop]` (0181).
 - <id> reject: <the rule or call it rests on>.
 - <id> to the owner: file it as a T entry (<why: 0157's class>).
 Review counts for the log: accepted <n>, deferred <n>, rejected <n>. One round.

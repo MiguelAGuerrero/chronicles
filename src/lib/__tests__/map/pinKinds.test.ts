@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { pinHeadKinds, pinKey, pinKindsWords, pinSpoken, pinsFor, pinThumb, walkClocks, type CapturePin, type WalkClock } from '../../pins';
 import { nextDayPartBoundary } from '../../resurface/context';
+import { agoLine } from '../../resurface/lines';
 import type { CaptureKind } from '../../types';
 
 // tend map T14 (the owner's yes, decision 0154; amends QL26, NY10, MR2, RB7): a pin of several moments is drawn with
@@ -179,7 +180,8 @@ test('tend map T28: with no walk clock, the part of the day of the pin\'s first 
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(11, 23))), { now: NOW }), 'Photo, Wednesday night');
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(11, 1, 30))), { now: NOW }), 'Photo, late Tuesday night');
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(13, 2))), { now: NOW }), 'Photo, late last night');
-  assert.equal(pinSpoken(pinOf(day('a', 'photo', new Date(2026, 9, 20, 15).getTime())), { now: NOW }), 'Photo, three weeks ago, afternoon');
+  // Past a week the span alone, since tend map 11.
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', new Date(2026, 9, 20, 15).getTime())), { now: NOW }), 'Photo, three weeks ago');
   // The first moment's part, though a later one is in another.
   assert.equal(pinSpoken(pinOf(evening('a', 'photo'), day('b', 'text', at(10, 22))), { now: NOW }), 'A photo and a note, Tuesday evening');
   // A pin no one walk's clock holds: a day of two walks, or a moment outside a walk.
@@ -208,7 +210,8 @@ test('tend map audit 27: a pin whose moments fall on different days says the spa
   assert.equal(pinSpoken(pinOf(tue, day('c', 'photo', at(12, 9))), { now: NOW }), 'A note and a photo, from Tuesday evening to yesterday morning');
   assert.equal(
     pinSpoken(pinOf(day('a', 'photo', new Date(2024, 2, 4, 19).getTime()), day('b', 'photo', new Date(2026, 9, 20, 15).getTime())), { now: NOW }),
-    'Two photos, from March, two years ago to three weeks ago',
+    // The span alone at each end past a week, since tend map 11.
+    'Two photos, from two years ago to three weeks ago',
   );
   // Two days whose ends read alike ("three weeks ago"): said once, never "from three weeks ago to three weeks ago".
   assert.equal(pinSpoken(pinOf(old, day('c', 'photo', new Date(2026, 9, 21, 15).getTime())), { now: NOW }), 'Two photos, three weeks ago');
@@ -262,4 +265,44 @@ test('tend map audit 30: the span is said in the minutes it names, and its unit 
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 0), cap('b', 'text', 58)), { clocks: [W1] }), 'A photo and a note, from the start to fifty-eight minutes in');
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12), cap('b', 'text', 60)), { clocks: [W1] }), 'A photo and a note, from twelve minutes to one hour in');
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 65), cap('b', 'text', 130)), { clocks: [W1] }), 'A photo and a note, from one hour and five minutes to two hours and ten minutes in');
+});
+
+// tend map 11 (decision 0172, O16, the owner's "The span alone"): a pin of moments past a week says how long ago alone,
+// "a photo and a note, two years ago": no month and no part of the day. Within a week it keeps the part of the day.
+test('tend map 11: a pin of moments past a week says the span alone, no month and no part of the day', () => {
+  const twoYears = new Date(2024, 2, 4, 19).getTime();
+  const pair = pinOf(day('a', 'photo', twoYears), day('b', 'text', twoYears + 5 * MIN));
+  assert.equal(pinSpoken(pair, { now: NOW }), 'A photo and a note, two years ago');
+  assert.equal(pinSpoken(pair, { memory: true, now: NOW }), 'Memories: a photo and a note, two years ago');
+  // Fifteen months: a whole year has passed, "a year ago" since tend map audit 32 (the owner's "Elapsed time").
+  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2025, 7, 1, 9).getTime())), { now: NOW }), 'Note, a year ago');
+  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2026, 5, 10, 9).getTime())), { now: NOW }), 'Note, five months ago');
+  assert.equal(pinSpoken(pinOf(day('a', 'text', new Date(2026, 9, 1, 9).getTime())), { now: NOW }), 'Note, last month');
+  // A week to a fortnight: "last week", the small hours too (they belong to the evening before).
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', at(5, 18))), { now: NOW }), 'Photo, last week');
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', at(4, 1, 30))), { now: NOW }), 'Photo, last week');
+  // Within a week, the part of the day as before.
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', at(7, 18))), { now: NOW }), 'Photo, Saturday evening');
+  // A span with one old end: that end alone.
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', twoYears), day('b', 'text', at(10, 19))), { now: NOW }), 'A photo and a note, from two years ago to Tuesday evening');
+  for (const p of [pair]) assert.doesNotMatch(pinSpoken(p, { now: NOW }), /\d|March|evening/);
+});
+
+// tend map audit 32 (the review's steward 3; the owner's answer in person, Nov 16, "Elapsed time"): with no month to
+// anchor them, the ago words count time elapsed, not calendar boundaries: whole months that have passed, and years as
+// whole twelve-month spans. A pin from Dec 15, 2024, heard Jan 5, 2026, says "a year ago", never "two years ago".
+test('tend map audit 32: a pin\'s ago words count whole months and years elapsed', () => {
+  const t = (y: number, m: number, d: number, h = 12) => new Date(y, m, d, h).getTime();
+  assert.equal(agoLine(t(2024, 11, 15), t(2026, 0, 5)), 'a year ago');
+  assert.equal(pinSpoken(pinOf(day('a', 'photo', t(2024, 11, 15))), { now: t(2026, 0, 5) }), 'Photo, a year ago');
+  // Thirty-five days across a year's end: one whole month has passed, not two.
+  assert.equal(agoLine(t(2025, 11, 31), t(2026, 1, 4)), 'last month');
+  // Eleven months and three weeks: eleven whole months.
+  assert.equal(agoLine(t(2025, 0, 20), t(2026, 0, 10)), 'eleven months ago');
+  // Exactly two years, and a day short of it.
+  assert.equal(agoLine(t(2024, 2, 4), t(2026, 2, 4)), 'two years ago');
+  assert.equal(agoLine(t(2024, 2, 5), t(2026, 2, 4)), 'a year ago');
+  // The weeks are as before.
+  assert.equal(agoLine(t(2026, 10, 5), t(2026, 10, 13)), 'last week');
+  assert.equal(agoLine(t(2026, 9, 20), t(2026, 10, 13)), 'three weeks ago');
 });

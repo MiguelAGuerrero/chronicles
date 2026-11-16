@@ -2,6 +2,8 @@
 
 # v1.5: landing
 
+> Amended by `specs/storefronts` (Nov 14, 2026): "Busiest area" and "A busy pocket" are "Where storefronts gather" and "A pocket of storefronts" (SF5, SF6).
+
 Arrive somewhere new and know where to start. The app reads the area around a spot and finds its hotspots: pockets where shops, food, culture and nightlife cluster, and the strips (named streets lined with them) inside those pockets. It drops one "Start here" landing pin on a street at the best pocket. Everything is worked out on the device from the map tiles; nothing is looked up online.
 
 ## Status and decisions

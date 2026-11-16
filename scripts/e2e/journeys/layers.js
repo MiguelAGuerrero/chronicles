@@ -23,10 +23,10 @@ async function run(h) {
   // ML2, ML3: one Layers button; its panel is closed; every layer starts off and the map draws none of them.
   check((await pg.locator('[data-testid=layers]').getAttribute('aria-label')) === 'Layers' && (await pg.locator('[data-testid=layers-panel]').count()) === 0
     && (await pg.locator('[data-testid=walk-layer]').count()) === 0, 'ML3: one Layers button, its panel closed, and no button of a layer\'s own');
-  check(!(await attr(pg, 'data-borders')) && !(await attr(pg, 'data-walk')) && !(await attr(pg, 'data-busy')), `ML2: on a fresh install the map draws no layer (${await attr(pg, 'data-borders')})`);
+  check(!(await attr(pg, 'data-borders')) && !(await attr(pg, 'data-walk')) && !(await attr(pg, 'data-storefronts')), `ML2: on a fresh install the map draws no layer (${await attr(pg, 'data-borders')})`);
   await openPanel(pg);
   check((await pg.locator('[data-testid=layers]').getAttribute('aria-expanded')) === 'true', 'ML3: the button says the panel is open');
-  check(!(await on(pg, 'walkability')) && !(await on(pg, 'busy')) && !(await on(pg, 'borders')), 'ML2, ML5: Walkability, Busy streets and Town borders are all off, each a switch');
+  check(!(await on(pg, 'walkability')) && !(await on(pg, 'storefronts')) && !(await on(pg, 'borders')), 'ML2, ML5: Walkability, Busy streets and Town borders are all off, each a switch');
   check((await pg.locator('[data-testid=layer-legend-walkability]').count()) === 0 && (await pg.locator('[data-testid=layer-legend-yours]').count()) === 0, 'a layer that is off shows no legend');
   const text = await pg.locator('[data-testid=layers-panel]').innerText();
   check(!/\d|%/.test(text), `ML6: no number, count or percentage in the panel (${JSON.stringify(text.slice(0, 80))})`);
@@ -78,25 +78,25 @@ async function run(h) {
 
   // ML8, ML9: Busy streets draw on request, and are read once where nothing is remembered.
   await openPanel(pg);
-  await pg.click('[data-testid=layer-busy]');
-  await pg.waitForFunction(() => /^strips:[1-9]/.test(document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? ''), null, { timeout: 90000 }).catch(() => {});
-  const busy = await attr(pg, 'data-busy');
+  await pg.click('[data-testid=layer-storefronts]');
+  await pg.waitForFunction(() => /^strips:[1-9]/.test(document.querySelector('[data-storefronts]')?.getAttribute('data-storefronts') ?? ''), null, { timeout: 90000 }).catch(() => {});
+  const busy = await attr(pg, 'data-storefronts');
   check(/^strips:[1-9]/.test(busy ?? ''), `ML8, ML9: with the layer on and nothing remembered, the area is read once and its busy streets are drawn (${busy})`);
-  await shot(pg, 'layers-busy');
+  await shot(pg, 'layers-storefronts');
 
   // ML5, ML7: a switch moves no other layer, and the setting is one for every map and survives a reload.
   await pg.click('[data-testid=layer-walkability]');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await attr(pg, 'data-walk')) ?? '') && (await on(pg, 'busy')) && !(await on(pg, 'borders')), `ML5: Walkability on draws its layer and moves no other (${await attr(pg, 'data-walk')})`);
+  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await attr(pg, 'data-walk')) ?? '') && (await on(pg, 'storefronts')) && !(await on(pg, 'borders')), `ML5: Walkability on draws its layer and moves no other (${await attr(pg, 'data-walk')})`);
   await pg.click('[data-testid=layer-borders]');
   await pg.reload();
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await openPanel(pg);
-  check((await on(pg, 'walkability')) && (await on(pg, 'busy')) && (await on(pg, 'borders')), 'ML7: after a reload the layers are as they were left');
+  check((await on(pg, 'walkability')) && (await on(pg, 'storefronts')) && (await on(pg, 'borders')), 'ML7: after a reload the layers are as they were left');
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await openPanel(pg);
-  check((await on(pg, 'walkability')) && (await on(pg, 'busy')) && (await on(pg, 'borders')), 'ML7: Navigate\'s map has the same layers, one setting for every map');
+  check((await on(pg, 'walkability')) && (await on(pg, 'storefronts')) && (await on(pg, 'borders')), 'ML7: Navigate\'s map has the same layers, one setting for every map');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
   check(/^foot:/.test((await attr(pg, 'data-walk')) ?? ''), 'ML3: Navigate\'s Layers button switches the same drawing');
   // fix layers-pad 1, 2: on the ready screen (the map ends at the strip's top) the scale bar is under the Layers button, not behind it,
@@ -105,7 +105,7 @@ async function run(h) {
   const lbtn = await box(pg, '[data-testid=layers]');
   check(!!sb && !!lbtn && lbtn.y + lbtn.height <= sb.y, `fix layers-pad 1: the Layers button sits above the scale bar, covering none of it (${JSON.stringify({ scale: sb, button: lbtn })})`);
   const pnl = await box(pg, '[data-testid=layers-panel]');
-  const rowBoxes = await Promise.all(['walkability', 'busy', 'borders'].map((id) => box(pg, `[data-testid=layer-${id}]`)));
+  const rowBoxes = await Promise.all(['walkability', 'storefronts', 'borders'].map((id) => box(pg, `[data-testid=layer-${id}]`)));
   const padL = Math.min(...rowBoxes.map((r) => r.x - pnl.x));
   const padR = Math.min(...rowBoxes.map((r) => pnl.x + pnl.width - (r.x + r.width)));
   check(padL >= 8 && padR >= 8, `fix layers-pad 2: the panel's rows keep at least 8 px from the card's left and right edges (${padL}, ${padR})`);
@@ -114,16 +114,16 @@ async function run(h) {
   await pg.click('[data-testid=layers]');
   await h.drawerTo(pg, 'up');
   await pg.waitForSelector('[data-testid=layers-key]', { timeout: 5000 });
-  check((await pg.locator('[data-testid=layer-legend-walkability]').count()) === 1 && (await pg.locator('[data-testid=layer-legend-busy]').count()) === 1
+  check((await pg.locator('[data-testid=layer-legend-walkability]').count()) === 1 && (await pg.locator('[data-testid=layer-legend-storefronts]').count()) === 1
     && (await pg.locator('[data-testid=layer-legend-yours]').count()) === 1 && (await pg.locator('[data-testid=layer-legend-nearby]').count()) === 1 && (await pg.locator('[data-testid=layer-swatch-yours]').count()) === 1,
     'ML8, ML12: the walk\'s settings drawer shows the legend of each layer that is on, with a swatch');
   check(!/\d|%/.test(await pg.locator('[data-testid=layers-key]').innerText()), 'ML6: no number in the drawer\'s legend');
   await shot(pg, 'layers-key');
   await h.drawerTo(pg, 'peek');
   await openPanel(pg);
-  await pg.click('[data-testid=layer-busy]');
-  await pg.waitForFunction(() => (document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? 'x') === '', null, { timeout: 5000 }).catch(() => {});
-  check(!(await attr(pg, 'data-busy')), 'ML8: with Busy streets off the map draws none');
+  await pg.click('[data-testid=layer-storefronts]');
+  await pg.waitForFunction(() => (document.querySelector('[data-storefronts]')?.getAttribute('data-storefronts') ?? 'x') === '', null, { timeout: 5000 }).catch(() => {});
+  check(!(await attr(pg, 'data-storefronts')), 'ML8: with Busy streets off the map draws none');
   await c.close();
 
   // layers audit 1: on a short phone (375x667) with every layer on, on a live walk, the panel fits and every switch is reachable,
@@ -137,7 +137,7 @@ async function run(h) {
   const s0 = at(-0.5, -0.5);
   await c2.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
   await p2.waitForTimeout(2500);
-  for (const id of ['walkability', 'busy', 'borders']) {
+  for (const id of ['walkability', 'storefronts', 'borders']) {
     await openPanel(p2);
     if (!(await on(p2, id))) await p2.click(`[data-testid=layer-${id}]`);
   }
@@ -148,13 +148,13 @@ async function run(h) {
     return !!b && b.x >= 0 && b.y >= 0 && b.x + b.width <= vp.w && b.y + b.height <= vp.h;
   };
   const panel = await box(p2, '[data-testid=layers-panel]');
-  check(await inside('[data-testid=layer-walkability]') && await inside('[data-testid=layer-busy]') && await inside('[data-testid=layer-borders]'),
+  check(await inside('[data-testid=layer-walkability]') && await inside('[data-testid=layer-storefronts]') && await inside('[data-testid=layer-borders]'),
     `layers audit 1: on a 375x667 walk with every layer on, every switch is on screen (${JSON.stringify(panel)})`);
   // fix layers-pad audit 1: at 360 wide, with the rows padded, each label still sits on one line.
   await p2.setViewportSize({ width: 360, height: 740 });
   await p2.waitForTimeout(400);
   await openPanel(p2);
-  const labelH = await Promise.all([['walkability', 'Walkability'], ['busy', 'Busy streets'], ['borders', 'Town borders']].map(([id, t]) => p2.locator(`[data-testid=layer-${id}]`).getByText(t, { exact: true }).boundingBox().then((b) => b?.height ?? 99)));
+  const labelH = await Promise.all([['walkability', 'Walkability'], ['storefronts', 'Storefronts'], ['borders', 'Town borders']].map(([id, t]) => p2.locator(`[data-testid=layer-${id}]`).getByText(t, { exact: true }).boundingBox().then((b) => b?.height ?? 99)));
   check(Math.max(...labelH) < 24, `fix layers-pad audit 1: at 360 px each layer's label is on one line (${labelH.join(', ')})`);
   await p2.setViewportSize({ width: 375, height: 667 });
   await p2.waitForTimeout(400);
@@ -177,13 +177,13 @@ async function run(h) {
   await h.drawerTo(p2, 'peek', 'walk-grip');
   await shot(p2, 'layers-small');
   // layers audit 2: with Busy streets on, a walker's fixes do not rebuild the drawing once a fix.
-  await p2.waitForFunction(() => /^strips:/.test(document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? ''), null, { timeout: 90000 }).catch(() => {});
-  const sets0 = Number(await attr(p2, 'data-busy-sets'));
+  await p2.waitForFunction(() => /^strips:/.test(document.querySelector('[data-storefronts]')?.getAttribute('data-storefronts') ?? ''), null, { timeout: 90000 }).catch(() => {});
+  const sets0 = Number(await attr(p2, 'data-storefronts-sets'));
   for (let k = 1; k <= 8; k++) {
     await c2.setGeolocation({ longitude: s0[0] + k * 0.00001, latitude: s0[1] + k * 0.000004, accuracy: 6 });
     await p2.waitForTimeout(1000);
   }
-  const sets1 = Number(await attr(p2, 'data-busy-sets'));
+  const sets1 = Number(await attr(p2, 'data-storefronts-sets'));
   check(sets1 - sets0 <= 1, `layers audit 2: eight fixes with Busy streets on send the drawing at most once more (${sets0} -> ${sets1})`);
   await c2.close();
 

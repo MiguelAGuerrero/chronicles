@@ -751,6 +751,26 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.getMomentsByIds(['m1', 'm2']), before, 'no moment or piece changed');
     });
 
+    test('FC7 setReactions, RL10: a moment\'s rows in one write: set, replaced, cleared; all or none', async () => {
+      const db = await planned();
+      const many = db as unknown as { setReactions: (rs: unknown[]) => Promise<void> };
+      await many.setReactions([]);
+      await many.setReactions([
+        { moment_id: 'm1', family: 'feeling', reaction: 'happy', set_at: 1 },
+        { moment_id: 'm1', family: 'thought', reaction: 'idea', set_at: 1 },
+      ]);
+      await many.setReactions([
+        { moment_id: 'm1', family: 'feeling', reaction: null, set_at: 2 },
+        { moment_id: 'm1', family: 'taste', reaction: 'like', set_at: 2 },
+      ]);
+      assert.deepEqual(await rxRows(db), [['m1', 'taste', 'like'], ['m1', 'thought', 'idea']]);
+      await assert.rejects(many.setReactions([
+        { moment_id: 'm2', family: 'feeling', reaction: 'sad', set_at: 3 },
+        { moment_id: null, family: 'thought', reaction: 'idea', set_at: 3 },
+      ]), 'a bad row fails the write');
+      assert.deepEqual((await rxRows(db)).filter((r) => r[0] === 'm2'), [], 'and none of it is kept');
+    });
+
     test('FC7 deleteMoments, deleteWalk, splitPiece, RX31: a moment\'s reactions go with it and its walk; a piece split out takes none', async () => {
       const db = await planned();
       await db.createWalk(walk('a', 1));

@@ -1,0 +1,68 @@
+/// <reference types="node" />
+// Chronicle's sheet says its counts in words beside the stars and pins that do (decision 0172: O15 as tend tabs 10,
+// O18 as tend tabs 11).
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { dayCounts, daySpoken, type Day } from '../../days';
+import { formatCaptures } from '../../format';
+import { moreFor, placeSheetLine, starSpoken, timelineWalkLine, timelineWalkSpoken, walkRowMeta } from '../../quietLines';
+
+test('tend tabs 10: the place sheet says its walks in words, as its star does', () => {
+  assert.equal(placeSheetLine('Providence, Rhode Island', 1, '175 m'), 'Providence, Rhode Island · one walk · 175 m');
+  assert.equal(placeSheetLine('', 3, '2.4 km'), 'three walks · 2.4 km');
+  assert.equal(placeSheetLine(null, 12, '9.0 km'), 'twelve walks · 9.0 km');
+  // One voice for one count on one screen.
+  assert.match(starSpoken({ label: 'Fox Point', walkIds: ['w'], count: 1 }), /one walk/);
+});
+
+test("tend tabs 11: a day's timeline says a walk's moments in words", () => {
+  assert.equal(timelineWalkLine('1.2 km', 3), 'Walk · 1.2 km · three\u00a0moments');
+  assert.equal(timelineWalkLine(null, 1), 'Walk · one\u00a0moment');
+  assert.equal(timelineWalkSpoken('4:12 PM', 'Plums by the bridge', timelineWalkLine('1.2 km', 3)), '4:12 PM, Plums by the bridge, Walk, 1.2 km, three\u00a0moments. Replay it');
+});
+
+test("tend tabs 11: a walk's More is named by its title wherever the title is known", () => {
+  assert.equal(moreFor('Plums by the bridge'), 'More for Plums by the bridge');
+});
+
+test('tend tabs audit 22: a day\'s walk that kept nothing says no count, never "zero moments"', () => {
+  assert.equal(timelineWalkLine('145 m', 0), 'Walk · 145 m');
+  assert.equal(timelineWalkLine(null, 0), 'Walk');
+  assert.equal(timelineWalkSpoken('4:12 PM', 'Plums', timelineWalkLine('145 m', 0)), '4:12 PM, Plums, Walk, 145 m. Replay it');
+});
+
+test('tend tabs audit 23: the walks row\'s clause starts lowercase after its dot, and "a" keeps to its noun', () => {
+  // The owner, Nov 14, "Lowercase after a dot": a capital only where the clause starts a line, as on the card.
+  const meta = walkRowMeta('Nov 2, 2026', { distance_m: 1234, duration_ms: 25 * 60_000, photos: 1, videos: 1, voices: 0, notes: 2 });
+  assert.equal(meta, 'Nov 2, 2026 · 1.2 km · 25 min · a photo, a video and two notes');
+  assert.equal(formatCaptures({ photos: 1, voices: 1, notes: 0 }), 'A photo and a voice memo');
+  assert.equal(walkRowMeta('Nov 2, 2026', { distance_m: 1234, duration_ms: 25 * 60_000, photos: 0, voices: 0, notes: 0 }), 'Nov 2, 2026 · 1.2 km · 25 min');
+});
+
+test('tend tabs audit 24: a day\'s walk line keeps its count on its noun\'s line', () => {
+  assert.equal(timelineWalkLine('145 m', 1), 'Walk · 145 m · one moment');
+  assert.equal(timelineWalkLine('1.2 km', 23), 'Walk · 1.2 km · twenty-three moments');
+});
+
+// Chronicle's Days say their counts in words, as the timeline under them does (tend tabs T32, the owner's yes, Nov 14).
+test('tend tabs T32: a day says its moments and walks in words, on its row, its header and to a screen reader', () => {
+  const day = (moments: number, walks: number): Day => ({ key: '2026-11-14', entries: [], moments, walks });
+  assert.equal(dayCounts(day(3, 1), { bind: true }), 'Three moments · one walk');
+  assert.equal(dayCounts(day(1, 0), { bind: true }), 'One moment');
+  assert.equal(dayCounts(day(12, 2), { bind: true }), 'Twelve moments · two walks');
+  // A day whose walk kept nothing says no count of moments, never "zero moments" (as tend tabs audit 22 does).
+  assert.equal(dayCounts(day(0, 1), { bind: true }), 'One walk');
+  // Spoken: plain spaces, the clauses after the day's name lowercase, as the walks row is said.
+  assert.equal(daySpoken('Today', day(3, 1)), 'Today, three moments, one walk');
+  assert.equal(daySpoken('Sat, Nov 7', day(0, 2)), 'Sat, Nov 7, two walks');
+});
+
+// tend tabs audit 25 (the T31/T32 review's steward 1): a day's header has about 88 px at 320 px, so "Three moments"
+// could not wrap and the browser broke "moments" itself. The header takes plain spaces and wraps between words; the
+// days row, which has room, keeps each count on its noun's line.
+test('tend tabs audit 25: a day\'s header wraps between words; the row keeps its counts on their nouns', () => {
+  const day = (moments: number, walks: number): Day => ({ key: '2026-11-14', entries: [], moments, walks });
+  assert.equal(dayCounts(day(3, 1)), 'Three moments · one walk');
+  assert.equal(dayCounts(day(3, 1), { bind: true }), 'Three moments · one walk');
+  assert.doesNotMatch(dayCounts(day(12, 2)), / /);
+});

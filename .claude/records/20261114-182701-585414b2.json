@@ -1,0 +1,51 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers (MapLibre RN v11)"
+      ],
+      "body": "- [ ] **Do:** on a phone that had Busy streets on before this build, open Explore, then turn Storefronts off and on in Layers; zoom to 14 over a high street. **Expect:** Storefronts is still on after the update; its lines draw under the base labels and its street names (the `storefront-names`, `-turned` and `-room` layers, renamed from `busy-names*`) draw as before, none missing for a renamed id. (SF12, SF13)\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G2",
+        "--reason",
+        "built by specs/storefronts (SF1-SF14, decision 0178) on the owner's yes, Nov 14"
+      ],
+      "target": "sha256:038110c0740f98272acb91bf661d8ad54b3504affd7cd738f9eaa41056ee1239"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /slice storefronts"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice storefronts"
+      ],
+      "body": "- **What's good here? keeps its title** (steward S3, `specs/storefronts/plan.md`): the long press's action still asks what is *good*, while VISION.md's guidance is \"where there is a lot, never whether it is good\". G2 kept the title and changed only its line (\"Where storefronts gather: X\"). Recommended: rename the action \"What's here?\"; or keep it, and the spec records your call.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Busy streets draw only for remembered areas",
+        "--reason",
+        "the layer is Storefronts since specs/storefronts (SF1)"
+      ],
+      "body": "- **Storefronts draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.\n",
+      "target": "sha256:1eb1ffa6c8c3b1d3d6de8485e6e963ed657d29ba22c40bc4bcabf2bd41a6bcc9"
+    }
+  ]
+}

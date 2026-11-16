@@ -1,0 +1,46 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T19",
+        "--reason",
+        "the owner's yes, built in tend replay T19"
+      ],
+      "target": "sha256:32ca2ca4447523342438e8734d1b574b8688861844d5fbed6e073250b4235fe7"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T30",
+        "--reason",
+        "the owner's yes, built in tend replay T19 (the walks row), tend memories T30 and tend deletion T30"
+      ],
+      "target": "sha256:bb33fd3c481ac0b48e3bc2a5051e94663989f9ac8181f83719fe7dd36fd4ede3"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The place sheet",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend tabs 10: the place sheet says its walks in words, as its star does"
+      ],
+      "target": "sha256:3f298ec8ce30f454804700f6f4eb20a533f8048b92394998c10f531b158db99c"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "One walk",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend tabs 11: one walk described one way: its moments in words, its More by its title"
+      ],
+      "target": "sha256:19db298894a6bc8b96ab1ceee5c44c841a2739327787a68e97c6495e746d9c25"
+    }
+  ]
+}

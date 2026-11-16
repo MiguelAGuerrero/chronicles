@@ -169,6 +169,39 @@ async function checks(h) {
     check(shownIds.length > 0 && /Fox Point|Cardamom/.test(preview) && viewerMemories === 1 && (await page.locator('[data-testid=viewer-close]').count()) >= 1,
       `MR9: on the web build, a later walk shows memory pins, previews one and opens its spot's memories (pins ${shownIds}, viewer ${viewerMemories})`);
     await page.click('[data-testid=viewer-close]');
+    // tend memories T30 (decision 0170, "All in words"): a memory pin of several previews the rest in words, shown and
+    // said, whole at 390 and 320 px.
+    const groupPin = page.locator('[data-testid=memory-pin][data-ids*=","]');
+    if (await groupPin.count()) {
+      const n = (await groupPin.first().getAttribute('data-ids')).split(',').length;
+      await groupPin.first().click();
+      await page.waitForSelector('[data-testid=memory-preview]');
+      for (const w of [390, 320]) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(400);
+        const more = await page.evaluate(() => {
+          const e = document.querySelector('[data-testid=memory-more]');
+          const r = e?.getBoundingClientRect();
+          // One line: a wrapped line is "whole" by its widths too (tend memories audit 3).
+          let lines = 0;
+          if (e) {
+            const range = document.createRange();
+            range.selectNodeContents(e);
+            lines = new Set([...range.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size;
+          }
+          return { text: e?.textContent ?? null, lines, name: document.querySelector('[data-testid=memory-open]')?.getAttribute('aria-label') ?? null, whole: !!e && e.scrollWidth <= e.clientWidth + 1 && r.right <= window.innerWidth };
+        });
+        check(more.lines === 1, `tend memories audit 3: at ${w} px "${more.text}" holds one line (${more.lines} lines)`);
+        check(/^and [a-z-]+ more here$/.test(more.text ?? '') && !/\d/.test(more.text) && more.name?.includes(`, ${more.text}. Open`) && more.whole,
+          `tend memories T30: at ${w} px a memory preview of ${n} says the rest in words, shown and to a screen reader (${JSON.stringify(more)})`);
+        await shot(page, `15c-memory-preview-several-${w}`);
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.click('[data-testid=memory-close]');
+      await page.waitForTimeout(200);
+    } else {
+      check(false, `tend memories T30: a later walk shows a memory pin of several (${shownIds})`);
+    }
     // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
     // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
     const noteId = await page.evaluate(() => new Promise((resolve) => {
@@ -312,6 +345,78 @@ async function checks(h) {
     } finally {
       await flags(false);
       // Back to the spot at a walking pace, from wherever the step stopped, north or south of it.
+      while (north !== 0) {
+        north += north > 0 ? -1 : 1;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + north * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+    }
+
+    // tend explore 16 (decision 0172, O11, "Many sooner"): a reminder of thirteen says "Many memories here", its one line
+    // whole at 390 and 320 px. Eleven notes are added beside the two above, in the same earlier walk, all flagged once;
+    // the step takes them out again whatever happens.
+    const extra = Array.from({ length: 11 }, (_, i) => `o11-${i}`);
+    const many = [...ids, ...extra];
+    const seedMany = (add) => page.evaluate(([list, keep, lon, lat, add]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['moment', 'recall'], 'readwrite');
+        const g = tx.objectStore('moment').get(keep);
+        g.onsuccess = () => {
+          const walkId = g.result?.walk_id ?? null;
+          list.forEach((id, i) => {
+            if (!add) { tx.objectStore('moment').delete(id); return; }
+            const t = (g.result?.t ?? Date.now()) + (i + 1) * 1000;
+            tx.objectStore('moment').put({ id, walk_id: walkId, t, lat: lat + (i % 3) * 0.00001, lon: lon + Math.floor(i / 3) * 0.00001, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, kind: 'text', file_path: null, body: `A note kept here, ${id}.`, t, caption: null, caption_y: null }] });
+          });
+        };
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [extra, ids[0], spot[0], spot[1], add]);
+    const flagMany = (put) => page.evaluate(([list, add]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('recall', 'readwrite');
+        for (const id of list) {
+          if (add) tx.objectStore('recall').put({ capture_id: id, frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+          else tx.objectStore('recall').delete(id);
+        }
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [many, put]);
+    try {
+      await seedMany(true);
+      await flagMany(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=stop]', { timeout: 20000 });
+      if (await page.locator('[data-testid=recording-return]').count()) await page.click('[data-testid=recording-return]');
+      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      for (let j = 1; j <= 6 && !(await page.locator('[data-testid=reminder]').count()); j++) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      const manyUp = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
+      if (manyUp) await settled('[data-testid=reminder]');
+      for (const w of [390, 320]) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        const card = await page.evaluate(() => {
+          const open = document.querySelector('[data-testid=reminder-open]');
+          const title = open && [...open.querySelectorAll('div, span')].find((e) => [...e.childNodes].some((n) => n.nodeType === 3 && /memories here/.test(n.textContent)));
+          const r = title?.getBoundingClientRect();
+          return { title: title?.textContent ?? null, whole: !!title && title.scrollWidth <= title.clientWidth + 1, right: r ? Math.round(r.right) : null, name: open?.getAttribute('aria-label') ?? null };
+        });
+        check(manyUp && card.title === 'Many memories here' && card.whole && card.right <= w && /^Many memories here: [A-Z][a-z ,-]+\. Open$/.test(card.name ?? ''),
+          `tend explore 16: at ${w} px a reminder of thirteen says "Many memories here", its one line whole, and its name says so (${JSON.stringify(card)})`);
+        await shot(page, `15c-reminder-thirteen-${w}`);
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(400);
+      if (manyUp) await page.click('[data-testid=reminder-dismiss]');
+    } finally {
+      await flagMany(false);
+      await seedMany(false);
       while (north !== 0) {
         north += north > 0 ? -1 : 1;
         await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + north * 0.00005, accuracy: 6 });

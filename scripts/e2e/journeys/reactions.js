@@ -84,6 +84,26 @@ async function run(h) {
     return { top: !!hit && (add.contains(hit) || hit === sign), hit: hit?.closest('[data-testid]')?.getAttribute('data-testid') ?? hit?.tagName, y: Math.round(r.top) };
   });
   check(!!ui3a && ui3a.top, `reactions audit 3: nothing lies over the sign's plus (${JSON.stringify(ui3a)})`);
+  // RL8: at rest (the page at its end), nothing lies over the entry right under the held date: the date's edge (drawn
+  // without pointer events, so measured, not hit-tested) ends above the sign's face and the dateline's words, at 390
+  // and at 320.
+  const clearOf = () => pg.evaluate(() => {
+    const edges = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=day-edge]')].map((e) => e.getBoundingClientRect()).filter((r) => r.top >= 0);
+    const edge = edges.sort((a, b) => a.top - b.top)[0];
+    if (!edge) return ['no edge'];
+    const card = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')]
+      .filter((c) => c.getBoundingClientRect().bottom > edge.bottom).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+    if (!card) return ['no entry'];
+    const marks = ['reaction-sign-face', 'entry-dateline'].map((id) => card.querySelector(`[data-testid=${id}]`)).filter(Boolean);
+    return marks.map((m) => { const t = Math.round(m.getBoundingClientRect().top); return t >= Math.round(edge.bottom) || `${m.getAttribute('data-testid') ?? m.textContent.trim()}@${t}<${Math.round(edge.bottom)}`; });
+  });
+  const rl8 = { at390: await clearOf() };
+  await pg.setViewportSize({ width: 320, height: 720 });
+  await pg.waitForTimeout(900);
+  rl8.at320 = await clearOf();
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(700);
+  check(rl8.at390.length === 2 && rl8.at390.every((x) => x === true) && rl8.at320.length === 2 && rl8.at320.every((x) => x === true), `RL8: nothing lies over the first entry's dateline or sign at rest, at 390 and 320 (${JSON.stringify(rl8)})`);
   const sign = photoEntry().locator('[data-testid=reaction-sign]');
   const sign9 = { count: await sign.count(), label: await sign.getAttribute('aria-label').catch(() => null) };
   await sign.click({ timeout: 3000 }).catch(() => {});
@@ -155,8 +175,11 @@ async function run(h) {
   check(alone10 === 0 && open10 === 1 && kept10?.feeling === 'sad' && kept10?.thought === 'question',
     `RX10: More's Reaction shows the families by themselves and stays open for a second family (${JSON.stringify({ alone10, open10, kept10 })})`);
 
-  // RX6-RX8: the entry being written: nothing before its first character, then the sign; the panel above the bar
-  // keeps writing, the camera, the mic and Done; a choice keeps it open; the next character closes it.
+  // RX6-RX8: the entry being written: nothing before its first character, then the sign; the panel above the composer's
+  // tools keeps writing, the camera, the mic and Done; a choice keeps it open; the next character closes it.
+  // The entry is written in the composer (chronicle-journal JN47, decision 0179): the toolbar's field opens it.
+  await pg.click('[data-testid=bar-compose]', { timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(600);
   await pg.click('[data-testid=line-input]', { timeout: 8000 }).catch(() => {});
   await pg.waitForTimeout(400);
   const before6 = await pg.locator('[data-testid=reaction-slot]').filter({ visible: true }).count();
@@ -248,6 +271,8 @@ async function run(h) {
   const lens24 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').evaluateAll((es) => es.map((e) => e.getAttribute('aria-label')));
   const title24 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
   await shot(pg, 'reactions-07-ideas');
+  const backWordList = (await pg.locator('[data-testid=lens-back]').innerText().catch(() => '')).split('\n').pop();
+  check(backWordList === 'Reactions', `reaction-links live 1: a lens opened from the Reactions list says Back to Reactions (${backWordList})`);
   check(title24 === 'Ideas' && lens24.length === 4 && /alleys/.test(lens24[0]) && /bakery/.test(lens24[1]) && lens24.every((l) => /(ago|day|morning|afternoon|evening|night|today|yesterday)/i.test(l)),
     `RX2, RX24: Ideas shows every moment with Idea, oldest first, each in its context (${JSON.stringify({ title24, lens24 })})`);
   await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').first().click().catch(() => {});
@@ -328,10 +353,86 @@ async function run(h) {
   await pg.click('[data-testid=viewer-reaction]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
+  const plain4 = await pg.locator('[data-testid=capture-viewer] [data-testid^=reaction-link-]').count();
+  const marks4 = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').count();
+  check(plain4 === 0 && marks4 === 1, `RL4: a viewer opened from Chronicle's Map shows the reactions as plain words (${JSON.stringify({ plain4, marks4 })})`);
   const behind21 = handle ? await handle.evaluate((e) => ({ connected: e.isConnected, n: e.querySelectorAll('[data-testid=pin-reaction]').length })).catch(() => null) : null;
   await pg.click('[data-testid=reaction-done]').catch(() => {});
   await pg.click('[data-testid=viewer-close]').catch(() => {});
   check(!!behind21 && behind21.connected && behind21.n === 2, `RX21: a change of reaction shows on the same pin behind the viewer at once (${JSON.stringify(behind21)})`);
+
+  // Reaction links (specs/reaction-links, RL1-RL3, RL5, RL6, RL9).
+  await pg.click('[data-testid=section-memories]').catch(() => {});
+  await there(entries, 15000);
+  await pg.waitForTimeout(1500);
+  // RL6: once marked, the sign is still the face with a plus at the same size, and says all that is chosen.
+  const sign6 = await pg.evaluate(() => {
+    const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')];
+    const marked = cards.find((c) => c.querySelector('img') && c.querySelector('[data-testid=reaction-sign]'));
+    const plain = cards.find((c) => !c.querySelector('[data-testid=reaction-marks]') && c.querySelector('[data-testid=reaction-sign]'));
+    const box = (c) => { const g = c?.querySelector('[data-testid=reaction-sign-face]')?.getBoundingClientRect(); return g ? [Math.round(g.width), Math.round(g.height)] : null; };
+    return { label: marked?.querySelector('[data-testid=reaction-sign]')?.getAttribute('aria-label'), plus: !!marked?.querySelector('[data-testid=reaction-sign-add]'), size: box(marked), plainSize: box(plain) };
+  });
+  check(sign6.label === 'Reaction, Happy, Idea' && sign6.plus && !!sign6.size && JSON.stringify(sign6.size) === JSON.stringify(sign6.plainSize),
+    `RL6: a marked entry's sign is still the face with a plus at the same size, and says what is chosen (${JSON.stringify(sign6)})`);
+  // RL1, RL2, RL5: "Idea" under the photo's entry is a link to Ideas; Back returns to the journal.
+  const link5 = await photoEntry().locator('[data-testid=reaction-link-idea]').evaluate((e) => { const r = e.getBoundingClientRect(); return { role: e.getAttribute('role'), label: e.getAttribute('aria-label'), h: Math.round(r.height) }; }).catch(() => null);
+  check(!!link5 && link5.role === 'link' && link5.label === 'Ideas' && link5.h >= 44, `RL5: a reaction under an entry is a link named for its lens, 44 px tall (${JSON.stringify(link5)})`);
+  // reaction-links ui 1 (the cold find, U1): a link's word is underlined in ink; a plain mark's is not.
+  const ui1l = await pg.evaluate(() => {
+    const deco = (sel) => { const e = document.querySelector(sel); return e ? getComputedStyle(e).textDecorationLine : null; };
+    return { link: deco('[data-testid=reaction-link-idea] [data-testid=reaction-name]'), plain: deco('[data-testid=lens-screen] [data-testid=reaction-name]') };
+  });
+  check(ui1l.link === 'underline', `reaction-links ui 1: a reaction that is a link has its word underlined in ink (${JSON.stringify(ui1l)})`);
+  await shot(pg, 'reactions-09-links-under-entry');
+  await photoEntry().locator('[data-testid=reaction-link-idea]').click().catch(() => {});
+  const lens2 = await there('[data-testid=lens-screen]');
+  const title2 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
+  const count2 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-open]').count();
+  // reaction-links live 1 (the deploy's live check): Back names where it goes; from an entry, the journal.
+  const backWord2 = { text: (await pg.locator('[data-testid=lens-back]').innerText().catch(() => '')).split('\n').pop(), label: await pg.locator('[data-testid=lens-back]').getAttribute('aria-label').catch(() => null) };
+  check(backWord2.text === 'Journal' && backWord2.label === 'Back to the journal', `reaction-links live 1: a lens opened from an entry says Back to the journal (${JSON.stringify(backWord2)})`);
+  await pg.click('[data-testid=lens-back]').catch(() => {});
+  await pg.waitForTimeout(800);
+  const back2 = { journal: await pg.locator('[data-testid=journal-page]').count(), list: await pg.locator('[data-testid=reactions-screen]').count() };
+  check(lens2 && title2 === 'Ideas' && count2 >= 3 && back2.journal === 1 && back2.list === 0,
+    `RL1, RL2: "Idea" under an entry opens the whole Ideas lens, and Back returns to the journal (${JSON.stringify({ lens2, title2, count2, back2 })})`);
+  // RL3: in the viewer opened from an entry, "Happy" is a link: the viewer closes, Happy moments opens; Back, the journal.
+  await photoEntry().locator('[data-testid=moment-open]').click().catch(() => {});
+  await there('[data-testid=capture-viewer]');
+  await pg.waitForTimeout(800);
+  await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-link-happy]').click().catch(() => {});
+  await pg.waitForTimeout(1000);
+  const viewer3 = await pg.locator('[data-testid=capture-viewer]').count();
+  const title3 = await pg.locator('[data-testid=lens-title]').innerText().catch(() => '');
+  await pg.click('[data-testid=lens-back]').catch(() => {});
+  await pg.waitForTimeout(800);
+  const back3 = await pg.locator('[data-testid=journal-page]').count();
+  check(viewer3 === 0 && title3 === 'Happy moments' && back3 === 1, `RL3: a reaction in the viewer opened from an entry closes it and opens its lens; Back, the journal (${JSON.stringify({ viewer3, title3, back3 })})`);
+  // RL9: a reaction that cannot be kept is not shown as chosen, and the panel says "Not kept yet".
+  await pg.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    window.__unbreak = () => { IDBObjectStore.prototype.put = put; };
+    IDBObjectStore.prototype.put = function (...a) { if (this.name === 'reaction') throw new DOMException('broken for the test', 'UnknownError'); return put.apply(this, a); };
+  });
+  await entry('Nothing much on the way home').locator('[data-testid=moment-more]').click().catch(() => {});
+  await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
+  await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(900);
+  const fail9 = { line: await pg.locator('[data-testid=reaction-not-kept]').innerText().catch(() => null), chosen: await pg.locator('[data-testid=reaction-pick-like]').getAttribute('aria-checked').catch(() => null) };
+  // reaction-links ui 2 (U2): the line is in ink, at the panel's top, above the first family.
+  const ui2k = await pg.evaluate(() => {
+    const line = document.querySelector('[data-testid=reaction-not-kept]');
+    const fam = document.querySelector('[data-testid=reaction-family-feeling]');
+    if (!line || !fam) return null;
+    return { above: line.getBoundingClientRect().bottom <= fam.getBoundingClientRect().top + 1, color: getComputedStyle(line).color };
+  });
+  check(!!ui2k && ui2k.above && ui2k.color === 'rgb(29, 36, 48)', `reaction-links ui 2: "Not kept yet" is in ink at the panel's top (${JSON.stringify(ui2k)})`);
+  await shot(pg, 'reactions-10-not-kept');
+  await pg.evaluate(() => window.__unbreak?.());
+  await pg.click('[data-testid=reaction-done]').catch(() => {});
+  await pg.waitForTimeout(600);
+  check(fail9.line === 'Not kept yet' && fail9.chosen === 'false', `RL9: a reaction not kept is not shown as chosen, and the panel says so in words (${JSON.stringify(fail9)})`);
 
   await c.close();
 }

@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| A toolbar at the foot (the journal's capture as a toolbar above the tab bar: a grey \"What’s on your mind?\" field, a pen, the camera and the mic; replaces the row under the line; JN41-JN46, decision 0176) | `claude/chronicles-action-button-layout-x4cg4k` | started 2026-11-14: approved from two mock-ups; tests first next |\n"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Reaction links (in Memories a reaction under an entry"
+      ],
+      "body": "| Reaction links (in Memories a reaction under an entry or the viewer's line is a link to its lens, its word underlined in ink, Back to the journal; elsewhere plain words; the sign and a page's Reaction tool always the face with a plus; the first entry under a date clears the date's edge; \"Not kept yet\" in ink at a panel's top; a moment's rows kept together by `setReactions`; a keep under way is not dropped; a video's pin wears its bubbles in an L; RL1-RL12, decision 0177) | built 2026-11-14, deployed to main 2026-11-14 (`a892a8f`, Pages run 278; the owner's task done on the live build, its Back's word fixed forward as `reaction-links live 1`), test-first (12 of 12): unit tests, typecheck, lint, docs and vision checks; e2e `reactions`, `journal`, `notepage`, `qol`, `capturehome`, `dense`, `edit`, `responses`, `resurface`, `stacks`, `threads`, `upgrade`, `videothumbs`, `voicetrim`, `walk`; cold find and UI review triaged (`reaction-links ui 1-2`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reaction-links/spec.md` | no |\n",
+      "target": "sha256:a77d1db25bc5121fcf2a413b7259aa866a07c6022793c3fe364fd4d81167dd9e"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Reaction links slice (RL1-RL12",
+        "--reason",
+        "merged to main and deployed 2026-11-14 (a892a8f, Pages run 278)"
+      ],
+      "target": "sha256:a65cfb6229f521717ee55d76bc429a5ff3ff9bdd23c9e7516185e2122f6f5539"
+    }
+  ]
+}

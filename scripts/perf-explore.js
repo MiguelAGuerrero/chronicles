@@ -94,7 +94,7 @@ function summarize(rows) {
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 1, null, { timeout: 90000 });
     // PERF_READ=1: the Busy layer goes on only once throttled, so its first read is timed (the read phase).
     const READ = process.env.PERF_READ === '1';
-    if (process.env.PERF_BUSY !== '0' && !READ) await h.switchLayer(pg, 'busy');
+    if (process.env.PERF_BUSY !== '0' && !READ) await h.switchLayer(pg, 'storefronts');
     // The town's page: its neighborhoods are the row.
     const first = await h.areaTile(pg, hoods[0], 90000);
     if (!(await first.count())) throw new Error(`no card for ${hoods[0]}: ${await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.name).join(', '))}`);
@@ -149,7 +149,7 @@ function summarize(rows) {
       if (process.env.PERF_PROFILE && PHASE === 'read') await startProfile();
       const m0 = await metricsNow(cdp);
       const t0 = await now(pg);
-      await h.switchLayer(pg, 'busy');
+      await h.switchLayer(pg, 'storefronts');
       await pg.waitForFunction(() => (document.querySelector('.maplibregl-map')?.getAttribute('data-graded') ?? '').length > 0, null, { timeout: 180000, polling: 250 });
       await pg.waitForTimeout(1000);
       const t1 = await now(pg);

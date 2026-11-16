@@ -6,7 +6,7 @@ import { Modal } from '../Modal';
 import { theme } from '../ui';
 
 /** A moment's More menu (RM20): bring it up less, never bring it back, or open it. */
-export function MemoryMenu(props: { open: boolean; onClose: () => void; /** The moment's reactions (RX10): Reaction in the list, the families in this same sheet. */ reaction?: { set: ReactionSet; onPick: (id: ReactionId) => void }; /** Open on the reactions, with nothing else (RX9). */ onlyType?: boolean; onLess: () => void; onHide: () => void; onOpen: () => void; /** Given for the resurfaced slip (chronicle journal JN20). */ onRelive?: () => void; onAnother?: () => void; /** Given for a placed moment (chronicle journal JN6, ui 3). */ onMap?: () => void }) {
+export function MemoryMenu(props: { open: boolean; onClose: () => void; /** The moment's reactions (RX10): Reaction in the list, the families in this same sheet. */ reaction?: { set: ReactionSet; onPick: (id: ReactionId) => void; moment?: string }; /** Open on the reactions, with nothing else (RX9). */ onlyType?: boolean; onLess: () => void; onHide: () => void; onOpen: () => void; /** Given for the resurfaced slip (chronicle journal JN20). */ onRelive?: () => void; onAnother?: () => void; /** Given for a placed moment (chronicle journal JN6, ui 3). */ onMap?: () => void }) {
   const item = (testID: string, label: string, hint: string, fn: () => void) => (
     <Pressable testID={testID} accessibilityRole="button" onPress={fn} style={styles.item}>
       <Text style={styles.label}>{label}</Text>
@@ -38,7 +38,7 @@ export function MemoryMenu(props: { open: boolean; onClose: () => void; /** The 
                 <Text style={styles.doneText}>Done</Text>
               </Pressable>
             </View>
-            <ReactionPanel set={type.set} onPick={type.onPick} />
+            <ReactionPanel set={type.set} onPick={type.onPick} moment={type.moment} />
             </>
           ) : null}
           {grid ? null : (

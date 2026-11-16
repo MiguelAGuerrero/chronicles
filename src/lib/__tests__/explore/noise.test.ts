@@ -54,7 +54,7 @@ test('noise: only attractions become marks; food, shops and nightlife never do (
     poi('shop', 'gift', 'Thayer Gifts'), poi('bar', 'bar', 'The Wild Colonial'), poi('beer', 'pub', 'Trinity Brewhouse'),
   ]) {
     assert.equal(markable(f), false, f.properties.name);
-    // Still places: they count toward busy streets.
+    // Still places: they count toward storefront streets.
     assert.equal(placesFromTilePois([f], 'b1').length, 1, f.properties.name);
   }
 });

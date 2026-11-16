@@ -7,7 +7,7 @@ import { createStore } from '../store';
 export const ROUTE_LEANINGS_KEY = 'route_leanings';
 
 /**
- * The walk settings' "Scenic routes" switches (SR1): green, sights, streets with life, all on by
+ * The walk settings' "Scenic routes" switches (SR1): green, sights, storefronts, all on by
  * default, kept in meta. The store changes first, so the drawer and the next Go here agree at once.
  */
 export function createRouteLeanings(p: Pick<Ports, 'db'>) {

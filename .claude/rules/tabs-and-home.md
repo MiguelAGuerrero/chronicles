@@ -131,7 +131,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   `dangerouslySingular` on the native stack, the memo saved on unmount.
 - **The second batch (U5-U15, audit 6; the owner's calls, Nov 2):**
   - Explore's hint sits in its drawer's header, so the peek says it at rest
-    (U5). On its long-press card What's good here? is the filled button and
+    (U5). On its long-press card What's here? is the filled button and
     Walk here secondary, still a one-tap start (U6).
   - Chronicle's peek: with no walk finished (a walk minimized or not), the
     empty line, Days and a Navigate button (U7); otherwise a Walks | Days

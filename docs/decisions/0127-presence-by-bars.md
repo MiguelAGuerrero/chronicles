@@ -32,3 +32,7 @@ The owner's calls, Nov 10:
 - The audit (Nov 11): the owner kept "Community spaces" and changed both icons (Community spaces `reader-outline`,
   Buildings and structures `home-outline`; no kind uses a tab's icon).
 - Amends 0084 (AG1: what a findable kind counts, now by `barsOf`), 0102 (the planner's cells) and 0117's kinds.
+
+## Amended
+
+- Amended by `specs/storefronts` (Nov 14, 2026): the leaning that routes lean on is "Storefronts", and the card lists an area's storefront streets nearest you first in one list (SF2, SF3, SF8).

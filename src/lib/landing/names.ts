@@ -3,8 +3,8 @@ import { pointSegmentDist } from '../geo';
 import type { LngLat } from '../types';
 import type { LandingView } from './view';
 
-/** One busy name the map may place (DC1, DC3): a strip's at its busiest point, along its street; a pocket's at its centre. */
-export interface BusyName {
+/** One storefront name the map may place (DC1, DC3): a strip's at its peak, along its street; a pocket's at its centre. */
+export interface StorefrontName {
   name: string;
   /** Where names compete for room, a lower order is placed first: the view lists heavier streets first (DC4). Never shown. */
   order: number;
@@ -43,13 +43,13 @@ export function alongAngle(lines: LngLat[][], at: LngLat): number {
 }
 
 /**
- * The names the map is given (DC1, DC3): one per strip, at its label point (its busiest, clear of the old pin) and turned
+ * The names the map is given (DC1, DC3): one per strip, at its label point (its densest, clear of the old pin) and turned
  * along its street there, and one per pocket without a strip, at its centre; in the view's order (heaviest first).
  * `landingView` already names a street once across areas.
  */
-export function busyNames(view: LandingView | null | undefined): BusyName[] {
+export function storefrontNames(view: LandingView | null | undefined): StorefrontName[] {
   if (!view) return [];
-  const out: BusyName[] = [];
+  const out: StorefrontName[] = [];
   for (const s of view.strips) out.push({ name: s.name, order: out.length, stale: s.stale, at: s.at, angle: alongAngle(s.lines, s.at) });
   for (const l of view.labels) out.push({ name: l.name, order: out.length, stale: !!l.stale, at: l.at, angle: 0 });
   return out;

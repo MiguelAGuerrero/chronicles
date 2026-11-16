@@ -46,7 +46,7 @@ export async function readAround(url: string, build: string, at: LngLat, shouldS
 }
 
 /**
- * "What's good here?" (L1, L2): the z14 tiles of the 1.5 km around the
+ * "What's here?" (L1, L2): the z14 tiles of the 1.5 km around the
  * pressed spot are fetched and decoded in code (with Overture's places for
  * the same tiles, AD3), with no camera moves, on
  * both platforms. If a town or city point lies within 3 km, the area around

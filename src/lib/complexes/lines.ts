@@ -34,7 +34,7 @@ export const kindWord = (kind: ComplexKind): string => WORDS[kind];
 
 const key = (s: string) => s.toLowerCase();
 
-/** CX6: nearest to a point first, ties by name (locale-free) then id. Never by size, busyness or popularity. */
+/** CX6: nearest to a point first, ties by name (locale-free) then id. Never by size, density or popularity. */
 export function nearestFirst(complexes: readonly Complex[], from: LngLat): Complex[] {
   return complexes
     .map((c) => ({ c, d: distanceM(from, c.at) }))

@@ -36,7 +36,7 @@ export type { ExploreResult } from './exploreQueue';
  * One explore read (E2): the z14 tiles of the 1.5 km around `centre`, decoded
  * in code with no camera moves, plus a z11 read for the towns. That one read
  * builds the checklists of the areas it saw whole and, as information, the
- * busy streets (remembered like "What's good here"). Never two at once. A
+ * storefront streets (remembered like "What's here"). Never two at once. A
  * failed or cancelled read stores nothing (E5). One at a time through `queue` (`exploreQueue.ts`): a read asked for
  * while one runs shares it only for the same centre; another centre waits for it, then reads its own (tend explore 15).
  */
@@ -74,7 +74,7 @@ function readOnce(centre: LngLat, opts: { remember: boolean }, shouldStop: () =>
       });
       const record: ExploreRead = { key: readKey(centre), centre, build, read_at: now, candidates };
       await db.saveChecklists({ ...built, read: record });
-      // The busy streets from the same read (E2), on an exploring walk only (the owner's call: quiet walks
+      // The storefront streets from the same read (E2), on an exploring walk only (the owner's call: quiet walks
       // keep checklists, not magenta), unless a current area here is already remembered.
       const known = opts.remember ? await db.listLandings().catch(() => []) : [];
       if (opts.remember && !sweepCovered(known, centre, build, knownRelease())) {

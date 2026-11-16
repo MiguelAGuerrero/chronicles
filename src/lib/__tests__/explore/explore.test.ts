@@ -399,7 +399,7 @@ test('E11: a found place shows its name and category with its capture', () => {
 
 test('E11: the card lists the places found on this walk, by name', () => {
   assert.equal(foundList(['RISD Museum', 'Old North Church']), 'Found RISD Museum · Old North Church');
-  assert.equal(foundList(['A', 'B', 'C', 'D', 'E']), 'Found A · B · C and 2 more');
+  assert.equal(foundList(['A', 'B', 'C', 'D', 'E']), 'Found A · B · C and two more', 'in words since tend replay T31');
   assert.equal(foundList([]), null);
 });
 
