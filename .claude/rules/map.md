@@ -58,6 +58,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - Data is sent again only when `borders.key` changes (the towns and their roles), never per fix or zoom; the web writes `data-borders` (`role:name|...`) for the e2e.
 - Screens: Explore (`index.tsx`, yours tinted by `outlineIdHere`, the open town's by `outlineOf`), Chronicle (walked towns, `lined: false`), the walk screen (`firm` by `outlineIdAt`, no fill), the replay and a day (`useWalkBorders`). `BORDER` colours are held by `colors.test.ts` (TB8).
 - The world's veil sits under the borders (decision 0199, the owner's answer to T33): on the web the veil is added before the lines, and `borderFillBefore` moves the fill over the veil while it is on (the replay, a day, unwalked streets) and back under the first street when it is off; on native the veil mounts before `BordersSource`. Under the veil the edge read 2.2:1 and the tint 1.09 whatever the colour. `BORDER.color` is cocoa `#6e4f3f`, never the accent (0153).
+- The borders go over the veil only where the screen asks (`bordersOverVeil`: the replay and a day, decision 0199), through `borderMoves` on the web (the veil under the lines, the fill between, at `borderFillOpacity`'s 0.11, the owner's "Lighten the fill on veiled maps") and mount order on native. The walk screen's unwalked veil stays over its firm edge: over that veil a solid dark edge matched an unwalked street's line (tend map audit 39). The line above that names `borderFillBefore` and the unwalked streets is superseded by this one.
 
 ## Icons and pins
 

@@ -242,6 +242,8 @@ export interface WalkMapProps {
   initialZoom?: number;
   /** Greys the base map so walked streets stand out. */
   veil?: boolean;
+  /** The town borders over the veil, at a lighter fill (the replay and a day; decision 0199). */
+  bordersOverVeil?: boolean;
   /** Draws the fog (unwalked streets) bold, to find them at a glance. */
   fogEmphasis?: boolean;
   /** Hides the map behind an opaque cover, e.g. while the camera steps through views. */
@@ -708,8 +710,8 @@ export const RING_COLOR = '#1a73e8';
  * Town borders (TB1-TB10): the town you're in (or a walk's towns) tinted with a firm edge, the
  * others in a grey line. The fill is under the streets, so the map reads through it; the lines are
  * over the streets, under the labels, since a border often runs along a road (TB10, Nov 4: at 7%
- * under the streets, the owner saw nothing on a phone). Both draw over the world's veil
- * (`borderFillBefore`). Cocoa, apart from the accent (the owner's answer to T33, Nov 17; decision 0199).
+ * under the streets, the owner saw nothing on a phone). On the replay and a day both draw over the world's veil
+ * (`borderMoves`, `borderFillOpacity`). Cocoa, apart from the accent (the owner's answer to T33, Nov 17; decision 0199).
  */
 export const BORDER = {
   color: '#6e4f3f',
@@ -724,13 +726,21 @@ export const BORDER = {
 } as const;
 
 /**
- * The layer the borders' fill goes under on the web (decision 0199, the owner's "Borders above the veil", T33): the base
- * map's first street layer, so the streets read over it (TB8), but while the world's veil is on (the replay, a day,
- * unwalked streets) just under the borders' lines, which are always over the veil, so the edge and the tint keep TB8's and
- * TB10's contrast there. With no street layer, just under the veil.
+ * How the web moves the borders' layers against the world's veil (decision 0199), as `[layer, before]` pairs. Over it on
+ * the replay and a day while the veil is on (the owner's "Borders above the veil"): the veil just under the borders'
+ * lines and the fill between them, so the edge and the tint keep TB8's and TB10's contrast. Elsewhere, the walk screen's
+ * unwalked veil among them (tend map audit 39), as before: the lines under the veil and the fill under the base map's
+ * first street (TB8), or just under the lines with no street layer.
  */
-export function borderFillBefore(veiled: boolean, firstRoad: string | undefined): string {
-  return veiled ? 'border-lined' : firstRoad ?? 'veil';
+export function borderMoves(overVeil: boolean, firstRoad: string | undefined): [string, string][] {
+  return overVeil
+    ? [['veil', 'border-lined'], ['border-fill', 'border-lined']]
+    : [['border-lined', 'veil'], ['border-firm', 'veil'], ['border-fill', firstRoad ?? 'border-lined']];
+}
+
+/** The fill's opacity: lighter over the veil, so a label on the tint keeps 4:1 (the owner, Nov 17: "Lighten the fill on veiled maps"). */
+export function borderFillOpacity(overVeil: boolean): number {
+  return overVeil ? 0.11 : BORDER.fillOpacity;
 }
 
 /** The borders a map draws (TB1-TB5), one feature per town with its role, id and name only (TB3). */

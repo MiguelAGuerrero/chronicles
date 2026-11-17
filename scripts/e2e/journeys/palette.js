@@ -305,31 +305,6 @@ async function townBorders(h) {
     for (let i = 1; i <= n; i++) await go(here[0] + ((x - here[0]) * i) / n, here[1] + ((y - here[1]) * i) / n);
     here = [x, y];
   };
-  const tinted = () => pg.waitForFunction(() => [...document.querySelectorAll('[data-borders]')].some((e) => /tinted:/.test(e.getAttribute('data-borders') ?? '')), null, { timeout: 45000 }).catch(() => {});
-
-  await pg.goto(navUrl);
-  await pg.waitForSelector('[data-testid=start]');
-  await pg.waitForTimeout(1500);
-  await go(-0.5, -0.5);
-  await pg.click('[data-testid=start]');
-  await pg.waitForSelector('[data-testid=stop]');
-  await walkTo(-0.5, 0.8);
-  await walkTo(0.85, 0.8);
-  await walkTo(0.85, -0.5);
-  await walkTo(0.1, -0.5);
-  await pg.waitForTimeout(1500);
-  const b = await pg.locator('[data-testid=stop]').boundingBox();
-  await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-  await pg.mouse.down();
-  await pg.waitForTimeout(1100);
-  await pg.mouse.up();
-  await pg.waitForURL(/replay/, { timeout: 30000 });
-  await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
-  await pg.click('[data-testid=skip]');
-  await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
-  await tinted();
-  await pg.waitForTimeout(2500);
-  const drawn = await pg.$$eval('[data-borders]', (es) => es.map((e) => e.getAttribute('data-borders')).join(' '));
   // A row of pixels across the east edge, at a block's middle (the fake grid's streets run every 100 m on the half), and
   // a block's middle inside the town and one outside it: the replay's veiled ground, with and without the tint.
   const row = async (p, r) => {
@@ -345,12 +320,59 @@ async function townBorders(h) {
       return Array.from({ length: bmp.width }, (_, i) => [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]]);
     }, png.toString('base64'));
   };
-  await pg.evaluate(() => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = 'hidden'; }));
+  const hidePins = (hidden) => pg.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
+  const darkest = (px) => px.reduce((m, p) => (p[0] + p[1] + p[2] < m[0] + m[1] + m[2] ? p : m), [255, 255, 255]);
+  const tinted = () => pg.waitForFunction(() => [...document.querySelectorAll('[data-borders]')].some((e) => /tinted:/.test(e.getAttribute('data-borders') ?? '')), null, { timeout: 45000 }).catch(() => {});
+
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=start]');
+  await pg.waitForTimeout(1500);
+  // Town borders on, one setting for every map (ML7), so the walk screen draws the town's edge.
+  await switchLayer(pg, 'borders');
+  await go(-0.5, -0.5);
+  await pg.click('[data-testid=start]');
+  await pg.waitForSelector('[data-testid=stop]');
+  await walkTo(-0.5, 0.8);
+  await walkTo(0.85, 0.8);
+  // tend map audit 39: the walk with Unwalked streets on keeps the town's edge under its veil, as before T33 (the owner's
+  // answer was the replay's and a day's), so the edge never matches an unwalked street's dark line.
+  await pg.click('[data-testid=unwalked]');
+  await pg.waitForFunction(() => [...document.querySelectorAll('[data-borders]')].some((e) => /firm:Pawtucket/.test(e.getAttribute('data-borders') ?? '')), null, { timeout: 45000 }).catch(() => {});
+  await pg.waitForTimeout(2500);
+  const walkDrawn = await pg.$$eval('[data-borders]', (es) => es.map((e) => e.getAttribute('data-borders')).join(' '));
+  await shot(pg, 'palette-16-borders-walk-unwalked-390');
+  // A block's middle 20 m north of you, the edge and the ground east of it, clear of the screen's controls.
+  await hidePins(true);
+  const walkAcross = await row(at(1, 1), 6);
+  const walkGround = (await row(at(1.25, 1), 0))[0];
+  await hidePins(false);
+  const walkEdge = darkest(walkAcross);
+  const walkMeasured = `edge ${JSON.stringify(walkEdge)} ${contrastOf(walkEdge, walkGround).toFixed(2)}:1 on ${JSON.stringify(walkGround)}; ${walkDrawn}`;
+  console.log(`tend map audit 39 measured on the walk with Unwalked streets on: ${walkMeasured}`);
+  check(/firm:Pawtucket/.test(walkDrawn) && contrastOf(walkEdge, walkGround) > 1.5 && contrastOf(walkEdge, walkGround) < 3,
+    `tend map audit 39: on the walk with Unwalked streets on, the town's edge is drawn and stays under the veil, as before (${walkMeasured})`);
+  await pg.click('[data-testid=unwalked]');
+  await walkTo(0.85, -0.5);
+  await walkTo(0.1, -0.5);
+  await pg.waitForTimeout(1500);
+  const b = await pg.locator('[data-testid=stop]').boundingBox();
+  await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await pg.mouse.down();
+  await pg.waitForTimeout(1100);
+  await pg.mouse.up();
+  await pg.waitForURL(/replay/, { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+  await pg.click('[data-testid=skip]');
+  await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+  await tinted();
+  await pg.waitForTimeout(2500);
+  const drawn = await pg.$$eval('[data-borders]', (es) => es.map((e) => e.getAttribute('data-borders')).join(' '));
+  await hidePins(true);
   const across = await row(at(1, 0), 6);
   const inside = (await row(at(0, 0), 0))[0];
   const outside = (await row(at(1.25, 0), 0))[0];
-  await pg.evaluate(() => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = ''; }));
-  const edge = across.reduce((m, p) => (p[0] + p[1] + p[2] < m[0] + m[1] + m[2] ? p : m), [255, 255, 255]);
+  await hidePins(false);
+  const edge = darkest(across);
   // The edge as drawn: the border's colour at its firm opacity over Central Falls' grey line, which shares the edge.
   const hexOf = (key) => {
     const m = new RegExp(`export const BORDER = \\{[\\s\\S]*?\\n\\s*${key}: '#([0-9a-fA-F]{6})'`).exec(MAP_TYPES);
@@ -365,6 +387,14 @@ async function townBorders(h) {
     `tend map T33: on the replay's card the town's edge is the border's own colour drawn over the veil, 3.5:1 on the veiled ground (TB8) (${measured})`);
   check(contrastOf(inside, outside) >= 1.15,
     `tend map T33: on the replay's card the walked town's tint is drawn over the veil, 1.15 on the veiled ground (TB10) (${measured})`);
+  // tend map audit 38 (the owner's "Lighten the fill on veiled maps"): the tint's opacity read back from its pixels is the
+  // veiled one, at which a base-map label on Positron's veiled land keeps TB10's 4:1.
+  const veiledOpacity = Number((/export function borderFillOpacity\(overVeil: boolean\): number \{\s*return overVeil \? ([0-9.]+)/.exec(MAP_TYPES) ?? [])[1]);
+  const drawnOpacity = border ? [0, 1, 2].map((i) => (outside[i] - inside[i]) / (outside[i] - border[i])).reduce((a, v) => a + v, 0) / 3 : NaN;
+  const positronVeiled = over(paletteRgb('veil'), [0xf2, 0xf3, 0xf0], 0.45);
+  const labelFloor = border ? contrastOf([0x66, 0x66, 0x66], over(border, positronVeiled, veiledOpacity)) : 0;
+  check(Math.abs(drawnOpacity - veiledOpacity) <= 0.006 && labelFloor >= 4,
+    `tend map audit 38: over the veil the tint is drawn at ${veiledOpacity} (read ${drawnOpacity.toFixed(3)}), so a label on it keeps 4:1 on Positron's veiled land (${labelFloor.toFixed(3)}:1)`);
   await shot(pg, 'palette-10-borders-card-390');
   // The pictures for the review: beat one, Chronicle's map, a day's replay, Explore's town page.
   await pg.getByText('Watch again').click();

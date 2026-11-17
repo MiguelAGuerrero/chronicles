@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as MAP from '../../../components/map/types';
-import { BORDER, borderFillBefore, COLORS, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, HOTSPOT_INK } from '../../../components/map/types';
+import { BORDER, borderFillOpacity, borderMoves, COLORS, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, HOTSPOT_INK } from '../../../components/map/types';
 import { KIND_COLOR } from '../../../components/atlas/kinds';
 import { contrast, deltaE, hueGap, lch, over, seen, type Sight } from './colourSight';
 
@@ -146,24 +146,44 @@ test('tend map T33: the borders are cocoa, 20 from the accent and 15 from every 
   for (const land of [LAND, '#eeeae4']) {
     const veiled = over(palette.veil, land, 0.45);
     const edge = contrast(over(BORDER.color, veiled, BORDER.firmOpacity), veiled);
-    const tint = contrast(over(BORDER.color, veiled, BORDER.fillOpacity), veiled);
+    const tint = contrast(over(BORDER.color, veiled, borderFillOpacity(true)), veiled);
     assert.ok(edge >= 3.5, `edge ${edge.toFixed(2)} on ${land} veiled`);
     assert.ok(tint >= 1.15 && tint < 1.35, `tint ${tint.toFixed(2)} on ${land} veiled`);
   }
 });
 
-test('tend map T33: the borders draw over the veil: the lines always, the fill while the veil is on', () => {
-  // The fill: under the base map's streets (TB8), but over the veil while it is on, just under the borders' lines.
-  assert.equal(borderFillBefore(true, 'roads'), 'border-lined');
-  assert.equal(borderFillBefore(false, 'roads'), 'roads');
-  assert.equal(borderFillBefore(false, undefined), 'veil', 'with no street layer, just under the veil, as before');
-  // Web: the veil is added before the borders' lines, and the fill moves with the veil.
+test('tend map T33, tend map audit 39: the borders draw over the veil on the replay and a day; the walk\'s unwalked veil stays over them', () => {
+  // Over the veil: the veil just under the borders' lines, the fill between them (decision 0199, the owner's "Borders
+  // above the veil", "on the replay and a day's replay").
+  assert.deepEqual(borderMoves(true, 'roads'), [['veil', 'border-lined'], ['border-fill', 'border-lined']]);
+  // Elsewhere, the walk screen's unwalked veil among them (tend map audit 39): the lines under the veil, the fill under the
+  // base map's first street (TB8), or just under the lines with no street layer, as before.
+  assert.deepEqual(borderMoves(false, 'roads'), [['border-lined', 'veil'], ['border-firm', 'veil'], ['border-fill', 'roads']]);
+  assert.equal(borderMoves(false, undefined)[2][1], 'border-lined');
+  // Web: the moves follow the veil and the screen's ask; only the replay and a day ask.
   const web = read('components/map/WalkMap.web.tsx');
-  assert.ok(web.indexOf("id: 'veil'") >= 0 && web.indexOf("id: 'veil'") < web.indexOf("id: 'border-lined'"), 'web adds the veil under the lines');
-  assert.match(web, /moveLayer\('border-fill', borderFillBefore\(/);
-  // Native: layer order is mount order, the veil first.
+  assert.match(web, /const overVeil = !!props\.veil && !!props\.bordersOverVeil;[\s\S]*?borderMoves\(overVeil, firstRoad\.current\)/);
+  for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) assert.match(read(f), /\n\s*bordersOverVeil\n/, `${f} draws the borders over its veil`);
+  assert.doesNotMatch(read('app/walk.tsx'), /bordersOverVeil/, 'the walk screen keeps its borders under the unwalked veil');
+  // Native: layer order is mount order, the borders mounted after the veil only when asked.
   const native = read('components/map/WalkMap.native.tsx');
-  assert.ok(native.indexOf('<VeilSource') >= 0 && native.indexOf('<VeilSource') < native.indexOf('<BordersSource'), 'native mounts the veil before the borders');
+  assert.match(native, /\{!bordersOver && <BordersSource[^\n]*\/>\}\s*<VeilSource[^\n]*\/>\s*\{bordersOver && <BordersSource[^\n]*\/>\}/);
+  assert.match(native, /const bordersOver = !!props\.bordersOverVeil;/);
+});
+
+// The owner's answer to the label floor, Nov 17: "Lighten the fill on veiled maps". Over the replay's and a day's veil the
+// fill is 0.11, so a base-map label on the tint keeps TB10's 4:1 (3.96 at 0.12) and the tint 1.17.
+test('tend map audit 38: over the veil the fill is 0.11, so the labels keep 4:1 and the tint 1.15; elsewhere 0.12', () => {
+  assert.equal(borderFillOpacity(true), 0.11);
+  assert.equal(borderFillOpacity(false), BORDER.fillOpacity);
+  assert.equal(BORDER.fillOpacity, 0.12);
+  const veiled = over(palette.veil, LAND, 0.45);
+  const tinted = over(BORDER.color, veiled, borderFillOpacity(true));
+  assert.ok(contrast('#666666', tinted) >= 4, `label ${contrast('#666666', tinted).toFixed(3)}`);
+  assert.ok(contrast(tinted, veiled) >= 1.15, `tint ${contrast(tinted, veiled).toFixed(3)}`);
+  // Both maps draw the fill at that opacity while the borders are over the veil.
+  assert.match(read('components/map/WalkMap.web.tsx'), /setPaintProperty\('border-fill', 'fill-opacity', borderFillOpacity\(/);
+  assert.match(read('components/map/WalkMap.native.tsx'), /'fill-opacity': borderFillOpacity\(/);
 });
 
 /** Every source file under a folder. */
