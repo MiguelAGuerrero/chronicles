@@ -7,7 +7,8 @@
  *
  * A re-read is the streets read again around a walker off a route no source can mend (at most once a minute, up to
  * 90 s). It has its own flag and no spinner, so it never holds back a Go here: a Go here tapped meanwhile is found at
- * once, and the re-read, for the route being replaced, stops between views and adds nothing.
+ * once (its map read waits for the re-read to let go of the map), and the re-read stops between views. Its streets join
+ * the route only if that route is still followed when it ends.
  */
 export interface Finds {
   /** Counts the finds started: work begun for one can tell when another has taken over. */
@@ -52,7 +53,10 @@ export function rereadStops(f: Finds): boolean {
   return f.reread !== null && f.gen !== f.reread;
 }
 
-/** The re-read ends; its streets join the route's sources only if no Go here started since it began. */
-export function endReread(f: Finds): { finds: Finds; keep: boolean } {
-  return { finds: { ...f, reread: null }, keep: f.reread !== null && f.reread === f.gen };
+/**
+ * The re-read ends. Its streets join the route's sources only if the route it was read for is still followed: a Go here
+ * that was cancelled or failed meanwhile leaves that route, which keeps them; one that started a new route replaced it.
+ */
+export function endReread(f: Finds, stillFollowed: boolean): { finds: Finds; keep: boolean } {
+  return { finds: { ...f, reread: null }, keep: stillFollowed };
 }

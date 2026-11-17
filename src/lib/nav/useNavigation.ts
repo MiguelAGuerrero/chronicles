@@ -102,6 +102,8 @@ export function useNavigation(opts: {
   const pending = useRef<Waypoint | null>(null);
   // The Go here under way, if any, and its Cancel (nav/findGate): one is found at a time.
   const finds = useRef<Finds>(NO_FINDS);
+  // The re-read under way, if any: a find's own map read waits for it to let go of the map (one map read at a time).
+  const rereading = useRef<Promise<void> | null>(null);
   const rereadAt = useRef(0);
   const latest = useRef(opts);
   useEffect(() => {
@@ -113,6 +115,11 @@ export function useNavigation(opts: {
   };
   /** How many of the destination's `via` stops the walker has come close to, so a re-route keeps only those ahead (KW13). */
   const viaPassed = useRef(0);
+
+  /** The saved destination is forgotten only while no route is followed: a second Go here's end leaves the first saved. */
+  const forget = () => {
+    if (!navRef.current) clearNav().catch(() => {});
+  };
 
   const end = useCallback(() => {
     apply(null);
@@ -168,8 +175,8 @@ export function useNavigation(opts: {
     setPreview(null);
     previewRead.current = null;
     const fail = async (message: string) => {
-      // A destination that can't be reached is forgotten, so a reload doesn't try it again.
-      clearNav().catch(() => {});
+      // A destination that can't be reached is forgotten, so a reload doesn't try it again (the route followed, if any, stays).
+      forget();
       latest.current.onError(message, dest);
     };
     try {
@@ -238,6 +245,9 @@ export function useNavigation(opts: {
       if (!goesOn()) return;
       let found = planned ? { route: planned } : routeVia(list, from, stops, dest.at, 'shortest', hint);
       if (!found.route) {
+        // A re-read under way holds the map: it stops after the view at hand (rereadStops), then this find reads.
+        if (rereading.current) await rereading.current;
+        if (!goesOn()) return;
         list.push(await readStreets(boundsOf([from, ...stops, dest.at], AREA_PAD_M)!, [from, ...stops, dest.at], () => !goesOn()));
         if (!goesOn()) return;
         found = routeVia(list, from, stops, dest.at, 'shortest', hint);
@@ -257,7 +267,7 @@ export function useNavigation(opts: {
   const cancel = useCallback(() => {
     finds.current = cancelFind(finds.current);
     pending.current = null;
-    clearNav().catch(() => {});
+    forget();
   }, []);
 
   /** SR8: highlights one of the preview's routes. */
@@ -284,7 +294,7 @@ export function useNavigation(opts: {
   const dismiss = useCallback(() => {
     setPreview(null);
     previewRead.current = null;
-    clearNav().catch(() => {});
+    forget();
   }, []);
 
   // A reload resumes where you were heading, with the route computed again (N13).
@@ -346,15 +356,21 @@ export function useNavigation(opts: {
           if (reread) {
             rereadAt.current = now;
             finds.current = reread;
-            readStreets(boundsOf([here, s.dest.at], AREA_PAD_M)!, [here, s.dest.at], () => rereadStops(finds.current))
+            // The route it is read for: still followed at the end while its sources are the same list (begin and end replace it).
+            const served = sources.current;
+            const done = readStreets(boundsOf([here, s.dest.at], AREA_PAD_M)!, [here, s.dest.at], () => rereadStops(finds.current))
               .then((streets) => {
-                const { finds: after, keep } = endReread(finds.current);
+                const { finds: after, keep } = endReread(finds.current, !!navRef.current && sources.current === served);
                 finds.current = after;
                 if (keep) sources.current = [...sources.current.filter((x) => x.id !== streets.id), streets];
               })
               .catch(() => {
-                finds.current = endReread(finds.current).finds;
+                finds.current = endReread(finds.current, false).finds;
+              })
+              .finally(() => {
+                if (rereading.current === done) rereading.current = null;
               });
+            rereading.current = done;
           }
         }
       }

@@ -8,6 +8,7 @@ import { boundsOf, distanceM } from '../../geo';
 import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from '../../nav/eta';
 import { announceStep, navStep, passedStops, rejoinPlanned, routeTo, routeVia, startNav, tooFar, viaAhead, type NavState } from '../../nav/navigator';
 import type { Route, RouteSource, Waypoint } from '../../nav/types';
+import { mapReadLock } from '../../mapReads';
 import type { useNavigation } from '../../nav/useNavigation';
 import type { LngLat } from '../../types';
 
@@ -108,7 +109,9 @@ const straight = (a: LngLat, b: LngLat, source: string): Route => ({ path: [a, b
 
 /**
  * The hook, mounted, with a db and a map whose reads can be held: `hold(name)` makes the next call of that read wait for
- * `release(name)`. The streets route anywhere while `world.streets` is true; the trace (walk me back) likewise.
+ * `release(name)`. The map's reads share one real lock (`mapReadLock`), as the app's do. A read of the map finds a street
+ * where each view stood, and the streets route only from within 150 m of a street read (the cache holds none), while
+ * `world.streets` is true; the trace (walk me back) routes anywhere while `world.trace` is.
  */
 function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: boolean } = {}) {
   const world = { streets: true, trace: true, open: true };
@@ -135,10 +138,15 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
     getSegmentsIn: holdable('getSegmentsIn', () => []),
     getWalk: holdable('getWalk', () => ({ id: 'w', open: world.open })),
   };
-  const streets = (): RouteSource => ({ id: 'streets', route: (a, b) => (world.streets ? straight(a, b, 'streets') : null) });
+  type Seg = { id: string; at: LngLat };
+  const streets = (segs: Seg[]): RouteSource => ({
+    id: 'streets',
+    route: (a, b) => (world.streets && segs.some((x) => distanceM(x.at, a) <= 150) ? straight(a, b, 'streets') : null),
+  });
+  const notices: string[] = [];
   const map = {
     size: () => ({ width: 390, height: 844 }),
-    collect: async (_views: LngLat[], shouldStop?: () => boolean) => {
+    collect: async (views: LngLat[], shouldStop?: () => boolean) => {
       asked.push('collect');
       stops.push(!!shouldStop?.());
       stopFns.push(() => !!shouldStop?.());
@@ -147,7 +155,7 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
         held.delete('collect');
         await h.p;
       }
-      return { roads: [], names: [], places: [], pois: [], complete: true };
+      return { roads: views.map((v): Seg => ({ id: v.join(), at: v })), names: [], places: [], pois: [], complete: true };
     },
   };
   let host: ReturnType<typeof hookHost> | null = null;
@@ -161,9 +169,9 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
     db,
     boundsOf,
     distanceM,
-    mapReads: { run: <T>(fn: () => Promise<T>) => fn() },
+    mapReads: mapReadLock(),
     withTimeout: <T>(p: Promise<T>) => p,
-    deriveSegments: () => [],
+    deriveSegments: (roads: Seg[]) => roads,
     formatDistance: (m: number) => `${Math.round(m)} m`,
     routeLeanings: { store: { get: () => (o.scenic ? ['green'] : []) } },
     getUnits: () => 'metric',
@@ -175,7 +183,7 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
       { leanings: ['green'], route: straight(from, to, 'scenic') },
     ],
     scenicPlan: () => (o.scenic ? { scenic: true, notice: null } : { scenic: false, notice: null }),
-    scenicRouteSource: () => streets(),
+    scenicRouteSource: (s: RouteSource) => s,
     scenicRead: { read: holdable('scenicRead', () => ({ segments: [], signals: {} })) },
     clearNav: async () => {
       cleared.push(Date.now());
@@ -184,7 +192,7 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
     saveNav: async (_id: string, dest: Waypoint) => {
       saved.push(dest);
     },
-    streetRouteSource: () => streets(),
+    streetRouteSource: (segs: Seg[]) => streets(segs),
     traceRouteSource: () => ({ id: 'trace', route: (a: LngLat, b: LngLat) => (world.trace ? straight(a, b, 'trace') : null) }),
     ...findGate,
   });
@@ -197,13 +205,13 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
     map: () => map as never,
     onArrive: () => {},
     onError: (m) => errors.push(m),
-    onNotice: () => {},
+    onNotice: (m) => notices.push(m),
   };
   host = hookHost(mod.useNavigation, props);
   host.render();
   void t;
   return {
-    world, asked, saved, cleared, errors, stops, stopFns,
+    world, asked, saved, cleared, errors, notices, stops, stopFns,
     get nav(): Nav {
       return host!.result;
     },
@@ -345,11 +353,117 @@ test('tend navigation 3: the decisions, pure: a re-read has its own flag and nev
   const f = startFind(r);
   assert.ok(f && f.busy, 'a Go here during a re-read starts its find at once');
   assert.equal(rereadStops(f), true, 'and the re-read, for the route being replaced, stops between views');
-  assert.deepEqual(endReread(f), { finds: { ...f, reread: null }, keep: false }, 'its streets are not added to the new route');
+  assert.deepEqual(endReread(f, false), { finds: { ...f, reread: null }, keep: false }, 'its streets are not added to a new route');
   assert.equal(startReread(f, 200_000, 0, 60_000), null, 'no re-read while a Go here is found: it reads its own streets');
-  const done = endReread(r);
+  const done = endReread(r, true);
   assert.deepEqual(done, { finds: { ...r, reread: null }, keep: true }, 'a re-read no Go here interrupted adds its streets');
+  // tend navigation audit 3: a Go here cancelled or failed leaves the route it served followed, which keeps them.
+  assert.equal(endReread(endFind(f, f.gen), true).keep, true, 'tend navigation audit 3: the route still followed keeps the streets read for it');
   assert.equal(endFind(f, f.gen).reread, r.reread, 'a find ending leaves a re-read alone');
+});
+
+/** Navigating east, then a minute on, off that route where no street read before reaches: the streets are read again, held. */
+async function rereading(t: TestContext, h: ReturnType<typeof mount>, far: LngLat) {
+  await h.nav.goTo(dest());
+  assert.ok(h.nav.nav, 'navigating east');
+  t.mock.timers.tick(61_000);
+  const release = h.hold('collect');
+  const reads = h.stops.length;
+  await h.fix(far, 2);
+  await h.fix([far[0], far[1] + 5 * mLat], 3);
+  assert.equal(h.stops.length, reads + 1, 'the re-read is under way');
+  return release;
+}
+
+test('tend navigation audit 1: a Go here during a re-read reads the map once the re-read stops, and is routed', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+  const findGate = await gate();
+  const h = mount(t, findGate);
+  const far = at(0, 600);
+  const release = await rereading(t, h, far);
+  // Go here 300 m on from where the walker stands: no street is cached there, so only the map's read can route it.
+  const there: Waypoint = { ...dest(), at: at(300, 600), label: 'There' };
+  const going = h.nav.goTo(there);
+  await flush();
+  assert.equal(h.nav.finding, true, 'the spinner shows while the re-read stops');
+  const collects = h.asked.filter((x) => x === 'collect').length;
+  release();
+  await going;
+  await flush();
+  assert.equal(h.asked.filter((x) => x === 'collect').length, collects + 1, "the Go here read the map itself, once the re-read let go of it");
+  assert.deepEqual(h.errors, [], 'tend navigation audit 1: no "No walking route found nearby" for a map read refused');
+  assert.deepEqual(h.nav.nav?.dest.at, there.at, 'the new route is followed');
+});
+
+test('tend navigation audit 2: Cancel, a failure or a dismissed preview of a second Go here keeps the followed route saved', async (t) => {
+  const findGate = await gate();
+  // Cancel of a second Go here.
+  const h = mount(t, findGate);
+  await h.nav.goTo(dest());
+  assert.ok(h.nav.nav && h.saved.length === 1, 'navigating east, the destination saved');
+  const cleared = h.cleared.length;
+  await cancelDuring(h, 'getWalk', { ...dest(), at: at(0, -300) });
+  assert.equal(h.cleared.length, cleared, 'tend navigation audit 2: Cancel of the second Go here leaves the route followed saved');
+  // A second Go here that fails.
+  await h.nav.goTo({ ...dest(), at: at(0, 20_000), label: 'Far' });
+  assert.deepEqual(h.errors, ['Too far to walk from here'], 'the second Go here fails');
+  assert.equal(h.cleared.length, cleared, 'tend navigation audit 2: its failure leaves the route followed saved');
+  assert.equal(h.nav.nav?.dest.at, EAST, 'and the route east is still followed');
+  // A second Go here's preview, dismissed.
+  const s = mount(t, findGate, { scenic: true });
+  await s.nav.goTo({ ...dest(), leanings: ['green'] });
+  assert.ok(s.nav.nav, 'navigating east on a leaning');
+  const before = s.cleared.length;
+  await s.nav.goTo({ ...dest(), at: at(0, -300) });
+  assert.ok(s.nav.preview, 'the second Go here offers its routes');
+  s.nav.dismiss();
+  assert.equal(s.cleared.length, before, 'tend navigation audit 2: a dismissed preview leaves the route followed saved');
+  // With nothing followed, Cancel still forgets the destination asked for (a reload must not try it again).
+  const n = mount(t, findGate);
+  const was = n.cleared.length;
+  await cancelDuring(n, 'getWalk', dest());
+  assert.equal(n.cleared.length, was + 1, 'with no route followed, Cancel clears the saved destination as before');
+});
+
+test('tend navigation audit 3: a Go here cancelled during a re-read leaves the route followed its streets', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+  const findGate = await gate();
+  const h = mount(t, findGate);
+  const far = at(0, 600);
+  const release = await rereading(t, h, far);
+  // A Go here meanwhile, cancelled while it waits on the map: the route east is still followed.
+  const going = h.nav.goTo({ ...dest(), at: at(300, 600), label: 'There' });
+  await flush();
+  h.nav.cancel();
+  release();
+  await going;
+  await flush();
+  assert.equal(h.nav.nav?.dest.at, EAST, 'the route east is still followed');
+  // The next re-route, a while on and well inside the minute, is made on the streets the re-read found around the walker.
+  t.mock.timers.tick(16_000);
+  await h.fix([far[0], far[1] + 10 * mLat], 4);
+  await h.fix([far[0], far[1] + 15 * mLat], 5);
+  assert.ok(h.notices.includes('New route'), `tend navigation audit 3: the re-read's streets mend the route (${JSON.stringify(h.notices)})`);
+});
+
+test('tend navigation audit 3: a route started during a re-read takes none of the streets read for the one it replaced', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+  const findGate = await gate();
+  const h = mount(t, findGate);
+  const far = at(0, 600);
+  const release = await rereading(t, h, far);
+  // Walk me back meanwhile: routed along the trace, with no map read, so it starts while the re-read still runs.
+  await h.nav.goTo({ at: FROM, label: 'Start', kind: 'start' });
+  assert.equal(h.nav.nav?.dest.kind, 'start', 'led back to the start');
+  release();
+  await flush();
+  // Off the way back, beside the streets the re-read found: none of them is the way back's, so nothing mends it.
+  h.world.trace = false;
+  const said = h.notices.length;
+  await h.fix(at(100, 600), 6);
+  await h.fix(at(100, 605), 7);
+  assert.ok(h.nav.nav?.offRoute, 'off the way back');
+  assert.ok(!h.notices.slice(said).includes('New route'), `tend navigation audit 3: the replaced route's re-read added nothing (${JSON.stringify(h.notices.slice(said))})`);
 });
 
 void (null as unknown as NavState);

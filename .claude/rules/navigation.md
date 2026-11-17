@@ -55,6 +55,10 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     own number, and `goTo` asks `findGoesOn` after every await, so a Cancel holds wherever it lands and ends with its
     find. A failed re-route's re-read has its own flag and no spinner: a Go here meanwhile is found at once, and the
     re-read stops between views and adds nothing. `goHere.test.ts` runs the hook's own source with fakes.
+  - **After the audit of tend navigation 2, 3:** a find that needs the map waits for a re-read under way to let go of it
+    (`mapReads` refuses a second read at once), and a re-read's streets join the route only if that route is still
+    followed (`sources.current` is the list it was read for). Cancel, a failure and a dismissed preview forget the saved
+    destination only while no route is followed. The harness uses the real `mapReadLock()`: a lock-free fake hid this.
   - **Screen readers:** the bar is not a live region. The distance is
     announced at 100 m steps (50 m under 200 m), at start and on a new route.
   - **Bridges and tunnels** (the concept doc's "Bridges and Open in Maps"
