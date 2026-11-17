@@ -29,6 +29,8 @@ export interface PendingJob {
   /** Ids every screen hides while it waits, and after it went (a removal hides `thread/moment`). */
   ids: string[];
   spec: DeleteSpec;
+  /** Test-first stub (EW9): the app's own drop, never saved for a relaunch. */
+  volatile?: boolean;
 }
 
 /** The key a waiting removal from a thread hides (UC6). */
@@ -139,6 +141,10 @@ export function createPending(o: {
     dismiss: release,
     /** Stores what waits now. */
     flush: release,
+    /** Test-first stub (EW8): the next flush is skipped. */
+    holdNextFlush(): void {
+      throw new Error('not implemented');
+    },
     /** Deletes saved by a run that was killed: hidden, stored, and no pill (UC13), whatever waits now (audit 9). */
     resume(jobs: PendingJob[]): Promise<void> {
       unstored = [...jobs, ...unstored];

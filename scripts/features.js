@@ -332,9 +332,9 @@ const FEATURES = [
     name: 'deletion',
     about: 'clearing walks and moments, with undo',
     rule: 'deletion',
-    source: ['src/lib/deletion/**', 'src/components/{WalkActions,UndoToast}.tsx'],
+    source: ['src/lib/deletion/**', 'src/lib/emptyWalk/**', 'src/components/{WalkActions,UndoToast}.tsx'],
     journeys: ['deletion'],
-    specs: ['clearing-walks-and-moments', 'ui-conformance'],
+    specs: ['clearing-walks-and-moments', 'ui-conformance', 'empty-walk'],
   },
   {
     name: 'memories',

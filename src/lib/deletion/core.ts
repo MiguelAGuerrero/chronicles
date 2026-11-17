@@ -145,7 +145,7 @@ export function pieceDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
 }
 
 /** D5: the pill's words, naming the moment's kind when it is known. */
-export function toastText(kind: DeleteKind, what?: CaptureKind): string {
+export function toastText(kind: DeleteKind, what?: CaptureKind, _dropped?: boolean): string {
   if (kind === 'walk') return 'Walk deleted';
   if (kind === 'media') return 'Photos, videos and memos removed';
   if (kind === 'thread') return 'Thread deleted';

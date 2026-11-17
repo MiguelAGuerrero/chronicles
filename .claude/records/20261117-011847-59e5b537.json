@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Empty walk (stopping a walk with no moment, no street and no real movement drops it instead of replaying it: Walk not kept, with Undo that waits, a kill restores it; EW1-EW12, decision 0113 amended) | `claude/cool-mendel-4m8gkk` | started 2026-11-17: spec, plan and steward triage done; tests first (todos) committed, code next |\n"
+    }
+  ]
+}
