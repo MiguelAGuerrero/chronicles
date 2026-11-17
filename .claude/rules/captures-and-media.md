@@ -151,6 +151,11 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 - Never call `stop()` on a recorder that already stopped by itself: on web it waits
   forever for `dataavailable`. `stopRecorder` checks `isRecording` and races a 3 s
   timeout.
+- **A stopped memo's file is the recorder's uri only when this memo set it** (`memoFile`, `media/memoSave.ts`;
+  tend captures 1). The web recorder (expo-audio 58) writes `uri` only when its stop answers and never clears it at
+  prepare, so a stop given up on leaves null or the last memo's blob URL (already revoked by `keepFile`). Read the
+  uri before `prepareToRecordAsync` and compare. A failed memo with no file is said and let go (`failedMemo`, the
+  `lost` result, which Stop does not wait on), never held for a Retry. Phones name a new file per prepare (unverified).
 - `getStatus().durationMillis` is 0 once a native recorder has stopped. Judge
   "accidental tap" by wall-clock time, never by that number.
 - The web image picker reports video `duration` in seconds; native reports

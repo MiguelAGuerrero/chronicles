@@ -186,6 +186,12 @@
       "swept": "2026-11-16",
       "main": "d50d8a512f5c45e385e488945fa5ede2737f1124",
       "note": "First run, not a sweep (lenses 1-6 not run): built the owner's answer to the [arch] neighbourhood read-past (decision 0172) as tend presence 1, the read-past after normalizeWords in presence and community parks alike under PRESENCE_CODE p5, nothing carried; the auditor's F1, F2, F3, F4, F6 (the owner's Nov 16 answer: Old Towne, Olde Town, Oldtown) and F7 fixed as tend presence audit 1, F5 rejected. Goldens unchanged. No [loop] item of presence's own files left in DEFERRED."
+    },
+    "captures": {
+      "state": "rough",
+      "swept": "2026-11-17",
+      "main": "8e1515ca2be126bbf667ee94185ab239a63b6023",
+      "note": "No sweep (lenses 1-7 not run): a run on the two Navigate, ready voice-memo [loop] items. Built tend captures 1 (a memo whose stop timed out is said and let go, never held for a dead Retry; memoFile, failedMemo) and the review's F11 as tend captures audit 1 (the space journey's patched recorders ended). Item 2 was built and dropped after the review (F1-F8: incomplete); the owner's \"Ship fix 1, slice the rest\" makes it a slice where one holder owns every unsaved memo, noted on the item; the first attempt is the unpushed branch tend/captures-20261117-1418. F9, F10 filed [loop] low; memoFile on a phone in NATIVE_UNVERIFIED."
     }
   },
   "declined": []

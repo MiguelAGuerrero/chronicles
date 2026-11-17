@@ -251,14 +251,13 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 17, `/tend explore --deploy=main`, the accent at rest across Explore and Chronicle** (opened from `28daf0a1`, rebased on `3cf80652`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
-- The items, as main held them: Explore and discovery's `[loop]` "Explore's accent at rest beyond the selected card", and "Open before the loop", the vision review of Nov 10, item 4 "The accent at launch". Both leave the record; decision 0172's rule: "The accent is kept for a card's single primary action, app-wide; everything at rest is ink".
-- `tend explore 19`: the area card's "How the marks work" and its icon in ink. `tend explore 20`: the selected area's name and its dot's ring on Explore's map in ink.
-- `tend chronicle 11`: the "Thread" label on both thread screens, and a found thread's quote rule, in ink. `tend chronicle 12`, then `tend chronicle audit 6` (the owner's "A mic glyph"): a memo's card draws a 16 px ink mic, no disc. "A year ago today" (muted) and "Relive it" (an ink menu item) were already not the accent; none of the four is a card's single primary action.
-- Decision 0186, "The owner's answers of Nov 16 and 17": twelve answers verbatim, the accent at rest's two named exceptions (the selected tab's tint, "Keep the accent tint"; the area card's map-key status lines, "Leave them coloured"), and QL22's, GZ9's and GZ10's wording for the owner.
-- T22's swatches (no build): olive, plum and umber rendered on the replay's beat one and the walk's card from throwaway exports; the owner picked umber, then "Let's re-imagine the palette": no hue yet, T22 stays open, noted.
-- The review (one round, the `ux-reviewer`): accepted U2 (`tend chronicle audit 6`) and U7 (`tend explore audit 22`: "Cancel" while Explore looks and the search's close word in ink); filed `[loop]` medium U3 (a found thread's loose buttons) and U4 (the journal toolbar's hint at 320 px, not a one-line fix); filed `[loop]` low U1, U5, U8. U6 answered by the owner ("Keep the accent tint").
-- Journeys on the final export: atlas, reactions, launch; resurface and threads on the earlier export. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
+**Nov 17, `/tend captures --deploy=main`, two voice-memo items of Navigate, ready** (opened from `8e1515ca`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
+- The items, as main held them: "A voice memo whose recorder stop timed out (`STOP_TIMEOUT_MS`, 3 s) can hold a null `uri` …" and "A memo that fails to save as the screen unmounts (the ready chevron, a browser Back) is lost silently …".
+- `tend captures 1`: a memo whose stop timed out is said ("Couldn’t save this voice memo.") and let go, never held for a Retry that cannot work; the web recorder's uri is this memo's only when its own prepare or stop set it (`media/memoSave.ts`, `memoFile`, `failedMemo`; Stop goes on for a memo with no file). The first item leaves DEFERRED.
+- `tend captures audit 1`: the `space` journey ends the recorders whose stop it ignored and puts the browser's stop back (the review's F11).
+- The second item was built as `tend captures 2` (the memo handed on through `memoGate`) and dropped after the review: the auditor found it incomplete (a held memo still dropped as its screen goes, a second failure overwriting the first, no Stop warning). The owner, in person: "Ship fix 1, slice the rest". The item stays open with that note; the review's F1-F8 are the slice's criteria; the unpushed branch `tend/captures-20261117-1418` holds the first attempt.
+- The review (one round, the `auditor`): accepted F11; deferred F1-F8 to the slice, F9 and F10 filed `[loop]` low; none rejected. The phone check for `memoFile` and the auditor's iOS interruption and media-reset notes went to NATIVE_UNVERIFIED.
+- Journeys: `space` and `launch` on the final export; `npm test`, typecheck and lint. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass (not due). Nothing here has run on a phone.
 
 ### Open before the loop
 
