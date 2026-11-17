@@ -6,13 +6,14 @@ const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|e
 const NAMES = ['Brass Key Antiques', 'Dusty Attic', 'Grandma Trunk Antiques', 'Lamp and Ladder'];
 
 async function run(h) {
-  const { exploreUrl, at, check, freshPage } = h;
+  const { exploreUrl, at, check, freshPage, shot } = h;
   const { c, pg } = await freshPage('outing');
   const here = at(-248, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
   await pg.goto(exploreUrl);
   // The first fix places Explore at Curio Row, as the planner's journey waits for its area.
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Curio Row"]', { timeout: 60000 }).catch(() => {});
+  await shot(pg, '01-explore');
   const entry = pg.locator('[data-testid=outing-entry]');
   await entry.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
   // QC1, QC27: one control, worded, on Explore, with no badge or count.
@@ -23,6 +24,7 @@ async function run(h) {
   await entry.click();
   await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing]').count()) === 1, 'QC1: one tap opens the page');
+  await shot(pg, '02-page-empty');
   // QC2, QC29: with nothing picked, one plain line and no slot; the vocabulary is alphabetical.
   const chips = await pg.locator('[data-testid^=outing-want-]').evaluateAll((els) => els.map((e) => e.textContent));
   check(JSON.stringify(chips) === JSON.stringify(['Antiques', 'Books', 'Thrifting']), `QC2: the entries are alphabetical (${chips.join(',')})`);
@@ -42,6 +44,8 @@ async function run(h) {
   check((await pg.locator('[data-testid=outing-reason-noLoop]').count()) === 1 && (await pg.locator('[data-testid^=outing-slot-]').count()) === 0, 'QC10: where a loop cannot be made without retracing, the page says so');
   await pg.click('[data-testid=outing-mode-oneway]');
   await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
+  await pg.waitForTimeout(2500);
+  await shot(pg, '03-proposal');
   const slots = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => e.textContent));
   check(slots.length >= 2 && slots.length <= 3, `QC8: two or three stops (${slots.length})`);
   check(slots.every((s) => /^An antiques shop, (a short walk on|a little way on|some way on)$/.test(s ?? '')), `QC17: a slot says its kind and how far, in words (${slots.join(' | ')})`);
@@ -57,11 +61,13 @@ async function run(h) {
   const card = await pg.locator('[data-testid=outing-card]').innerText().catch(() => '');
   check(NAMES.some((n) => card.includes(n)) && !/hour|open|closed|unknown/i.test(card), `QC18: a tap names the shop on a card and says nothing of hours (${card.replace(/\s+/g, ' ')})`);
   // QC21: Swap closes the card and the new slot is unnamed.
+  await shot(pg, '04-card');
   const swapLabel = await pg.locator('[data-testid=outing-swap-0]').innerText();
   await pg.click('[data-testid=outing-swap-0]');
   await pg.waitForTimeout(300);
   const after = await pg.locator('[data-testid=outing]').innerText();
   check(swapLabel === 'Swap this stop' && (await pg.locator('[data-testid=outing-card]').count()) === 0 && !NAMES.some((n) => after.includes(n)), 'QC21: Swap is worded "Swap this stop", closes the card and leaves the new slot unnamed');
+  await shot(pg, '05-after-swap');
   // QC41: the switch is kept.
   await pg.click('[data-testid=outing-chains]');
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'true', 'QC41: Include chains turns on');
