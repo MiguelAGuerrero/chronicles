@@ -281,3 +281,12 @@ test('XS28: an artistic fountain is Public art and shows with Fountains off; a p
   // The archive's own split: a fountain that is art comes as `sculpture` (data ST5).
   assert.equal(placesFromArchive([{ type: 'Feature', geometry: { type: 'Point', coordinates: O }, properties: { name: 'Swann', class: 'sculpture', src: 'wd', id: 'p' } }] as never, V)[0]?.kind, 'public_art');
 });
+
+// The cold find (decision 0167, Nov 17): icons that read as something else in this app or in general.
+test('explore-subtypes ui 1: no subtype wears an icon that reads as Settings, your trace, danger or another row\'s tool', () => {
+  const icon = (id: string) => KINDS.find((k) => k.id === id)?.icon;
+  assert.notEqual(icon('mills'), 'cog-outline', 'a gear reads as Settings');
+  assert.notEqual(icon('ghost_towns'), 'footprints-outline', 'footprints read as your own walks in a walking app');
+  assert.notEqual(icon('old_ruins'), 'skull-outline', 'a skull reads as danger or death');
+  assert.notEqual(icon('lighthouses'), 'flashlight-outline', 'a flashlight reads as a pen or a hammer beside Archaeological sites');
+});
