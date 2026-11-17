@@ -11,14 +11,14 @@ with a decision record.
 
 ## Who it is for
 
-People who walk to notice: they value novelty and exploration, wander a town with no plan, and want to
+People who go out to notice: they value novelty and exploration, wander a town with no plan, and want to
 keep what they found. A narrow audience on purpose (the owner, Nov 5). Not hikers (no trails), not
 runners (no fitness), not completionists (nothing is a score), not reviewers (no ratings), not tourists
 working through a list.
 
 ## What it is
 
-An instrument for making memories on foot, **Chronicle first** (the owner, Nov 5). It brings together
+An instrument for making memories while out, **Chronicle first** (the owner, Nov 5; 0197). It brings together
 what other apps do apart (a way, a camera and notes, a replay, a journal) under one philosophy: **every
 moment captured is worth remembering**. Exploration and navigation exist to feed the corpus of moments;
 the walks are one way into it; the map is one view of it, not its home. Later, recall and search make the
