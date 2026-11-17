@@ -15,9 +15,9 @@ For the owner's review before any code.
 | `src/app/walk.tsx`, `src/components/CaptureView.tsx` | The labels "Go here" (walk.tsx ~l.1452, 1775, 1864; the viewer's `viewer-go`) become "Route here"; test ids and behaviour unchanged (OM13). Journeys that read the word (`walk`, `headsup`, `scenic`) follow. |
 | `src/lib/atlas/waitingPins.ts` | `pageBack`'s `goHere` option and `'gohere'` result go (OM11). |
 | `src/components/GoHere.tsx`, `GoHereSheet.tsx`, `src/lib/atlas/goHere.ts`, `src/lib/__tests__/explore/goHere.test.ts`, journeys `gohere.js`, `gohere-chronicle.js` | Removed; their live behaviour moves to the files above and the journeys below. |
-| `scripts/features.js` | `RETIRED`: `explore-go-here` GH1-GH15 and `go-here-everywhere` GE1-GE13 (the owner's call, Nov 17, decision 0191); the explore feature's `journeys` and `specs`; `open-in-maps-here` in `IN_PROGRESS` while built. |
+| `scripts/features.js` | `RETIRED`: `explore-go-here` GH1-GH15 and `go-here-everywhere` GE1-GE13 (the owner's call, Nov 17, decision 0193); the explore feature's `journeys` and `specs`; `open-in-maps-here` in `IN_PROGRESS` while built. |
 | `.claude/rules/go-here.md` | Rewritten as `.claude/rules/open-in-maps-here.md` (paths: the new files). |
-| `docs/PRODUCT.md`, `docs/decisions/0191-*.md`, `docs/decisions/README.md` | The product text; the decision that supersedes 0189 and 0190 (OM12). |
+| `docs/PRODUCT.md`, `docs/decisions/0193-*.md`, `docs/decisions/README.md` | The product text; the decision that supersedes 0189 and 0190 (OM12). |
 
 Nothing changes `SNAP_RULES`, `STREET_CODE` or `LANDING_CODE`.
 

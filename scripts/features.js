@@ -156,7 +156,7 @@ const FEATURES = [
       'src/lib/gazetteer/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'gohere', 'gohere-chronicle', 'subtypes', 'openmaps', 'openmaps-chronicle'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'open-in-maps-here'],
   },
   {
@@ -370,7 +370,7 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
-  // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0191):
+  // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0193):
   // specs/open-in-maps-here (OM1-OM14) carries what stands of them.
   'explore-go-here': Array.from({ length: 15 }, (_, i) => `GH${i + 1}`),
   'go-here-everywhere': Array.from({ length: 13 }, (_, i) => `GE${i + 1}`),
@@ -504,7 +504,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'open-in-maps-here': { branch: 'claude/focused-brahmagupta-eajl5h', since: '2026-11-17' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
