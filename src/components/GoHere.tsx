@@ -18,7 +18,7 @@ export interface GoHereTarget {
 }
 
 /**
- * Go here on any surface (decision 0185 and the rest: specs/go-here-everywhere): `ask(target)` opens the one sheet of two
+ * Go here on any surface (decision 0187 and the rest: specs/go-here-everywhere): `ask(target)` opens the one sheet of two
  * choices; Chronicles saves the place and opens Navigate, ready (or, with a walk open, does what the host's own walk start
  * does, NV10); the maps app gets the destination straight from the tap. Back and Escape close the sheet. `sheet` is to be
  * rendered by the host, inside its screen.

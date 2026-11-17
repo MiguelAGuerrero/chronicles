@@ -1,0 +1,58 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Go here on the rest of the surfaces"
+      ],
+      "body": "| Go here on the rest of the surfaces (Explore's area card footer, its complex and busy-area rows, its long-press card; Chronicle's star sheet and long-press card: the same two-choice sheet, at the top on Chronicle; only coordinates and a neutral label leave; GE1-GE13, decision 0188) | built 2026-11-16 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/go-here-everywhere/spec.md` | plan audited by the steward (1 breach, 1 breach in the criteria, 5 drifts, 1 tone: all accepted); cold find and UI review run; audited Nov 16 (19 findings: 6 fixed, 3 deferred, 10 rejected) |\n",
+      "target": "sha256:014a085cf70a55fad340c749a5b03772e51169279fe6dfd08acec26e7a1a177b"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Explore: Go here on every tile"
+      ],
+      "body": "| Explore: Go here on every tile (a quiet \"Go here\" on each area tile opens a sheet of two choices: Chronicles, which saves the destination and opens Navigate ready, or the phone's maps app, handed the destination alone; GH1-GH15, decision 0187) | built 2026-11-14 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/explore-go-here/spec.md` | plan audited by the steward (1 breach, 5 drifts, 1 tone: all accepted); UI review and cold find run (2 accepted, 4 rejected as opinion); the built slice not audited |\n",
+      "target": "sha256:4126b794855e6d658bd922e165f2ea7f35eaa08c3283972d64c8f0a0dea4bf4d"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "tap Go here on a tile, then Apple Maps",
+        "--reason",
+        "decision numbers renumbered 0185 to 0187 and 0186 to 0188 after a second rebase onto main, which took those numbers"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open Explore, tap Go here on a tile, then Apple Maps. **Expect:** Apple Maps opens with walking directions to that area's place; back in Chronicles the sheet is closed and recording (if a walk is open) went on (GH4, decision 0187)\n",
+      "target": "sha256:06d2a7b3364a432c5f583109d920d5fe3bfc36cb42df3ff6bccf3ca767253de6"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "tap Go here under Walk to, then Apple Maps",
+        "--reason",
+        "decision numbers renumbered 0185 to 0187 and 0186 to 0188 after a second rebase onto main, which took those numbers"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open Explore, open a town's card and tap Go here under Walk to, then Apple Maps; also a complex's row. **Expect:** Apple Maps opens with walking directions to that place; the card is as it was (GE1, GE3, decision 0188)\n",
+      "target": "sha256:2844e96143a0213099100bc44cb00c67227f1e3f999d5fac47d389ef7f7426f6"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "busy-area rows (`atlas-busy-go-here`"
+      ],
+      "body": "  Second correction (rebase, Nov 17): the Go here decision named in the storefront-rows item is now 0188 (main took 0185 and 0186 too); the tile's is 0187.\n",
+      "target": "sha256:8e0d70e75fa1e194439837ce9b4ea7f1ab45ae0464fe45f26a7217b3e71512ea"
+    }
+  ]
+}
