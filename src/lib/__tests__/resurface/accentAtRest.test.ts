@@ -21,3 +21,12 @@ test('tend chronicle 11: a thread\'s "Thread" label and its quotes\' rule are in
   }
   assert.match(style(found, 'quote'), /borderLeftColor:\s*theme\.ink\b/, style(found, 'quote'));
 });
+
+// A memo's play disc on a moment's card is not a control: the card is one button that opens the moment (where the memo
+// plays), so the disc only says "a voice memo" and is at rest. Ink, its glyph white on it.
+test('tend chronicle 12: a memo\'s play disc on a moment card is ink at rest, never the accent', () => {
+  const card = read('chronicle', 'MomentCard.tsx');
+  assert.doesNotMatch(card, /theme\.accent/, 'MomentCard draws nothing in the accent');
+  assert.match(style(card, 'play'), /backgroundColor:\s*theme\.ink\b/, style(card, 'play'));
+  assert.match(card, /testID="moment-play"/, 'the disc carries a testID the e2e reads');
+});

@@ -434,6 +434,49 @@ async function run(h) {
   await pg.waitForTimeout(600);
   check(fail9.line === 'Not kept yet' && fail9.chosen === 'false', `RL9: a reaction not kept is not shown as chosen, and the panel says so in words (${JSON.stringify(fail9)})`);
 
+  // tend chronicle 12 (decision 0172, the accent at rest): a voice memo's card in a lens shows its play disc in ink
+  // (#1d2430), its glyph white; the card itself is the one button. A memo with Idea is added last, so the checks above
+  // read the seed as they always have; the lens is the one place a memo's MomentCard shows (the journal draws entries).
+  const memo12 = await pg.evaluate(({ now, p, day }) => new Promise((resolve, reject) => {
+    const id = 'rx-memo';
+    const t = now - 4 * day;
+    const req = indexedDB.open('chronicles');
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['moment', 'reaction'], 'readwrite');
+      tx.objectStore('moment').put({ id, walk_id: null, t, lat: p[1], lon: p[0], segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t, kind: 'voice', file_path: 'x', body: '42000', caption: null, caption_y: null }] });
+      tx.objectStore('reaction').put({ moment_id: id, family: 'thought', reaction: 'idea', set_at: t });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    };
+  }), { now: Date.now(), p: at[4], day: DAY }).catch((e) => String(e).slice(0, 200));
+  await pg.reload();
+  await there(entries, 20000);
+  await pg.waitForTimeout(800);
+  await pg.click('[data-testid=memories-menu]').catch(() => {});
+  await pg.waitForTimeout(500);
+  await pg.click('[data-testid=menu-reactions]', { timeout: 3000 }).catch(() => {});
+  await there('[data-testid=reactions-screen]');
+  await pg.click('[data-testid=lens-row-idea]', { timeout: 3000 }).catch(() => {});
+  await there('[data-testid=lens-screen]');
+  await pg.waitForTimeout(800);
+  const disc12 = pg.locator('[data-testid=lens-screen] [data-testid=moment-play]').first();
+  await disc12.scrollIntoViewIfNeeded().catch(() => {});
+  const ink12 = (await disc12.count()) ? await disc12.evaluate((el) => ({
+    fill: getComputedStyle(el).backgroundColor,
+    glyph: [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent).map((e) => getComputedStyle(e).color)[0] ?? null,
+  })) : null;
+  check(memo12 === true && !!ink12 && ink12.fill === INK && ink12.glyph === 'rgb(255, 255, 255)',
+    `tend chronicle 12: a memo's play disc on its card is ink at rest, its glyph white (${JSON.stringify({ memo12, ink12 })})`);
+  {
+    const vp = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: vp.height });
+    await pg.waitForTimeout(400);
+    await disc12.scrollIntoViewIfNeeded().catch(() => {});
+    await shot(pg, 'tend-chronicle-12-memo-card-320');
+    await pg.setViewportSize(vp);
+  }
+
   await c.close();
 }
 

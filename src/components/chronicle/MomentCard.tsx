@@ -57,7 +57,7 @@ export function MomentCard(props: {
         <View style={styles.body}>
           {m.kind === 'voice' && (
             <View style={styles.memo}>
-              <View style={styles.play}><Icon name="play" size={14} color={theme.accentInk} /></View>
+              <View style={styles.play} testID="moment-play"><Icon name="play" size={14} color={theme.surface} /></View>
               <Text style={styles.memoText}>{memoWords(m.capture)}</Text>
             </View>
           )}
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   note: { fontSize: 17 },
   meta: { color: theme.muted, fontSize: 13 },
   memo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  play: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },
+  play: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   memoText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   foot: { flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 6, minHeight: 44 },
   from: { flex: 1, minHeight: 32, justifyContent: 'center' },
