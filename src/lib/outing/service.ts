@@ -2,8 +2,9 @@
 import { distanceM } from '../geo';
 import type { StreetSegment, LngLat } from '../types';
 import { matchesAny, type Candidate, type Want } from './candidates';
+import type { Area } from './areas';
 import { planJourneys, type Journey } from './journeys';
-import { LEANINGS } from './leanings';
+import { LEANINGS, MIXED } from './leanings';
 import { outingCandidates, type TileShop } from './storesMerge';
 import { readStores, type StoresSource } from './storesRead';
 import { planOuting, planStops, type Outing, type OutingReason } from './plan';
@@ -69,12 +70,17 @@ export function createOutingService(deps: OutingDeps) {
       return { ...r, cands };
     },
 
-    /** OJ17, OJ38: the journeys for the picked chips, one per leaning, over the shops and the attractions together. */
-    journeys(req: Omit<PlanRequest, 'mode'>): { journeys: Journey[]; reasons: OutingReason[]; cands: Candidate[] } {
-      const cands = candsOf(req.session, req.chains);
-      if (!req.session.segments.length) return { journeys: [], reasons: req.picked.length ? ['noRoute'] : [], cands };
-      return { ...planJourneys({ cands, picked: req.picked, leanings: LEANINGS, from: req.session.from, ceilingM: req.ceilingM }, legOver(req.session.segments)), cands };
+    /**
+     * OJ17, OJ38, OJ44: the journeys for the picked chips over every area read, each with its own shops, attractions and streets:
+     * around where you stand is one area, a reach or a way toward a place several, and the planner is the same.
+     */
+    journeys(req: { reads: readonly { area: Area; session: Session }[]; origin: LngLat | null; picked: readonly Want[]; ceilingM: number; chains: boolean; toward: boolean; salts?: Readonly<Record<string, number>> }): { journeys: Journey[]; reasons: OutingReason[] } {
+      const areas = req.reads.map((r) => ({ area: r.area, from: r.session.from, cands: candsOf(r.session, req.chains), leg: legOver(r.session.segments) }));
+      return planJourneys({ areas, origin: req.origin, picked: req.picked, leanings: LEANINGS, mixed: MIXED, ceilingM: req.ceilingM, toward: req.toward, salts: req.salts });
     },
+
+    /** The candidates of one read, for a swap in its chapter. */
+    candidates: (session: Session, chains: boolean): Candidate[] => candsOf(session, chains),
 
     /**
      * QC21: the stop at `index` replaced by the nearest other store not held and not offered for that slot, the stops routed again; a

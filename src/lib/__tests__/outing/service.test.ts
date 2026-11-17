@@ -84,9 +84,10 @@ test('OJ35, OJ38: no read without a place; one read gives journeys over the pack
   assert.equal(log.reads + log.pack, 0, 'no place: nothing read, whatever chips are on');
   const session = await service.open(FROM, picked);
   assert.deepEqual([log.reads, log.pack], [1, 1]);
-  const r = service.journeys({ session: session!, picked, ceilingM: 3500, chains: true });
-  assert.deepEqual(r.journeys.map((j) => j.leaning), ['shops', 'old']);
-  service.journeys({ session: session!, picked, ceilingM: 3500, chains: false });
+  const reads = [{ area: { name: null, at: FROM }, session: session! }];
+  const r = service.journeys({ reads, origin: FROM, picked, ceilingM: 3500, chains: true, toward: false });
+  assert.deepEqual(r.journeys.map((j) => j.leaning), ['mixed', 'shops', 'old']);
+  service.journeys({ reads, origin: FROM, picked, ceilingM: 3500, chains: false, toward: false });
   assert.deepEqual([log.reads, log.pack], [1, 1], 'planning again reads nothing');
   assert.equal(await service.nameNear(at(240, 120), false), 'Spot h1', 'an attraction is named on arrival from the data, as a shop is');
 });

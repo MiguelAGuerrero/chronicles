@@ -13,7 +13,7 @@ test('OJ9: a destination\'s distance is said as "away", in the units setting, wi
   assert.doesNotMatch(awayLine(27_000, 'km'), BANNED);
 });
 
-test('OJ21: a card says the places in order, what it includes by the chips\' own words, and the distance on foot; no quantity word', { todo: 'test first' }, async () => {
+test('OJ21: a card says the places in order, what it includes by the chips\' own words, and the distance on foot; no quantity word', async () => {
   const { cardSummary } = await import('../../outing/journeyWords');
   const s = cardSummary({ places: ['Emmaus', 'Kutztown'], labels: ['Antiques', 'Books'], footM: 2100 }, 'km');
   assert.match(s, /^Emmaus and Kutztown\. Antiques and Books\. 2\.1 km on foot\.$/);
@@ -22,7 +22,7 @@ test('OJ21: a card says the places in order, what it includes by the chips\' own
   assert.match(cardSummary({ places: ['Emmaus'], labels: ['History'], footM: 0 }, 'km'), /^Emmaus\. History\.$/, 'a journey of single stops says no distance on foot');
 });
 
-test('OJ23, OJ24, OJ41: a town\'s line, a chapter\'s line and the reach, in words', { todo: 'test first' }, async () => {
+test('OJ23, OJ24, OJ41: a town\'s line, a chapter\'s line and the reach, in words', async () => {
   const w = await import('../../outing/journeyWords');
   assert.equal(w.townLine(['Antiques', 'History']), 'Antiques and History here.');
   assert.equal(w.chapterLine({ stops: 1, lengthM: 0, loop: false }, 'km'), 'One stop.');

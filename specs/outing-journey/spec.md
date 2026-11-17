@@ -44,7 +44,7 @@ Shape: up to three journeys that differ by leaning, in a fixed order, never by t
   is read about your position before you open the page and nothing is recorded before Start
 Precedent: Apple Maps (a destination, then routes and avoid options; verified); Google Maps (stops added along a route; unverified);
   Roadtrippers (places along a drive by category; unverified); Komoot (a planned tour between points you pick; unverified)
-Criteria: OJ1-OJ40 below
+Criteria: OJ1-OJ46 below
 Open: the road's distance (the app has no road routing: a straight-line distance, said as such, or a road graph of its own); capture
   while moving at driving speed; whether a time is ever said beside a distance
 ```
@@ -197,14 +197,31 @@ What never leaks:
   name, chip, leaning or path. It is cleared at Stop, is never on the stored session, in a share or handed to Maps, and no stored field
   says a town or a stop was reached or passed: what is behind you is read from the trace (QC24, QC25, QC29; the steward's S2). The one
   setting stays `outing_chains`.
-- **OJ35.** Network reads are the map's tiles and the stores pack's tiles for the towns of the journeys, made only after the person's own tap picks a destination (a chip that is on by default starts nothing by itself), and only for the
-  journey in view; they carry nothing but the tile path (QC29). The page says once, in words, that looking ahead reads the map for those
-  towns (the steward's S4).
+- **OJ35.** (rewritten, decision 0199) Opening the page is the tap that asks: it reads the map and the stores pack around where you
+  stand, for the chips that are on. A town further off is read only once the reach is widened or a destination is picked, one town
+  after another, and a change of either stops the reads that no longer matter. Reads carry nothing but the tile path (QC29).
 - **OJ36.** A shop met through a journey is never a mark, a find, a landing item or part of the atlas (QC31, D4).
 - **OJ37.** Reading is bounded per town (a set number of tiles) and can be stopped, never by a count of towns (0198); while a town is being read its line says so,
   and a read that fails leaves the town out and says one plain line, never an error code.
 - **OJ38.** The planner's core still holds no word of a kind of place (QC37): attractions enter as a second source of candidates through
   the same types, proved by a test that plans a journey from a fixture of both.
+
+One machine, with or without a destination (the owner, Nov 17, decision 0199):
+
+- **OJ41.** "An antique run within a certain radius": with no destination the page has a reach, worded "How far to look": "Close by"
+  (what a walk reaches) and three steps further out, in the units setting; one is chosen, "Close by" at first, and it is not
+  remembered. Beyond close by, the towns within the reach are looked at as well as where you stand. *Finding criterion:* someone shown
+  the page says how they would look for thrift shops within a drive.
+- **OJ42.** New places first: a town you have not been in on a recorded outing is looked at before one you have, and an attraction you
+  have not found is offered before one you have. Nothing says so on the page.
+- **OJ43.** When the chips that are on span leanings, a journey that draws on them all is offered ahead of the others, named in words
+  ("A bit of each"); it is not offered when its stops all came from one leaning.
+- **OJ44.** One machine: around here, within a reach and toward a place are all journeys of chapters over areas, planned by the same
+  code; around here is a journey of one chapter. A town with nothing of what you asked is not a chapter.
+- **OJ45.** An opened journey has "Another like this", which plans it again from other places; with none it says "No other like it
+  within reach." and changes nothing.
+- **OJ46.** The page proposes as it opens, around where you stand, with no destination asked for; the field over the map still reads
+  "Where to?". The sheet folds away ("Show the map") so the map can be read.
 
 - **OJ39.** While a session is open the outing page carries the capture stack, one tap each, never under the sheet, the cards or the
   search field at 320 px wide (QC30; the steward's S3).
@@ -249,6 +266,22 @@ which reads it anyway); a press and hold on the map to set a destination (OJ1's 
 sits under the chips); the attractions of the places archive (the tiles' own only); OJ39 has no check yet (the stack is the planner's,
 shown while a session records); the cold find and the UI review (decisions 0167, 0145) have not run. The opened journey's sheet covers
 part of its route on a small screen.
+
+**The one machine built 2026-11-17** (decision 0199), over step 1: journeys of chapters over areas (`areas.ts`, `journeys.ts`); the reach
+(OJ41); the towns toward a destination (OJ20, the first eight looked at, new ones first); new places first (OJ42); the mixed journey
+(OJ43); "Another like this" (OJ45); a town's line and a chapter's line (OJ23, OJ24, in the chips' own words, not yet the atlas's); a
+place standing alone as a chapter of one stop (OJ24); Open in Maps on each town, handing the town's point (OJ29's half); the places
+archive read beside the tiles; the page proposing as it opens and the sheet folding away (OJ46); the next move when nothing is found
+(OJ22). Unit tests for OJ17-OJ24, OJ37, OJ41-OJ45 (`areas`, `journeys`, `journeyWords`, `service`), committed failing first (`c7d8b9f`);
+the journey `outing` at 54 checks, with several journeys side by side, the mixed one, an unfound attraction unnamed on a tap, Another
+like this and a wider reach; `npm test` (2,964), typecheck, lint, `check:docs`, `check:vision`. Of the first cold find: C1 (several
+journeys pictured and checked), C2 ("Back"), C3 (the next move), C4 (the field keeps "Where to?"), C6 ("the way back is yours") are
+answered; C5 (which row a swap changed) is open. No second cold find and no UI review have run on this page.
+
+**Not built.** The session carrying a journey from town to town (step 3: Start begins the first town's chapter, and the page says so);
+"Leave this town out" (OJ26); the atlas's own words and street names in a town's line (OJ23); the setting for how many towns are looked
+at (0198; eight today); marks per kind and town outlines on the page's map; a shop's "been there" (0199, the owner's); the stores pack
+published (chronicles-data); a journey toward a far place has only been run against the test world, where the towns between hold nothing.
 
 **Cold find** (the `ux-reviewer`, pictures only, Nov 17, nine tasks in the owner's words): eight found (where to, nowhere in mind,
 thrifting, the commitment, which shop, a different stop, Go, changing the place, the last one late). **Not found: "see another

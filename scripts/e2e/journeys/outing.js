@@ -35,9 +35,20 @@ async function run(h) {
   const bounds = [-125, 24, -66.9, 49.4];
   const storesFile = 'stores-us-20261108.pmtiles';
   const placesFile = 'places-us-20261108.pmtiles';
-  const [sx, sy] = z12(at(-240, 0));
   places.files[storesFile] = encodeArchive(packTiles, bounds);
-  places.files[placesFile] = encodeArchive([{ z: 12, x: sx, y: sy, data: encodeTile([{ type: 'Feature', geometry: { type: 'Point', coordinates: at(-240, 5) }, properties: { name: 'Far Folly', class: 'folly', src: 'wd', id: 'p_0000000000900002' } }], 12, sx, sy, () => ['places']) }], bounds);
+  // The places archive: a far folly (as before), and three along Curio Street, so chips of two leanings give several journeys (OJ3, OJ43).
+  const follies = [[-240, 5, 'Far Folly', 2], [-246, -0.3, 'Gable Folly', 3], [-244, -0.3, 'Lantern Folly', 4], [-242, -0.3, 'Pepperpot Folly', 5]].map(([x, y, name, n]) => ({
+    type: 'Feature', geometry: { type: 'Point', coordinates: at(x, y) }, properties: { name, class: 'folly', src: 'wd', id: `p_000000000090000${n}` },
+  }));
+  const follyTiles = new Map();
+  for (const f of follies) {
+    const [x, y] = z12(f.geometry.coordinates);
+    follyTiles.set(`${x}/${y}`, [...(follyTiles.get(`${x}/${y}`) ?? []), f]);
+  }
+  places.files[placesFile] = encodeArchive([...follyTiles].map(([k, fs]) => {
+    const [x, y] = k.split('/').map(Number);
+    return { z: 12, x, y, data: encodeTile(fs, 12, x, y, () => ['places']) };
+  }), bounds);
   const manifestFile = (file, bytes) => ({ file, version: '20261108', bytes, sha256: 'e2e', minzoom: 12, maxzoom: 12, bounds });
   places.manifest = JSON.stringify({ schema: 1, regions: [{ id: 'us', current: manifestFile(placesFile, places.files[placesFile].length), previous: [], stores: { current: manifestFile(storesFile, places.files[storesFile].length), previous: [] } }] });
   places.asked.length = 0;
@@ -65,8 +76,9 @@ async function run(h) {
   const mapBox = await pg.locator('[data-testid=outing-map]').boundingBox().catch(() => null);
   const vp = pg.viewportSize() ?? { width: 0, height: 0 };
   check(whereText === 'Where to?' && !!mapBox && mapBox.height >= vp.height - 1, `OJ1: the page is the map, with a field worded "Where to?" over it (${whereText})`);
-  check((await pg.locator('[data-testid=outing-nowhere]').innerText().catch(() => '')).trim() === 'Nowhere in particular', 'OJ7: with no destination the page offers "Nowhere in particular"');
-  check((await pg.locator('[data-testid^=outing-want-]').count()) === 0 && (await pg.locator('[data-testid^=outing-journey-]').count()) === 0, 'OJ2: no chips and no journey before a place is given');
+  await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
+  check((await pg.locator('[data-testid=outing-title]').innerText().catch(() => '')).trim() === 'Around here' && (await pg.locator('[data-testid^=outing-want-]').count()) === 8, 'OJ7, OJ46: the page opens around here with its chips, no destination asked for');
+  check((await pg.locator('[data-testid=outing-reach-0]').getAttribute('aria-checked')) === 'true' && (await pg.locator('[data-testid^=outing-reach-]').count()) === 4, 'OJ41: the reach starts at "Close by", with steps further out');
   // OJ1, OJ9, OJ22: the field opens Explore's own search; a town picked there is the destination, said with how far "away" it is.
   await pg.click('[data-testid=outing-where]');
   await pg.waitForSelector('[data-testid=atlas-search-field]', { timeout: 15000 }).catch(() => {});
@@ -98,12 +110,12 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
   };
   const aroundHere = async () => {
-    await pg.click('[data-testid=outing-nowhere]');
     await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
   };
-  await pg.click('[data-testid=outing-close]');
-  await entry.click();
-  await pg.waitForSelector('[data-testid=outing-nowhere]', { timeout: 15000 }).catch(() => {});
+  check((await pg.locator('[data-testid=outing-nowhere]').innerText().catch(() => '')).trim() === 'Nowhere in particular', 'OJ7: with a destination the page offers "Nowhere in particular"');
+  await pg.click('[data-testid=outing-nowhere]');
+  await pg.waitForSelector('[data-testid=outing-reach-0]', { timeout: 15000 }).catch(() => {});
+  check((await pg.locator('[data-testid=outing-away]').count()) === 0 && (await pg.locator('[data-testid=outing-title]').innerText().catch(() => '')).trim() === 'Around here', 'OJ7: it goes back to around here');
   await aroundHere();
   // OJ11, OJ15: one list of chips, shops and attractions alike, alphabetical.
   const chips = await pg.locator('[data-testid^=outing-want-]').evaluateAll((els) => els.map((e) => e.textContent));
@@ -122,7 +134,8 @@ async function run(h) {
   check(jcards.length === 1 && /^Among the shops/.test(jcards[0]) && /Around here\. Antiques\. [\d.]+ (m|km|ft|mi) on foot\./.test(jcards[0]), `OJ17, OJ18, OJ21: one journey, named for its leaning, summarised in words (${jcards.join(' | ')})`);
   await shot(pg, '03-journeys');
   await openJourney();
-  check(/One way\./.test(await pg.locator('[data-testid=outing-summary]').innerText().catch(() => '')), 'OJ7: where no loop can be made without retracing, the journey is one way and says so');
+  check(/one way: the way back is yours\./.test(await pg.locator('[data-testid=outing-chapter-line-0]').innerText().catch(() => '')), 'OJ7, OJ24: where no loop can be made without retracing, the walk is one way and says the way back is yours');
+  check((await pg.locator('[data-testid=outing-chapter-name-0]').innerText().catch(() => '')).trim() === 'Around here', 'OJ44: around here is a journey of one chapter');
   await shot(pg, '03-proposal');
   {
     const sb = await pg.locator('[data-testid=outing-start]').boundingBox().catch(() => null);
@@ -178,6 +191,55 @@ async function run(h) {
     check(seen.length >= 1 && NAMES.some((n) => last.includes(n)), 'QC21: with none left the proposal is as it was');
     await pg.click('[data-testid=outing-slot-open-0]');
   }
+  // OJ3, OJ43: chips of two leanings give several journeys in a row that scrolls sideways, a mixed one ahead; the next card's edge shows.
+  await backToChips();
+  await only(['antiques', 'viewpoints']);
+  await pg.waitForSelector('[data-testid=outing-journey-1]', { timeout: 90000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const several = await pg.locator('[data-testid^=outing-journey-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()));
+  check(several.length === 3 && /^A bit of each/.test(several[0]) && /^Among the shops/.test(several[1]) && /^Through green/.test(several[2]), `OJ17, OJ43: a mixed journey, then one per leaning (${several.join(' | ')})`);
+  {
+    const b1 = await pg.locator('[data-testid=outing-journey-1]').boundingBox().catch(() => null);
+    const vw = pg.viewportSize()?.width ?? 0;
+    check(!!b1 && b1.x < vw - 8 && b1.x + b1.width > vw, `OJ3: the next card's edge shows beside the one in view (${b1 ? Math.round(b1.x) : 'none'} of ${vw})`);
+  }
+  await shot(pg, '05b-several');
+  await pg.click('[data-testid=outing-journey-1]');
+  await pg.waitForTimeout(600);
+  check((await pg.locator('[data-testid=outing-journey-1]').getAttribute('aria-pressed')) === 'true', 'OJ3: a tap on a card brings that journey into view');
+  await pg.click('[data-testid=outing-journey-0]');
+  await openJourney();
+  {
+    const mixed = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
+    check(mixed.some((t) => /^An antiques shop/.test(t)) && mixed.some((t) => /^A viewpoint or an oddity/.test(t)), `OJ43: the mixed journey holds a shop and an attraction (${mixed.join(' | ')})`);
+    const i = mixed.findIndex((t) => /^A viewpoint or an oddity/.test(t));
+    await pg.click(`[data-testid=outing-slot-open-${i}]`);
+    const card = await pg.locator('[data-testid=outing-card]').innerText().catch(() => '');
+    check(/Named when you reach it\./.test(card) && !/Folly/.test(card), `OJ25, OJ40: an attraction not found yet is not named on a tap (${card.replace(/\s+/g, ' ')})`);
+    await shot(pg, '05c-mixed');
+    // OJ45: "Another like this" plans it again from other places, then says when there are none.
+    const before1 = mixed.join('|');
+    await pg.click('[data-testid=outing-another]');
+    await pg.waitForTimeout(600);
+    const after1 = (await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()))).join('|');
+    let none = '';
+    for (let k = 0; k < 6 && !none; k++) {
+      await pg.click('[data-testid=outing-another]');
+      await pg.waitForTimeout(300);
+      none = (await pg.locator('[data-testid=outing-said]').innerText().catch(() => '')) ?? '';
+    }
+    check(after1.length > 0 && none === 'No other like it within reach.', `OJ45: Another like this gives other places, then says there are none (${before1} -> ${after1})`);
+  }
+  await backToChips();
+  // OJ41: the reach is a choice of one; further out it reads the towns within it and still proposes.
+  await only(['antiques']);
+  await pg.click('[data-testid=outing-reach-1]');
+  await pg.waitForFunction(() => !document.querySelector('[data-testid=outing-reading-towns]') && !document.querySelector('[data-testid=outing-reading]'), null, { timeout: 120000 }).catch(() => {});
+  check((await pg.locator('[data-testid=outing-reach-1]').getAttribute('aria-checked')) === 'true' && (await pg.locator('[data-testid^=outing-journey-]').count()) >= 1, 'OJ41, OJ44: a wider reach still proposes, by the same machine');
+  await shot(pg, '05d-reach');
+  await pg.click('[data-testid=outing-reach-0]');
+  await only(['antiques']);
+  await openJourney();
   // QC29: the pack was asked for only after the first pick, by byte ranges of its one file, with no cookie or referer.
   check(packAsked().length > 0 && packAsked().every((a) => /^bytes=\d+-\d+$/.test(a.range ?? '') && !a.cookie && !a.referer), `QC29: the stores pack is read by byte ranges after a pick (${packAsked().length} requests)`);
   check(places.asked.every((a) => a.name === 'manifest.json' || a.name === storesFile || a.name === placesFile), 'QC29: nothing else is asked of the host');
@@ -190,13 +252,12 @@ async function run(h) {
     await pg.goto(exploreUrl);
     await pg.locator('[data-testid=outing-entry]').waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
     await pg.click('[data-testid=outing-entry]');
-    await pg.waitForSelector('[data-testid=outing-nowhere]', { timeout: 15000 }).catch(() => {});
+    await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
   };
   await backToChips();
   await pg.reload();
   const before = packAsked().length;
   await reopen();
-  check(packAsked().length === before, 'OJ35: opening the page again reads no pack before a place is given');
   await aroundHere();
   await only([]);
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'true', 'QC41: Include chains stays on after a reload');

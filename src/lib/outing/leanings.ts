@@ -15,3 +15,6 @@ export const LEANINGS: readonly LeaningRow[] = [
   { id: 'old', name: 'Past old places', chips: ['history', 'culture', 'art'] },
   { id: 'green', name: 'Through green', chips: ['parks', 'viewpoints'] },
 ];
+
+/** OJ43: the journey that draws on every chip that is on, offered when the chips span leanings. It is one more leaning, not a better one. */
+export const MIXED: LeaningRow = { id: 'mixed', name: 'A bit of each', chips: [] };

@@ -8,6 +8,7 @@ import { net } from '../net';
 import { fetchTiles } from '../discovery/tileFetch';
 import { placesFromTilePois } from '../discovery/tilePois';
 import { loadSettings } from '../explore/settings';
+import { outlines } from '../areas/outlineReader';
 import { boundsOf } from '../geo';
 import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
@@ -25,8 +26,11 @@ export const outingService = createOutingService({
     const [url, build] = await Promise.all([db.getMeta('tile_url'), db.getMeta('tile_build')]);
     if (!url) return null;
     const tiles = tilesIn(boundsOf([at], radiusM + 300)!);
-    const [f, settings, finds] = await Promise.all([fetchTiles(url, tiles), loadSettings(), db.listFinds()]);
-    const places = placesFromTilePois(f.pois, build ?? '');
+    const [f, settings, finds, archive] = await Promise.all([fetchTiles(url, tiles), loadSettings(), db.listFinds(), placesArchive.read(tiles, at).catch(() => null)]);
+    // The tiles' own places, and the places archive's beside them (one place once, by its key).
+    const own = placesFromTilePois(f.pois, build ?? '');
+    const keys = new Set(own.map((p) => p.key));
+    const places = [...own, ...(archive?.places ?? []).filter((p) => !keys.has(p.key))];
     return {
       // OJ38, OJ40: the attractions Explore could mark, of the kinds switched on; one not found yet keeps its name for arrival.
       spots: placeCandidates(places, settings.hidden, new Set(finds.map((x) => x.key))),
@@ -41,3 +45,9 @@ export const outingService = createOutingService({
     io: { base: process.env.EXPO_PUBLIC_PLACES_BASE ?? PLACES_BASE, open: (url) => new PMTiles(net.source(url)), decode: decodeStoresTile },
   }),
 });
+
+/** OJ42: the towns of every recorded outing, so a town not among them can be looked at first. */
+export async function walkedTowns(): Promise<{ name: string; at: [number, number] }[]> {
+  const walks = await db.listWalks();
+  return outlines.townsOf(walks.map((w) => w.id));
+}

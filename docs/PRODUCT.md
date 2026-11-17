@@ -105,7 +105,11 @@ recording, and a recording bar brings a minimized walk back.
   that scrolls sideways, each summarised in words with its distance on foot and drawn on the map; none is ranked or timed. Opening one
   shows its stops by kind, a loop when one can be made, else one way. A named place far from you offers "When I get there" beside
   Start, and that alone past what can be walked. The search box over chips and the Loop / One way switch of the first page are gone.
-  Owed: the towns between and a line on each (step 2), the session's bar from town to town (step 3), a road engine of the app's own.
+  One machine plans every outing (decision 0199): the page opens already proposing around where you stand; "How far to look" widens
+  the reach to the towns about (Close by, then three steps out), and a destination looks at the towns toward it; either way a journey
+  is chapters, a walk or one stop in each town that has something, with a line on each and Open in Maps. Chips that span leanings add
+  a mixed journey, "A bit of each"; "Another like this" plans a journey again from other places; places and towns new to you come
+  first. Owed: the session's bar from town to town (step 3; Start begins the first town), a road engine of the app's own.
 - **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are

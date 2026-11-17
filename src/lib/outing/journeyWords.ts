@@ -11,7 +11,7 @@ export const CHIPS_LINE = "What you'd like on the way";
 export const NOWHERE_LABEL = 'Nowhere in particular';
 export const HERE_LABEL = 'Around here';
 export const SEE_LABEL = 'See this journey';
-export const BACK_LABEL = 'Back to the journeys';
+export const BACK_LABEL = 'Back';
 export const CHANGE_LABEL = 'Change where to';
 export const LATER_LABEL = 'When I get there';
 export const UNFOUND_LINE = 'Named when you reach it.';
@@ -30,13 +30,38 @@ export function awayLine(m: number, units: Units): string {
 
 const list = (xs: readonly string[]): string => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
-/** OJ21: a card's summary: where, what it includes as the chips' own words, and the distance on foot. */
-export function cardSummary(j: { place: string | null; labels: readonly string[]; footM: number; loop: boolean }, units: Units): string {
-  return `${j.place ?? HERE_LABEL}. ${list(j.labels)}. ${formatDistance(j.footM, units)} on foot.`;
+/** OJ21: a card's summary: the places in order, what it includes as the chips' own words, and the distance on foot when there is any. */
+export function cardSummary(j: { places: readonly (string | null)[]; labels: readonly string[]; footM: number }, units: Units): string {
+  const where = list(j.places.map((p) => p ?? HERE_LABEL));
+  return `${where}. ${list(j.labels)}.${j.footM > 0 ? ` ${formatDistance(j.footM, units)} on foot.` : ''}`;
 }
+
+/** OJ23: what a town holds of what you asked for, as the chips' own words; never how much or how good. */
+export const townLine = (labels: readonly string[]): string => `${list(labels)} here.`;
+
+/** OJ24: a chapter: a walk with its distance, or one stop. */
+export function chapterLine(c: { stops: number; lengthM: number; loop: boolean }, units: Units): string {
+  if (c.stops <= 1) return 'One stop.';
+  return `A walk of ${formatDistance(c.lengthM, units)}, ${c.loop ? 'back where it starts' : 'one way: the way back is yours'}.`;
+}
+
+/** OJ41: a step of the reach: the nearest is "Close by" (what a walk reaches), the others a distance. */
+export const reachLabel = (m: number, units: Units): string => (m <= 0 ? 'Close by' : formatDistance(m, units).replace(/\.0 /, ' '));
+
+/** OJ41: the steps of the reach beyond close by, in the units setting. */
+export const reachSteps = (units: Units): number[] => (units === 'mi' ? [3, 10, 25].map((x) => Math.round(x * MI_M)) : [5000, 15000, 40000]);
 
 /** OJ22: chips on and nothing to propose. */
 export const nothingLine = (place: string | null): string => (place ? `Little of that in ${place}.` : 'Little of that close by.');
 
 export const READ_FAILED_LINE = "Couldn't read the map there. Try again in a moment.";
 export const TOO_FAR_LINE = 'Too far to walk from here: it waits in Navigate until you are there.';
+export const REACH_LINE = 'How far to look';
+export const ANOTHER_LABEL = 'Another like this';
+export const NO_OTHER_LINE = 'No other like it within reach.';
+export const FURTHER_LABEL = 'Look further';
+export const NEXT_MOVE_LINE = 'Switch on another chip, or look further.';
+export const TOWNS_LINE = 'Reading the towns…';
+export const FIRST_LINE = 'Start begins here; the other towns wait on this page.';
+export const PEEK_LABEL = 'Show the map';
+export const UNPEEK_LABEL = 'Show the journeys';

@@ -1,0 +1,80 @@
+// @layer core
+import { distanceM, projector } from '../geo';
+import type { LngLat } from '../types';
+
+/*
+ * Where an outing looks (OJ20, OJ37, OJ41, OJ42; decision 0199): a list of areas, each a point a chapter may be planned around. With
+ * no destination they are where you stand and the towns within a reach; toward a place, the towns near the straight line to it, in
+ * order, the place last. The planner is handed the list and does not know which it was. Towns are plain rows (the gazetteer's); a
+ * town you have not been in is looked at before one you have. Pure geometry: nothing is read here.
+ */
+export interface TownRow {
+  name: string;
+  at: LngLat;
+}
+
+export interface Area {
+  /** A town's name; null for where you stand. */
+  name: string | null;
+  at: LngLat;
+  /** OJ42: a town not yet in any recorded outing. */
+  isNew?: boolean;
+}
+
+export const AREA_RULES = {
+  /** A town this close to one already taken is the same place: their reads would overlap. */
+  sameM: 2000,
+  /** Toward a place: how far off the straight line a town may lie, as a share of its length, and at least this. */
+  corridorShare: 0.2,
+  corridorMinM: 3000,
+  /** OJ37: how many areas one look reads; a bound on reading, never on what a journey may hold. */
+  readMax: 8,
+} as const;
+
+const been = (t: TownRow, walked: readonly TownRow[]) => walked.some((w) => w.name === t.name && distanceM(w.at, t.at) <= 5000);
+
+function distinct(sorted: { t: TownRow; d: number }[], taken: LngLat[]): { t: TownRow; d: number }[] {
+  const out: { t: TownRow; d: number }[] = [];
+  const held = [...taken];
+  for (const x of sorted) {
+    if (held.some((p) => distanceM(p, x.t.at) <= AREA_RULES.sameM)) continue;
+    held.push(x.t.at);
+    out.push(x);
+  }
+  return out;
+}
+
+const byNear = (a: { t: TownRow; d: number }, b: { t: TownRow; d: number }) => a.d - b.d || (a.t.name < b.t.name ? -1 : 1);
+
+/** OJ41: where you stand, then the towns within the reach: those new to you first, each nearest first. */
+export function areasAround(towns: Iterable<TownRow>, from: LngLat, reachM: number, walked: readonly TownRow[]): Area[] {
+  const inside: { t: TownRow; d: number }[] = [];
+  for (const t of towns) {
+    const d = distanceM(from, t.at);
+    if (d <= reachM) inside.push({ t, d: Math.round(d) });
+  }
+  const kept = distinct(inside.sort(byNear), [from]).map((x) => ({ ...x, isNew: !been(x.t, walked) }));
+  const ordered = [...kept.filter((x) => x.isNew), ...kept.filter((x) => !x.isNew)].slice(0, AREA_RULES.readMax - 1);
+  return [{ name: null, at: from }, ...ordered.map((x) => ({ name: x.t.name, at: x.t.at, isNew: x.isNew }))];
+}
+
+/** OJ20: the towns near the straight line from here to the place, in order along it, the place last; none behind you or beyond it. */
+export function areasToward(towns: Iterable<TownRow>, from: LngLat, to: TownRow, walked: readonly TownRow[]): Area[] {
+  const proj = projector(from);
+  const [tx, ty] = proj(to.at);
+  const len = Math.hypot(tx, ty) || 1;
+  const width = Math.max(AREA_RULES.corridorMinM, AREA_RULES.corridorShare * len);
+  const near: { t: TownRow; d: number }[] = [];
+  for (const t of towns) {
+    const [x, y] = proj(t.at);
+    const along = (x * tx + y * ty) / len;
+    const off = Math.abs(x * ty - y * tx) / len;
+    if (along <= 0 || along >= len || off > width) continue;
+    near.push({ t, d: Math.round(along) });
+  }
+  const kept = distinct(near.sort(byNear), [from, to.at]).map((x) => ({ ...x, isNew: !been(x.t, walked) }));
+  const chosen = [...kept.filter((x) => x.isNew), ...kept.filter((x) => !x.isNew)].slice(0, AREA_RULES.readMax - 1).sort(byNear);
+  return [...chosen.map((x) => ({ name: x.t.name, at: x.t.at, isNew: x.isNew })), { name: to.name, at: to.at, isNew: !been(to, walked) }];
+}
+
+export const areaKey = (a: Pick<Area, 'at'>): string => `${a.at[0].toFixed(5)},${a.at[1].toFixed(5)}`;

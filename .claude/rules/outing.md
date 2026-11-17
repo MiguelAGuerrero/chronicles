@@ -25,6 +25,14 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - **A chip's aliases pass presence's guard**: `sculpture` and `historic` are presence's words and fail it; pick another word.
 - Far places: `startChoice` mirrors `walkToChoice` (0121): "When I get there" beside Start past 2 km, alone past 10 km. Step 3 replaces this with a session that records the drive.
 
+## One machine (decision 0199)
+
+- **Every outing is a journey of chapters over areas** (`areas.ts`, `journeys.ts`): where you stand, the towns within the reach (`areasAround`) or toward a place (`areasToward`), each read once by `outingService.open` and planned by `planChapter` (three, else two, of the offered places, a loop else one way, else one place alone). `planJourneys` is not told whether there was a destination; never add a second planner for a new way of choosing areas. Around here is the list of one area.
+- **Offered order** is by chip in turn, unfound first, then nearest (`ranked`); `POOL` is how far "Another like this" (`salts`) moves on. A mixed journey leads only when its stops span leanings.
+- **Reads are bounded by `AREA_RULES.readMax`** (eight areas, new towns first), sequential, and stopped when the areas change; the gazetteer is loaded only when a reach beyond close by or a destination asks (`useJourney`'s `towns()`), never on opening the page (5.6 MB on the web).
+- **The page's position is the one it first had** (`origin`): the reads are not made again at every fix.
+- Start takes the first chapter only; carrying a journey through the session is step 3.
+
 ## Traps
 
 - Presence's guard (`presence-readers audit 1`) forbids spelling a poi tag outside presence; `antiques` and `books` are values of the pack's `what` dimension and are allowed under `outing/` only (`PLAIN_IN`).
