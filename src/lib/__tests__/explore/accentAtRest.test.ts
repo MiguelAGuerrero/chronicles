@@ -17,3 +17,16 @@ test('tend explore 19: "How the marks work" and its icon are ink at rest, never 
   const icon = /<Icon name="information-circle-outline"[^>]*\/>/.exec(card)?.[0] ?? '';
   assert.match(icon, /color=\{theme\.ink\}/, `the icon: ${icon}`);
 });
+
+// The review's U7: two dismissals kept the accent, Explore's "Cancel" while it looks around and the place search's close
+// word. A dismissal is never a card's single primary action (the owner's O3 sent even a footer link to ink), so both are
+// ink. The screen and the sheet import React Native, so they are read as text.
+const explore = readFileSync(join(__dirname, '..', '..', '..', 'app', '(tabs)', 'explore.tsx'), 'utf8');
+const search = readFileSync(join(__dirname, '..', '..', '..', 'components', 'atlas', 'PlaceSearch.tsx'), 'utf8');
+
+test('tend explore audit 22: "Cancel" while Explore looks and the search\'s close word are ink at rest, never the accent', () => {
+  const cancel = /scanCancelText:\s*\{[^}]*\}/.exec(explore)?.[0] ?? '';
+  assert.match(cancel, /color:\s*theme\.ink\b/, `Cancel: ${cancel}`);
+  const close = /closeText:\s*\{[^}]*\}/.exec(search)?.[0] ?? '';
+  assert.match(close, /color:\s*theme\.ink\b/, `the search's close: ${close}`);
+});

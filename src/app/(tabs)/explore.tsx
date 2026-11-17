@@ -1039,7 +1039,7 @@ const styles = StyleSheet.create({
   scanning: { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', backgroundColor: theme.surface, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
   scanningText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   scanCancel: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' },
-  scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.accent },
+  scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   backPill: {
     position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, maxWidth: 240,
     paddingLeft: 10, paddingRight: 16, borderRadius: 999, backgroundColor: theme.surface,

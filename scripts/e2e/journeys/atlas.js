@@ -133,6 +133,24 @@ async function checks(h) {
       }) : null;
       check(selInk && selInk.name === 'rgb(29, 36, 48)' && selInk.dot === 'rgb(29, 36, 48)', `tend explore 20: the selected area's name and dot on the map are ink at rest (${JSON.stringify(selInk)})`);
       await shot(page, 'tend-explore-20-map-name-390');
+      {
+        // tend explore audit 22 (decision 0172, the accent at rest; the review's U7): the search's close word is ink, a
+        // dismissal, never a card's primary action.
+        await page.click('[data-testid=atlas-search]').catch(() => {});
+        const open22 = await page.waitForSelector('[data-testid=atlas-search-close]', { timeout: 8000 }).then(() => true, () => false);
+        const close22 = open22 ? await page.locator('[data-testid=atlas-search-close]').evaluate((el) =>
+          [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent).map((e) => ({ text: e.textContent, color: getComputedStyle(e).color }))) : null;
+        const vp = page.viewportSize();
+        await page.setViewportSize({ width: 320, height: vp.height });
+        await page.waitForTimeout(400);
+        await shot(page, 'tend-explore-audit-22-search-320');
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(300);
+        await page.click('[data-testid=atlas-search-close]').catch(() => {});
+        await page.waitForTimeout(400);
+        check(!!close22 && close22.length === 1 && close22[0].color === 'rgb(29, 36, 48)' && (await page.locator('[data-testid=atlas-search-sheet]').count()) === 0,
+          `tend explore audit 22: the search's close word is ink at rest, and it closes the search (${JSON.stringify(close22)})`);
+      }
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
@@ -294,6 +312,19 @@ async function checks(h) {
       const lookWords = await page.locator('[data-testid=look-here]').innerText().catch(() => '');
       check(/^What’s here\?$/.test(lookWords.trim()), `SF15: the long press offers "What’s here?" (${JSON.stringify(lookWords)})`);
       await page.click('[data-testid=look-here]');
+      {
+        // tend explore audit 22 (decision 0172, the accent at rest; the review's U7): "Cancel" while Explore looks is ink,
+        // a dismissal, never a card's primary action.
+        const cancel22 = await page.locator('[data-testid=look-cancel]').evaluate((el) =>
+          [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent === 'Cancel').map((e) => getComputedStyle(e).color)).catch(() => null);
+        const vp = page.viewportSize();
+        await page.setViewportSize({ width: 320, height: vp.height });
+        await page.waitForTimeout(300);
+        await shot(page, 'tend-explore-audit-22-look-cancel-320');
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(200);
+        check(!!cancel22 && cancel22.length === 1 && cancel22[0] === 'rgb(29, 36, 48)', `tend explore audit 22: "Cancel" while Explore looks is ink at rest (${JSON.stringify(cancel22)})`);
+      }
       await page.click('[data-testid=look-cancel]');
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
       await page.waitForTimeout(6000);
