@@ -1,4 +1,4 @@
-# Native map frames (NF1-NF7)
+# Native map frames (NF1-NF5, NF7, NF8)
 
 Last exported: not from the concept doc. The source is the performance investigation of Nov 16 (four reviewers and a
 fresh-eyes review, findings v2 #1) and the owner's calls in that session.
@@ -34,6 +34,8 @@ but what the code says. The web build is not affected (it glides outside React, 
 - **Explicit split and `memo`**, not the React Compiler: works whether or not the compiler is ever turned on.
 - **The React Compiler is its own slice**, measured before and after, with a decision record; not part of this one.
 - Native-only claims are device checks (`docs/NATIVE_UNVERIFIED.md`); no device has run the app.
+- **NF6 retired, NF8 in its place** (the owner, Nov 17, at the deploy's test-first check): a criterion must be able
+  to fail before its code.
 - **NF5 is the one change a person may see** (audit 5, Nov 17): the phone's lines are simplified as the web's have been
   since Nov 1; "nothing a person sees changes" in the gate holds for everything else. On the device list.
 
@@ -50,10 +52,14 @@ but what the code says. The web build is not affected (it glides outside React, 
 5. **NF5** The phone's line sources (fog, walked, alternates, the route's grades, the route, gap links, faint, rides,
    the trace's history, tail and link, and a way being drawn: the web's own list) use the same simplification as the
    web's (`tolerance: 1, buffer: 64`), from one shared definition.
-6. **NF6** Everything the map draws and every tap on it is unchanged: pins, memory pins, marks and stars open what
-   they opened, the scale bar, the blank-map check and the fit behave as before.
+6. ~~**NF6** Everything the map draws and every tap on it is unchanged~~ (retired by the owner, Nov 17: a
+   no-regression promise with no failing state to show first, so it could never pass `check:test-first`; its source
+   scan stays as a guard, `native-map-frames guard: every tap…`, and the taps are device checks).
 7. **NF7** (device) On a phone, during a walk with fog and at least 30 pins, React's profiler shows the map's static
    part rendering no more than once per fix, and the glide part at its frame rate.
+8. **NF8** On an exploring walk, a fix that changes no "?" mark (the same marks, at the same places, in the same
+   states, with the same names) re-renders no mark and works out no declutter again; a mark revealed, found, moved
+   or renamed does (audit 3, taken up when NF6 was retired, Nov 17).
 
 ## Record
 

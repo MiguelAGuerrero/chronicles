@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import ts from 'typescript';
 import * as mapTypes from '../../../components/map/types';
 import { glideShown } from '../../useGlidingWalker';
+import * as markNames from '../../markNames';
 
 // Native map frames (NF1-NF6, specs/native-map-frames). The phone's map can't render under `npm test`
 // (nothing a test imports may import React Native), so these read the source, as endsPaint.test.ts does:
@@ -193,7 +194,7 @@ test('NF5: the phone simplifies the line sources the web does, from one definiti
   assert.match(web, /of LINE_SOURCE_IDS\)/, 'the web map adds the same list of line sources');
 });
 
-test('NF6: every tap the native map took still reaches its handler', () => {
+test('native-map-frames guard: every tap the native map took still reaches its handler (NF6, retired)', () => {
   // A regression guard for the split: each kind of pin still answers its own handler, and a found "?" none.
   const src = readFileSync(join(ROOT, NATIVE), 'utf8');
   for (const handler of ['onMemoryPress', 'onPinPress', 'onDiscoveryPress', 'onStarPress', 'onPress', 'onLongPress']) {
@@ -240,4 +241,35 @@ test('native-map-frames audit 4: the press handlers are filled before the pins t
   assert.equal(sets.length, 1, 'one place fills the handlers');
   assert.equal(enclosingCall(sets[0], ['useLayoutEffect', 'useEffect']), 'useLayoutEffect',
     'filled in a layout effect, before the commit can take a tap; a passive effect leaves a pin pressable with no handler');
+});
+
+// NF8 (audit 3): on an exploring walk the screen hands the map a new marks array on every fix, mostly unchanged.
+type MarkLike = { id: string; at: [number, number]; revealed: boolean; found?: boolean; foundKind?: string; faint?: boolean; nameHidden?: boolean; quiet?: boolean; name: string; category: string; icon: string };
+const mark = (over: Partial<MarkLike> = {}): MarkLike => ({ id: 'm1', at: [-71.4, 41.81], revealed: false, name: 'Cafe', category: 'Food & drink', icon: 'cafe', ...over });
+
+test('NF8: the same marks in a new array read as no change; any change a mark shows reads as one', { todo: 'test first' }, () => {
+  const key = (markNames as unknown as { markListKey?: (m: MarkLike[]) => string }).markListKey;
+  assert.equal(typeof key, 'function', 'markNames gives a list of marks its key');
+  const k = key!;
+  const base = [mark(), mark({ id: 'm2', at: [-71.41, 41.82] })];
+  assert.equal(k(base.map((m) => ({ ...m }))), k(base), 'a new array of the same marks is the same key');
+  const changes: Partial<MarkLike>[] = [
+    { at: [-71.4001, 41.81] }, { revealed: true }, { found: true }, { foundKind: 'photo' }, { faint: true },
+    { nameHidden: true }, { quiet: true }, { name: 'Bakery' }, { category: 'Shops' }, { icon: 'cart' }, { id: 'm9' },
+  ];
+  for (const c of changes) assert.notEqual(k([mark(c), base[1]]), k(base), `a mark whose ${Object.keys(c)[0]} changed is a change`);
+  assert.notEqual(k(base.slice(0, 1)), k(base), 'a mark gone is a change');
+  assert.notEqual(k([base[1], base[0]]), k(base), 'the order is drawn order, so a new order is a change');
+});
+
+test('NF8: the marks reach their memo list keyed on what they show, not on the array the screen made', { todo: 'test first' }, () => {
+  const sf = read(NATIVE);
+  const body = walkMapBody(sf);
+  const el = jsx(body, 'MarkMarkers')[0];
+  assert.ok(el, 'WalkMap draws MarkMarkers');
+  const given = attrs(el).find((a) => a.name === 'marks')?.value?.getText() ?? '';
+  assert.match(given, /^[A-Za-z]\w*$/, `MarkMarkers is handed one value (${given}), not the screen's array`);
+  const decl = calls(body, 'useMemo').find((c) => ts.isVariableDeclaration(c.parent) && c.parent.name.getText() === given);
+  assert.ok(decl, `${given} is a useMemo`);
+  assert.match(decl.arguments[1]?.getText() ?? '', /markListKey|marksKey/, `${given} changes only with the marks' key`);
 });
