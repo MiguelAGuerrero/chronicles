@@ -119,6 +119,37 @@ export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
   return pins;
 }
 
+/** A view box: west, south, east, north, in degrees (maplibre's bounds run past ±180 when the view crosses it). */
+export type ViewBox = readonly [number, number, number, number];
+
+/** How far past the view pins are drawn, as a share of its width and height on each side (tend map 16). */
+export const PIN_CULL_MARGIN = 0.5;
+
+/** The box pins are drawn in: the view widened by the margin on each side, so a pan inside it draws nothing new. */
+export function pinDrawBox(view: ViewBox, margin = PIN_CULL_MARGIN): ViewBox {
+  const [w, s, e, n] = view;
+  const dx = (e - w) * margin;
+  const dy = (n - s) * margin;
+  return [w - dx, s - dy, e + dx, n + dy];
+}
+
+/** Whether a point lies in a box; across the antimeridian, a point a world away is the same point. */
+export function inBox([lon, lat]: LngLat, [w, s, e, n]: ViewBox): boolean {
+  if (lat < s || lat > n) return false;
+  return [lon, lon - 360, lon + 360].some((x) => x >= w && x <= e);
+}
+
+/**
+ * Whether the drawn box still serves the view: it holds the whole view and is no more than twice the box the view
+ * would draw now, on either side (a zoom in of more than a level draws afresh, or the pins of the wider view stay
+ * drawn). With none drawn yet, it does not.
+ */
+export function boxHolds(drawn: ViewBox | null, view: ViewBox, margin = PIN_CULL_MARGIN): boolean {
+  if (!drawn || view[0] < drawn[0] || view[1] < drawn[1] || view[2] > drawn[2] || view[3] > drawn[3]) return false;
+  const most = 2 * (1 + 2 * margin);
+  return drawn[2] - drawn[0] <= most * (view[2] - view[0]) && drawn[3] - drawn[1] <= most * (view[3] - view[1]);
+}
+
 /**
  * The start and end markers' outer radius on screen, in px: the start's 7 and its 4 of ring, the end's 9.5 and its 1.5
  * of white edge (`ENDS_RING_PAINT`, one width across, 22 px).

@@ -14,7 +14,7 @@ import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type WalkClock } from '../../lib/pins';
+import { boxHolds, inBox, metersPerPixel, pinDrawBox, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type ViewBox, type WalkClock } from '../../lib/pins';
 import type { ReactionSet } from '../../lib/reactions/core';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
@@ -1512,6 +1512,11 @@ const NO_CAPTURES: Faced[] = [];
  * in a ref, so a pin whose members changed never opens stale captures; roots
  * unmount just after React's commit, which would otherwise warn.
  */
+/** What the map shows, west, south, east, north. */
+const viewBoxOf = (map: MapLibreMap): ViewBox => {
+  const b = map.getBounds();
+  return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+};
 /** A pin's marker is anchored at its bottom, its target's 6 px of padding below the stem's foot. */
 const PIN_FOOT = 6;
 const NO_ENDS: readonly (LngLat | null)[] = [];
@@ -1537,6 +1542,9 @@ function usePinMarkers(
   // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
   const [openedAt] = useState(() => Date.now());
   const seen = useRef(new Set<string>());
+  // Only the pins in view and a margin round it are drawn (tend map 16): maplibre moves every marker on every camera
+  // frame. The box is kept here, never as state, and redrawn only on a move's end that leaves it.
+  const drawn = useRef<ViewBox | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1544,71 +1552,84 @@ function usePinMarkers(
       m.marker.remove();
       queueMicrotask(() => m.root.unmount());
     };
-    const live = new Set<string>();
-    for (const pin of pins) {
-      live.add(pin.id);
-      const ids = pin.captures.map((c) => c.id).join(',');
-      const bell = pinReminded(pin, reminded);
-      const reactions = pinReactions(pin, sets);
-      const rx = reactions.map((r) => r.id).join(',');
-      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
-      const existing = markers.current.get(pin.id);
-      // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
-      // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
-      // audit 29); a new one relabels in place.
-      const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt, reactions);
-      if (existing?.key === key && existing.bell === bell && existing.rx === rx && existing.marker.getElement().getAttribute('aria-label') !== label) {
-        existing.marker.getElement().setAttribute('aria-label', label);
-      }
-      if (existing?.key === key) {
-        // A reminder set or stopped (RB5), or a reaction changed (RX21), redraws the same element in place: focus
-        // returns to it when the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
-        if (existing.bell !== bell || existing.rx !== rx) {
+    const sync = () => {
+      if (!boxHolds(drawn.current, viewBoxOf(map))) drawn.current = pinDrawBox(viewBoxOf(map));
+      const box = drawn.current!;
+      const live = new Set<string>();
+      for (const pin of pins) {
+        if (!inBox(pin.lngLat, box)) continue;
+        live.add(pin.id);
+        const ids = pin.captures.map((c) => c.id).join(',');
+        const bell = pinReminded(pin, reminded);
+        const reactions = pinReactions(pin, sets);
+        const rx = reactions.map((r) => r.id).join(',');
+        // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
+        const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
+        const existing = markers.current.get(pin.id);
+        // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
+        // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
+        // audit 29); a new one relabels in place.
+        const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt, reactions);
+        if (existing?.key === key && existing.bell === bell && existing.rx === rx && existing.marker.getElement().getAttribute('aria-label') !== label) {
           existing.marker.getElement().setAttribute('aria-label', label);
-          existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} reactions={reactions} />);
-          existing.bell = bell;
-          existing.rx = rx;
         }
-        continue;
+        if (existing?.key === key) {
+          // A reminder set or stopped (RB5), or a reaction changed (RX21), redraws the same element in place: focus
+          // returns to it when the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
+          if (existing.bell !== bell || existing.rx !== rx) {
+            existing.marker.getElement().setAttribute('aria-label', label);
+            existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} reactions={reactions} />);
+            existing.bell = bell;
+            existing.rx = rx;
+          }
+          continue;
+        }
+        if (existing) drop(existing);
+        // A 48 px target around the 36 px pin: the touch minimum on phones.
+        const el = document.createElement(interactive ? 'button' : 'div');
+        el.setAttribute('aria-label', label);
+        el.dataset.ids = ids;
+        if (memory) el.dataset.testid = 'memory-pin';
+        if (interactive) {
+          (el as HTMLButtonElement).type = 'button';
+          el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
+          const id = pin.id;
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const p = latest.current.pins.get(id);
+            if (p) latest.current.onPress?.(p);
+          });
+        } else {
+          el.setAttribute('role', 'img');
+          el.style.cssText = 'padding:6px;pointer-events:none';
+        }
+        const root = createRoot(el);
+        const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
+        for (const c of pin.captures) seen.current.add(c.id);
+        root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} reactions={reactions} />);
+        // Anchored at the stem's foot, so the marked point stays visible; on a start or end, the foot at the marker's edge
+        // above it (decision 0172, O13), its target reaching on down over the marker, which never takes a tap (QL3).
+        const lift = stalkLift(pin.lngLat, standOn, map.getZoom(), map.getBearing());
+        el.style.paddingBottom = `${PIN_FOOT + lift}px`;
+        const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, PIN_FOOT] }).setLngLat(pin.lngLat).addTo(map);
+        // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
+        marker.getElement().style.zIndex = memory ? '0' : '1';
+        markers.current.set(pin.id, { marker, root, key, bell, rx, drops, lift });
       }
-      if (existing) drop(existing);
-      // A 48 px target around the 36 px pin: the touch minimum on phones.
-      const el = document.createElement(interactive ? 'button' : 'div');
-      el.setAttribute('aria-label', label);
-      el.dataset.ids = ids;
-      if (memory) el.dataset.testid = 'memory-pin';
-      if (interactive) {
-        (el as HTMLButtonElement).type = 'button';
-        el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
-        const id = pin.id;
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const p = latest.current.pins.get(id);
-          if (p) latest.current.onPress?.(p);
-        });
-      } else {
-        el.setAttribute('role', 'img');
-        el.style.cssText = 'padding:6px;pointer-events:none';
+      for (const [id, m] of markers.current) {
+        if (live.has(id)) continue;
+        drop(m);
+        markers.current.delete(id);
       }
-      const root = createRoot(el);
-      const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
-      for (const c of pin.captures) seen.current.add(c.id);
-      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} reactions={reactions} />);
-      // Anchored at the stem's foot, so the marked point stays visible; on a start or end, the foot at the marker's edge
-      // above it (decision 0172, O13), its target reaching on down over the marker, which never takes a tap (QL3).
-      const lift = stalkLift(pin.lngLat, standOn, map.getZoom(), map.getBearing());
-      el.style.paddingBottom = `${PIN_FOOT + lift}px`;
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, PIN_FOOT] }).setLngLat(pin.lngLat).addTo(map);
-      // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
-      marker.getElement().style.zIndex = memory ? '0' : '1';
-      markers.current.set(pin.id, { marker, root, key, bell, rx, drops, lift });
-    }
-    for (const [id, m] of markers.current) {
-      if (live.has(id)) continue;
-      drop(m);
-      markers.current.delete(id);
-    }
+    };
+    sync();
+    const moved = () => {
+      if (!boxHolds(drawn.current, viewBoxOf(map))) sync();
+    };
+    map.on('moveend', moved);
+    return () => {
+      map.off('moveend', moved);
+    };
   }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now, standOn]);
   // A pin standing on the walk's start or end stops its stalk at the marker's edge (decision 0172, O13): its lift is
   // measured on screen, so it follows the map as it zooms or turns, and is set only when it moves. The target's padding
