@@ -39,6 +39,8 @@ export interface Region {
   current: ArchiveFile;
   /** Older versions still served, newest first: used when the current one is missing (audit 4). */
   previous: ArchiveFile[];
+  /** The region's stores pack beside the places archive (outing, QC14); absent in older manifests and where there is none. */
+  stores?: { current: ArchiveFile; previous: ArchiveFile[] };
 }
 
 export interface Manifest {
@@ -47,10 +49,12 @@ export interface Manifest {
 
 /** An archive's file name: a versioned name in the manifest's own folder, never a path. */
 const FILE = /^places-[a-z0-9]+-\d{8}(?:\.\d+)?\.pmtiles$/;
+/** A stores pack's file name, likewise. */
+const STORES_FILE = /^stores-[a-z0-9]+-\d{8}(?:\.\d+)?\.pmtiles$/;
 
-function fileOf(v: unknown): ArchiveFile | null {
+function fileOf(v: unknown, name: RegExp = FILE): ArchiveFile | null {
   const f = v as Partial<ArchiveFile> | null;
-  if (!f || typeof f.file !== 'string' || !FILE.test(f.file) || typeof f.version !== 'string') return null;
+  if (!f || typeof f.file !== 'string' || !name.test(f.file) || typeof f.version !== 'string') return null;
   const b = f.bounds;
   if (!Array.isArray(b) || b.length !== 4 || !b.every((n) => Number.isFinite(n))) return null;
   const out: ArchiveFile = { file: f.file, version: f.version, bounds: [b[0], b[1], b[2], b[3]] };
@@ -94,8 +98,13 @@ export function parseManifest(text: string): Manifest | null {
   for (const r of m.regions as { id?: unknown; current?: unknown; previous?: unknown }[]) {
     const current = fileOf(r?.current);
     if (!current || typeof r.id !== 'string') return null;
-    const previous = (Array.isArray(r.previous) ? r.previous : []).map(fileOf).filter((f): f is ArchiveFile => f != null);
-    regions.push({ id: r.id, current, previous });
+    const previous = (Array.isArray(r.previous) ? r.previous : []).map((f) => fileOf(f)).filter((f): f is ArchiveFile => f != null);
+    const region: Region = { id: r.id, current, previous };
+    // QC14: the stores pack is optional; one that does not parse is none (the places archive still serves).
+    const st = (r as { stores?: { current?: unknown; previous?: unknown } | null }).stores;
+    const sc = st && typeof st === 'object' ? fileOf(st.current, STORES_FILE) : null;
+    if (sc) region.stores = { current: sc, previous: (Array.isArray(st?.previous) ? st.previous : []).map((f: unknown) => fileOf(f, STORES_FILE)).filter((f): f is ArchiveFile => f != null) };
+    regions.push(region);
   }
   return { regions };
 }

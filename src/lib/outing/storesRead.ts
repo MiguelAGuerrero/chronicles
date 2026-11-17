@@ -1,4 +1,6 @@
 // @layer adapter
+import { VectorTile } from '@mapbox/vector-tile';
+import { PbfReader } from 'pbf';
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { knownFacets } from './candidates';
@@ -12,6 +14,24 @@ export interface PackFeature {
   lon: number;
   lat: number;
   props: Readonly<Record<string, unknown>>;
+}
+
+/** The pack's tile zoom, as the places archive's (the contract: layer `stores`, zoom 12). */
+export const STORES_ZOOM = 12;
+
+/** QC14: a pack tile's `stores` layer as features; a tile without the layer has none. */
+export function decodeStoresTile(bytes: ArrayBuffer, x: number, y: number): (PackFeature & { id: string })[] {
+  const layer = new VectorTile(new PbfReader(new Uint8Array(bytes))).layers.stores;
+  if (!layer) return [];
+  const out: (PackFeature & { id: string })[] = [];
+  for (let i = 0; i < layer.length; i++) {
+    const f = layer.feature(i).toGeoJSON(x, y, STORES_ZOOM);
+    if (f.geometry?.type !== 'Point') continue;
+    const props = (f.properties ?? {}) as Record<string, unknown>;
+    const [lon, lat] = f.geometry.coordinates as [number, number];
+    out.push({ lon, lat, props, id: typeof props.id === 'string' ? props.id : `${lon},${lat}` });
+  }
+  return out;
 }
 
 /** QC11, QC12, QC40: the stores of a pack's features; any other property is never read, unknown dimensions and values are dropped. */

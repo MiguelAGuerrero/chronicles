@@ -15,15 +15,17 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * The version of the vocabulary and its tables: part of the atlas's and the landing's cache codes (PR6). Bump on any change here.
  * p2: the archive, names and landcover read here (specs/presence-readers); nothing derived changed, so p1 rows are carried (PS9).
  * p3: only storefronts weigh toward density (specs/storefronts SF10, decision 0180); a weight changed, so nothing is carried (SF11).
+ * p4: the class `antiques` beside `boutique` (the outing, QC16); p5: `books` and `second_hand` likewise (QC14, QC42). A class beside
+ * `boutique` moves no bar, mark or weight, so the code just before is carried (PS9).
  */
-export const PRESENCE_CODE = 'p4';
+export const PRESENCE_CODE = 'p5';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
  * landing (`LANDING_CARRIED`, `landing/view.ts`). Only ever the code just before, and only when the golden tables show
  * nothing derived changed; empty it at a bump that changes a bar, a mark or a weight.
  */
-export const PRESENCE_CARRIED: readonly string[] = ['p3'];
+export const PRESENCE_CARRIED: readonly string[] = ['p4'];
 
 const FULL = 1;
 const HALF = 0.5;
@@ -42,6 +44,9 @@ const DEFS = {
   boutique: { weight: FULL, storefront: true, category: 'shops' },
   // A shop that sells antiques (the outing, decision 0182): beside `boutique`, never instead of it, so bars, marks and weights are as they were.
   antiques: { weight: FULL, storefront: true },
+  // Likewise a bookshop and a second-hand or charity shop (the outing's Books and Thrifting, QC14, QC42).
+  books: { weight: FULL, storefront: true },
+  second_hand: { weight: FULL, storefront: true },
   eatery: { weight: FULL, storefront: true, category: 'food' },
   food_counter: { weight: FULL, storefront: true },
   drink: { weight: FULL, storefront: true, category: 'nightlife' },
@@ -190,7 +195,21 @@ const OSM_DEFAULT: Record<string, PresenceClass> = {
 
 /** PR1: what an OpenMapTiles poi is: its class's own rules, else its subclass's, else its class's default. */
 export function classesOfOsm(cls: string, sub: string): PresenceClass[] {
-  if (cls === 'shop' && sub === 'antiques') return ['boutique', 'antiques'];
+  const base = baseClassesOfOsm(cls, sub);
+  const extra = sells(cls, sub);
+  return extra && base.includes('boutique') ? [...base, extra] : base;
+}
+
+/** What a shop sells, beside its boutique class (the outing's stores fallback): an antiques shop, a bookshop (or a library's books), a second-hand or charity shop. */
+function sells(cls: string, sub: string): PresenceClass | null {
+  if (cls === 'shop' && sub === 'antiques') return 'antiques';
+  if ((cls === 'shop' || cls === 'library') && sub === 'books') return 'books';
+  if (cls === 'books') return 'books';
+  if (cls === 'shop' && (sub === 'second_hand' || sub === 'charity')) return 'second_hand';
+  return null;
+}
+
+function baseClassesOfOsm(cls: string, sub: string): PresenceClass[] {
   for (const [subs, c] of own(OSM, cls) ?? []) if (subs === '*' || subs.includes(sub)) return [c];
   const bySub = own(OSM_SUBCLASS, sub);
   if (bySub) return [bySub];

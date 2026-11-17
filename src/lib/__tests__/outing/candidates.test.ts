@@ -34,6 +34,21 @@ test('QC40: unknown dimensions and values are ignored, never an error', () => {
   assert.deepEqual(knownFacets(null, dims), {});
 });
 
-test('QC39: the first proposal needs one pick whatever dimensions the data holds; the vocabulary does not change with them', { todo: 'test first' }, () => {
-  assert.fail('written with its code');
+test('QC39: the first proposal needs one pick whatever dimensions the data holds; the vocabulary does not change with them', async () => {
+  const { planOuting } = await import('../../outing/plan');
+  const { WANTS } = await import('../../outing/wants');
+  const { leg } = await import('../walk-planner/grid');
+  const { FROM, SHOPS } = await import('./fixtures');
+  // The same shops, with a second fixture dimension (how: vintage or thrift) on each: one pick on `what` alone still proposes.
+  const rich = SHOPS.map((c, i) => ({ ...c, facets: { ...c.facets, how: [i % 2 ? 'thrift' : 'vintage'] } }));
+  const one = mergeFacets(WANTS.filter((w) => w.id === 'antiques'));
+  const plain = planOuting({ cands: SHOPS, match: one, from: FROM, mode: 'oneway', ceilingM: 3500 }, leg);
+  const withHow = planOuting({ cands: rich, match: one, from: FROM, mode: 'oneway', ceilingM: 3500 }, leg);
+  assert.ok(withHow.outing, 'no dimension is required: one pick makes a proposal');
+  assert.deepEqual(withHow.outing!.stops.map((s) => s.id), plain.outing!.stops.map((s) => s.id), 'an extra dimension changes nothing for a pick that does not name it');
+  // The first screen is the vocabulary's entries, however many dimensions candidates carry: they come from the table, not the data.
+  assert.deepEqual(WANTS.map((w) => w.id), ['antiques', 'books', 'thrifting']);
+  // Picking in the second dimension too narrows (QC38) and still plans from the same page.
+  const narrowed = planOuting({ cands: rich, match: mergeFacets([...WANTS.filter((w) => w.id === 'antiques'), want('t', { how: ['thrift'] })]), from: FROM, mode: 'oneway', ceilingM: 3500 }, leg);
+  assert.ok((narrowed.outing?.stops ?? []).every((s) => s.facets.how?.includes('thrift')));
 });

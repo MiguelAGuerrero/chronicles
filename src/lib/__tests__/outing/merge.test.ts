@@ -57,3 +57,12 @@ test('QC41: a chain is never made a mark or a point of interest, whatever the se
   const src = readFileSync(new URL('../../outing/storesMerge.ts', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
   assert.doesNotMatch(src, /markable|isMarkable|MARK_CATEGORIES/);
 });
+
+test('QC14, QC42: the tiles\' books and second-hand shops serve the same table when no pack is read', () => {
+  const out = outingCandidates([], [
+    { name: 'Page Turner', at: [-75.38, 40.62], classes: ['boutique', 'books'] },
+    { name: 'Helping Hands', at: [-75.381, 40.621], classes: ['boutique', 'second_hand'] },
+    { name: 'Gift Corner', at: [-75.382, 40.622], classes: ['boutique'] },
+  ]);
+  assert.deepEqual(out.map((c) => [c.name, c.facets]), [['Page Turner', { what: ['books'] }], ['Helping Hands', { what: ['second_hand'] }]], 'an ordinary boutique says nothing of what it sells');
+});

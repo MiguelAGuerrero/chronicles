@@ -17,7 +17,12 @@ export interface TileShop {
 export const SAME_SHOP_M = 200;
 
 /** QC14: what the tiles' presence classes say a shop sells, for the same table (a class without an entry says nothing). */
-const TILE_FACETS: Readonly<Record<string, Facets>> = { antiques: { what: ['antiques'] } };
+const TILE_FACETS: Readonly<Record<string, Facets>> = {
+  antiques: { what: ['antiques'] },
+  books: { what: ['books'] },
+  // A charity or second-hand shop is `second_hand` (the contract's value; a curated vintage dealer is the pack's to say).
+  second_hand: { what: ['second_hand'] },
+};
 
 function tileFacets(classes: readonly string[] | undefined): Facets | null {
   const out: Record<string, string[]> = {};
