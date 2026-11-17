@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Unsaved captures have one owner"
+      ],
+      "body": "| Unsaved captures have one owner (an app-wide in-memory holder for every photo, video and memo that failed to save: shown on every screen with capture pills, asked by both Stops, kept into its own walk; UN1-UN15, decision 0194) | `slice/unsaved-captures-20261117-1519` | built 2026-11-17, test-first by history (15 of 15): unit tests (2862), typecheck, lint, docs and vision checks; the `unsaved` journey (one open todo: the bar's room words at 320 px) and `space` pass; `capturehome` HC10 fails on main too, `tabs` NR2 a main flake; UN6 amended for the owner to confirm; native unverified; the auditor's diff review next. Spec `specs/unsaved-captures/spec.md` |\n",
+      "target": "sha256:701a3f5dfca5d31dc187b99c3170eab08d8474872b2f595414954abb42875a87"
+    }
+  ]
+}

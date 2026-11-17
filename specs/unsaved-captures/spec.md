@@ -152,3 +152,20 @@ the walker already looks (UN2; capture is one tap away, and so is its Retry).
 
 A held photo's picker file and a held memo's recorder file outliving the screen that took them (and, for a memo, the
 next memo's prepare) on iOS and Android; a let-go capture's files removed. Never run on a phone.
+
+## Record
+
+Nov 17, 2026, branch `slice/unsaved-captures-20261117-1519`, on `main` at `b8126140`:
+
+- UN1-UN15 tested first by history (`npm run check:test-first unsaved-captures`: 15 of 15). Unit:
+  `captures/unsaved.test.ts` (12) and `captures/unsavedShell.test.ts` (9). The `unsaved` journey: 23 checks, every UN
+  check failing on main's build before the code and passing after.
+- `npm test` (2862), typecheck, lint, check:docs, check:vision pass. Journeys on the final build: `unsaved` (one open
+  todo, below) and `space` pass. Earlier builds of the branch passed `launch`, `walk` and `ready`. `capturehome` fails
+  HC10 ("the stopped walk placed the note"), which also fails 3 of 3 runs on `main` (`e2e:baseline`), so it is not
+  this slice's. `tabs` fails NR2 ("7533924 m off"), a flake on `main` (1 of 3, recorded in `scripts/e2e/flaky.json`).
+- Open for the owner: UN6 amended to "two lines at most, nothing cut" (Decisions). UN10's words on the recording bar
+  need five lines at 320 px and the bar shows four (`unsaved open 1`, a todo check). Shorter words for the bar are the
+  owner's to choose.
+- Native: two device checks in `docs/NATIVE_UNVERIFIED.md`. Nothing here has run on a phone.
+- Review: the auditor's diff review (the fast lane) is next; not audited otherwise (decision 0074).
