@@ -56,7 +56,7 @@ const walk = (dir: string): string[] =>
   });
 
 test('gazetteer web fetch 3: only the native source names the bundled pack; the web source fetches it by its address', () => {
-  const naming = walk(join(ROOT, 'src')).filter((f) => /assets\/gazetteer/.test(readFileSync(f, 'utf8'))).map((f) => relative(ROOT, f));
+  const naming = walk(join(ROOT, 'src')).filter((f) => /(require\(|import\(|from\s*)['"][^'"]*assets\/gazetteer\//.test(readFileSync(f, 'utf8'))).map((f) => relative(ROOT, f));
   assert.deepEqual(naming, ['src/lib/gazetteer/source.ts'], 'a second module requiring the pack would inline it in the web bundle');
   const web = join(ROOT, 'src/lib/gazetteer/source.web.ts');
   assert.ok(existsSync(web), 'the web has a source of its own');
