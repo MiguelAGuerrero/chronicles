@@ -217,7 +217,7 @@ const FEATURES = [
       'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass,mapTopInset}.ts',
       'src/lib/unitsStore/**',
     ],
-    journeys: ['qol'],
+    journeys: ['qol', 'palette'],
     specs: ['quality-of-life', 'compass', 'native-map-frames', 'map-palette'],
   },
   {
@@ -467,6 +467,8 @@ const UNTESTED = {
   // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
   'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
+  // The map's palette on a phone: the native layers and pin views take the same constants, never run on a device.
+  'map-palette': { MP13: 'device: the native map\'s layers and pin views in Earth and ink, seen on a phone (docs/NATIVE_UNVERIFIED.md)' },
 };
 
 /**
