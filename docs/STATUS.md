@@ -194,6 +194,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   **Answered** by the owner in person (Nov 12; decision 0165): "Show me swatches", not a yes to a hue: a later run
   renders three walked hues apart from the accent, the owner picks one, then it is built. Recorded Nov 13; waits for
   the next `/tend inbox`, one build per run (T28 was built first).
+  Nov 17: swatches shown (olive, plum, umber; SCRATCH t22-swatches); umber picked, then 'Let's re-imagine the palette': no hue yet, a palette rethink comes first (decision 0186)
 - **T23 [phone] The replays at the largest text size** (2026-11-12)
   Area: replay. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; finish a walk
@@ -243,13 +244,14 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 17, `/tend inbox T21 --deploy=main`, with the replay's `[loop]` item "Leaving the first replay with words typed in Name it drops them without asking"** (opened from `29d76a6f`, rebased on `9cd0647a`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
-- The entries, as main held them: T21 "Replay: the name step's only way on is Keep it" (the owner's yes, Nov 12, decision 0165, "A quiet Back"), and the `[loop]` item with the owner's answer of Nov 16, "Ask there too". Both leave the record.
-- `tend replay T21`: the name sheet's top row holds a quiet "Back" in Not now's style, at the leading edge above the first field; it goes where Android's Back and Escape go from the name step (one `stepBack` asking `backFrom`): the card, the words kept.
-- `tend replay 15`: Back or Escape that would leave the first replay with words typed in Name it (`wordsTyped`, read through Rename's `renameChanged` with the suggestion offered) asks "Discard these edits?", Rename's ask in Keep it's place under the fields and their words; Back, Escape and Done while it asks are Keep editing; Discard leaves for Chronicle. Unchanged or emptied words leave at once.
-- The review (one round, the `steward`): one medium, four low, four silent questions. The owner answered in person, Nov 17: Q1 "Ask there too": with words typed, Not now asks "Discard these edits?"; with nothing typed it leaves at once. Q2 "Show the typed name": after Back, the card's title shows the typed name (unsaved) until Keep it or leaving. S3 "Add the chevron": a muted back chevron before "Back" (no new colour, no new words) and the spoken hint "Returns to the card, your words kept". Q4 "File it as architecture": the browser's own back on web.
-- Accepted four: S1 and S2 as `tend replay audit 15` (Not now through `backFrom('card', …)`; a Rename from the card replaces only the Name it field it changed, `fieldsAfterRename`), Q2 and S3 as `tend replay audit 16` (`cardTitle`; the chevron and the hint). Deferred one: S4, the browser's back and Safari's edge swipe, a note with the owner's answer on the existing `[arch]` item "The browser's own Back on the name step" in Replay rhythm. S5 and Q3 (the ask from a re-watch's fog takes the walker to the name sheet) kept as built, nothing filed. One device check filed, a note on the old one.
-- Journeys on the final export: replay (80 ok), launch, tabs (Not now with nothing typed leaving at once). Not run: the sweep's lenses and the balance; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
+**Nov 17, `/tend explore --deploy=main`, the accent at rest across Explore and Chronicle** (opened from `28daf0a1`, rebased on `3cf80652`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
+- The items, as main held them: Explore and discovery's `[loop]` "Explore's accent at rest beyond the selected card", and "Open before the loop", the vision review of Nov 10, item 4 "The accent at launch". Both leave the record; decision 0172's rule: "The accent is kept for a card's single primary action, app-wide; everything at rest is ink".
+- `tend explore 19`: the area card's "How the marks work" and its icon in ink. `tend explore 20`: the selected area's name and its dot's ring on Explore's map in ink.
+- `tend chronicle 11`: the "Thread" label on both thread screens, and a found thread's quote rule, in ink. `tend chronicle 12`, then `tend chronicle audit 6` (the owner's "A mic glyph"): a memo's card draws a 16 px ink mic, no disc. "A year ago today" (muted) and "Relive it" (an ink menu item) were already not the accent; none of the four is a card's single primary action.
+- Decision 0186, "The owner's answers of Nov 16 and 17": twelve answers verbatim, the accent at rest's two named exceptions (the selected tab's tint, "Keep the accent tint"; the area card's map-key status lines, "Leave them coloured"), and QL22's, GZ9's and GZ10's wording for the owner.
+- T22's swatches (no build): olive, plum and umber rendered on the replay's beat one and the walk's card from throwaway exports; the owner picked umber, then "Let's re-imagine the palette": no hue yet, T22 stays open, noted.
+- The review (one round, the `ux-reviewer`): accepted U2 (`tend chronicle audit 6`) and U7 (`tend explore audit 22`: "Cancel" while Explore looks and the search's close word in ink); filed `[loop]` medium U3 (a found thread's loose buttons) and U4 (the journal toolbar's hint at 320 px, not a one-line fix); filed `[loop]` low U1, U5, U8. U6 answered by the owner ("Keep the accent tint").
+- Journeys on the final export: atlas, reactions, launch; resurface and threads on the earlier export. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
 
 ### Open before the loop
 
@@ -450,15 +452,11 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
      carrying no identifier is not data leaving the device, with `ALLOWED_HOSTS` as the list? Only 0103 says it now.
   3. **"Viewpoints and attractions":** "attraction" is a draw on visitors, the nearest word to the Never on popularity;
      keep it, or "Viewpoints & oddities" at both levels?
-  4. **The accent at launch:** "A year ago today" and "Relive it" carry the accent on the screen the app opens on,
-     while capture is plain ink (also the "Thread" labels and MomentCard's play button). Muted ink and a secondary
-     button?
   5. ~~**"Placing your walks (N of M)"**~~: answered Nov 11 (decision 0137): no cover, no count; walks are placed in
      the background and the walk at hand says "Placing…" on its row.
   6. **Open question 5**, "nothing is ever calculated for you", against resurfacing and suggested threads (0098):
      where is the line?
   - Note: the commits `2a00092` and `29dac68` cite decisions 0112 and 0121 for the plain labels; the record is 0122.
-  Item 4 answered Nov 14 (decision 0172): the accent at rest is kept for a card's single primary action, app-wide (extending 0153); a label at rest is ink. The loop applies it to these in later runs.
 
 - **Remarkable and public in chronicles-data:** built on its `claude/gallant-maxwell-hp14jb` (RD1-RD14) and merged with the app's contract v2. Run the weekly build by hand once (Actions, "Weekly places build", Run workflow): until it publishes a v2 archive, the live v1 archive's `heritage_building` places (the Landmark buildings) are not shown by the app, which now reads v2's `building_structure`. The first run is also the first real OSM fetch; its `report` artifact is your review.
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
