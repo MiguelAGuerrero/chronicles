@@ -461,7 +461,6 @@ test('TP10: a town row from the older rules is stale; since a8 a neighborhood ro
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p5' }), 'b1'), false, 'XS15: a14.p5 rows, from before subtypes, are read again');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p6' }), 'b1'), true, 'QC16: a14.p6 rows stand under a14.p7 (carried, PS9)');
   for (const code of ['a12.p2', 'a13.p2', 'a12.p3', 'a13.p3']) assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code }), 'b1'), false, `SF11: ${code} rows are read again`);
-  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p5' }), 'b1'), true, 'QC16: a14.p5 rows stand under a14.p6 (carried, PS9)');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p4' }), 'b1'), false, 'only the code just before is carried');
   for (const code of ['a9.p2', 'a9.p1']) assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code }), 'b1'), false, `tend explore T9: ${code} rows, from before T9's park kinds, are read again`);
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a8.p1' }), 'b1'), false, 'PC13: a8 rows, from before community parks, are read again');
