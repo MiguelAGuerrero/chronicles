@@ -93,8 +93,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] At 320 px, "Press and hold the map to look anywhere." wraps to two lines over Explore's map (picture `probe-map-attrib-320-explore`; ui-patterns, "Nothing wraps on a 320 px phone at the default text size"; `/tend map`, Nov 12, low, explore's)
 - [loop] A tall overlay is unmeasured: a two-line error banner with an action at 320 px or 200% text, or the long press's choices wrapping taller than 68, may reach the top chips or cover the slots `exploreSlots` assumes; no journey pictures either (`/tend explore` review, Nov 11, low, unconfirmed)
 - [kept] `new Date(c.t)` in `discovery/recall.ts:106` names a month and day in the device's timezone: the same item as functional-core audit 10 (`/tend explore`, Nov 11)
-- [owner] Explore's map labels collide: a busy street's name prints over the town's name and a neighbour's (pictures `11b-explore`, `11d-atlas-town`); the UX review's opinion, no source found (`/tend explore`, Nov 11, medium)
-  Stale-likely (decision 0172, Nov 14): since 0160 the busy names are a map symbol layer with collision. It closes as stale once a fresh picture in the next `/tend map` run confirms it.
 - [fix carousel-height audit] The area cards' height still follows a long name (`AtlasTile.tsx` name, no line cap), the system's text scale on a phone (the reserved lines are fixed pixels), and a town card's 4 px stack edge (the towns row is 4 px taller than a town's page); the row's height is otherwise the same for every card of a list. Read in the code, not pictured; native unverified.
 - [loop] Explore's accent at rest beyond the selected card: the area card's "How the marks work" and its icon (`AtlasCard.tsx`, `howText`) and the selected area's name on the map are drawn in the accent though neither is a card's single primary action (decision 0172, "The accent at rest"; pictures `after/explore-here-card-390`, `after/explore-toast-390`; the review of `/tend explore`, Nov 14, ux-reviewer, judgment 3; low)
 - [loop] At 320 px Fox Point's card cuts its kind rows' word: "some" reads "so…", and History's is lost beside its Suggest a walk (picture `after/explore-here-card-320`, the same before; WCAG 2.2, 1.4.10 Reflow; the review of `/tend explore`, Nov 14, ux-reviewer; low)
@@ -202,13 +200,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] Before a map's style loads, its credits (i) sit flush in the screen's corner, half off it (the replay's reading
   beat, `probe-390r-reading`): `place()` runs only once the map is ready, and `--credits-bottom` and `--credits-left`
   have no fallback in the stylesheet (`WalkMap.web.tsx`; `/tend replay`, call 12, low; the map area's)
-- [owner] A capture pin standing on a start or end puts its stalk inside the marker: the "2" pin's stalk lands in the
-  solid end (`qol-03-replay-card`), and a note pin's stalk half fills the start's hollow (`23-day-card`,
-  `22-day-replay-walk`), which since `tend map T16` carries the shape that tells the two apart. Stopping the stalk at
-  the marker's outer edge is a change to QL3's placement, yours (the T16 review's U3, low)
-  Since `tend map T25` the stalk crosses the bullseye's white band, so the end reads like a power glyph at 1x
-  (`qol-03-replay-card`, `qol-17-pins-several-replay`; the T25 review's ux 25, low). The fix stays yours.
-  Answered Nov 14 (the owner, in person; decision 0172): the stalk stops at the marker's edge (amends QL3's placement; the spec's words are in STATUS.md "Open before the loop"). The loop's to build in a `/tend map` run, one commit; it leaves with the decision's reason.
 - [loop] A pin of one memory says "Memory: Voice memo" where a pin of several says "Memories: a photo and a note": two tables for one thing (`pinSpoken`, `src/lib/pins.ts`); "Memory: a voice memo" from the same table would match (the T14 review's U5, low; a pin of one moment is not T14's subject)
 - [loop] At 320 px the walk's "Add to this moment" offer, a toast with four controls, lies over the pins it refers to (`after3x-walk-320` in the T14 probe, the same before T14; `.claude/rules/ui-patterns.md`, a control may not float over its content) (the T14 review's U6, low)
 - [loop] No test runs the web's in-place relabel of a pin (`usePinMarkers` in `WalkMap.web.tsx`, the name set again when a walk clock comes or goes after the pin was drawn): every journey's clock arrives with or before the pins (the T14 review's test finding; `tend map audit 21` makes the clock go at Stop, and the walk screen leaves for the replay at once)
@@ -222,7 +213,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   return to the front and at `nextDayPartBoundary`, unit-tested only, because the e2e harness installs no page clock
   and installing one mid-journey would replace every timer the mocked walk runs on. A journey that opens the ready
   screen under `page.clock` at 23:55 and reads a pin's name before and after midnight would hold it (low).
-- [loop] The `qol` journey's `tend map audit 25` and `26` fail at Hold at 390 on `main` since the Place search commits (`426d94e1`, `b647b841`): the walker's dot sits on the walk's end, 0 to 16 px apart (dot [195,423], end [195,423]), where the check asks them apart; at 320 both pass. They passed on `6c5174cd` (217 ok), and fail the same on `b647b841` alone and on the `/tend chronicle` branch rebased on it (three runs, Nov 16), so the cause is in those commits or what they reach (`WalkMap.web.tsx`, the credits control) (found by the `/tend chronicle` run, Nov 16, medium)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 

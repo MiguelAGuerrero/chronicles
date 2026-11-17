@@ -32,6 +32,17 @@ paths:
     centre and band (`ENDS_PAINT`): a walk that ends on or near its start keeps its bullseye whole. The line above
     reads so: `ends-ring` is no longer filtered, and `ENDS_PAINT` has no branches. The `qol` journey walks a small
     loop and reads the end over the start, and pictures Hold with the dot and the end both on the map.
+  - Since `tend map 13` (decision 0172, O13) a pin standing on a start or end stops its stalk at the marker's edge:
+    `stalkLift` (`lib/pins.ts`, core; `END_MARK_R`, 11 px, held equal to `ENDS_RING_PAINT`'s outer radii) says how far
+    the foot rises, on screen at the map's zoom and bearing, for a pin whose whole stalk (`PIN_STEM`, the stem's 8 pt
+    above the foot) crosses a marker, not its foot alone (`tend map audit 33`). Both maps draw the lift as padding under the pin, never as
+    an offset, so the marker stays anchored at its point and the pin's target still covers the marker (the markers take
+    no tap). The web re-measures on `zoom` and `rotate` and writes only a change; native reads `view` and the settled
+    bearing (unverified on a device). No lift while the markers are hidden with the trace.
+  - **Trap: an e2e Hold during a short walk's path beat.** The path beat of the `qol` loop (60 m) runs in about a
+    second; a Playwright `click` (it waits for the button to hold still) took 140 to 780 ms and a poll of round trips
+    missed the moment, so the dot was on the end at Hold. Wait in the page (`waitForFunction`, `polling: 'raf'`) and tap
+    the button's box with `mouse.click` (`tend map 12`).
 - **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
   longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
   latitude), in the bottom-left corner, as a sibling of the map inside the

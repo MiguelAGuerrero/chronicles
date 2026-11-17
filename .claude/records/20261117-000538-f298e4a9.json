@@ -1,0 +1,37 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The `qol",
+        "--reason",
+        "fixed in tend map 12 (0d74c23f before the publish's rebase; the commit named on main) and tend map audit 34: the check raced the loop's one-second path beat from the start (its click took 140 to 784 ms; lost on 6c5174cd in 2 of 5 scratch runs as on main in 4 of 5; the larger web bundle a possible contributor, not shown), and the app did not regress; the hold is now timed in the page and tapped on Hold, and qol passes audit 25 and 26 at 390 and 320"
+      ],
+      "target": "sha256:7a3d195b56274a364c74847d8b2d0226bcb39ebfb67781eb1b70f1e2f4d95888"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A capture pin",
+        "--reason",
+        "the owner's answer (decision 0172, O13: \"The stalk stops at the marker's edge; amends QL3's placement.\"), built in tend map 13 and tend map audit 33 (the whole stalk cleared, not the foot alone); QL3's words stay in STATUS.md \"Open before the loop\""
+      ],
+      "target": "sha256:4128891ad10816f631558049a95239e45f93602daac7fd1daeca1026e6099b7d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Explore's map labels",
+        "--reason",
+        "stale, as decision 0172 O8 says (\"It stays open, noted, until a fresh picture in the next /tend map run confirms it; then it closes as stale.\"): /tend map's fresh pictures at 390 of the dense town, dense-1-names, dense-1b-names-close and dense-2-zoomed-in (the dense journey), and of Explore, 11b-explore and 11d-atlas-town (the atlas journey), show no label printed over another since decision 0160's symbol layer with collision; the harness's base map draws no names of its own, so a busy name against the base map's own town name is not pictured"
+      ],
+      "target": "sha256:6a0c5c9363c8121574b1307b14d6347e18298db5f86dd7de5705dc7aebe3da90"
+    }
+  ]
+}
