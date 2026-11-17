@@ -11,7 +11,7 @@ import { findFor, KINDS, parseHidden, visibleMarks, type ChecklistItem } from '.
 import { ARCHIVE_CLASS_NAMES } from '../../presence/presence';
 import type { LngLat } from '../../types';
 
-// More attractions (specs/more-attractions, MA1-MA9; decision 0197), written from the spec before the code.
+// More attractions (specs/more-attractions, MA1-MA9; decision 0198), written from the spec before the code.
 
 const O: LngLat = [-75.37, 40.61];
 const mLon = 111320 * Math.cos((O[1] * Math.PI) / 180);

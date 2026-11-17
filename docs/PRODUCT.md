@@ -185,7 +185,7 @@ recording, and a recording bar brings a minimized walk back.
   observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,
   towers, old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
   Small things start off unless they are art.
-  **More attractions** (decision 0197): every museum by its type, not only listed ones (Culture alone unless listed), nature
+  **More attractions** (decision 0198): every museum by its type, not only listed ones (Culture alone unless listed), nature
   reserves and wildlife refuges, every kind of garden, amusement and water parks (with zoos and aquariums), piers and
   boardwalks, suspension bridges and national monuments. An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
   reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among

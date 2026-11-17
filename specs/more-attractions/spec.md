@@ -1,4 +1,4 @@
-<!-- Repo first: from the owner's request of Nov 17 (extend the data set; decision 0197). The data side is chronicles-data's docs/attractions/spec.md (AT1-AT6, contract v6). -->
+<!-- Repo first: from the owner's request of Nov 17 (extend the data set; decision 0198). The data side is chronicles-data's docs/attractions/spec.md (AT1-AT6, contract v6). -->
 
 # More attractions: museums by type, nature reserves, amusement parks and piers
 

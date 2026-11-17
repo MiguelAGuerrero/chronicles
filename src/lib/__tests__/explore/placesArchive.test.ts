@@ -251,7 +251,7 @@ test('PW10: a read without the archive never replaces one measured with it; a ri
 });
 
 test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again too (PK7: the bars changed at every level); a9 too (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a14.p8', 'a14.p8 (more attractions, decision 0197, none carried), a14.p7 (the antiques, books and second_hand classes beside boutique, carrying p6, decision 0194), a14.p6 (explore subtypes, XS15, decision 0191), a14.p5 (the neighbourhood read-past after normalizeWords, decision 0172, tend presence 1), a14.p4 (small places, SP12, SP13), a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
+  assert.equal(ATLAS_CODE, 'a14.p8', 'a14.p8 (more attractions, decision 0198, none carried), a14.p7 (the antiques, books and second_hand classes beside boutique, carrying p6, decision 0194), a14.p6 (explore subtypes, XS15, decision 0191), a14.p5 (the neighbourhood read-past after normalizeWords, decision 0172, tend presence 1), a14.p4 (small places, SP12, SP13), a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
   for (const level of ['neighborhood', 'town'] as const)
     assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), false, `${level} rows from a6 are read again`);
 });

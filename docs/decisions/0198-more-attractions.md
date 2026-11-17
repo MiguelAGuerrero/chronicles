@@ -1,4 +1,4 @@
-# 0197. More attractions: museums by type, nature reserves, amusement parks and piers, from Wikidata
+# 0198. More attractions: museums by type, nature reserves, amusement parks and piers, from Wikidata
 
 Date: 2026-11-17 · Status: accepted · Area: explore, discovery, presence · Amends: PK1/PK19 (a museum enters only by its listing), explore-subtypes audit 12 (the zoos kind's label)
 

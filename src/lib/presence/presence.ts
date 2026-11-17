@@ -24,7 +24,7 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  *     the map's ruins are Ruins, its zoos and attractions their own kind; weights and kinds changed, so nothing is carried.
  * p7: the classes `antiques`, `books` and `second_hand` beside `boutique` (the outing, decision 0194, QC14, QC16, QC42). A class
  *     beside `boutique` moves no bar, mark or weight, so p6 is carried (PS9).
- * p8: more attractions (specs/more-attractions, decision 0197): contract v6's museums by type, nature reserves, amusement
+ * p8: more attractions (specs/more-attractions, decision 0198): contract v6's museums by type, nature reserves, amusement
  *     parks and piers; new classes and weights move bars and marks, so nothing is carried.
  */
 export const PRESENCE_CODE = 'p8';
@@ -113,7 +113,7 @@ const DEFS = {
   natural_oddity: { weight: FULL, category: 'viewpoints', kind: 'curiosities', subset: 'natural_oddities' },
   roadside: { weight: FULL, category: 'viewpoints', kind: 'curiosities', subset: 'roadside_giants' },
   survey_mark: { weight: QUARTER, bar: QUARTER, category: 'viewpoints', kind: 'curiosities', subset: 'survey_marks' },
-  // More attractions (specs/more-attractions, decision 0197): contract v6's conventional attractions.
+  // More attractions (specs/more-attractions, decision 0198): contract v6's conventional attractions.
   nature_reserve: { weight: HALF, category: 'parks', kind: 'parks', subset: 'nature_reserves' },
   amusement: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'attractions' },
   pier: { weight: HALF, bar: HALF, category: 'history', kind: 'structures', subset: 'piers' },
@@ -348,7 +348,7 @@ const ARCHIVE: Record<string, PresenceClass> = {
   water_tower: 'water_tower', clock_tower: 'clock_tower', tavern: 'tavern', historic_machine: 'old_machine', mausoleum: 'mausoleum',
   garden: 'garden', waterfall: 'waterfall', cave: 'cave', hot_spring: 'hot_spring', old_tree: 'old_tree',
   concert_hall: 'concert_hall', observatory: 'observatory', carousel: 'carousel', zoo: 'zoo', fire_tower: 'fire_tower', ghost_town: 'ghost_town',
-  // Contract v6 (specs/more-attractions MA2-MA5, decision 0197); a museum by type is held for its type alone, never a
+  // Contract v6 (specs/more-attractions MA2-MA5, decision 0198); a museum by type is held for its type alone, never a
   // listing, so it is not `recorded` (classesOfArchive) and lights Culture alone (MA2).
   museum_by_type: 'museum', nature_reserve: 'nature_reserve', amusement_park: 'amusement', pier: 'pier',
 };

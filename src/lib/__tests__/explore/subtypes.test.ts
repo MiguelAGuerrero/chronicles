@@ -55,7 +55,7 @@ const TREE: [string, string, string][] = [
   ['odd_engineering', 'viewpoints', 'curiosities'], ['ruin', 'viewpoints', 'old_ruins'], ['ghost_town', 'viewpoints', 'ghost_towns'],
   ['natural_oddity', 'viewpoints', 'natural_oddities'], ['roadside_giant', 'viewpoints', 'roadside_giants'], ['folly', 'viewpoints', 'roadside_giants'],
   ['marks_a_fact', 'viewpoints', 'survey_marks'], ['time_capsule', 'viewpoints', 'time_capsules'],
-  // More attractions (decision 0197).
+  // More attractions (decision 0198).
   ['nature_reserve', 'parks', 'nature_reserves'], ['pier', 'history', 'piers'], ['amusement_park', 'viewpoints', 'attractions'], ['museum_by_type', 'culture', 'museums'],
 ];
 
@@ -89,7 +89,7 @@ test('XS4: two new kinds, Nature and Zoos and aquariums (audit 12); the map\'s a
   await sub();
   const label = (id: string) => KINDS.find((k) => k.id === id)?.label;
   assert.equal(label('nature'), 'Nature');
-  // Decision 0197 (the owner, Nov 17): amusement parks joined zoos and aquariums.
+  // Decision 0198 (the owner, Nov 17): amusement parks joined zoos and aquariums.
   assert.equal(label('attractions'), 'Zoos and amusement parks');
   assert.equal(label('viewpoints'), 'Viewpoints and attractions');
   for (const k of ['waterfalls', 'caves', 'hot_springs', 'old_trees']) assert.equal(kindRows(KINDS, new Set()).find((r) => r.kind.id === k)?.depth, 1, k);
@@ -367,7 +367,7 @@ test('explore-subtypes audit 11: unnamed murals and sculptures fold into one "Pu
 });
 
 test('explore-subtypes audit 12: zoos and aquariums are a kind named for what they are; the map\'s attractions stay with Viewpoints', () => {
-  // Decision 0197 (the owner, Nov 17): amusement parks joined zoos and aquariums; still named for what they are.
+  // Decision 0198 (the owner, Nov 17): amusement parks joined zoos and aquariums; still named for what they are.
   assert.equal(KINDS.find((k) => k.id === 'attractions')?.label, 'Zoos and amusement parks');
   assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
   assert.equal(tile('attraction', 'attraction', 'SteelStacks')[0]?.kind, 'viewpoints');
