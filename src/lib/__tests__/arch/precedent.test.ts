@@ -43,7 +43,7 @@ const SPEC = [
   '- **Not an entry** Source: https://example.org (another section)',
 ].join('\n');
 
-test('precedent: the section is "How adjacent apps do it"; an entry names an app in bold and a source (a URL, an observation, or "from memory, unverified")', { todo: 'test first' }, () => {
+test('precedent: the section is "How adjacent apps do it"; an entry names an app in bold and a source (a URL, an observation, or "from memory, unverified")', () => {
   const p = precedent();
   assert.equal(p.HEADING, 'How adjacent apps do it');
   const s = p.sectionOf(SPEC);
@@ -59,7 +59,7 @@ test('precedent: the section is "How adjacent apps do it"; an entry names an app
   assert.deepEqual(p.sectionOf(placeholder)?.entries, [], 'the template\'s placeholders are not an entry');
 });
 
-test('precedent: a spec in IN_PROGRESS, or not on the legacy list, fails without the section or without an entry', { todo: 'test first' }, () => {
+test('precedent: a spec in IN_PROGRESS, or not on the legacy list, fails without the section or without an entry', () => {
   const p = precedent();
   const bare = '# A spec\n\n## Criteria\n\n1. **ZZ1** Something.\n';
   const empty = '# A spec\n\n## How adjacent apps do it\n\nnone found\n';
@@ -79,17 +79,17 @@ test('precedent: a spec in IN_PROGRESS, or not on the legacy list, fails without
   assert.match(bareMsg, /docs\/research\/adjacent-apps\.md/);
   assert.match(got.find((x) => x.slug === 'new-empty')!.message, /no entry naming an app and a source/);
   assert.match(got.find((x) => x.slug === 'old-busy')!.message, /IN_PROGRESS/);
-  assert.deepEqual(p.specProblems(specs.filter((s) => s.slug === 'old-one' || s.slug === 'new-good'), [], legacy), []);
+  assert.deepEqual(p.specProblems(specs.filter((s) => s.slug === 'old-one' || s.slug === 'new-good'), [], ['old-one']), []);
 });
 
-test('precedent: the legacy list only shrinks: a listed spec that gains the section, or that no longer exists, must leave it', { todo: 'test first' }, () => {
+test('precedent: the legacy list only shrinks: a listed spec that gains the section, or that no longer exists, must leave it', () => {
   const p = precedent();
   const got = p.specProblems([{ slug: 'old-one', text: SPEC }], [], ['old-one', 'gone']);
   assert.deepEqual(got.map((x) => x.slug).sort(), ['gone', 'old-one']);
   for (const x of got) assert.match(x.message, /scripts\/precedent\.js.*LEGACY_SPECS/);
 });
 
-test('precedent: this repo is clean, every spec before the gate is listed, and check:docs runs the gate', { todo: 'test first' }, () => {
+test('precedent: this repo is clean, every spec before the gate is listed, and check:docs runs the gate', () => {
   const p = precedent();
   assert.deepEqual(p.check(ROOT).map((x) => x.message), []);
   const slugs = readdirSync(join(ROOT, 'specs')).filter((d) => existsSync(join(ROOT, 'specs', d, 'spec.md')));
@@ -98,7 +98,7 @@ test('precedent: this repo is clean, every spec before the gate is listed, and c
   assert.match(read('scripts/check-docs.js'), /require\('\.\/precedent'\)/);
 });
 
-test('precedent: the list of adjacent apps and their implementations, and the procedures that ground a suggestion in it', { todo: 'test first' }, () => {
+test('precedent: the list of adjacent apps and their implementations, and the procedures that ground a suggestion in it', () => {
   const list = read('docs/research/adjacent-apps.md');
   for (const kind of ['walking and outdoor', 'maps and navigation', 'journaling and memories', 'photo and media', 'location check-ins']) {
     assert.match(list, new RegExp(kind), `the list covers ${kind}`);

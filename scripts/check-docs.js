@@ -16,6 +16,8 @@
  *      (scripts/collisions.js).
  *   5. Every live criterion is tested, retired, untested with a reason, or in the
  *      legacy baseline (scripts/criteria.js).
+ *   6. A spec in IN_PROGRESS, or written after decision 0193, has a "How adjacent
+ *      apps do it" section with an entry naming an app and a source (scripts/precedent.js).
  *
  * Exit 1 with a list of problems, each saying how to fix it; exit 0 when clean.
  */
@@ -229,6 +231,8 @@ for (const doc of PATH_CHECKED) {
 for (const p of require('./criteria').check(ROOT)) fail(p.message);
 // The device acceptance suite: its format, and an item for every device-only criterion (DV1-DV5).
 for (const p of require('./device').check(ROOT)) fail(p.message);
+// 6. A spec in progress, or written after the gate, says how adjacent apps do its job (decision 0193).
+for (const p of require('./precedent').check(ROOT)) fail(p.message);
 
 // Warnings never fail the check: they say what to do before it would.
 for (const w of warnings) console.warn(`check-docs: warning: ${w}`);
