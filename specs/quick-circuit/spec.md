@@ -71,6 +71,20 @@ Open: the owner's calls of Nov 16 are in Decisions; a decision record for the st
   by nothing a crowd says, amending 0115 ("ordinary shops stay out") and 0044, for this layer and for `outing/` only (QC31). Its shape
   is the steward's R1; the vision's Shapes table gains a line for outings with it.
 
+## How adjacent apps do it
+
+From `docs/research/adjacent-apps.md`, the job "Suggest a way on foot" (Earn). Precedent informs how, never what.
+
+- **Apple Maps** (iOS 27): you name a destination, then "Tap Go or Steps for the route you want to take"; Options, below Directions,
+  avoids "hills, stairs, or busy roads". It routes to a place you already chose; it never proposes the places. Source:
+  https://support.apple.com/guide/iphone/get-walking-directions-iph8eae299d1/ios , read Nov 17, 2026. **Verified**.
+- **Komoot**: planned routes with surface and way types and a difficulty, from a start and a destination you pick. Source: from memory,
+  unverified. **Unverified**.
+
+Where Plan an outing departs, and why: both take a destination from the walker and say how to reach it; this page proposes the stops
+from what you want to see and says them only by kind. It shows one proposal and no difficulty, rating or ranking (the vision's Never
+lines), and the stops are named only when you tap or arrive.
+
 ## Criteria
 
 The owner's task, and finding it:

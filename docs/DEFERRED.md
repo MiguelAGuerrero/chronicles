@@ -869,3 +869,10 @@ What the Explore subtypes slice left out (`specs/explore-subtypes`, decision 018
 - The section title "What I'm into" shares the drawer's section style, so it reads no larger than "Explore" or "“?” range" above a 58-row list (explore-subtypes audit, U2); a larger title is a change to the shared style of the ready bar and the walk's drawer
 - Off switches may fall under 3:1 against the drawer's ground (WCAG 1.4.11): the shared `SwitchRow`'s off track and thumb edge, to be measured on the pictures before a change (explore-subtypes audit 19, U5)
 - At 320 px an unlabelled round map button sits on the drawer's top edge on the walk screen, and the press-and-hold hint wraps to four lines (explore-subtypes audit 20, U6; not this slice's screen code)
+
+## Plan an outing (QC1-QC42, decision 0194)
+
+Plan an outing (QC1-QC42, decision 0194) is built to the core, the page, the Explore control, the arrival line and one journey; what follows is left out on purpose or waits.
+
+- Opening hours, admission and closing times: v1 says once that hours are not known and plans no time of day; the pack contract reserves `hours` and emits none. A later slice, and for hours a decision of the owner (the owner, Nov 16; QC20)
+- Plan an outing's cold find and UI review ran (Nov 17; findings U1-U10 triaged in `specs/quick-circuit/spec.md`, Record): four fixed behind `quick-circuit ui 1-4`; left: the stop dots wear the planner's magenta pin colour, which may read as "found" (the owner's call on a different colour), the empty page's map is blank in the e2e's fake basemap, a hint beside the search box, and the order of the controls (Start now pinned). The journey now covers Books from a served stores pack, Thrifting, Include chains across a reload and a second Swap (QC32)
