@@ -841,3 +841,10 @@ What the native map frames slice (NF1-NF7, specs/native-map-frames) left out, fr
 - **The replay screen still renders at the clock's 30 fps** (`useCeremonyClock` sets state on the screen): since native map frames it no longer reaches the map's sources or pins; the stage and its overlays are the ceremony's own, left for a measurement on a device.
 - **The hidden `omt-query` source is mounted on every native map** (the replay, a day, the planner drawer, Chronicle), five invisible layers on the base tiles again, though only the maps that read tiles or hide the scale over a blank world need it: mount it only there (performance investigation, Nov 16).
 - **A native follow camera** (`Camera` `trackUserLocation`): it would move without JS per fix, but follows the OS fix, not the filtered one (`docs/research-reactivity.md`); the follow stays `GlideFollow`'s `jumpTo`.
+
+## Plan an outing (QC1-QC42, decision 0187)
+
+Plan an outing (QC1-QC42, decision 0187) is built to the core, the page, the Explore control, the arrival line and one journey; what follows is left out on purpose or waits.
+
+- Opening hours, admission and closing times: v1 says once that hours are not known and plans no time of day; the pack contract reserves `hours` and emits none. A later slice, and for hours a decision of the owner (the owner, Nov 16; QC20)
+- Plan an outing's cold find and UI review ran (Nov 17; findings U1-U10 triaged in `specs/quick-circuit/spec.md`, Record): four fixed behind `quick-circuit ui 1-4`; left: the stop dots wear the planner's magenta pin colour, which may read as "found" (the owner's call on a different colour), the empty page's map is blank in the e2e's fake basemap, a hint beside the search box, and the order of the controls (Start now pinned). The journey now covers Books from a served stores pack, Thrifting, Include chains across a reload and a second Swap (QC32)
