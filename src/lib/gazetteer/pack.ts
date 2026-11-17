@@ -90,6 +90,12 @@ export function placeAt(pack: GazetteerPack, index: number): Place {
 export const PACK_FILE = 'gazetteer/places.json';
 
 /**
+ * How long the web waits for the pack before search says "Search is unavailable." with Try again (gazetteer-web-fetch audit 1):
+ * a stalled request otherwise left it on "Getting ready…" until a reload. About 2 MB over gzip, so a slow link gets its minute.
+ */
+export const PACK_FETCH_MS = 60_000;
+
+/**
  * The pack's address under `base`, keyed by the date its credit carries (held equal to the pack's own credit), so a page
  * built with a rebuilt pack never reads the old one from the browser's cache. A credit with no date is the key itself.
  */

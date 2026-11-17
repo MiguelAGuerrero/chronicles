@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import test from 'node:test';
 import { GAZETTEER_CREDIT } from '../../../components/map/types';
-import { PACK_FILE, packUrl, type GazetteerPack } from '../../gazetteer/pack';
+import { PACK_FETCH_MS, PACK_FILE, packUrl, type GazetteerPack } from '../../gazetteer/pack';
 import { createGazetteerSource } from '../../gazetteer/source';
 
 // The pack on the web (DEFERRED "Explore and discovery", the owner's answer of Nov 16, "Fetch on first search"): the web
@@ -64,4 +64,34 @@ test('gazetteer web fetch 3: only the native source names the bundled pack; the 
   assert.match(text, /packUrl\(/);
   assert.match(text, /fetch\(/);
   assert.match(text, /EXPO_BASE_URL/, 'under the site\'s base path, as the map\'s worker');
+});
+
+test('gazetteer-web-fetch audit 1: the web fetch carries a timeout, so a stall ends in a failure Try again reads past', async () => {
+  const { bundledGazetteer } = await import('../../gazetteer/source.web');
+  const realFetch = globalThis.fetch;
+  const realTimeout = AbortSignal.timeout;
+  const asked: string[] = [];
+  let timeoutMs: number | null = null;
+  // A request that never answers: it ends only when its signal aborts (here at once, standing in for the timeout).
+  AbortSignal.timeout = ((ms: number) => { timeoutMs = ms; return AbortSignal.abort(new Error('timed out')); }) as typeof AbortSignal.timeout;
+  globalThis.fetch = (async (url: string, init?: RequestInit) => {
+    asked.push(String(url));
+    if (!init?.signal) throw new Error('a fetch with no signal would wait for good');
+    if (init.signal.aborted) throw init.signal.reason;
+    return new Promise(() => {});
+  }) as typeof fetch;
+  try {
+    await assert.rejects(() => bundledGazetteer.load());
+    assert.equal(timeoutMs, PACK_FETCH_MS, 'the timeout is the named one');
+    assert.ok(PACK_FETCH_MS >= 30000 && PACK_FETCH_MS <= 120000, 'long enough for about 2 MB on a slow link, short enough to say so');
+    assert.equal(asked[0], packUrl('', GAZETTEER_CREDIT));
+    AbortSignal.timeout = realTimeout;
+    globalThis.fetch = (async () => ({ ok: false, status: 404 }) as Response) as typeof fetch;
+    await assert.rejects(() => bundledGazetteer.load(), /404/, 'a missing file is a failure too');
+    globalThis.fetch = (async () => ({ ok: true, status: 200, json: async () => PACK }) as unknown as Response) as typeof fetch;
+    assert.equal((await bundledGazetteer.load()).id, PACK.id, 'Try again reads again and keeps the pack');
+  } finally {
+    globalThis.fetch = realFetch;
+    AbortSignal.timeout = realTimeout;
+  }
 });
