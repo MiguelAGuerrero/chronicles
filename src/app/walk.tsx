@@ -1215,6 +1215,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <WalkMap
         {...drawn}
         storefrontNamesNear={namesNearYou(live.here)}
+        // QC24: following an outing, the base map names no shop beside a stop.
+        hideLabels={navigation.nav?.dest?.outing === true}
         captures={captures}
         clocks={clocks}
         now={pinNow}

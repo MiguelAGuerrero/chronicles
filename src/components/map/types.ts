@@ -225,6 +225,11 @@ export interface WalkMapProps {
   fogEmphasis?: boolean;
   /** Hides the map behind an opaque cover, e.g. while the camera steps through views. */
   covered?: boolean;
+  /**
+   * The base map draws no shop or place-of-interest labels (QC24: the outing's page and a walk following an outing, where a stop is a
+   * plain point and nothing near it says what is there). Street, water and place-name labels stay.
+   */
+  hideLabels?: boolean;
   /** A press on the map, with how far around it counts as "here" at the current zoom. */
   onPress?: (lngLat: LngLat, radiusM: number) => void;
   /** A long press on the map (about half a second), with the same reach as onPress. */
@@ -484,6 +489,19 @@ export const STOREFRONT_NAME_FONT = ['Noto Sans Bold'];
  * first symbol layer itself; native can't read the style, so it names it (held by `map/storefrontNames.test.ts`).
  */
 export const BASE_FIRST_LABEL = 'waterway_line_label';
+
+/**
+ * QC24: the base style's vector source and the source layer its shop and point-of-interest labels are drawn from. The web hides the
+ * style's symbol layers of that source layer (`poiLabelLayers`); native, which cannot read the style, hides the source layer itself
+ * (`setSourceVisibility`, unverified on a device). The app's own query source (`omt-query`) is another source and is left alone.
+ */
+export const BASE_VECTOR_SOURCE = 'openmaptiles';
+export const POI_SOURCE_LAYER = 'poi';
+
+/** QC24: the ids of a style's symbol layers that draw points of interest (shops among them), whatever the style names them. */
+export function poiLabelLayers(layers: readonly { id: string; type: string; 'source-layer'?: string }[]): string[] {
+  return layers.filter((l) => l.type === 'symbol' && l['source-layer'] === POI_SOURCE_LAYER).map((l) => l.id);
+}
 
 /**
  * A stale area's names (DC6, explore-dense-city ui 1): a greyer ink at full opacity, 5.4:1 on the halo and 4.5:1 on the

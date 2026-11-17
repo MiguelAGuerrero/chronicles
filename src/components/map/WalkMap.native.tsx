@@ -31,7 +31,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -114,6 +114,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const rendered = useRef<(() => void) | null>(null);
   const size = useRef({ width: 0, height: 0 });
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  // QC24: the base style's shop and point-of-interest labels, hidden while a stop is a plain point (the outing's page, a followed
+  // outing). Native cannot read the style, so the base source's `poi` layer is hidden whole; it is the base style's own source, never
+  // the app's `omt-query` one (unverified on a device: NATIVE_UNVERIFIED). Redone when the style has finished loading.
+  const hideLabels = !!props.hideLabels;
+  useEffect(() => {
+    if (!ready) return;
+    void mapRef.current?.setSourceVisibility(!hideLabels, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER).catch(() => {});
+  }, [ready, hideLabels]);
   const lastView = useRef<{ zoom: number; lat: number } | null>(null);
   // Discrete navigation (DN1, DN2): with onSwipe, a one-finger drag is a swipe, never a pan.
   const [swiper] = useState(createSwiper);

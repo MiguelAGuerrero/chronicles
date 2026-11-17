@@ -33,11 +33,11 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, BASE_VECTOR_SOURCE, poiLabelLayers, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
-const VECTOR_SOURCE = 'openmaptiles';
+const VECTOR_SOURCE = BASE_VECTOR_SOURCE;
 /** Tiles that never arrive must not hang the stop. */
 const VIEW_TIMEOUT_MS = 4000;
 
@@ -1289,6 +1289,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);
   }, [ready, props.veil]);
+  // QC24: the base map's shop and point-of-interest labels, hidden while a stop is a plain point (the outing's page, a followed outing).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    for (const id of poiLabelLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[])) map.setLayoutProperty(id, 'visibility', props.hideLabels ? 'none' : 'visible');
+  }, [ready, props.hideLabels]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;

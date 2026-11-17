@@ -97,6 +97,7 @@ export function OutingDrawer(props: {
           foundPins={o.map.pins}
           fitBounds={o.map.fit}
           fitKey={fitN}
+          hideLabels
         />
       </View>
       <ScrollView style={styles.body} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
