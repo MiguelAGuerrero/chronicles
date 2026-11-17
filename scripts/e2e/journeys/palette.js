@@ -28,6 +28,8 @@ const over = (top, under, a) => top.map((v, i) => Math.round(v * a + under[i] * 
 async function run(h) {
   const { navUrl, at, scriptsDir, freshPage, shot, check, tabTo } = h;
   const { c, pg } = await freshPage('palette', { permissions: ['geolocation', 'microphone'] });
+  // The map's projection for the pixel reads (`window.__project`), defined only when the page asks for perf counts.
+  await c.addInitScript(() => { window.__perf = {}; });
   const fixtures = path.join(scriptsDir, 'fixtures');
   const go = async (x, y, wait = 700) => {
     const p = at(x, y);
@@ -221,7 +223,12 @@ async function run(h) {
     // The end's pile holds the video's tile.
     const piled = await pg.waitForSelector('[data-testid=replay-pile]', { timeout: 60000 }).then(() => true, () => false);
     if (piled) {
-      stage.video = await pg.$$eval('[data-testid=replay-pile] *', (els, want) => els.some((e) => getComputedStyle(e).backgroundColor === want), css(paletteRgb('video')));
+      // A video with no still yet shows the madder tile; with its still (made on the web) the picture covers it. Either
+      // way no tile is the old video red.
+      stage.video = await pg.$$eval('[data-testid=replay-pile] *', (els, [want, old]) => {
+        const bgs = els.map((e) => getComputedStyle(e).backgroundColor);
+        return { madder: bgs.includes(want), oldRed: bgs.includes(old), pictures: els.filter((e) => e.tagName === 'IMG').length };
+      }, [css(paletteRgb('video')), 'rgb(180, 35, 24)']);
       await shot(pg, `palette-07-stage-pile-${w}`);
     }
     await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 120000 }).catch(() => null);
@@ -235,7 +242,7 @@ async function run(h) {
   const litOk = (r) => r.seenLit.some((p) => near(p, lit, 30) && !near(p, ACCENT, 60));
   check(!!lit && (litOk(at390) || litOk(at320)),
     `MP14: beat one's lit street is the walked ink under the faint trace, never the accent (want ${JSON.stringify(lit)}; 390 ${JSON.stringify(at390.seenLit)}, 320 ${JSON.stringify(at320.seenLit)})`);
-  const stageOk = (r) => r.stage.memo === css(paletteRgb('voice')) && r.stage.note === css(paletteRgb('text')) && r.stage.video === true;
+  const stageOk = (r) => r.stage.memo === css(paletteRgb('voice')) && r.stage.note === css(paletteRgb('text')) && !!r.stage.video && !r.stage.video.oldRed && (r.stage.video.madder || r.stage.video.pictures > 0);
   check(stageOk(at390) && stageOk(at320),
     `MP9: the replay's stage takes the kinds' colours: the memo's play disc, a note's edge, the pile's video tile (390 ${JSON.stringify(at390.stage)}, 320 ${JSON.stringify(at320.stage)})`);
 
