@@ -4,14 +4,14 @@
 
 Nov 16, 2026 · @Miguel Guerrero
 
-Explore's tiles have a quiet "Go here" that opens a sheet of two choices, Chronicles or the phone's maps app (decision 0188). The owner asked for it on every other surface that shows one place and a way to start a walk to it.
+Explore's tiles have a quiet "Go here" that opens a sheet of two choices, Chronicles or the phone's maps app (decision 0189). The owner asked for it on every other surface that shows one place and a way to start a walk to it.
 
 ## Vision
 
 ```
 Idea: "Go here for the rest of the surfaces that allow it" (the owner, Nov 16): the same quick way to a place, on every surface that already offers a walk to one.
 Verb: earn (Navigate: getting to a place you noticed, which feeds the walk and its moments).
-Touches: 0188 (the tile's Go here: the same two choices, the same words, aligned at the gate Nov 14); 0058 (Open in Maps: only the destination, on a tap; it lists the Explore mark card and the home's Walk here as deferred); 0121 (Walk to starts at once near, asks far; "When I get there" starts nothing); Always "A route is a suggestion", "Capture is one tap away on every screen you walk or capture from" (Chronicle's surfaces carry the capture stack); Never "Several ways ranked by minutes" and "Data leaving the device without a tap" (both hold).
+Touches: 0189 (the tile's Go here: the same two choices, the same words, aligned at the gate Nov 14); 0058 (Open in Maps: only the destination, on a tap; it lists the Explore mark card and the home's Walk here as deferred); 0121 (Walk to starts at once near, asks far; "When I get there" starts nothing); Always "A route is a suggestion", "Capture is one tap away on every screen you walk or capture from" (Chronicle's surfaces carry the capture stack); Never "Several ways ranked by minutes" and "Data leaving the device without a tap" (both hold).
 Verdict: aligned
 Shape: One shared sheet and one set of words on every host (GH2's); the host's own Walk to or Walk here is untouched; Go here is the weakest control on its host, in ink; no minutes, no ranking. On Chronicle's surfaces it never covers or moves the capture stack.
 Criteria: GE1-GE13.
@@ -44,7 +44,7 @@ Not hosts, each with its reason:
 - **The sheet on Chronicle sits at the top**, under the status bar, so it can never cover the capture band; Explore's stays at the foot (the owner, Nov 16).
 - **Chronicle's long-press card offers Go here at a bare spot**, "Your spot", as Explore's does (the owner, Nov 16).
 - **The far footer shows Go here** beside "When I get there"; the sheet is the way to the maps app, and its Chronicles row repeating the button is harmless (the owner, Nov 16).
-- **Inherited from 0188** (Nov 14): Chronicles first, the phone's maps app second; the sheet is a plain card, never a Modal; ink, no fill or border at rest; a saved destination is said to be replaced, once.
+- **Inherited from 0189** (Nov 14): Chronicles first, the phone's maps app second; the sheet is a plain card, never a Modal; ink, no fill or border at rest; a saved destination is said to be replaced, once.
 
 ## Criteria
 
@@ -56,7 +56,7 @@ Not hosts, each with its reason:
 ### The choices
 
 3. **GE3 · The maps app.** Each host hands its own destination to the maps app, straight from the tap: the card's walk target, the row's point, the pressed spot, the star's point. Only the destination leaves the device (0058). A maps app that won't open says so once, with the wording the tile uses (GH7). The link carries the coordinates; the label that Android's `geo:` link also carries is the area's name for an area, a complex or a street, and a neutral "Destination" for a star or a pressed spot, so the owner's own words (a star's title) never leave the device (the steward's S7, 0058).
-4. **GE4 · Chronicles.** On each host Chronicles saves the place as Navigate's destination and opens Navigate, ready (0121's When I get there); no walk starts. With a walk open it does what that host's own Walk to or Walk here does with a walk open (NV10), and the Chronicles row's hint says "Routes your walk" instead of "Opens Navigate, ready", on every host including the tiles (the steward's silence 2, amending 0188's tile). A destination already saved is said to be replaced, once (0188).
+4. **GE4 · Chronicles.** On each host Chronicles saves the place as Navigate's destination and opens Navigate, ready (0121's When I get there); no walk starts. With a walk open it does what that host's own Walk to or Walk here does with a walk open (NV10), and the Chronicles row's hint says "Routes your walk" instead of "Opens Navigate, ready", on every host including the tiles (the steward's silence 2, amending 0189's tile). A destination already saved is said to be replaced, once (0189).
 5. **GE5 · Any distance, and a row too far to walk.** Both choices work at any distance and with no position fix. A storefront or complex row too far to walk, which has no Walk to, still has Go here, whose sheet says "Opens Navigate, ready" and no distance or minutes; the far question (DW2) is never asked by Go here. On the card's footer that is only "When I get there" (too far to walk), Go here is shown too: the sheet is the way to the maps app, and its Chronicles row does the same as the footer's button (a default the owner can overrule).
 
 ### Hosts as they were
@@ -73,7 +73,7 @@ Not hosts, each with its reason:
 ### Truth
 
 11. **GE11 · Nothing new is kept.** The only thing saved is the destination Navigate already holds for no walk (meta `nav`); no new truth or cache, migration or dependency, and no host is asked beyond the maps app's own link on a tap. A tap is not a visit: it feeds familiarity and "New to you" nothing (GH15).
-12. **GE12 · A record.** A decision record cites 0188, 0058 and 0121, lists each host above, says 0058's deferred "Explore mark card" has no card, that the home's Walk here now has Go here beside it, and that the dead-zone nudge stays deferred. It says the star sheet is a place's surface of Navigate, not a moment's toolbar, so 0114's rule on a moment's actions does not apply.
+12. **GE12 · A record.** A decision record cites 0189, 0058 and 0121, lists each host above, says 0058's deferred "Explore mark card" has no card, that the home's Walk here now has Go here beside it, and that the dead-zone nudge stays deferred. It says the star sheet is a place's surface of Navigate, not a moment's toolbar, so 0114's rule on a moment's actions does not apply.
 13. **GE13 · What leaves the device is the destination.** The link handed to the maps app carries the coordinates; the only label on it (Android's `geo:` link) is the area's name for an area, a complex or a street, and "Destination" for a star or a pressed spot. Neither a star's title (the owner's words) nor "Your spot" leaves the device (the steward's S7, 0058).
 
 ## Routes and data
@@ -92,10 +92,10 @@ See `plan.md`.
 - **UI review:** U1 accepted (`go-here-everywhere ui 1`: a complex row's long name wrapped to four lines at 320 px beside two links, so Go here now sits under the name in its column, and the name keeps the width Walk to left it); U4 accepted (`go-here-everywhere ui 2`: the star sheet's Go here lines up with Walk here); the padding part of U5 accepted (`go-here-everywhere ui 3`: 8 px at each sheet row's foot). Rejected: U2 (the wording "Go here" beside "Walk here" is the owner's own word; the sheet carries the difference, and the pairing is accepted); U3 (the close button under Walk here and the attribution overlap were the card's before this slice); U5's "Opens Navigate, ready" and a scrim (the spec's wording; no scrim by design, GH12); U6 (opinion; the label is a Text and scales with the system size).
 - **One flake, said:** `GE7`'s count of the far question's button failed once, 600 ms after the tap, and passed on the next run; the journey now waits for the button.
 - **Weak spots, said:** no journey world has a town with storefronts, so the storefront rows' Go here is covered by the shared code and the complex rows' journey, not its own (`docs/DEFERRED.md`). Chronicle's map section has no capture band (the journal's camera and mic live in Memories), so GE9's boxes there hold by construction.
-- **Deferred:** the peeking-tile limit (0188), the two lines above.
+- **Deferred:** the peeking-tile limit (0189), the two lines above.
 - **Audited Nov 16** (below). Native has never run on a device (`docs/NATIVE_UNVERIFIED.md`).
 
-- **Rebased onto main (Nov 17):** main renamed the card's busy areas to storefronts (decision 0180 there: "busy" becomes storefronts), so the "busy-area rows" this spec and its audit name are the card's storefront rows (`atlas-storefront`, `atlas-storefront-go-here`); the sheet's "where it starts you" line reuses main's `walkViaLine` ("Starts you on <street>"). This slice's decisions were renumbered 0188 and 0189, since main took 0180 and 0182.
+- **Rebased onto main (Nov 17):** main renamed the card's busy areas to storefronts (decision 0180 there: "busy" becomes storefronts), so the "busy-area rows" this spec and its audit name are the card's storefront rows (`atlas-storefront`, `atlas-storefront-go-here`); the sheet's "where it starts you" line reuses main's `walkViaLine` ("Starts you on <street>"). This slice's decisions were renumbered 0189 and 0190, since main took 0180 and 0182.
 
 ## Audit (Nov 16; the auditor, the steward, the UX review and a cold find; it covers the tile slice's shared code too)
 
