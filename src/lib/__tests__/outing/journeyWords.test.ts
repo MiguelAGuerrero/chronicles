@@ -13,15 +13,24 @@ test('OJ9: a destination\'s distance is said as "away", in the units setting, wi
   assert.doesNotMatch(awayLine(27_000, 'km'), BANNED);
 });
 
-test('OJ21: a card says where, what it includes by the chips\' own words, and the distance on foot; no quantity word', async () => {
+test('OJ21: a card says the places in order, what it includes by the chips\' own words, and the distance on foot; no quantity word', { todo: 'test first' }, async () => {
   const { cardSummary } = await import('../../outing/journeyWords');
-  const s = cardSummary({ place: 'Kutztown', labels: ['Antiques', 'Books'], footM: 2100, loop: true }, 'km');
-  assert.match(s, /Kutztown/);
-  assert.match(s, /Antiques and Books/);
-  assert.match(s, /2\.1 km on foot/);
-  assert.doesNotMatch(s.replace(/2\.1 km/, ''), /\d/);
+  const s = cardSummary({ places: ['Emmaus', 'Kutztown'], labels: ['Antiques', 'Books'], footM: 2100 }, 'km');
+  assert.match(s, /^Emmaus and Kutztown\. Antiques and Books\. 2\.1 km on foot\.$/);
   assert.doesNotMatch(s, BANNED);
-  assert.match(cardSummary({ place: null, labels: ['Green'], footM: 900, loop: false }, 'km'), /^Around here\./);
+  assert.match(cardSummary({ places: [null], labels: ['Green'], footM: 900 }, 'km'), /^Around here\./);
+  assert.match(cardSummary({ places: ['Emmaus'], labels: ['History'], footM: 0 }, 'km'), /^Emmaus\. History\.$/, 'a journey of single stops says no distance on foot');
+});
+
+test('OJ23, OJ24, OJ41: a town\'s line, a chapter\'s line and the reach, in words', { todo: 'test first' }, async () => {
+  const w = await import('../../outing/journeyWords');
+  assert.equal(w.townLine(['Antiques', 'History']), 'Antiques and History here.');
+  assert.equal(w.chapterLine({ stops: 1, lengthM: 0, loop: false }, 'km'), 'One stop.');
+  assert.match(w.chapterLine({ stops: 3, lengthM: 1400, loop: true }, 'km'), /^A walk of 1\.4 km, back where it starts\.$/);
+  assert.match(w.chapterLine({ stops: 2, lengthM: 900, loop: false }, 'km'), /one way: the way back is yours\.$/);
+  assert.equal(w.reachLabel(0, 'km'), 'Close by');
+  assert.equal(w.reachLabel(15000, 'km'), '15 km');
+  for (const s of [w.townLine(['Antiques']), w.ANOTHER_LABEL, w.NO_OTHER_LINE, w.FURTHER_LABEL, w.NEXT_MOVE_LINE, w.REACH_LINE]) assert.doesNotMatch(s, BANNED, s);
 });
 
 test('OJ22: nothing to propose is said in one plain line that names the place', async () => {
